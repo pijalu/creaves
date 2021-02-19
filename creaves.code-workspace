@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"previewLimit": 50,
+				"driver": "SQLite",
+				"name": "test",
+				"database": "/home/muaddib/devs/buffalo/logbook_logbook_development.sqlite"
+			}
+		],
+		"sqltools.useNodeRuntime": true
+	}
+}

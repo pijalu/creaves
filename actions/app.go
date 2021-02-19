@@ -19,6 +19,8 @@ import (
 // application is being run. Default is "development".
 var ENV = envy.Get("GO_ENV", "development")
 var app *buffalo.App
+
+// T is translator
 var T *i18n.Translator
 
 // App is where all routes and middleware for buffalo
@@ -60,6 +62,27 @@ func App() *buffalo.App {
 		app.Use(translations())
 
 		app.GET("/", HomeHandler)
+
+		//AuthMiddlewares
+		app.Use(SetCurrentUser)
+		app.Use(Authorize)
+
+		//Routes for Auth
+		auth := app.Group("/auth")
+		auth.GET("/", AuthLanding)
+		auth.GET("/new", AuthNew)
+		auth.POST("/", AuthCreate)
+		auth.DELETE("/", AuthDestroy)
+		auth.Middleware.Skip(Authorize, AuthLanding, AuthNew, AuthCreate)
+
+		//Routes for User registration
+		registrations := app.Group("/registration")
+		registrations.GET("/new", UsersNew)
+		registrations.POST("/", UsersCreate)
+		registrations.Middleware.Remove(Authorize)
+
+		// Routes for users management
+		app.Resource("/users", UsersResource{})
 
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
