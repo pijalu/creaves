@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Logentry</h3>
+</div>
+
+<%= formFor(logentry, {action: logentryPath({ logentry_id: logentry.ID }), method: "PUT"}) { %>
+  <%= partial("logentries/form.html") %>
+  <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>
