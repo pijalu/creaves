@@ -2,11 +2,15 @@
   <h3 class="d-inline-block">User Details</h3>
 
   <div class="float-right">
+    <%= if (current_user.Admin) {%>
     <%= linkTo(usersPath(), {class: "btn btn-info"}) { %>
       Back to all Users
     <% } %>
+    <%} %>
     <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= if (current_user.Admin) {%>
     <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <% } %>
   </div>
 </div>
 

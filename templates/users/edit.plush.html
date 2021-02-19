@@ -3,10 +3,15 @@
 </div>
 
 <%= formFor(user, {action: userPath({ user_id: user.ID }), method: "PUT"}) { %>
+ 
   <%= partial("users/form.html") %>
   <%= if (current_user.Admin) { %>
   <%= partial("users/aform.html") %>
   <% } %>
   <button class="btn btn-success" role="submit">Save</button>
+  <%= if (params["self"]=="true") {%>
+  <%= linkTo(rootPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+  <% } else {%>
   <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+  <% } %>
 <% } %>

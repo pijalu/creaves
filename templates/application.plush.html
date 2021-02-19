@@ -10,6 +10,60 @@
     <link rel="icon" href="<%= assetPath("images/favicon.ico") %>">
   </head>
   <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="<%= rootPath() %>">
+      <img style="height:32px;" alt="LaGrange" src="<%= assetPath("images/lagrange.png") %>">
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="<%= logentriesPath() %>">LogEntries</a>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Dropdown
+          </a>
+          <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+            <a class="dropdown-item" href="#">Action</a>
+            <a class="dropdown-item" href="#">Another action</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="#">Something else here</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link disabled" href="#">Disabled</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+            <%= if (current_user) {%>
+              <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <%= current_user.Email %>
+              </a>
+              <div class="dropdown-menu" aria-labelledby="userDropdown">
+                <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Edit</a>
+
+                <div class="dropdown-divider"></div>
+                <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>">logout</a>
+              </div>
+            </li>
+            <% } else {%>
+            <li class="nav-item">
+                <a href="<%= newAuthPath() %>" class="nav-link">Login</a>
+            </li>
+            <li class="nav-item">
+                <a href="<%= newRegistrationPath() %>" class="nav-link">Register</a>
+            </li>
+            <% } %>
+      </ul>
+    </div>
+  </nav>
+
 
     <div class="container">
       <%= partial("flash.html") %>
