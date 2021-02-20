@@ -36,11 +36,12 @@ func UsersCreate(c buffalo.Context) error {
 		c.Set("errors", verrs)
 		return c.Render(200, r.HTML("users/new.plush.html"))
 	}
-	if u.Approved {
-		c.Session().Set("current_user_id", u.ID)
-	}
-	c.Flash().Add("success", "Welcome to Buffalo!")
 
+	cu := GetCurrentUser(c)
+	if cu == nil {
+		c.Flash().Add("success", "You account is created and will need to be approved!")
+		return c.Redirect(302, "/auth/new")
+	}
 	return c.Redirect(302, "/")
 }
 
@@ -84,7 +85,11 @@ func Authorize(next buffalo.Handler) buffalo.Handler {
 
 // GetCurrentUser retrieve user from middleware
 func GetCurrentUser(c buffalo.Context) *models.User {
-	return c.Value("current_user").(*models.User)
+	cu := c.Value("current_user")
+	if cu == nil {
+		return nil
+	}
+	return cu.(*models.User)
 }
 
 // User management

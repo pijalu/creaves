@@ -19,7 +19,7 @@
   <div class="sign-form">
     <h1>Register</h1>
 
-    <%= formFor(user, {action: usersPath(), method: "POST"}) { %>
+    <%= formFor(user, {action: registrationPath(), method: "POST"}) { %>
       <%= partial("users/form.html") %>
       <button class="btn btn-success">Register!</button>
       <%= linkTo(usersPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
