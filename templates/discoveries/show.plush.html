@@ -1,0 +1,59 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Discovery Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(discoveriesPath(), {class: "btn btn-info"}) { %>
+      Back to all Discoveries
+    <% } %>
+    <%= linkTo(editDiscoveryPath({ discovery_id: discovery.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(discoveryPath({ discovery_id: discovery.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Location</label>
+    <p class="d-inline-block"><%= discovery.Location %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= discovery.Date %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Reason</label>
+    <p class="d-inline-block"><%= discovery.Reason %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Note</label>
+    <p class="d-inline-block"><%= discovery.Note %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Discoverer</label>
+    <p class="d-inline-block"><%= discovery.Discoverer %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">DiscovererID</label>
+    <p class="d-inline-block"><%= discovery.DiscovererID %></p>
+  </li>
+
+
+</ul>

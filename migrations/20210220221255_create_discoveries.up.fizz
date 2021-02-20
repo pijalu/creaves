@@ -1,0 +1,13 @@
+create_table("discoveries") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("location", "string", {})
+	t.Column("date", "datetime", {})
+	t.Column("reason", "text", {null: true})
+	t.Column("note", "text", {null: true})
+	t.Column("discoverer_id", "uuid", {})
+	t.Timestamps()
+
+	t.ForeignKey("discoverer_id", {"discoverers": ["id"]}, {
+		"on_delete": "CASCADE"
+	})
+}

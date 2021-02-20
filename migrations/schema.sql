@@ -19,3 +19,27 @@ CREATE TABLE IF NOT EXISTS "logentries" (
 "updated_at" DATETIME NOT NULL,
 FOREIGN KEY (user_id) REFERENCES users (id)
 );
+CREATE TABLE IF NOT EXISTS "discoverers" (
+"id" TEXT PRIMARY KEY,
+"firstname" TEXT NOT NULL,
+"lastname" TEXT NOT NULL,
+"address" TEXT NOT NULL,
+"city" TEXT NOT NULL,
+"country" TEXT NOT NULL,
+"email" TEXT,
+"phone" TEXT,
+"note" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "discoveries" (
+"id" TEXT PRIMARY KEY,
+"location" TEXT NOT NULL,
+"date" DATETIME NOT NULL,
+"reason" TEXT,
+"note" TEXT,
+"discoverer_id" char(36) NOT NULL,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL,
+FOREIGN KEY (discoverer_id) REFERENCES discoverers (id) ON DELETE CASCADE
+);
