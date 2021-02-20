@@ -34,6 +34,7 @@ RUN apk add --no-cache bash ca-certificates && mkdir -p /data
 WORKDIR /bin/
 
 COPY --from=builder /bin/app .
+COPY dockerscript/* /bin/
 
 # Uncomment to run the binary in "production" mode:
 ENV GO_ENV=production
