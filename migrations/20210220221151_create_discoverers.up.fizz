@@ -1,0 +1,12 @@
+create_table("discoverers") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("firstname", "string", {})
+	t.Column("lastname", "string", {})
+	t.Column("address", "string", {})
+	t.Column("city", "string", {})
+	t.Column("country", "string", {})
+	t.Column("email", "string", {null: true})
+	t.Column("phone", "string", {null: true})
+	t.Column("note", "text", {null: true})
+	t.Timestamps()
+}

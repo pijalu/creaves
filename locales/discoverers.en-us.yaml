@@ -1,0 +1,6 @@
+- id: "discoverer.created.success"
+  translation: "Discoverer was successfully created."
+- id: "discoverer.updated.success"
+  translation: "Discoverer was successfully updated."
+- id: "discoverer.destroyed.success"
+  translation: "Discoverer was successfully destroyed."

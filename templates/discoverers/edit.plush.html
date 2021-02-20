@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Discoverer</h3>
+</div>
+
+<%= formFor(discoverer, {action: discovererPath({ discoverer_id: discoverer.ID }), method: "PUT"}) { %>
+  <%= partial("discoverers/form.html") %>
+  <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>
