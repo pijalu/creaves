@@ -1,0 +1,12 @@
+---
+development:
+  dialect: "sqlite3"
+  database: /data/creaves_development.sqlite
+
+test:
+  dialect: "sqlite3"
+  database: /data/creaves_test.sqlite
+
+production:
+  dialect: "sqlite3"
+  database: /data/creaves_production.sqlite

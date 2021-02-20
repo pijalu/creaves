@@ -7,10 +7,17 @@
 	"settings": {
 		"sqltools.connections": [
 			{
+				"mysqlOptions": {
+					"authProtocol": "default"
+				},
 				"previewLimit": 50,
-				"driver": "SQLite",
-				"name": "test",
-				"database": "/home/muaddib/devs/buffalo/logbook_logbook_development.sqlite"
+				"server": "localhost",
+				"port": 3306,
+				"driver": "MySQL",
+				"name": "Local MySQL",
+				"username": "root",
+				"database": "mysql",
+				"password": "@WinForLife1"
 			}
 		],
 		"sqltools.useNodeRuntime": true
