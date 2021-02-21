@@ -4,6 +4,9 @@ FROM gobuffalo/buffalo:v0.16.21-slim as builder
 
 ENV GO111MODULE on
 ENV GOPROXY http://proxy.golang.org
+# Build as production
+ENV GO_ENV=production
+ENV NODE_ENV=production
 
 # Upgrade buffalo with sqlite3 support
 RUN go get -u -v -tags sqlite github.com/gobuffalo/buffalo/buffalo
