@@ -25,7 +25,7 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
-
+RUN npm install -g webpack@4.42.1
 ADD . .
 # Copy release config
 COPY releaseconfig/* .
