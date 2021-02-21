@@ -1,30 +1,46 @@
 <div class="container p-3 my-3 border">
     <h4>General</h4>  
-    <%= f.InputTag("Location") %>
-    <%= f.DateTimeTag("Date", {format:"2006/01/02 15:04"}) %>
+    <div class="form-row">
+    <%= f.InputTag("Location", {bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+    </div>
+    <div class="form-row">
+    <div class="form-group col-md-12">
+    <label>Date</label>
+    <%= f.DateTimeTag("Date", {class:"form-control", format:"2006/01/02 15:04"}) %>
+    </div>
     <script type="text/javascript">
     $('#discovery-Date').datetimepicker({});
     </script>
+    </div>
 </div>
 <div class="container p-3 my-3 border">
-    <h4>Discoverer</h4>  
-    <%= f.InputTag("Discoverer.Firstname", {label:"First Name"}) %>
-    <%= f.InputTag("Discoverer.Lastname", {label:"Last Name"}) %>
-    <%= f.InputTag("Discoverer.Address", {label:"Address"}) %>
-    <%= f.InputTag("Discoverer.City", {label:"City"}) %>
-    <%= f.InputTag("Discoverer.Country", {label:"Country"}) %>
-    <%= f.InputTag("Discoverer.Email", {label:"Email"}) %>
-    <%= f.InputTag("Discoverer.Phone", {label:"Phone"}) %>
+    <h4>Discoverer</h4>
+  
+    <div class="form-row">  
+    <%= f.InputTag("Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>
+    <%= f.InputTag("Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Last Name"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
+    <%= f.InputTag("Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
+    <%= f.InputTag("Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Phone"}) %>
+    </div>
 </div>
 <div class="container p-3 my-3 border">
     <h4>Details</h4> 
-    <%= f.TextAreaTag("Reason", {rows: 10}) %>
+    <%= f.TextAreaTag("Reason", {rows: 10, class:"col-md-12"}) %>
     <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
     Notes
     </a>
     <div class="collapse" id="DiscoveryNote">
         <div class="card card-body">
-        <textarea class="form-control" id="discovery-Note" name="Note" rows="10"></textarea>
+            <textarea class="form-control col-md-12" id="discovery-Note" name="Note" rows="10"></textarea>
         </div>
     </div>
 </div>
