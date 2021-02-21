@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
@@ -91,7 +92,9 @@ func (v DiscoveriesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Discovery.
 // This function is mapped to the path GET /discoveries/new
 func (v DiscoveriesResource) New(c buffalo.Context) error {
-	c.Set("discovery", &models.Discovery{})
+	d := &models.Discovery{}
+	d.Date = time.Now()
+	c.Set("discovery", d)
 
 	return c.Render(http.StatusOK, r.HTML("/discoveries/new.plush.html"))
 }
@@ -114,10 +117,12 @@ func (v DiscoveriesResource) Create(c buffalo.Context) error {
 	}
 
 	// Validate the data from the html form
-	verrs, err := tx.ValidateAndCreate(discovery)
+	verrs, err := tx.Eager().ValidateAndCreate(discovery)
 	if err != nil {
 		return err
 	}
+
+	c.Logger().Debugf("LaMerde: %v", verrs)
 
 	if verrs.HasAny() {
 		return responder.Wants("html", func(c buffalo.Context) error {
@@ -190,7 +195,7 @@ func (v DiscoveriesResource) Update(c buffalo.Context) error {
 		return err
 	}
 
-	verrs, err := tx.ValidateAndUpdate(discovery)
+	verrs, err := tx.Eager().ValidateAndUpdate(discovery)
 	if err != nil {
 		return err
 	}
@@ -238,7 +243,7 @@ func (v DiscoveriesResource) Destroy(c buffalo.Context) error {
 	discovery := &models.Discovery{}
 
 	// To find the Discovery the parameter discovery_id is used.
-	if err := tx.Find(discovery, c.Param("discovery_id")); err != nil {
+	if err := tx.Eager().Find(discovery, c.Param("discovery_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -252,6 +257,10 @@ func (v DiscoveriesResource) Destroy(c buffalo.Context) error {
 			return err
 		}
 	*/
+
+	if err := tx.Destroy(&discovery.Discoverer); err != nil {
+		return err
+	}
 
 	if err := tx.Destroy(discovery); err != nil {
 		return err

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/gobuffalo/nulls"
-	"github.com/gobuffalo/pop"
-	"github.com/gobuffalo/validate"
-	"github.com/gobuffalo/validate/validators"
+	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/validate/v3"
+	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
 )
 
@@ -43,6 +43,13 @@ func (d Discoveries) String() string {
 // This method is not required and may be deleted.
 func (d *Discovery) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
+		// Discoverer
+		&validators.StringIsPresent{Field: d.Discoverer.Firstname, Name: "Discoverer.Firstname"},
+		&validators.StringIsPresent{Field: d.Discoverer.Lastname, Name: "Discoverer.Lastname"},
+		&validators.StringIsPresent{Field: d.Discoverer.Address, Name: "Discoverer.Address"},
+		&validators.StringIsPresent{Field: d.Discoverer.City, Name: "Discoverer.City"},
+		&validators.StringIsPresent{Field: d.Discoverer.Country, Name: "Discoverer.Country"},
+		// Discovery
 		&validators.StringIsPresent{Field: d.Location, Name: "Location"},
 		&validators.TimeIsPresent{Field: d.Date, Name: "Date"},
 	), nil
