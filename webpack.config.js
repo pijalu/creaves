@@ -95,18 +95,26 @@ const configurator = {
 
     const terser = new TerserPlugin({
       terserOptions: {
-        compress: {},
+        compress: {
+          ecma: 5,
+          inline: 2,
+        },
         mangle: {
-          keep_fnames: true
+          safari10: true,
         },
         output: {
+          ecma: true,
           comments: false,
+          ascii_only: true,
         },
+        parallel: true,
+        cache: true,
       },
       extractComments: false,
     })
 
     config.optimization = {
+      minimize: true,
       minimizer: [terser]
     }
 
