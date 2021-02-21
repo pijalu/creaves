@@ -1,5 +1,9 @@
 <%= f.InputTag("Location") %>
 <%= f.InputTag("Date") %>
+<script type="text/javascript">
+$('#discovery-Date').datetimepicker({});
+</script>
+ 
 <%= f.TextAreaTag("Reason", {rows: 10}) %>
 <%= f.TextAreaTag("Note", {rows: 10}) %>
 <%= f.InputTag("Discoverer") %>
