@@ -4,9 +4,6 @@ FROM gobuffalo/buffalo:v0.16.21-slim as builder
 
 ENV GO111MODULE on
 ENV GOPROXY http://proxy.golang.org
-# Build as production
-ENV GO_ENV=production
-ENV NODE_ENV=production
 
 # Upgrade buffalo with sqlite3 support
 RUN go get -u -v -tags sqlite github.com/gobuffalo/buffalo/buffalo
@@ -25,11 +22,10 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
-RUN npm install -g webpack@4.42.1
 ADD . .
 # Copy release config
 COPY releaseconfig/* .
-RUN buffalo build --static -o /bin/app
+RUN buffalo build --environment production --static -o /bin/app
 
 FROM alpine
 RUN apk add --no-cache bash ca-certificates && mkdir -p /data
