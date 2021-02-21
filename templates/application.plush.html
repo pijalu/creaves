@@ -8,8 +8,12 @@
     <meta name="csrf-param" content="authenticity_token" />
     <meta name="csrf-token" content="<%= authenticity_token %>" />
     <link rel="icon" href="<%= assetPath("images/favicon.ico") %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
+  
+    <%= javascriptTag("application.js") %>
   </head>
   <body>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <a class="navbar-brand" href="<%= rootPath() %>">
       <img style="height:32px;" alt="LaGrange" src="<%= assetPath("images/lagrange-small.png") %>">
@@ -67,6 +71,6 @@
       <%= yield %>
     </div>
 
-    <%= javascriptTag("application.js") %>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/js/all.min.js" integrity="sha512-UwcC/iaz5ziHX7V6LjSKaXgCuRRqbTp1QHpbOJ4l1nw2/boCfZ2KlFIqBUA/uRVF0onbREnY9do8rM/uT/ilqw==" crossorigin="anonymous"></script>
   </body>
 </html>
