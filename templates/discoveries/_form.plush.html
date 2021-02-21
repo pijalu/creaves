@@ -1,7 +1,7 @@
 <div class="container p-3 my-3 border">
     <h4>General</h4>  
     <%= f.InputTag("Location") %>
-    <%= f.InputTag("Date") %>
+    <%= f.DateTimeTag("Date", {format:"2006/01/02 15:04"}) %>
     <script type="text/javascript">
     $('#discovery-Date').datetimepicker({});
     </script>

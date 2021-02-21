@@ -2,6 +2,7 @@ package actions
 
 import (
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/buffalo/binding"
 	"github.com/gobuffalo/envy"
 	forcessl "github.com/gobuffalo/mw-forcessl"
 	paramlogger "github.com/gobuffalo/mw-paramlogger"
@@ -23,6 +24,9 @@ var app *buffalo.App
 // T is translator
 var T *i18n.Translator
 
+// DateTimeFormat is dateformat
+const DateTimeFormat = "2006/01/02 15:04"
+
 // App is where all routes and middleware for buffalo
 // should be defined. This is the nerve center of your
 // application.
@@ -43,6 +47,8 @@ func App() *buffalo.App {
 			SessionName: "_creaves_session",
 		})
 
+		// Register our datetime format
+		binding.RegisterTimeFormats(DateTimeFormat)
 		// Automatically redirect to SSL
 		// app.Use(forceSSL())
 

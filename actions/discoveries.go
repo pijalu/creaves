@@ -110,6 +110,8 @@ func (v DiscoveriesResource) Create(c buffalo.Context) error {
 		return err
 	}
 
+	c.Logger().Debugf("Discovery:%v", discovery)
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
