@@ -88,6 +88,11 @@ const configurator = {
       }
     }
 
+    if( env === "development" ){
+      config.plugins.push(new LiveReloadPlugin({appendScriptTag: true}))
+      return config
+    }
+
     const terser = new TerserPlugin({
       terserOptions: {
         compress: {

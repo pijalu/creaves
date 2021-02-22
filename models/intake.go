@@ -14,6 +14,7 @@ import (
 // Intake is used by pop to map your intakes database table to your go code.
 type Intake struct {
 	ID        uuid.UUID    `json:"id" db:"id"`
+	Date      time.Time    `json:"date" db:"date"`
 	General   string       `json:"general" db:"general"`
 	Wounds    nulls.String `json:"wounds" db:"wounds"`
 	Parasites nulls.String `json:"parasites" db:"parasites"`

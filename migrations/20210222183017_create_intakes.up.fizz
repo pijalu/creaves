@@ -1,5 +1,6 @@
 create_table("intakes") {
 	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "datetime", {})
 	t.Column("general", "text", {})
 	t.Column("wounds", "text", {null: true})
 	t.Column("parasites", "text", {null: true})

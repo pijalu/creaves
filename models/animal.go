@@ -17,10 +17,12 @@ type Animal struct {
 	Age          nulls.String `json:"age" db:"age"`
 	Animaltype   Animaltype   `json:"animaltype" belongs_to:"animaltype"`
 	AnimaltypeID uuid.UUID    `json:"animaltype_id" db:"animaltype_id"`
+	Discovery    Discovery    `json:"discovery" belongs_to:"discovery"`
+	DiscoveryID  uuid.UUID    `json:"discovery_id" db:"discovery_id"`
 	Intake       Intake       `json:"intake" belongs_to:"intake"`
 	IntakeID     uuid.UUID    `json:"intake_id" db:"intake_id"`
 	Outtake      *Outtake     `json:"outtake,omitempty" belongs_to:"outtake"`
-	OuttakeID    *uuid.UUID   `json:"outtake_id" db:"outtake_id"`
+	OuttakeID    nulls.UUID   `json:"outtake_id" db:"outtake_id"`
 	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
 }
