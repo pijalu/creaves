@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Animal</h3>
+</div>
+
+<%= formFor(animal, {action: animalPath({ animal_id: animal.ID }), method: "PUT"}) { %>
+  <%= partial("animals/form.html") %>
+  <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

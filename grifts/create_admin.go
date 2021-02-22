@@ -7,8 +7,7 @@ import (
 	. "github.com/markbates/grift/grift"
 )
 
-var _ = Desc("db:create_admin", "Create admin account")
-var _ = Add("db:create_admin", func(c *Context) error {
+func createAdmin(c *Context) error {
 	u := &models.User{
 		Email:    "admin",
 		Password: "admin",
@@ -25,6 +24,6 @@ var _ = Add("db:create_admin", func(c *Context) error {
 		fmt.Printf("Admin already exists - skipping creation \n")
 		return nil
 	}
-	fmt.Printf("Creating administrator acccount: %s/%s", u.Email, u.Password)
+	fmt.Printf("Creating administrator acccount: %s/%s\n", u.Email, u.Password)
 	return models.DB.Create(u)
-})
+}

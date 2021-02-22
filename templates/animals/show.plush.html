@@ -1,0 +1,52 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Animal Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(animalsPath(), {class: "btn btn-info"}) { %>
+      Back to all Animals
+    <% } %>
+    <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Number</label>
+    <p class="d-inline-block"><%= animal.Number %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Ring</label>
+    <p class="d-inline-block"><%= animal.Ring %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">AnimalType</label>
+    <p class="d-inline-block"><%= animal.AnimalType %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">AnimalTypeID</label>
+    <p class="d-inline-block"><%= animal.AnimalTypeID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Age</label>
+    <p class="d-inline-block"><%= animal.Age %></p>
+  </li>
+
+
+</ul>

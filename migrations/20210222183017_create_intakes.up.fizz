@@ -1,0 +1,8 @@
+create_table("intakes") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("general", "text", {})
+	t.Column("wounds", "text", {null: true})
+	t.Column("parasites", "text", {null: true})
+	t.Column("remarks", "text", {null: true})
+	t.Timestamps()
+}

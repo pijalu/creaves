@@ -1,0 +1,6 @@
+- id: "intake.created.success"
+  translation: "Intake was successfully created."
+- id: "intake.updated.success"
+  translation: "Intake was successfully updated."
+- id: "intake.destroyed.success"
+  translation: "Intake was successfully destroyed."

@@ -1,0 +1,10 @@
+create_table("outtakes") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "timestamp", {})
+	t.Column("outtaketype_id", "uuid", {})
+	t.Column("location", "string", {null: true})
+	t.Column("note", "text", {null: true})
+	t.Timestamps()
+
+	t.ForeignKey("outtaketype_id", {"outtaketypes": ["id"]})
+}

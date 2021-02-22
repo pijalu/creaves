@@ -1,0 +1,5 @@
+drop_index("users", "email")
+drop_index("animals", "number")
+
+drop_index("animaltypes", "name")
+drop_index("outtaketytpe", "name")

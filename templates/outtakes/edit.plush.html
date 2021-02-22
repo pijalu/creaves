@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Outtake</h3>
+</div>
+
+<%= formFor(outtake, {action: outtakePath({ outtake_id: outtake.ID }), method: "PUT"}) { %>
+  <%= partial("outtakes/form.html") %>
+  <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

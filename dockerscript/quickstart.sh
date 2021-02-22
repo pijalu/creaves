@@ -3,5 +3,5 @@
 echo "Quick start creaves (dev)"
 unset GO_ENV
 /bin/app migrate && \
-    /bin/app task db:create_admin && \
+    /bin/app task db:seed && \
     /bin/app

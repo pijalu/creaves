@@ -1,0 +1,6 @@
+- id: "outtake.created.success"
+  translation: "Outtake was successfully created."
+- id: "outtake.updated.success"
+  translation: "Outtake was successfully updated."
+- id: "outtake.destroyed.success"
+  translation: "Outtake was successfully destroyed."

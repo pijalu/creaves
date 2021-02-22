@@ -43,3 +43,53 @@ CREATE TABLE IF NOT EXISTS "discoveries" (
 "updated_at" DATETIME NOT NULL,
 FOREIGN KEY (discoverer_id) REFERENCES discoverers (id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS "animaltypes" (
+"id" TEXT PRIMARY KEY,
+"name" TEXT NOT NULL,
+"description" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "intakes" (
+"id" TEXT PRIMARY KEY,
+"general" TEXT NOT NULL,
+"wounds" TEXT,
+"parasites" TEXT,
+"remarks" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "outtaketypes" (
+"id" TEXT PRIMARY KEY,
+"name" TEXT NOT NULL,
+"description" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "outtakes" (
+"id" TEXT PRIMARY KEY,
+"date" DATETIME NOT NULL,
+"outtaketype_id" char(36) NOT NULL,
+"location" TEXT,
+"note" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL,
+FOREIGN KEY (outtaketype_id) REFERENCES outtaketypes (id)
+);
+CREATE TABLE IF NOT EXISTS "animals" (
+"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+"ring" TEXT,
+"animaltype_id" char(36) NOT NULL,
+"intake_id" char(36) NOT NULL,
+"outtake_id" char(36),
+"age" TEXT,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL,
+FOREIGN KEY (animaltype_id) REFERENCES animaltypes (id),
+FOREIGN KEY (intake_id) REFERENCES intakes (id),
+FOREIGN KEY (outtake_id) REFERENCES outtakes (id)
+);
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE UNIQUE INDEX "users_email_idx" ON "users" (email);
+CREATE UNIQUE INDEX "animaltypes_name_idx" ON "animaltypes" (name);
+CREATE UNIQUE INDEX "outtaketypes_name_idx" ON "outtaketypes" (name);
