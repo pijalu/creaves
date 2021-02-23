@@ -1,12 +1,14 @@
 create_table("animals") {
 	t.Column("id", "integer", {primary: true})
 	
+	t.Column("species", "string", {})
+	t.Column("age", "string", {})
+
 	t.Column("ring", "string", {null: true})
 	t.Column("animaltype_id", "uuid", {})
 	t.Column("discovery_id", "uuid", {})
 	t.Column("intake_id", "uuid", {})
 	t.Column("outtake_id", "uuid", {null:true})
-	t.Column("age", "string", {null: true})
 	t.Timestamps()
 
 	t.ForeignKey("animaltype_id", {"animaltypes": ["id"]})

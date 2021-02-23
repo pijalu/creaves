@@ -47,11 +47,13 @@ CREATE TABLE IF NOT EXISTS "animaltypes" (
 "id" TEXT PRIMARY KEY,
 "name" TEXT NOT NULL,
 "description" TEXT,
+"def" bool NOT NULL DEFAULT 'false',
 "created_at" DATETIME NOT NULL,
 "updated_at" DATETIME NOT NULL
 );
 CREATE TABLE IF NOT EXISTS "intakes" (
 "id" TEXT PRIMARY KEY,
+"date" DATETIME NOT NULL,
 "general" TEXT NOT NULL,
 "wounds" TEXT,
 "parasites" TEXT,
@@ -63,6 +65,7 @@ CREATE TABLE IF NOT EXISTS "outtaketypes" (
 "id" TEXT PRIMARY KEY,
 "name" TEXT NOT NULL,
 "description" TEXT,
+"def" bool NOT NULL DEFAULT 'false',
 "created_at" DATETIME NOT NULL,
 "updated_at" DATETIME NOT NULL
 );
@@ -78,14 +81,17 @@ FOREIGN KEY (outtaketype_id) REFERENCES outtaketypes (id)
 );
 CREATE TABLE IF NOT EXISTS "animals" (
 "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+"species" TEXT NOT NULL,
+"age" TEXT NOT NULL,
 "ring" TEXT,
 "animaltype_id" char(36) NOT NULL,
+"discovery_id" char(36) NOT NULL,
 "intake_id" char(36) NOT NULL,
 "outtake_id" char(36),
-"age" TEXT,
 "created_at" DATETIME NOT NULL,
 "updated_at" DATETIME NOT NULL,
 FOREIGN KEY (animaltype_id) REFERENCES animaltypes (id),
+FOREIGN KEY (discovery_id) REFERENCES discovery (id),
 FOREIGN KEY (intake_id) REFERENCES intakes (id),
 FOREIGN KEY (outtake_id) REFERENCES outtakes (id)
 );

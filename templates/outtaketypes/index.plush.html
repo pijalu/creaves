@@ -10,12 +10,16 @@
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Name</th>
+    <th>Description</th>
+    <th>Default</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (outtaketype) in outtaketypes { %>
       <tr>
         <td class="align-middle"><%= outtaketype.Name %></td>
+        <td class="align-middle"><%= outtaketype.Description %></td>
+        <td class="align-middle"><%= outtaketype.Default %></td>
         <td>
           <div class="float-right">
             <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-info", body: "View"}) %>

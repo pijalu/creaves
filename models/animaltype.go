@@ -15,6 +15,7 @@ import (
 type Animaltype struct {
 	ID          uuid.UUID    `json:"id" db:"id"`
 	Name        string       `json:"name" db:"name"`
+	Default     bool         `json:"default" db:"def"`
 	Description nulls.String `json:"description" db:"description"`
 	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`

@@ -14,7 +14,8 @@ import (
 type Animal struct {
 	ID           int          `json:"id" db:"id"`
 	Ring         nulls.String `json:"ring" db:"ring"`
-	Age          nulls.String `json:"age" db:"age"`
+	Age          string       `json:"age" db:"age"`
+	Species      string       `json:"species" db:"species"`
 	Animaltype   Animaltype   `json:"animaltype" belongs_to:"animaltype"`
 	AnimaltypeID uuid.UUID    `json:"animaltype_id" db:"animaltype_id"`
 	Discovery    Discovery    `json:"discovery" belongs_to:"discovery"`

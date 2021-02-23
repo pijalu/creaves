@@ -12,12 +12,13 @@ func createAnimaltypes(c *Context) error {
 	ts := []struct {
 		name        string
 		description string
+		def         bool
 	}{
 		{name: "Hedgehog", description: ""},
 		{name: "Raptor", description: ""},
 		{name: "Mammals", description: ""},
 		{name: "Bird", description: ""},
-		{name: "Other", description: ""},
+		{name: "Other", description: "", def: true},
 	}
 
 	for _, t := range ts {
@@ -28,6 +29,7 @@ func createAnimaltypes(c *Context) error {
 			if err := models.DB.Create(&models.Animaltype{
 				Name:        t.name,
 				Description: nulls.NewString(t.description),
+				Default:     t.def,
 			}); err != nil {
 				return err
 			}

@@ -4,9 +4,15 @@ function setupWizard() {
     var navListItems = $('div.setup-panel div a'),
         allWells = $('.setup-content'),
         allNextBtn = $('.nextBtn'),
-        allPrevBtn = $('.prevBtn');
+        allPrevBtn = $('.prevBtn'),
+        allForms = $('form');
 
     allWells.hide();
+
+    allForms.on("submit", function (e) {
+       var v = $(this).isValid();
+       return v;
+    });
 
     navListItems.on("click", function (e) {
         e.preventDefault();

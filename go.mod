@@ -14,6 +14,8 @@ require (
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/gobuffalo/pop/v5 v5.3.2
 	github.com/gobuffalo/suite/v3 v3.0.2
+	github.com/gobuffalo/tags v2.1.7+incompatible
+	github.com/gobuffalo/tags/v3 v3.1.0
 	github.com/gobuffalo/validate/v3 v3.1.0
 	github.com/gobuffalo/x v0.0.0-20190224155809-6bb134105960
 	github.com/gofrs/uuid v3.2.0+incompatible
