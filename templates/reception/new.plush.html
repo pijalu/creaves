@@ -25,7 +25,6 @@
                 <%= f.InputTag("Ring") %>
                 <%= f.SelectTag("AnimaltypeID", {
                     label: "Type",
-            		placeholder: "Select a country",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
 
@@ -34,19 +33,94 @@
         </div>
     </div>
 </div>
-<div class="row setup-content" id="step-2">
+<div class="setup-content" id="step-2">
         <div class="col-xs-12">
             <div class="col-md-12">
-                <p>Here be Dragons</p>
+                    
+                <div class="container p-3 my-3 border">
+                    <div class="form-row">
+                    <%= f.InputTag("Discovery.Location", {label:"Location", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+                    </div>
+                    <div class="form-row">
+                    <div class="form-group col-md-12">
+                    <label>Date</label>
+                    <%= f.DateTimeTag("Discovery.Date", {id:"discdate", label:"Date", required: "required", class:"form-control", format:"2006/01/02 15:04"}) %>
+                    </div>
+                    <script type="text/javascript">
+                    $('#discdate').datetimepicker({});
+                    </script>
+                    </div>
+                </div>
+                <div class="container p-3 my-3 border">
+                    <h4>Discoverer</h4>
+                
+                    <div class="form-row">  
+                    <%= f.InputTag("Discovery.Discoverer.Firstname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Lastname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Last Name"}) %>
+                    </div>
+                    <div class="form-row">
+                    <%= f.InputTag("Discovery.Discoverer.Address", {required: "required", bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
+                    </div>
+                    <div class="form-row">
+                    <%= f.InputTag("Discovery.Discoverer.City", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Country", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+                    </div>
+                    <div class="form-row">
+                    <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Phone"}) %>
+                    </div>
+                </div>
+                <div class="container p-3 my-3 border">
+                    <h4>Details</h4> 
+                    <%= f.TextAreaTag("Discovery.Reason", {label:"Reason", rows: 10, class:"col-md-12"}) %>
+                    <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Notes
+                    </a>
+                    <div class="collapse" id="DiscoveryNote">
+                        <div class="card card-body">
+                            <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
+                        </div>
+                    </div>
+                </div>
                 <button class="btn btn-primary prevBtn btn-lg pull-right" type="button" >Previous</button>
                 <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Next</button>
             </div>
         </div>
     </div>
-    <div class="row setup-content" id="step-3">
+    <div class="setup-content" id="step-3">
         <div class="col-xs-12">
             <div class="col-md-12">
-                <p>Here be Dragons</p>
+                <div class="container p-3 my-3 border">
+                <%= f.TextAreaTag("Intake.General", {label:"General", required:"required", rows: 10}) %>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Wounds
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasites
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Remarks
+                </a>
+                <div class="collapse" id="Remarks">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="10"></textarea>
+                    </div>
+                </div>
+                </div>
+                <button class="btn btn-primary prevBtn btn-lg pull-right" type="button" >Previous</button>
                 <button class="btn btn-success btn-lg pull-right" type="submit">Finish!</button>
             </div>
         </div>
