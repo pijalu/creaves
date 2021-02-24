@@ -12,7 +12,7 @@ create_table("animals") {
 	t.Timestamps()
 
 	t.ForeignKey("animaltype_id", {"animaltypes": ["id"]})
-	t.ForeignKey("discovery_id", {"discovery": ["id"]})
+	t.ForeignKey("discovery_id", {"discoveries": ["id"]})
 	t.ForeignKey("intake_id", {"intakes": ["id"]})
 	t.ForeignKey("outtake_id", {"outtakes": ["id"]})
 }

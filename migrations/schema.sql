@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS "animals" (
 "created_at" DATETIME NOT NULL,
 "updated_at" DATETIME NOT NULL,
 FOREIGN KEY (animaltype_id) REFERENCES animaltypes (id),
-FOREIGN KEY (discovery_id) REFERENCES discovery (id),
+FOREIGN KEY (discovery_id) REFERENCES discoveries (id),
 FOREIGN KEY (intake_id) REFERENCES intakes (id),
 FOREIGN KEY (outtake_id) REFERENCES outtakes (id)
 );

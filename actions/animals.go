@@ -43,7 +43,7 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Animals from the DB
-	if err := q.All(animals); err != nil {
+	if err := q.Eager().All(animals); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	animal := &models.Animal{}
 
 	// To find the Animal the parameter animal_id is used.
-	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
+	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -114,9 +114,17 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 	}
 
 	// Validate the data from the html form
-	verrs, err := tx.ValidateAndCreate(animal)
+	// 2 steps
+	verrs, err := tx.Eager().ValidateAndCreate(&animal.Discovery)
 	if err != nil {
 		return err
+	}
+	if !verrs.HasAny() {
+		c.Logger().Debugf("Animal: %v", animal)
+		verrs, err = tx.Eager().ValidateAndCreate(animal)
+		if err != nil {
+			return err
+		}
 	}
 
 	if verrs.HasAny() {
@@ -161,7 +169,7 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Animal
 	animal := &models.Animal{}
 
-	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
+	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -181,7 +189,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	// Allocate an empty Animal
 	animal := &models.Animal{}
 
-	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
+	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -238,7 +246,7 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	animal := &models.Animal{}
 
 	// To find the Animal the parameter animal_id is used.
-	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
+	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 

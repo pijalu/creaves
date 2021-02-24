@@ -18,7 +18,7 @@ type Discovery struct {
 	Date         time.Time    `json:"date" db:"date"`
 	Reason       nulls.String `json:"reason" db:"reason"`
 	Note         nulls.String `json:"note" db:"note"`
-	Discoverer   Discoverer   `belongs_to:"discoverer" json:"discoverer,omitempty"`
+	Discoverer   Discoverer   `belongs_to:"discoverer" json:"discoverer"`
 	DiscovererID uuid.UUID    `json:"discoverer_id" db:"discoverer_id"`
 	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
