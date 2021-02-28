@@ -42,12 +42,20 @@
                     <%= f.InputTag("Discovery.Location", {label:"Location", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
                     </div>
                     <div class="form-row">
+                    
                     <div class="form-group col-md-12">
-                    <label>Date</label>
-                    <%= f.DateTimeTag("Discovery.Date", {id:"discdate", label:"Date", required: "required", class:"form-control", format:"2006/01/02 15:04"}) %>
+                        <label>Date</label>
+                        <div class="input-group md-12">
+                            <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>">
+                            <div class="input-group-append">
+                                <div class="input-group-text">
+                                    <i class="fa fa-calendar" aria-hidden="true"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <script type="text/javascript">
-                    $('#discdate').datetimepicker({});
+                        $('#discodate').datetimepicker({format:'Y/m/d H:i'});
                     </script>
                     </div>
                 </div>

@@ -24,9 +24,6 @@ var app *buffalo.App
 // T is translator
 var T *i18n.Translator
 
-// DateTimeFormat is dateformat
-const DateTimeFormat = "2006/01/02 15:04"
-
 // App is where all routes and middleware for buffalo
 // should be defined. This is the nerve center of your
 // application.
@@ -48,7 +45,7 @@ func App() *buffalo.App {
 		})
 
 		// Register our datetime format
-		binding.RegisterTimeFormats(DateTimeFormat)
+		binding.RegisterTimeFormats(models.DateTimeFormat)
 		// Automatically redirect to SSL
 		// app.Use(forceSSL())
 

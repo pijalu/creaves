@@ -24,6 +24,11 @@ type Discovery struct {
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
 }
 
+// DateFormated returns a formated date
+func (d Discovery) DateFormated() string {
+	return d.Date.Format(DateTimeFormat)
+}
+
 // String is not required by pop and may be deleted
 func (d Discovery) String() string {
 	jd, _ := json.Marshal(d)
