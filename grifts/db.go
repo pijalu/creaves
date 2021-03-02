@@ -10,6 +10,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createAdmin(c); err != nil {
 			return err
 		}
+		if err := createAnimalage(c); err != nil {
+			return err
+		}
 		if err := createAnimaltypes(c); err != nil {
 			return err
 		}

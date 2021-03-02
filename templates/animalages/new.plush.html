@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">New age</h3>
+</div>
+
+<%= formFor(animalage, {action: animalagesPath(), method: "POST"}) { %>
+  <%= partial("animalages/form.html") %>
+  <%= linkTo(animalagesPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

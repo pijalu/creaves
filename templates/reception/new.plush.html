@@ -12,7 +12,7 @@
             <p>Step 2: Fill discovery information</p>
         </div>
         <div class="stepwizard-step">
-            <a href="#step-3" type="button" class="btn btn-default btn-circle disabled">2</a>
+            <a href="#step-3" type="button" class="btn btn-default btn-circle disabled">3</a>
             <p>Step 3: Fill intake information</p>
         </div>
     </div>
@@ -23,12 +23,15 @@
         <div class="form-group col-md-12">
                 <%= f.InputTag("Species", {required: "required"})%>
                 <%= f.InputTag("Ring") %>
+                <%= f.SelectTag("AnimalageID", {
+                    label: "Age",
+                    options: selectAnimalages, 
+                    required:"required"}) %>
+
                 <%= f.SelectTag("AnimaltypeID", {
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
-
-                <%= f.InputTag("Age" ,{required: "required"}) %>
                 <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Next</button>
         </div>
     </div>

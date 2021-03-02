@@ -76,3 +76,30 @@ func outtakeTypesToSelectables(ts *models.Outtaketypes) form.Selectables {
 	}
 	return res
 }
+
+func animalages(c buffalo.Context) (*models.Animalages, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.Animalages{}
+	if err := tx.Order("name asc").All(ts); err != nil {
+		return nil, err
+	}
+	c.Logger().Debugf("Loaded animal types: %v", ts)
+
+	return ts, nil
+}
+
+func animalagesToSelectables(ts *models.Animalages) form.Selectables {
+	res := []form.Selectable{}
+
+	for _, ts := range *ts {
+		res = append(res, &selType{
+			label: ts.Name,
+			value: ts.ID,
+		})
+	}
+	return res
+}

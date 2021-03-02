@@ -18,6 +18,12 @@ func ReceptionNew(c buffalo.Context) error {
 	}
 	c.Set("selectAnimalTypes", animalTypesToSelectables(at))
 
+	aa, err := animalages(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectAnimalages", animalagesToSelectables(aa))
+
 	a := &models.Animal{}
 
 	a.Discovery.Date = n

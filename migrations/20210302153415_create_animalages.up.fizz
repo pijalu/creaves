@@ -1,0 +1,7 @@
+create_table("animalages") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("name", "string", {})
+	t.Column("description", "text", {null: true})
+	t.Column("def", "bool", {})
+	t.Timestamps()
+}

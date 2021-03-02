@@ -82,8 +82,9 @@ FOREIGN KEY (outtaketype_id) REFERENCES outtaketypes (id)
 CREATE TABLE IF NOT EXISTS "animals" (
 "id" INTEGER PRIMARY KEY AUTOINCREMENT,
 "species" TEXT NOT NULL,
-"age" TEXT NOT NULL,
 "ring" TEXT,
+"cage" TEXT,
+"animalage_id" char(36) NOT NULL,
 "animaltype_id" char(36) NOT NULL,
 "discovery_id" char(36) NOT NULL,
 "intake_id" char(36) NOT NULL,
@@ -99,3 +100,11 @@ CREATE TABLE sqlite_sequence(name,seq);
 CREATE UNIQUE INDEX "users_email_idx" ON "users" (email);
 CREATE UNIQUE INDEX "animaltypes_name_idx" ON "animaltypes" (name);
 CREATE UNIQUE INDEX "outtaketypes_name_idx" ON "outtaketypes" (name);
+CREATE TABLE IF NOT EXISTS "animalages" (
+"id" TEXT PRIMARY KEY,
+"name" TEXT NOT NULL,
+"description" TEXT,
+"def" bool NOT NULL,
+"created_at" DATETIME NOT NULL,
+"updated_at" DATETIME NOT NULL
+);
