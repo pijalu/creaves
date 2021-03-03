@@ -76,6 +76,12 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
+	// force 2nd level
+	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+
+	c.Logger().Debugf("Loaded animal: %v", animal)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)

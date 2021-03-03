@@ -1,5 +1,5 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Animal Details</h3>
+  <h3 class="d-inline-block">Animal number <%= animal.ID %></h3>
 
   <div class="float-right">
     <%= linkTo(animalsPath(), {class: "btn btn-info"}) { %>
@@ -12,32 +12,132 @@
 
 
 
-<ul class="list-group mb-2 ">
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">General</a>
+    <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Discovery</a>
+    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
+
+    <%= if (animal.OuttakeID.Value() != nil ) {%>
+      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Release</a>
+    <% } %>
+  </div>
+</nav>
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Number</label>
+        <p class="d-inline-block"><%= animal.ID %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Species</label>
+        <p class="d-inline-block"><%= animal.Species %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Cage</label>
+        <p class="d-inline-block"><%= animal.Cage %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Ring</label>
+        <p class="d-inline-block"><%= animal.Ring %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Type</label>
+        <p class="d-inline-block"><%= animal.Animaltype.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Age</label>
+        <p class="d-inline-block"><%= animal.Animalage.Name %></p>
+      </li>
+    </ul>
+  </div>
 
 
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Number</label>
-    <p class="d-inline-block"><%= animal.ID %></p>
-  </li>
+  <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
+      <ul class="list-group mb-2 ">
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Location</label>
+          <p class="d-inline-block"><%= animal.Discovery.Location %></p>
+        </li>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Date</label>
+          <p class="d-inline-block"><%= animal.Discovery.Date %></p>
+        </li>
+        <%= if ( len(animal.Discovery.Reason.Value()) > 0 ) {%>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Reason</label>
+          <p class="d-inline-block"><%= animal.Discovery.Reason %></p>
+        </li>
+        <% } %>
+        <%= if ( len(animal.Discovery.Note.Value()) > 0 ) {%>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Note</label>
+          <p class="d-inline-block"><%= animal.Discovery.Note %></p>
+        </li>
+        <% } %>
+      </ul>
+      <a class="btn btn-primary" data-toggle="collapse" href="#Discoverer" role="button" aria-expanded="false" aria-controls="collapseDiscoverer">
+        Discoverer
+      </a>
+      <div class="collapse" id="Discoverer">
+                          
+        <ul class="list-group mb-2 ">
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Name</label>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Firstname %></p>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Lastname %></p>
+          </li>
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Address</label>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Address %></p>
+            <br/>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.City %></p>
+            <br/>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Country %></p>
+          </li>
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Contacts</label>
+            <%= if ( len(animal.Discovery.Discoverer.Email.Value()) > 0 ) {%>
+            <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Email %></p>
+            <% } %>
+            <br/>
+            <%= if ( len(animal.Discovery.Discoverer.Phone.Value()) > 0 ) {%>
+            <p class="d-inline-block"><i class="fas fa-phone-square"></i><%= animal.Discovery.Discoverer.Phone %></p>
+            <% } %>
+          </li>
+        </ul>
+      </div>
+  </div>
+  
+  
+  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+      <h1>Treatment TBD</h1>
+  </div>
+
+  <%= if (animal.OuttakeID.Value() != nil) {%>
+  <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Date</label>
+        <p class="d-inline-block"><%= animal.Outtake.Date %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Type</label>
+        <p class="d-inline-block"><%= animal.Outtake.Type.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Location</label>
+        <p class="d-inline-block"><%= animal.Outtake.Location %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Note</label>
+        <p class="d-inline-block"><%= animal.Outtake.Note %></p>
+      </li>
+    </ul>
+  </div>
+  <% } %>
 
 
+</div>
 
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Ring</label>
-    <p class="d-inline-block"><%= animal.Ring %></p>
-  </li>
-
-
-
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Animal type</label>
-    <p class="d-inline-block"><%= animal.Animaltype.Name %></p>
-  </li>
-
-
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Age</label>
-    <p class="d-inline-block"><%= animal.Animalage.Name %></p>
-  </li>
-
-</ul>

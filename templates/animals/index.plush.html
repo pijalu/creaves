@@ -9,16 +9,23 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Number</th><th>Ring</th><th>AnimalType</th><th>Age</th>
+    <th>Number</th>
+    <th>Cage</th>
+    <th>Type</th>
+    <th>Species</th>
+    <th>Age</th>
+    <th>Ring</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animals { %>
       <tr>
         <td class="align-middle"><%= animal.ID %></td>
-        <td class="align-middle"><%= animal.Ring %></td>
+        <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle"><%= animal.Animaltype.Name %></td>
+        <td class="align-middle"><%= animal.Species %></td>
         <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= animal.Ring %></td>
         <td>
           <div class="float-right">
             <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-info", body: "View"}) %>
