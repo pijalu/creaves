@@ -1,5 +1,155 @@
-<%= f.InputTag("Ring") %>
-<%= f.InputTag("AnimalType") %>
-<%= f.InputTag("AnimalTypeID") %>
-<%= f.InputTag("Age") %>
+
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">General</a>
+    <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Discovery</a>
+    <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Intake</a>
+    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
+    <%= if (animal.OuttakeID.Value() != nil ) {%>
+      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Release</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.InputTag("Species", {required: "required"})%>
+                <%= f.InputTag("Cage") %>
+                <%= f.InputTag("Ring") %>
+                <%= f.SelectTag("AnimalageID", {
+                    label: "Age",
+                    options: selectAnimalages, 
+                    required:"required"}) %>
+
+                <%= f.SelectTag("AnimaltypeID", {
+                    label: "Type",
+                    options: selectAnimalTypes, 
+                    required:"required"}) %>
+        </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
+    <div class="container p-3 my-3 border">
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Location", {label:"Location", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+        </div>
+        <div class="form-row">
+        
+        <div class="form-group col-md-12">
+            <label>Date</label>
+            <div class="input-group md-12">
+                <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>">
+                <div class="input-group-append">
+                    <div class="input-group-text">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $('#discodate').datetimepicker({format:'Y/m/d H:i'});
+        </script>
+        </div>
+    </div>
+    <div class="container p-3 my-3 border">
+        <h4>Discoverer</h4>
+    
+        <div class="form-row">  
+        <%= f.InputTag("Discovery.Discoverer.Firstname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Lastname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Last Name"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.Address", {required: "required", bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.City", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Country", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Phone"}) %>
+        </div>
+    </div>
+    <div class="container p-3 my-3 border">
+        <h4>Details</h4> 
+        <%= f.TextAreaTag("Discovery.Reason", {label:"Reason", rows: 10, class:"col-md-12"}) %>
+        <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Notes
+        </a>
+        <div class="collapse" id="DiscoveryNote">
+            <div class="card card-body">
+                <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
+            </div>
+        </div>
+    </div>
+    </div>  
+  
+   <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <div class="container p-3 my-3 border">
+                <%= f.TextAreaTag("Intake.General", {label:"General", required:"required", rows: 10}) %>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Wounds
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasites
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Remarks
+                </a>
+                <div class="collapse" id="Remarks">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="10"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+      <h1>Treatment TBD</h1>
+  </div>
+
+  <%= if (animal.OuttakeID.Value() != nil) {%>
+  <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Date</label>
+        <p class="d-inline-block"><%= animal.Outtake.Date %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Type</label>
+        <p class="d-inline-block"><%= animal.Outtake.Type.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Location</label>
+        <p class="d-inline-block"><%= animal.Outtake.Location %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Note</label>
+        <p class="d-inline-block"><%= animal.Outtake.Note %></p>
+      </li>
+    </ul>
+  </div>
+  <% } %>
+</div>
+
 <button class="btn btn-success" role="submit">Save</button>

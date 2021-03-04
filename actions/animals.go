@@ -7,6 +7,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
 )
 
@@ -172,10 +173,26 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	at, err := animalTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectAnimalTypes", animalTypesToSelectables(at))
+
+	aa, err := animalages(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectAnimalages", animalagesToSelectables(aa))
+
 	// Allocate an empty Animal
 	animal := &models.Animal{}
 
 	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	// force 2nd level
+	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -204,9 +221,29 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return err
 	}
 
-	verrs, err := tx.ValidateAndUpdate(animal)
-	if err != nil {
-		return err
+	c.Logger().Debugf("Updating animal: %v", animal)
+
+	// Fix link
+	animal.Discovery.Discoverer.ID = animal.Discovery.DiscovererID
+
+	// Validate the data from the html form
+	updateModels := []interface{}{
+		&animal.Discovery.Discoverer,
+		&animal.Discovery,
+		&animal.Intake,
+		animal,
+	}
+
+	var verrs *validate.Errors
+	var err error
+	for _, m := range updateModels {
+		verrs, err = tx.Eager().ValidateAndUpdate(m)
+		if err != nil {
+			return err
+		}
+		if verrs.HasAny() {
+			break
+		}
 	}
 
 	if verrs.HasAny() {
@@ -256,7 +293,7 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	if err := tx.Destroy(animal); err != nil {
+	if err := tx.Eager().Destroy(animal); err != nil {
 		return err
 	}
 
