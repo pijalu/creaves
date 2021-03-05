@@ -81,6 +81,12 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
+	if animal.Outtake != nil {
+		c.Logger().Debugf("Loading outtake")
+		if err := tx.Eager().Find(animal.Outtake, animal.OuttakeID); err != nil {
+			return c.Error(http.StatusNotFound, err)
+		}
+	}
 
 	c.Logger().Debugf("Loaded animal: %v", animal)
 
@@ -185,6 +191,12 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	}
 	c.Set("selectAnimalages", animalagesToSelectables(aa))
 
+	ot, err := outtakeTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+
 	// Allocate an empty Animal
 	animal := &models.Animal{}
 
@@ -194,6 +206,11 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	// force 2nd level
 	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+	if animal.Outtake != nil {
+		if err := tx.Eager().Find(animal.Outtake, animal.OuttakeID); err != nil {
+			return c.Error(http.StatusNotFound, err)
+		}
 	}
 
 	c.Set("animal", animal)
@@ -231,12 +248,16 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		&animal.Discovery.Discoverer,
 		&animal.Discovery,
 		&animal.Intake,
+		animal.Outtake,
 		animal,
 	}
 
 	var verrs *validate.Errors
 	var err error
 	for _, m := range updateModels {
+		if m == nil {
+			continue
+		}
 		verrs, err = tx.Eager().ValidateAndUpdate(m)
 		if err != nil {
 			return err

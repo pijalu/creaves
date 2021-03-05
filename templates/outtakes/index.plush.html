@@ -9,13 +9,15 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Date</th><th>Type</th><th>TypeID</th><th>Location</th>
+    <th>Date</th><th>Type</th><th>Location</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (outtake) in outtakes { %>
       <tr>
-        <td class="align-middle"><%= outtake.Date %></td><td class="align-middle"><%= outtake.Type %></td><td class="align-middle"><%= outtake.TypeID %></td><td class="align-middle"><%= outtake.Location %></td>
+        <td class="align-middle"><%= outtake.Date %></td>
+        <td class="align-middle"><%= outtake.Type.Name %>
+        <td class="align-middle"><%= outtake.Location %></td>
         <td>
           <div class="float-right">
             <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-info", body: "View"}) %>

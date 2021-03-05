@@ -4,8 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/gobuffalo/x/responder"
 )
@@ -40,7 +42,7 @@ func (v OuttakesResource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.PaginateFromParams(c.Params())
+	q := tx.Eager().PaginateFromParams(c.Params())
 
 	// Retrieve all Outtakes from the DB
 	if err := q.All(outtakes); err != nil {
@@ -73,7 +75,7 @@ func (v OuttakesResource) Show(c buffalo.Context) error {
 	outtake := &models.Outtake{}
 
 	// To find the Outtake the parameter outtake_id is used.
-	if err := tx.Find(outtake, c.Param("outtake_id")); err != nil {
+	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -91,7 +93,51 @@ func (v OuttakesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Outtake.
 // This function is mapped to the path GET /outtakes/new
 func (v OuttakesResource) New(c buffalo.Context) error {
-	c.Set("outtake", &models.Outtake{})
+	outtake := &models.Outtake{
+		Date: time.Now(),
+	}
+	c.Set("outtake", outtake)
+
+	// Set outtake type
+	ot, err := outtakeTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+
+	animalID := c.Param("animal_id")
+	if len(animalID) > 0 {
+		// Get the DB connection from the context
+		tx, ok := c.Value("tx").(*pop.Connection)
+		if !ok {
+			return fmt.Errorf("no transaction found")
+		}
+
+		animal := &models.Animal{}
+		errCode := http.StatusOK
+
+		// for message
+		data := map[string]interface{}{
+			"animalID": animalID,
+		}
+
+		if err := tx.Eager().Find(animal, animalID); err != nil {
+			c.Flash().Add("danger", T.Translate(c, "outtake.animal.not.found", data))
+			errCode = http.StatusNotFound
+		}
+
+		c.Logger().Debugf("Loaded animal %v", animal)
+
+		if animal.Outtake != nil {
+			c.Flash().Add("danger", T.Translate(c, "outtake.animal.outtake.already.exist", data))
+			errCode = http.StatusConflict
+		}
+		if errCode != http.StatusOK {
+			return c.Render(errCode, r.HTML("/outtakes/new.plush.html"))
+		}
+		animal.Outtake = outtake
+		c.Set("animal", animal)
+	}
 
 	return c.Render(http.StatusOK, r.HTML("/outtakes/new.plush.html"))
 }
@@ -113,10 +159,29 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	animalID := c.Param("animal_id")
+	if len(animalID) <= 0 {
+		return fmt.Errorf("Missing animal ID")
+	}
+	animal := &models.Animal{}
+	if err := tx.Eager().Find(animal, animalID); err != nil {
+		// cannot link animal
+		return c.Render(http.StatusNotFound, r.HTML("/outtakes/new.plush.html"))
+	}
+
 	// Validate the data from the html form
 	verrs, err := tx.ValidateAndCreate(outtake)
 	if err != nil {
 		return err
+	}
+	// Update animal if outtake is saved
+	if !verrs.HasAny() {
+		animal.OuttakeID = nulls.NewUUID(outtake.ID)
+		animal.Outtake = outtake
+		if err := tx.Update(animal); err != nil {
+			return err
+		}
+		c.Logger().Debugf("Updated animal: %v", animal)
 	}
 
 	if verrs.HasAny() {
@@ -161,11 +226,18 @@ func (v OuttakesResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Outtake
 	outtake := &models.Outtake{}
 
-	if err := tx.Find(outtake, c.Param("outtake_id")); err != nil {
+	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
-
 	c.Set("outtake", outtake)
+
+	// Set outtake type
+	ot, err := outtakeTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+
 	return c.Render(http.StatusOK, r.HTML("/outtakes/edit.plush.html"))
 }
 
@@ -181,7 +253,7 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 	// Allocate an empty Outtake
 	outtake := &models.Outtake{}
 
-	if err := tx.Find(outtake, c.Param("outtake_id")); err != nil {
+	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -238,7 +310,7 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 	outtake := &models.Outtake{}
 
 	// To find the Outtake the parameter outtake_id is used.
-	if err := tx.Find(outtake, c.Param("outtake_id")); err != nil {
+	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 

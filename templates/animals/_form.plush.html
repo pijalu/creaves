@@ -98,7 +98,7 @@
                 </a>
                 <div class="collapse" id="Wounds">
                     <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"></textarea>
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"><%= animal.Intake.Wounds %></textarea>
                     </div>
                 </div>
 
@@ -107,7 +107,7 @@
                 </a>
                 <div class="collapse" id="Parasites">
                     <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"></textarea>
+                        <textarea  class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"><%= animal.Intake.Parasites %></textarea>
                     </div>
                 </div>
 
@@ -116,7 +116,7 @@
                 </a>
                 <div class="collapse" id="Remarks">
                     <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="10"></textarea>
+                        <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="10"><%= animal.Intake.Remarks %></textarea>
                     </div>
                 </div>
             </div>
@@ -130,24 +130,47 @@
 
   <%= if (animal.OuttakeID.Value() != nil) {%>
   <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
-    <ul class="list-group mb-2 ">
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Date</label>
-        <p class="d-inline-block"><%= animal.Outtake.Date %></p>
-      </li>
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Type</label>
-        <p class="d-inline-block"><%= animal.Outtake.Type.Name %></p>
-      </li>
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Location</label>
-        <p class="d-inline-block"><%= animal.Outtake.Location %></p>
-      </li>
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Note</label>
-        <p class="d-inline-block"><%= animal.Outtake.Note %></p>
-      </li>
-    </ul>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label>Date</label>
+            <div class="input-group md-12">
+                <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= animal.Outtake.DateFormated() %>">
+                <div class="input-group-append">
+                    <div class="input-group-text">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+            <script type="text/javascript">
+                $('#outtakeDate').datetimepicker({format:'Y/m/d H:i'});
+            </script>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.SelectTag("Outtake.TypeID", {
+                label: "Type",
+                options: selectOuttaketype, 
+                required:"required"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.InputTag("Outtake.Location") %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Notes
+        </a>
+        <div class="collapse" id="OuttakeNote">
+            <div class="card card-body">
+                <textarea class="form-control col-md-12" id="Outtake.Note" name="Outtake.Note" rows="10"><%= animal.Outtake.Note %></textarea>
+            </div>
+        </div>
+    </div>
+    <br/>
   </div>
   <% } %>
 </div>

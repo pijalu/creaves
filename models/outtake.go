@@ -16,11 +16,16 @@ type Outtake struct {
 	ID        uuid.UUID    `json:"id" db:"id"`
 	Date      time.Time    `json:"date" db:"date"`
 	Type      Outtaketype  `json:"type" belongs_to:"outtaketype"`
-	TypeID    uuid.UUID    `json:"type_id" db:"type_id"`
+	TypeID    uuid.UUID    `json:"type_id" db:"outtaketype_id"`
 	Location  nulls.String `json:"location" db:"location"`
 	Note      nulls.String `json:"note" db:"note"`
 	CreatedAt time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at" db:"updated_at"`
+}
+
+// DateFormated returns a formated date
+func (o Outtake) DateFormated() string {
+	return o.Date.Format(DateTimeFormat)
 }
 
 // String is not required by pop and may be deleted
