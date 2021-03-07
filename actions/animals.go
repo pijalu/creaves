@@ -106,6 +106,10 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 func (v AnimalsResource) New(c buffalo.Context) error {
 	c.Set("animal", &models.Animal{})
 
+	if err := setupContext(c); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/animals/new.plush.html"))
 }
 
@@ -170,15 +174,7 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 	}).Respond(c)
 }
 
-// Edit renders a edit form for a Animal. This function is
-// mapped to the path GET /animals/{animal_id}/edit
-func (v AnimalsResource) Edit(c buffalo.Context) error {
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-
+func setupContext(c buffalo.Context) error {
 	at, err := animalTypes(c)
 	if err != nil {
 		return err
@@ -196,6 +192,22 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 		return err
 	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+
+	return nil
+}
+
+// Edit renders a edit form for a Animal. This function is
+// mapped to the path GET /animals/{animal_id}/edit
+func (v AnimalsResource) Edit(c buffalo.Context) error {
+	// Get the DB connection from the context
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	if err := setupContext(c); err != nil {
+		return err
+	}
 
 	// Allocate an empty Animal
 	animal := &models.Animal{}
