@@ -23,26 +23,18 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 ADD . .
-# Copy release config
-COPY releaseconfig/* .
 RUN buffalo build --environment production --static -o /bin/app
 
 FROM alpine
-RUN apk add --no-cache bash ca-certificates && mkdir -p /data
-
+RUN apk add --no-cache bash ca-certificates
 WORKDIR /bin/
-
 COPY --from=builder /bin/app .
 COPY dockerscript/* /bin/
-
 # Uncomment to run the binary in "production" mode:
 ENV GO_ENV=production
-
 # Bind the app to 0.0.0.0 so it can be seen from outside the container
 ENV ADDR=0.0.0.0
 
 EXPOSE 3000
 
-# Uncomment to run the migrations before running the binary:
-CMD /bin/app migrate; /bin/app
-# CMD exec /bin/app
+CMD /bin/quickstart.prod.sh
