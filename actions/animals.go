@@ -328,6 +328,11 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 // Destroy deletes a Animal from the DB. This function is mapped
 // to the path DELETE /animals/{animal_id}
 func (v AnimalsResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

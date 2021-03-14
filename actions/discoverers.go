@@ -226,6 +226,11 @@ func (v DiscoverersResource) Update(c buffalo.Context) error {
 // Destroy deletes a Discoverer from the DB. This function is mapped
 // to the path DELETE /discoverers/{discoverer_id}
 func (v DiscoverersResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	discoverer, err := v.FindByID(c, c.Param("discoverer_id"))
 	if err != nil {
 		return err

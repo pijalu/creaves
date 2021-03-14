@@ -30,6 +30,11 @@ type OuttaketypesResource struct {
 // List gets all Outtaketypes. This function is mapped to the path
 // GET /outtaketypes
 func (v OuttaketypesResource) List(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -63,6 +68,11 @@ func (v OuttaketypesResource) List(c buffalo.Context) error {
 // Show gets the data for one Outtaketype. This function is mapped to
 // the path GET /outtaketypes/{outtaketype_id}
 func (v OuttaketypesResource) Show(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -91,6 +101,11 @@ func (v OuttaketypesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Outtaketype.
 // This function is mapped to the path GET /outtaketypes/new
 func (v OuttaketypesResource) New(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	c.Set("outtaketype", &models.Outtaketype{})
 
 	return c.Render(http.StatusOK, r.HTML("/outtaketypes/new.plush.html"))
@@ -99,6 +114,11 @@ func (v OuttaketypesResource) New(c buffalo.Context) error {
 // Create adds a Outtaketype to the DB. This function is mapped to the
 // path POST /outtaketypes
 func (v OuttaketypesResource) Create(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Allocate an empty Outtaketype
 	outtaketype := &models.Outtaketype{}
 
@@ -152,6 +172,11 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Outtaketype. This function is
 // mapped to the path GET /outtaketypes/{outtaketype_id}/edit
 func (v OuttaketypesResource) Edit(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -172,6 +197,11 @@ func (v OuttaketypesResource) Edit(c buffalo.Context) error {
 // Update changes a Outtaketype in the DB. This function is mapped to
 // the path PUT /outtaketypes/{outtaketype_id}
 func (v OuttaketypesResource) Update(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -228,6 +258,11 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Outtaketype from the DB. This function is mapped
 // to the path DELETE /outtaketypes/{outtaketype_id}
 func (v OuttaketypesResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

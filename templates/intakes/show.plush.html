@@ -6,7 +6,9 @@
       Back to all Intakes
     <% } %>
     <%= linkTo(editIntakePath({ intake_id: intake.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= if (current_user.Admin) {%>
     <%= linkTo(intakePath({ intake_id: intake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <% }%>
   </div>
 </div>
 

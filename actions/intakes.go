@@ -228,6 +228,11 @@ func (v IntakesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Intake from the DB. This function is mapped
 // to the path DELETE /intakes/{intake_id}
 func (v IntakesResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

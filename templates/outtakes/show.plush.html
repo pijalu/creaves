@@ -6,7 +6,9 @@
       Back to all Outtakes
     <% } %>
     <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= if (current_user.Admin) {%>
     <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <% } %>
   </div>
 </div>
 

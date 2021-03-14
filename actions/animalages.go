@@ -30,6 +30,11 @@ type AnimalagesResource struct {
 // List gets all Animalages. This function is mapped to the path
 // GET /animalages
 func (v AnimalagesResource) List(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -63,6 +68,11 @@ func (v AnimalagesResource) List(c buffalo.Context) error {
 // Show gets the data for one Animalage. This function is mapped to
 // the path GET /animalages/{animalage_id}
 func (v AnimalagesResource) Show(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -91,6 +101,11 @@ func (v AnimalagesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Animalage.
 // This function is mapped to the path GET /animalages/new
 func (v AnimalagesResource) New(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	c.Set("animalage", &models.Animalage{})
 
 	return c.Render(http.StatusOK, r.HTML("/animalages/new.plush.html"))
@@ -99,6 +114,11 @@ func (v AnimalagesResource) New(c buffalo.Context) error {
 // Create adds a Animalage to the DB. This function is mapped to the
 // path POST /animalages
 func (v AnimalagesResource) Create(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Allocate an empty Animalage
 	animalage := &models.Animalage{}
 
@@ -152,6 +172,11 @@ func (v AnimalagesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Animalage. This function is
 // mapped to the path GET /animalages/{animalage_id}/edit
 func (v AnimalagesResource) Edit(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -172,6 +197,11 @@ func (v AnimalagesResource) Edit(c buffalo.Context) error {
 // Update changes a Animalage in the DB. This function is mapped to
 // the path PUT /animalages/{animalage_id}
 func (v AnimalagesResource) Update(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -228,6 +258,11 @@ func (v AnimalagesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Animalage from the DB. This function is mapped
 // to the path DELETE /animalages/{animalage_id}
 func (v AnimalagesResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

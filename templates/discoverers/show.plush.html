@@ -6,7 +6,9 @@
       Back to all Discoverers
     <% } %>
     <%= linkTo(editDiscovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= if (current_user.Admin) {%>
     <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <% } %>
   </div>
 </div>
 
