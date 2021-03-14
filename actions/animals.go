@@ -37,6 +37,22 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	animalID := c.Param("animal_id")
+	if len(animalID) > 0 {
+		exists, err := tx.Where("ID = ?", animalID).Exists(&models.Animal{})
+		if err != nil {
+			return err
+		}
+		if exists {
+			return c.Redirect(http.StatusSeeOther, "/animals/%v", animalID)
+		}
+		// for message
+		data := map[string]interface{}{
+			"animalID": animalID,
+		}
+		c.Flash().Add("danger", T.Translate(c, "animal.not.found", data))
+	}
+
 	animals := &models.Animals{}
 
 	// Paginate results. Params "page" and "per_page" control pagination.

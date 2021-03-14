@@ -8,7 +8,7 @@
 </div>
 
 <div class="container p-3 my-3 border">
-<form id="goto_animal" onsubmit="return openAnimal()">
+<form id="goto_animal">
   <div class="form-row">
     <div class="col-5">
       &nbsp;
@@ -17,22 +17,13 @@
       <label for="goto_animalNumber" class="col-sm-2 col-form-label">Animal&nbsp;number</label>
     </div>
     <div class="col-4">
-      <input name="animal_id" type="number" class="form-control" id="goto_animalNumber" placeholder="123" required>
+      <input name="animal_id" type="number" class="form-control" id="animal_id" placeholder="123" required>
     </div>
     <div class="col">
       <button type="submit" class="btn btn-primary">Go</button>
     </div>
   </div>
 </form>
-<script type="text/javascript">
-  function openAnimal() {
-    var rootAction="<%= animalsPath() %>";
-    var action = rootAction + $("#goto_animalNumber").val();
-    console.log("Jump to", action);
-    window.location.href = action;
-    return false;
-  }
-</script>
 </div>
 
 <table class="table table-hover table-bordered">
