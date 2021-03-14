@@ -63,7 +63,7 @@
         </li>
         <li class="list-group-item pb-1">
           <label class="small d-block">Date</label>
-          <p class="d-inline-block"><%= animal.Discovery.Date %></p>
+          <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
         </li>
         <%= if ( len(animal.Discovery.Reason.Value()) > 0 ) {%>
         <li class="list-group-item pb-1">
@@ -113,6 +113,11 @@
   
   <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
     <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+          <label class="small d-block">Date</label>
+          <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
+      </li>
+
       <li class="list-group-item pb-1">
         <label class="small d-block">General</label>
         <p class="d-inline-block"><%= animal.Intake.General %></p>

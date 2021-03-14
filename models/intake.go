@@ -23,6 +23,11 @@ type Intake struct {
 	UpdatedAt time.Time    `json:"updated_at" db:"updated_at"`
 }
 
+// DateFormated returns a formated date
+func (i Intake) DateFormated() string {
+	return i.Date.Format(DateTimeFormat)
+}
+
 // String is not required by pop and may be deleted
 func (i Intake) String() string {
 	ji, _ := json.Marshal(i)

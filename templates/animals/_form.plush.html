@@ -91,6 +91,20 @@
     <div class="form-row">
         <div class="form-group col-md-12">
         <div class="container p-3 my-3 border">
+
+                <label>Date</label>
+                <div class="input-group md-12">
+                    <input class=" form-control" id="intakedate" name="Intake.Date" required="required" type="text" value="<%= animal.Intake.DateFormated() %>">
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <i class="fa fa-calendar" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <script type="text/javascript">
+                    $('#intakedate').datetimepicker({format:'Y/m/d H:i'});
+                </script>
+
                 <%= f.TextAreaTag("Intake.General", {label:"General", required:"required", rows: 10}) %>
 
                 <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
