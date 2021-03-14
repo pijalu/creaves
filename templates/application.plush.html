@@ -24,9 +24,6 @@
     <!-- DatePicker -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css" integrity="sha512-f0tzWhCwVFS3WeYaofoLWkTP62ObhewQ1EZn65oSYDZUg1+CyywGKkWzm8BxaJj5HGKI72PnMH9jYyIFz+GH7g==" crossorigin="anonymous" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js" integrity="sha512-AIOTidJAcHBH2G/oZv9viEGXRqDNmfdPVPYOYKGy3fti0xIplnlgMHUGfuNRzC6FkzIo0iIxgFnr9RikFxK+sw==" crossorigin="anonymous"></script>
-  
-    <!-- Clippy -->
-    <link rel="stylesheet" type="text/css" href="https://gitcdn.xyz/repo/pi0/clippyjs/master/assets/clippy.css">
   </head>
   <body>
 
@@ -103,14 +100,5 @@
       <%= partial("flash.html") %>
       <%= yield %>
     </div>
-
-    <script src="https://unpkg.com/clippyjs@latest"></script>
-
-    <script type="text/javascript">
-    clippy.load('Peedy', function(agent){
-        // Do anything with the loaded agent
-        agent.show();
-    });
-    </script>
   </body>
 </html>
