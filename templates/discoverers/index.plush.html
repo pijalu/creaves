@@ -18,10 +18,10 @@
         <td class="align-middle"><%= discoverer.Firstname %></td><td class="align-middle"><%= discoverer.Lastname %></td><td class="align-middle"><%= discoverer.Address %></td><td class="align-middle"><%= discoverer.City %></td><td class="align-middle"><%= discoverer.Country %></td><td class="align-middle"><%= discoverer.Email %></td><td class="align-middle"><%= discoverer.Phone %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-info", body: "View"}) %>
-            <%= linkTo(editDiscovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+            <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editDiscovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
             <%= if (current_user.Admin) {%>
-            <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+            <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>"}) %>
             <% } %>
           </div>
         </td>

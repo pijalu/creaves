@@ -5,9 +5,9 @@
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
       Back to all Outtakes
     <% } %>
-    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
     <%= if (current_user.Admin) {%>
-    <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>"}) %>
     <% } %>
   </div>
 </div>

@@ -22,9 +22,9 @@
         <td class="align-middle"><%= outtaketype.Default %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-info", body: "View"}) %>
-            <%= linkTo(editOuttaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editOuttaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>"}) %>
           </div>
         </td>
       </tr>

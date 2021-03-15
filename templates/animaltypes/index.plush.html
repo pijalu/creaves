@@ -22,9 +22,9 @@
         <td class="align-middle"><%= animaltype.Default %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", body: "View"}) %>
-            <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>"}) %>
           </div>
         </td>
       </tr>
