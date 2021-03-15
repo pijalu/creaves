@@ -38,7 +38,11 @@
   </thead>
   <tbody>
     <%= for (animal) in animals { %>
+      <%= if (animal.OuttakeID.Value() != nil) { %>
+      <tr class="outtaken">
+      <% } else { %>
       <tr>
+      <% } %>
         <td class="align-middle"><%= animal.ID %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle"><%= animal.Animaltype.Name %></td>
