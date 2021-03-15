@@ -29,6 +29,7 @@
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Number</th>
+    <th>Intake date</th>
     <th>Cage</th>
     <th>Type</th>
     <th>Species</th>
@@ -44,6 +45,7 @@
       <tr>
       <% } %>
         <td class="align-middle"><%= animal.ID %></td>
+        <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle"><%= animal.Animaltype.Name %></td>
         <td class="align-middle"><%= animal.Species %></td>
