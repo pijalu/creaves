@@ -168,6 +168,15 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		// cannot link animal
 		return c.Render(http.StatusNotFound, r.HTML("/outtakes/new.plush.html"))
 	}
+	// save ring if needed
+	animalRing := c.Param(("animal_ring"))
+	if animalRing != animal.Ring.String {
+		animal.Ring = nulls.NewString(animalRing)
+		c.Logger().Debugf("Seting up ring %v", animal.Ring)
+		if err := tx.Update(animal); err != nil {
+			return err
+		}
+	}
 
 	// Validate the data from the html form
 	verrs, err := tx.ValidateAndCreate(outtake)
@@ -319,6 +328,18 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Unlink animal
+	animal := &models.Animal{}
+	if err := tx.Where("outtake_id = ?", outtake.ID).First(animal); err != nil {
+		return err
+	}
+
+	animal.OuttakeID = nulls.UUID{}
+	if err := tx.Update(animal); err != nil {
+		return err
+	}
+
+	// destroy
 	if err := tx.Destroy(outtake); err != nil {
 		return err
 	}
