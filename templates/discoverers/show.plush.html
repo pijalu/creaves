@@ -7,7 +7,7 @@
     <% } %>
     <%= linkTo(editDiscovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
     <%= if (current_user.Admin) {%>
-    <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>"}) %>
+    <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
   </div>
 </div>
