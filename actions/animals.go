@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
@@ -235,7 +236,7 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
-	if animal.Outtake != nil {
+	if animal.OuttakeID.Valid {
 		if err := tx.Eager().Find(animal.Outtake, animal.OuttakeID); err != nil {
 			return c.Error(http.StatusNotFound, err)
 		}
@@ -283,9 +284,10 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	var verrs *validate.Errors
 	var err error
 	for _, m := range updateModels {
-		if m == nil {
+		if reflect.ValueOf(m).IsNil() {
 			continue
 		}
+		c.Logger().Debugf("Updating %v", m)
 		verrs, err = tx.Eager().ValidateAndUpdate(m)
 		if err != nil {
 			return err
