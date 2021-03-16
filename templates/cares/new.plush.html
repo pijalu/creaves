@@ -1,0 +1,23 @@
+<%= if (care.AnimalID.Value() == 0 ) { %>
+  <h4>Select animal for outtake</h4>
+  <%= formFor(care, {action: newCaresPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animalID" class="col-sm-2 col-form-label">Animal ID</label>
+    <div class="col-sm-10">
+      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Next</button>
+  </div>
+  <% } %>
+<% } else { %>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">New Care for animal <%= care.AnimalID %></h3>
+</div>
+
+<%= formFor(care, {action: caresPath(), method: "POST"}) { %>
+  <%= partial("cares/form.html") %>
+  <%= linkTo(caresPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>
+<% } %>

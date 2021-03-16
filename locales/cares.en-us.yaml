@@ -1,0 +1,6 @@
+- id: "care.created.success"
+  translation: "Care was successfully created."
+- id: "care.updated.success"
+  translation: "Care was successfully updated."
+- id: "care.destroyed.success"
+  translation: "Care was successfully destroyed."

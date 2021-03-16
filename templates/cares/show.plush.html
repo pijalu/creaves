@@ -1,0 +1,45 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Care Details for animal <%= care.AnimalID %></h3>
+
+  <div class="float-right">
+    <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
+      Back to all Cares
+    <% } %>
+    <%= linkTo(editCarePath({ care_id: care.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= care.DateFormated() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Weight</label>
+    <p class="d-inline-block"><%= care.Weight %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Note</label>
+    <p class="d-inline-block"><%= care.Note %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Cage Clean</label>
+    <%= if (care.Clean) { %>
+            <i class="fa fa-check" aria-hidden="true"></i>
+    <% } %>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p class="d-inline-block"><%= care.Type.Name %></p>
+  </li>
+
+</ul>

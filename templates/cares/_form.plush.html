@@ -1,0 +1,25 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+<label>Date</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="careDate" name="Care.Date" required="required" type="text" value="<%= care.DateFormated() %>">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $('#careDate').datetimepicker({format:'Y/m/d H:i'});
+</script>
+
+<%= f.SelectTag("TypeID", {
+    label: "Type",
+    options: selectCaretype, 
+    required:"required"}) %>
+
+<%= f.InputTag("Weight") %>
+
+<%= f.CheckboxTag("Clean", {unchecked: false, label:"Cage cleaned"}) %>
+
+<%= f.TextAreaTag("Note", {rows: 10}) %>
+<button class="btn btn-success" role="submit">Save</button>

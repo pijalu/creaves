@@ -1,0 +1,43 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Caretype Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(caretypesPath(), {class: "btn btn-info"}) { %>
+      Back to all Caretypes
+    <% } %>
+    <%= linkTo(editCaretypePath({ caretype_id: caretype.ID }), {class: "btn btn-warning", title:"Edit", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title:"Destroy", body: "<i class='fa fa-trash'></i>",  style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Name</label>
+    <p class="d-inline-block"><%= caretype.Name %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Description</label>
+    <p class="d-inline-block"><%= caretype.Description %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Def</label>
+    <p class="d-inline-block"><%= caretype.Def %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Warning</label>
+    <p class="d-inline-block"><%= caretype.Warning %></p>
+  </li>
+
+
+</ul>

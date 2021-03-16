@@ -26,6 +26,7 @@ type Animal struct {
 	IntakeID     uuid.UUID    `json:"intake_id" db:"intake_id"`
 	Outtake      *Outtake     `json:"outtake,omitempty" belongs_to:"outtake"`
 	OuttakeID    nulls.UUID   `json:"outtake_id" db:"outtake_id"`
+	Cares        []Care       `json:"cares,omitempty" has_many:"cares"`
 	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
 }

@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Caretype</h3>
+</div>
+
+<%= formFor(caretype, {action: caretypePath({ caretype_id: caretype.ID }), method: "PUT"}) { %>
+  <%= partial("caretypes/form.html") %>
+  <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

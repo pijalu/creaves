@@ -1,0 +1,19 @@
+create_table("cares") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "timestamp", {})
+	t.Column("type_id", "uuid", {})
+	t.Column("animal_id", "integer", {})
+
+	t.Column("weight", "string", {null: true})
+	t.Column("note", "text", {null: true})
+	t.Column("clean", "bool", {null: true})
+	t.Column("in_warning", "bool", {null: true})
+
+	t.Column("link_to_id", "uuid", {null: true})
+	t.Timestamps()
+
+
+	t.ForeignKey("type_id", {"caretypes": ["id"]})
+	t.ForeignKey("animal_id", {"animals": ["id"]})
+	t.ForeignKey("link_to_id", {"cares": ["id"]})
+}
