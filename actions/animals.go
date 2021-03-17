@@ -29,35 +29,44 @@ type AnimalsResource struct {
 	buffalo.Resource
 }
 
-func (v AnimalsResource) populateAnimal(a *models.Animal, c buffalo.Context) error {
+func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*models.Animal, error) {
+	a := &models.Animal{}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
-		return fmt.Errorf("no transaction found")
+		return nil, fmt.Errorf("no transaction found")
+	}
+	if err := tx.Find(a, animal_id); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	if err := tx.Find(&a.Animalage, a.AnimalageID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	if err := tx.Find(&a.Animaltype, a.AnimaltypeID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	if err := tx.Eager().Find(&a.Discovery, a.DiscoveryID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	if err := tx.Eager().Find(&a.Intake, a.IntakeID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
 	}
 
-	if err := tx.Eager().Find(&a.Discovery.Discoverer, a.Discovery.DiscovererID); err != nil {
-		return c.Error(http.StatusNotFound, err)
+	if err := tx.Eager().Where("animal_id = ?", a.ID).All(&a.Cares); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	if err := tx.Eager().Where("animal_id = ?", a.ID).All(&a.VetVisits); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
 	}
 
 	if a.OuttakeID.Valid {
-		c.Logger().Debugf("Loading outtake")
+		c.Logger().Debugf("Loading outtake %v", a.OuttakeID)
+		a.Outtake = &models.Outtake{}
 		if err := tx.Eager().Find(a.Outtake, a.OuttakeID); err != nil {
-			return c.Error(http.StatusNotFound, err)
+			return nil, c.Error(http.StatusNotFound, err)
 		}
 	}
-
-	us, err := users(c)
-	if err != nil {
-		return err
-	}
-
-	m := usersToMap(us)
-	// Load Vet visit
-	for i := 0; i < len(a.VetVisits); i++ {
-		a.VetVisits[i].User = m[a.VetVisits[i].ID]
-	}
-
-	return nil
+	return a, nil
 }
 
 // List gets all Animals. This function is mapped to the path
@@ -112,22 +121,10 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 // Show gets the data for one Animal. This function is mapped to
 // the path GET /animals/{animal_id}
 func (v AnimalsResource) Show(c buffalo.Context) error {
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-
-	// Allocate an empty Animal
-	animal := &models.Animal{}
-
-	// To find the Animal the parameter animal_id is used.
-	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
-	}
-	// 2nd level and co
-	if err := v.populateAnimal(animal, c); err != nil {
-		return c.Error(http.StatusNotFound, err)
+	// Load animal
+	animal, err := v.loadAnimal(c.Param("animal_id"), c)
+	if err != nil {
+		return err
 	}
 
 	c.Logger().Debugf("Loaded animal: %v", animal)
@@ -241,30 +238,14 @@ func setupContext(c buffalo.Context) error {
 // Edit renders a edit form for a Animal. This function is
 // mapped to the path GET /animals/{animal_id}/edit
 func (v AnimalsResource) Edit(c buffalo.Context) error {
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-
 	if err := setupContext(c); err != nil {
 		return err
 	}
 
-	// Allocate an empty Animal
-	animal := &models.Animal{}
-
-	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
-	}
-	// force 2nd level
-	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
-		return c.Error(http.StatusNotFound, err)
-	}
-	if animal.OuttakeID.Valid {
-		if err := tx.Eager().Find(animal.Outtake, animal.OuttakeID); err != nil {
-			return c.Error(http.StatusNotFound, err)
-		}
+	// Load animal
+	animal, err := v.loadAnimal(c.Param("animal_id"), c)
+	if err != nil {
+		return err
 	}
 
 	c.Set("animal", animal)
@@ -280,11 +261,10 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	// Allocate an empty Animal
-	animal := &models.Animal{}
-
-	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+	// Load animal
+	animal, err := v.loadAnimal(c.Param("animal_id"), c)
+	if err != nil {
+		return err
 	}
 
 	// Bind Animal to the html form elements
@@ -307,7 +287,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	}
 
 	var verrs *validate.Errors
-	var err error
 	for _, m := range updateModels {
 		if reflect.ValueOf(m).IsNil() {
 			continue

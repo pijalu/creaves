@@ -24,7 +24,7 @@
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
-      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Release</a>
+      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Outtake</a>
     <% } %>
   </div>
 </nav>
@@ -202,7 +202,6 @@
       <thead class="thead-light">
         <th>Date</th>
         <th>User</th>
-        <th>Animal ID</th>
         <th>Diagnostic</th>
         <th>&nbsp;</th>
       </thead>
@@ -211,7 +210,6 @@
           <tr>
             <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
             <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
-            <td class="align-middle"><%= veterinaryvisit.AnimalID %></td>
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>
               <div class="float-right">
@@ -233,7 +231,7 @@
   </div>
 
   <%= if (animal.OuttakeID.Value() != nil) {%>
-  <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
+  <div class="tab-pane fade" id="nav-outtake" role="tabpanel" aria-labelledby="nav-outtake-tab">
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
         <label class="small d-block">Date</label>
