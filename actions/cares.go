@@ -95,6 +95,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 	care := &models.Care{
 		Date: time.Now(),
 	}
+	c.Set("care", care)
 
 	animalID := c.Param("animal_id")
 	if len(animalID) > 0 {
@@ -124,7 +125,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 			errCode = http.StatusConflict
 		}
 		if errCode != http.StatusOK {
-			return c.Render(errCode, r.HTML("/outtakes/new.plush.html"))
+			return c.Render(errCode, r.HTML("/cares/new.plush.html"))
 		}
 
 		care.Animal = *animal
@@ -137,7 +138,6 @@ func (v CaresResource) New(c buffalo.Context) error {
 		}
 		c.Set("selectCaretype", caretypesToSelectables(ct))
 	}
-	c.Set("care", care)
 	return c.Render(http.StatusOK, r.HTML("/cares/new.plush.html"))
 }
 

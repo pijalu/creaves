@@ -134,10 +134,9 @@ func (v VeterinaryvisitsResource) New(c buffalo.Context) error {
 			errCode = http.StatusNotFound
 		}
 
-		c.Logger().Debugf("Loaded animal %v", animal)
-
 		if errCode != http.StatusOK {
-			return c.Render(errCode, r.HTML("/veterinaryvisit/new.plush.html"))
+			c.Logger().Debugf("Not ok: %v", errCode)
+			return c.Render(errCode, r.HTML("/veterinaryvisits/new.plush.html"))
 		}
 
 		vv.Animal = *animal
