@@ -3,6 +3,8 @@ create_table("veterinaryvisits") {
 	t.Column("date", "timestamp", {})
 	t.Column("user_id", "uuid", {})
 	t.Column("animal_id", "integer", {})
+
+	t.Column("veterinary", "text")
 	t.Column("diagnostic", "text", {null: true})
 
 	t.ForeignKey("user_id", {"users": ["id"]})

@@ -201,6 +201,7 @@
     <table class="table table-hover table-bordered">
       <thead class="thead-light">
         <th>Date</th>
+        <th>Veterinary</th>
         <th>User</th>
         <th>Diagnostic</th>
         <th>&nbsp;</th>
@@ -209,6 +210,7 @@
         <%= for (veterinaryvisit) in animal.VetVisits{ %>
           <tr>
             <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
             <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>

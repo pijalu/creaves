@@ -1,5 +1,5 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Edit Veterinaryvisit</h3>
+  <h3 class="d-inline-block">Edit Veterinary visit for animal <%= veterinaryvisit.AnimalID %></h3>
 </div>
 
 <%= formFor(veterinaryvisit, {action: veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), method: "PUT"}) { %>

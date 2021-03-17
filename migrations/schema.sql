@@ -301,6 +301,7 @@ CREATE TABLE `veterinaryvisits` (
   `date` datetime NOT NULL,
   `user_id` char(36) NOT NULL,
   `animal_id` int NOT NULL,
+  `veterinary` text NOT NULL,
   `diagnostic` text,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
@@ -321,4 +322,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-17 16:49:12
+-- Dump completed on 2021-03-17 21:49:40

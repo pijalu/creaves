@@ -111,6 +111,7 @@ func (v VeterinaryvisitsResource) New(c buffalo.Context) error {
 		Date:   time.Now(),
 		UserID: GetCurrentUser(c).ID,
 	}
+	c.Set("veterinaryvisit", vv)
 
 	animalID := c.Param("animal_id")
 	if len(animalID) > 0 {
