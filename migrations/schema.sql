@@ -288,6 +288,29 @@ CREATE TABLE `users` (
   UNIQUE KEY `users_email_idx` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `veterinaryvisits`
+--
+
+DROP TABLE IF EXISTS `veterinaryvisits`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `veterinaryvisits` (
+  `id` char(36) NOT NULL,
+  `date` datetime NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `animal_id` int NOT NULL,
+  `diagnostic` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `animal_id` (`animal_id`),
+  CONSTRAINT `veterinaryvisits_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `veterinaryvisits_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -298,4 +321,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-16 23:30:47
+-- Dump completed on 2021-03-17 16:49:12

@@ -24,7 +24,9 @@
           <div class="float-right">
             <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(editCaretypePath({ caretype_id: caretype.ID }), {class: "btn btn-warning", title:"Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= if (current_user.Admin) {%>
             <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title:"Destroy", body: "<i class='fa fa-trash'></i>",  style:"width:44px"}) %>
+            <% } %>
           </div>
         </td>
       </tr>

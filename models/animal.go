@@ -12,23 +12,24 @@ import (
 
 // Animal is used by pop to map your animals database table to your go code.
 type Animal struct {
-	ID           int          `json:"id" db:"id"`
-	Ring         nulls.String `json:"ring" db:"ring"`
-	Species      string       `json:"species" db:"species"`
-	Cage         nulls.String `json:"cage" db:"cage"`
-	Animalage    Animalage    `json:"animalage" belongs_to:"animalage"`
-	AnimalageID  uuid.UUID    `json:"animalage_id" db:"animalage_id"`
-	Animaltype   Animaltype   `json:"animaltype" belongs_to:"animaltype"`
-	AnimaltypeID uuid.UUID    `json:"animaltype_id" db:"animaltype_id"`
-	Discovery    Discovery    `json:"discovery" belongs_to:"discovery"`
-	DiscoveryID  uuid.UUID    `json:"discovery_id" db:"discovery_id"`
-	Intake       Intake       `json:"intake" belongs_to:"intake"`
-	IntakeID     uuid.UUID    `json:"intake_id" db:"intake_id"`
-	Outtake      *Outtake     `json:"outtake,omitempty" belongs_to:"outtake"`
-	OuttakeID    nulls.UUID   `json:"outtake_id" db:"outtake_id"`
-	Cares        []Care       `json:"cares,omitempty" has_many:"cares"`
-	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
+	ID           int               `json:"id" db:"id"`
+	Ring         nulls.String      `json:"ring" db:"ring"`
+	Species      string            `json:"species" db:"species"`
+	Cage         nulls.String      `json:"cage" db:"cage"`
+	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
+	AnimalageID  uuid.UUID         `json:"animalage_id" db:"animalage_id"`
+	Animaltype   Animaltype        `json:"animaltype" belongs_to:"animaltype"`
+	AnimaltypeID uuid.UUID         `json:"animaltype_id" db:"animaltype_id"`
+	Discovery    Discovery         `json:"discovery" belongs_to:"discovery"`
+	DiscoveryID  uuid.UUID         `json:"discovery_id" db:"discovery_id"`
+	Intake       Intake            `json:"intake" belongs_to:"intake"`
+	IntakeID     uuid.UUID         `json:"intake_id" db:"intake_id"`
+	Outtake      *Outtake          `json:"outtake,omitempty" belongs_to:"outtake"`
+	OuttakeID    nulls.UUID        `json:"outtake_id" db:"outtake_id"`
+	Cares        []Care            `json:"cares,omitempty" has_many:"cares"`
+	VetVisits    []Veterinaryvisit `json:"veternary_visits,omitempty" has_many:"veternaryvisits"`
+	CreatedAt    time.Time         `json:"created_at" db:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
 
 // String is not required by pop and may be deleted

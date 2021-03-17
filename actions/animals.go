@@ -29,6 +29,37 @@ type AnimalsResource struct {
 	buffalo.Resource
 }
 
+func (v AnimalsResource) populateAnimal(a *models.Animal, c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	if err := tx.Eager().Find(&a.Discovery.Discoverer, a.Discovery.DiscovererID); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+
+	if a.OuttakeID.Valid {
+		c.Logger().Debugf("Loading outtake")
+		if err := tx.Eager().Find(a.Outtake, a.OuttakeID); err != nil {
+			return c.Error(http.StatusNotFound, err)
+		}
+	}
+
+	us, err := users(c)
+	if err != nil {
+		return err
+	}
+
+	m := usersToMap(us)
+	// Load Vet visit
+	for i := 0; i < len(a.VetVisits); i++ {
+		a.VetVisits[i].User = m[a.VetVisits[i].ID]
+	}
+
+	return nil
+}
+
 // List gets all Animals. This function is mapped to the path
 // GET /animals
 func (v AnimalsResource) List(c buffalo.Context) error {
@@ -94,15 +125,9 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
-	// force 2nd level
-	if err := tx.Eager().Find(&animal.Discovery.Discoverer, animal.Discovery.DiscovererID); err != nil {
+	// 2nd level and co
+	if err := v.populateAnimal(animal, c); err != nil {
 		return c.Error(http.StatusNotFound, err)
-	}
-	if animal.Outtake != nil {
-		c.Logger().Debugf("Loading outtake")
-		if err := tx.Eager().Find(animal.Outtake, animal.OuttakeID); err != nil {
-			return c.Error(http.StatusNotFound, err)
-		}
 	}
 
 	c.Logger().Debugf("Loaded animal: %v", animal)

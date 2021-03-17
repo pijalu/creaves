@@ -1,0 +1,8 @@
+- id: "veterinaryvisit.created.success"
+  translation: "Veterinaryvisit was successfully created."
+- id: "veterinaryvisit.updated.success"
+  translation: "Veterinaryvisit was successfully updated."
+- id: "veterinaryvisit.destroyed.success"
+  translation: "Veterinaryvisit was successfully destroyed."
+- id: "veterinaryvisit.animal.not.found"
+  translation: "animal with id {{.animalID}} does not exists"

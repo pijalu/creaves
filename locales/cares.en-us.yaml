@@ -4,3 +4,5 @@
   translation: "Care was successfully updated."
 - id: "care.destroyed.success"
   translation: "Care was successfully destroyed."
+- id: "care.animal.not.found"
+  translation: "animal with id {{.animalID}} does not exists"

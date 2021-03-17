@@ -7,6 +7,7 @@ import (
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/gobuffalo/tags/form"
+	"github.com/gofrs/uuid"
 )
 
 type selType struct {
@@ -124,6 +125,43 @@ func animalagesToSelectables(ts *models.Animalages) form.Selectables {
 	for _, ts := range *ts {
 		res = append(res, &selType{
 			label: ts.Name,
+			value: ts.ID,
+		})
+	}
+	return res
+}
+
+func users(c buffalo.Context) (*models.Users, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	u := &models.Users{}
+	if err := tx.Order("email asc").All(u); err != nil {
+		return nil, err
+	}
+	c.Logger().Debugf("Loaded users: %v", u)
+
+	return u, nil
+}
+
+func usersToMap(us *models.Users) map[uuid.UUID]models.User {
+	m := make(map[uuid.UUID]models.User)
+
+	for _, t := range *us {
+		m[t.ID] = t
+	}
+
+	return m
+}
+
+func usersToSelectables(ts *models.Users) form.Selectables {
+	res := []form.Selectable{}
+
+	for _, ts := range *ts {
+		res = append(res, &selType{
+			label: ts.Email,
 			value: ts.ID,
 		})
 	}

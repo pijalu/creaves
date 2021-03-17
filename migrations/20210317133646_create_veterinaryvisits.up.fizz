@@ -1,0 +1,11 @@
+create_table("veterinaryvisits") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "timestamp", {})
+	t.Column("user_id", "uuid", {})
+	t.Column("animal_id", "integer", {})
+	t.Column("diagnostic", "text", {null: true})
+
+	t.ForeignKey("user_id", {"users": ["id"]})
+	t.ForeignKey("animal_id", {"animals": ["id"]})
+	t.Timestamps()
+}

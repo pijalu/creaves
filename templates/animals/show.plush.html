@@ -20,6 +20,7 @@
     <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Discovery</a>
     <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Intake</a>
     <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Care</a>
+    <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Veterinary</a>
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
@@ -179,6 +180,46 @@
                 <%= if (current_user.Admin) {%>
                 <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-vet" role="tabpanel" aria-labelledby="nav-vet-tab">
+    <div class="py-4 mb-2">
+      <h3 class="d-inline-block">Veterinary visits</h3>
+      <div class="float-right">
+        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID }), {class: "btn btn-primary"}) { %>
+          Create New Veterinary visit
+        <% } %>
+      </div>
+    </div>
+
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>User</th>
+        <th>Animal ID</th>
+        <th>Diagnostic</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (veterinaryvisit) in animal.VetVisits{ %>
+          <tr>
+            <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
+            <td class="align-middle"><%= veterinaryvisit.AnimalID %></td>
+            <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+            <td>
+              <div class="float-right">
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%  }%>
               </div>
             </td>
           </tr>
