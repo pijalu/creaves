@@ -12,6 +12,7 @@
     <th>Date</th>
     <th>Animal</th>
     <th>Weight</th>
+    <th>Note</th>
     <th><i class="fa fa-soap" aria-hidden="true"></i></th>
     <th>Type</th>
     <th>&nbsp;</th>
@@ -22,6 +23,7 @@
         <td class="align-middle"><%= care.Date.DateFormated() %></td>
         <td class="align-middle"><%= care.AnimalID %></td>
         <td class="align-middle"><%= care.Weight %></td>
+        <td class="align-middle"><%= care.Note %></td>
         <td class="align-middle">
           <%= if (care.Clean) { %>
             <i class="fa fa-check" aria-hidden="true"></i>
