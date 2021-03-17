@@ -1,5 +1,5 @@
 <%= if (veterinaryvisit.AnimalID.Value() == 0 ) { %>
-  <h4>Select animal for veterinaryvisit</h4>
+  <h4>Select animal for veterinary visit</h4>
   <%= formFor(veterinaryvisit, {action: newVeterinaryvisitsPath(), method: "GET"}) { %>
   <div class="form-group row">
     <label for="animalID" class="col-sm-2 col-form-label">Animal ID</label>
