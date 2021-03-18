@@ -2,9 +2,18 @@
   <h3 class="d-inline-block">Edit Care for animal <%= care.AnimalID %></h3>
 </div>
 
-<%= formFor(care, {action: carePath({ care_id: care.ID }), method: "PUT"}) { %>
-  <%= partial("cares/form.html") %>
-  <%= if (current_user.Admin) {%>
-  <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
-  <% }%>
-<% } %>
+<%= if (params["back"]) { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID, back:params["back"]}), method: "PUT"}) { %>
+    <%= partial("cares/form.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID, back:params["back"] }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+    <% }%>
+  <% } %>
+<% } else { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID }), method: "PUT"}) { %>
+    <%= partial("cares/form.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+    <% }%>
+  <% } %>
+<% }%>

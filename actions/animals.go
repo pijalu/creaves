@@ -52,10 +52,10 @@ func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*model
 		return nil, c.Error(http.StatusNotFound, err)
 	}
 
-	if err := tx.Eager().Where("animal_id = ?", a.ID).All(&a.Cares); err != nil {
+	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.Cares); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
-	if err := tx.Eager().Where("animal_id = ?", a.ID).All(&a.VetVisits); err != nil {
+	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.VetVisits); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
 

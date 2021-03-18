@@ -147,7 +147,7 @@
   <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newCaresPath({animal_id: animal.ID }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newCaresPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
           Create New Care
         <% } %>
       </div>
@@ -175,10 +175,10 @@
             <td class="align-middle"><%= care.Type.Name %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editCarePath({ care_id: care.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
               </div>
             </td>
@@ -192,7 +192,7 @@
     <div class="py-4 mb-2">
       <h3 class="d-inline-block">Veterinary visits</h3>
       <div class="float-right">
-        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
           Create New Veterinary visit
         <% } %>
       </div>
@@ -215,10 +215,10 @@
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <%  }%>
               </div>
             </td>
@@ -257,4 +257,19 @@
 
 
 </div>
+<script>
+$(".nav-tabs").find("a").first().click();
 
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+  });
+});
+</script>

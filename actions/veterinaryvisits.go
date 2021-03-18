@@ -197,7 +197,10 @@ func (v VeterinaryvisitsResource) Create(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.created.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits/%v", veterinaryvisit.ID)
 	}).Wants("json", func(c buffalo.Context) error {
@@ -277,7 +280,10 @@ func (v VeterinaryvisitsResource) Update(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.updated.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits/%v", veterinaryvisit.ID)
 	}).Wants("json", func(c buffalo.Context) error {
@@ -311,7 +317,10 @@ func (v VeterinaryvisitsResource) Destroy(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.destroyed.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// Redirect to the index page
 		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits")
 	}).Wants("json", func(c buffalo.Context) error {

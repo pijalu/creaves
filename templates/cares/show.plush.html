@@ -1,7 +1,16 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Care Details for animal <%= care.AnimalID %></h3>
 
-  <div class="float-right">
+<div class="float-right">
+<%= if (params["back"]) {%>
+    <%= linkTo(params["back"], {class: "btn btn-info"}) { %>
+      Back
+    <% } %>
+    <%= linkTo(editCarePath({ care_id: care.ID, back: params["back"] }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(carePath({ care_id: care.ID, back: params["back"] }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+<% } else { %>
     <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
       Back to all Cares
     <% } %>
@@ -9,9 +18,9 @@
     <%= if (current_user.Admin) {%>
     <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
-  </div>
+<% } %>
 </div>
-
+</div>
 
 
 <ul class="list-group mb-2 ">

@@ -17,7 +17,14 @@
   <h3 class="d-inline-block">New Veterinary visit for animal <%= veterinaryvisit.AnimalID %></h3>
 </div>
 
-<%= formFor(veterinaryvisit, {action: veterinaryvisitsPath(), method: "POST"}) { %>
+<%= if (params["back"]) {%>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitsPath({back: params["back"]}), method: "POST"}) { %>
+  <%= partial("veterinaryvisits/form.html") %>
+  <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+  <% } %>
+<% } else { %>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitsPath(), method: "POST"}) { %>
   <%= partial("veterinaryvisits/form.html") %>
   <%= linkTo(veterinaryvisitsPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+  <% } %>
 <% } %>
