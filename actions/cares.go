@@ -44,7 +44,7 @@ func (v CaresResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Cares from the DB
-	if err := q.Eager().All(cares); err != nil {
+	if err := q.Eager().Order("date desc").All(cares); err != nil {
 		return err
 	}
 

@@ -55,7 +55,7 @@ func (v VeterinaryvisitsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Veterinaryvisits from the DB
-	if err := q.Eager().All(veterinaryvisits); err != nil {
+	if err := q.Eager().Order("date desc").All(veterinaryvisits); err != nil {
 		return err
 	}
 
