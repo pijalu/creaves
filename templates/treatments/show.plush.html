@@ -1,0 +1,68 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Treatment Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(treatmentsPath(), {class: "btn btn-info"}) { %>
+      Back to all Treatments
+    <% } %>
+    <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= treatment.DateFormated() %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">AnimalID</label>
+    <p class="d-inline-block"><%= treatment.AnimalID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Drug</label>
+    <p class="d-inline-block"><%= treatment.Drug %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Dosage</label>
+    <p class="d-inline-block"><%= treatment.Dosage %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Remarks</label>
+    <p class="d-inline-block"><%= treatment.Remarks %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Timebitmap</label>
+    <p class="d-inline-block"><%= treatment.Timebitmap %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Timedonebitmap</label>
+    <p class="d-inline-block"><%= treatment.Timedonebitmap %></p>
+  </li>
+
+
+</ul>

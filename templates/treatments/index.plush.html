@@ -1,0 +1,35 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Treatments</h3>
+  <div class="float-right">
+    <%= linkTo(newTreatmentsPath(), {class: "btn btn-primary"}) { %>
+      Create New Treatment
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Date</th><th>AnimalID</th><th>Drug</th><th>Dosage</th><th>Timebitmap</th><th>Timedonebitmap</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (treatment) in treatments { %>
+      <tr>
+        <td class="align-middle"><%= treatment.DateFormated() %></td><td class="align-middle"><%= treatment.AnimalID %></td><td class="align-middle"><%= treatment.Drug %></td><td class="align-middle"><%= treatment.Dosage %></td><td class="align-middle"><%= treatment.Timebitmap %></td><td class="align-middle"><%= treatment.Timedonebitmap %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

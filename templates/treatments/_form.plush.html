@@ -1,0 +1,30 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+<label>Animal ID</label>
+<p><%= treatment.AnimalID %></p>
+
+<label>Date</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="date" name="Date" required="required" type="text" value="<%= treatment.DateFormated() %>">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#date').datetimepicker({
+    timepicker:false,
+    format:'Y/m/d'
+    });
+</script>
+
+<%= f.InputTag("Drug") %>
+<%= f.InputTag("Dosage") %>
+<%= f.TextAreaTag("Remarks", {rows: 10}) %>
+
+<p>Todo</p>
+<%= f.InputTag("Timebitmap") %>
+<%= f.InputTag("Timedonebitmap") %>
+
+<button class="btn btn-success" role="submit">Save</button>

@@ -271,6 +271,28 @@ CREATE TABLE `schema_migration` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `treatments`
+--
+
+DROP TABLE IF EXISTS `treatments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `treatments` (
+  `id` char(36) NOT NULL,
+  `date` datetime NOT NULL,
+  `animal_id` int NOT NULL,
+  `drug` varchar(255) NOT NULL,
+  `dosage` varchar(255) NOT NULL,
+  `remarks` text,
+  `timebitmap` int NOT NULL,
+  `timedonebitmap` int NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `users`
 --
 
@@ -323,4 +345,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-18 14:45:50
+-- Dump completed on 2021-03-19  0:37:03

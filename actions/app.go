@@ -45,7 +45,7 @@ func App() *buffalo.App {
 		})
 
 		// Register our datetime format
-		binding.RegisterTimeFormats(models.DateTimeFormat)
+		binding.RegisterTimeFormats(models.DateTimeFormat, models.DateFormat)
 		// Automatically redirect to SSL
 		// app.Use(forceSSL())
 
@@ -100,6 +100,7 @@ func App() *buffalo.App {
 		app.Resource("/caretypes", CaretypesResource{})
 		app.Resource("/cares", CaresResource{})
 		app.Resource("/veterinaryvisits", VeterinaryvisitsResource{})
+		app.Resource("/treatments", TreatmentsResource{})
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 

@@ -1,0 +1,11 @@
+create_table("treatments") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "timestamp", {})
+	t.Column("animal_id", "integer", {})
+	t.Column("drug", "string", {})
+	t.Column("dosage", "string", {})
+	t.Column("remarks", "text", {null: true})
+	t.Column("timebitmap", "integer", {})
+	t.Column("timedonebitmap", "integer", {})
+	t.Timestamps()
+}
