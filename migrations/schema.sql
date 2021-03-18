@@ -52,6 +52,7 @@ CREATE TABLE `animals` (
   `outtake_id` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `feeding` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `animaltype_id` (`animaltype_id`),
   KEY `discovery_id` (`discovery_id`),
@@ -322,4 +323,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-17 21:49:40
+-- Dump completed on 2021-03-18 14:45:50

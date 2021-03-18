@@ -16,6 +16,7 @@ type Animal struct {
 	Ring         nulls.String      `json:"ring" db:"ring"`
 	Species      string            `json:"species" db:"species"`
 	Cage         nulls.String      `json:"cage" db:"cage"`
+	Feeding      nulls.String      `json:"feeding" db:"feeding"`
 	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
 	AnimalageID  uuid.UUID         `json:"animalage_id" db:"animalage_id"`
 	Animaltype   Animaltype        `json:"animaltype" belongs_to:"animaltype"`
