@@ -41,7 +41,7 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Cage Clean</label>
-    <%= if (care.Clean) { %>
+    <%= if (care.Clean.Value() == true) { %>
             <i class="fa fa-check" aria-hidden="true"></i>
     <% } %>
   </li>

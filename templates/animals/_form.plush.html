@@ -167,7 +167,7 @@
             <td class="align-middle"><%= care.Weight %></td>
             <td class="align-middle"><%= care.Note %></td>
             <td class="align-middle">
-              <%= if (care.Clean) { %>
+              <%= if (care.Clean.Value()==true) { %>
                 <i class="fa fa-check" aria-hidden="true"></i>
               <% } %>
             </td>
