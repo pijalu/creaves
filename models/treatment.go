@@ -122,3 +122,46 @@ func (t *Treatment) ValidateCreate(tx *pop.Connection) (*validate.Errors, error)
 func (t *Treatment) ValidateUpdate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.NewErrors(), nil
 }
+
+func (t *Treatment) ScheduleRequired(key int) bool {
+	return (t.Timebitmap & key) > 0
+}
+
+func (t *Treatment) ScheduleRequiredMorning() bool {
+	return t.ScheduleRequired(Treatement_MORNING)
+}
+
+func (t *Treatment) ScheduleRequiredNoon() bool {
+	return t.ScheduleRequired(Treatement_NOON)
+}
+
+func (t *Treatment) ScheduleRequiredEvening() bool {
+	return t.ScheduleRequired(Treatement_EVENING)
+}
+
+func (t *Treatment) ScheduleStatus(key int) nulls.Bool {
+	if t.ScheduleRequired(key) {
+		return nulls.NewBool((t.Timedonebitmap & key) > 0)
+	}
+	return nulls.Bool{Valid: false}
+}
+
+func (t *Treatment) ScheduleStatusMorning() nulls.Bool {
+	return t.ScheduleStatus(Treatement_MORNING)
+}
+
+func (t *Treatment) ScheduleStatusNoon() nulls.Bool {
+	return t.ScheduleStatus(Treatement_NOON)
+}
+
+func (t *Treatment) ScheduleStatusEvening() nulls.Bool {
+	return t.ScheduleStatus(Treatement_EVENING)
+}
+
+func (t *Treatment) SetScheduleRequired(key int) {
+	t.Timebitmap |= key
+}
+
+func (t *Treatment) SetScheduleStatus(key int) {
+	t.Timedonebitmap |= key
+}

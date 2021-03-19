@@ -15,7 +15,10 @@
 
 
 <ul class="list-group mb-2 ">
-
+  <li class="list-group-item pb-1">
+    <label class="small d-block">AnimalID</label>
+    <p class="d-inline-block"><%= treatment.AnimalID %></p>
+  </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Date</label>
@@ -23,12 +26,47 @@
   </li>
 
 
+  <% 
+    let morning = treatment.ScheduleStatusMorning() 
+    let noon = treatment.ScheduleStatusNoon() 
+    let evening = treatment.ScheduleStatusEvening()
+  %>
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">AnimalID</label>
-    <p class="d-inline-block"><%= treatment.AnimalID %></p>
+    <label class="small d-block">Schedule</label>
+    <p class="d-inline-block">
+      Morning:
+      <%= if (!morning.Valid) { %>
+        <i class="fas fa-minus"></i>
+      <% } else if (morning.Bool) {%>
+        <i class="fas fa-check"></i>
+      <% } else { %>
+        <i class="fas fa-times-circle"></i>
+      <% }%>
+    </p>
+    <br/>
+    <p class="d-inline-block">
+      Noon:
+      <%= if (!noon.Valid) { %>
+        <i class="fas fa-minus"></i>
+      <% } else if (noon.Bool) {%>
+        <i class="fas fa-check"></i>
+      <% } else { %>
+        <i class="fas fa-times-circle"></i>
+      <% }%>
+    </p>
+    <br/>
+    <p class="d-inline-block">
+      Evening:
+      <%= if (!evening.Valid) { %>
+        <i class="fas fa-minus"></i>
+      <% } else if (evening.Bool) {%>
+        <i class="fas fa-check"></i>
+      <% } else { %>
+        <i class="fas fa-times-circle"></i>
+      <% }%>
+    </p>
   </li>
-
 
 
   <li class="list-group-item pb-1">
@@ -49,20 +87,4 @@
     <label class="small d-block">Remarks</label>
     <p class="d-inline-block"><%= treatment.Remarks %></p>
   </li>
-
-
-
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Timebitmap</label>
-    <p class="d-inline-block"><%= treatment.Timebitmap %></p>
-  </li>
-
-
-
-  <li class="list-group-item pb-1">
-    <label class="small d-block">Timedonebitmap</label>
-    <p class="d-inline-block"><%= treatment.Timedonebitmap %></p>
-  </li>
-
-
 </ul>

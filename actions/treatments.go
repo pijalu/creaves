@@ -45,7 +45,7 @@ func (v TreatmentsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Treatments from the DB
-	if err := q.All(treatments); err != nil {
+	if err := q.Eager().Order("date desc").All(treatments); err != nil {
 		return err
 	}
 
@@ -75,7 +75,7 @@ func (v TreatmentsResource) Show(c buffalo.Context) error {
 	treatment := &models.Treatment{}
 
 	// To find the Treatment the parameter treatment_id is used.
-	if err := tx.Find(treatment, c.Param("treatment_id")); err != nil {
+	if err := tx.Eager().Find(treatment, c.Param("treatment_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -247,7 +247,7 @@ func (v TreatmentsResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Treatment
 	treatment := &models.Treatment{}
 
-	if err := tx.Find(treatment, c.Param("treatment_id")); err != nil {
+	if err := tx.Eager().Find(treatment, c.Param("treatment_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
