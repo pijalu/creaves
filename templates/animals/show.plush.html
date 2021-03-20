@@ -278,7 +278,7 @@
       <div class="card">
         <div class="card-header" id="heading<%= ct_id %>">
           <h5 class="mb-0">
-            <button class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
             <%= dateKey.DateFmt %>
             </button>
           </h5>
