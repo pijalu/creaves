@@ -1,3 +1,6 @@
 <%= f.InputTag("Email") %>
 <%= f.InputTag("Password", {type: "password"}) %>
 <%= f.InputTag("PasswordConfirmation", {type: "password"}) %>
+<%= if (current_user.Admin) { %>
+  <%= partial("users/aform.html") %>
+<% } %>
