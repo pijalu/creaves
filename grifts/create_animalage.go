@@ -19,6 +19,15 @@ func createAnimalage(c *Context) error {
 		{name: "adult", description: "", def: true},
 	}
 
+	cnt, err := models.DB.Q().Count(&models.Animalage{})
+	if err != nil {
+		return err
+	}
+	if cnt >= len(ts) {
+		fmt.Printf("Already %d records in animal ages - skipping\n", cnt)
+		return nil
+	}
+
 	for _, t := range ts {
 		if exists, err := models.DB.Q().Where("name = ?", t.name).Exists(&models.Animalage{}); err != nil {
 			return err

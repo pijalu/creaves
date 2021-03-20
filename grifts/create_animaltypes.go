@@ -21,6 +21,15 @@ func createAnimaltypes(c *Context) error {
 		{name: "Other", description: "", def: true},
 	}
 
+	cnt, err := models.DB.Q().Count(&models.Animaltype{})
+	if err != nil {
+		return err
+	}
+	if cnt >= len(ts) {
+		fmt.Printf("Already %d records in animal types - skipping\n", cnt)
+		return nil
+	}
+
 	for _, t := range ts {
 		if exists, err := models.DB.Q().Where("name = ?", t.name).Exists(&models.Animaltype{}); err != nil {
 			return err

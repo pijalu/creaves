@@ -19,6 +19,15 @@ func createOuttaketype(c *Context) error {
 		{name: "Freed", description: "animal is freed"},
 	}
 
+	cnt, err := models.DB.Q().Count(&models.Outtaketype{})
+	if err != nil {
+		return err
+	}
+	if cnt >= len(ts) {
+		fmt.Printf("Already %d records in outtake types - skipping\n", cnt)
+		return nil
+	}
+
 	for _, t := range ts {
 		if exists, err := models.DB.Q().Where("name = ?", t.name).Exists(&models.Outtaketype{}); err != nil {
 			return err
