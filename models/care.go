@@ -17,7 +17,7 @@ type Care struct {
 	Date time.Time `json:"date" db:"date"`
 
 	AnimalID int    `json:"animal_id" db:"animal_id"`
-	Animal   Animal `json:"animal,omitempty" belongs_to:"animal"`
+	Animal   Animal `json:"-" belongs_to:"animal"`
 
 	Type   Caretype  `json:"type" belongs_to:"caretype"`
 	TypeID uuid.UUID `json:"type_id" db:"type_id"`

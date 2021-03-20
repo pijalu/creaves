@@ -2,6 +2,8 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -16,7 +18,7 @@ type Treatment struct {
 	ID             uuid.UUID    `json:"id" db:"id"`
 	Date           time.Time    `json:"date" db:"date"`
 	AnimalID       int          `json:"animal_id" db:"animal_id"`
-	Animal         *Animal      `json:"animal,omitempty" belongs_to:"animal"`
+	Animal         *Animal      `json:"-" belongs_to:"animal"`
 	Drug           string       `json:"drug" db:"drug"`
 	Dosage         string       `json:"dosage" db:"dosage"`
 	Remarks        nulls.String `json:"remarks" db:"remarks"`
@@ -26,13 +28,22 @@ type Treatment struct {
 	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
 }
 
+// Helper structure for presentation
+type TreatmentKey struct {
+	Date    time.Time
+	DateFmt string
+	Past    bool
+	Current bool
+	Future  bool
+}
+
 // TreatmentTemplate is the object used to create a serie of treaments
 type TreatmentTemplate struct {
 	DateFrom time.Time `json:"dateFrom"`
 	DateTo   time.Time `json:"dateTo"`
 
 	AnimalID int          `json:"animal_id"`
-	Animal   *Animal      `json:"animal,omitempty" belongs_to:"animal"`
+	Animal   *Animal      `json:"-" belongs_to:"animal"`
 	Drug     string       `json:"drug"`
 	Dosage   string       `json:"dosage"`
 	Remarks  nulls.String `json:"remarks"`
@@ -92,6 +103,49 @@ type Treatments []Treatment
 func (t Treatments) String() string {
 	jt, _ := json.Marshal(t)
 	return string(jt)
+}
+
+// TreatmentsMap is an organized treaments list
+type TreatmentsMap map[TreatmentKey]Treatments
+
+// Return orderedkeys from map
+func (t TreatmentsMap) OrderedKeys() []TreatmentKey {
+	var keys []TreatmentKey
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Date.Before(keys[j].Date)
+	})
+	return keys
+}
+
+// TreatmentsMap returns treatments organized per date
+func (ts Treatments) TreatmentsMap() TreatmentsMap {
+	mk := map[string]TreatmentKey{}
+	m := map[TreatmentKey]Treatments{}
+	for _, t := range ts {
+		k, present := mk[t.DateFormated()]
+		// Create key
+		if !present {
+			now := time.Now()
+			nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			checkDt := time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, now.Location())
+			k = TreatmentKey{
+				Date:    checkDt,
+				DateFmt: t.DateFormated(),
+				Past:    checkDt.Before(nowDt),
+				Current: checkDt.Equal(nowDt),
+				Future:  checkDt.After(nowDt),
+			}
+			mk[t.DateFormated()] = k
+			fmt.Printf("NowDt: %v - Date: %v ==> %v",
+				nowDt, t.Date, k)
+		}
+		m[k] = append(m[k], t)
+	}
+	fmt.Printf("Treatment map: %v", m)
+	return m
 }
 
 // DateFormated returns a formated date

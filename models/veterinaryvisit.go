@@ -19,7 +19,7 @@ type Veterinaryvisit struct {
 	User       User         `json:"user,omitempty" belongs_to:"user"`
 	Veterinary string       `json:"veterinary" db:"veterinary"`
 	AnimalID   int          `json:"animal_id" db:"animal_id"`
-	Animal     Animal       `json:"animal,omitempty" belongs_to:"animal"`
+	Animal     Animal       `json:"-" belongs_to:"animal"`
 	Diagnostic nulls.String `json:"diagnostic" db:"diagnostic"`
 	CreatedAt  time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time    `json:"updated_at" db:"updated_at"`

@@ -14,6 +14,7 @@
     <th>AnimalID</th>
     <th>Drug</th>
     <th>Dosage</th>
+    <th>Remarks</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -55,6 +56,7 @@
         <td class="align-middle"><%= treatment.AnimalID %></td>
         <td class="align-middle"><%= treatment.Drug %></td>
         <td class="align-middle"><%= treatment.Dosage %></td>
+        <td class="align-middle"><%= treatment.Remarks %></td>
         <td>
           <div class="float-right">
             <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

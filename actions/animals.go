@@ -58,6 +58,9 @@ func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*model
 	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.VetVisits); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
+	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.Treatments); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
 
 	if a.OuttakeID.Valid {
 		c.Logger().Debugf("Loading outtake %v", a.OuttakeID)
