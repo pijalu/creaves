@@ -228,7 +228,146 @@
   </div>
 
   <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
-      <h1>Treatment TBD</h1>
+    <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
+          Add New treatment
+        <% } %>
+      </div>
+    </div>
+    </br>
+    <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
+    <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
+    <div id="accordion">
+      <% let ct_id=1 %>
+      <%= for (dateKey) in orderedTMKey {%>
+      <% let treatments = treatmentsMap[dateKey] %>
+      <div class="card">
+        <div class="card-header" id="heading<%= ct_id %>">
+          <h5 class="mb-0">
+            <button class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <%= dateKey.DateFmt %>
+            </button>
+          </h5>
+        </div>
+        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <%= for (t) in treatments {%>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= t.Drug %> (<%= t.Dosage %>)
+                        <%= if (t.Remarks.Value() != "") {%>
+                        <p><em><%= t.Remarks %></em></p>
+                      <%}%>
+                    </div>
+                    <div class="col-sm">
+                      <% 
+                        let morning = t.ScheduleStatusMorning() 
+                        let noon = t.ScheduleStatusNoon() 
+                        let evening = t.ScheduleStatusEvening()
+                      %>
+                      <p class="d-inline-block">
+                        <%= if (!morning.Valid) { %>                          
+                          <i class="fas fa-minus" title="Not required on the morning"></i>
+                        <% } else if (morning.Bool) {%>
+                          <span style="color:green;" title="Done on the morning">
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do on the morning">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do on the morning">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% }%>
+                        
+                        &nbsp;
+
+                        <%= if (!noon.Valid) { %>
+                          <i class="fas fa-minus" title="Not required at noon"></i>
+                        <% } else if (noon.Bool) {%>
+                          <span style="color:green;" title="Done at noon">
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do at noon">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do at noon">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% }%>
+
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <i class="fas fa-minus" title="Not required on the evening"></i>
+                        <% } else if (evening.Bool) {%>
+                          <span style="color:green;" title="Done in the evening">
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do in the evening">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do in the evening">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% }%>
+                      </p>
+                    </div>
+                    <div class="col-sm">
+                      <div class="float-right">
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= if (current_user.Admin) {%>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                        <%  }%>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <%}%>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <% let ct_id = ct_id + 1 %>
+      <%}%>
+    </div>
   </div>
 
   <%= if (animal.OuttakeID.Value() != nil) {%>

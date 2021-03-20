@@ -12,8 +12,6 @@
   </div>
 </div>
 
-
-
 <nav>
   <div class="nav nav-tabs" id="nav-tab" role="tablist">
     <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">General</a>
@@ -237,9 +235,35 @@
   </div>
 
   <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+    <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Add New treatment
         <% } %>
       </div>
@@ -279,28 +303,55 @@
                         let evening = t.ScheduleStatusEvening()
                       %>
                       <p class="d-inline-block">
-                        <%= if (!morning.Valid) { %>
+                        <%= if (!morning.Valid) { %>                          
                           <i class="fas fa-minus" title="Not required on the morning"></i>
                         <% } else if (morning.Bool) {%>
-                          <i class="fas fa-check" title="Done on the morning"></i>
+                          <span style="color:green;" title="Done on the morning">
+                            <%= contentOf("morningSVG") %>
+                          </span>
                         <% } else { %>
-                          <i class="fas fa-calendar-times" title="To do on the morning"></i>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do on the morning">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do on the morning">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </span>
                         <% }%>
+                        
                         &nbsp;
+
                         <%= if (!noon.Valid) { %>
                           <i class="fas fa-minus" title="Not required at noon"></i>
                         <% } else if (noon.Bool) {%>
-                          <i class="fas fa-check" title="Done at noon"></i>
+                          <span style="color:green;" title="Done at noon">
+                            <%= contentOf("noonSVG") %>
+                          </span>
                         <% } else { %>
-                          <i class="fas fa-calendar-times" title="To do at noon"></i>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do at noon">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do at noon">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </span>
                         <% }%>
+
                         &nbsp;
                         <%= if (!evening.Valid) { %>
                           <i class="fas fa-minus" title="Not required on the evening"></i>
                         <% } else if (evening.Bool) {%>
-                          <i class="fas fa-check" title="Done on the evening"></i>
+                          <span style="color:green;" title="Done in the evening">
+                            <%= contentOf("eveningSVG") %>
+                          </span>
                         <% } else { %>
-                          <i class="fas fa-calendar-times" title="To do on the evening"></i>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="To do in the evening">
+                          <% } else { %>
+                          <span style="color:orange;" title="To do in the evening">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </span>
                         <% }%>
                       </p>
                     </div>

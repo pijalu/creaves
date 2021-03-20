@@ -7,6 +7,32 @@
   </div>
 </div>
 
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Date</th>
@@ -27,31 +53,47 @@
       <tr>
         <td class="align-middle"><%= treatment.DateFormated() %></td>
         <td>
-          <p class="d-inline-block">
-            <%= if (!morning.Valid) { %>
-              <i class="fas fa-minus" title="Not required on the morning"></i>
-            <% } else if (morning.Bool) {%>
-              <i class="fas fa-check" title="Done on the morning"></i>
-            <% } else { %>
-              <i class="fas fa-calendar-times" title="To do on the morning"></i>
-            <% }%>
-            &nbsp;
-            <%= if (!noon.Valid) { %>
-              <i class="fas fa-minus" title="Not required at noon"></i>
-            <% } else if (noon.Bool) {%>
-              <i class="fas fa-check" title="Done at noon"></i>
-            <% } else { %>
-              <i class="fas fa-calendar-times" title="To do at noon"></i>
-            <% }%>
-            &nbsp;
-            <%= if (!evening.Valid) { %>
-              <i class="fas fa-minus" title="Not required on the evening"></i>
-            <% } else if (evening.Bool) {%>
-              <i class="fas fa-check" title="Done on the evening"></i>
-            <% } else { %>
-              <i class="fas fa-calendar-times" title="To do on the evening"></i>
-            <% }%>
-          </p>
+        <p class="d-inline-block">
+      <%= if (!morning.Valid) { %>                          
+        <i class="fas fa-minus" title="Not required on the morning"></i>
+      <% } else if (morning.Bool) {%>
+        <span style="color:green;" title="Done on the morning">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do on the morning">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% }%>
+      
+      &nbsp;
+
+      <%= if (!noon.Valid) { %>
+        <i class="fas fa-minus" title="Not required at noon"></i>
+      <% } else if (noon.Bool) {%>
+        <span style="color:green;" title="Done at noon">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do at noon">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% }%>
+
+      &nbsp;
+
+      <%= if (!evening.Valid) { %>
+        <i class="fas fa-minus" title="Not required on the evening"></i>
+      <% } else if (evening.Bool) {%>
+        <span style="color:green;" title="Done in the evening">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do in the evening">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% }%>
+    </p>
         </td>
         <td class="align-middle"><%= treatment.AnimalID %></td>
         <td class="align-middle"><%= treatment.Drug %></td>

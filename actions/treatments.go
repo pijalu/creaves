@@ -242,7 +242,10 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "treatment.created.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/treatments/")
 	}).Wants("json", func(c buffalo.Context) error {
@@ -336,7 +339,10 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "treatment.updated.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/treatments/%v", treatment.ID)
 	}).Wants("json", func(c buffalo.Context) error {
@@ -349,6 +355,11 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 // Destroy deletes a Treatment from the DB. This function is mapped
 // to the path DELETE /treatments/{treatment_id}
 func (v TreatmentsResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -370,7 +381,10 @@ func (v TreatmentsResource) Destroy(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
 		c.Flash().Add("success", T.Translate(c, "treatment.destroyed.success"))
-
+		if len(c.Param("back")) > 0 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		}
 		// Redirect to the index page
 		return c.Redirect(http.StatusSeeOther, "/treatments")
 	}).Wants("json", func(c buffalo.Context) error {
