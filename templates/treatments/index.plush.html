@@ -9,13 +9,52 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Date</th><th>AnimalID</th><th>Drug</th><th>Dosage</th><th>Timebitmap</th><th>Timedonebitmap</th>
+    <th>Date</th>
+    <th>AM-M-PM</th>
+    <th>AnimalID</th>
+    <th>Drug</th>
+    <th>Dosage</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (treatment) in treatments { %>
+      <% 
+        let morning = treatment.ScheduleStatusMorning() 
+        let noon = treatment.ScheduleStatusNoon() 
+        let evening = treatment.ScheduleStatusEvening()
+      %>
       <tr>
-        <td class="align-middle"><%= treatment.DateFormated() %></td><td class="align-middle"><%= treatment.AnimalID %></td><td class="align-middle"><%= treatment.Drug %></td><td class="align-middle"><%= treatment.Dosage %></td><td class="align-middle"><%= treatment.Timebitmap %></td><td class="align-middle"><%= treatment.Timedonebitmap %></td>
+        <td class="align-middle"><%= treatment.DateFormated() %></td>
+        <td>
+          <p class="d-inline-block">
+            <%= if (!morning.Valid) { %>
+              <i class="fas fa-minus" title="Not required on the morning"></i>
+            <% } else if (morning.Bool) {%>
+              <i class="fas fa-check" title="Done on the morning"></i>
+            <% } else { %>
+              <i class="fas fa-calendar-times" title="To do on the morning"></i>
+            <% }%>
+            &nbsp;
+            <%= if (!noon.Valid) { %>
+              <i class="fas fa-minus" title="Not required at noon"></i>
+            <% } else if (noon.Bool) {%>
+              <i class="fas fa-check" title="Done at noon"></i>
+            <% } else { %>
+              <i class="fas fa-calendar-times" title="To do at noon"></i>
+            <% }%>
+            &nbsp;
+            <%= if (!evening.Valid) { %>
+              <i class="fas fa-minus" title="Not required on the evening"></i>
+            <% } else if (evening.Bool) {%>
+              <i class="fas fa-check" title="Done on the evening"></i>
+            <% } else { %>
+              <i class="fas fa-calendar-times" title="To do on the evening"></i>
+            <% }%>
+          </p>
+        </td>
+        <td class="align-middle"><%= treatment.AnimalID %></td>
+        <td class="align-middle"><%= treatment.Drug %></td>
+        <td class="align-middle"><%= treatment.Dosage %></td>
         <td>
           <div class="float-right">
             <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

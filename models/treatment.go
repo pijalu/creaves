@@ -158,10 +158,28 @@ func (t *Treatment) ScheduleStatusEvening() nulls.Bool {
 	return t.ScheduleStatus(Treatement_EVENING)
 }
 
-func (t *Treatment) SetScheduleRequired(key int) {
-	t.Timebitmap |= key
+func (t *Treatment) SetAllScheduleRequired(m bool, n bool, e bool) {
+	t.Timebitmap = 0
+	if m {
+		t.Timebitmap |= Treatement_MORNING
+	}
+	if n {
+		t.Timebitmap |= Treatement_NOON
+	}
+	if e {
+		t.Timebitmap |= Treatement_EVENING
+	}
 }
 
-func (t *Treatment) SetScheduleStatus(key int) {
-	t.Timedonebitmap |= key
+func (t *Treatment) SetAllScheduleStatus(m bool, n bool, e bool) {
+	t.Timedonebitmap = 0
+	if m {
+		t.Timedonebitmap |= Treatement_MORNING
+	}
+	if n {
+		t.Timedonebitmap |= Treatement_NOON
+	}
+	if e {
+		t.Timedonebitmap |= Treatement_EVENING
+	}
 }

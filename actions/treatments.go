@@ -2,11 +2,13 @@ package actions
 
 import (
 	"creaves/models"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
@@ -29,6 +31,21 @@ type TreatmentsResource struct {
 	buffalo.Resource
 }
 
+// To handle schedule forms
+type treatmentSchedule struct {
+	ScheduleRequiredMorning nulls.Bool
+	ScheduleRequiredNoon    nulls.Bool
+	ScheduleRequiredEvening nulls.Bool
+	ScheduleStatusMorning   nulls.Bool
+	ScheduleStatusNoon      nulls.Bool
+	ScheduleStatusEvening   nulls.Bool
+}
+
+func (t *treatmentSchedule) String() string {
+	jt, _ := json.Marshal(t)
+	return string(jt)
+}
+
 // List gets all Treatments. This function is mapped to the path
 // GET /treatments
 func (v TreatmentsResource) List(c buffalo.Context) error {
@@ -45,7 +62,7 @@ func (v TreatmentsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Treatments from the DB
-	if err := q.Eager().Order("date desc").All(treatments); err != nil {
+	if err := q.Eager().Order("date desc,timebitmap asc, animal_id desc").All(treatments); err != nil {
 		return err
 	}
 
@@ -275,6 +292,24 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(treatment); err != nil {
 		return err
 	}
+
+	// Decode schedule
+	ts := &treatmentSchedule{}
+	if err := c.Bind(ts); err != nil {
+		return err
+	}
+	treatment.SetAllScheduleRequired(
+		ts.ScheduleRequiredMorning.Bool,
+		ts.ScheduleRequiredNoon.Bool,
+		ts.ScheduleRequiredEvening.Bool)
+
+	treatment.SetAllScheduleStatus(
+		ts.ScheduleStatusMorning.Bool,
+		ts.ScheduleStatusNoon.Bool,
+		ts.ScheduleStatusEvening.Bool)
+
+	c.Logger().Debugf("Treatment Schedules: %v", ts)
+	c.Logger().Debugf("Bitmaps: req:%d tod: %d", treatment.Timebitmap, treatment.Timedonebitmap)
 
 	verrs, err := tx.ValidateAndUpdate(treatment)
 	if err != nil {

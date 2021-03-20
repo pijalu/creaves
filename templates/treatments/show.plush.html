@@ -37,33 +37,33 @@
     <p class="d-inline-block">
       Morning:
       <%= if (!morning.Valid) { %>
-        <i class="fas fa-minus"></i>
+        <i class="fas fa-minus" title="Not required on the morning"></i>
       <% } else if (morning.Bool) {%>
-        <i class="fas fa-check"></i>
+        <i class="fas fa-check"  title="Done on the morning"></i>
       <% } else { %>
-        <i class="fas fa-times-circle"></i>
+        <i class="fas fa-calendar-times"  title="To do on the morning"></i>
       <% }%>
     </p>
     <br/>
     <p class="d-inline-block">
       Noon:
       <%= if (!noon.Valid) { %>
-        <i class="fas fa-minus"></i>
+        <i class="fas fa-minus"  title="Not required at noon"></i>
       <% } else if (noon.Bool) {%>
-        <i class="fas fa-check"></i>
+        <i class="fas fa-check" title="Done at noon"></i>
       <% } else { %>
-        <i class="fas fa-times-circle"></i>
+        <i class="fas fa-calendar-times"  title="To do at noon"></i>
       <% }%>
     </p>
     <br/>
     <p class="d-inline-block">
       Evening:
       <%= if (!evening.Valid) { %>
-        <i class="fas fa-minus"></i>
+        <i class="fas fa-minus"  title="No required on the evcening"></i>
       <% } else if (evening.Bool) {%>
-        <i class="fas fa-check"></i>
+        <i class="fas fa-check"  title="Done on the evening"></i>
       <% } else { %>
-        <i class="fas fa-times-circle"></i>
+        <i class="fas fa-calendar-times" title="To do on the evening"></i>
       <% }%>
     </p>
   </li>

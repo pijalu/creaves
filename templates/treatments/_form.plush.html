@@ -19,12 +19,51 @@
     });
 </script>
 
+
+<!-- Bitmap: <%= treatment.Timebitmap %> -->
+<div class="form-group">
+    <label><b>Required Schedule:</b></label>
+    <br/>
+    <label>
+        <input class="" id="ScheduleRequiredMorning" name="ScheduleRequiredMorning" type="checkbox" value="true" 
+        <%= if (treatment.ScheduleRequiredMorning()) { %>checked<% } %> /> Morning
+    </label>
+    <label>
+        <input class="" id="ScheduleRequiredNoon" name="ScheduleRequiredNoon" type="checkbox" value="true" 
+        <%= if (treatment.ScheduleRequiredNoon()) { %>checked<% } %> />Noon
+    </label>
+    <label>
+        <input class="" id="ScheduleRequiredEvening" name="ScheduleRequiredEvening" type="checkbox" value="true"
+        <%= if (treatment.ScheduleRequiredEvening()) { %>checked<% } %> />Evening   
+    </label>
+</div>
+
+<!-- timedoneBitmap: <%= treatment.Timedonebitmap %> -->
+<% 
+    let morning = treatment.ScheduleStatusMorning() 
+    let noon = treatment.ScheduleStatusNoon() 
+    let evening = treatment.ScheduleStatusEvening()
+%>
+<div class="form-group">
+    <label><b>Todo/done Schedule :</b></label>
+    <br/>
+    <label>
+        <input class="" id="ScheduleStatusMorning" name="ScheduleStatusMorning" type="checkbox" value="true" 
+        <%= if (morning.Bool) { %>checked<% } %> /> Morning
+    </label>
+    <label>
+        <input class="" id="ScheduleStatusNoon" name="ScheduleStatusNoon" type="checkbox" value="true" 
+        <%= if (noon.Bool) { %>checked<% } %> />Noon
+    </label>
+    <label>
+        <input class="" id="ScheduleStatusEvening" name="ScheduleStatusEvening" type="checkbox" value="true"
+        <%= if (evening.Bool) { %>checked<% } %> />Evening   
+    </label>
+</div>
+
 <%= f.InputTag("Drug") %>
 <%= f.InputTag("Dosage") %>
 <%= f.TextAreaTag("Remarks", {rows: 10}) %>
 
-<p>Todo</p>
-<%= f.InputTag("Timebitmap") %>
-<%= f.InputTag("Timedonebitmap") %>
 
 <button class="btn btn-success" role="submit">Save</button>
