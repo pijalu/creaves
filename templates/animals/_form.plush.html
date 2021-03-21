@@ -17,18 +17,17 @@
   <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
     <div class="form-row">
         <div class="form-group col-md-12">
-                <%= f.InputTag("Species", {required: "required"})%>
-                <%= f.InputTag("Cage") %>
-                <%= f.InputTag("Ring") %>
-                <%= f.SelectTag("AnimalageID", {
-                    label: "Age",
-                    options: selectAnimalages, 
-                    required:"required"}) %>
-
                 <%= f.SelectTag("AnimaltypeID", {
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
+                <%= f.InputTag("Species", {required: "required"})%>
+                <%= f.SelectTag("AnimalageID", {
+                    label: "Age",
+                    options: selectAnimalages, 
+                    required:"required"}) %>
+                <%= f.InputTag("Ring") %>
+                <%= f.InputTag("Cage") %>
         </div>
     </div>
   </div>
