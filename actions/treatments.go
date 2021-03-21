@@ -47,7 +47,7 @@ func (t *treatmentSchedule) String() string {
 	return string(jt)
 }
 
-// ReceptionNew default implementation.
+// TreatmentUpdateSchedule allow XHR update of treatment
 func TreatmentUpdateSchedule(c buffalo.Context) error {
 	updateRequest := struct {
 		Treatment_ID uuid.UUID `json:"treatment_id"`

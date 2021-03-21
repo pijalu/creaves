@@ -139,8 +139,6 @@ func (ts Treatments) TreatmentsMap() TreatmentsMap {
 				Future:  checkDt.After(nowDt),
 			}
 			mk[t.DateFormated()] = k
-			fmt.Printf("NowDt: %v - Date: %v ==> %v",
-				nowDt, t.Date, k)
 		}
 		m[k] = append(m[k], t)
 	}
