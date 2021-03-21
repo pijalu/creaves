@@ -64,7 +64,8 @@ func App() *buffalo.App {
 		// Setup and use translations:
 		app.Use(translations())
 
-		app.GET("/", HomeHandler)
+		app.GET("/paths", PathHandler)
+		app.GET("/", LandingIndex)
 
 		//AuthMiddlewares
 		app.Use(SetCurrentUser)
@@ -103,6 +104,7 @@ func App() *buffalo.App {
 		app.Resource("/treatments", TreatmentsResource{})
 		app.PUT("/treatmentschedule", TreatmentUpdateSchedule)
 
+		app.GET("/landing/index", LandingIndex)
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 

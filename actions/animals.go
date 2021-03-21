@@ -30,16 +30,13 @@ type AnimalsResource struct {
 	buffalo.Resource
 }
 
-func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*models.Animal, error) {
-	a := &models.Animal{}
-
+// EnrichAnimal load all deps of an animal record
+func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
-	if err := tx.Find(a, animal_id); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
+
 	if err := tx.Find(&a.Animalage, a.AnimalageID); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
@@ -71,6 +68,19 @@ func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*model
 		}
 	}
 	return a, nil
+}
+
+func (v AnimalsResource) loadAnimal(animal_id string, c buffalo.Context) (*models.Animal, error) {
+	a := &models.Animal{}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+	if err := tx.Find(a, animal_id); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	return EnrichAnimal(a, c)
 }
 
 // List gets all Animals. This function is mapped to the path

@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"sort"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -34,14 +35,29 @@ type Animal struct {
 	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
 
+// Animals is not required by pop and may be deleted
+type Animals []Animal
+
+// TreatmentsMap is an organized treaments list
+type AnimalsByTypeMap map[Animaltype]Animals
+
+// Return orderedkeys from map
+func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
+	var keys []Animaltype
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Name < keys[j].Name
+	})
+	return keys
+}
+
 // String is not required by pop and may be deleted
 func (a Animal) String() string {
 	ja, _ := json.Marshal(a)
 	return string(ja)
 }
-
-// Animals is not required by pop and may be deleted
-type Animals []Animal
 
 // String is not required by pop and may be deleted
 func (a Animals) String() string {
