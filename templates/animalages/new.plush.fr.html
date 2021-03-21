@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau type d'age</h3>
+</div>
+
+<%= formFor(animalage, {action: animalagesPath(), method: "POST"}) { %>
+  <%= partial("animalages/form.plush.fr.html") %>
+  <%= linkTo(animalagesPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

@@ -1,0 +1,19 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier le soins pour l'animal <%= care.AnimalID %></h3>
+</div>
+
+<%= if (params["back"]) { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID, back:params["back"]}), method: "PUT"}) { %>
+    <%= partial("cares/form.plush.fr.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID, back:params["back"] }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+    <% }%>
+  <% } %>
+<% } else { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID }), method: "PUT"}) { %>
+    <%= partial("cares/form.plush.fr.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+    <% }%>
+  <% } %>
+<% }%>

@@ -1,0 +1,15 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier la visite vétérinaire pour l'animal <%= veterinaryvisit.AnimalID %></h3>
+</div>
+
+<%= if (params["back"]) {%>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID, back: params["back"] }), method: "PUT"}) { %>
+    <%= partial("veterinaryvisits/form.plush.fr.html") %>
+    <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } else { %>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), method: "PUT"}) { %>
+    <%= partial("veterinaryvisits/form.plush.fr.html") %>
+    <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } %>

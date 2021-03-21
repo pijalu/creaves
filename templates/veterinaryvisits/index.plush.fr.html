@@ -1,0 +1,41 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Visites vétérinaires</h3>
+  <div class="float-right">
+    <%= linkTo(newVeterinaryvisitsPath(), {class: "btn btn-primary"}) { %>
+      Créer une nouvelle visite vétérinaire
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Date</th>
+    <th>Vétérinaire</th>
+    <th>Utilisateur</th>
+    <th>Numéro Animal</th>
+    <th>Diagnostique</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (veterinaryvisit) in veterinaryvisits { %>
+      <tr>
+        <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+        <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
+        <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
+        <td class="align-middle"><%= veterinaryvisit.AnimalID %></td>
+        <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

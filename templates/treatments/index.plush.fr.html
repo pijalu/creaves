@@ -1,0 +1,118 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Traitements</h3>
+  <div class="float-right">
+    <%= linkTo(newTreatmentsPath(), {class: "btn btn-primary"}) { %>
+      Créer un nouveau traitement
+    <% } %>
+  </div>
+</div>
+
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Date</th>
+    <th>AM-M-PM</th>
+    <th>Nb animal</th>
+    <th>Médicament</th>
+    <th>Posologie</th>
+    <th>Remarques</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (treatment) in treatments { %>
+      <% 
+        let morning = treatment.ScheduleStatusMorning() 
+        let noon = treatment.ScheduleStatusNoon() 
+        let evening = treatment.ScheduleStatusEvening()
+      %>
+      <tr>
+        <td class="align-middle"><%= treatment.DateFormated() %></td>
+        <td>
+        <p class="d-inline-block">
+      <%= if (!morning.Valid) { %>                          
+        <i class="fas fa-minus" title="Pas nécessaire le matin"></i>
+      <% } else if (morning.Bool) {%>
+        <span style="color:green;" title="Fait le matin">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="Faire le matin">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% }%>
+      
+      &nbsp;
+
+      <%= if (!noon.Valid) { %>
+        <i class="fas fa-minus" title="Non requis à midi"></i>
+      <% } else if (noon.Bool) {%>
+        <span style="color:green;" title="Fait à midi">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="Faire à midi">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% }%>
+
+      &nbsp;
+
+      <%= if (!evening.Valid) { %>
+        <i class="fas fa-minus" title="Pas nécessaire le soir"></i>
+      <% } else if (evening.Bool) {%>
+        <span style="color:green;" title="Fait le soir">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="Faire le soir">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% }%>
+    </p>
+        </td>
+        <td class="align-middle"><%= treatment.AnimalID %></td>
+        <td class="align-middle"><%= treatment.Drug %></td>
+        <td class="align-middle"><%= treatment.Dosage %></td>
+        <td class="align-middle"><%= treatment.Remarks %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

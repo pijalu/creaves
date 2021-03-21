@@ -1,0 +1,31 @@
+<label>Date</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= outtake.DateFormated() %>">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#outtakeDate').datetimepicker({format:'Y/m/d H:i'});
+</script>
+
+<%= f.SelectTag("TypeID", {
+    label: "Type",
+    options: selectOuttaketype, 
+    required:"required"}) %>
+<%= f.InputTag("Location", {label:"Lieu"}) %>
+
+<a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+Notes
+</a>
+<div class="collapse" id="OuttakeNote">
+    <div class="card card-body">
+        <textarea class="form-control col-md-12" id="Outtake.Note" name="Outtake.Note" rows="10"><%= outtake.Note %></textarea>
+    </div>
+</div>
+<br/>
+<br/>
+<button class="btn btn-success" role="submit">Sauvegarder</button>

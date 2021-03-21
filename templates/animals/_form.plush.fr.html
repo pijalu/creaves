@@ -1,0 +1,506 @@
+
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">Général</a>
+    <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Découverte</a>
+    <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Admission</a>
+    <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Soins</a>
+    <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Vétérinaire</a>
+    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Traitement</a>
+    <%= if (animal.OuttakeID.Value() != nil ) {%>
+      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Sortie</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.SelectTag("AnimaltypeID", {
+                    label: "Type",
+                    options: selectAnimalTypes, 
+                    required:"required"}) %>
+                <%= f.InputTag("Species", {label:"Espèce", required: "required"})%>
+                <%= f.SelectTag("AnimalageID", {
+                    label: "Age",
+                    options: selectAnimalages, 
+                    required:"required"}) %>
+                <%= f.InputTag("Ring", {label:"Bague"}) %>
+                <%= f.InputTag("Cage") %>
+        </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
+    <div class="container p-3 my-3 border">
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Location", {label:"Lieu", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+        </div>
+        <div class="form-row">
+        
+        <div class="form-group col-md-12">
+            <label>Date</label>
+            <div class="input-group md-12">
+                <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>">
+                <div class="input-group-append">
+                    <div class="input-group-text">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            $('#discodate').datetimepicker({format:'Y/m/d H:i'});
+        </script>
+        </div>
+    </div>
+    <div class="container p-3 my-3 border">
+        <h4>Discoverer</h4>
+    
+        <div class="form-row">  
+        <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Prénom"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Nom de famille"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Adresse"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Pays"}) %>
+        </div>
+        <div class="form-row">
+        <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"E-mail"}) %>
+        <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
+        </div>
+    </div>
+    <div class="container p-3 my-3 border">
+        <h4>Details</h4> 
+        <%= f.TextAreaTag("Discovery.Reason", {label:"Raison", rows: 10, class:"col-md-12"}) %>
+        <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Notes
+        </a>
+        <div class="collapse" id="DiscoveryNote">
+            <div class="card card-body">
+                <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
+            </div>
+        </div>
+    </div>
+    </div>  
+  
+   <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <div class="container p-3 my-3 border">
+
+                <label>Date</label>
+                <div class="input-group md-12">
+                    <input class=" form-control" id="intakedate" name="Intake.Date" required="required" type="text" value="<%= animal.Intake.DateFormated() %>">
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <i class="fa fa-calendar" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <script type="text/javascript">
+                    $('#intakedate').datetimepicker({format:'Y/m/d H:i'});
+                </script>
+
+                <%= f.TextAreaTag("Intake.General", {label:"Général", required:"required", rows: 10}) %>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Blessures
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"><%= animal.Intake.Wounds %></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasites
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea  class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"><%= animal.Intake.Parasites %></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Remarques
+                </a>
+                <div class="collapse" id="Remarks">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="10"><%= animal.Intake.Remarks %></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
+    <div class="container p-3 my-3 border">
+    <%= f.TextAreaTag("Feeding", {label:"Alimentation", rows: 2, class:"col-md-12"}) %>
+    </div>
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newCaresPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-primary"}) { %>
+          Créer un nouveau soin
+        <% } %>
+      </div>
+    </div>
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Poids</th>
+        <th>Note</th>
+        <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+        <th>Type</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (care) in animal.Cares { %>
+          <tr>
+            <td class="align-middle"><%= care.Date.DateFormated() %></td>
+            <td class="align-middle"><%= care.Weight %></td>
+            <td class="align-middle"><%= care.Note %></td>
+            <td class="align-middle">
+              <%= if (care.Clean.Value()==true) { %>
+                <i class="fa fa-check" aria-hidden="true"></i>
+              <% } %>
+            </td>
+            <td class="align-middle"><%= care.Type.Name %></td>
+            <td>
+              <div class="float-right">
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <% }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-vet" role="tabpanel" aria-labelledby="nav-vet-tab">
+    <div class="py-4 mb-2">
+      <h3 class="d-inline-block">Visites vétérinaires</h3>
+      <div class="float-right">
+        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-primary"}) { %>
+          Créer une nouvelle visite vétérinaire
+        <% } %>
+      </div>
+    </div>
+
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Vétérinaire</th>
+        <th>Utilisateur</th>
+        <th>Diagnostique</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (veterinaryvisit) in animal.VetVisits{ %>
+          <tr>
+            <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
+            <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
+            <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+            <td>
+              <div class="float-right">
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%  }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+    <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
+          Ajouter un nouveau traitement
+        <% } %>
+      </div>
+    </div>
+    </br>
+    <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
+    <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
+    <div id="accordion">
+      <% let ct_id=1 %>
+      <%= for (dateKey) in orderedTMKey {%>
+      <% let treatments = treatmentsMap[dateKey] %>
+      <div class="card">
+        <div class="card-header" id="heading<%= ct_id %>">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <%= dateKey.DateFmt %>
+            </button>
+          </h5>
+        </div>
+        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <%= for (t) in treatments {%>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= t.Drug %> (<%= t.Dosage %>)
+                        <%= if (t.Remarks.Value() != "") {%>
+                        <p><em><%= t.Remarks %></em></p>
+                      <%}%>
+                    </div>
+                    <div class="col-sm">
+                      <% 
+                        let morning = t.ScheduleStatusMorning() 
+                        let noon = t.ScheduleStatusNoon() 
+                        let evening = t.ScheduleStatusEvening()
+                      %>
+                      <p class="d-inline-block">
+                        <%= if (!morning.Valid) { %>   
+                          <button type="button" class="btn btn-light disabled" title="Pas nécessaire le matin">                       
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (morning.Bool) {%>
+                          <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% } else { %>
+                          
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% }%>
+                        
+                        &nbsp;
+
+                        <%= if (!noon.Valid) { %>
+                          <button type="button" class="btn btn-light disabled" title="Non requis à midi">     
+                            <i class="fas fa-minus"></i>
+                          </button>
+                        <% } else if (noon.Bool) {%>
+                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% }%>
+
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <button type="button" class="btn btn-light disabled">
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (evening.Bool) {%>
+                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% }%>
+                      </p>
+                    </div>
+                    <div class="col-sm">
+                      <div class="float-right">
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= if (current_user.Admin) {%>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                        <%  }%>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <%}%>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <% let ct_id = ct_id + 1 %>
+      <%}%>
+    </div>
+  </div>
+  <script>
+    const xhrUrl = "<%= treatmentschedulePath() %>";
+    const re = /shed-btn_(.*)_(.*)/;
+    $(".btn-schedule").each(function(){
+      var tk=function(key) {
+        switch(key) {
+         case "morning": return 1; 
+         case "noon": return 2;
+         case "evening": return 4;
+        }
+      };
+
+      const matches=$(this).attr("id").match(re);
+      const key=tk(matches[1]);
+      const rid=matches[2];
+      const payload=JSON.stringify({"treatment_id":rid, "key": key});
+      const elm=$(this);
+
+      elm.on("click", function(){
+        elm.prop('disabled', true);
+
+        elm.addClass("btn-light")
+        elm.removeClass("btn-success btn-warning btn-danger")
+        
+        $.ajax({
+          type: 'PUT',
+          url: xhrUrl,
+          contentType: 'application/json',
+          data: payload
+        }).done(function(data){
+          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
+          if ((data.key & key) === key) {
+            elm.addClass("btn-success");
+          } else {
+            if (elm.attr("past")==="true") {
+              elm.addClass("btn-danger");
+            } else {
+              elm.addClass("btn-warning");
+            }
+          }
+        }).fail(function(data){
+          alert("Failed to update status");
+          console.log("Request failure:", data)
+        }).always(function(){
+          elm.removeClass("btn-light");
+          elm.prop('disabled', false);
+        });
+        
+        console.log("Clicked on button: Change key "+key+" for "+rid);  
+      });
+    });
+  </script>
+
+  <%= if (animal.OuttakeID.Value() != nil) {%>
+  <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <label>Date</label>
+            <div class="input-group md-12">
+                <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= animal.Outtake.DateFormated() %>">
+                <div class="input-group-append">
+                    <div class="input-group-text">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+            <script type="text/javascript">
+                $('#outtakeDate').datetimepicker({format:'Y/m/d H:i'});
+            </script>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.SelectTag("Outtake.TypeID", {
+                label: "Type",
+                options: selectOuttaketype, 
+                required:"required"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.InputTag("Outtake.Location", {label:"Lieu"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Notes
+        </a>
+        <div class="collapse" id="OuttakeNote">
+            <div class="card card-body">
+                <textarea class="form-control col-md-12" id="Outtake.Note" name="Outtake.Note" rows="10"><%= animal.Outtake.Note %></textarea>
+            </div>
+        </div>
+    </div>
+    <br/>
+  </div>
+  <% } %>
+</div>
+<input id="backUrl" name="BackUrl" type="hidden" value="<%= animalPath({animal_id: animal.ID }) %>"/>
+
+<button class="btn btn-success" role="submit">Sauvegarder</button>
+<%= linkTo(animalPath({animal_id: animal.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+
+<script>
+var viewPath="<%= animalPath({animal_id: animal.ID }) %>";
+
+$(".nav-tabs").find("a").first().click();
+
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+
+if (url.indexOf('#') > 0) {
+  $("#edit-cancel").attr("href", viewPath+hash);
+  $("#backUrl").attr("value",viewPath+hash);
+}
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+    $("#edit-cancel").attr("href", viewPath+location.hash);
+    $("#backUrl").attr("value", viewPath+location.hash);
+  });
+});
+</script>

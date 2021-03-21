@@ -1,0 +1,67 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Animaux</h3>
+</div>
+
+<div class="container p-3 my-3 border">
+<form id="goto_animal">
+  <div class="form-row">
+    <div class="col-5">
+      &nbsp;
+    </div>
+    <div class="col-2">
+      <label for="goto_animalNumber" class="col-sm-2 col-form-label">Numéro&nbsp;Animal</label>
+    </div>
+    <div class="col-4">
+      <input name="animal_id" type="number" class="form-control" id="animal_id" placeholder="123" required>
+    </div>
+    <div class="col">
+      <button type="submit" class="btn btn-primary">Aller</button>
+    </div>
+  </div>
+</form>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Numéro</th>
+    <th>Date d'admission</th>
+    <th>Cage</th>
+    <th>Type</th>
+    <th>Espèce</th>
+    <th>Age</th>
+    <th>Bague</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animals { %>
+      <%= if (animal.OuttakeID.Value() != nil) { %>
+      <tr class="outtaken">
+      <% } else { %>
+      <tr>
+      <% } %>
+        <td class="align-middle"><%= animal.ID %></td>
+        <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle"><%= animal.Animaltype.Name %></td>
+        <td class="align-middle"><%= animal.Species %></td>
+        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= animal.Ring %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (!animal.OuttakeID.Value() || current_user.Admin) {%>
+            <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+            <% } %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

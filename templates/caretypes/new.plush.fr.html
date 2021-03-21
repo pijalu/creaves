@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau type de soins</h3>
+</div>
+
+<%= formFor(caretype, {action: caretypesPath(), method: "POST"}) { %>
+  <%= partial("caretypes/form.plush.fr.html") %>
+  <%= linkTo(caretypesPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

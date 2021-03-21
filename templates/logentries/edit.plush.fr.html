@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edition du journal de bord</h3>
+</div>
+
+<%= formFor(logentry, {action: logentryPath({ logentry_id: logentry.ID }), method: "PUT"}) { %>
+  <%= partial("logentries/form.plush.fr.html") %>
+  <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

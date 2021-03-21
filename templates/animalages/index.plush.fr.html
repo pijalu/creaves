@@ -1,0 +1,37 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Âges animaux</h3>
+  <div class="float-right">
+    <%= linkTo(newAnimalagesPath(), {class: "btn btn-primary"}) { %>
+     Créer un nouveau type d'âge
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Nom</th>
+    <th>description</th>
+    <th>Défaut</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (animalage) in animalages { %>
+      <tr>
+        <td class="align-middle"><%= animalage.Name %></td>
+        <td class="align-middle"><%= animalage.Description %></td>
+        <td class="align-middle"><%= animalage.Default %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editAnimalagePath({ animalage_id: animalage.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

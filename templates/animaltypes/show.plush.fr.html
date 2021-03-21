@@ -1,0 +1,36 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails de type d'animal</h3>
+
+  <div class="float-right">
+    <%= linkTo(animaltypesPath(), {class: "btn btn-info"}) { %>
+      Retour à tous les types d'animaux
+    <% } %>
+    <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Nom</label>
+    <p class="d-inline-block"><%= animaltype.Name %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Description</label>
+    <p class="d-inline-block"><%= animaltype.Description %></p>
+  </li>
+
+  
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Défaut</label>
+    <p class="d-inline-block"><%= animaltype.Default %></p>
+  </li>
+
+</ul>

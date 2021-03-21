@@ -1,0 +1,82 @@
+<%= if (treatmentTemplate.AnimalID.Value() == 0 ) { %>
+  <h4>Sélectionnez l'animal pour le traitement</h4>
+  <%= formFor(treatmentTemplate, {action: newTreatmentsPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animalID" class="col-sm-2 col-form-label">Numéro de l'animal</label>
+    <div class="col-sm-10">
+      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Suivant</button>
+  </div>
+  <% } %>
+<% } else { %>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau traitement pour l'animal <%= treatmentTemplate.AnimalID %></h3>
+</div>
+
+<%= formFor(treatmentTemplate, {action: treatmentsPath(), method: "POST"}) { %>
+  <input type="hidden" name="AnimalID" value="<%= treatmentTemplate.AnimalID %>" />
+
+  <div class="container p-3 my-3 border">
+        <div class="form-row">
+          <div class="form-group col-md-12">
+              <label>A partir du</label>
+              <div class="input-group md-12">
+                  <input class=" form-control" id="dtf" name="DateFrom" required="required" type="text" value="<%= treatmentTemplate.DateFromFormated() %>">
+                  <div class="input-group-append">
+                      <div class="input-group-text">
+                          <i class="fa fa-calendar" aria-hidden="true"></i>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <script type="text/javascript">
+              $('#dtf').datetimepicker({
+                timepicker:false,
+                format:'Y/m/d'
+              });
+          </script>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-12">
+              <label>Jusqu'au</label>
+              <div class="input-group md-12">
+                  <input class=" form-control" id="dtt" name="DateTo" required="required" type="text" value="<%= treatmentTemplate.DateToFormated() %>">
+                  <div class="input-group-append">
+                      <div class="input-group-text">
+                          <i class="fa fa-calendar" aria-hidden="true"></i>
+                      </div>
+                  </div>
+              </div>
+          </div>
+          <script type="text/javascript">
+              $('#dtt').datetimepicker({
+                timepicker:false,
+                format:'Y/m/d'
+              });
+          </script>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-md-12">
+          <label>Horaire</label>
+          <div class="border p-3">
+            <%= f.CheckboxTag("Morning") %>
+            <%= f.CheckboxTag("Noon") %>
+            <%= f.CheckboxTag("Evening") %>
+          </div>
+        </div>
+
+        <%= f.InputTag("Drug", {label:"Médicament", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <%= f.InputTag("Dosage", {label:"Posologie", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+
+        <%= f.TextAreaTag("Remarks", {label:"Remarques", rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+    </div>
+  
+  <button class="btn btn-success" role="submit">Sauvegarder</button>
+  <%= linkTo(treatmentsPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>
+<% } %>

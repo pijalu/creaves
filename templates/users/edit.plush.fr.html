@@ -1,0 +1,14 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier l'utilisateur</h3>
+</div>
+
+<%= formFor(user, {action: userPath({ user_id: user.ID }), method: "PUT"}) { %>
+ 
+  <%= partial("users/form.html") %>
+  <button class="btn btn-success" role="submit">Sauvegarder</button>
+  <%= if (params["self"]=="true") {%>
+  <%= linkTo(rootPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } else {%>
+  <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } %>

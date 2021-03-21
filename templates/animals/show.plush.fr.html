@@ -1,0 +1,428 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Numéro&nbsp;animal:&nbsp;<%= animal.ID %></h3>
+  <%= if(animal.OuttakeID.Valid){ %>
+  <h4><em>(Sorti)</em></h4>
+  <% } %>
+
+  <div class="float-right">
+    <%= linkTo(animalsPath(), {class: "btn btn-info"}) { %>
+     Retour à tous les animaux
+    <% } %>
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+    <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {id: "editButton", class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+    <%}%>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">Général</a>
+    <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Découverte</a>
+    <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Admission</a>
+    <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Soins</a>
+    <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Vétérinaire</a>
+    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Traitement</a>
+
+    <%= if (animal.OuttakeID.Value() != nil ) {%>
+      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Sortie</a>
+    <% } %>
+  </div>
+</nav>
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Type</label>
+        <p class="d-inline-block"><%= animal.Animaltype.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Espèce</label>
+        <p class="d-inline-block"><%= animal.Species %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Age</label>
+        <p class="d-inline-block"><%= animal.Animalage.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Bague</label>
+        <p class="d-inline-block"><%= animal.Ring %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Cage</label>
+        <p class="d-inline-block"><%= animal.Cage %></p>
+      </li>
+    </ul>
+  </div>
+
+
+  <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
+      <ul class="list-group mb-2 ">
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Lieu</label>
+          <p class="d-inline-block"><%= animal.Discovery.Location %></p>
+        </li>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Date</label>
+          <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
+        </li>
+        <%= if ( len(animal.Discovery.Reason.Value()) > 0 ) {%>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Raison</label>
+          <p class="d-inline-block"><%= animal.Discovery.Reason %></p>
+        </li>
+        <% } %>
+        <%= if ( len(animal.Discovery.Note.Value()) > 0 ) {%>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Note</label>
+          <p class="d-inline-block"><%= animal.Discovery.Note %></p>
+        </li>
+        <% } %>
+      </ul>
+      <a class="btn btn-primary" data-toggle="collapse" href="#Discoverer" role="button" aria-expanded="false" aria-controls="collapseDiscoverer">
+        Découvreur
+      </a>
+      <div class="collapse" id="Discoverer">
+                          
+        <ul class="list-group mb-2 ">
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Nom</label>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Firstname %></p>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Lastname %></p>
+          </li>
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Adresse</label>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Address %></p>
+            <br/>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.City %></p>
+            <br/>
+            <p class="d-inline-block"><%= animal.Discovery.Discoverer.Country %></p>
+          </li>
+          <li class="list-group-item pb-1">
+            <label class="small d-block">Contacts</label>
+            <%= if ( len(animal.Discovery.Discoverer.Email.Value()) > 0 ) {%>
+            <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Email %></p>
+            <% } %>
+            <br/>
+            <%= if ( len(animal.Discovery.Discoverer.Phone.Value()) > 0 ) {%>
+            <p class="d-inline-block"><i class="fas fa-phone-square"></i><%= animal.Discovery.Discoverer.Phone %></p>
+            <% } %>
+          </li>
+        </ul>
+      </div>
+  </div>
+  
+  <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+          <label class="small d-block">Date</label>
+          <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
+      </li>
+
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Général</label>
+        <p class="d-inline-block"><%= animal.Intake.General %></p>
+      </li>
+
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Blessures</label>
+        <p class="d-inline-block"><%= animal.Intake.Wounds %></p>
+      </li>
+
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Parasites</label>
+        <p class="d-inline-block"><%= animal.Intake.Parasites %></p>
+      </li>
+
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Remarques</label>
+        <p class="d-inline-block"><%= animal.Intake.Remarks %></p>
+      </li>
+    </ul>
+  </div>
+  
+  <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
+    <%= if (animal.Feeding.Value()) {%>
+      <ul class="list-group mb-2 ">
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Alimentation</label>
+          <p class="d-inline-block"><%= animal.Feeding %></p>
+        </li>
+      </ul>
+    <% } %>
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newCaresPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
+          Créer un nouveau soin
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Poids</th>
+        <th>Note</th>
+        <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+        <th>Type</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (care) in animal.Cares { %>
+          <tr>
+            <td class="align-middle"><%= care.Date.DateFormated() %></td>
+            <td class="align-middle"><%= care.Weight %></td>
+            <td class="align-middle"><%= care.Note %></td>
+            <td class="align-middle">
+              <%= if (care.Clean.Value()==true) { %>
+                <i class="fa fa-check" aria-hidden="true"></i>
+              <% } %>
+            </td>
+            <td class="align-middle"><%= care.Type.Name %></td>
+            <td>
+              <div class="float-right">
+                <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+                <% } %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <% }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+
+  <div class="tab-pane fade" id="nav-vet" role="tabpanel" aria-labelledby="nav-vet-tab">
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+    <div class="py-4 mb-2">
+      <h3 class="d-inline-block">Visites vétérinaires</h3>
+      <div class="float-right">
+        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
+          Créer une nouvelle visite vétérinaire
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Vétérinaire</th>
+        <th>Utilisateur</th>
+        <th>Diagnostique</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (veterinaryvisit) in animal.VetVisits{ %>
+          <tr>
+            <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
+            <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
+            <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+            <td>
+              <div class="float-right">
+                <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+                <% } %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%  }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+    <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
+          Ajouter un nouveau traitement
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+    </br>
+    <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
+    <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
+    <div id="accordion">
+      <% let ct_id=1 %>
+      <%= for (dateKey) in orderedTMKey {%>
+      <% let treatments = treatmentsMap[dateKey] %>
+      <div class="card">
+        <div class="card-header" id="heading<%= ct_id %>">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <%= dateKey.DateFmt %>
+            </button>
+          </h5>
+        </div>
+        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <%= for (t) in treatments {%>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= t.Drug %> (<%= t.Dosage %>)
+                        <%= if (t.Remarks.Value() != "") {%>
+                        <p><em><%= t.Remarks %></em></p>
+                      <%}%>
+                    </div>
+                    <div class="col-sm">
+                      <% 
+                        let morning = t.ScheduleStatusMorning() 
+                        let noon = t.ScheduleStatusNoon() 
+                        let evening = t.ScheduleStatusEvening()
+                      %>
+                      <p class="d-inline-block">
+                        <%= if (!morning.Valid) { %>                          
+                          <i class="fas fa-minus" title="Pas nécessaire le matin"></i>
+                        <% } else if (morning.Bool) {%>
+                          <span style="color:green;" title="Fait le matin">
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="Faire le matin">
+                          <% } else { %>
+                          <span style="color:orange;" title="Faire le matin">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% }%>
+                        
+                        &nbsp;
+
+                        <%= if (!noon.Valid) { %>
+                          <i class="fas fa-minus" title="Non requis à midi"></i>
+                        <% } else if (noon.Bool) {%>
+                          <span style="color:green;" title="Fait à midi">
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="Faire à midi">
+                          <% } else { %>
+                          <span style="color:orange;" title="Faire à midi">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% }%>
+
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <i class="fas fa-minus" title="Pas nécessaire le soir"></i>
+                        <% } else if (evening.Bool) {%>
+                          <span style="color:green;" title="Fait dans la soirée">
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span style="color:red;" title="Faire le soir">
+                          <% } else { %>
+                          <span style="color:orange;" title="Faire le soir">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% }%>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <%}%>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <% let ct_id = ct_id + 1 %>
+      <%}%>
+    </div>
+  </div>
+
+  <%= if (animal.OuttakeID.Value() != nil) {%>
+  <div class="tab-pane fade" id="nav-outtake" role="tabpanel" aria-labelledby="nav-outtake-tab">
+    <ul class="list-group mb-2 ">
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Date</label>
+        <p class="d-inline-block"><%= animal.Outtake.Date %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Type</label>
+        <p class="d-inline-block"><%= animal.Outtake.Type.Name %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Lieu</label>
+        <p class="d-inline-block"><%= animal.Outtake.Location %></p>
+      </li>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Note</label>
+        <p class="d-inline-block"><%= animal.Outtake.Note %></p>
+      </li>
+    </ul>
+  </div>
+  <% } %>
+
+
+</div>
+<script>
+$(".nav-tabs").find("a").first().click();
+
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+var editPath = "<%= editAnimalPath({ animal_id: animal.ID }) %>";
+if (url.indexOf('#') > 0) {
+  $("#editButton").attr("href", editPath+hash);
+}
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+    $("#editButton").attr("href", editPath+location.hash);
+  });
+});
+</script>

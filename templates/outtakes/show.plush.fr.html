@@ -1,0 +1,44 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails de la sortie</h3>
+
+  <div class="float-right">
+    <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
+      Retour à toutes les sorties
+    <% } %>
+    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Voir", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= outtake.Date %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p class="d-inline-block"><%= outtake.Type.Name %></p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Lieu</label>
+    <p class="d-inline-block"><%= outtake.Location %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Note</label>
+    <p class="d-inline-block"><%= outtake.Note %></p>
+  </li>
+
+
+</ul>

@@ -1,0 +1,40 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Detais de l'entrée du journal de bord</h3>
+
+  <div class="float-right">
+    <%= linkTo(logentriesPath(), {class: "btn btn-info"}) { %>
+      Retour à tous les entrée du journal de bord
+    <% } %>
+    <%= if (current_user.Admin || current_user.ID.String() == logentry.UserID.String()) {%>
+      <%= linkTo(editLogentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+      <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Créé</label>
+    <p class="d-inline-block"><%= logentry.CreatedAt.Format("02/01/06 15:04:05") %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Mise à jour</label>
+    <p class="d-inline-block"><%= logentry.UpdatedAt.Format("02/01/06 15:04:05") %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Auteur</label>
+    <p class="d-inline-block"><%= logentry.User.Email %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Description</label>
+    <p class="d-inline-block"><%= logentry.Description %></p>
+  </li>
+
+
+</ul>

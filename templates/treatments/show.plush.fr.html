@@ -1,0 +1,135 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails du traitement</h3>
+
+  <div class="float-right">
+  <%= if (params["back"]) {%>
+    <%= linkTo(params["back"], {class: "btn btn-info"}) { %>
+      Retour
+    <% } %>
+    <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID , back: params["back"] }), {class: "btn btn-warning", title: "Voir", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(treatmentPath({ treatment_id: treatment.ID , back: params["back"] }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  <% } else {%>
+    <%= linkTo(treatmentsPath(), {class: "btn btn-info"}) { %>
+      Retour à tous les traitements
+    <% } %>
+    <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Numéro de l'animal</label>
+    <p class="d-inline-block"><%= treatment.AnimalID %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= treatment.DateFormated() %></p>
+  </li>
+
+  <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
+
+
+  <% 
+    let morning = treatment.ScheduleStatusMorning() 
+    let noon = treatment.ScheduleStatusNoon() 
+    let evening = treatment.ScheduleStatusEvening()
+  %>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Horaire (matin - midi - soir)</label>
+    <p class="d-inline-block">
+      <%= if (!morning.Valid) { %>                          
+        <i class="fas fa-minus" title="Not required on the morning"></i>
+      <% } else if (morning.Bool) {%>
+        <span style="color:green;" title="Done on the morning">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do on the morning">
+          <%= contentOf("morningSVG") %>
+        </span>
+      <% }%>
+      
+      &nbsp;
+
+      <%= if (!noon.Valid) { %>
+        <i class="fas fa-minus" title="Not required at noon"></i>
+      <% } else if (noon.Bool) {%>
+        <span style="color:green;" title="Done at noon">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do at noon">
+          <%= contentOf("noonSVG") %>
+        </span>
+      <% }%>
+
+      &nbsp;
+
+      <%= if (!evening.Valid) { %>
+        <i class="fas fa-minus" title="Not required on the evening"></i>
+      <% } else if (evening.Bool) {%>
+        <span style="color:green;" title="Done in the evening">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% } else { %>
+        <span style="color:red;" title="To do in the evening">
+          <%= contentOf("eveningSVG") %>
+        </span>
+      <% }%>
+    </p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Médicament</label>
+    <p class="d-inline-block"><%= treatment.Drug %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Posologie</label>
+    <p class="d-inline-block"><%= treatment.Dosage %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Remarques</label>
+    <p class="d-inline-block"><%= treatment.Remarks %></p>
+  </li>
+</ul>

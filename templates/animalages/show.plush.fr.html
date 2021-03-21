@@ -1,0 +1,38 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails de type âge</h3>
+
+  <div class="float-right">
+    <%= linkTo(animalagesPath(), {class: "btn btn-info"}) { %>
+     Retour à tous types d'âge
+    <% } %>
+    <%= linkTo(editAnimalagePath({ animalage_id: animalage.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Nom</label>
+    <p class="d-inline-block"><%= animalage.Name %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Description</label>
+    <p class="d-inline-block"><%= animalage.Description %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Défaut</label>
+    <p class="d-inline-block"><%= animalage.Default %></p>
+  </li>
+
+
+</ul>

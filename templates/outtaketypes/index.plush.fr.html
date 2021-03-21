@@ -1,0 +1,37 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Type de sorties</h3>
+  <div class="float-right">
+    <%= linkTo(newOuttaketypesPath(), {class: "btn btn-primary"}) { %>
+      Créer un nouveau type de sortie
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Nom</th>
+    <th>description</th>
+    <th>Défaut</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (outtaketype) in outtaketypes { %>
+      <tr>
+        <td class="align-middle"><%= outtaketype.Name %></td>
+        <td class="align-middle"><%= outtaketype.Description %></td>
+        <td class="align-middle"><%= outtaketype.Default %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editOuttaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

@@ -1,0 +1,54 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails de soins pour l'animal <%= care.AnimalID %></h3>
+
+<div class="float-right">
+<%= if (params["back"]) {%>
+    <%= linkTo(params["back"], {class: "btn btn-info"}) { %>
+      Retour
+    <% } %>
+    <%= linkTo(editCarePath({ care_id: care.ID, back: params["back"] }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(carePath({ care_id: care.ID, back: params["back"] }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+<% } else { %>
+    <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
+      Retour à tous les soins
+    <% } %>
+    <%= linkTo(editCarePath({ care_id: care.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+<% } %>
+</div>
+</div>
+
+
+<ul class="list-group mb-2 ">
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Date</label>
+    <p class="d-inline-block"><%= care.DateFormated() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Poids</label>
+    <p class="d-inline-block"><%= care.Weight %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Note</label>
+    <p class="d-inline-block"><%= care.Note %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Cage propre</label>
+    <%= if (care.Clean.Value() == true) { %>
+            <i class="fa fa-check" aria-hidden="true"></i>
+    <% } %>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p class="d-inline-block"><%= care.Type.Name %></p>
+  </li>
+
+</ul>

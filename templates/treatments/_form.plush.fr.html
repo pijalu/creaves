@@ -1,0 +1,69 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+<label>Numéro de l'animal</label>
+<p><%= treatment.AnimalID %></p>
+
+<label>Date</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="date" name="Date" required="required" type="text" value="<%= treatment.DateFormated() %>">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#date').datetimepicker({
+    timepicker:false,
+    format:'Y/m/d'
+    });
+</script>
+
+
+<!-- Bitmap: <%= treatment.Timebitmap %> -->
+<div class="form-group">
+    <label><b>Calendrier requis:</b></label>
+    <br/>
+    <label>
+        <input class="" id="ScheduleRequiredMorning" name="ScheduleRequiredMorning" type="checkbox" value="true" 
+        <%= if (treatment.ScheduleRequiredMorning()) { %>checked<% } %> /> Matin
+    </label>
+    <label>
+        <input class="" id="ScheduleRequiredNoon" name="ScheduleRequiredNoon" type="checkbox" value="true" 
+        <%= if (treatment.ScheduleRequiredNoon()) { %>checked<% } %> />Midi
+    </label>
+    <label>
+        <input class="" id="ScheduleRequiredEvening" name="ScheduleRequiredEvening" type="checkbox" value="true"
+        <%= if (treatment.ScheduleRequiredEvening()) { %>checked<% } %> />Soir   
+    </label>
+</div>
+
+<!-- timedoneBitmap: <%= treatment.Timedonebitmap %> -->
+<% 
+    let morning = treatment.ScheduleStatusMorning() 
+    let noon = treatment.ScheduleStatusNoon() 
+    let evening = treatment.ScheduleStatusEvening()
+%>
+<div class="form-group">
+    <label><b>Calendrier à faire / fait:</b></label>
+    <br/>
+    <label>
+        <input class="" id="ScheduleStatusMorning" name="ScheduleStatusMorning" type="checkbox" value="true" 
+        <%= if (morning.Bool) { %>checked<% } %> /> Matin
+    </label>
+    <label>
+        <input class="" id="ScheduleStatusNoon" name="ScheduleStatusNoon" type="checkbox" value="true" 
+        <%= if (noon.Bool) { %>checked<% } %> /> Midi
+    </label>
+    <label>
+        <input class="" id="ScheduleStatusEvening" name="ScheduleStatusEvening" type="checkbox" value="true"
+        <%= if (evening.Bool) { %>checked<% } %> /> Soir   
+    </label>
+</div>
+
+<%= f.InputTag("Drug", {label:"Médicament"}) %>
+<%= f.InputTag("Dosage", {label:"Posologie"}) %>
+<%= f.TextAreaTag("Remarks", {label:"Remarques", rows: 10}) %>
+
+
+<button class="btn btn-success" role="submit">Sauvegarder</button>

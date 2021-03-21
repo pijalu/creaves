@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau type de sortie</h3>
+</div>
+
+<%= formFor(outtaketype, {action: outtaketypesPath(), method: "POST"}) { %>
+  <%= partial("outtaketypes/form.plush.fr.html") %>
+  <%= linkTo(outtaketypesPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

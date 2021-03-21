@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier type de sorties</h3>
+</div>
+
+<%= formFor(outtaketype, {action: outtaketypePath({ outtaketype_id: outtaketype.ID }), method: "PUT"}) { %>
+  <%= partial("outtaketypes/form.plush.fr.html") %>
+  <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

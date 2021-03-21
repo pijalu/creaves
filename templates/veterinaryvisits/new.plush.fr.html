@@ -1,0 +1,30 @@
+<%= if (veterinaryvisit.AnimalID.Value() == 0 ) { %>
+  <h4>Sélectionnez l'animal pour une visite vétérinaire</h4>
+  <%= formFor(veterinaryvisit, {action: newVeterinaryvisitsPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animalID" class="col-sm-2 col-form-label">Numéro de l'animal</label>
+    <div class="col-sm-10">
+      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Suivant</button>
+  </div>
+  <% } %>
+<% } else { %>
+
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouvelle visite vétérinaire pour animal<%= veterinaryvisit.AnimalID %></h3>
+</div>
+
+<%= if (params["back"]) {%>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitsPath({back: params["back"]}), method: "POST"}) { %>
+  <%= partial("veterinaryvisits/form.plush.fr.html") %>
+  <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } else { %>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitsPath(), method: "POST"}) { %>
+  <%= partial("veterinaryvisits/form.plush.fr.html") %>
+  <%= linkTo(veterinaryvisitsPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } %>

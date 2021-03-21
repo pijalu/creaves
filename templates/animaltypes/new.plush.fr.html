@@ -1,0 +1,15 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau type d'animal</h3>
+</div>
+
+<%= if (params["back"]) {%>
+  <%= formFor(animaltype, {action: animaltypesPath({back:params["back"]}), method: "POST"}) { %>
+    <%= partial("animaltypes/form.plush.fr.html") %>
+    <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<% } else {%>
+  <%= formFor(animaltype, {action: animaltypesPath(), method: "POST"}) { %>
+    <%= partial("animaltypes/form.plush.fr.html") %>
+    <%= linkTo(animaltypesPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
+<%}%>
