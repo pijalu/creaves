@@ -1,11 +1,16 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Animal number <%= animal.ID %></h3>
+  <%= if(animal.OuttakeID.Valid){ %>
+  <h4><em>(Outtaken)</em></h4>
+  <% } %>
 
   <div class="float-right">
     <%= linkTo(animalsPath(), {class: "btn btn-info"}) { %>
       Back to all Animals
     <% } %>
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {id: "editButton", class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+    <%}%>
     <%= if (current_user.Admin) {%>
     <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
@@ -151,6 +156,7 @@
         </li>
       </ul>
     <% } %>
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">
         <%= linkTo(newCaresPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
@@ -158,6 +164,7 @@
         <% } %>
       </div>
     </div>
+    <% } %>
     <table class="table table-hover table-bordered">
       <thead class="thead-light">
         <th>Date</th>
@@ -181,8 +188,10 @@
             <td class="align-middle"><%= care.Type.Name %></td>
             <td>
               <div class="float-right">
+                <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
                 <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
                 <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <% } %>
                 <%= if (current_user.Admin) {%>
                 <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
@@ -194,7 +203,9 @@
     </table>
   </div>
 
+
   <div class="tab-pane fade" id="nav-vet" role="tabpanel" aria-labelledby="nav-vet-tab">
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <h3 class="d-inline-block">Veterinary visits</h3>
       <div class="float-right">
@@ -203,6 +214,7 @@
         <% } %>
       </div>
     </div>
+    <% } %>
 
     <table class="table table-hover table-bordered">
       <thead class="thead-light">
@@ -221,8 +233,10 @@
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>
               <div class="float-right">
+                <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
                 <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
                 <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <% } %>
                 <%= if (current_user.Admin) {%>
                 <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <%  }%>
@@ -261,6 +275,7 @@
     </g>
     <%}%>
 
+    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">
         <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
@@ -268,6 +283,7 @@
         <% } %>
       </div>
     </div>
+    <% } %>
     </br>
     <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
     <% let orderedTMKey = treatmentsMap.OrderedKeys() %>

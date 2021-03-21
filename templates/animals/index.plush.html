@@ -49,7 +49,9 @@
         <td>
           <div class="float-right">
             <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (!animal.OuttakeID.Value() || current_user.Admin) {%>
             <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <% } %>
             <%= if (current_user.Admin) {%>
             <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
             <% } %>
