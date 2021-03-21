@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Creaves</title>
+    <%= stylesheetTag("application.css") %>
+    <meta name="csrf-param" content="authenticity_token" />
+    <meta name="csrf-token" content="<%= authenticity_token %>" />
+    <link rel="icon" href="<%= assetPath("images/favicon.ico") %>">
+    
+    <!-- App -->
+    <%= javascriptTag("application.js") %>
+
+    <!-- CDN -->
+    <!-- Font awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/js/all.min.js" integrity="sha512-UwcC/iaz5ziHX7V6LjSKaXgCuRRqbTp1QHpbOJ4l1nw2/boCfZ2KlFIqBUA/uRVF0onbREnY9do8rM/uT/ilqw==" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.2/css/all.min.css" integrity="sha512-HK5fgLBL+xu6dm/Ii3z4xhlSUyZgTT9tuc/hSrtw6uzJOvgRr2a9jyxxT1ely+B+xFAmJKVSTbpM/CuL7qxO8w==" crossorigin="anonymous" />
+    
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css" integrity="sha512-P5MgMn1jBN01asBgU0z60Qk4QxiXo86+wlFahKrsQf37c9cro517WzVSPPV1tDKzhku2iJ2FVgL67wG03SGnNA==" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.bundle.min.js" integrity="sha512-wV7Yj1alIZDqZFCUQJy85VN+qvEIly93fIQAN7iqDFCPEucLCeNFz4r35FCo9s6WrpdDQPi80xbljXB8Bjtvcg==" crossorigin="anonymous"></script>
+  
+    <!-- DatePicker -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css" integrity="sha512-f0tzWhCwVFS3WeYaofoLWkTP62ObhewQ1EZn65oSYDZUg1+CyywGKkWzm8BxaJj5HGKI72PnMH9jYyIFz+GH7g==" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js" integrity="sha512-AIOTidJAcHBH2G/oZv9viEGXRqDNmfdPVPYOYKGy3fti0xIplnlgMHUGfuNRzC6FkzIo0iIxgFnr9RikFxK+sw==" crossorigin="anonymous"></script>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand" href="<%= rootPath() %>">
+      <img style="height:32px;" alt="LaGrange" src="<%= assetPath("images/lagrange-small.png") %>">
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <%= if (current_user.Admin) {%>
+        <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Administration
+        </a>
+        <div class="dropdown-menu" aria-labelledby="adminDropdown">
+          <a class="dropdown-item" href="<%= animalagesPath() %>">Âge des animaux</a>
+          <a class="dropdown-item" href="<%= animaltypesPath() %>">Types d'animaux</a>
+          <a class="dropdown-item" href="<%= outtaketypesPath() %>">Types de sortie</a>
+          <a class="dropdown-item" href="<%= caretypesPath() %>">Types de soins</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="<%= pathsPath() %>">Tous les routes</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="<%= usersPath() %>">Utilisateurs</a>
+        </div>
+        </li>
+        <% } %>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= logentriesPath() %>">Journal de bord</a>
+        </li>
+
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= animalsPath() %>">Animaux</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newReceptionPath() %>">Accueil</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newCaresPath() %>">Soins</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newVeterinaryvisitsPath() %>">Vétérinaire</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newTreatmentsPath() %>">Traitement</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newOuttakesPath() %>">Sortie</a>
+        </li>
+        
+      </ul>
+      <ul class="navbar-nav">
+            <%= if (current_user) {%>
+              <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <%= current_user.Email %>
+              </a>
+              <div class="dropdown-menu" aria-labelledby="userDropdown">
+                <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Éditer</a>
+
+                <div class="dropdown-divider"></div>
+                <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>">Se déconnecter</a>
+              </div>
+            </li>
+            <% } else {%>
+            <li class="nav-item">
+                <a href="<%= newAuthPath() %>" class="nav-link">Connexion</a>
+            </li>
+            <li class="nav-item">
+                <a href="<%= newRegistrationPath() %>" class="nav-link">S'inscrire</a>
+            </li>
+            <% } %>
+      </ul>
+    </div>
+  </nav>
+
+    <div class="container">
+      <%= partial("flash.html") %>
+      <%= yield %>
+    </div>
+  </body>
+</html>
