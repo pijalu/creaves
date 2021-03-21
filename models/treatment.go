@@ -2,7 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"time"
 
@@ -142,7 +141,6 @@ func (ts Treatments) TreatmentsMap() TreatmentsMap {
 		}
 		m[k] = append(m[k], t)
 	}
-	fmt.Printf("Treatment map: %v", m)
 	return m
 }
 
