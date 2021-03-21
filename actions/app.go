@@ -101,6 +101,8 @@ func App() *buffalo.App {
 		app.Resource("/cares", CaresResource{})
 		app.Resource("/veterinaryvisits", VeterinaryvisitsResource{})
 		app.Resource("/treatments", TreatmentsResource{})
+		app.PUT("/treatmentschedule", TreatmentUpdateSchedule)
+
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
