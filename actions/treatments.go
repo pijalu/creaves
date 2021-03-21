@@ -173,6 +173,10 @@ func (v TreatmentsResource) New(c buffalo.Context) error {
 			c.Flash().Add("danger", T.Translate(c, "treatment.animal.not.found", data))
 			errCode = http.StatusNotFound
 		}
+		if animal.OuttakeID.Valid {
+			c.Flash().Add("danger", T.Translate(c, "treatment.animal.outtake.already.exist", data))
+			errCode = http.StatusConflict
+		}
 
 		c.Logger().Debugf("Loaded animal %v", animal)
 

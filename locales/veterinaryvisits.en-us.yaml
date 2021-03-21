@@ -6,3 +6,5 @@
   translation: "Veterinaryvisit was successfully destroyed."
 - id: "veterinaryvisit.animal.not.found"
   translation: "animal with id {{.animalID}} does not exists"
+- id: "veterinaryvisit.animal.outtake.already.exist"
+  translation: "animal with id {{.animalID}} is out"

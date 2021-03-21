@@ -114,16 +114,17 @@ func (v CaresResource) New(c buffalo.Context) error {
 		}
 
 		if err := tx.Find(animal, animalID); err != nil {
-			c.Flash().Add("danger", T.Translate(c, "outtake.animal.not.found", data))
+			c.Flash().Add("danger", T.Translate(c, "care.animal.not.found", data))
 			errCode = http.StatusNotFound
 		}
 
 		c.Logger().Debugf("Loaded animal %v", animal)
 
-		if animal.Outtake != nil {
-			c.Flash().Add("danger", T.Translate(c, "outtake.animal.outtake.already.exist", data))
+		if animal.OuttakeID.Valid {
+			c.Flash().Add("danger", T.Translate(c, "care.animal.outtake.already.exist", data))
 			errCode = http.StatusConflict
 		}
+
 		if errCode != http.StatusOK {
 			return c.Render(errCode, r.HTML("/cares/new.plush.html"))
 		}
