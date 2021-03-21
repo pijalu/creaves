@@ -474,13 +474,23 @@
   </div>
   <% } %>
 </div>
+<input id="backUrl" name="BackUrl" type="hidden" value="<%= animalPath({animal_id: animal.ID }) %>"/>
 
 <button class="btn btn-success" role="submit">Save</button>
+<%= linkTo(animalPath({animal_id: animal.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+
 <script>
+var viewPath="<%= animalPath({animal_id: animal.ID }) %>";
+
 $(".nav-tabs").find("a").first().click();
 
 var url = document.URL;
 var hash = url.substring(url.indexOf('#'));
+
+if (url.indexOf('#') > 0) {
+  $("#edit-cancel").attr("href", viewPath+hash);
+  $("#backUrl").attr("value",viewPath+hash);
+}
 
 $(".nav-tabs").find("a").each(function(key, val) {
   if (hash == $(val).attr('href')) {
@@ -489,6 +499,8 @@ $(".nav-tabs").find("a").each(function(key, val) {
   $(val).click(function(ky, vl) {
     console.log($(this).attr('href'));
     location.hash = $(this).attr('href');
+    $("#edit-cancel").attr("href", viewPath+location.hash);
+    $("#backUrl").attr("value", viewPath+location.hash);
   });
 });
 </script>

@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v5"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
@@ -275,7 +276,15 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return err
 	}
 
-	c.Logger().Debugf("Updating animal: %v", animal)
+	// Decode additonal form param
+	backUrl := struct {
+		BackUrl nulls.String
+	}{}
+	// load backUrl
+	if err := c.Bind(&backUrl); err != nil {
+		return err
+	}
+	c.Logger().Debugf("Back: %v", backUrl)
 
 	// Fix link
 	animal.Discovery.Discoverer.ID = animal.Discovery.DiscovererID
@@ -324,7 +333,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.updated.success"))
-
+		if backUrl.BackUrl.Valid {
+			return c.Redirect(http.StatusSeeOther, backUrl.BackUrl.String)
+		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/animals/%v", animal.ID)
 	}).Wants("json", func(c buffalo.Context) error {
