@@ -1,0 +1,6 @@
+- id: "animaltype.created.success"
+  translation: "le type d'animal a été créé avec succès."
+- id: "animaltype.updated.success"
+  translation: "Le type d'animal a été mis à jour avec succès."
+- id: "animaltype.destroyed.success"
+  translation: "Le type animal a été détruit avec succès."

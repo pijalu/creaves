@@ -1,0 +1,6 @@
+- id: "discoverer.created.success"
+  translation: "L'enregistrement du découvreur a été créé avec succès."
+- id: "discoverer.updated.success"
+  translation: "L'enregistrement du découvreur a été mis à jour avec succès."
+- id: "discoverer.destroyed.success"
+  translation: "L'enregistrement du découvreur a été détruit avec succès."

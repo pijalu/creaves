@@ -1,0 +1,6 @@
+- id: "intake.created.success"
+  translation: "La prise en charge a été créée avec succès."
+- id: "intake.updated.success"
+  translation: "La prise en charge a été mise à jour avec succès."
+- id: "intake.destroyed.success"
+  translation: "La prise en charge a été détruite avec succès."

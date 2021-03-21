@@ -1,0 +1,6 @@
+- id: "caretype.created.success"
+  translation: "Enregistrement de type CARE a été créé avec succès."
+- id: "caretype.updated.success"
+  translation: "Enregistrement de type CARE a été mis à jour avec succès."
+- id: "caretype.destroyed.success"
+  translation: "Enregistrement de type de soins a été détruit avec succès."

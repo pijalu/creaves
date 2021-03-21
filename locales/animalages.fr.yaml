@@ -1,0 +1,6 @@
+- id: "animalage.created.success"
+  translation: "L'âge des animaux a été créé avec succès."
+- id: "animalage.updated.success"
+  translation: "L'âge de l'animal a été mis à jour avec succès."
+- id: "animalage.destroyed.success"
+  translation: "L'âge de l'animal a été détruit avec succès."

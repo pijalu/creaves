@@ -1,0 +1,8 @@
+- id: "animal.created.success"
+  translation: "l'enregistrement de l'animal a été créé avec succès."
+- id: "animal.updated.success"
+  translation: "l'enregistrement de l'animal a été mis à jour avec succès."
+- id: "animal.destroyed.success"
+  translation: "l'enregistrement de l'animal a été détruit avec succès."
+- id: "animal.not.found"
+  translation: "l'animal avec id {{.animalid}} n'existe pas"
