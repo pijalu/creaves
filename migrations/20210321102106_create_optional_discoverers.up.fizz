@@ -1,0 +1,5 @@
+change_column("discoverers", "firstname", "string", {null: true})
+change_column("discoverers","lastname", "string", {null: true})
+change_column("discoverers","address", "string", {null: true})
+change_column("discoverers","city", "string", {null: true})
+change_column("discoverers","country", "string", {null: true})

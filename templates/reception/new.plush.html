@@ -21,16 +21,15 @@
 <div class="setup-content" id="step-1">
     <div class="form-row">
         <div class="form-group col-md-12">
+                <%= f.SelectTag("AnimaltypeID", {
+                    label: "Type",
+                    options: selectAnimalTypes, 
+                    required:"required"}) %>
                 <%= f.InputTag("Species", {required: "required"})%>
                 <%= f.InputTag("Ring") %>
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",
                     options: selectAnimalages, 
-                    required:"required"}) %>
-
-                <%= f.SelectTag("AnimaltypeID", {
-                    label: "Type",
-                    options: selectAnimalTypes, 
                     required:"required"}) %>
                 <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Next</button>
         </div>
@@ -66,15 +65,15 @@
                     <h4>Discoverer</h4>
                 
                     <div class="form-row">  
-                    <%= f.InputTag("Discovery.Discoverer.Firstname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>
-                    <%= f.InputTag("Discovery.Discoverer.Lastname", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Last Name"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Last Name"}) %>
                     </div>
                     <div class="form-row">
-                    <%= f.InputTag("Discovery.Discoverer.Address", {required: "required", bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
                     </div>
                     <div class="form-row">
-                    <%= f.InputTag("Discovery.Discoverer.City", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
-                    <%= f.InputTag("Discovery.Discoverer.Country", {required: "required", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
                     </div>
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>

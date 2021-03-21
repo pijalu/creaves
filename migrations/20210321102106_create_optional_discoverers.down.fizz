@@ -1,0 +1,5 @@
+change_column("discoverers", "firstname", "string", {})
+change_column("discoverers","lastname", "string", {})
+change_column("discoverers","address", "string", {})
+change_column("discoverers","city", "string", {})
+change_column("discoverers","country", "string", {})

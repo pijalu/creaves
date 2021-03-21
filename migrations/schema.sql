@@ -142,11 +142,11 @@ DROP TABLE IF EXISTS `discoverers`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `discoverers` (
   `id` char(36) NOT NULL,
-  `firstname` varchar(255) NOT NULL,
-  `lastname` varchar(255) NOT NULL,
-  `address` varchar(255) NOT NULL,
-  `city` varchar(255) NOT NULL,
-  `country` varchar(255) NOT NULL,
+  `firstname` varchar(255) DEFAULT NULL,
+  `lastname` varchar(255) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `city` varchar(255) DEFAULT NULL,
+  `country` varchar(255) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `phone` varchar(255) DEFAULT NULL,
   `note` text,
@@ -345,4 +345,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-19  0:37:03
+-- Dump completed on 2021-03-21 11:25:58

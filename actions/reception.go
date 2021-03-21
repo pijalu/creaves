@@ -27,8 +27,6 @@ func ReceptionNew(c buffalo.Context) error {
 	a := &models.Animal{}
 
 	a.Discovery.Date = n
-	//TODO: We should have a default table
-	a.Discovery.Discoverer.Country = "BE"
 	a.Intake.Date = n
 
 	// Set default animal type
