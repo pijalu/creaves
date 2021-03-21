@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/gobuffalo/buffalo v0.15.5
-	github.com/gobuffalo/buffalo-pop v1.23.1 // indirect
 	github.com/gobuffalo/buffalo-pop/v2 v2.3.0
 	github.com/gobuffalo/envy v1.9.0
 	github.com/gobuffalo/mw-csrf v1.0.0
