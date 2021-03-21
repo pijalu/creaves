@@ -79,6 +79,11 @@ func App() *buffalo.App {
 		auth.DELETE("/", AuthDestroy)
 		auth.Middleware.Skip(Authorize, AuthLanding, AuthNew, AuthCreate)
 
+		//Routes for languages
+		language := app.Group("/lang")
+		language.GET("/", SwitchLanguage)
+		language.POST("/", SwitchLanguagePost)
+
 		//Routes for User registration
 		registrations := app.Group("/registration")
 		registrations.GET("/new", UsersNew)
