@@ -16,7 +16,14 @@
   <h3 class="d-inline-block">Nouveau traitement pour l'animal <%= treatmentTemplate.AnimalID %></h3>
 </div>
 
-<%= formFor(treatmentTemplate, {action: treatmentsPath(), method: "POST"}) { %>
+
+<% 
+  let data = {}
+  if (params["back"]) { 
+    data = { back: params["back"] }
+  }
+%>
+ <%= formFor(treatmentTemplate, {action: treatmentsPath(data), method: "POST"}) { %>
   <input type="hidden" name="AnimalID" value="<%= treatmentTemplate.AnimalID %>" />
 
   <div class="container p-3 my-3 border">
@@ -77,6 +84,10 @@
     </div>
   
   <button class="btn btn-success" role="submit">Sauvegarder</button>
+  <%= if (params["back"]) { %>
+  <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } else { %>
   <%= linkTo(treatmentsPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+  <% } %>
 <% } %>
 <% } %>
