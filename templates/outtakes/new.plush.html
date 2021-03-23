@@ -13,8 +13,8 @@
   <% } %>
 <% } else { %>
   <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Create outtake for animal <%= animal.ID %></h3>
-  <p>Arrived <%= animal.Intake.DateFormated() %></p>
+  <h3 class="d-inline-block"> Outtake of animal <%= animal.ID %></h3>
+  <p><%= animal.Species %> (<%= animal.Animaltype.Name %>) - Arrived: <%= animal.Intake.DateFormated() %></p>
   </div>
   
   <%= formFor(outtake, {action: outtakesPath(), method: "POST"}) { %>
