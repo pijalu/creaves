@@ -1,0 +1,52 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Travel Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(travelsPath(), {class: "btn btn-info"}) { %>
+      Back to all Travels
+    <% } %>
+    <%= linkTo(editTravelPath({ travel_id: travel.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(travelPath({ travel_id: travel.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Animal Number</label>
+    <p class="d-inline-block"><%= travel.AnimalID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">User</label>
+    <p class="d-inline-block"><%= travel.User.Email %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p class="d-inline-block">
+      <%= travel.Traveltype.Name %>
+      <%= if ( travel.TypeDetails.Value() != "" ) {%>
+            : <%= travel.TypeDetails %>
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Distance</label>
+    <p class="d-inline-block"><%= travel.Distance %></p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Details</label>
+    <p class="d-inline-block"><%= travel.Details %></p>
+  </li>
+</ul>

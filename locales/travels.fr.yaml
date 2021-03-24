@@ -1,0 +1,8 @@
+- id: "travel.created.success"
+  translation: "Le trajet a été créé avec succès."
+- id: "travel.updated.success"
+  translation: "Le trajet a été mis à jour avec succès."
+- id: "travel.destroyed.success"
+  translation: "Le trajet a été détruit avec succès."
+- id: "travel.animal.not.found"
+  translation: "animal avec l'id {{.animalID}} n'existe pas"

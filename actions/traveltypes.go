@@ -91,6 +91,11 @@ func (v TraveltypesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Traveltype.
 // This function is mapped to the path GET /traveltypes/new
 func (v TraveltypesResource) New(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	c.Set("traveltype", &models.Traveltype{})
 
 	return c.Render(http.StatusOK, r.HTML("/traveltypes/new.plush.html"))
@@ -99,6 +104,11 @@ func (v TraveltypesResource) New(c buffalo.Context) error {
 // Create adds a Traveltype to the DB. This function is mapped to the
 // path POST /traveltypes
 func (v TraveltypesResource) Create(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Allocate an empty Traveltype
 	traveltype := &models.Traveltype{}
 
@@ -152,6 +162,11 @@ func (v TraveltypesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Traveltype. This function is
 // mapped to the path GET /traveltypes/{traveltype_id}/edit
 func (v TraveltypesResource) Edit(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -172,6 +187,11 @@ func (v TraveltypesResource) Edit(c buffalo.Context) error {
 // Update changes a Traveltype in the DB. This function is mapped to
 // the path PUT /traveltypes/{traveltype_id}
 func (v TraveltypesResource) Update(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -228,6 +248,11 @@ func (v TraveltypesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Traveltype from the DB. This function is mapped
 // to the path DELETE /traveltypes/{traveltype_id}
 func (v TraveltypesResource) Destroy(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

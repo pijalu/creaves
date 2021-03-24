@@ -104,7 +104,7 @@ func caretypesToSelectables(ts *models.Caretypes) form.Selectables {
 	return res
 }
 
-func Traveltypes(c buffalo.Context) (*models.Traveltypes, error) {
+func traveltypes(c buffalo.Context) (*models.Traveltypes, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
@@ -118,7 +118,7 @@ func Traveltypes(c buffalo.Context) (*models.Traveltypes, error) {
 	return ts, nil
 }
 
-func TraveltypesToSelectables(ts *models.Traveltypes) form.Selectables {
+func traveltypesToSelectables(ts *models.Traveltypes) form.Selectables {
 	res := []form.Selectable{}
 
 	for _, ts := range *ts {

@@ -1,0 +1,16 @@
+create_table("travels") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("date", "timestamp", {})
+	t.Column("animal_id", "integer", {})
+	t.Column("user_id", "uuid", {})
+	t.Column("traveltype_id", "uuid", {})
+	t.Column("type_details", "string", {null: true})
+	t.Column("distance", "integer", {})
+	t.Column("details", "text", {null: true})
+	t.Timestamps()
+
+
+	t.ForeignKey("animal_id", {"animals": ["id"]})
+	t.ForeignKey("user_id", {"users": ["id"]})
+	t.ForeignKey("traveltype_id", {"traveltypes": ["id"]})
+}

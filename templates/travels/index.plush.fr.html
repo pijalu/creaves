@@ -1,0 +1,44 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Travels</h3>
+  <div class="float-right">
+    <%= linkTo(newTravelsPath(), {class: "btn btn-primary"}) { %>
+      Créer un nouveau trajet
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Numéro de l'animal</th>
+    <th>Utilisateur</th>
+    <th>Type</th>
+    <th>Distance</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (travel) in travels { %>
+      <tr>
+        <td class="align-middle"><%= travel.AnimalID %></td>
+        <td class="align-middle"><%= travel.User.Email %></td>
+        <td class="align-middle">
+          <%= travel.Traveltype.Name %>
+          <%= if ( travel.TypeDetails.Value() != "" ) {%>
+            : <%= travel.TypeDetails %>
+          <% } %>
+        </td>
+        <td class="align-middle"><%= travel.Distance %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(travelPath({ travel_id: travel.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editTravelPath({ travel_id: travel.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(travelPath({ travel_id: travel.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

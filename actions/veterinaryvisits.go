@@ -29,7 +29,7 @@ type VeterinaryvisitsResource struct {
 }
 
 func (v VeterinaryvisitsResource) setContext(c buffalo.Context) error {
-	// Set care type
+	// Set users
 	u, err := users(c)
 	if err != nil {
 		return err

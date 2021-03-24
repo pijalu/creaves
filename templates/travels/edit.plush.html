@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit Travel</h3>
+</div>
+
+<%= formFor(travel, {action: travelPath({ travel_id: travel.ID }), method: "PUT"}) { %>
+  <%= partial("travels/form.html") %>
+  <%= linkTo(travelPath({ travel_id: travel.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

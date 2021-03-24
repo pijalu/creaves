@@ -1,0 +1,32 @@
+<%= if (travel.AnimalID.Value() == 0 ) { %>
+  <h4>Select animal linked to the travel</h4>
+  <%= formFor(travel, {action: newTravelsPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animalID" class="col-sm-2 col-form-label">Animal ID</label>
+    <div class="col-sm-10">
+      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
+      <script>
+        $('input[name="animal_id"]').autoComplete({
+            minChars: 0,
+            source: function(term, response){
+                $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+            }
+        });
+      </script>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Next</button>
+  </div>
+  <% } %>
+<% } else { %>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">New Travel for animal <%= travel.AnimalID %></h3>
+</div>
+
+<%= formFor(travel, {action: travelsPath(), method: "POST"}) { %>
+  <%= partial("travels/form.html") %>
+  <%= linkTo(travelsPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>
+
+<% } %>

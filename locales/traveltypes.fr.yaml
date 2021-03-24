@@ -1,0 +1,6 @@
+- id: "traveltype.created.success"
+  translation: "Le type de voyage a été créé avec succès."
+- id: "traveltype.updated.success"
+  translation: "Le type de voyage a été mis à jour avec succès."
+- id: "traveltype.destroyed.success"
+  translation: "Le type de voyage a été détruit avec succès."

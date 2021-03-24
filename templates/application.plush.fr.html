@@ -93,7 +93,9 @@
               <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 <%= current_user.Email %>
               </a>
-              <div class="dropdown-menu" aria-labelledby="userDropdown">
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                <a class="dropdown-item" href="<%= travelsPath() %>">Trajets</a>
+                <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="<%= langPath({ lang: "en" }) %>">En Anglais</a>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Éditer</a>

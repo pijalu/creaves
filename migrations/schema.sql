@@ -272,6 +272,34 @@ CREATE TABLE `schema_migration` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `travels`
+--
+
+DROP TABLE IF EXISTS `travels`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `travels` (
+  `id` char(36) NOT NULL,
+  `date` datetime NOT NULL,
+  `animal_id` int NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `traveltype_id` char(36) NOT NULL,
+  `type_details` varchar(255) DEFAULT NULL,
+  `distance` int NOT NULL,
+  `details` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `animal_id` (`animal_id`),
+  KEY `user_id` (`user_id`),
+  KEY `traveltype_id` (`traveltype_id`),
+  CONSTRAINT `travels_ibfk_1` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`),
+  CONSTRAINT `travels_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `travels_ibfk_3` FOREIGN KEY (`traveltype_id`) REFERENCES `traveltypes` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `traveltypes`
 --
 
@@ -364,4 +392,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-24 15:52:37
+-- Dump completed on 2021-03-24 23:23:31

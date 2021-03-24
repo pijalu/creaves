@@ -1,0 +1,37 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+
+<label>Date</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="Date" name="Date" required="required" type="text" value="<%= travel.DateFormated() %>">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $('#Date').datetimepicker({format:'Y/m/d H:i'});
+</script>
+
+<%= if (current_user.Admin) {%>
+<%= 
+    f.SelectTag("UserID", {
+    label: "Utilisateur",
+    options: selectUsers, 
+    required:"required"}) 
+%>
+<% } else { %>
+    <%= f.InputTag("UserID", {type:"hidden"})%>
+<% }%>
+
+<%= 
+    f.SelectTag("TraveltypeID", {
+    label: "Type",
+    options: selectTraveltype, 
+    required:"required"}) 
+%>
+<%= f.InputTag("TypeDetails") %>
+
+<%= f.InputTag("Distance", {type:"number"}) %>
+<%= f.TextAreaTag("Details", {label:"Détails", rows: 10}) %>
+<button class="btn btn-success" role="submit">Sauvegarder</button>
