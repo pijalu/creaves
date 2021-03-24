@@ -335,7 +335,9 @@ CREATE TABLE `treatments` (
   `timedonebitmap` int NOT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `treatments_animals_id_fk` (`animal_id`),
+  CONSTRAINT `treatments_animals_id_fk` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -392,4 +394,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-24 23:23:31
+-- Dump completed on 2021-03-25  0:09:21
