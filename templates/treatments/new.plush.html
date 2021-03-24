@@ -86,6 +86,14 @@
         </div>
 
         <%= f.InputTag("Drug", {required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <script>
+          $('input[name="Drug"]').autoComplete({
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/treatment_drug', { q: term }, function(data){ response(data); });
+              }
+          });
+        </script>
         <%= f.InputTag("Dosage", { required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
 
         <%= f.TextAreaTag("Remarks", {rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>

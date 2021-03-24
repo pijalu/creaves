@@ -34,3 +34,8 @@ func (as *ActionSuite) Test_Suggestions_AnimalInCare() {
 	as.Fail("Not Implemented!")
 }
 
+
+func (as *ActionSuite) Test_Suggestions_TreatmentDrug() {
+	as.Fail("Not Implemented!")
+}
+

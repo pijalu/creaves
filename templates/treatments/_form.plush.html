@@ -62,6 +62,14 @@
 </div>
 
 <%= f.InputTag("Drug") %>
+<script>
+    $('input[name="Drug"]').autoComplete({
+        minChars: 1,
+        source: function(term, response){
+            $.getJSON('/suggestions/treatment_drug', { q: term }, function(data){ response(data); });
+        }
+    });
+</script>
 <%= f.InputTag("Dosage") %>
 <%= f.TextAreaTag("Remarks", {rows: 10}) %>
 

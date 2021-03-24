@@ -58,7 +58,12 @@ func SuggestionsDiscovererCountry(c buffalo.Context) error {
 	return suggest(c, "discoverers", "country")
 }
 
-// SuggestionsAnimalInCare default implementation.
+// SuggestionsTreatmentDrug default implementation.
+func SuggestionsTreatmentDrug(c buffalo.Context) error {
+	return suggest(c, "treatments", "drug")
+}
+
+// SuggestionsAnimalInCare - specific implementation to only account in care animal (no outtake).
 func SuggestionsAnimalInCare(c buffalo.Context) error {
 	s := []string{}
 
