@@ -57,3 +57,30 @@ func SuggestionsDiscovererCity(c buffalo.Context) error {
 func SuggestionsDiscovererCountry(c buffalo.Context) error {
 	return suggest(c, "discoverers", "country")
 }
+
+// SuggestionsAnimalInCare default implementation.
+func SuggestionsAnimalInCare(c buffalo.Context) error {
+	s := []string{}
+
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := "SELECT ID FROM animals WHERE outtake_id IS null "
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" AND ID like ?", "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}

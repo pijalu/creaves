@@ -29,3 +29,8 @@ func (as *ActionSuite) Test_Suggestions_DiscovererCountry() {
 	as.Fail("Not Implemented!")
 }
 
+
+func (as *ActionSuite) Test_Suggestions_AnimalInCare() {
+	as.Fail("Not Implemented!")
+}
+

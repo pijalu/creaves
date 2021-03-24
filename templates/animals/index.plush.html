@@ -13,6 +13,14 @@
     </div>
     <div class="col-4">
       <input name="animal_id" type="number" class="form-control" id="animal_id" placeholder="123" required>
+      <script>
+        $('input[name="animal_id"]').autoComplete({
+            minChars: 0,
+            source: function(term, response){
+                $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+            }
+        });
+      </script>
     </div>
     <div class="col">
       <button type="submit" class="btn btn-primary">Go</button>

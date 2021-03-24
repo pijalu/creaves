@@ -115,6 +115,7 @@ func App() *buffalo.App {
 		app.GET("/suggestions/outtake_location", SuggestionsOuttakeLocation)
 		app.GET("/suggestions/discoverer_city", SuggestionsDiscovererCity)
 		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
+		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
