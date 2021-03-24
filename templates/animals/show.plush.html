@@ -51,6 +51,18 @@
         <p class="d-inline-block"><%= animal.Ring %></p>
       </li>
       <li class="list-group-item pb-1">
+        <label class="small d-block">Gender</label>
+        <%
+          let gender = "Unknown"
+          if (animal.Gender.Value()=="M") {
+            gender = "Male"
+          } else if (animal.Gender.Value() == "F") {
+            gender = "Female"
+          }
+        %>
+        <p class="d-inline-block"><%= gender %></p>
+      </li>
+      <li class="list-group-item pb-1">
         <label class="small d-block">Cage</label>
         <p class="d-inline-block"><%= animal.Cage %></p>
       </li>

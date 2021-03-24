@@ -53,6 +53,7 @@ CREATE TABLE `animals` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   `feeding` varchar(255) DEFAULT NULL,
+  `gender` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `animaltype_id` (`animaltype_id`),
   KEY `discovery_id` (`discovery_id`),
@@ -62,7 +63,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -345,4 +346,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-03-21 11:25:58
+-- Dump completed on 2021-03-24  8:57:21

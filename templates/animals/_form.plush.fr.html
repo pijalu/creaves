@@ -27,6 +27,14 @@
                     options: selectAnimalages, 
                     required:"required"}) %>
                 <%= f.InputTag("Ring", {label:"Bague"}) %>
+                <div class="form-group">
+                  <label>Gender</label>
+                  <select class="form-control" id="animal-Gender" name="Gender">
+                    <option value="" <%= if (animal.Gender.Value() == "") {%> selected <%}%> >Inconnu</option>
+                    <option value="M" <%= if (animal.Gender && animal.Gender.Value() == "M") {%> selected <%}%> >Mâle</option>
+                    <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Femelle</option>
+                  </select>
+                </div>
                 <%= f.InputTag("Cage") %>
         </div>
     </div>
