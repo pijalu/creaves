@@ -3,6 +3,20 @@
 <%= f.InputTag("Address") %>
 <%= f.InputTag("City") %>
 <%= f.InputTag("Country") %>
+<script>
+$('input[name="City"]').autoComplete({
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
+    }
+});
+$('input[name="Country"]').autoComplete({
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+    }
+});
+</script>
 <%= f.InputTag("Email") %>
 <%= f.InputTag("Phone") %>
 <%= f.TextAreaTag("Note", {rows: 10}) %>

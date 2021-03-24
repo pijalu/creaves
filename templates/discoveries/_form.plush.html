@@ -2,6 +2,14 @@
     <h4>General</h4>  
     <div class="form-row">
     <%= f.InputTag("Location", {bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+    <script>
+        $('input[name="Location"]').autoComplete({
+            minChars: 1,
+            source: function(term, response){
+                $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+            }
+        });
+    </script>
     </div>
     <div class="form-row">
     <div class="form-group col-md-12">

@@ -17,6 +17,14 @@
     options: selectOuttaketype, 
     required:"required"}) %>
 <%= f.InputTag("Location") %>
+<script>
+$('input[name="Location"]').autoComplete({
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });
+    }
+});
+</script>
 
 <a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
 Notes

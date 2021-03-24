@@ -110,6 +110,11 @@ func App() *buffalo.App {
 		app.PUT("/treatmentschedule", TreatmentUpdateSchedule)
 
 		app.GET("/landing/index", LandingIndex)
+		app.GET("/suggestions/animal_species", SuggestionsAnimalSpecies)
+		app.GET("/suggestions/discovery_location", SuggestionsDiscoveryLocation)
+		app.GET("/suggestions/outtake_location", SuggestionsOuttakeLocation)
+		app.GET("/suggestions/discoverer_city", SuggestionsDiscovererCity)
+		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 

@@ -26,6 +26,15 @@
                     options: selectAnimalTypes, 
                     required:"required"}) %>
                 <%= f.InputTag("Species", {required: "required"})%>
+                <script>
+                $('input[name="Species"]').autoComplete({
+                    minChars: 1,
+                    source: function(term, response){
+                        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+                    }
+                });
+                </script>
+
                 <%= f.InputTag("Ring") %>
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",
@@ -42,6 +51,14 @@
                 <div class="container p-3 my-3 border">
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Location", {label:"Location", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+                    <script>
+                    $('input[name="Discovery.Location"]').autoComplete({
+                        minChars: 1,
+                        source: function(term, response){
+                            $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+                        }
+                    });
+                    </script>
                     </div>
                     <div class="form-row">
                     
@@ -74,6 +91,21 @@
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
                     <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+                    <script>
+                    $('input[name="Discovery.Discoverer.City"]').autoComplete({
+                        minChars: 1,
+                        source: function(term, response){
+                            $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
+                        }
+                    });
+                    $('input[name="Discovery.Discoverer.Country"]').autoComplete({
+                        minChars: 1,
+                        source: function(term, response){
+                            $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+                        }
+                    });
+                    </script>
+
                     </div>
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
