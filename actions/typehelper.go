@@ -104,6 +104,32 @@ func caretypesToSelectables(ts *models.Caretypes) form.Selectables {
 	return res
 }
 
+func Traveltypes(c buffalo.Context) (*models.Traveltypes, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.Traveltypes{}
+	if err := tx.Order("name asc").All(ts); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
+func TraveltypesToSelectables(ts *models.Traveltypes) form.Selectables {
+	res := []form.Selectable{}
+
+	for _, ts := range *ts {
+		res = append(res, &selType{
+			label: ts.Name,
+			value: ts.ID,
+		})
+	}
+	return res
+}
+
 func animalages(c buffalo.Context) (*models.Animalages, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

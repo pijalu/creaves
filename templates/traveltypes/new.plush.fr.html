@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau type de voyage</h3>
+</div>
+
+<%= formFor(traveltype, {action: traveltypesPath(), method: "POST"}) { %>
+  <%= partial("traveltypes/form.html") %>
+  <%= linkTo(traveltypesPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>
