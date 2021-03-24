@@ -36,7 +36,7 @@ func createCaretype(c *Context) error {
 		if exists, err := models.DB.Q().Where("name = ?", t.name).Exists(&models.Caretype{}); err != nil {
 			return err
 		} else if !exists {
-			fmt.Printf("Creating outtake type %v\n", t)
+			fmt.Printf("Creating care type %v\n", t)
 			if err := models.DB.Create(&models.Caretype{
 				Name:         t.name,
 				Description:  nulls.NewString(t.description),
@@ -47,7 +47,7 @@ func createCaretype(c *Context) error {
 				return err
 			}
 		} else {
-			fmt.Printf("Outtake type %s already exists\n", t.name)
+			fmt.Printf("care type %s already exists\n", t.name)
 		}
 	}
 	return nil
