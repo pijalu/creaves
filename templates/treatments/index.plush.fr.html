@@ -103,9 +103,7 @@
           <div class="float-right">
             <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(editTreatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
-            <%= if (current_user.Admin) {%>
             <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
-            <% } %>
           </div>
         </td>
       </tr>

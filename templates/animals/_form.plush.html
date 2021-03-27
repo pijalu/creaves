@@ -399,9 +399,7 @@
                       <div class="float-right">
                         <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
                         <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
-                        <%= if (current_user.Admin) {%>
                         <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
-                        <%  }%>
                       </div>
                     </div>
                   </div>
