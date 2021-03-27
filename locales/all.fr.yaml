@@ -3,3 +3,6 @@
   
 - id: "users.language-changed"
   translation: "Langue changée en {{.Lang}}"
+
+- id: "users.unauthorized"
+  translation: "Vous devez être autorisé pour voir cette page"

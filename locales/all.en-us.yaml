@@ -5,3 +5,6 @@
 - id: "users.language-changed"
   translation: "language changed to {{.Lang}}"
 
+- id: "users.unauthorized"
+  translation: "You must be authorized to see that page"
+

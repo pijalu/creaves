@@ -76,7 +76,7 @@ func Authorize(next buffalo.Handler) buffalo.Handler {
 				return errors.WithStack(err)
 			}
 
-			c.Flash().Add("danger", "You must be authorized to see that page")
+			c.Flash().Add("danger", T.Translate(c, "users.unauthorized"))
 			return c.Redirect(302, "/auth/new")
 		}
 		return next(c)
