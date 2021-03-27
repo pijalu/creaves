@@ -85,6 +85,7 @@ func App() *buffalo.App {
 		language := app.Group("/lang")
 		language.GET("/", SwitchLanguage)
 		language.POST("/", SwitchLanguagePost)
+		language.Middleware.Remove(Authorize)
 
 		//Routes for User registration
 		registrations := app.Group("/registration")
