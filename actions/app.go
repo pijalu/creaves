@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/buffalo/binding"
 	"github.com/gobuffalo/envy"
@@ -117,9 +119,18 @@ func App() *buffalo.App {
 		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
+		app.GET("/crash", func(c buffalo.Context) error {
+			return fmt.Errorf("Crash me !")
+		})
 		app.Resource("/traveltypes", TraveltypesResource{})
 		app.Resource("/travels", TravelsResource{})
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
+
+		// Custom error handler
+		app.ErrorHandlers[500] = func(status int, err error, c buffalo.Context) error {
+			c.Flash().Add("danger", err.Error())
+			return c.Render(status, r.HTML("/oops/oops.plush.html"))
+		}
 	}
 
 	return app
