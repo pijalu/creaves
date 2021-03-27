@@ -1,4 +1,11 @@
 <%= if (!animal) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
+          See all outtakes
+    <% } %>
+    </div>
+  </div>
   <h4>Select animal for outtake</h4>
   <%= formFor(outtake, {action: newOuttakesPath(), method: "GET"}) { %>
   <div class="form-group row">

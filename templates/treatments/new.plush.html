@@ -1,4 +1,11 @@
 <%= if (treatmentTemplate.AnimalID.Value() == 0 ) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(treatmentsPath(), {class: "btn btn-info"}) { %>
+          See all treatments
+    <% } %>
+    </div>
+  </div>
   <h4>Select animal for treatment</h4>
   <%= formFor(treatmentTemplate, {action: newTreatmentsPath(), method: "GET"}) { %>
   <div class="form-group row">

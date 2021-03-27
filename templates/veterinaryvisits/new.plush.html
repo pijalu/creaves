@@ -1,4 +1,11 @@
 <%= if (veterinaryvisit.AnimalID.Value() == 0 ) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(veterinaryvisitsPath(), {class: "btn btn-info"}) { %>
+          See all veterinary visits
+    <% } %>
+    </div>
+  </div>
   <h4>Select animal for veterinary visit</h4>
   <%= formFor(veterinaryvisit, {action: newVeterinaryvisitsPath(), method: "GET"}) { %>
   <div class="form-group row">

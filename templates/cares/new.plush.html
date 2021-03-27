@@ -1,4 +1,11 @@
 <%= if (care.AnimalID.Value() == 0 ) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
+          See all Cares
+    <% } %>
+    </div>
+  </div>
   <h4>Select animal for care</h4>
   <%= formFor(care, {action: newCaresPath(), method: "GET"}) { %>
   <div class="form-group row">

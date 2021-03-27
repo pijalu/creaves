@@ -15,7 +15,7 @@
   <tbody>
     <%= for (outtake) in outtakes { %>
       <tr>
-        <td class="align-middle"><%= outtake.Date %></td>
+        <td class="align-middle"><%= outtake.DateFormated() %></td>
         <td class="align-middle"><%= outtake.Type.Name %>
         <td class="align-middle"><%= outtake.Location %></td>
         <td>
