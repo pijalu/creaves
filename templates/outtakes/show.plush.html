@@ -1,6 +1,4 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Outtake Details</h3>
-
   <div class="float-right">
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
       Back to all Outtakes
@@ -10,6 +8,10 @@
     <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
   </div>
+</div>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"> Outtake details of animal <%= outtake.Animal.ID %></h3>
+  <p><%= outtake.Animal.Species %> (<%= outtake.Animal.Animaltype.Name %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
 </div>
 
 

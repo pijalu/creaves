@@ -14,6 +14,7 @@ import (
 // Outtake is used by pop to map your outtakes database table to your go code.
 type Outtake struct {
 	ID        uuid.UUID    `json:"id" db:"id"`
+	Animal    Animal       `json:"animal,omitempty" has_one:"animal"`
 	Date      time.Time    `json:"date" db:"date"`
 	Type      Outtaketype  `json:"type" belongs_to:"outtaketype"`
 	TypeID    uuid.UUID    `json:"type_id" db:"outtaketype_id"`

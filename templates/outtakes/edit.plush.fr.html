@@ -1,5 +1,7 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Modifier la sortie</h3>
+  <h3 class="d-inline-block">Modifier la sortie de l'animal <%= outtake.Animal.ID %></h3>
+  <p><%= outtake.Animal.Species %> (<%= outtake.Animal.Animaltype.Name %>) - Arrivé: <%= outtake.Animal.Intake.DateFormated() %></p>
+
 </div>
 
 <%= formFor(outtake, {action: outtakePath({ outtake_id: outtake.ID }), method: "PUT"}) { %>

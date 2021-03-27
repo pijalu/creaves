@@ -78,6 +78,9 @@ func (v OuttakesResource) Show(c buffalo.Context) error {
 	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
+	if _, err := EnrichAnimal(&outtake.Animal, c); err != nil {
+		return c.Error(http.StatusInternalServerError, err)
+	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("outtake", outtake)
@@ -237,6 +240,9 @@ func (v OuttakesResource) Edit(c buffalo.Context) error {
 
 	if err := tx.Eager().Find(outtake, c.Param("outtake_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+	if _, err := EnrichAnimal(&outtake.Animal, c); err != nil {
+		return c.Error(http.StatusInternalServerError, err)
 	}
 	c.Set("outtake", outtake)
 

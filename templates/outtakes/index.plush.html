@@ -9,12 +9,16 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Date</th><th>Type</th><th>Location</th>
+    <th>Animal ID</th>
+    <th>Date</th>
+    <th>Type</th>
+    <th>Location</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (outtake) in outtakes { %>
       <tr>
+        <td class="align-middle"><%= outtake.Animal.ID %></td>
         <td class="align-middle"><%= outtake.DateFormated() %></td>
         <td class="align-middle"><%= outtake.Type.Name %>
         <td class="align-middle"><%= outtake.Location %></td>

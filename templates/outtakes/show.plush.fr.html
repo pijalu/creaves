@@ -1,6 +1,4 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Détails de la sortie</h3>
-
   <div class="float-right">
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
       Retour à toutes les sorties
@@ -12,7 +10,10 @@
   </div>
 </div>
 
-
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails de la sortie de l'animal <%= outtake.Animal.ID %></h3>
+  <p><%= outtake.Animal.Species %> (<%= outtake.Animal.Animaltype.Name %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
+</div>
 
 <ul class="list-group mb-2 ">
 
