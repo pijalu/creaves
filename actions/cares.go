@@ -137,6 +137,15 @@ func (v CaresResource) New(c buffalo.Context) error {
 		if err != nil {
 			return err
 		}
+
+		// Set default care type
+		for _, c := range *ct {
+			if c.Def {
+				care.Type = c
+				care.TypeID = c.ID
+				break
+			}
+		}
 		c.Set("selectCaretype", caretypesToSelectables(ct))
 	}
 	return c.Render(http.StatusOK, r.HTML("/cares/new.plush.html"))
