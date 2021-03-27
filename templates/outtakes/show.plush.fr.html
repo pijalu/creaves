@@ -3,8 +3,8 @@
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
       Retour à toutes les sorties
     <% } %>
-    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Voir", body: "<i class='fa fa-edit'></i>"}) %>
     <%= if (current_user.Admin) {%>
+    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
     <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
   </div>

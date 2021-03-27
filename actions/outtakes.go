@@ -229,6 +229,11 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Outtake. This function is
 // mapped to the path GET /outtakes/{outtake_id}/edit
 func (v OuttakesResource) Edit(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -259,6 +264,11 @@ func (v OuttakesResource) Edit(c buffalo.Context) error {
 // Update changes a Outtake in the DB. This function is mapped to
 // the path PUT /outtakes/{outtake_id}
 func (v OuttakesResource) Update(c buffalo.Context) error {
+	// Admin only
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
