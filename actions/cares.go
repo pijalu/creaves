@@ -188,8 +188,8 @@ func (v CaresResource) Create(c buffalo.Context) error {
 		if len(c.Param("back")) > 0 {
 			return c.Redirect(http.StatusSeeOther, c.Param("back"))
 		}
-		// and redirect to the show page
-		return c.Redirect(http.StatusSeeOther, "/cares/%v", care.ID)
+		// and redirect to the animal page
+		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-care", care.AnimalID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, r.JSON(care))
 	}).Wants("xml", func(c buffalo.Context) error {

@@ -205,8 +205,8 @@ func (v VeterinaryvisitsResource) Create(c buffalo.Context) error {
 			// and redirect to the show page
 			return c.Redirect(http.StatusSeeOther, c.Param("back"))
 		}
-		// and redirect to the show page
-		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits/%v", veterinaryvisit.ID)
+		// and redirect to the animal page
+		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-vet", veterinaryvisit.AnimalID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, r.JSON(veterinaryvisit))
 	}).Wants("xml", func(c buffalo.Context) error {

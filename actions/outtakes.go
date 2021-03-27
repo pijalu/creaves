@@ -218,7 +218,7 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		c.Flash().Add("success", T.Translate(c, "outtake.created.success"))
 
 		// and redirect to the show page
-		return c.Redirect(http.StatusSeeOther, "/outtakes/%v", outtake.ID)
+		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-outtake", animalID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, r.JSON(outtake))
 	}).Wants("xml", func(c buffalo.Context) error {
