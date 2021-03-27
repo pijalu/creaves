@@ -41,7 +41,7 @@ func AuthCreate(c buffalo.Context) error {
 	bad := func(er ...string) error {
 		verrs := validate.NewErrors()
 		if er == nil {
-			verrs.Add("email", "invalid email/password")
+			verrs.Add("email", T.Translate(c, "users.invalid"))
 		} else {
 			for _, e := range er {
 				verrs.Add("email", e)
@@ -88,6 +88,6 @@ func AuthCreate(c buffalo.Context) error {
 // AuthDestroy clears the session and logs a user out
 func AuthDestroy(c buffalo.Context) error {
 	c.Session().Clear()
-	c.Flash().Add("success", "You have been logged out!")
-	return c.Redirect(302, "/")
+	c.Flash().Add("success", T.Translate(c, "users.logout"))
+	return c.Redirect(302, "/auth/new")
 }

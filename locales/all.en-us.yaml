@@ -8,3 +8,9 @@
 - id: "users.unauthorized"
   translation: "You must be authorized to see that page"
 
+- id: "users.invalid"
+  translation: "invalid email/password"
+
+- id: "users.logout"
+  translation: "You have been logged out!"
+
