@@ -98,7 +98,15 @@ func (v TravelsResource) Show(c buffalo.Context) error {
 	}).Respond(c)
 }
 
-func (v TravelsResource) setContext(c buffalo.Context) error {
+// New renders the form for creating a new Travel.
+// This function is mapped to the path GET /travels/new
+func (v TravelsResource) New(c buffalo.Context) error {
+	travel := &models.Travel{
+		Date:   time.Now(),
+		UserID: GetCurrentUser(c).ID,
+		User:   GetCurrentUser(c),
+	}
+
 	// Set users
 	u, err := users(c)
 	if err != nil {
@@ -113,20 +121,12 @@ func (v TravelsResource) setContext(c buffalo.Context) error {
 	}
 	c.Set("selectTraveltype", traveltypesToSelectables(tt))
 
-	return nil
-}
-
-// New renders the form for creating a new Travel.
-// This function is mapped to the path GET /travels/new
-func (v TravelsResource) New(c buffalo.Context) error {
-	travel := &models.Travel{
-		Date:   time.Now(),
-		UserID: GetCurrentUser(c).ID,
-		User:   GetCurrentUser(c),
-	}
-
-	if err := v.setContext(c); err != nil {
-		return err
+	// set default travel type
+	for _, t := range *tt {
+		if t.Def {
+			travel.Traveltype = &t
+			travel.TraveltypeID = t.ID
+		}
 	}
 
 	animalID := c.Param("animal_id")
@@ -223,9 +223,19 @@ func (v TravelsResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Travel. This function is
 // mapped to the path GET /travels/{travel_id}/edit
 func (v TravelsResource) Edit(c buffalo.Context) error {
-	if err := v.setContext(c); err != nil {
+	// Set users
+	us, err := users(c)
+	if err != nil {
 		return err
 	}
+	c.Set("selectUsers", usersToSelectables(us))
+
+	// Set travel type
+	tt, err := traveltypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectTraveltype", traveltypesToSelectables(tt))
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
