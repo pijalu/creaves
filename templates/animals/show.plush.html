@@ -185,7 +185,7 @@
       <tbody>
         <%= for (care) in animal.Cares { %>
           <tr>
-            <td class="align-middle"><%= care.Date.DateFormated() %></td>
+            <td class="align-middle"><%= care.DateFormated() %></td>
             <td class="align-middle"><%= care.Weight %></td>
             <td class="align-middle"><%= care.Note %></td>
             <td class="align-middle">
@@ -235,7 +235,7 @@
       <tbody>
         <%= for (veterinaryvisit) in animal.VetVisits{ %>
           <tr>
-            <td class="align-middle"><%= veterinaryvisit.Date.Formated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.DateFormated() %></td>
             <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
             <td class="align-middle"><%= veterinaryvisit.User.Email %></td>
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
