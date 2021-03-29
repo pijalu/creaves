@@ -169,11 +169,12 @@ func (v AnimalsResource) New(c buffalo.Context) error {
 // Create adds a Animal to the DB. This function is mapped to the
 // path POST /animals
 func (v AnimalsResource) Create(c buffalo.Context) error {
-	// Allocate an empty Animal
-	animal := &models.Animal{}
+	ac := struct {
+		AnimalCount int
+	}{}
 
-	// Bind animal to the html form elements
-	if err := c.Bind(animal); err != nil {
+	// Bind extra count param
+	if err := c.Bind(&ac); err != nil {
 		return err
 	}
 
@@ -183,47 +184,70 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	// Validate the data from the html form
-	// 2 steps
-	verrs, err := tx.Eager().ValidateAndCreate(&animal.Discovery)
-	if err != nil {
-		return err
-	}
-	if !verrs.HasAny() {
-		c.Logger().Debugf("Animal: %v", animal)
-		verrs, err = tx.Eager().ValidateAndCreate(animal)
+	animals := models.Animals{}
+
+	for i := 0; i < ac.AnimalCount; i++ {
+		animal := &models.Animal{}
+		// Bind animal to the html form elements
+		if err := c.Bind(animal); err != nil {
+			return err
+		}
+
+		// Add remark
+		if ac.AnimalCount > 1 {
+			animal.Intake.Remarks = nulls.NewString(
+				animal.Intake.Remarks.String +
+					fmt.Sprintf("( %d / %d )",
+						i+1,
+						ac.AnimalCount))
+		}
+
+		// Validate the data from the html form
+		// 2 steps
+		verrs, err := tx.Eager().ValidateAndCreate(&animal.Discovery)
 		if err != nil {
 			return err
 		}
-	}
+		if !verrs.HasAny() {
+			c.Logger().Debugf("Animal: %v", animal)
+			verrs, err = tx.Eager().ValidateAndCreate(animal)
+			if err != nil {
+				return err
+			}
+		}
 
-	if verrs.HasAny() {
-		return responder.Wants("html", func(c buffalo.Context) error {
-			// Make the errors available inside the html template
-			c.Set("errors", verrs)
+		if verrs.HasAny() {
+			return responder.Wants("html", func(c buffalo.Context) error {
+				// Make the errors available inside the html template
+				c.Set("errors", verrs)
 
-			// Render again the new.html template that the user can
-			// correct the input.
-			c.Set("animal", animal)
+				// Render again the new.html template that the user can
+				// correct the input.
+				c.Set("animal", animal)
 
-			return c.Render(http.StatusUnprocessableEntity, r.HTML("/animals/new.plush.html"))
-		}).Wants("json", func(c buffalo.Context) error {
-			return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
-		}).Wants("xml", func(c buffalo.Context) error {
-			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
-		}).Respond(c)
+				return c.Render(http.StatusUnprocessableEntity, r.HTML("/animals/new.plush.html"))
+			}).Wants("json", func(c buffalo.Context) error {
+				return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
+			}).Wants("xml", func(c buffalo.Context) error {
+				return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
+			}).Respond(c)
+		}
+
+		animals = append(animals, *animal)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.created.success"))
-
-		// and redirect to the show page
-		return c.Redirect(http.StatusSeeOther, "/animals/%v", animal.ID)
+		if ac.AnimalCount == 1 {
+			// and redirect to the show page
+			return c.Redirect(http.StatusSeeOther, "/animals/%v", animals[ac.AnimalCount-1].ID)
+		}
+		return c.Redirect(http.StatusSeeOther, "/animals/")
 	}).Wants("json", func(c buffalo.Context) error {
-		return c.Render(http.StatusCreated, r.JSON(animal))
+		return c.Render(http.StatusCreated, r.JSON(animals))
 	}).Wants("xml", func(c buffalo.Context) error {
-		return c.Render(http.StatusCreated, r.XML(animal))
+		return c.Render(http.StatusCreated, r.XML(animals))
 	}).Respond(c)
 }
 
