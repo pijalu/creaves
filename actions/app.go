@@ -131,7 +131,7 @@ func App() *buffalo.App {
 			c.Flash().Add("danger", err.Error())
 			return c.Render(status, r.HTML("/oops/oops.plush.html"))
 		}
-		app.GET("/dashboard/index", DashboardIndex)
+		app.GET("/dashboard", DashboardIndex)
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 

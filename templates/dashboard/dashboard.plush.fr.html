@@ -1,10 +1,10 @@
-<h3 class="d-inline-block">Cares in need of response</h3>
+<h3 class="d-inline-block">Animaux avec alerte soin</h3>
 <%= if (len(openCares)>0) {%>
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Date</th>
     <th>Animal</th>
-    <th>Weight</th>
+    <th>Poid</th>
     <th>Note</th>
     <th><i class="fa fa-soap" aria-hidden="true"></i></th>
     <th>Type</th>
@@ -31,7 +31,7 @@
         <td class="align-middle"><%= care.Type.Name %></td>
         <td>
           <div class="float-right">
-            <%= linkTo("/animals/"+care.Animal.ID.String()+"#nav-care", {class: "btn btn-info", title: "View animal", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo("/animals/"+care.Animal.ID.String()+"#nav-care", {class: "btn btn-info", title: "Voir animal", body:"<i class='fa fa-eye'></i>"}) %>
           </div>
         </td>
       </tr>
@@ -39,11 +39,11 @@
   </tbody>
 </table>
 <%} else {%>
-<p>None</p>
+<p>Aucun</p>
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Last 24h logentries</h3>
+<h3 class="d-inline-block">Entrées au journal de bord les dernieres 24h</h3>
 <%= if (len(lastLogentries)>0) {%>
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
@@ -70,12 +70,14 @@
   </tbody>
 </table>
 <%} else {%>
-<p>None</p>
+<p>Aucune</p>
 <%}%>
 
 <br/>
-<h3>Statistics</h3>
-<h4 class="d-inline-block">Animals in cares</h4>
+
+
+<h3>Statistiques</h3>
+<h4 class="d-inline-block">Animaux en cours de soins</h4>
 <table class="table table-sm">
 <thead>
     <th>Type</th>

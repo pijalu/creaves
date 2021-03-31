@@ -4,9 +4,11 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/x/responder"
 )
 
 // SQL_CARES_IN_WARNING lists all cares in warning
@@ -74,6 +76,23 @@ func listAnimalCountPerType(c buffalo.Context) ([]listAnimalCountPerTypeReply, e
 	return ct, nil
 }
 
+func listLast24hLogEntries(c buffalo.Context) (models.Logentries, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	logentries := models.Logentries{}
+
+	// Retrieve all Logentries from the DB
+	yesterday := time.Now().AddDate(0, 0, -1)
+	if err := tx.Eager().Where("updated_at >= ?", yesterday).All(&logentries); err != nil {
+		return nil, err
+	}
+
+	return logentries, nil
+}
+
 // DashboardIndex default implementation.
 func DashboardIndex(c buffalo.Context) error {
 	oc, err := listOpenCares(c)
@@ -94,5 +113,17 @@ func DashboardIndex(c buffalo.Context) error {
 	}
 	c.Set("totalAnimalCount", totalAnimal)
 
-	return c.Render(http.StatusOK, r.HTML("dashboard/dashboard.html"))
+	le, err := listLast24hLogEntries(c)
+	if err != nil {
+		return err
+	}
+	c.Set("lastLogentries", le)
+
+	return responder.Wants("html", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, r.HTML("dashboard/dashboard.plush.html"))
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(200, r.JSON(oc))
+	}).Wants("xml", func(c buffalo.Context) error {
+		return c.Render(200, r.XML(oc))
+	}).Respond(c)
 }
