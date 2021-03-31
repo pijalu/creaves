@@ -115,7 +115,7 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Animals from the DB
-	if err := q.Eager().Order("created_at desc").All(animals); err != nil {
+	if err := q.Eager().Order("ID desc").All(animals); err != nil {
 		return err
 	}
 
