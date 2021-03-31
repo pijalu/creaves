@@ -19,7 +19,13 @@
   </thead>
   <tbody>
     <%= for (care) in cares { %>
-      <tr>
+      <tr class="
+      <%= if (care.Type.Warning) {%>
+        table-danger
+      <% } else if (care.Type.ResetWarning) { %>
+        table-success
+      <% }%>
+      ">
         <td class="align-middle"><%= care.DateFormated() %></td>
         <td class="align-middle"><%= care.AnimalID %></td>
         <td class="align-middle"><%= care.Weight %></td>
