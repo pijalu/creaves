@@ -1,0 +1,63 @@
+<h3 class="d-inline-block">Cares in need of response</h3>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Date</th>
+    <th>Animal</th>
+    <th>Weight</th>
+    <th>Note</th>
+    <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+    <th>Type</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (care) in openCares { %>
+      <tr class="
+      <%= if (care.Type.Warning) {%>
+        table-danger
+      <% } else if (care.Type.ResetWarning) { %>
+        table-success
+      <% }%>
+      ">
+        <td class="align-middle"><%= care.DateFormated() %></td>
+        <td class="align-middle"><%= care.AnimalID %></td>
+        <td class="align-middle"><%= care.Weight %></td>
+        <td class="align-middle"><%= care.Note %></td>
+        <td class="align-middle">
+          <%= if (care.Clean.Value()==true) { %>
+            <i class="fa fa-check" aria-hidden="true"></i>
+          <% } %>
+        </td>
+        <td class="align-middle"><%= care.Type.Name %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo("/animals/"+care.Animal.ID.String()+"#nav-care", {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<br/>
+<h3>Statistics</h3>
+<h4 class="d-inline-block">Current animals in cares</h4>
+<table class="table table-sm">
+<thead>
+    <th>Type</th>
+    <th>Count</th>
+  </thead>
+  <tbody>
+  <%= for (ac) in animalCountPerType { %>
+    <tr>
+        <td class="align-middle"><%= ac.Name %></td>
+        <td class="align-middle"><%= ac.Count %></td>
+    </tr>
+  <%}%>
+    <tr class="table-info">
+        <td class="align-middle">TOTAL</td>
+        <td class="align-middle"><%= totalAnimalCount %></td>
+    </tr>
+  <%}%>
+  </tbody>
+</table>
+
+  
