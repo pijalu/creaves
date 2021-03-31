@@ -19,7 +19,7 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	animals := models.Animals{}
-	if err := tx.Where("outtake_id is null").All(&animals); err != nil {
+	if err := tx.Where("outtake_id is null").Order("ID desc").All(&animals); err != nil {
 		return c.Error(http.StatusNoContent, err)
 	}
 
