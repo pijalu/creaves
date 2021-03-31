@@ -12,6 +12,7 @@
     <th>Nom</th>
     <th>Défaut</th>
     <th>Avertissement</th>
+    <th>Réinitialiser l'avertissement</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,6 +21,7 @@
         <td class="align-middle"><%= caretype.Name %></td>
         <td class="align-middle"><%= caretype.Def %></td>
         <td class="align-middle"><%= caretype.Warning %></td>
+        <td class="align-middle"><%= caretype.ResetWarning %></td>
         <td>
           <div class="float-right">
             <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
