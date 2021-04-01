@@ -24,11 +24,11 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	animalsByType := models.AnimalsByTypeMap{}
-	_ = animalsByType
+	if _, err := EnrichAnimals(&animals, c); err != nil {
+		return err
+	}
+
 	for _, animal := range animals {
-		if _, err := EnrichAnimal(&animal, c); err != nil {
-			return c.Error(http.StatusNoContent, err)
-		}
 		animalsByType[animal.Animaltype] = append(animalsByType[animal.Animaltype], animal)
 	}
 
