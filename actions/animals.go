@@ -57,10 +57,34 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 		}
 	}
 
-	// Preload types
+	// Preload all intakes
+	intakeIDS := []uuid.UUID{}
+	// 1st pass - populate IDS / base type
 	for i := 0; i < len(*a); i++ {
 		(*a)[i].Animalage = agsMap[(*a)[i].AnimalageID]
 		(*a)[i].Animaltype = atsMap[(*a)[i].AnimaltypeID]
+		intakeIDS = append(intakeIDS, (*a)[i].IntakeID)
+		//c.Logger().Debugf("Animal %d: intake %v", (*a)[i].ID, (*a)[i].IntakeID)
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+	its := &models.Intakes{}
+	if err := tx.Where("ID in (?)", intakeIDS).All(its); err != nil {
+		return nil, err
+	}
+	// Intake map
+	intakeMap := make(map[uuid.UUID]models.Intake)
+	for _, i := range *its {
+		intakeMap[i.ID] = i
+	}
+
+	// 2nd pass: Populate intakes
+	// 1st pass - populate IDS
+	for i := 0; i < len(*a); i++ {
+		(*a)[i].Intake = intakeMap[(*a)[i].IntakeID]
 	}
 
 	return a, nil
