@@ -16,19 +16,20 @@ const SQL_CARES_IN_WARNING = `
 select c.*
 from cares c
 where  c.type_id in (
-	  select id from caretypes where warning = true 
+	  select id from caretypes where warning = true
  )
- and c.date > (
+ and c.date in (
      select max(c2.date)
      from cares c2
      where c2.animal_id = c.animal_id
        and c2.type_id in (
-            select id from caretypes where reset_warning is true 
+            select id from caretypes where reset_warning is true or warning = true
        )
     )
  and c.animal_id in (
 	 select id from animals where outtake_id is null
  )
+ order by c.date desc
 `
 
 //SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
@@ -49,7 +50,11 @@ func listOpenCares(c buffalo.Context) (models.Cares, error) {
 
 	cares := models.Cares{}
 	// Retrieve all Cares from the DB
-	if err := tx.Eager().RawQuery(SQL_CARES_IN_WARNING).All(&cares); err != nil {
+	if err := tx.RawQuery(SQL_CARES_IN_WARNING).All(&cares); err != nil {
+		return nil, err
+	}
+
+	if _, err := EnrichCares(&cares, c); err != nil {
 		return nil, err
 	}
 
