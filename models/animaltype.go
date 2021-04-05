@@ -17,6 +17,7 @@ type Animaltype struct {
 	Name        string       `json:"name" db:"name"`
 	Default     bool         `json:"default" db:"def"`
 	Description nulls.String `json:"description" db:"description"`
+	HasRing     bool         `json:"has_ring" db:"has_ring"`
 	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
 }

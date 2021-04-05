@@ -13,11 +13,12 @@ func createAnimaltypes(c *Context) error {
 		name        string
 		description string
 		def         bool
+		HasRing     bool
 	}{
-		{name: "Hedgehog", description: ""},
-		{name: "Raptor", description: ""},
-		{name: "Mammals", description: ""},
-		{name: "Bird", description: ""},
+		{name: "Hedgehog", description: "", HasRing: false},
+		{name: "Raptor", description: "", HasRing: true},
+		{name: "Mammals", description: "", HasRing: false},
+		{name: "Bird", description: "", HasRing: true},
 		{name: "Other", description: "", def: true},
 	}
 
@@ -39,6 +40,7 @@ func createAnimaltypes(c *Context) error {
 				Name:        t.name,
 				Description: nulls.NewString(t.description),
 				Default:     t.def,
+				HasRing:     t.HasRing,
 			}); err != nil {
 				return err
 			}

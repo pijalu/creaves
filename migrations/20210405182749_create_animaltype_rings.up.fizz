@@ -1,0 +1,1 @@
+add_column("animaltypes", "has_ring", "bool", { "default":false})

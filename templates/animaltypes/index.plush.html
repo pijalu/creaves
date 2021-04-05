@@ -12,6 +12,7 @@
     <th>Name</th>
     <th>Description</th>
     <th>Default</th>
+    <th>Has Ring</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,6 +21,7 @@
         <td class="align-middle"><%= animaltype.Name %></td>
         <td class="align-middle"><%= animaltype.Description %></td>
         <td class="align-middle"><%= animaltype.Default %></td>
+        <td class="align-middle"><%= animaltype.HasRing %></td>
         <td>
           <div class="float-right">
             <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
