@@ -21,6 +21,7 @@ type User struct {
 	Email        string    `json:"email" db:"email"`
 	Admin        bool      `json:"-" db:"admin"`
 	Approved     bool      `json:"-" db:"approved"`
+	Shared       bool      `json:"-" db:"shared"`
 	PasswordHash string    `json:"password_hash" db:"password_hash"`
 
 	Password             string `json:"-" db:"-"`

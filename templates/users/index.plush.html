@@ -12,6 +12,7 @@
     <th>e-mail</th>
     <th>Approved</th>
     <th>Admin</th>
+    <th>Shared</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,6 +21,7 @@
         <td class="align-middle"><%= user.Email %></td>
         <td class="align-middle"><%= user.Approved %></td>
         <td class="align-middle"><%= user.Admin %></td>
+        <td class="align-middle"><%= user.Shared %></td>
         <td>
           <div class="float-right">
             <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>

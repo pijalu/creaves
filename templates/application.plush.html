@@ -90,13 +90,17 @@
                   <%= current_user.Email %>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                  <%= if (!current_user.Shared) {%>
                   <a class="dropdown-item" href="<%= travelsPath() %>">Travels</a>
                   <div class="dropdown-divider"></div>
+                  <% } %>
                   <a class="dropdown-item" href="<%= langPath({ lang: "fr"}) %>">In French</a>
+                  <%= if (!current_user.Shared) {%>
                   <div class="dropdown-divider"></div>
                   <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Edit</a>
                   <div class="dropdown-divider"></div>
                   <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>">logout</a>
+                  <% } %>
                 </div>
               </li>
             <% } else {%>

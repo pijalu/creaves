@@ -246,7 +246,7 @@ func (v UsersResource) Show(c buffalo.Context) error {
 // mapped to the path GET /users/{user_id}/edit
 func (v UsersResource) Edit(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin && cu.ID.String() != c.Param("user_id") {
+	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
 		c.Logger().Debugf("Edit user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
@@ -272,7 +272,7 @@ func (v UsersResource) Edit(c buffalo.Context) error {
 // the path PUT /users/{user_id}
 func (v UsersResource) Update(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin && cu.ID.String() != c.Param("user_id") {
+	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
 		c.Logger().Debugf("Update user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
@@ -342,7 +342,7 @@ func (v UsersResource) Update(c buffalo.Context) error {
 // to the path DELETE /users/{user_id}
 func (v UsersResource) Destroy(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin && cu.ID.String() != c.Param("user_id") {
+	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
 		c.Logger().Debugf("Destroy user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
