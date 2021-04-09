@@ -1,3 +1,4 @@
+
 package grifts
 
 import (
@@ -25,6 +26,7 @@ func createDrugs(c *Context) error {
 	type dosage struct {
 		animalType string
 		dosage     string
+		unit       string
 	}
 
 	ts := []struct {
@@ -33,161 +35,162 @@ func createDrugs(c *Context) error {
 		description string
 	}{
 
-		{
-			name:        "Meloxoral 1,5 mg/ml",
-			description: "Oral",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "1.4"},
-				{animalType: "Bird", dosage: "1.4"},
-				{animalType: "Mammals", dosage: "0.28"},
-				{animalType: "Hedgehog", dosage: "0.14"},
-			},
-		},
+{
+	name:        "Meloxoral 1,5 mg/ml",
+	description: "Oral",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "1.4", unit: "mg"},
+		{animalType: "Bird", dosage: "1.4", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.28", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.14", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Tolfine",
-			description: "inject / 48h",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.5"},
-				{animalType: "Bird", dosage: "0.5"},
-				{animalType: "Mammals", dosage: "0.1"},
-				{animalType: "Hedgehog", dosage: "0.05"},
-			},
-		},
+{
+	name:        "Tolfine",
+	description: "inject / 48h",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.5", unit: "mg"},
+		{animalType: "Bird", dosage: "0.5", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.1", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.05", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Ketodolor",
-			description: "iv, im",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.3"},
-				{animalType: "Bird", dosage: "0.3"},
-				{animalType: "Mammals", dosage: "0.06"},
-				{animalType: "Hedgehog", dosage: "0.03"},
-			},
-		},
+{
+	name:        "Ketodolor",
+	description: "iv, im",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.3", unit: "mg"},
+		{animalType: "Bird", dosage: "0.3", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.06", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.03", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Keytil",
-			description: "",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.33"},
-				{animalType: "Bird", dosage: "0.33"},
-				{animalType: "Mammals", dosage: "0.066"},
-				{animalType: "Hedgehog", dosage: "0.033"},
-			},
-		},
+{
+	name:        "Keytil",
+	description: "",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.33", unit: "mg"},
+		{animalType: "Bird", dosage: "0.33", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.066", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.033", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Moderin La 40 mg/ml",
-			description: "im",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.05"},
-				{animalType: "Bird", dosage: "0.05"},
-				{animalType: "Mammals", dosage: "0.05"},
-				{animalType: "Hedgehog", dosage: "0.05"},
-			},
-		},
+{
+	name:        "Moderin La 40 mg/ml",
+	description: "im",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.05", unit: "mg"},
+		{animalType: "Bird", dosage: "0.05", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.05", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.05", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Dexa-Ject 2 mg/ml",
-			description: "iv, iartic",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.05"},
-				{animalType: "Bird", dosage: "0.05"},
-				{animalType: "Mammals", dosage: "0.05"},
-				{animalType: "Hedgehog", dosage: "0.05"},
-			},
-		},
+{
+	name:        "Dexa-Ject 2 mg/ml",
+	description: "iv, iartic",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.05", unit: "mg"},
+		{animalType: "Bird", dosage: "0.05", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.05", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.05", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Peni-Kel 300",
-			description: "Im 5 days",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.07"},
-				{animalType: "Bird", dosage: "0.07"},
-				{animalType: "Mammals", dosage: "0.07"},
-				{animalType: "Hedgehog", dosage: "0.07"},
-			},
-		},
+{
+	name:        "Peni-Kel 300",
+	description: "Im 5 days",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.07", unit: "mg"},
+		{animalType: "Bird", dosage: "0.07", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.07", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.07", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Amoxy-Kel 15 %",
-			description: "Im 3 days",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.1"},
-				{animalType: "Bird", dosage: "0.1"},
-				{animalType: "Mammals", dosage: "0.1"},
-				{animalType: "Hedgehog", dosage: "0.1"},
-			},
-		},
+{
+	name:        "Amoxy-Kel 15 %",
+	description: "Im 3 days",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.1", unit: "mg"},
+		{animalType: "Bird", dosage: "0.1", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.1", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.1", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Eradia 125 mg/ml",
-			description: " 2xdays  5 to 7 - 10 jours",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.2"},
-				{animalType: "Bird", dosage: "0.2"},
-				{animalType: "Mammals", dosage: "0.2"},
-				{animalType: "Hedgehog", dosage: "0.2"},
-			},
-		},
+{
+	name:        "Eradia 125 mg/ml",
+	description: " 2xdays  5 to 7 - 10 jours",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.2", unit: "mg"},
+		{animalType: "Bird", dosage: "0.2", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.2", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.2", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Baytril 100 mg/ml",
-			description: "3 to 5 days",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: ""},
-				{animalType: "Bird", dosage: "0.1"},
-				{animalType: "Mammals", dosage: "0.1"},
-				{animalType: "Hedgehog", dosage: "0.1"},
-			},
-		},
+{
+	name:        "Baytril 100 mg/ml",
+	description: "3 to 5 days",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "", unit: "mg"},
+		{animalType: "Bird", dosage: "0.1", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.1", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.1", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Baycox 2,5 %",
-			description: "",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: ""},
-				{animalType: "Bird", dosage: "0.28"},
-				{animalType: "Mammals", dosage: ""},
-				{animalType: "Hedgehog", dosage: "0.28"},
-			},
-		},
+{
+	name:        "Baycox 2,5 %",
+	description: "",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "", unit: "mg"},
+		{animalType: "Bird", dosage: "0.28", unit: "mg"},
+		{animalType: "Mammals", dosage: "", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.28", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Ivomec",
-			description: "Repeat after 7 jours ",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "0.2"},
-				{animalType: "Bird", dosage: "0.2"},
-				{animalType: "Mammals", dosage: "0.2"},
-				{animalType: "Hedgehog", dosage: "0.2"},
-			},
-		},
+{
+	name:        "Ivomec",
+	description: "Repeat after 7 days",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "0.2", unit: "mg"},
+		{animalType: "Bird", dosage: "0.2", unit: "mg"},
+		{animalType: "Mammals", dosage: "0.2", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "0.2", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Capizol",
-			description: "",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: ""},
-				{animalType: "Bird", dosage: "1.33"},
-				{animalType: "Mammals", dosage: ""},
-				{animalType: "Hedgehog", dosage: "1.33"},
-			},
-		},
+{
+	name:        "Capizol",
+	description: "",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "", unit: "mg"},
+		{animalType: "Bird", dosage: "1.33", unit: "mg"},
+		{animalType: "Mammals", dosage: "", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "1.33", unit: "mg"},
+	},
+},
 
-		{
-			name:        "Catosal 10 %",
-			description: "diluate iv, im, sc",
-			dosages: []dosage{
-				{animalType: "Raptor", dosage: "2.5"},
-				{animalType: "Bird", dosage: "2.5"},
-				{animalType: "Mammals", dosage: "2.5"},
-				{animalType: "Hedgehog", dosage: "2.5"},
-			},
-		},
+{
+	name:        "Catosal 10 %",
+	description: "diluate iv, im, sc",
+	dosages: []dosage{
+		{animalType: "Raptor", dosage: "2.5", unit: "mg"},
+		{animalType: "Bird", dosage: "2.5", unit: "mg"},
+		{animalType: "Mammals", dosage: "2.5", unit: "mg"},
+		{animalType: "Hedgehog", dosage: "2.5", unit: "mg"},
+	},
+},
+
 	}
-
+	
 	cnt, err := models.DB.Q().Count(&models.Drug{})
 	if err != nil {
 		return err
@@ -231,6 +234,8 @@ func createDrugs(c *Context) error {
 					Animaltype:     &at,
 					Enabled:        true,
 					DosagePerGrams: nulls.NewFloat64(dsf),
+					DosagePerGramsUnit: nulls.NewString(ds.unit),
+					Description: nulls.NewString(t.description),
 				}
 				d.Dosages = append(d.Dosages, dosage)
 			}

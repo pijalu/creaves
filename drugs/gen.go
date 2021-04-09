@@ -38,6 +38,7 @@ func createDrugs(c *Context) error {
 	type dosage struct {
 		animalType string
 		dosage     string
+		unit       string
 	}
 
 	ts := []struct {
@@ -93,6 +94,8 @@ const footer = `
 					Animaltype:     &at,
 					Enabled:        true,
 					DosagePerGrams: nulls.NewFloat64(dsf),
+					DosagePerGramsUnit: nulls.NewString(ds.unit),
+					Description: nulls.NewString(t.description),
 				}
 				d.Dosages = append(d.Dosages, dosage)
 			}
@@ -113,10 +116,10 @@ const gencode = `
 	name:        "{{.drug}}",
 	description: "{{.note}}",
 	dosages: []dosage{
-		{animalType: "Raptor", dosage: "{{.Raptor}}"},
-		{animalType: "Bird", dosage: "{{.Bird}}"},
-		{animalType: "Mammals", dosage: "{{.Mammals}}"},
-		{animalType: "Hedgehog", dosage: "{{.Hedgehog}}"},
+		{animalType: "Raptor", dosage: "{{.Raptor}}", unit: "{{.unit}}"},
+		{animalType: "Bird", dosage: "{{.Bird}}", unit: "{{.unit}}"},
+		{animalType: "Mammals", dosage: "{{.Mammals}}", unit: "{{.unit}}"},
+		{animalType: "Hedgehog", dosage: "{{.Hedgehog}}", unit: "{{.unit}}"},
 	},
 },
 `

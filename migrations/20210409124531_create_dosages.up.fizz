@@ -8,6 +8,7 @@ create_table("dosages") {
 	t.Column("enabled", "bool")
 	t.Column("description", "text", {null: true})
 	t.Column("dosage_per_grams", "float", {null: true})
+	t.Column("dosage_per_grams_unit", "text", {null: true})
 	
 	t.Timestamps()
 

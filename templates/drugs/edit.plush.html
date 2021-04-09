@@ -4,5 +4,5 @@
 
 <%= formFor(drug, {action: drugPath({ drug_id: drug.ID }), method: "PUT"}) { %>
   <%= partial("drugs/form.html") %>
-  <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+  <%= linkTo(drugPath({ drug_id: drug.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
 <% } %>

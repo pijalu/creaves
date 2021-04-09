@@ -21,9 +21,10 @@ type Dosage struct {
 	AnimaltypeID uuid.UUID   `json:"animaltype_id" db:"animaltype_id"`
 	Animaltype   *Animaltype `belongs_to:"animaltype"`
 
-	Enabled        bool          `json:"enabled" db:"enabled"`
-	Description    nulls.String  `json:"description" db:"description"`
-	DosagePerGrams nulls.Float64 `json:"dosage_per_grams" db:"dosage_per_grams"`
+	Enabled            bool          `json:"enabled" db:"enabled"`
+	Description        nulls.String  `json:"description" db:"description"`
+	DosagePerGrams     nulls.Float64 `json:"dosage_per_grams" db:"dosage_per_grams"`
+	DosagePerGramsUnit nulls.String  `json:"dosage_per_grams_unit" db:"dosage_per_grams_unit"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -60,6 +61,15 @@ type Drug struct {
 func (d Drug) String() string {
 	jd, _ := json.Marshal(d)
 	return string(jd)
+}
+
+// DosagePerAnimalTypeID returns the dosage remapped by animal type
+func (d Drug) DosagePerAnimalTypeID() map[uuid.UUID]Dosage {
+	r := map[uuid.UUID]Dosage{}
+	for _, ds := range d.Dosages {
+		r[ds.AnimaltypeID] = ds
+	}
+	return r
 }
 
 // Drugs is not required by pop and may be deleted

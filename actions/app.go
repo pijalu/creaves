@@ -126,10 +126,12 @@ func App() *buffalo.App {
 		app.Resource("/traveltypes", TraveltypesResource{})
 		app.Resource("/travels", TravelsResource{})
 
-		// Custom error handler
-		app.ErrorHandlers[500] = func(status int, err error, c buffalo.Context) error {
-			c.Flash().Add("danger", err.Error())
-			return c.Render(status, r.HTML("/oops/oops.plush.html"))
+		if ENV != "development" {
+			// Custom error handler
+			app.ErrorHandlers[500] = func(status int, err error, c buffalo.Context) error {
+				c.Flash().Add("danger", err.Error())
+				return c.Render(status, r.HTML("/oops/oops.plush.html"))
+			}
 		}
 		app.GET("/dashboard", DashboardIndex)
 		app.Resource("/drugs", DrugsResource{})
