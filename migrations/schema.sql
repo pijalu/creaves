@@ -181,6 +181,47 @@ CREATE TABLE `discoveries` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `dosages`
+--
+
+DROP TABLE IF EXISTS `dosages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `dosages` (
+  `id` char(36) NOT NULL,
+  `animaltype_id` char(36) NOT NULL,
+  `drug_id` char(36) NOT NULL,
+  `enabled` tinyint(1) NOT NULL,
+  `description` text,
+  `dosage_per_grams` float DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `animaltype_id` (`animaltype_id`),
+  KEY `drug_id` (`drug_id`),
+  CONSTRAINT `dosages_ibfk_1` FOREIGN KEY (`animaltype_id`) REFERENCES `animaltypes` (`id`),
+  CONSTRAINT `dosages_ibfk_2` FOREIGN KEY (`drug_id`) REFERENCES `drugs` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `drugs`
+--
+
+DROP TABLE IF EXISTS `drugs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `drugs` (
+  `id` char(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `intakes`
 --
 
@@ -396,4 +437,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2021-04-05 20:36:31
+-- Dump completed on 2021-04-09 16:10:07

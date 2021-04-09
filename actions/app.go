@@ -132,6 +132,7 @@ func App() *buffalo.App {
 			return c.Render(status, r.HTML("/oops/oops.plush.html"))
 		}
 		app.GET("/dashboard", DashboardIndex)
+		app.Resource("/drugs", DrugsResource{})
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
