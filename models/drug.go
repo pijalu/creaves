@@ -16,10 +16,10 @@ type Dosage struct {
 	ID uuid.UUID `json:"id" db:"id"`
 
 	DrugID uuid.UUID `json:"drug_id" db:"drug_id"`
-	Drug   *Drug     `belongs_to:"drug"`
+	Drug   *Drug     `json:"-" belongs_to:"drug"`
 
 	AnimaltypeID uuid.UUID   `json:"animaltype_id" db:"animaltype_id"`
-	Animaltype   *Animaltype `belongs_to:"animaltype"`
+	Animaltype   *Animaltype `json:"-" belongs_to:"animaltype"`
 
 	Enabled            bool          `json:"enabled" db:"enabled"`
 	Description        nulls.String  `json:"description" db:"description"`
@@ -51,7 +51,7 @@ type Drug struct {
 
 	Name        string       `json:"name" db:"name"`
 	Description nulls.String `json:"description" db:"description"`
-	Dosages     []Dosage     `json:"dosages,omitempty" has_many:"dosages"`
+	Dosages     []Dosage     `json:"dosages" has_many:"dosages"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

@@ -5,8 +5,8 @@
     <%= linkTo(drugsPath(), {class: "btn btn-info"}) { %>
       Back to all Drugs
     <% } %>
-    <%= linkTo(editDrugPath({ drug_id: drug.ID }), {id: "editButton", class: "btn btn-warning", body: "Edit"}) %>
-    <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <%= linkTo(editDrugPath({ drug_id: drug.ID }), {id: "editButton", class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
