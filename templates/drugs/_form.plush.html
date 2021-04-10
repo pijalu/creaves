@@ -1,0 +1,96 @@
+<%= f.InputTag("Name") %>
+<%= f.TextAreaTag("Description", {rows: 10}) %>
+
+<nav>
+<div class="nav nav-tabs" id="nav-tab" role="tablist">
+<%= for (i, d) in drug.Dosages {%>
+    <% 
+        let active = ""
+        if (i == 0) { 
+            active = "active" 
+        }
+    %>
+    <a class="nav-item nav-link <%= active %>" id="nav-<%= d.AnimaltypeID %>-tab" data-toggle="tab" href="#nav-<%= d.AnimaltypeID %>" role="tab" aria-controls="nav-<%= d.AnimaltypeID %>" aria-selected="true"><%=d.Animaltype.Name %></a>
+<% } %>
+</div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+    <%= for (i, d) in drug.Dosages {%>
+    <% 
+        let active = ""
+        if (i == 0) { 
+            active = "show active" 
+        }
+    %>
+    <div class="tab-pane fade <%= active %>" id="nav-<%= d.AnimaltypeID %>" role="tabpanel" aria-labelledby="nav-<%= d.AnimaltypeID %>-tab">
+        <div class="form-row p-3  border">
+            <input type="hidden" name="Dosages[<%= i %>].ID" value="<%= d.ID %>"/>
+            <input type="hidden" name="Dosages[<%= i %>].AnimaltypeID" value="<%= d.AnimaltypeID %>"/>
+            <input type="hidden" name="Dosages[<%= i %>].DrugID" value="<%= d.DrugID %>"/>
+
+            <div class="form-group col-md-12">
+                <label>
+                    <input class="" name="Dosages[<%= i %>].Enabled" type="checkbox"
+                    
+                    <%= if (d.Enabled) { %>
+                    checked
+                    <% } %>
+                    
+                    />
+                    Enabled
+                </label>
+            </div>
+            <div class="form-group col-md-9">
+                <label>Dosage per grams</label>
+                <input class=" form-control" name="Dosages[<%= i %>].DosagePerGrams" type="number" step="0.0001" min="0" value="<%= d.DosagePerGrams %>" autocomplete="off"/>
+            </div>
+            <div class="form-group col-md-3">
+                <label>Dosage Unit</label>
+                <input class=" form-control" name="Dosages[<%= i %>].DosagePerGramsUnit" type="text" value="<%= d.DosagePerGramsUnit %>" autocomplete="off"/>
+            </div>
+            <div class="form-group col-md-12">
+                <label>Description</label>
+                <textarea class="form-control col-md-12" name="Dosages[<%= i %>].Description" rows="3"><%= d.Description %></textarea>           
+            </div>
+        </div>
+    </div>
+    <% } %>
+</div>
+<input id="backUrl" name="BackUrl" type="hidden" value="<%= drugPath({drug_id: drug.ID }) %>"/>
+<button class="btn btn-success" role="submit">Save</button>
+&nbsp;
+
+<script>
+$(function() {
+    var viewPath="<%= drugPath({drug_id: drug.ID }) %>";
+
+    $(".nav-tabs").find("a").first().click();
+
+    var url = document.URL;
+    var hash = url.substring(url.indexOf('#'));
+
+    if (url.indexOf('#') > 0) {
+        ec = $("#edit-cancel")
+        if (ec !== undefined) {
+            $("#edit-cancel").attr("href", viewPath+hash);
+        }
+        $("#backUrl").attr("value",viewPath+hash);
+    }
+
+    $(".nav-tabs").find("a").each(function(key, val) {
+    if (hash == $(val).attr('href')) {
+        $(val).click();
+    }
+    $(val).click(function(ky, vl) {
+        console.log($(this).attr('href'));
+        location.hash = $(this).attr('href');
+        ec = $("#edit-cancel")
+        if (ec !== undefined) {
+            $("#edit-cancel").attr("href", viewPath+location.hash);
+        }
+        $("#backUrl").attr("value", viewPath+location.hash);
+    });
+    });
+});
+</script>

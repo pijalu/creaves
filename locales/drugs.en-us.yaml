@@ -1,0 +1,6 @@
+- id: "drug.created.success"
+  translation: "Drug was successfully created."
+- id: "drug.updated.success"
+  translation: "Drug was successfully updated."
+- id: "drug.destroyed.success"
+  translation: "Drug was successfully destroyed."

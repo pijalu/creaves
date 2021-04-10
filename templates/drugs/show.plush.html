@@ -1,0 +1,103 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Drug Details</h3>
+
+  <div class="float-right">
+    <%= linkTo(drugsPath(), {class: "btn btn-info"}) { %>
+      Back to all Drugs
+    <% } %>
+    <%= linkTo(editDrugPath({ drug_id: drug.ID }), {id: "editButton", class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Name</label>
+    <p class="d-inline-block"><%= drug.Name %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Description</label>
+    <p class="d-inline-block"><%= drug.Description %></p>
+  </li>
+
+
+</ul>
+
+
+<nav>
+<div class="nav nav-tabs" id="nav-tab" role="tablist">
+<%= for (i, d) in drug.Dosages {%>
+    <% 
+        let active = ""
+        if (i == 0) { 
+            active = "active" 
+        }
+    %>
+    <a class="nav-item nav-link <%= active %>" id="nav-<%= d.AnimaltypeID %>-tab" data-toggle="tab" href="#nav-<%= d.AnimaltypeID %>" role="tab" aria-controls="nav-<%= d.AnimaltypeID %>" aria-selected="true"><%=d.Animaltype.Name %></a>
+<% } %>
+</div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+    <%= for (i, d) in drug.Dosages {%>
+    <% 
+        let active = ""
+        if (i == 0) { 
+            active = "show active" 
+        }
+    %>
+    <div class="tab-pane fade <%= active %>" id="nav-<%= d.AnimaltypeID %>" role="tabpanel" aria-labelledby="nav-<%= d.AnimaltypeID %>-tab">
+        <div class="form-row">
+          <ul class="list-group mb-2 col-md-12">
+            <li class="list-group-item pb-1">
+              <label class="small d-block">Enabled</label>
+              <%= if (d.Enabled) {%>
+              <i class="fa fa-check" aria-hidden="true"></i>
+              <%} else {%>
+              <i class="fa fa-ban" aria-hidden="true"></i>
+              <%}%>
+            </li>
+
+            <li class="list-group-item pb-1">
+              <label class="small d-block">Dosage per grams</label>
+              <p class="d-inline-block"><%= d.DosagePerGrams %> <%=d.DosagePerGramsUnit %></p>
+            </li>
+
+            <li class="list-group-item pb-1">
+              <label class="small d-block">Description</label>
+              <p class="d-inline-block"><%= d.Description %></p>
+            </li>
+          </ul>
+        </div>
+    </div>
+    <% } %>
+</div>
+
+<script>
+$(".nav-tabs").find("a").first().click();
+
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+var editPath = "<%= editDrugPath({ drug_id: drug.ID }) %>";
+if (url.indexOf('#') > 0) {
+  $("#editButton").attr("href", editPath+hash);
+}
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+    $("#editButton").attr("href", editPath+location.hash);
+  });
+});
+</script>

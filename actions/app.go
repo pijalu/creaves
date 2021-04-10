@@ -120,18 +120,22 @@ func App() *buffalo.App {
 		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
+		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
 		app.GET("/crash", func(c buffalo.Context) error {
 			return fmt.Errorf("Crash me !")
 		})
 		app.Resource("/traveltypes", TraveltypesResource{})
 		app.Resource("/travels", TravelsResource{})
 
-		// Custom error handler
-		app.ErrorHandlers[500] = func(status int, err error, c buffalo.Context) error {
-			c.Flash().Add("danger", err.Error())
-			return c.Render(status, r.HTML("/oops/oops.plush.html"))
+		if ENV != "development" {
+			// Custom error handler
+			app.ErrorHandlers[500] = func(status int, err error, c buffalo.Context) error {
+				c.Flash().Add("danger", err.Error())
+				return c.Render(status, r.HTML("/oops/oops.plush.html"))
+			}
 		}
 		app.GET("/dashboard", DashboardIndex)
+		app.Resource("/drugs", DrugsResource{})
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 

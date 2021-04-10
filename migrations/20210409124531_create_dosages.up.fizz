@@ -1,0 +1,17 @@
+create_table("dosages") {
+	t.Column("id", "uuid", {primary: true})
+
+	t.Column("animaltype_id", "uuid")
+	t.Column("drug_id", "uuid")
+
+
+	t.Column("enabled", "bool")
+	t.Column("description", "text", {null: true})
+	t.Column("dosage_per_grams", "float", {null: true})
+	t.Column("dosage_per_grams_unit", "text", {null: true})
+	
+	t.Timestamps()
+
+	t.ForeignKey("animaltype_id", {"animaltypes": ["id"]})
+	t.ForeignKey("drug_id", {"drugs": ["id"]})
+}

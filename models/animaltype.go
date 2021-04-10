@@ -37,6 +37,15 @@ func (a Animaltypes) String() string {
 	return string(ja)
 }
 
+// AsMap return the animal type uuid map
+func (a Animaltypes) AsMap() map[uuid.UUID]Animaltype {
+	r := map[uuid.UUID]Animaltype{}
+	for _, at := range a {
+		r[at.ID] = at
+	}
+	return r
+}
+
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (a *Animaltype) Validate(tx *pop.Connection) (*validate.Errors, error) {

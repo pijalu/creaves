@@ -29,7 +29,35 @@
 <% } else { %>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">New Treatment for animal <%= treatmentTemplate.AnimalID %></h3>
+  <ul class="list-group mb-2 ">
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Species</label>
+      <%= if (treatmentTemplate.Animal.Species) {%>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> (<%= treatmentTemplate.Animal.Animaltype.Name %>)</p>
+      <% } else {%>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> <%= treatmentTemplate.Animal.Animaltype.Name %></p>
+      <% }%>
+    </li>
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Weight in grams</label>
+      <% let w = treatmentTemplate.Animal.LastWeight() %>
+      <%= if (w.Valid) { %>
+        <p class="d-inline-block"><%= w %></p>
+      <% } else {%>
+        <p class="d-inline-block">unknown</p>
+      <% }%>
+    </li>
+  </ul>
 </div>
+
+<script>
+  const animalTypeID = "<%= treatmentTemplate.Animal.AnimaltypeID %>";
+  <%= if (w.Valid) { %>
+  const weight = <%= w %>;
+  <% } else {%>
+  const weight = undefined;
+  <% } %>
+</script>
 
 
 <% 
@@ -47,7 +75,7 @@
               <label>Date from</label>
               <div class="input-group md-12">
                   <input class=" form-control" id="dtf" name="DateFrom" required="required" type="text" value="<%= treatmentTemplate.DateFromFormated() %>"
-                  pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">>
+                  pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">
                   <div class="input-group-append">
                       <div class="input-group-text">
                           <i class="fa fa-calendar" aria-hidden="true"></i>
@@ -67,7 +95,7 @@
               <label>Date to</label>
               <div class="input-group md-12">
                   <input class=" form-control" id="dtt" name="DateTo" required="required" type="text" value="<%= treatmentTemplate.DateToFormated() %>"
-                  pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">>
+                  pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">
                   <div class="input-group-append">
                       <div class="input-group-text">
                           <i class="fa fa-calendar" aria-hidden="true"></i>
@@ -95,13 +123,21 @@
         <%= f.InputTag("Drug", {required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Drug"]').autoComplete({
-              minChars: 1,
+              minChars: 0,
               source: function(term, response){
-                  $.getJSON('/suggestions/treatment_drug', { q: term }, function(data){ response(data); });
+                  $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
               }
           });
         </script>
         <%= f.InputTag("Dosage", { required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <script>
+          $('input[name="Dosage"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });
+              }
+          });
+        </script>
 
         <%= f.TextAreaTag("Remarks", {rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>
     </div>
