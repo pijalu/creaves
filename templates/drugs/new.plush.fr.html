@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau médicament</h3>
+</div>
+
+<%= formFor(drug, {action: drugsPath(), method: "POST"}) { %>
+  <%= partial("drugs/form.plush.fr.html") %>
+  <%= linkTo(drugsPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>

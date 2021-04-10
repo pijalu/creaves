@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier le médicament</h3>
+</div>
+
+<%= formFor(drug, {action: drugPath({ drug_id: drug.ID }), method: "PUT"}) { %>
+  <%= partial("drugs/form.plush.fr.html") %>
+  <%= linkTo(drugPath({ drug_id: drug.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
+<% } %>
