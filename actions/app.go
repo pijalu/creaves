@@ -120,6 +120,7 @@ func App() *buffalo.App {
 		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
+		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
 		app.GET("/crash", func(c buffalo.Context) error {
 			return fmt.Errorf("Crash me !")
 		})

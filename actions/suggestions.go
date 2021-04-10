@@ -1,7 +1,10 @@
 package actions
 
 import (
+	"creaves/models"
 	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v5"
@@ -60,7 +63,91 @@ func SuggestionsDiscovererCountry(c buffalo.Context) error {
 
 // SuggestionsTreatmentDrug default implementation.
 func SuggestionsTreatmentDrug(c buffalo.Context) error {
-	return suggest(c, "treatments", "drug")
+	q := c.Param("q")
+	at := c.Param("at")
+	//w := c.Param("w")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := `
+		SELECT d.name 
+		FROM drugs d, 
+		     dosages s 
+		WHERE d.ID = s.drug_id 
+		  AND s.animaltype_id = ?`
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" AND d.Name like ?", at, "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot, at)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
+// SuggestionsTreatmentDrug default implementation.
+func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
+	result := []string{}
+
+	q := c.Param("q")
+	at := c.Param("at")
+	w, err := strconv.ParseFloat(c.Param("w"), 64)
+	if err != nil {
+		c.Logger().Debugf("Failed to convert weight to integer:%v", err)
+		return c.Render(http.StatusNotFound, r.JSON(result))
+	}
+
+	c.Logger().Debugf("Dosage for: %v %v %v", q, at, w)
+
+	if len(q) == 0 {
+		c.Logger().Debugf("No medication name provided")
+		return c.Render(http.StatusNotFound, r.JSON(result))
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	d := &models.Dosage{}
+	var query *pop.Query
+	qroot := `
+		SELECT s.* 
+		FROM drugs d, 
+		     dosages s 
+		WHERE d.Name = ?
+		  AND d.ID = s.drug_id
+		  AND s.animaltype_id = ?`
+
+	query = tx.RawQuery(qroot, q, at)
+
+	if err := query.First(d); err != nil {
+		c.Logger().Debugf("Dosage lookup failed: %v", err)
+		return c.Render(http.StatusNotFound, r.JSON(result))
+	}
+
+	c.Logger().Debugf("Loaded mediaction/dosage: %v", d)
+
+	if !d.DosagePerGrams.Valid {
+		c.Logger().Debugf("No dosage for drug")
+		return c.Render(http.StatusNotFound, r.JSON(result))
+	}
+
+	c.Logger().Debugf("Dosage: %v * %v", w, d.DosagePerGrams.Float64)
+	ds := w * d.DosagePerGrams.Float64
+
+	result = append(result, fmt.Sprintf("%.2f %s", ds, d.DosagePerGramsUnit.String))
+
+	return c.Render(200, r.JSON(result))
 }
 
 // SuggestionsAnimalInCare - specific implementation to only account in care animal (no outtake).

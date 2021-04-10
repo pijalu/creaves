@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -64,6 +65,34 @@ func (a Animal) String() string {
 func (a Animals) String() string {
 	ja, _ := json.Marshal(a)
 	return string(ja)
+}
+
+//LastWeight returns the last weight of the animal
+func (a Animal) LastWeight() nulls.Int {
+	// No cares
+	if len(a.Cares) < 1 {
+		return nulls.Int{}
+	}
+	maxDate := a.Cares[0].Date
+	w := a.Cares[0].Weight
+
+	for i := 1; i < len(a.Cares); i++ {
+		c := a.Cares[i]
+		if !w.Valid || c.Weight.Valid && maxDate.Before(c.Date) {
+			maxDate = c.Date
+			w = c.Weight
+		}
+	}
+
+	// return value
+	if w.Valid {
+		i, err := strconv.Atoi(w.String)
+		if err == nil {
+			return nulls.NewInt(i)
+		}
+	}
+
+	return nulls.Int{}
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.

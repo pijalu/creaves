@@ -29,8 +29,35 @@
 <% } else { %>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Nouveau traitement pour l'animal <%= treatmentTemplate.AnimalID %></h3>
+  <ul class="list-group mb-2 ">
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Espèce</label>
+      <%= if (treatmentTemplate.Animal.Species) {%>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> (<%= treatmentTemplate.Animal.Animaltype.Name %>)</p>
+      <% } else {%>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> <%= treatmentTemplate.Animal.Animaltype.Name %></p>
+      <% }%>
+    </li>
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Poids en grammes</label>
+      <% let w = treatmentTemplate.Animal.LastWeight() %>
+      <%= if (w.Valid) { %>
+        <p class="d-inline-block"><%= w %></p>
+      <% } else {%>
+        <p class="d-inline-block">inconnu</p>
+      <% }%>
+    </li>
+  </ul>
 </div>
 
+<script>
+  const animalTypeID = "<%= treatmentTemplate.Animal.AnimaltypeID %>";
+  <%= if (w.Valid) { %>
+  const weight = <%= w %>;
+  <% } else {%>
+  const weight = undefined;
+  <% } %>
+</script>
 
 <% 
   let data = {}
@@ -95,13 +122,21 @@
         <%= f.InputTag("Drug", {label:"Médicament", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Drug"]').autoComplete({
-              minChars: 1,
+              minChars: 0,
               source: function(term, response){
-                  $.getJSON('/suggestions/treatment_drug', { q: term }, function(data){ response(data); });
+                  $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
+            }
+          });
+        </script>
+        <%= f.InputTag("Dosage", {label:"Posologie", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <script>
+          $('input[name="Dosage"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });
               }
           });
-      </script>
-        <%= f.InputTag("Dosage", {label:"Posologie", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        </script>
 
         <%= f.TextAreaTag("Remarks", {label:"Remarques", rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>
     </div>

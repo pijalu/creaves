@@ -178,10 +178,12 @@ func (v TreatmentsResource) New(c buffalo.Context) error {
 			errCode = http.StatusConflict
 		}
 
-		c.Logger().Debugf("Loaded animal %v", animal)
-
 		if errCode != http.StatusOK {
 			return c.Render(errCode, r.HTML("/treatments/new.plush.html"))
+		}
+
+		if _, err := EnrichAnimal(animal, c); err != nil {
+			return err
 		}
 
 		tc.Animal = animal
@@ -307,6 +309,10 @@ func (v TreatmentsResource) Edit(c buffalo.Context) error {
 
 	if err := tx.Eager().Find(treatment, c.Param("treatment_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+
+	if _, err := EnrichAnimal(treatment.Animal, c); err != nil {
+		return err
 	}
 
 	c.Set("treatment", treatment)

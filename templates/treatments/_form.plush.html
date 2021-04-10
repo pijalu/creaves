@@ -1,6 +1,36 @@
 <%= f.InputTag("AnimalID", {type:"hidden"})%>
-<label>Animal ID</label>
-<p><%= treatment.AnimalID %></p>
+<div class="">
+  <h4 class="d-inline-block">Animal <%= treatment.AnimalID %></h4>
+  <ul class="list-group mb-2 ">
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Species</label>
+      <%= if (treatment.Animal.Species) {%>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> (<%= treatment.Animal.Animaltype.Name %>)</p>
+      <% } else {%>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> <%= treatment.Animal.Animaltype.Name %></p>
+      <% }%>
+    </li>
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Weight in grams</label>
+      <% let w = treatment.Animal.LastWeight() %>
+      <%= if (w.Valid) { %>
+        <p class="d-inline-block"><%= w %></p>
+      <% } else {%>
+        <p class="d-inline-block">unknown</p>
+      <% }%>
+    </li>
+  </ul>
+</div>
+
+<script>
+  const animalTypeID = "<%= treatment.Animal.AnimaltypeID %>";
+  <%= if (w.Valid) { %>
+  const weight = <%= w %>;
+  <% } else {%>
+  const weight = undefined;
+  <% } %>
+</script>
+
 
 <label>Date</label>
 <div class="input-group md-12">
@@ -64,13 +94,21 @@
 <%= f.InputTag("Drug") %>
 <script>
     $('input[name="Drug"]').autoComplete({
-        minChars: 1,
+        minChars: 0,
         source: function(term, response){
-            $.getJSON('/suggestions/treatment_drug', { q: term }, function(data){ response(data); });
+            $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
         }
     });
 </script>
 <%= f.InputTag("Dosage") %>
+<script>
+    $('input[name="Dosage"]').autoComplete({
+        minChars: 0,
+        source: function(term, response){
+            $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });
+        }
+    });
+</script>
 <%= f.TextAreaTag("Remarks", {rows: 10}) %>
 
 
