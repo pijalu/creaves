@@ -15,7 +15,7 @@ func (as *ActionSuite) Test_Users_Create() {
 	as.Equal(0, count)
 
 	u := &models.User{
-		Email:                "mark@example.com",
+		Login:                "mark@example.com",
 		Password:             "password",
 		PasswordConfirmation: "password",
 	}

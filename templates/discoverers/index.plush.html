@@ -9,13 +9,13 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Firstname</th><th>Lastname</th><th>Address</th><th>City</th><th>Country</th><th>Email</th><th>Phone</th>
+    <th>Firstname</th><th>Lastname</th><th>Address</th><th>City</th><th>Country</th><th>Login</th><th>Phone</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (discoverer) in discoverers { %>
       <tr>
-        <td class="align-middle"><%= discoverer.Firstname %></td><td class="align-middle"><%= discoverer.Lastname %></td><td class="align-middle"><%= discoverer.Address %></td><td class="align-middle"><%= discoverer.City %></td><td class="align-middle"><%= discoverer.Country %></td><td class="align-middle"><%= discoverer.Email %></td><td class="align-middle"><%= discoverer.Phone %></td>
+        <td class="align-middle"><%= discoverer.Firstname %></td><td class="align-middle"><%= discoverer.Lastname %></td><td class="align-middle"><%= discoverer.Address %></td><td class="align-middle"><%= discoverer.City %></td><td class="align-middle"><%= discoverer.Country %></td><td class="align-middle"><%= discoverer.Login %></td><td class="align-middle"><%= discoverer.Phone %></td>
         <td>
           <div class="float-right">
             <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>

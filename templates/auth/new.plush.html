@@ -20,7 +20,7 @@
     <h1>Sign In</h1>
 
     <%= form_for(user, {action: authPath(), method: "POST"}) { %>
-      <%= f.InputTag("Email") %>
+      <%= f.InputTag("Login") %>
       <%= f.InputTag("Password", {type: "password"}) %>
       <button class="btn btn-success">Sign In!</button>
     <% } %>

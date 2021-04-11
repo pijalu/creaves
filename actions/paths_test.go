@@ -10,7 +10,7 @@ func (as *ActionSuite) Test_HomeHandler() {
 
 func (as *ActionSuite) Test_HomeHandler_LoggedIn() {
 	u := &models.User{
-		Email:                "mark@example.com",
+		Login:                "mark@example.com",
 		Password:             "password",
 		PasswordConfirmation: "password",
 	}

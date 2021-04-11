@@ -19,7 +19,7 @@
     <%= for (travel) in travels { %>
       <tr>
         <td class="align-middle"><%= travel.AnimalID %></td>
-        <td class="align-middle"><%= travel.User.Email %></td>
+        <td class="align-middle"><%= travel.User.Login %></td>
         <td class="align-middle">
           <%= travel.Traveltype.Name %>
           <%= if ( travel.TypeDetails.Value() != "" ) {%>

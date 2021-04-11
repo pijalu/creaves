@@ -18,7 +18,7 @@ type User struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
-	Email        string    `json:"email" db:"email"`
+	Login        string    `json:"login" db:"login"`
 	Admin        bool      `json:"-" db:"admin"`
 	Approved     bool      `json:"-" db:"approved"`
 	Shared       bool      `json:"-" db:"shared"`
@@ -41,7 +41,7 @@ func (u *User) SetPasswordHash() error {
 // Create wraps up the pattern of encrypting the password and
 // running validations. Useful when writing tests.
 func (u *User) Create(tx *pop.Connection) (*validate.Errors, error) {
-	u.Email = strings.ToLower(u.Email)
+	u.Login = strings.ToLower(u.Login)
 	err := u.SetPasswordHash()
 	if err != nil {
 		return validate.NewErrors(), errors.WithStack(err)
@@ -69,16 +69,16 @@ func (u Users) String() string {
 func (u *User) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	var err error
 	return validate.Validate(
-		&validators.StringIsPresent{Field: u.Email, Name: "Email"},
+		&validators.StringIsPresent{Field: u.Login, Name: "Login"},
 		&validators.StringIsPresent{Field: u.PasswordHash, Name: "PasswordHash"},
-		// check to see if the email address is already taken:
+		// check to see if the login address is already taken:
 		&validators.FuncValidator{
-			Field:   u.Email,
-			Name:    "Email",
+			Field:   u.Login,
+			Name:    "Login",
 			Message: "%s is already taken",
 			Fn: func() bool {
 				var b bool
-				q := tx.Where("email = ?", u.Email)
+				q := tx.Where("login = ?", u.Login)
 				if u.ID != uuid.Nil {
 					q = q.Where("id != ?", u.ID)
 				}

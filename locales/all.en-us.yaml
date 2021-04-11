@@ -9,7 +9,7 @@
   translation: "You must be authorized to see that page"
 
 - id: "users.invalid"
-  translation: "invalid email/password"
+  translation: "invalid login/password"
 
 - id: "users.logout"
   translation: "You have been logged out!"

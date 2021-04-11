@@ -34,17 +34,17 @@ func AuthCreate(c buffalo.Context) error {
 
 	tx := c.Value("tx").(*pop.Connection)
 
-	// find a user with the email
-	err := tx.Where("email = ?", strings.ToLower(strings.TrimSpace(u.Email))).First(u)
+	// find a user with the login
+	err := tx.Where("login = ?", strings.ToLower(strings.TrimSpace(u.Login))).First(u)
 
 	// helper function to handle bad attempts
 	bad := func(er ...string) error {
 		verrs := validate.NewErrors()
 		if er == nil {
-			verrs.Add("email", T.Translate(c, "users.invalid"))
+			verrs.Add("login", T.Translate(c, "users.invalid"))
 		} else {
 			for _, e := range er {
-				verrs.Add("email", e)
+				verrs.Add("login", e)
 			}
 		}
 		c.Set("errors", verrs)
@@ -55,7 +55,7 @@ func AuthCreate(c buffalo.Context) error {
 
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
-			// couldn't find an user with the supplied email address.
+			// couldn't find an user with the supplied login address.
 			return bad()
 		}
 		return errors.WithStack(err)

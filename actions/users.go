@@ -361,7 +361,7 @@ func (v UsersResource) Destroy(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	if user.Email == "admin" {
+	if user.Login == "admin" {
 		return c.Error(http.StatusBadRequest, fmt.Errorf("admin cannot be removed"))
 	}
 

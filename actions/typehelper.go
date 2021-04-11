@@ -164,7 +164,7 @@ func users(c buffalo.Context) (*models.Users, error) {
 	}
 
 	u := &models.Users{}
-	if err := tx.Order("email asc").All(u); err != nil {
+	if err := tx.Order("login asc").All(u); err != nil {
 		return nil, err
 	}
 	c.Logger().Debugf("Loaded users: %v", u)
@@ -187,7 +187,7 @@ func usersToSelectables(ts *models.Users) form.Selectables {
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Email,
+			label: ts.Login,
 			value: ts.ID,
 		})
 	}

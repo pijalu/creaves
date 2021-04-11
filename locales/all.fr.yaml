@@ -8,7 +8,7 @@
   translation: "Vous devez être autorisé pour voir cette page"
 
 - id: "users.invalid"
-  translation: "Email / mot de passe invalide"
+  translation: "Login / mot de passe invalide"
 
 - id: "users.logout"
   translation: "Vous avez été déconnecté!"

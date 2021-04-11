@@ -1,0 +1,3 @@
+drop_index("users", "users_email_idx")
+rename_column("users", "email", "login")
+add_index("users", "login", {"unique": true})
