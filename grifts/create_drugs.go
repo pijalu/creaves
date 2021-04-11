@@ -223,6 +223,7 @@ func createDrugs(c *Context) error {
 				if err != nil {
 					return err
 				}
+				dsf /= 1000.0
 				at, present := atm[ds.animalType]
 				if !present {
 					return fmt.Errorf("Could not find animal type %s", ds.animalType)
