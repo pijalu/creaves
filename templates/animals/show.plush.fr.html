@@ -114,8 +114,8 @@
           </li>
           <li class="list-group-item pb-1">
             <label class="small d-block">Contacts</label>
-            <%= if ( len(animal.Discovery.Discoverer.Login.Value()) > 0 ) {%>
-            <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Login %></p>
+            <%= if ( len(animal.Discovery.Discoverer.Email.Value()) > 0 ) {%>
+            <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Email %></p>
             <% } %>
             <br/>
             <%= if ( len(animal.Discovery.Discoverer.Phone.Value()) > 0 ) {%>

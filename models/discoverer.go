@@ -18,7 +18,7 @@ type Discoverer struct {
 	Address   nulls.String `json:"address" db:"address"`
 	City      nulls.String `json:"city" db:"city"`
 	Country   nulls.String `json:"country" db:"country"`
-	Login     nulls.String `json:"login" db:"login"`
+	Email     nulls.String `json:"email" db:"email"`
 	Phone     nulls.String `json:"phone" db:"phone"`
 	Note      nulls.String `json:"note" db:"note"`
 	CreatedAt time.Time    `json:"created_at" db:"created_at"`

@@ -15,7 +15,7 @@
   <tbody>
     <%= for (discoverer) in discoverers { %>
       <tr>
-        <td class="align-middle"><%= discoverer.Firstname %></td><td class="align-middle"><%= discoverer.Lastname %></td><td class="align-middle"><%= discoverer.Address %></td><td class="align-middle"><%= discoverer.City %></td><td class="align-middle"><%= discoverer.Country %></td><td class="align-middle"><%= discoverer.Login %></td><td class="align-middle"><%= discoverer.Phone %></td>
+        <td class="align-middle"><%= discoverer.Firstname %></td><td class="align-middle"><%= discoverer.Lastname %></td><td class="align-middle"><%= discoverer.Address %></td><td class="align-middle"><%= discoverer.City %></td><td class="align-middle"><%= discoverer.Country %></td><td class="align-middle"><%= Discoverer.Email %></td><td class="align-middle"><%= discoverer.Phone %></td>
         <td>
           <div class="float-right">
             <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
