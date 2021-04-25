@@ -75,10 +75,9 @@ func (a Animal) LastWeight() nulls.Int {
 	}
 	maxDate := a.Cares[0].Date
 	w := a.Cares[0].Weight
-
 	for i := 1; i < len(a.Cares); i++ {
 		c := a.Cares[i]
-		if !w.Valid || c.Weight.Valid && maxDate.Before(c.Date) {
+		if w.String == "" || len(c.Weight.String) > 0 && maxDate.Before(c.Date) {
 			maxDate = c.Date
 			w = c.Weight
 		}
