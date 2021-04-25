@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -77,7 +78,8 @@ func (a Animal) LastWeight() nulls.Int {
 	w := a.Cares[0].Weight
 	for i := 1; i < len(a.Cares); i++ {
 		c := a.Cares[i]
-		if w.String == "" || len(c.Weight.String) > 0 && maxDate.Before(c.Date) {
+		if len(strings.TrimSpace(w.String)) == 0 ||
+			len(strings.TrimSpace(c.Weight.String)) > 0 && maxDate.Before(c.Date) {
 			maxDate = c.Date
 			w = c.Weight
 		}
