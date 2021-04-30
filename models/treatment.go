@@ -149,6 +149,14 @@ func (t *Treatment) DateFormated() string {
 	return t.Date.Format(DateFormat)
 }
 
+// IsToday return true if the treatment is for today
+func (t *Treatment) IsToday() bool {
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	checkDt := time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, now.Location())
+	return checkDt.Equal(nowDt)
+}
+
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (t *Treatment) Validate(tx *pop.Connection) (*validate.Errors, error) {

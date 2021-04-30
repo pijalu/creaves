@@ -50,7 +50,11 @@
         let noon = treatment.ScheduleStatusNoon() 
         let evening = treatment.ScheduleStatusEvening()
       %>
-      <tr>
+      <tr class="
+      <%= if (treatment.IsToday()) {%>
+        table-warning
+      <% }%>
+      ">
         <td class="align-middle"><%= treatment.DateFormated() %></td>
         <td>
         <p class="d-inline-block">
