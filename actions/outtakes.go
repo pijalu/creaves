@@ -193,7 +193,11 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		if err := tx.Update(animal); err != nil {
 			return err
 		}
-		c.Logger().Debugf("Updated animal: %v", animal)
+		if err := tx.RawQuery("DELETE FROM treatments WHERE animal_id = ? and date >= ?",
+			animalID,
+			outtake.Date).Exec(); err != nil {
+			return err
+		}
 	}
 
 	if verrs.HasAny() {
