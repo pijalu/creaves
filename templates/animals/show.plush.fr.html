@@ -289,15 +289,13 @@
     </g>
     <%}%>
 
-    <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Ajouter un nouveau traitement
         <% } %>
       </div>
     </div>
-    <% } %>
     </br>
     <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
     <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
@@ -333,55 +331,62 @@
                         let evening = t.ScheduleStatusEvening()
                       %>
                       <p class="d-inline-block">
-                        <%= if (!morning.Valid) { %>                          
-                          <i class="fas fa-minus" title="Pas nécessaire le matin"></i>
+                        <%= if (!morning.Valid) { %>   
+                          <button type="button" class="btn btn-light disabled" title="Pas nécessaire le matin">                       
+                            <i class="fas fa-minus" ></i>
+                          </button>
                         <% } else if (morning.Bool) {%>
-                          <span style="color:green;" title="Fait le matin">
+                          <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
                             <%= contentOf("morningSVG") %>
-                          </span>
+                          </button>
                         <% } else { %>
+                          
                           <%= if (dateKey.Past) { %>
-                            <span style="color:red;" title="Faire le matin">
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
                           <% } else { %>
-                          <span style="color:orange;" title="Faire le matin">
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
                           <% } %>
                             <%= contentOf("morningSVG") %>
-                          </span>
+                          </button>
                         <% }%>
                         
                         &nbsp;
 
                         <%= if (!noon.Valid) { %>
-                          <i class="fas fa-minus" title="Non requis à midi"></i>
+                          <button type="button" class="btn btn-light disabled" title="Non requis à midi">     
+                            <i class="fas fa-minus"></i>
+                          </button>
                         <% } else if (noon.Bool) {%>
-                          <span style="color:green;" title="Fait à midi">
+                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
                             <%= contentOf("noonSVG") %>
-                          </span>
+                          </button>
                         <% } else { %>
                           <%= if (dateKey.Past) { %>
-                            <span style="color:red;" title="Faire à midi">
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
                           <% } else { %>
-                          <span style="color:orange;" title="Faire à midi">
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
                           <% } %>
                             <%= contentOf("noonSVG") %>
-                          </span>
+                          </button>
                         <% }%>
 
                         &nbsp;
                         <%= if (!evening.Valid) { %>
-                          <i class="fas fa-minus" title="Pas nécessaire le soir"></i>
+                          <button type="button" class="btn btn-light disabled">
+                            <i class="fas fa-minus" ></i>
+                          </button>
                         <% } else if (evening.Bool) {%>
-                          <span style="color:green;" title="Fait dans la soirée">
+                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
                             <%= contentOf("eveningSVG") %>
-                          </span>
+                          </button>
                         <% } else { %>
                           <%= if (dateKey.Past) { %>
-                            <span style="color:red;" title="Faire le soir">
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
                           <% } else { %>
-                          <span style="color:orange;" title="Faire le soir">
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
                           <% } %>
                             <%= contentOf("eveningSVG") %>
-                          </span>
+                          </button>
                         <% }%>
                       </p>
                     </div>
@@ -397,6 +402,58 @@
       <%}%>
     </div>
   </div>
+  <script>
+    const xhrUrl = "<%= treatmentschedulePath() %>";
+    const re = /shed-btn_(.*)_(.*)/;
+    $(".btn-schedule").each(function(){
+      var tk=function(key) {
+        switch(key) {
+         case "morning": return 1; 
+         case "noon": return 2;
+         case "evening": return 4;
+        }
+      };
+
+      const matches=$(this).attr("id").match(re);
+      const key=tk(matches[1]);
+      const rid=matches[2];
+      const payload=JSON.stringify({"treatment_id":rid, "key": key});
+      const elm=$(this);
+
+      elm.on("click", function(){
+        elm.prop('disabled', true);
+
+        elm.addClass("btn-light")
+        elm.removeClass("btn-success btn-warning btn-danger")
+        
+        $.ajax({
+          type: 'PUT',
+          url: xhrUrl,
+          contentType: 'application/json',
+          data: payload
+        }).done(function(data){
+          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
+          if ((data.key & key) === key) {
+            elm.addClass("btn-success");
+          } else {
+            if (elm.attr("past")==="true") {
+              elm.addClass("btn-danger");
+            } else {
+              elm.addClass("btn-warning");
+            }
+          }
+        }).fail(function(data){
+          alert("Failed to update status");
+          console.log("Request failure:", data)
+        }).always(function(){
+          elm.removeClass("btn-light");
+          elm.prop('disabled', false);
+        });
+        
+        console.log("Clicked on button: Change key "+key+" for "+rid);  
+      });
+    });
+  </script>
 
   <%= if (animal.OuttakeID.Value() != nil) {%>
   <div class="tab-pane fade" id="nav-outtake" role="tabpanel" aria-labelledby="nav-outtake-tab">
