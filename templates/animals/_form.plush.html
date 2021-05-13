@@ -314,8 +314,8 @@
       <% let ct_id=1 %>
       <%= for (dateKey) in orderedTMKey {%>
       <% let treatments = treatmentsMap[dateKey] %>
-      <div class="card">
-        <div class="card-header" id="heading<%= ct_id %>">
+      <div class="card <%= if (dateKey.Future) { %>greyout<% }%>">
+        <div class="card-header <%= if (dateKey.Current) {%>alert-info<%}%>" id="heading<%= ct_id %>">
           <h5 class="mb-0">
             <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
             <%= dateKey.DateFmt %>

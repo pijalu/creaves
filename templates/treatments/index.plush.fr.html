@@ -53,7 +53,9 @@
       <tr class="
       <%= if (treatment.IsToday()) {%>
         table-warning
-      <% }%>
+      <% } else if (treatment.IsFuture()) { %>
+        greyout
+      <% } %>
       ">
         <td class="align-middle"><%= treatment.DateFormated() %></td>
         <td>

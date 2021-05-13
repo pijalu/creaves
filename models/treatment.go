@@ -149,12 +149,29 @@ func (t *Treatment) DateFormated() string {
 	return t.Date.Format(DateFormat)
 }
 
-// IsToday return true if the treatment is for today
-func (t *Treatment) IsToday() bool {
+func nowDt() time.Time {
 	now := time.Now()
-	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	checkDt := time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, now.Location())
-	return checkDt.Equal(nowDt)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+}
+
+// dt returns Date of treatment
+func (t *Treatment) dt() time.Time {
+	return time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, time.Local)
+}
+
+// IsPast returns true if the treatment is in the past
+func (t *Treatment) IsPast() bool {
+	return t.dt().Before(nowDt())
+}
+
+// IsToday returns true if the treatment is for today
+func (t *Treatment) IsToday() bool {
+	return t.dt().Equal(nowDt())
+}
+
+// IsFuture returns true if the treatment is in the future
+func (t *Treatment) IsFuture() bool {
+	return t.dt().After(nowDt())
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
