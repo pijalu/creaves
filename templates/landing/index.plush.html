@@ -38,6 +38,32 @@
     let keys = am.OrderedKeys()
 %>
 
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+<% } %>
+
+<% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+ <% } %>
+
+ <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+ <%}%>
+
 <ul class="nav nav-tabs" id="landing-abt" role="tablist">
   <%= for (i, at) in keys {%>
   <li class="nav-item">
@@ -57,6 +83,7 @@
         <th>Species</th>
         <th>Age</th>
         <th>Ring</th>
+        <th>Treatments</th>
         <th>&nbsp;</th>
       </thead>
       <tbody>
@@ -78,6 +105,55 @@
             </td>
             <td class="align-middle"><%= animal.Animalage.Name %></td>
             <td class="align-middle"><%= animal.Ring %></td>
+            <td class="align-middle">
+              <% 
+                  let stat = animal.Treatments.TodayStatitics()
+                  let morning = stat.Morning
+                  let noon = stat.Noon 
+                  let evening = stat.Evening
+              %>
+              <p style="white-space: nowrap;">
+                <%= if (!morning.Valid) { %>                          
+                  <i class="fas fa-minus" title="Not required on the morning"></i>
+                <% } else if (morning.Bool) {%>
+                  <span style="color:green;" title="Done on the morning">
+                    <%= contentOf("morningSVG") %>
+                  </span>
+                <% } else { %>
+                  <span style="color:orange;" title="To do on the morning">
+                    <%= contentOf("morningSVG") %>
+                  </span>
+                <% }%>
+                
+                &nbsp;
+
+                <%= if (!noon.Valid) { %>
+                  <i class="fas fa-minus" title="Not required at noon"></i>
+                <% } else if (noon.Bool) {%>
+                  <span style="color:green;" title="Done at noon">
+                    <%= contentOf("noonSVG") %>
+                  </span>
+                <% } else { %>
+                  <span style="color:orange;" title="To do at noon">
+                    <%= contentOf("noonSVG") %>
+                  </span>
+                <% }%>
+
+                &nbsp;
+
+                <%= if (!evening.Valid) { %>
+                  <i class="fas fa-minus" title="Not required on the evening"></i>
+                <% } else if (evening.Bool) {%>
+                  <span style="color:green;" title="Done in the evening">
+                    <%= contentOf("eveningSVG") %>
+                  </span>
+                <% } else { %>
+                  <span style="color:orange;" title="To do in the evening">
+                    <%= contentOf("eveningSVG") %>
+                  </span>
+                <% }%>
+              </p>
+            </td>
             <td>
               <div class="float-right">
                 <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>

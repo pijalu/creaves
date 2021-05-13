@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
@@ -71,6 +72,18 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
+
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tmrDt := nowDt.AddDate(0, 0, 1)
+
+	// Preload all today treatments
+	for i := 0; i < len(*a); i++ {
+		if err := tx.Eager().Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where("animal_id = ?", (*a)[i].ID).Order("date desc").All(&(*a)[i].Treatments); err != nil {
+			return nil, c.Error(http.StatusNotFound, err)
+		}
+	}
+
 	its := &models.Intakes{}
 	if err := tx.Where("ID in (?)", intakeIDS).All(its); err != nil {
 		return nil, err

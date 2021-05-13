@@ -36,6 +36,16 @@ type TreatmentKey struct {
 	Future  bool
 }
 
+// TreatmentStatusStatistics return statistic on the treatments
+type TreatmentStatusStatistics struct {
+	//Morning null if treatment not required, true or false if done
+	Morning nulls.Bool
+	//Noon null if treatment not required, true or false if done
+	Noon nulls.Bool
+	//Evening null if treatment not required, true or false if done
+	Evening nulls.Bool
+}
+
 // TreatmentTemplate is the object used to create a serie of treaments
 type TreatmentTemplate struct {
 	DateFrom time.Time `json:"dateFrom"`
@@ -117,6 +127,28 @@ func (t TreatmentsMap) OrderedKeys() []TreatmentKey {
 		return keys[i].Date.Before(keys[j].Date)
 	})
 	return keys
+}
+
+func and(b *nulls.Bool, ba nulls.Bool) {
+	if b.Valid {
+		if ba.Valid {
+			*b = nulls.NewBool(b.Bool && ba.Bool)
+		}
+	} else {
+		*b = ba
+	}
+}
+
+func (ts Treatments) TodayStatitics() TreatmentStatusStatistics {
+	stat := TreatmentStatusStatistics{}
+
+	for _, t := range ts {
+		and(&stat.Morning, t.ScheduleStatusMorning())
+		and(&stat.Noon, t.ScheduleStatusNoon())
+		and(&stat.Evening, t.ScheduleStatusEvening())
+	}
+
+	return stat
 }
 
 // TreatmentsMap returns treatments organized per date
