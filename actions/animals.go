@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -60,11 +61,14 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 
 	// Preload all intakes
 	intakeIDS := []uuid.UUID{}
+
+	animalsID := []string{}
 	// 1st pass - populate IDS / base type
 	for i := 0; i < len(*a); i++ {
 		(*a)[i].Animalage = agsMap[(*a)[i].AnimalageID]
 		(*a)[i].Animaltype = atsMap[(*a)[i].AnimaltypeID]
 		intakeIDS = append(intakeIDS, (*a)[i].IntakeID)
+		animalsID = append(animalsID, fmt.Sprintf("%d", (*a)[i].ID))
 		//c.Logger().Debugf("Animal %d: intake %v", (*a)[i].ID, (*a)[i].IntakeID)
 	}
 
@@ -78,10 +82,19 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	tmrDt := nowDt.AddDate(0, 0, 1)
 
 	// Preload all today treatments
+	treaments := models.Treatments{}
+	tmap := map[int]models.Treatments{}
+	if err := tx.Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where(
+		fmt.Sprintf("animal_id IN (%s)", strings.Join(animalsID, ","))).Order("animal_id desc").All(&treaments); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	// remap by animal id
+	for _, t := range treaments {
+		tmap[t.AnimalID] = append(tmap[t.AnimalID], t)
+	}
+	// populate animals
 	for i := 0; i < len(*a); i++ {
-		if err := tx.Eager().Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where("animal_id = ?", (*a)[i].ID).Order("date desc").All(&(*a)[i].Treatments); err != nil {
-			return nil, c.Error(http.StatusNotFound, err)
-		}
+		(*a)[i].Treatments = tmap[(*a)[i].ID]
 	}
 
 	its := &models.Intakes{}
