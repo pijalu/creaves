@@ -49,23 +49,63 @@
     });
 </script>
 
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
 
 <!-- Bitmap: <%= treatment.Timebitmap %> -->
 <div class="form-group">
     <label><b>Required Schedule:</b></label>
     <br/>
-    <label>
-        <input class="" id="ScheduleRequiredMorning" name="ScheduleRequiredMorning" type="checkbox" value="true" 
-        <%= if (treatment.ScheduleRequiredMorning()) { %>checked<% } %> /> Morning
-    </label>
-    <label>
-        <input class="" id="ScheduleRequiredNoon" name="ScheduleRequiredNoon" type="checkbox" value="true" 
-        <%= if (treatment.ScheduleRequiredNoon()) { %>checked<% } %> />Noon
-    </label>
-    <label>
-        <input class="" id="ScheduleRequiredEvening" name="ScheduleRequiredEvening" type="checkbox" value="true"
-        <%= if (treatment.ScheduleRequiredEvening()) { %>checked<% } %> />Evening   
-    </label>
+    <div class ="container-fluid">
+    <div class ="row">
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredMorning" name="ScheduleRequiredMorning" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredMorning()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredMorning">
+            <%= contentOf("morningSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredNoon" name="ScheduleRequiredNoon" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredNoon()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredNoon">
+            <%= contentOf("noonSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredEvening" name="ScheduleRequiredEvening" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredEvening()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredEvening">
+            <%= contentOf("eveningSVG") %>
+            </label>
+        </div>
+    </div>
+  </diV>
 </div>
 
 <!-- timedoneBitmap: <%= treatment.Timedonebitmap %> -->
@@ -77,18 +117,33 @@
 <div class="form-group">
     <label><b>Todo/done Schedule :</b></label>
     <br/>
-    <label>
-        <input class="" id="ScheduleStatusMorning" name="ScheduleStatusMorning" type="checkbox" value="true" 
-        <%= if (morning.Bool) { %>checked<% } %> /> Morning
-    </label>
-    <label>
-        <input class="" id="ScheduleStatusNoon" name="ScheduleStatusNoon" type="checkbox" value="true" 
-        <%= if (noon.Bool) { %>checked<% } %> />Noon
-    </label>
-    <label>
-        <input class="" id="ScheduleStatusEvening" name="ScheduleStatusEvening" type="checkbox" value="true"
-        <%= if (evening.Bool) { %>checked<% } %> />Evening   
-    </label>
+    <div class ="container-fluid">
+     <div class ="row">
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusMorning" name="ScheduleStatusMorning" type="checkbox" value="true" 
+            <%= if (morning.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusMorning">
+            <%= contentOf("morningSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusNoon" name="ScheduleStatusNoon" type="checkbox" value="true" 
+            <%= if (noon.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusNoon">
+            <%= contentOf("noonSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusEvening" name="ScheduleStatusEvening" type="checkbox" value="true" 
+            <%= if (evening.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusEvening">
+            <%= contentOf("eveningSVG") %>
+            </label>
+        </div>
+    </div>
+  </div>
 </div>
 
 <%= f.InputTag("Drug") %>
