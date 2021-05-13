@@ -42,6 +42,18 @@ GROUP BY at.name
 ORDER by at.name
 `
 
+//SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
+const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
+SELECT a.* 
+FROM animals a 
+WHERE EXISTS(
+	SELECT * 
+	FROM treatments t 
+	WHERE t.animal_id = a.id 
+	  AND t.date >= ? 
+	  AND t.date < ?) 
+`
+
 func listOpenCares(c buffalo.Context) (models.Cares, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -59,6 +71,25 @@ func listOpenCares(c buffalo.Context) (models.Cares, error) {
 	}
 
 	return cares, nil
+}
+
+func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tmrDt := nowDt.AddDate(0, 0, 1)
+
+	animals := &models.Animals{}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	// Retrieve all animals with today treatments from the DB
+	if err := tx.RawQuery(SQL_ANIMAL_WITH_TODAY_TREATMENTS, nowDt, tmrDt).All(animals); err != nil {
+		return nil, err
+	}
+	return EnrichAnimals(animals, c)
 }
 
 type listAnimalCountPerTypeReply struct {
@@ -105,6 +136,12 @@ func DashboardIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("openCares", oc)
+
+	animals, err := listAnimalWithTodayTreatments(c)
+	if err != nil {
+		return err
+	}
+	c.Set("animalsToTreat", animals)
 
 	ct, err := listAnimalCountPerType(c)
 	if err != nil {

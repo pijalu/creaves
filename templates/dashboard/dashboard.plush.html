@@ -20,7 +20,9 @@
       <% }%>
       ">
         <td class="align-middle"><%= care.DateFormated() %></td>
-        <td class="align-middle"><%= care.AnimalID %></td>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/edit/#nav-care"><%= care.AnimalID %></a>
+        </td>
         <td class="align-middle"><%= care.Weight %></td>
         <td class="align-middle"><%= care.Note %></td>
         <td class="align-middle">
@@ -39,6 +41,195 @@
   </tbody>
 </table>
 <%} else {%>
+<p>None</p>
+<%}%>
+<br/>
+
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+<% } %>
+
+<% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+ <% } %>
+
+ <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+ <%}%>
+
+<h3 class="d-inline-block">Animals with treatment today</h3>
+<%= if (len(animalsToTreat)>0) {%>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Number</th>
+    <th>Cage</th>
+    <th>Species</th>
+    <th>Treatments</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animalsToTreat { %>
+      <%= if (animal.OuttakeID.Value() != nil) { %>
+      <tr class="outtaken">
+      <% } else { %>
+      <tr>
+      <% } %>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/edit/#nav-treatment"><%= animal.ID %></a>
+        </td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle">
+        <ul class="list-group list-group-flush">
+              <%= for (t) in animal.Treatments {%>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= t.Drug %> (<%= t.Dosage %>)
+                        <%= if (t.Remarks.Value() != "") {%>
+                        <p><em><%= t.Remarks %></em></p>
+                      <%}%>
+                    </div>
+                    <div class="col-sm">
+                      <% 
+                        let morning = t.ScheduleStatusMorning() 
+                        let noon = t.ScheduleStatusNoon() 
+                        let evening = t.ScheduleStatusEvening()
+                      %>
+                      <p class="d-inline-block">
+                        <%= if (!morning.Valid) { %>   
+                          <button type="button" class="btn btn-light disabled" title="Not required on the morning">                       
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (morning.Bool) {%>
+                          <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% } else { %>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% }%>
+                        
+                        &nbsp;
+
+                        <%= if (!noon.Valid) { %>
+                          <button type="button" class="btn btn-light disabled" title="Not required at noon">     
+                            <i class="fas fa-minus"></i>
+                          </button>
+                        <% } else if (noon.Bool) {%>
+                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% } else { %>
+                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% }%>
+
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <button type="button" class="btn btn-light disabled">
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (evening.Bool) {%>
+                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% } else { %>
+                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% }%>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <%}%>
+            </ul>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<script>
+    const xhrUrl = "<%= treatmentschedulePath() %>";
+    const re = /shed-btn_(.*)_(.*)/;
+    $(".btn-schedule").each(function(){
+      var tk=function(key) {
+        switch(key) {
+         case "morning": return 1; 
+         case "noon": return 2;
+         case "evening": return 4;
+        }
+      };
+
+      const matches=$(this).attr("id").match(re);
+      const key=tk(matches[1]);
+      const rid=matches[2];
+      const payload=JSON.stringify({"treatment_id":rid, "key": key});
+      const elm=$(this);
+
+      elm.on("click", function(){
+        elm.prop('disabled', true);
+
+        elm.addClass("btn-light")
+        elm.removeClass("btn-success btn-warning btn-danger")
+        
+        $.ajax({
+          type: 'PUT',
+          url: xhrUrl,
+          contentType: 'application/json',
+          data: payload
+        }).done(function(data){
+          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
+          if ((data.key & key) === key) {
+            elm.addClass("btn-success");
+          } else {
+            if (elm.attr("past")==="true") {
+              elm.addClass("btn-danger");
+            } else {
+              elm.addClass("btn-warning");
+            }
+          }
+        }).fail(function(data){
+          alert("Failed to update status");
+          console.log("Request failure:", data)
+        }).always(function(){
+          elm.removeClass("btn-light");
+          elm.prop('disabled', false);
+        });
+        
+        console.log("Clicked on button: Change key "+key+" for "+rid);  
+      });
+    });
+  </script>
+  <%} else {%>
 <p>None</p>
 <%}%>
 <br/>
