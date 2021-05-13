@@ -59,7 +59,7 @@
       ">
         <td class="align-middle"><%= treatment.DateFormated() %></td>
         <td>
-        <p class="d-inline-block">
+        <p class="d-inline-block" style="white-space: nowrap;">
       <%= if (!morning.Valid) { %>                          
         <i class="fas fa-minus" title="Pas nécessaire le matin"></i>
       <% } else if (morning.Bool) {%>
