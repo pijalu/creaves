@@ -45,7 +45,7 @@ func (v OuttakesResource) List(c buffalo.Context) error {
 	q := tx.Eager().PaginateFromParams(c.Params())
 
 	// Retrieve all Outtakes from the DB
-	if err := q.All(outtakes); err != nil {
+	if err := q.Order("date desc").All(outtakes); err != nil {
 		return err
 	}
 
