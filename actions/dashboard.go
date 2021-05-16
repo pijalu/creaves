@@ -42,14 +42,15 @@ GROUP BY at.name
 ORDER by at.name
 `
 
-//SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
+//SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal with care per type
 const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
 SELECT a.* 
 FROM animals a 
 WHERE EXISTS(
 	SELECT * 
 	FROM treatments t 
-	WHERE t.animal_id = a.id 
+	WHERE t.animal_id = a.id
+	  AND t.timebitmap <> t.timedonebitmap
 	  AND t.date >= ? 
 	  AND t.date < ?) 
 `
