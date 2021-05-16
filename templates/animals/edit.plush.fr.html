@@ -1,5 +1,6 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Édition de l'animal <%= animal.ID %></h3>
+  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= animal.Animaltype.Name %>) - <%= animal.Animalage.Name %></h5>
 </div>
 
 <%= formFor(animal, {action: animalPath({ animal_id: animal.ID}), method: "PUT"}) { %>

@@ -3,6 +3,8 @@
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Sorti)</em></h4>
   <% } %>
+  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= animal.Animaltype.Name %>) - <%= animal.Animalage.Name %></h5>
+
 
   <div class="float-right">
     <%= linkTo(animalsPath(), {class: "btn btn-info"}) { %>
