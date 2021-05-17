@@ -65,6 +65,35 @@
     data = { back: params["back"] }
   }
 %>
+
+
+
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
+
  <%= formFor(treatmentTemplate, {action: treatmentsPath(data), method: "POST"}) { %>
   <input type="hidden" name="AnimalID" value="<%= treatmentTemplate.AnimalID %>" />
 
@@ -113,9 +142,30 @@
           <div class="form-group col-md-12">
           <label>Horaire</label>
           <div class="border p-3">
-            <%= f.CheckboxTag("Morning", {label:"Matin"}) %>
-            <%= f.CheckboxTag("Noon", {label:"Midi"}) %>
-            <%= f.CheckboxTag("Evening", {label:"Soir"}) %>
+          <div class ="container-fluid">
+              <div class ="row">
+                  <div class="ck-button">
+                      <input class="" id="Morning" name="Morning" type="checkbox" value="true" hidden/> 
+                      <label for="Morning">
+                      <%= contentOf("morningSVG") %>
+                      </label>
+                  </div>
+                  <div>&nbsp;</div>
+                  <div class="ck-button">
+                      <input class="" id="Noon" name="Noon" type="checkbox" value="true" hidden/> 
+                      <label for="ScheduleStatusNoon">
+                      <%= contentOf("noonSVG") %>
+                      </label>
+                  </div>
+                  <div>&nbsp;</div>
+                  <div class="ck-button">
+                      <input class="" id="Evening" name="Evening" type="checkbox" value="true" hidden/> 
+                      <label for="Evening">
+                      <%= contentOf("eveningSVG") %>
+                      </label>
+                  </div>
+              </div>
+            </div>
           </div>
         </div>
 
