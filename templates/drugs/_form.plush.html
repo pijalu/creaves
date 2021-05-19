@@ -59,6 +59,11 @@
 </div>
 <input id="backUrl" name="BackUrl" type="hidden" value="<%= drugPath({drug_id: drug.ID }) %>"/>
 <button class="btn btn-success" role="submit">Save</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
 &nbsp;
 
 <script>

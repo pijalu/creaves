@@ -1,6 +1,11 @@
 
 <div class="d-flex justify-content-end">
 <button class="btn btn-success" role="submit">Sauvegarder</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
 <%= linkTo(animalPath({animal_id: animal.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
 </div>
 
