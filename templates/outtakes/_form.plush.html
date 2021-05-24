@@ -13,10 +13,19 @@
     $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
 </script>
 
-<%= f.SelectTag("TypeID", {
-    label: "Type",
-    options: selectOuttaketype, 
-    required:"required"}) %>
+<label>Type</label>
+<div class="input-group md-12">
+<%= for (ot) in selectOuttaketype {%>
+    <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="radio" class="form-check-input" name="TypeID" value="<%= ot.SelectValue() %>" required>
+            <%= ot.SelectLabel() %>
+        </label>
+    </div>
+<%}%>
+</div>
+
+
 <%= f.InputTag("Location") %>
 <script>
 $('input[name="Location"]').autoComplete({
