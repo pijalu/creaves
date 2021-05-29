@@ -176,3 +176,20 @@
 
 </div>
 </div>
+
+<script>
+$(".nav-tabs").find("a").first().click();
+
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+  });
+});
+</script>
