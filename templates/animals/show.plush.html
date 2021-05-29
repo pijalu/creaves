@@ -6,7 +6,7 @@
   <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= animal.Animaltype.Name %>) - <%= animal.Animalage.Name %></h5>
 
   <div class="float-right">
-    <%= linkTo("/", {class: "btn btn-info"}) { %>
+    <%= linkTo("/#"+ animal.Animaltype.Name, {class: "btn btn-info"}) { %>
       Back to animals in care
     <% } %>
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
@@ -131,7 +131,7 @@
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
           <label class="small d-block">Date</label>
-          <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
+          <p class="d-inline-block"><%= animal.Intake.DateFormated() %></p>
       </li>
 
       <li class="list-group-item pb-1">
