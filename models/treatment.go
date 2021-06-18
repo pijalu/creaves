@@ -48,8 +48,7 @@ type TreatmentStatusStatistics struct {
 
 // TreatmentTemplate is the object used to create a serie of treaments
 type TreatmentTemplate struct {
-	DateFrom time.Time `json:"dateFrom"`
-	DateTo   time.Time `json:"dateTo"`
+	Dates string `json:"dates"`
 
 	AnimalID int          `json:"animal_id"`
 	Animal   *Animal      `json:"-" belongs_to:"animal"`
@@ -81,16 +80,6 @@ func TreatmentBoolToBitmap(morning bool, noon bool, evening bool) int {
 		bitmap += Treatement_EVENING
 	}
 	return bitmap
-}
-
-// DateFromFormated return date formated
-func (t *TreatmentTemplate) DateFromFormated() string {
-	return t.DateFrom.Format(DateFormat)
-}
-
-// DateToFormated return date formated
-func (t *TreatmentTemplate) DateToFormated() string {
-	return t.DateTo.Format(DateFormat)
 }
 
 // String is not required by pop and may be deleted

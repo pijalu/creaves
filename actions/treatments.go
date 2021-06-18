@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -145,11 +146,10 @@ func (v TreatmentsResource) Show(c buffalo.Context) error {
 // This function is mapped to the path GET /treatments/new
 func (v TreatmentsResource) New(c buffalo.Context) error {
 	tc := &models.TreatmentTemplate{
-		DateFrom: time.Now(),
-		DateTo:   time.Now(),
-		Morning:  true,
-		Noon:     true,
-		Evening:  true,
+		Dates:   time.Now().Format(models.DateFormat),
+		Morning: true,
+		Noon:    true,
+		Evening: true,
 	}
 	c.Set("treatmentTemplate", tc)
 
@@ -217,23 +217,20 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	}
 	c.Logger().Debugf("Binded treatmentTemplate with %v", treatmentTemplate)
 
-	// Bad dates
-	if treatmentTemplate.DateFrom.After(treatmentTemplate.DateTo) {
-		c.Flash().Add("danger", T.Translate(c, "treatment.animal.invalid.date"))
-		c.Set("treatmentTemplate", treatmentTemplate)
-		return c.Render(http.StatusUnprocessableEntity, r.HTML("/treatments/new.plush.html"))
-	}
-
 	bitmap := models.TreatmentBoolToBitmap(
 		treatmentTemplate.Morning,
 		treatmentTemplate.Noon,
 		treatmentTemplate.Evening,
 	)
 
-	startDate := treatmentTemplate.DateFrom
-	for !startDate.After(treatmentTemplate.DateTo) {
+	for _, d := range strings.Split(treatmentTemplate.Dates, ",") {
+		date, err := time.Parse(models.DateFormat, strings.TrimSpace(d))
+		if err != nil {
+			return err
+		}
+
 		t := &models.Treatment{
-			Date:           startDate,
+			Date:           date,
 			AnimalID:       treatmentTemplate.AnimalID,
 			Drug:           treatmentTemplate.Drug,
 			Dosage:         treatmentTemplate.Dosage,
@@ -242,7 +239,6 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 			Timedonebitmap: 0,
 		}
 		treatments = append(treatments, t)
-		startDate = startDate.AddDate(0, 0, 1)
 	}
 
 	c.Logger().Debugf("Treatments: %v", treatments)
