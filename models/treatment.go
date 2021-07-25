@@ -113,7 +113,7 @@ func (t TreatmentsMap) OrderedKeys() []TreatmentKey {
 		keys = append(keys, k)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].Date.Before(keys[j].Date)
+		return keys[i].Date.After(keys[j].Date)
 	})
 	return keys
 }
