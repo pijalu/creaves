@@ -1,4 +1,4 @@
-require("expose-loader?$!expose-loader?jQuery!jquery");
+require("expose-loader?exposes=$,jQuery!jquery");
 require("./wizard.js");
 require("./submitfix.js")
 require("./jquery.auto-complete.js");
