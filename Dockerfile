@@ -5,10 +5,6 @@ FROM gobuffalo/buffalo:v0.17.7 as builder
 ENV GO111MODULE on
 ENV GOPROXY http://proxy.golang.org
 
-# Upgrade buffalo with sqlite3 support
-RUN go get -u -v -tags sqlite github.com/gobuffalo/buffalo/buffalo
-RUN go get -u -v -tags sqlite github.com/gobuffalo/buffalo-pop/v2
-
 RUN mkdir -p /src/creaves
 WORKDIR /src/creaves
 
