@@ -43,7 +43,7 @@ func App() *buffalo.App {
 	if app == nil {
 		app = buffalo.New(buffalo.Options{
 			Env:         ENV,
-			SessionName: "_creaves_session",
+			SessionName: "_vica_session",
 		})
 
 		// Register our datetime format
