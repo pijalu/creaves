@@ -1,5 +1,5 @@
 - id: welcome_greeting
-  translation: "Bienvenue au Creaves"
+  translation: "Bienvenue au centre"
   
 - id: "users.language-changed"
   translation: "Langue changée en {{.Lang}}"

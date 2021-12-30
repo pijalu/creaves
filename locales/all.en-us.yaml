@@ -1,6 +1,6 @@
 # For more information on using i18n see: https://github.com/nicksnyder/go-i18n
 - id: welcome_greeting
-  translation: "Welcome to Creaves"
+  translation: "Welcome to the center"
   
 - id: "users.language-changed"
   translation: "language changed to {{.Lang}}"
