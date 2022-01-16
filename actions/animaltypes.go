@@ -209,6 +209,10 @@ func (v AnimaltypesResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Reset statuses
+	animaltype.Default = false
+	animaltype.HasRing = false
+
 	// Bind Animaltype to the html form elements
 	if err := c.Bind(animaltype); err != nil {
 		return err

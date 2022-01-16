@@ -290,6 +290,11 @@ func (v UsersResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Force reset of DB
+	user.Admin = false
+	user.Approved = false
+	user.Shared = false
+
 	// Bind User to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
