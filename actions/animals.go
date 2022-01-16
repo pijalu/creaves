@@ -277,12 +277,26 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 
 	animals := models.Animals{}
 
+	type registerYearNumber struct {
+		Year       int `db:"Year"`
+		YearNumber int `db:"YearNumber"`
+	}
+
+	ryn := registerYearNumber{}
+	if err := tx.Eager().RawQuery("SELECT MAX(Year) as 'Year', MAX(yearNumber)+1 as 'YearNumber' from animals where year = ?", time.Now().Year()).First(&ryn); err != nil {
+		return err
+	}
+
 	for i := 0; i < ac.AnimalCount; i++ {
 		animal := &models.Animal{}
 		// Bind animal to the html form elements
 		if err := c.Bind(animal); err != nil {
 			return err
 		}
+		// Set year+Number
+		animal.Year = ryn.Year
+		animal.YearNumber = ryn.YearNumber
+		ryn.YearNumber++
 
 		// Add remark
 		if ac.AnimalCount > 1 {
@@ -301,6 +315,7 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		}
 		if !verrs.HasAny() {
 			c.Logger().Debugf("Animal: %v", animal)
+
 			verrs, err = tx.Eager().ValidateAndCreate(animal)
 			if err != nil {
 				return err

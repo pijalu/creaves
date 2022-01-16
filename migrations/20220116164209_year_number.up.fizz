@@ -1,0 +1,6 @@
+add_column("animals", "year", "integer", {null: true})
+add_column("animals", "yearNumber", "integer", {null: true})
+
+sql("update animals set year = YEAR(created_at);")
+sql("SELECT @i:=0; UPDATE animals SET yearNumber = @i:=@i+1 where year=2021 order by created_at asc;"); 
+sql("SELECT @i:=0; UPDATE animals SET yearNumber = @i:=@i+1 where year=2022 order by created_at asc;"); 

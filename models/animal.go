@@ -16,6 +16,8 @@ import (
 // Animal is used by pop to map your animals database table to your go code.
 type Animal struct {
 	ID           int               `json:"id" db:"id"`
+	Year         int               `json:"Year" db:"year"`
+	YearNumber   int               `json:"YearNumber" db:"yearNumber"`
 	Ring         nulls.String      `json:"ring" db:"ring"`
 	Species      string            `json:"species" db:"species"`
 	Gender       nulls.String      `json:"gender" db:"gender"`
