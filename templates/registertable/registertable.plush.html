@@ -1,0 +1,82 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Register</h3>
+</div>
+
+<form>
+    <div class="form-group row">
+      <label for="year" class="col-2 col-form-label">Year</label>
+      <div class="col-1O">
+        <select id="year" name="year" class="form-control" onchange="this.form.submit()">
+          <%= for (y) in years { %>
+            <option
+            <%= if (y.Selected) {%>
+              selected
+            <% } %>
+            ><%=y.Year%></option>
+          <% } %>
+        </select>
+      </div>
+    </div>
+</form>
+
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Number</th>
+    <th>Intake date</th>
+    <th>Cage</th>
+    <th>Type</th>
+    <th>Species</th>
+    <th>Age</th>
+    <th>Identification</th>
+    <th>Treatments</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animals { %>
+      <%= if (animal.OuttakeID.Value() != nil) { %>
+      <tr class="outtaken">
+      <% } else { %>
+      <tr>
+      <% } %>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%= animal.ID %></a>
+        </td>
+        
+        <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle"><%= animal.Animaltype.Name %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= animal.Ring %></td>   
+        <td class="align-middle">
+
+        </td>
+        <td>
+          <div class="float-right">
+            <%= if (!animal.OuttakeID.Value() || current_user.Admin) {%>
+            <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <% } %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(animalPath({ animal_id: animal.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

@@ -61,6 +61,9 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 
 	// Preload all intakes
 	intakeIDS := []uuid.UUID{}
+	outtakeIDS := []uuid.UUID{}
+
+	// Preload all outtakes
 
 	animalsID := []string{}
 	// 1st pass - populate IDS / base type
@@ -68,6 +71,9 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 		(*a)[i].Animalage = agsMap[(*a)[i].AnimalageID]
 		(*a)[i].Animaltype = atsMap[(*a)[i].AnimaltypeID]
 		intakeIDS = append(intakeIDS, (*a)[i].IntakeID)
+		if (*a)[i].OuttakeID.Valid {
+			outtakeIDS = append(outtakeIDS, (*a)[i].OuttakeID.UUID)
+		}
 		animalsID = append(animalsID, fmt.Sprintf("%d", (*a)[i].ID))
 		//c.Logger().Debugf("Animal %d: intake %v", (*a)[i].ID, (*a)[i].IntakeID)
 	}
@@ -107,10 +113,26 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 		intakeMap[i.ID] = i
 	}
 
+	ots := &models.Outtakes{}
+	if len(outtakeIDS) > 0 {
+		if err := tx.Where("ID in (?)", outtakeIDS).All(ots); err != nil {
+			return nil, err
+		}
+	}
+	// outtake map
+	outtakeMap := make(map[uuid.UUID]models.Outtake)
+	for _, i := range *ots {
+		outtakeMap[i.ID] = i
+	}
+
 	// 2nd pass: Populate intakes
 	// 1st pass - populate IDS
 	for i := 0; i < len(*a); i++ {
 		(*a)[i].Intake = intakeMap[(*a)[i].IntakeID]
+		if (*a)[i].OuttakeID.Valid {
+			outtake := outtakeMap[(*a)[i].OuttakeID.UUID]
+			(*a)[i].Outtake = &outtake
+		}
 	}
 
 	return a, nil

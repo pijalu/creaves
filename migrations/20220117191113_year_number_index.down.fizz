@@ -1,0 +1,1 @@
+drop_index("animals", "animals_year_yearNumber_idx")
