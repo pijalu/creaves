@@ -58,10 +58,20 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 			agsMap[a.ID] = a
 		}
 	}
+	// Outtake Type
+	otkMap := make(map[uuid.UUID]models.Outtaketype)
+	if otk, err := outtakeTypes(c); err != nil {
+		return nil, err
+	} else {
+		for _, ot := range *otk {
+			otkMap[ot.ID] = ot
+		}
+	}
 
-	// Preload all intakes
+	// Preload all sub items
 	intakeIDS := []uuid.UUID{}
 	outtakeIDS := []uuid.UUID{}
+	discoveryIDS := []uuid.UUID{}
 
 	// Preload all outtakes
 
@@ -71,10 +81,12 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 		(*a)[i].Animalage = agsMap[(*a)[i].AnimalageID]
 		(*a)[i].Animaltype = atsMap[(*a)[i].AnimaltypeID]
 		intakeIDS = append(intakeIDS, (*a)[i].IntakeID)
+		discoveryIDS = append(discoveryIDS, (*a)[i].DiscoveryID)
 		if (*a)[i].OuttakeID.Valid {
 			outtakeIDS = append(outtakeIDS, (*a)[i].OuttakeID.UUID)
 		}
 		animalsID = append(animalsID, fmt.Sprintf("%d", (*a)[i].ID))
+
 		//c.Logger().Debugf("Animal %d: intake %v", (*a)[i].ID, (*a)[i].IntakeID)
 	}
 
@@ -103,6 +115,18 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 		(*a)[i].Treatments = tmap[(*a)[i].ID]
 	}
 
+	dts := &models.Discoveries{}
+	if len(discoveryIDS) > 0 {
+		if err := tx.Where("ID in (?)", discoveryIDS).All(dts); err != nil {
+			return nil, err
+		}
+	}
+	// discovery map
+	discoveryMap := make(map[uuid.UUID]models.Discovery)
+	for _, i := range *dts {
+		discoveryMap[i.ID] = i
+	}
+
 	its := &models.Intakes{}
 	if err := tx.Where("ID in (?)", intakeIDS).All(its); err != nil {
 		return nil, err
@@ -129,8 +153,10 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	// 1st pass - populate IDS
 	for i := 0; i < len(*a); i++ {
 		(*a)[i].Intake = intakeMap[(*a)[i].IntakeID]
+		(*a)[i].Discovery = discoveryMap[(*a)[i].DiscoveryID]
 		if (*a)[i].OuttakeID.Valid {
 			outtake := outtakeMap[(*a)[i].OuttakeID.UUID]
+			outtake.Type = otkMap[outtake.TypeID]
 			(*a)[i].Outtake = &outtake
 		}
 	}

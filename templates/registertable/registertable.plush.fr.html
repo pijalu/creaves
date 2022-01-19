@@ -1,10 +1,10 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Register</h3>
+  <h3 class="d-inline-block">Registre</h3>
 </div>
 
 <form>
     <div class="form-group row">
-      <label for="year" class="col-2 col-form-label">Year</label>
+      <label for="year" class="col-2 col-form-label">Année</label>
       <div class="col-1O">
         <select id="year" name="year" class="form-control" onchange="this.form.submit()">
           <%= for (y) in years { %>
@@ -25,16 +25,16 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Number</th>
+    <th>Numero</th>
     <th>Type</th>
-    <th>Species</th>
-    <th>Entry Date</th>
-    <th>Discovery Location</th>
-    <th>Age</th>
-    <th>Reason</th>
-    <th>Outtake date</th>
-    <th>Reason</th>
-    <th>Location</th>
+    <th>Espèce</th>
+    <th>Date d'entrée</th>
+    <th>Lieu de découverte</th>
+    <th>Âge</th>
+    <th>Raison</th>
+    <th>Date de sortie</th>
+    <th>Raison</th>
+    <th>Lieu</th>
   </thead>
   <tbody>
     <%= for (animal) in animals { %>

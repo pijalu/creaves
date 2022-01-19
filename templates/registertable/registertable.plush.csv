@@ -1,2 +1,3 @@
-name,size
-Test,big
+Numero;Type;Species;Entry Date;Discovery Location;Age;Reason;Outtake date;Reason;Location
+<%= for (animal) in animals { %>"<%= animal.YearNumber %>";"<%= animal.Animaltype.Name %>";"<%= animal.Species %>";"<%= animal.Intake.DateFormated() %>";"<%= animal.Discovery.Location %>";"<%= animal.Animalage.Name %>";"<%= animal.Discovery.Reason %>";"<%= if (animal.Outtake) { %><%= animal.Outtake.DateFormated() %><% } %>";"<%= if (animal.Outtake) { %><%= animal.Outtake.Type.Name %><% } %>";"<%= if (animal.Outtake) { %><%= animal.Outtake.Location %><% } %>"
+<% } %>

@@ -40,6 +40,35 @@ func listRegisterYears(c buffalo.Context) ([]registerYear, error) {
 
 // RegistertableIndex default implementation.
 func RegistertableIndexCSV(c buffalo.Context) error {
+	y := c.Param("year")
+	if y == "" {
+		return fmt.Errorf("year not provided found")
+	}
+
+	// Get the DB connection from the context
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	animals := &models.Animals{}
+
+	// Retrieve all Animals from the DB
+	if err := tx.Where("Year = ?", y).Order("yearNumber desc").All(animals); err != nil {
+		return err
+	}
+
+	// Preload required for "list"
+	if _, err := EnrichAnimals(animals, c); err != nil {
+		return err
+	}
+
+	// Preload required for "list"
+	if _, err := EnrichAnimals(animals, c); err != nil {
+		return err
+	}
+
+	c.Set("animals", animals)
 	return c.Render(http.StatusOK, localrender.Csv(r, "registertable/registertable.plush.csv"))
 }
 
@@ -63,6 +92,7 @@ func RegistertableIndex(c buffalo.Context) error {
 		}
 	}
 	c.Set("years", years)
+	c.Set("selectedYear", selectedYear)
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)

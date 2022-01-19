@@ -137,6 +137,7 @@ func App() *buffalo.App {
 		app.GET("/dashboard", DashboardIndex)
 		app.Resource("/drugs", DrugsResource{})
 		app.GET("/registertable", RegistertableIndex)
+		app.GET("/registertable/ExportCSV", RegistertableIndexCSV)
 
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
