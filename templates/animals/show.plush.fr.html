@@ -8,7 +8,7 @@
 
   <div class="float-right">
     <%= linkTo("/#"+animal.Animaltype.Name, {class: "btn btn-info"}) { %>
-     Retour aux animaux en cours de suivi
+     Retour aux animaux en cours de soins
     <% } %>
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {id: "editButton", class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
