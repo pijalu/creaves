@@ -13,8 +13,8 @@ import (
 
 // SQL_CARES_IN_WARNING lists all cares in warning
 const SQL_CARES_IN_WARNING = `
-select c.*
-from cares c
+select c.*, a.year, a.yearNumber
+from cares c, animals a
 where  c.type_id in (
 	  select id from caretypes where warning = true
  )
@@ -29,6 +29,7 @@ where  c.type_id in (
  and c.animal_id in (
 	 select id from animals where outtake_id is null
  )
+ and c.animal_id = a.id
  order by c.date desc
 `
 
@@ -55,19 +56,19 @@ WHERE EXISTS(
 	  AND t.date < ?) 
 `
 
-func listOpenCares(c buffalo.Context) (models.Cares, error) {
+func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	cares := models.Cares{}
+	cares := []models.CareWithAnimalNumber{}
 	// Retrieve all Cares from the DB
 	if err := tx.RawQuery(SQL_CARES_IN_WARNING).All(&cares); err != nil {
 		return nil, err
 	}
 
-	if _, err := EnrichCares(&cares, c); err != nil {
+	if _, err := EnrichCaresWithAnimalNumber(&cares, c); err != nil {
 		return nil, err
 	}
 

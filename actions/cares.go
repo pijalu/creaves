@@ -54,6 +54,31 @@ func EnrichCares(cs *models.Cares, c buffalo.Context) (*models.Cares, error) {
 	return cs, nil
 }
 
+//EnrichCares load cares optimized for lists
+func EnrichCaresWithAnimalNumber(cs *[]models.CareWithAnimalNumber, c buffalo.Context) (*[]models.CareWithAnimalNumber, error) {
+	// If nothing to enrich, don't preload
+	if len(*cs) == 0 {
+		return cs, nil
+	}
+	// preload types
+	// Types
+	cMap := make(map[uuid.UUID]models.Caretype)
+	if cts, err := caretypes(c); err != nil {
+		return nil, err
+	} else {
+		for _, ct := range *cts {
+			cMap[ct.ID] = ct
+		}
+	}
+
+	// 1st pass - populate IDS / base type
+	for i := 0; i < len(*cs); i++ {
+		(*cs)[i].Type = cMap[(*cs)[i].TypeID]
+	}
+
+	return cs, nil
+}
+
 // List gets all Cares. This function is mapped to the path
 // GET /cares
 func (v CaresResource) List(c buffalo.Context) error {

@@ -34,6 +34,12 @@ type Care struct {
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
+type CareWithAnimalNumber struct {
+	Care
+	Year       int `json:"Year" db:"year"`
+	YearNumber int `json:"YearNumber" db:"yearNumber"`
+}
+
 // String is not required by pop and may be deleted
 func (c Care) String() string {
 	jc, _ := json.Marshal(c)

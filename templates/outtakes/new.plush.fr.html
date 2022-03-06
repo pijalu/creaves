@@ -33,7 +33,7 @@ $( document ).ready(function(){
   <% } %>
 <% } else { %>
   <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Sortie de l'animal <%= animal.ID %></h3>
+  <h3 class="d-inline-block">Sortie de l'animal <%=animal.Year%>-<%=animal.YearNumber%> (<%= animal.ID %>)</h3>
   <p><%= animal.Species %> (<%= animal.Animaltype.Name %>) - Arrivé le <%= animal.Intake.DateFormated() %></p>
   </div>
   
