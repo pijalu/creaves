@@ -2,11 +2,11 @@
   <div class="py-4 mb-2">
     <div class="float-right">
     <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
-          Voir tous les soins
+          Voir tous les suivis
     <% } %>
     </div>
   </div>
-  <h4>Sélectionnez un animal pour le soin</h4>
+  <h4>Sélectionnez un animal pour le suivi</h4>
   <%= formFor(care, {action: newCaresPath(), method: "GET"}) { %>
   <div class="form-group row">
     <label for="animalID" class="col-sm-2 col-form-label">Numéro&nbsp;de&nbsp;l'animal&nbsp;</label>
@@ -33,7 +33,7 @@ $( document ).ready(function(){
   <% } %>
 <% } else { %>
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Nouveaux soins pour l'animal <%= care.AnimalID %></h3>
+  <h3 class="d-inline-block">Nouveaux suivis pour l'animal <%= care.AnimalID %></h3>
 </div>
 
 <%= if (params["back"]) { %>
