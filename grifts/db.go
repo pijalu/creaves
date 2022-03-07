@@ -25,9 +25,11 @@ var _ = grift.Namespace("db", func() {
 		if err := createTraveltype(c); err != nil {
 			return err
 		}
-		if err := createDrugs(c); err != nil {
-			return err
-		}
+		/*
+			if err := createDrugs(c); err != nil {
+				return err
+			}
+		*/
 		return nil
 	})
 

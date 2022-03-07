@@ -224,7 +224,9 @@ func createDrugs(c *Context) error {
 				dsf /= 1000.0
 				at, present := atm[ds.animalType]
 				if !present {
-					return fmt.Errorf("Could not find animal type %s", ds.animalType)
+					fmt.Printf("Animal type %s not found - skipping\n", ds.animalType)
+					continue
+					//return fmt.Errorf("Could not find animal type %s", ds.animalType)
 				}
 				_ = at
 				dosage := models.Dosage{
