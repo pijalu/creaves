@@ -326,13 +326,20 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 	animals := models.Animals{}
 
 	type registerYearNumber struct {
-		Year       int `db:"Year"`
-		YearNumber int `db:"YearNumber"`
+		Year       nulls.Int `db:"Year"`
+		YearNumber nulls.Int `db:"YearNumber"`
 	}
 
 	ryn := registerYearNumber{}
 	if err := tx.Eager().RawQuery("SELECT MAX(Year) as 'Year', MAX(yearNumber)+1 as 'YearNumber' from animals where year = ?", time.Now().Year()).First(&ryn); err != nil {
 		return err
+	}
+
+	if !ryn.Year.Valid {
+		ryn.Year.Int = time.Now().Year()
+	}
+	if !ryn.YearNumber.Valid {
+		ryn.YearNumber.Int = 1
 	}
 
 	for i := 0; i < ac.AnimalCount; i++ {
@@ -342,9 +349,9 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 			return err
 		}
 		// Set year+Number
-		animal.Year = ryn.Year
-		animal.YearNumber = ryn.YearNumber
-		ryn.YearNumber++
+		animal.Year = ryn.Year.Int
+		animal.YearNumber = ryn.YearNumber.Int
+		ryn.YearNumber.Int++
 
 		// Add remark
 		if ac.AnimalCount > 1 {
