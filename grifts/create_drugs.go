@@ -193,7 +193,7 @@ func createDrugs(c *Context) error {
 	if err != nil {
 		return err
 	}
-	if cnt >= len(ts) {
+	if cnt > 0 {
 		fmt.Printf("Already %d records in drugs - skipping\n", cnt)
 		return nil
 	}

@@ -23,7 +23,7 @@ func createOuttaketype(c *Context) error {
 	if err != nil {
 		return err
 	}
-	if cnt >= len(ts) {
+	if cnt > 0 {
 		fmt.Printf("Already %d records in outtake types - skipping\n", cnt)
 		return nil
 	}
