@@ -348,6 +348,9 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		if err := c.Bind(animal); err != nil {
 			return err
 		}
+		// Set discovery date
+		animal.IntakeDate = animal.Intake.Date
+
 		// Set year+Number
 		animal.Year = ryn.Year.Int
 		animal.YearNumber = ryn.YearNumber.Int

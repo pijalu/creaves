@@ -1,0 +1,4 @@
+add_column("animals", "IntakeDate", "datetime", {null: true})
+sql("UPDATE animals a INNER JOIN intakes t ON a.intake_id = t.id SET a.IntakeDate = t.date")
+change_column("animals", "IntakeDate", "datetime", {})
+

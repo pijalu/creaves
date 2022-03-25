@@ -139,6 +139,10 @@ func App() *buffalo.App {
 		app.GET("/registertable", RegistertableIndex)
 		app.GET("/registertable/ExportCSV", RegistertableIndexCSV)
 
+		maintenance := app.Group("/maintenance")
+		maintenance.GET("/", MaintenanceIndex)
+		maintenance.GET("/renumber", MaintenanceRenumber)
+
 		app.ServeFiles("/", assetsBox) // serve files from the public directory
 	}
 
