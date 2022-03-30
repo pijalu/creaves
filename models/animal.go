@@ -36,7 +36,7 @@ type Animal struct {
 	Cares        []Care            `json:"cares,omitempty" has_many:"cares"`
 	Treatments   Treatments        `json:"treatmentes,omitempty" has_many:"treatments"`
 	VetVisits    []Veterinaryvisit `json:"veternary_visits,omitempty" has_many:"veternaryvisits"`
-	IntakeDate   time.Time         `json:"intakeDate" db:"intakeDate"`
+	IntakeDate   time.Time         `json:"intakeDate" db:"IntakeDate"`
 	CreatedAt    time.Time         `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
