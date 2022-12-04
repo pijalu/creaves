@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 )
 
-//SQL_GET_REGISTER_YEARS returns all the avl years for the register
+// SQL_GET_REGISTER_YEARS returns all the avl years for the register
 const SQL_GET_REGISTER_YEARS = `
 	select distinct a.year as 'Year'
 	from animals a 

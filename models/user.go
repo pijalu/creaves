@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
 	"github.com/gofrs/uuid"
@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-//User is a generated model from buffalo-auth, it serves as the base for username/password authentication.
+// User is a generated model from buffalo-auth, it serves as the base for username/password authentication.
 type User struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`

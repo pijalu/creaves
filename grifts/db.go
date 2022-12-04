@@ -1,8 +1,6 @@
 package grifts
 
-import (
-	"github.com/markbates/grift/grift"
-)
+import "github.com/gobuffalo/grift/grift"
 
 var _ = grift.Namespace("db", func() {
 	grift.Desc("seed", "Seeds a database")

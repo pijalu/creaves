@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 )
 
@@ -33,7 +33,7 @@ where  c.type_id in (
  order by c.date desc
 `
 
-//SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
+// SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
 const SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE = `
 select at.name as 'Name', count(1) as 'Count'
 from animaltypes at, animals a
@@ -43,7 +43,7 @@ GROUP BY at.name
 ORDER by at.name
 `
 
-//SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal with care per type
+// SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal with care per type
 const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
 SELECT a.* 
 FROM animals a 

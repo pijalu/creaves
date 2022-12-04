@@ -6,12 +6,12 @@ import (
 	"net/http"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 	"github.com/pkg/errors"
 )
 
-//UsersNew renders the users form
+// UsersNew renders the users form
 func UsersNew(c buffalo.Context) error {
 	u := models.User{}
 	c.Set("user", u)

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/nulls"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gofrs/uuid"
 )
@@ -71,7 +71,7 @@ func (a Animals) String() string {
 	return string(ja)
 }
 
-//LastWeight returns the last weight of the animal
+// LastWeight returns the last weight of the animal
 func (a Animal) LastWeight() nulls.Int {
 	// No cares
 	if len(a.Cares) < 1 {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/tags/form"
 	"github.com/gofrs/uuid"
 )
@@ -15,12 +15,12 @@ type selType struct {
 	value interface{}
 }
 
-//SelectValue returns select value in a select
+// SelectValue returns select value in a select
 func (st *selType) SelectValue() interface{} {
 	return st.value
 }
 
-//SelectLabel returns label to use in a select
+// SelectLabel returns label to use in a select
 func (st *selType) SelectLabel() string {
 	return st.label
 }

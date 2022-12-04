@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 )
 
 func suggest(c buffalo.Context, table string, field string) error {

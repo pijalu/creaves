@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/buffalo"
-	"github.com/gobuffalo/pop/v5"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 	"github.com/gofrs/uuid"
 )
@@ -29,7 +29,7 @@ type CaresResource struct {
 	buffalo.Resource
 }
 
-//EnrichCares load cares optimized for lists
+// EnrichCares load cares optimized for lists
 func EnrichCares(cs *models.Cares, c buffalo.Context) (*models.Cares, error) {
 	// If nothing to enrich, don't preload
 	if len(*cs) == 0 {
@@ -54,7 +54,7 @@ func EnrichCares(cs *models.Cares, c buffalo.Context) (*models.Cares, error) {
 	return cs, nil
 }
 
-//EnrichCares load cares optimized for lists
+// EnrichCares load cares optimized for lists
 func EnrichCaresWithAnimalNumber(cs *[]models.CareWithAnimalNumber, c buffalo.Context) (*[]models.CareWithAnimalNumber, error) {
 	// If nothing to enrich, don't preload
 	if len(*cs) == 0 {

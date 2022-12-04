@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	. "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
-	. "github.com/markbates/grift/grift"
 )
 
 func animalTypeID(c *Context) (map[string]models.Animaltype, error) {

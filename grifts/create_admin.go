@@ -3,8 +3,7 @@ package grifts
 import (
 	"creaves/models"
 	"fmt"
-
-	. "github.com/markbates/grift/grift"
+	. "github.com/gobuffalo/grift/grift"
 )
 
 func createAdmin(c *Context) error {
