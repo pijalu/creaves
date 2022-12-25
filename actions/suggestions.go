@@ -162,10 +162,10 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 	}
 
 	var query *pop.Query
-	qroot := "SELECT ID FROM animals WHERE outtake_id IS null "
+	qroot := "SELECT YearNumber FROM animals WHERE outtake_id IS null "
 
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND ID like ?", "%"+q+"%")
+		query = tx.RawQuery(qroot+" AND YearNumber like ?", "%"+q+"%")
 	} else {
 		query = tx.RawQuery(qroot)
 	}

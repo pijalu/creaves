@@ -226,6 +226,15 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	animalYearNumber := c.Param("animal_year_number")
+	if len(animalYearNumber) > 0 {
+		animal := models.Animal{}
+		err := tx.Where("YearNumber = ?", animalYearNumber).First(&animal)
+		if err == nil {
+			return c.Redirect(http.StatusSeeOther, "/animals/%v", animal.ID)
+		}
+	}
+
 	animalID := c.Param("animal_id")
 	if len(animalID) > 0 {
 		exists, err := tx.Where("ID = ?", animalID).Exists(&models.Animal{})
