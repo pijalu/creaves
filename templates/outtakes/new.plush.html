@@ -9,11 +9,11 @@
   <h4>Select animal for outtake</h4>
   <%= formFor(outtake, {action: newOuttakesPath(), method: "GET"}) { %>
   <div class="form-group row">
-    <label for="animalID" class="col-sm-2 col-form-label">Animal ID</label>
+    <label for="animal_in_care" class="col-sm-2 col-form-label">Animal ID</label>
     <div class="col-sm-10">
-      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
+      <input type="number" class="form-control" id="animal_in_care" name="animal_in_care" placeholder="123" required>
       <script>
-        $('input[name="animal_id"]').autoComplete({
+        $('input[name="animal_in_care"]').autoComplete({
             minChars: 0,
             source: function(term, response){
                 $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });

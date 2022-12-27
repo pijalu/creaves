@@ -108,8 +108,8 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
 
-	animalID := c.Param("animal_id")
-	if len(animalID) > 0 {
+	animalNumber := c.Param("animal_in_care")
+	if len(animalNumber) > 0 {
 		// Get the DB connection from the context
 		tx, ok := c.Value("tx").(*pop.Connection)
 		if !ok {
@@ -121,10 +121,10 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 
 		// for message
 		data := map[string]interface{}{
-			"animalID": animalID,
+			"animalID": animalNumber,
 		}
 
-		if err := tx.Eager().Find(animal, animalID); err != nil {
+		if err := tx.Eager().Where("YearNumber = ?", animalNumber).Order("ID desc").First(animal); err != nil {
 			c.Flash().Add("danger", T.Translate(c, "outtake.animal.not.found", data))
 			errCode = http.StatusNotFound
 		}
