@@ -76,7 +76,12 @@
 <div class="tab-content" id="landing-abt-content">
   <%= for (i, at) in keys {%>
   <div class="tab-pane fade <%= if (i==0) {%>show active<%}%>" id="t-<%= at.ID %>" role="tabpanel" aria-labelledby="t-<%= at.ID %>-tab">
-    <table class="table table-hover table-bordered">
+    <table class="table table-hover table-bordered"
+      data-pagination="true"
+      data-toggle="table"
+      data-search="true"
+      data-show-columns="true">
+
       <thead class="thead-light">
         <th>Number</th>
         <th>Intake date</th>
