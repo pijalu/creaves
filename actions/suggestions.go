@@ -152,7 +152,10 @@ func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 
 // SuggestionsAnimalInCare - specific implementation to only account in care animal (no outtake).
 func SuggestionsAnimalInCare(c buffalo.Context) error {
-	s := []string{}
+	results := []struct {
+		Year       string `json:"Year" db:"Year"`
+		YearNumber string `json:"YearNumber" db:"YearNumber"`
+	}{}
 
 	q := c.Param("q")
 
@@ -162,7 +165,7 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 	}
 
 	var query *pop.Query
-	qroot := "SELECT YearNumber FROM animals WHERE outtake_id IS null "
+	qroot := "SELECT Year, YearNumber FROM animals WHERE outtake_id IS null "
 
 	if len(q) > 0 {
 		query = tx.RawQuery(qroot+" AND YearNumber like ?", "%"+q+"%")
@@ -170,8 +173,14 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 		query = tx.RawQuery(qroot)
 	}
 
-	if err := query.All(&s); err != nil {
+	if err := query.All(&results); err != nil {
 		return err
+	}
+
+	// return a series of strings
+	s := []string{}
+	for _, result := range results {
+		s = append(s, result.YearNumber)
 	}
 
 	return c.Render(200, r.JSON(s))

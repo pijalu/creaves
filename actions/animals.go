@@ -229,7 +229,7 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 	animalYearNumber := c.Param("animal_year_number")
 	if len(animalYearNumber) > 0 {
 		animal := models.Animal{}
-		err := tx.Where("YearNumber = ?", animalYearNumber).First(&animal)
+		err := tx.Where("YearNumber = ?", animalYearNumber).Order("ID desc").First(&animal)
 		if err == nil {
 			return c.Redirect(http.StatusSeeOther, "/animals/%v", animal.ID)
 		}
