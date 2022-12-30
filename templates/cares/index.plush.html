@@ -28,7 +28,7 @@
       ">
         <td class="align-middle"><%= care.DateFormated() %></td>
         <td class="align-middle">
-          <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/#nav-care"><%= care.AnimalID %></a>
+          <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/#nav-care"><%= care.Animal.YearNumberFormatted() %></a>
         </td>
         <td class="align-middle"><%= care.Weight %></td>
         <td class="align-middle"><%= care.Note %></td>

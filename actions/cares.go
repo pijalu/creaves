@@ -51,6 +51,30 @@ func EnrichCares(cs *models.Cares, c buffalo.Context) (*models.Cares, error) {
 		(*cs)[i].Type = cMap[(*cs)[i].TypeID]
 	}
 
+	// Select animals
+	aList := []int{}
+	for i := 0; i < len(*cs); i++ {
+		aList = append(aList, (*cs)[i].AnimalID)
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	animals := models.Animals{}
+	if err := tx.Where("ID in (?)", aList).All(&animals); err != nil {
+		return nil, fmt.Errorf("Could not lookup animals for list of cares: %v", err)
+	}
+	aMap := make(map[int]models.Animal)
+	for i := 0; i < len(animals); i++ {
+		aMap[animals[i].ID] = animals[i]
+	}
+	// 2nd pass: Add animals
+	for i := 0; i < len(*cs); i++ {
+		(*cs)[i].Animal = aMap[(*cs)[i].AnimalID]
+	}
+
 	return cs, nil
 }
 
