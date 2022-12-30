@@ -1,0 +1,59 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Species Details</h3>
+
+  <div class="float-end">
+    <%= linkTo("/species", {class: "btn btn-info"}) { %>
+      Back to all Species
+    <% } %>
+    <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Species</label>
+    <p class="d-inline-block"><%= species.Species %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Group</label>
+    <p class="d-inline-block"><%= species.Group %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Family</label>
+    <p class="d-inline-block"><%= species.Family %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">CreavesSpecies</label>
+    <p class="d-inline-block"><%= species.CreavesSpecies %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">CreavesGroup</label>
+    <p class="d-inline-block"><%= species.CreavesGroup %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Subside</label>
+    <p class="d-inline-block"><%= species.Subside %></p>
+  </li>
+
+
+</ul>

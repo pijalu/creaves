@@ -26,6 +26,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createDrugs(c); err != nil {
 			return err
 		}
+		if err := createSpecies(c); err != nil {
+			return err
+		}
 
 		return nil
 	})

@@ -38,7 +38,7 @@ func suggest(c buffalo.Context, table string, field string) error {
 
 // SuggestionsAnimalSpecies default implementation.
 func SuggestionsAnimalSpecies(c buffalo.Context) error {
-	return suggest(c, "animals", "species")
+	return suggest(c, "species", "creaves_species")
 }
 
 // SuggestionsDiscoveryLocation default implementation.

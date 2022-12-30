@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier l'espèce</h3>
+</div>
+
+<%= formFor(species, {action: speciesPath({ species_id: species.ID }), method: "PUT"}) { %>
+  <%= partial("species/form.plush.fr.html") %>
+  <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-warning", "data-confirm": "Es-tu sûr?", body: "Annuler"}) %>
+<% } %>

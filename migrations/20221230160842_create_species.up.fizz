@@ -1,0 +1,10 @@
+create_table("species") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("species", "string", {})
+	t.Column("group", "string", {})
+	t.Column("family", "string", {})
+	t.Column("creaves_species", "string", {})
+	t.Column("creaves_group", "string", {})
+	t.Column("subside", "float", {null: true})
+	t.Timestamps()
+}

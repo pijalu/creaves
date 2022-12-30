@@ -1,0 +1,437 @@
+Species,Group,Family,CreavesSpecies,CreavesGroup,Subside
+Corvus corax,Oiseaux,Corvidés,Grand Corbeau,Autres oiseaux et chauves-souris,1.5
+Capreolus capreolus,Mammifères,Cervidés,Chevreuil,Mammifères non volants,
+Cervus elaphus,Mammifères,Cervidés,Cerf élaphe,Mammifères non volants,0
+Sus scrofa,Mammifères,Suidés,Sanglier,Mammifères non volants,0
+Canis lupus,Mammifères,Canidés,Loup,Mammifères non volants,
+Felis silvestris,Mammifères,Félidés,Chat sylvestre,Mammifères non volants,4.51
+Lutra lutra,Mammifères,Mustélidés,Loutre,Mammifères non volants,
+Martes foina,Mammifères,Mustélidés,Fouine,Mammifères non volants,
+Martes martes,Mammifères,Mustélidés,Martre,Mammifères non volants,
+Meles meles,Mammifères,Mustélidés,Blaireau,Mammifères non volants,4.51
+Mustela erminea,Mammifères,Mustélidés,Hermine,Mammifères non volants,
+Mustela nivalis,Mammifères,Mustélidés,Belette,Mammifères non volants,
+Mustela putorius,Mammifères,Mustélidés,Putois,Mammifères non volants,
+Vulpes vulpes,Mammifères,Canidés,Renard roux,Mammifères non volants,
+Barbastella barbastellus,Mammifères,Verspertilionidés,Barbastelle,Autres oiseaux et chauves-souris,0.75
+Eptesicus nilssonii,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Eptesicus serotinus,Mammifères,Verspertilionidés,Sérotine,Autres oiseaux et chauves-souris,0.75
+Myotis alcathoe,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis bechsteinii,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis brandtii,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis dasycneme,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis daubentonii,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis emarginatus,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis myotis,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis mystacinus,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Myotis nattereri,Mammifères,Verspertilionidés,Murin,Autres oiseaux et chauves-souris,0.75
+Nyctalus leisleri,Mammifères,Verspertilionidés,Noctule,Autres oiseaux et chauves-souris,0.75
+Nyctalus noctula,Mammifères,Verspertilionidés,Noctule,Autres oiseaux et chauves-souris,0.75
+Pipistrellus kuhlii,Mammifères,Verspertilionidés,Pipistrelle,Autres oiseaux et chauves-souris,0.75
+Pipistrellus nathusii,Mammifères,Verspertilionidés,Pipistrelle,Autres oiseaux et chauves-souris,0.75
+Pipistrellus pipistrellus,Mammifères,Verspertilionidés,Pipistrelle,Autres oiseaux et chauves-souris,0.75
+Pipistrellus pygmaeus,Mammifères,Verspertilionidés,Pipistrelle,Autres oiseaux et chauves-souris,0.75
+Plecotus auritus,Mammifères,Verspertilionidés,Oreillard,Autres oiseaux et chauves-souris,0.75
+Plecotus austriacus,Mammifères,Verspertilionidés,Oreillard,Autres oiseaux et chauves-souris,0.75
+Rhinolophus ferrumequinum,Mammifères,Rhinolophidés,Rhinolophe,Autres oiseaux et chauves-souris,0.75
+Rhinolophus hipposideros,Mammifères,Rhinolophidés,Rhinolophe,Autres oiseaux et chauves-souris,0.75
+Vespertilio murinus,Mammifères,Verspertilionidés,Serotine,Autres oiseaux et chauves-souris,0.75
+Crocidura leucodon,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Crocidura russula,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Erinaceus europaeus,Mammifères,Soricidés,Hérisson,Mammifères non volants,1.5
+Neomys anomalus,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Neomys fodiens,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Sorex araneus,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Sorex coronatus,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Sorex minutus,Mammifères,Soricidés,Musaraigne,Mammifères non volants,
+Talpa europaea,Mammifères,Talpidés,Taupe,Mammifères non volants,
+Lepus europaeus,Mammifères,Léporidés,Lièvre,Mammifères non volants,
+Oryctolagus cuniculus,Mammifères,Léporidés,Lapin de Garenne,Mammifères non volants,
+Apodemus flavicollis,Mammifères,Muridés,Mulot,Mammifères non volants,
+Apodemus sylvaticus,Mammifères,Muridés,Mulot,Mammifères non volants,
+Arvicola terrestris,Mammifères,Muridés,Campagnol,Mammifères non volants,
+Clethrionomys glareolus,Mammifères,Muridés,Campagnol,Mammifères non volants,
+Cricetus cricetus,Mammifères,Muridés,Grand Hasmter,Mammifères non volants,
+Eliomys quercinus,Mammifères,Muscardinidés,Lérot,Mammifères non volants,
+Glis glis,Mammifères,Muscardinidés,Loir,Mammifères non volants,
+Micromys minutus,Mammifères,Muridés,Rat des moissons,Mammifères non volants,
+Microtus agrestis,Mammifères,Muridés,Campagnol,Mammifères non volants,
+Microtus arvalis,Mammifères,Muridés,Campagnol,Mammifères non volants,
+Microtus subterraneus,Mammifères,Muridés,Campagnol,Mammifères non volants,
+Mus domesticus,Mammifères,Muridés,Souris,Mammifères non volants,
+Muscardinus avellanarius,Mammifères,Muscardinidés,Muscardin,Mammifères non volants,
+Rattus rattus,Mammifères,Muridés,Rat noir,Mammifères non volants,
+Sciurus vulgaris,Mammifères,Sciuridés,Ecureuil roux,Mammifères non volants,1.12
+Columba oenas,Oiseaux,Colombidés,Pigeon colombin,Autres oiseaux et chauves-souris,0.96
+Columba palumbus,Oiseaux,Colombidés,Pigeon ramier,Autres oiseaux et chauves-souris,0.96
+Pterocles orientalis,Oiseaux,Ptéroclicidés,Ganga unibande,Autres oiseaux et chauves-souris,0.96
+Streptopelia decaocto,Oiseaux,Colombidés,Tourterelle turque,Autres oiseaux et chauves-souris,0.96
+Streptopelia turtur,Oiseaux,Colombidés,Tourterelle des bois,Autres oiseaux et chauves-souris,0.96
+Syrrhaptes paradoxus,Oiseaux,Ptéroclicidés,Syrrhapte paradoxal,Autres oiseaux et chauves-souris,0.96
+Alcedo atthis,Oiseaux,Alcédinidés,Martin-pêcheur d'Europe,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Coracias garrulus,Oiseaux,Coraciidés,Rollier d'Europe,Autres oiseaux et chauves-souris,1.12
+Merops apiaster,Oiseaux,Méropidés,Guêpier d'Europe,Autres oiseaux et chauves-souris,1.12
+Upupa epops,Oiseaux,Upudidés,Huppe fasciée,Autres oiseaux et chauves-souris,1.12
+Clamator glandarius,Oiseaux,Cuculidés,Coucou geai,Autres oiseaux et chauves-souris,1.12
+Coccyzus americanus,Oiseaux,Cuculidés,Coulicou à bec jaune,Autres oiseaux et chauves-souris,1.12
+Cuculus canorus,Oiseaux,Cuculidés,Coucou gris,Autres oiseaux et chauves-souris,1.12
+Ardea alba,Oiseaux,Ardeidés,Grande Aigrette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ardea cinerea,Oiseaux,Ardeidés,Héron cendré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ardea purpurea,Oiseaux,Ardeidés,Héron pourpré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ardeola ralloides,Oiseaux,Ardeidés,Crabier chevelu,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Botaurus stellaris,Oiseaux,Ardeidés,Butor étoilé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Bubulcus ibis,Oiseaux,Ardeidés,Héron garde-boeufs,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ciconia ciconia,Oiseaux,Ciconiidés,Cigogne blanche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ciconia nigra,Oiseaux,Ciconiidés,Cigogne noire,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Egretta garzetta,Oiseaux,Ardeidés,Aigrette garzette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Grus grus,Oiseaux,Gruidés,Grue cendrée,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Ixobrychus minutus,Oiseaux,Ardeidés,Blongios nain,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Nycticorax nycticorax,Oiseaux,Ardeidés,Bihoreau gris,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Platalea leucorodia,Oiseaux,Threskiornithidés,Spatule blanche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Plegadis falcinellus,Oiseaux,Threskiornithidés,Ibis falcinelle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",4.09
+Bonasa bonasia,Oiseaux,Phasianidés,Gélinotte des bois,Autres oiseaux et chauves-souris,0.96
+Coturnix coturnix,Oiseaux,Phasianidés,Caille des blés,Autres oiseaux et chauves-souris,0.96
+Perdix perdix,Oiseaux,Phasianidés,Perdrix grise,Autres oiseaux et chauves-souris,0.96
+Tetrao tetrix,Oiseaux,Phasianidés,Tetras lyre,Autres oiseaux et chauves-souris,0.96
+Tetrao urogallus,Oiseaux,Phasianidés,Grand Tétras,Autres oiseaux et chauves-souris,0.96
+Actitis hypoleucos,Oiseaux,Scolopacidés,Chevalier guignette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Arenaria interpres,Oiseaux,Scolopacidés,Tournepierre à collier,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Burhinus oedicnemus,Oiseaux,Burhinidés,Oedicnème criard,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris acuminata,Oiseaux,Scolopacidés,Bécasseau à queue pointue,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris alba,Oiseaux,Scolopacidés,Bécasseau sanderling,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris alpina,Oiseaux,Scolopacidés,Bécasseau variable,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris canutus,Oiseaux,Scolopacidés,Bécasseau maubèche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris ferruginea,Oiseaux,Scolopacidés,Bécasseau cocorli,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris acuminata,Oiseaux,Scolopacidés,Bécasseau de Bonaparte,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris melanotos,Oiseaux,Scolopacidés,Bécasseau tacheté,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris minuta,Oiseaux,Scolopacidés,Bécasseau minute,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Calidris temminckii,Oiseaux,Scolopacidés,Bécasseau de Temminck,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Charadrius alexandrinus,Oiseaux,Charadriidés,Pluvier gravelot à collier interrompu,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Charadrius dubius,Oiseaux,charadriidés,Pluvier petit gravelot,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Charadrius hiaticula,Oiseaux,Charadriidés,Pluvier grand gravelot,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Charadrius morinellus,Oiseaux,Charadriidés,Pluvier guignard,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Gallinago gallinago,Oiseaux,Scolopacidés,Bécassine des marais,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Gallinago media,Oiseaux,Scolopacidés,Bécassine double,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Glareola pratincola,Oiseaux,Glaréolidés,Glaréole à collier,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Haematopus ostralegus,Oiseaux,Haematopodidés,Huîtrier pie,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Himantopus himantopus,Oiseaux,Récurvirostridés,Echasse blanche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Limicola falcinellus,Oiseaux,Scolopacidés,Bécasseau falcinelle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Limosa lapponica,Oiseaux,Scolopacidés,Barge rousse,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Limosa limosa,Oiseaux,Scolopacidés,Barge à queue noire,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Lymnocryptes minimus,Oiseaux,Scolopacidés,Bécassine sourde,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Numenius arquata,Oiseaux,Scolopacidés,Courlis cendré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Numenius phaeopus,Oiseaux,Scolopacidés,Courlis corlieu,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Numenius tenuirostris,Oiseaux,Scolopacidés,Courlis à bec grèle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Phalaropus fulicarius,Oiseaux,Scolopacidés,Phalarope à bec large,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Phalaropus lobatus,Oiseaux,Scolopacidés,Phalarope à bec étroit,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Philomachus pugnax,Oiseaux,Scolopacidés,Combattant varié,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Pluvialis apricaria,Oiseaux,Charadriidés,Pluvier doré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Pluvialis squatarola,Oiseaux,Charadriidés,Pluvier argenté,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Recurvirostra avosetta,Oiseaux,Récurvirostridés,Avocette élégante,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Scolopax rusticola,Oiseaux,Scolopacidés,Bécasse des bois,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa cinerea,Oiseaux,Scolopacidés,Chevalier bargette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa erythropus,Oiseaux,Scolopacidés,Chevalier arlequin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa glareola,Oiseaux,Scolopacidés,Chevalier sylvain,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa nebularia,Oiseaux,Scolopacidés,Chevalier aboyeur,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa ochropus,Oiseaux,Scolopacidés,Chevalier culblanc,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa stagnatilis,Oiseaux,Scolopacidés,Chevalier stagnatile,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tringa totanus,Oiseaux,Scolopacidés,Chevalier gambette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Vanellus vanellus,Oiseaux,Charadriidés,Vanneau huppé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Chlamydotis undulata,Oiseaux,Otididés,Outarde houbara,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Otis tarda,Oiseaux,Otididés,Outarde barbue,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Tetrax tetrax,Oiseaux,Otididés,Outarde canepetière,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Alca torda,Oiseaux,Alcidés,Pingouin torda,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Alle alle,Oiseaux,Alcidés,Mergule nain,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas acuta,Oiseaux,Anatidés,Canard pilet,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas clypeata,Oiseaux,Anatidés,Canard souchet,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas crecca,Oiseaux,Anatidés,Sarcelle d'hiver,"rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas discors,Oiseaux,Anatidés,Sarcelle à ailes bleues,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas penelope,Oiseaux,Anatidés,Canard siffleur,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas platyrhynchos,Oiseaux,Anatidés,Canard colvert,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anas strepera,Oiseaux,Anatidés,Canard chipeau,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anser albifrons,Oiseaux,Anatidés,Oie rieuse,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anser brachyrhynchus,Oiseaux,Anatidés,Oie à bec court,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Anser fabalis,Oiseaux,Anatidés,Oie des moissons,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Aythya collaris,Oiseaux,Anatidés,Fuligule à bec cerclé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Aythya ferina,Oiseaux,Anatidés,Fuligule milouin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Aythya fuligula,Oiseaux,Anatidés,Fuligule morillon,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Aythya marila,Oiseaux,Anatidés,Fuligule milouinan,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Aythya nyroca,Oiseaux,Anatidés,Fuligule nyroca,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Branta bernicla,Oiseaux,Anatidés,Bernache cravant,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Branta leucopsis,Oiseaux,Anatidés,Bernache nonnette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Branta ruficollis,Oiseaux,Anatidés,Bernache à cou roux,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Bucephala clangula,Oiseaux,Anatidés,Garrot à oeil d'or,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Chlidonias hybridus,Oiseaux,Sternidés,Guifette moustac,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Chlidonias leucopterus,Oiseaux,Sternidés,Guifette leucoptère,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Chlidonias niger,Oiseaux,Sternidés,Guifette noire,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Clangula hyemalis,Oiseaux,Anatidés,Harelde boréale,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Crex crex,Oiseaux,Rallidés,Râle des genêts,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Cygnus columbianus bewickii,Oiseaux,Anatidés,Cygne de Bewick,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Cygnus cygnus,Oiseaux,Anatidés,Cygne chanteur,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Fratercula arctica,Oiseaux,Alcidés,Macareux moine,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Fulica atra,Oiseaux,Rallidés,Foulque macroule,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Fulmarus glacialis,Oiseaux,Procellaridés,Fulmar boréal,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Gallinula chloropus,Oiseaux,Rallidés,Gallinule poule d'eau,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Gavia arctica,Oiseaux,Gaviidés,Plongeon arctique,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Gavia stellata,Oiseaux,Gaviidés,Plongeon catmarin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Gelochelidon nilotica,Oiseaux,Sternidés,Sterne hansel,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Hydrobates pelagicus,Oiseaux,Hydrobatidés,Océanite tempête,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus argentatus,Oiseaux,Laridés,Goéland argenté,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus cachinnans,Oiseaux,Laridés,Goéland pontique,"rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus canus,Oiseaux,Laridés,Goéland cendré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus fuscus,Oiseaux,Laridés,Goéland brun,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus glaucoides,Oiseaux,Laridés,Goéland à ailes blanches,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus hyperboreus,Oiseaux,Laridés,Goéland bourgmestre,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus marinus,Oiseaux,Laridés,Goéland marin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus melanocephalus,Oiseaux,Laridés,Mouette mélanocéphale,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus minutus,Oiseaux,Laridés,Mouette pygmée,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus ridibundus,Oiseaux,Laridés,Mouette rieuse,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus sabini,Oiseaux,Laridés,Mouette de Sabine,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Melanitta fusca,Oiseaux,Anatidés,Macreuse brune,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Melanitta nigra,Oiseaux,Anatidés,Macreuse noire,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Mergus albellus,Oiseaux,Anatidés,Harle piette,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Mergus merganser,Oiseaux,Anatidés,Harle bièvre,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Mergus serrator,Oiseaux,Alcidés,Harle huppé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Morus bassanus,Oiseaux,Sulidés,Fou de Bassan,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Netta rufina,Oiseaux,Anatidés,Nette rousse,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Oceanodroma leucorhoa,Oiseaux,Hydrobatidés,Océanite culblanc,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Oxyura leucocephala,Oiseaux,Anatidés,Erismature à tête blanche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Phalacrocorax aristotelis,Oiseaux,Phalacrocoracidés,Cormoran huppé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Phalacrocorax carbo,Oiseaux,Phalacrocoracidés,Grand Cormoran,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Podiceps auritus,Oiseaux,Podicipedidés,Grèbe esclavon,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Podiceps cristatus,Oiseaux,Podicipedidés,Grèbe huppé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Podiceps grisegena,Oiseaux,Podicipedidés,Grèbe jougris,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Podiceps nigricollis,Oiseaux,Podicipedidés,Grèbe à cou noir,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Porzana parva,Oiseaux,Rallidés,Marouette poussin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Porzana porzana,Oiseaux,Rallidés,Marouette ponctuée,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Porzana pusilla,Oiseaux,Rallidés,Marouette de Baillon,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Rallus aquaticus,Oiseaux,Rallidés,Râle d'eau,"Rapaces, oiseaux d’eau, échassiers ou limicoles",2.08
+Rissa triactyla,Oiseaux,Laridés,Mouette tridactyle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Somateria mollissima,Oiseaux,Anatidés,Eider à duvet,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Stercorarius longicaudus,Oiseaux,Stercorariidés,Labbe à longue queue,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Stercorarius parasiticus,Oiseaux,Stercorariidés,Labbe parasite,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Stercorarius pomarinus,Oiseaux,Stercorariidés,Labbe pomarin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Stercorarius skua,Oiseaux,Stercorariidés,Grand Labbe,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Sterna albifrons,Oiseaux,Sternidés,Sterne naine,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Sterna caspia,Oiseaux,Sternidés,Sterne caspienne,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Sterna hirundo,Oiseaux,Sternidés,Sterne pierregarin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Sterna paradisaea,Oiseaux,Sternidés,Sterne arctique,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Sterna sandvicensis,Oiseaux,Sternidés,Sterne caugek,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Tachybaptus ruficollis,Oiseaux,Podicipedidés,Grèbe castagneux,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Tadorna tadorna,Oiseaux,Anatidés,Tadorne de Belon,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Uria aalge,Oiseaux,Alcidés,Guillemot de Troïl,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Acrocephalus agricola,Oiseaux,Acrocéphalidés,Rousserolle isabelle,Autres oiseaux et chauves-souris,1.12
+Acrocephalus arundinaceus,Oiseaux,Acrocéphalidés,Rousserolle turdoïde,Autres oiseaux et chauves-souris,1.12
+Acrocephalus paludicola,Oiseaux,Acrocéphalidés,Phragmite aquatique,Autres oiseaux et chauves-souris,1.12
+Acrocephalus palustris,Oiseaux,Acrocéphalidés,Rousserolle verderolle,Autres oiseaux et chauves-souris,1.12
+Acrocephalus schoenobaenus,Oiseaux,Acrocéphalidés,Phragmite des joncs,Autres oiseaux et chauves-souris,1.12
+Acrocephalus scirpaceus,Oiseaux,Acrocéphalidés,Rousserolle effarvatte,Autres oiseaux et chauves-souris,1.12
+Aegithalos caudatus,Oiseaux,Aegithalidés,Orite à longue queue,Autres oiseaux et chauves-souris,1.12
+Alauda arvensis,Oiseaux,Alaudidés,Alouette des champs,Autres oiseaux et chauves-souris,0.96
+Anthus campestris,Oiseaux,Motacillidés,Pipit rousseline,Autres oiseaux et chauves-souris,1.12
+Anthus cervinus,Oiseaux,Motacillidés,Pipit à gorge rousse,Autres oiseaux et chauves-souris,1.12
+Anthus petrosus,Oiseaux,Motacillidés,Pipit maritime,Autres oiseaux et chauves-souris,1.12
+Anthus pratensis,Oiseaux,Motacillidés,Pipit farlouse,Autres oiseaux et chauves-souris,1.12
+Anthus richardi,Oiseaux,Motacillidés,Pipit de Richard,Autres oiseaux et chauves-souris,1.12
+Anthus spinoletta,Oiseaux,Motacillidés,Pipit spioncelle,Autres oiseaux et chauves-souris,1.12
+Anthus trivialis,Oiseaux,Motacillidés,Pipit des arbres,Autres oiseaux et chauves-souris,1.12
+Apus apus,Oiseaux,Apodidés,Martinet noir,Autres oiseaux et chauves-souris,1.12
+Apus melba,Oiseaux,Apodidés,Martinet à ventre blanc,Autres oiseaux et chauves-souris,1.12
+Bombycilla garrulus,Oiseaux,Bombycillidés,Jaseur boréal,Autres oiseaux et chauves-souris,1.12
+Calandrella brachydactyla,Oiseaux,Alaudidés,Alouette calandrelle,Autres oiseaux et chauves-souris,0.96
+Calcarius lapponicus,Oiseaux,Emberizidés,Bruant lapon,Autres oiseaux et chauves-souris,0.96
+Caprimulgus europaeus,Oiseaux,Caprimulgidés,Engoulevent d'Europe,Autres oiseaux et chauves-souris,1.12
+Carduelis cannabina,Oiseaux,Fringillidés,Linotte mélodieuse,Autres oiseaux et chauves-souris,0.96
+Carduelis carduelis,Oiseaux,Fringillidés,Chardonneret élégant,Autres oiseaux et chauves-souris,0.96
+Carduelis chloris,Oiseaux,Fringillidés,Verdier d'Europe,Autres oiseaux et chauves-souris,0.96
+Carduelis flammea,Oiseaux,Fringillidés,Sizerin flammé,Autres oiseaux et chauves-souris,0.96
+Carduelis flavirostris,Oiseaux,Fringillidés,Linotte à bec jaune,Autres oiseaux et chauves-souris,0.96
+Carduelis spinus,Oiseaux,Fringillidés,Tarin des aulnes,Autres oiseaux et chauves-souris,0.96
+Carpodacus erythrinus,Oiseaux,Fringillidés,Roselin cramoisi,Autres oiseaux et chauves-souris,0.96
+Certhia brachydactyla,Oiseaux,Certhiidés,Grimperau des jardins,Autres oiseaux et chauves-souris,1.12
+Certhia familiaris,Oiseaux,Certhiidés,Grimpereau des bois,Autres oiseaux et chauves-souris,1.12
+Cettia cetti,Oiseaux,Cettiidés,Bouscarle de Cetti,Autres oiseaux et chauves-souris,1.12
+Cinclus cinclus,Oiseaux,Cinclidés,Cincle plongeur,Autres oiseaux et chauves-souris,1.12
+Cisticola juncidis,Oiseaux,Cisticolidés,Cisticole des joncs,Autres oiseaux et chauves-souris,1.12
+Coccothraustes coccothraustes,Oiseaux,Fringillidés,Grosbec casse-noyaux,Autres oiseaux et chauves-souris,0.96
+Corvus corone,Oiseaux,Corvidés,Corneille noire,Autres oiseaux et chauves-souris,1.5
+Corvus frugilegus,Oiseaux,Corvidés,Corbeau freux,Autres oiseaux et chauves-souris,1.5
+Corvus monedula,Oiseaux,Corvidés,Choucas des tours,Autres oiseaux et chauves-souris,1.5
+Delichon urbica,Oiseaux,Hirundinidés,Hirondelle de fenêtre,Autres oiseaux et chauves-souris,1.12
+Emberiza aureola,Oiseaux,Emberizidés,Bruant auréole,Autres oiseaux et chauves-souris,0.96
+Emberiza calandra,Oiseaux,Emberizidés,Bruant proyer,Autres oiseaux et chauves-souris,0.96
+Emberiza cia,Oiseaux,Emberizidés,Bruant fou,Autres oiseaux et chauves-souris,0.96
+Emberiza cirlus,Oiseaux,Emberizidés,Bruant zizi,Autres oiseaux et chauves-souris,0.96
+Emberiza citrinella,Oiseaux,Emberizidés,Bruant jaune,Autres oiseaux et chauves-souris,0.96
+Emberiza hortulana,Oiseaux,Emberizidés,Bruant ortolan,Autres oiseaux et chauves-souris,0.96
+Emberiza leucocephala,Oiseaux,Emberizidés,Bruant à calotte blanche,Autres oiseaux et chauves-souris,0.96
+Emberiza pusilla,Oiseaux,Emberizidés,Bruant nain,Autres oiseaux et chauves-souris,0.96
+Emberiza rustica,Oiseaux,Emberizidés,Bruant rustique,Autres oiseaux et chauves-souris,0.96
+Emberiza schoeniclus,Oiseaux,Emberizidés,Bruant des roseaux,Autres oiseaux et chauves-souris,0.96
+Alauda alpestris,Oiseaux,Alaudidés,Alouette haussecol,Autres oiseaux et chauves-souris,1.12
+Erithacus rubecula,Oiseaux,Muscicapidés,Rougegorge familier,Autres oiseaux et chauves-souris,1.12
+Ficedula albicollis,Oiseaux,Muscicapidés,Gobemouche à collier,Autres oiseaux et chauves-souris,1.12
+Ficedula hypoleuca,Oiseaux,Muscicapidés,Gobemouche noir,Autres oiseaux et chauves-souris,1.12
+Ficedula parva,Oiseaux,Muscicapidés,Gobemouche nain,Autres oiseaux et chauves-souris,1.12
+Fringilla coelebs,Oiseaux,Fringillidés,Pinson des arbres,Autres oiseaux et chauves-souris,0.96
+Fringilla montifringilla,Oiseaux,Fringillidés,Pinson du Nord,Autres oiseaux et chauves-souris,0.96
+Galerida cristata,Oiseaux,Alaudidés,Cochevis huppé,Autres oiseaux et chauves-souris,1.12
+Garrulus glandarius,Oiseaux,Corvidés,Geai des chênes,Autres oiseaux et chauves-souris,1.5
+Hippolais icterina,Oiseaux,Acrocéphalidés,Hypolaïs ictérine,Autres oiseaux et chauves-souris,1.12
+Hippolais polyglotta,Oiseaux,Acrocéphalidés,Hypolaïs polyglotte,Autres oiseaux et chauves-souris,1.12
+Hirundo daurica,Oiseaux,Hirundinidés,Hirondelle rousseline,Autres oiseaux et chauves-souris,1.12
+Hirundo rustica,Oiseaux,Hirundinidés,Hirondelle rustique,Autres oiseaux et chauves-souris,1.12
+Lanius collurio,Oiseaux,Laniidés,Pie-grièche écorcheur,Autres oiseaux et chauves-souris,1.12
+Lanius excubitor,Oiseaux,Laniidés,Pie-grièche grise,Autres oiseaux et chauves-souris,1.12
+Lanius minor,Oiseaux,Laniidés,Pie-grièche à poitrine rose,Autres oiseaux et chauves-souris,1.12
+Lanius senator,Oiseaux,Laniidés,Pie-grièche à tête rousse,Autres oiseaux et chauves-souris,1.12
+Locustella fluviatilis,Oiseaux,Locustellidés,Locustelle fluviatile,Autres oiseaux et chauves-souris,1.12
+Locustella luscinioides,Oiseaux,Locustellidés,Locustelle luscinoïde,Autres oiseaux et chauves-souris,1.12
+Locustella naevia,Oiseaux,Locustellidés,Locustelle tachetée,Autres oiseaux et chauves-souris,1.12
+Loxia curvirostra,Oiseaux,Fringillidés,Bec-croisé des sapins,Autres oiseaux et chauves-souris,0.96
+Loxia leucoptera,Oiseaux,Fringillidés,Bec-croisé bifascié,Autres oiseaux et chauves-souris,1.12
+Loxia pityopsittacus,Oiseaux,Fringillidés,Bec-croisé perroquet,Autres oiseaux et chauves-souris,1.12
+Alauda alpestris,Oiseaux,Alaudidés,Alouette lulu,Autres oiseaux et chauves-souris,1.12
+Luscinia luscinia,Oiseaux,Muscicapidés,Rossignol progné,Autres oiseaux et chauves-souris,1.12
+Luscinia megarhynchos,Oiseaux,Muscicapidés,Rossignol philomèle,Autres oiseaux et chauves-souris,1.12
+Luscinia svecica,Oiseaux,Muscicapidés,Gorgebleue à miroir,Autres oiseaux et chauves-souris,1.12
+Melanocorypha calandra,Oiseaux,Alaudidés,Alouette calandre,Autres oiseaux et chauves-souris,1.12
+Melanocorypha leucoptera,Oiseaux,Alaudidés,Alouette leucoptère,Autres oiseaux et chauves-souris,1.12
+Monticola saxatilis,Oiseaux,Turdidé,Monticole de roche,Autres oiseaux et chauves-souris,1.12
+Motacilla alba,Oiseaux,Motacillidés,Bergeronnette grise,Autres oiseaux et chauves-souris,1.12
+Motacilla cinerea,Oiseaux,Motacillidés,Bergeronnette des ruisseaux,Autres oiseaux et chauves-souris,1.12
+Motacilla flava,Oiseaux,Motacillidés,Bergeronnette printanière,Autres oiseaux et chauves-souris,1.12
+Muscicapa striata,Oiseaux,Muscicapidés,Gobemouche gris,Autres oiseaux et chauves-souris,1.12
+Nucifraga caryocatactes,Oiseaux,Corvidés,Cassenoix moucheté,Autres oiseaux et chauves-souris,1.5
+Oenanthe hispanica,Oiseaux,Muscicapidés,Traquet oreillard,Autres oiseaux et chauves-souris,1.12
+Oenanthe oenanthe,Oiseaux,Muscicapidés,Traquet motteux,Autres oiseaux et chauves-souris,1.12
+Oriolus oriolus,Oiseaux,Oriolidés,Loriot d'Europe,Autres oiseaux et chauves-souris,1.12
+Panurus biarmicus,Oiseaux,Panuridés,Panure à moustaches,Autres oiseaux et chauves-souris,1.12
+Parus ater,Oiseaux,Paridés,Mésange noire,Autres oiseaux et chauves-souris,1.12
+Parus caeruleus,Oiseaux,Paridés,Mésange bleue,Autres oiseaux et chauves-souris,1.12
+Parus cristatus,Oiseaux,Paridés,Mésange huppée,Autres oiseaux et chauves-souris,1.12
+Parus major,Oiseaux,Paridés,Mésange charbonnière,Autres oiseaux et chauves-souris,1.12
+Parus montanus,Oiseaux,Paridés,Mésange boréale,Autres oiseaux et chauves-souris,1.12
+Parus palustris,Oiseaux,Paridés,Mésange nonnette,Autres oiseaux et chauves-souris,1.12
+Passer domesticus,Oiseaux,Passeridés,Moineau domestique,Autres oiseaux et chauves-souris,0.96
+Passer montanus,Oiseaux,Passeridés,Moineau friquet,Autres oiseaux et chauves-souris,0.96
+Petronia petronia,Oiseaux,Passeridés,Moineau soulcie,Autres oiseaux et chauves-souris,0.96
+Phoenicurus ochruros,Oiseaux,Muscicapidés,Rougequeue noir,Autres oiseaux et chauves-souris,1.12
+Phoenicurus phoenicurus,Oiseaux,Phylloscopidés,Rougequeue à front blanc,Autres oiseaux et chauves-souris,1.12
+Phylloscopus bonelli,Oiseaux,Phylloscopidés,Pouillot de Bonelli,Autres oiseaux et chauves-souris,1.12
+Phylloscopus collybita,Oiseaux,Phylloscopidés,Pouillot véloce,Autres oiseaux et chauves-souris,1.12
+Phylloscopus inornatus,Oiseaux,Phylloscopidés,Pouillot à grands sourcils,Autres oiseaux et chauves-souris,1.12
+Phylloscopus proregulus,Oiseaux,Phylloscopidés,Pouillot de Pallas,Autres oiseaux et chauves-souris,1.12
+Phylloscopus schwarzi,Oiseaux,Phylloscopidés,Pouillot de Schwarz,Autres oiseaux et chauves-souris,1.12
+Phylloscopus sibilatrix,Oiseaux,Phylloscopidés,Pouillot siffleur,Autres oiseaux et chauves-souris,1.12
+Phylloscopus trochilus,Oiseaux,Phylloscopidés,Pouillot fitis,Autres oiseaux et chauves-souris,1.12
+Pica pica,Oiseaux,Corvidés,Pie bavarde,Autres oiseaux et chauves-souris,1.5
+Plectrophenax nivalis,Oiseaux,Emberizidés,Bruant des neiges,Autres oiseaux et chauves-souris,0.96
+Prunella collaris,Oiseaux,Prunellidés,Accenteur alpin,Autres oiseaux et chauves-souris,1.12
+Prunella modularis,Oiseaux,Prunellidés,Accenteur mouchet,Autres oiseaux et chauves-souris,1.12
+Ptyonoprogne rupestris,Oiseaux,Hirundinidés,Hirondelle des rochers,Autres oiseaux et chauves-souris,1.12
+Pyrrhula pyrrhula,Oiseaux,Fringillidés,Bouvreuil pivoine,Autres oiseaux et chauves-souris,0.96
+Regulus ignicapillus,Oiseaux,Régulidés,Roitelet à triple bandeau,Autres oiseaux et chauves-souris,1.12
+Regulus regulus,Oiseaux,Régulidés,Roitelet huppé,Autres oiseaux et chauves-souris,1.12
+Remiz pendulinus,Oiseaux,Rémizidés,Remiz penduline,Autres oiseaux et chauves-souris,1.12
+Riparia riparia,Oiseaux,Hirundinidés,Hirondelle de rivage,Autres oiseaux et chauves-souris,1.12
+Saxicola rubetra,Oiseaux,Muscicapidés,Tarier des prés,Autres oiseaux et chauves-souris,1.12
+Saxicola rubicola,Oiseaux,Muscicapidés,Tarier pâtre (torquatus),Autres oiseaux et chauves-souris,1.12
+Serinus citrinella,Oiseaux,Fringillidés,Venturon montagnard,Autres oiseaux et chauves-souris,0.96
+Serinus serinus,Oiseaux,Fringillidés,Serin cini,Autres oiseaux et chauves-souris,0.96
+Sitta europaea,Oiseaux,Sittidés,Sittelle d'Europe,Autres oiseaux et chauves-souris,1.12
+Sturnus roseus,Oiseaux,Sturnidés,Etourneau roselin,Autres oiseaux et chauves-souris,1.12
+Sturnus vulgaris,Oiseaux,Sturnidés,Etourneau sansonnet,Autres oiseaux et chauves-souris,1.12
+Sylvia atricapilla,Oiseaux,Sylviidés,Fauvette à tête noire,Autres oiseaux et chauves-souris,1.12
+Sylvia borin,Oiseaux,Sylviidés,Fauvette des jardins,Autres oiseaux et chauves-souris,1.12
+Sylvia cantillans,Oiseaux,Sylviidés,Fauvette passerinette,Autres oiseaux et chauves-souris,1.12
+Sylvia communis,Oiseaux,Sylviidés,Fauvette grisette,Autres oiseaux et chauves-souris,1.12
+Sylvia curruca,Oiseaux,Sylviidés,Fauvette babillarde,Autres oiseaux et chauves-souris,1.12
+Sylvia hortensis,Oiseaux,Sylviidés,Fauvette orphée,Autres oiseaux et chauves-souris,1.12
+Sylvia melanocephala,Oiseaux,Sylviidés,Fauvette mélanocéphale,Autres oiseaux et chauves-souris,1.12
+Sylvia nisoria,Oiseaux,Sylviidés,Fauvette épervière,Autres oiseaux et chauves-souris,1.12
+Sylvia undata,Oiseaux,Sylviidés,Fauvette pitchou,Autres oiseaux et chauves-souris,1.12
+Tichodroma muraria,Oiseaux,Tichodromidés,Tichodrome échelette,Autres oiseaux et chauves-souris,1.12
+Troglodytes troglodytes,Oiseaux,Troglodytidés,Troglodyte mignon,Autres oiseaux et chauves-souris,1.12
+Turdus iliacus,Oiseaux,Turdidés,Grive mauvis,Autres oiseaux et chauves-souris,1.12
+Turdus merula,Oiseaux,Turdidés,Merle noir,Autres oiseaux et chauves-souris,1.12
+Turdus naumanni,Oiseaux,Turdidés,Grive de Nauman,Autres oiseaux et chauves-souris,1.12
+Turdus obscurus,Oiseaux,Turdidés,Grive obscure,Autres oiseaux et chauves-souris,1.12
+Turdus philomelos,Oiseaux,Turdidés,Grive musicienne,Autres oiseaux et chauves-souris,1.12
+Turdus pilaris,Oiseaux,Turdidés,Grive litorne,Autres oiseaux et chauves-souris,1.12
+Turdus ruficollis,Oiseaux,Turdidés,Grive à gorge rousse,Autres oiseaux et chauves-souris,1.12
+Turdus torquatus,Oiseaux,Turdidés,Merle à plastron,Autres oiseaux et chauves-souris,1.12
+Turdus viscivorus,Oiseaux,Turdidés,Grive draine,Autres oiseaux et chauves-souris,1.12
+Zoothera dauma,Oiseaux,Turdidés,Grive dorée,Autres oiseaux et chauves-souris,1.12
+Zoothera sibirica,Oiseaux,Turdidés,Grive de Sibérie,Autres oiseaux et chauves-souris,1.12
+Dendrocopos leucotos,Oiseaux,Picidés,Pic à dos blanc,Autres oiseaux et chauves-souris,1.12
+Dendrocopos major,Oiseaux,Picidés,Pic épeiche,Autres oiseaux et chauves-souris,1.12
+Dendrocopos medius,Oiseaux,Picidés,Pic mar,Autres oiseaux et chauves-souris,1.12
+Dendrocopos minor,Oiseaux,Picidés,Pic épeichette,Autres oiseaux et chauves-souris,1.12
+Dryocopus martius,Oiseaux,Picidés,Pic noir,Autres oiseaux et chauves-souris,1.12
+Jynx torquilla,Oiseaux,Picidés,Torcol fourmilier,Autres oiseaux et chauves-souris,1.12
+Picus canus,Oiseaux,Picidés,Pic cendré,Autres oiseaux et chauves-souris,1.12
+Picus viridis,Oiseaux,Picidés,Pic vert,Autres oiseaux et chauves-souris,1.12
+Accipiter gentilis,Oiseaux,Accipitridés,Autour des palombes,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Accipiter nisus,Oiseaux,Accipitridés,Epervier d'Europe,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Aquila chrysaetos,Oiseaux,Accipitridés,Aigle royal,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Aquila clanga,Oiseaux,Accipitridés,Aigle criard,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Aquila pomarina,Oiseaux,Accipitridés,Aigle pomarin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Buteo buteo,Oiseaux,Accipitridés,Buse variable,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Buteo lagopus,Oiseaux,Accipitridés,Buse pattue,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Circaetus gallicus,Oiseaux,Accipitridés,Circaète Jean le blanc,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Circus aeruginosus,Oiseaux,Accipitridés,Busard des roseaux,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Circus cyaneus,Oiseaux,Accipitridés,Busard Saint Martin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Circus macrourus,Oiseaux,Accipitridés,Busard pâle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Circus pygargus,Oiseaux,Accipitridés,Busard cendré,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Elanus caeruleus,Oiseaux,Accipitridés,Elanion blanc,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Falco columbarius,Oiseaux,Falconidés,Faucon émerillon,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Falco peregrinus,Oiseaux,Falconidés,Faucon pèlerin,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Falco subbuteo,Oiseaux,Falconidés,Faucon hobereau,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Falco tinnunculus,Oiseaux,Falconidés,Faucon crécerelle,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Falco vespertinus,Oiseaux,Falconidés,Faucon kobez,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Gyps fulvus,Oiseaux,Accipitridés,Vautour fauve,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Haliaeetus albicilla,Oiseaux,Accipitridés,Pygargue à queue blanche,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Hieraaetus fasciatus,Oiseaux,Accipitridés,Aigle de Bonelli,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Hieraaetus pennatus,Oiseaux,Accipitridés,Aigle botté,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Milvus migrans,Oiseaux,Accipitridés,Milan noir,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Milvus milvus,Oiseaux,Accipitridés,Milan royal,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Neophron percnopterus,Oiseaux,Accipitridés,Vautour percnoptère,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Pandion haliaetus,Oiseaux,Pandionidés,Balbuzard pêcheur,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Pernis apivorus,Oiseaux,Accipitridés,Bondrée apivore,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Aegolius funereus,Oiseaux,Strigidés,Chouette de Tengmalm,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Asio flammeus,Oiseaux,Strigidés,Hibou des marais,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Asio otus,Oiseaux,Strigidés,Hibou moyen duc,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Athene noctua,Oiseaux,Strigidés,Chevêche d'Athena,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Bubo bubo,Oiseaux,Strigidés,Grand-Duc d'Europe,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3
+Glaucidium passerinum,Oiseaux,Strigidés,Chevêchette d'Europe ,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Otus scops,Oiseaux,Strigidés,Hibou petit duc scops,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Strix aluco,Oiseaux,Strigidés,Chouette hulotte,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Surnia ulula,Oiseaux,Strigidés,Chouette épervière,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Tyto alba,Oiseaux,Tytonidés,Effraie des clochers,"Rapaces, oiseaux d’eau, échassiers ou limicoles",1.37
+Anser anser,Oiseaux,Anatidés,Oie cendrée,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Tamias sibiricus,Mammifères,Sciuridés,Tamia de Sibérie,invasif,
+Dama dama,Mammifères,Cervidés,Daim,invasif,
+Ovis gmelini musimon x Ovis sp.,Mammifères,Bovidés,Mouflon x  Mouton domestique,Mammifères non volants,
+Myocastor coypus,Mammifères,Echimyidés,Ragondin,invasif préocupant,
+Ondatra zibethicus,Mammifères,Cricétidés,Rat musqué,invasif préocupant,
+Rattus norvegicus,Mammifères,Muridés,Rat brun,invasif,
+Columba livia var. domestica,Oiseaux,Colombidés,Pigeon biset féral,invasif,
+Colinus virginianus,Oiseaux,Phasianidés,Colin de Virginie,exotique,0.96
+Lagopus lagopus,Oiseaux,Phasianidés,Lagopède des saules,Autres oiseaux et chauves-souris,0.96
+Phasianus colchicus,Oiseaux,Phasianidés,Faisan de Colchide,Autres oiseaux et chauves-souris,0.96
+Aix galericulata,Oiseaux,Anatidés,Canard mandarin,exotique,
+Alopochen aegyptiacus,Oiseaux,Anatidés,Ouette d'Egypte,invasif préocupant,
+Branta canadensis,Oiseaux,Anatidés,Bernache du Canada,invasif,
+Cygnus olor,Oiseaux,Anatidés,Cygne tuberculé,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Oxyura jamaicensis,Oiseaux,Anatidés,Erismature rousse,invasif préocupant,
+Psittacula krameri,Oiseaux,Psittacidés,Perruche à collier,invasif,
+Felis catus,Mammifères,Félidés,Chat haret,domestique,
+Genetta genetta,Mammifères,Viverridés,Genette,Mammifères non volants,
+Mustela vison (Neovison vison),Mammifères,Mustélidés,Vison américain,invasif,
+Procyon lotor,Mammifères,Procyonidés,Raton laveur,invasif préocupant,
+Nyctereutes procyonoides,Mammifères,Canidés,Chien viverrin ,invasif préocupant,
+Castor fiber,Mammifères,Castoridés,Castor d'Europe,Mammifères non volants,
+Lynx lynx,Mammifères,Félidés,Lynx boréal ,Mammifères non volants,
+Anas querquedula,Oiseaux,Anatidés,Sarcelle d'été,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21
+Larus michahellis,Oiseaux,Laridés,Goéland leucophée,"Rapaces, oiseaux d’eau, échassiers ou limicoles",3.21

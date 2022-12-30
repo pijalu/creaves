@@ -1,0 +1,6 @@
+- id: "species.created.success"
+  translation: "Species was successfully created."
+- id: "species.updated.success"
+  translation: "Species was successfully updated."
+- id: "species.destroyed.success"
+  translation: "Species was successfully destroyed."
