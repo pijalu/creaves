@@ -228,7 +228,6 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 
 	animalYearNumber := c.Param("animal_year_number")
 	if len(animalYearNumber) > 0 {
-		// `(\d+)(/(\d{2}))?`gm
 		c.Logger().Debug("animalYearNumber:", animalYearNumber)
 		matches := AnimalYearNumberRegEx.FindStringSubmatch(animalYearNumber)
 		if matches == nil {
