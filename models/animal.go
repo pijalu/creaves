@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,6 +58,10 @@ func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
 		return keys[i].Name < keys[j].Name
 	})
 	return keys
+}
+
+func (a Animal) YearNumberFormatted() string {
+	return fmt.Sprintf("%d/%d", a.YearNumber, a.Year%100)
 }
 
 // String is not required by pop and may be deleted
