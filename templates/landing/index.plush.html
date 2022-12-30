@@ -82,16 +82,18 @@
       data-pagination="true"
       data-toggle="table"
       data-search="true"
-      data-show-columns="true"
-      data-locale="en-US">
+      data-show-columns="false"
+      data-locale="en-US"
+      data-page-size="50"
+      >
 
       <thead class="thead-light">
-        <th>Number</th>
-        <th>Intake date</th>
-        <th>Cage</th>
-        <th>Species</th>
-        <th>Age</th>
-        <th>Indentification</th>
+        <th data-sortable="true">Number</th>
+        <th data-sortable="true">Intake date</th>
+        <th data-sortable="true" data-filter-control="select">Cage</th>
+        <th data-sortable="true" data-filter-control="select">Species</th>
+        <th data-sortable="true">Age</th>
+        <th data-sortable="true">Indentification</th>
         <th>Treatments</th>
         <th>&nbsp;</th>
       </thead>

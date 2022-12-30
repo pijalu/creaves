@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -38,6 +39,11 @@ type CareWithAnimalNumber struct {
 	Care
 	Year       int `json:"Year" db:"year"`
 	YearNumber int `json:"YearNumber" db:"yearNumber"`
+}
+
+// YearNumberFormatted returns the year number formatted
+func (c CareWithAnimalNumber) YearNumberFormatted() string {
+	return fmt.Sprintf("%d/%d", c.YearNumber, c.Year%100)
 }
 
 // String is not required by pop and may be deleted

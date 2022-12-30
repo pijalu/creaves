@@ -60,6 +60,7 @@ func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
 	return keys
 }
 
+// YearNumberFormatted returns the year number formatted
 func (a Animal) YearNumberFormatted() string {
 	return fmt.Sprintf("%d/%d", a.YearNumber, a.Year%100)
 }

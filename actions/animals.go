@@ -235,7 +235,7 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		}
 		c.Logger().Debug("animalYearNumber regex matches:", matches)
 		q := tx.Where("YearNumber = ?", matches[1])
-		if len(matches) == 4 {
+		if len(matches) == 4 && len(matches[3]) == 2 {
 			q = q.Where("Year = ?", fmt.Sprintf("20%s", matches[3]))
 		}
 

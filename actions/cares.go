@@ -199,7 +199,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 		}
 		c.Logger().Debug("animalYearNumber regex matches:", matches)
 		q := tx.Where("yearNumber = ?", matches[1])
-		if len(matches) == 4 {
+		if len(matches) == 4 && len(matches[3]) == 2 {
 			q = q.Where("year = ?", fmt.Sprintf("20%s", matches[3]))
 		}
 
