@@ -3,6 +3,7 @@ package actions
 import (
 	"creaves/models"
 	"fmt"
+	"regexp"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -35,7 +36,7 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 	if err := tx.Order("name asc").All(ts); err != nil {
 		return nil, err
 	}
-	c.Logger().Debugf("Loaded animal types: %v", ts)
+	//c.Logger().Debugf("Loaded animal types: %v", ts)
 
 	return ts, nil
 }
@@ -140,7 +141,7 @@ func animalages(c buffalo.Context) (*models.Animalages, error) {
 	if err := tx.Order("name asc").All(ts); err != nil {
 		return nil, err
 	}
-	c.Logger().Debugf("Loaded animal types: %v", ts)
+	//c.Logger().Debugf("Loaded animal types: %v", ts)
 
 	return ts, nil
 }
@@ -167,7 +168,7 @@ func users(c buffalo.Context) (*models.Users, error) {
 	if err := tx.Order("login asc").All(u); err != nil {
 		return nil, err
 	}
-	c.Logger().Debugf("Loaded users: %v", u)
+	//c.Logger().Debugf("Loaded users: %v", u)
 
 	return u, nil
 }
@@ -200,3 +201,6 @@ func BoolToInt(b bool) int {
 	}
 	return 0
 }
+
+// AnimalYearNumberRegEx
+var AnimalYearNumberRegEx = regexp.MustCompile(`(\d+)(/(\d{2}))?`)

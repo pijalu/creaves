@@ -129,7 +129,7 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 			errCode = http.StatusNotFound
 		}
 
-		c.Logger().Debugf("Loaded animal %v", animal)
+		//c.Logger().Debugf("Loaded animal %v", animal)
 
 		if animal.Outtake != nil {
 			c.Flash().Add("danger", T.Translate(c, "outtake.animal.outtake.already.exist", data))

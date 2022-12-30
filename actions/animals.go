@@ -228,8 +228,20 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 
 	animalYearNumber := c.Param("animal_year_number")
 	if len(animalYearNumber) > 0 {
+		// `(\d+)(/(\d{2}))?`gm
+		c.Logger().Debug("animalYearNumber:", animalYearNumber)
+		matches := AnimalYearNumberRegEx.FindStringSubmatch(animalYearNumber)
+		if matches == nil {
+			return fmt.Errorf("invalid year number: %s", animalYearNumber)
+		}
+		c.Logger().Debug("animalYearNumber regex matches:", matches)
+		q := tx.Where("YearNumber = ?", matches[1])
+		if len(matches) == 4 {
+			q = q.Where("Year = ?", fmt.Sprintf("20%s", matches[3]))
+		}
+
 		animal := models.Animal{}
-		err := tx.Where("YearNumber = ?", animalYearNumber).Order("ID desc").First(&animal)
+		err := q.Order("ID desc").First(&animal)
 		if err == nil {
 			return c.Redirect(http.StatusSeeOther, "/animals/%v", animal.ID)
 		}
@@ -289,7 +301,7 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 		return err
 	}
 
-	c.Logger().Debugf("Loaded animal: %v", animal)
+	//c.Logger().Debugf("Loaded animal: %v", animal)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)

@@ -135,7 +135,7 @@ func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 		return c.Render(http.StatusNotFound, r.JSON(result))
 	}
 
-	c.Logger().Debugf("Loaded mediaction/dosage: %v", d)
+	//c.Logger().Debugf("Loaded mediaction/dosage: %v", d)
 
 	if !d.DosagePerGrams.Valid {
 		c.Logger().Debugf("No dosage for drug")
@@ -180,7 +180,7 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 	// return a series of strings
 	s := []string{}
 	for _, result := range results {
-		s = append(s, result.YearNumber)
+		s = append(s, fmt.Sprintf("%s/%s", result.YearNumber, result.Year[2:]))
 	}
 
 	return c.Render(200, r.JSON(s))

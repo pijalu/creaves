@@ -173,7 +173,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 			errCode = http.StatusNotFound
 		}
 
-		c.Logger().Debugf("Loaded animal %v", animal)
+		//c.Logger().Debugf("Loaded animal %v", animal)
 
 		if animal.OuttakeID.Valid {
 			c.Flash().Add("danger", T.Translate(c, "care.animal.outtake.already.exist", data))

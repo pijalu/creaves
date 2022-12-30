@@ -12,7 +12,10 @@
       <label for="goto_animalNumber" class="col-sm-2 col-form-label">Animal&nbsp;number</label>
     </div>
     <div class="col-4">
-      <input name="animal_year_number" type="number" class="form-control" id="animal_year_number" placeholder="123" required>
+      <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123" 
+        pattern="^[0-9]+(\/[0-9]{2})?$" 
+        title="number should be in the format 123 or 123/22 (with 22 the 2 last digit of the year)"
+      required>
 
       <script>
         $('input[id="animal_year_number"]').autoComplete({
