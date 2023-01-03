@@ -168,7 +168,7 @@
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newCaresPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
           Create New Care
         <% } %>
       </div>
@@ -224,7 +224,7 @@
     <div class="py-4 mb-2">
       <h3 class="d-inline-block">Veterinary visits</h3>
       <div class="float-right">
-        <%= linkTo(newVeterinaryvisitsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
           Create New Veterinary visit
         <% } %>
       </div>
@@ -292,7 +292,7 @@
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_id: animal.ID, back: "/animals/"+animal.ID.String()+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Add New treatment
         <% } %>
       </div>
