@@ -22,8 +22,12 @@ ADD . .
 RUN buffalo build --environment production --static -o /bin/app
 
 FROM alpine
-RUN apk add --no-cache bash
-RUN apk add --no-cache ca-certificates
+
+ARG TZ='Europe/Brussels'
+ENV DEFAULT_TZ ${TZ}
+
+RUN apk add --no-cache bash ca-certificates tzdata \
+  && cp /usr/share/zoneinfo/${DEFAULT_TZ} /etc/localtime 
 
 WORKDIR /bin/
 
