@@ -1,20 +1,23 @@
 <%= if (travel.AnimalID.Value() == 0 ) { %>
   <h4>Select animal linked to the travel</h4>
   <%= formFor(travel, {action: newTravelsPath(), method: "GET"}) { %>
-  <div class="form-group row">
-    <label for="animalID" class="col-sm-2 col-form-label">Animal ID</label>
-    <div class="col-sm-10">
-      <input type="number" class="form-control" id="animal_id" name="animal_id" placeholder="123" required>
-      <script>
-        $('input[name="animal_id"]').autoComplete({
-            minChars: 0,
-            source: function(term, response){
-                $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
-            }
-        });
-      </script>
+    <div class="form-group row">
+      <label for="animal_year_number" class="col-sm-2 col-form-label">Animal Number</label>
+      <div class="col-sm-10">
+        <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123" 
+          pattern="^[0-9]+(\/[0-9]{2})?$" 
+          title="number should be in the format 123 or 123/22 (with 22 the 2 last digit of the year)"
+        required>
+        <script>
+          $('input[name="animal_year_number"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+              }
+          });
+        </script>
+      </div>
     </div>
-  </div>
   <div class="form-group row">
     <button class="btn btn-success" role="submit">Next</button>
 <script type="text/javascript">
@@ -26,7 +29,7 @@ $( document ).ready(function(){
   <% } %>
 <% } else { %>
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">New Travel for animal <%= travel.AnimalID %></h3>
+  <h3 class="d-inline-block">New Travel for animal <%= travel.Animal.YearNumberFormatted() %></h3>
 </div>
 
 <%= formFor(travel, {action: travelsPath(), method: "POST"}) { %>
