@@ -42,12 +42,10 @@ $( document ).ready(function(){
   
   <%= formFor(outtake, {action: outtakesPath(), method: "POST"}) { %>
   <input type="hidden" name="animal_id" value="<%= animal.ID %>" />
-  <%= if (animal.Animaltype.HasRing) {%>
   <div class="form-group">
     <label>Indentification</label>
     <input required="required" class="form-control" id="animal_ring" name="animal_ring" type="text" value="<%= animal.Ring %>">
   </div>
-  <% } %>
   <%= partial("outtakes/form.html") %>
   <%= linkTo(outtakesPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
 <% } %>
