@@ -48,7 +48,7 @@ func (v TravelsResource) List(c buffalo.Context) error {
 	if !u.Admin {
 		q = q.Where("user_id = ?", u.ID)
 	}
-	if err := q.Eager().All(travels); err != nil {
+	if err := q.Eager().Order("created_at desc").All(travels); err != nil {
 		return err
 	}
 

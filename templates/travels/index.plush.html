@@ -18,7 +18,7 @@
   <tbody>
     <%= for (travel) in travels { %>
       <tr>
-        <td class="align-middle"><%= travel.AnimalID %></td>
+        <td class="align-middle"><%= travel.Animal.YearNumberFormatted() %></td>
         <td class="align-middle"><%= travel.User.Login %></td>
         <td class="align-middle">
           <%= travel.Traveltype.Name %>
