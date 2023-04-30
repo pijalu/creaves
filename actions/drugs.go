@@ -315,6 +315,11 @@ func (v DrugsResource) Update(c buffalo.Context) error {
 		return err
 	}
 
+	/* Reset all dosage enabled flags */
+	for _, d := range drug.Dosages {
+		d.Enabled = false
+	}
+
 	// Bind Drug to the html form elements
 	if err := c.Bind(drug); err != nil {
 		return err
