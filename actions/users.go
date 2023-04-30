@@ -292,7 +292,6 @@ func (v UsersResource) Update(c buffalo.Context) error {
 
 	// Force reset of DB
 	user.Admin = false
-	user.Approved = false
 	user.Shared = false
 
 	// Bind User to the html form elements
