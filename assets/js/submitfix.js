@@ -1,6 +1,6 @@
 function submitfix() {
-     jQuery('form').submit(function(){
-          $(this).find(':submit').attr( 'disabled','disabled' );
+     $('form').on("submit", function(){
+          $(this).find(':submit').prop('disabled','disabled');
      });
 }
 
