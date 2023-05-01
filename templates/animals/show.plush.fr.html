@@ -164,6 +164,9 @@
         <p class="d-inline-block"><%= animal.Feeding %></p>
       </li>
     </ul>
+    <%= if (animal.ForceFeed) {%>
+      <div class="p-3 mb-2 bg-danger text-white">Force Feed !</div>
+    <% } %>
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">

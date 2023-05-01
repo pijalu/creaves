@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.31, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.33, for Linux (x86_64)
 --
 -- Host: localhost    Database: creaves
 -- ------------------------------------------------------
--- Server version	8.0.31
+-- Server version	8.0.33
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -57,6 +57,7 @@ CREATE TABLE `animals` (
   `year` int DEFAULT NULL,
   `yearNumber` int DEFAULT NULL,
   `IntakeDate` datetime NOT NULL,
+  `force_feed` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `animals_year_yearNumber_idx` (`year`,`yearNumber`),
   KEY `animaltype_id` (`animaltype_id`),
@@ -481,4 +482,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2022-12-30 19:16:48
+-- Dump completed on 2023-05-01 11:52:01

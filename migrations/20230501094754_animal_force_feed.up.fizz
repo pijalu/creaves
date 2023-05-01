@@ -1,0 +1,1 @@
+add_column("animals", "force_feed", "bool", {"default": false})

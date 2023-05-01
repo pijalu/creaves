@@ -193,6 +193,7 @@ $( document ).ready(function(){
   <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
     <div class="container p-3 my-3 border">
     <%= f.TextAreaTag("Feeding", {label:"Alimentation", rows: 2, class:"col-md-12"}) %>
+    <%= f.CheckboxTag("ForceFeed", {label:"Gavage", unchecked: false}) %>
     </div>
     <div class="py-4 mb-2">
       <div class="float-right">
