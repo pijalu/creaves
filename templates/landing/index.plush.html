@@ -95,6 +95,7 @@
         <th data-sortable="true">Age</th>
         <th data-sortable="true">Indentification</th>
         <th>Treatments</th>
+        <th title="Force Feed">FF</th>
         <th>&nbsp;</th>
       </thead>
       <tbody>
@@ -168,6 +169,13 @@
               </p>
             </td>
             <td>
+              <%= if (animal.ForceFeed) {%>
+                <i class="fa fa-check"></i>
+              <% } else { %>
+                <i class="fa fa-times"></i> 
+              <% } %>
+            </td>
+            <td>
               <div class="float-right">
                 <%= if (!animal.OuttakeID.Value() || current_user.Admin) {%>
                 <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
@@ -177,6 +185,7 @@
                 <% } %>
               </div>
             </td>
+            
           </tr>
         <% } %>
       </tbody>

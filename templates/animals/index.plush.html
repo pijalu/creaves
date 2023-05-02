@@ -69,6 +69,7 @@
     <th>Age</th>
     <th>Identification</th>
     <th>Treatments</th>
+    <th title="Force Feed">FF</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -146,6 +147,13 @@
               </span>
             <% }%>
           </p>
+        </td>
+        <td>
+          <%= if (animal.ForceFeed) {%>
+            <i class="fa fa-check"></i>
+          <% } else { %>
+            <i class="fa fa-times"></i>
+          <% } %>
         </td>
         <td>
           <div class="float-right">

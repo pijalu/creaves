@@ -95,6 +95,7 @@
         <th data-sortable="true">Age</th>
         <th data-sortable="true">Identification</th>
         <th>Traitements</th>
+        <th title="Gavage">Ga</th>
         <th>&nbsp;</th>
       </thead>
       <tbody>
@@ -166,6 +167,13 @@
                   </span>
                 <% }%>
               </p>
+            </td>
+            <td>
+              <%= if (animal.ForceFeed) {%>
+                <i class="fa fa-check"></i>
+              <% } else { %>
+                <i class="fa fa-times"></i>
+              <% } %>
             </td>
             <td>
               <div class="float-right">
