@@ -56,6 +56,14 @@ WHERE EXISTS(
 	  AND t.date < ?) 
 `
 
+// SQL_ANIMAL_TOBE_FORCEFEED returns the animals than need force feeding
+const SQL_ANIMAL_TOBE_FORCEFEED = `
+SELECT a.* 
+FROM animals a
+WHERE outtake_id is null 
+ AND force_feed is true
+`
+
 func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -89,6 +97,21 @@ func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
 
 	// Retrieve all animals with today treatments from the DB
 	if err := tx.RawQuery(SQL_ANIMAL_WITH_TODAY_TREATMENTS, nowDt, tmrDt).All(animals); err != nil {
+		return nil, err
+	}
+	return EnrichAnimals(animals, c)
+}
+
+func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
+	animals := &models.Animals{}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	// Retrieve all animals with today treatments from the DB
+	if err := tx.RawQuery(SQL_ANIMAL_TOBE_FORCEFEED).All(animals); err != nil {
 		return nil, err
 	}
 	return EnrichAnimals(animals, c)
@@ -144,6 +167,12 @@ func DashboardIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("animalsToTreat", animals)
+
+	animalsToForceFeed, err := listAnimalWithForceFeed(c)
+	if err != nil {
+		return err
+	}
+	c.Set("animalsToForceFeed", animalsToForceFeed)
 
 	ct, err := listAnimalCountPerType(c)
 	if err != nil {

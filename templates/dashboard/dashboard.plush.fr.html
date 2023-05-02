@@ -238,6 +238,43 @@
 <br/>
 
 
+<h3 class="d-inline-block">Animaux à gaver</h3>
+<%= if (len(animalsToForceFeed)>0) {%>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th>ID</th>
+    <th>Cage</th>
+    <th>Espèce</th>
+    <th>Alimentation</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animalsToForceFeed { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle"><p><%= animal.Feeding %></p></td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+  <%} else {%>
+<p>Aucun</p>
+<%}%>
+<br/>
+
 <h3 class="d-inline-block">Entrées au journal de bord les dernieres 24h</h3>
 <%= if (len(lastLogentries)>0) {%>
 <table class="table table-hover table-bordered">
