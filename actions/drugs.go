@@ -316,8 +316,8 @@ func (v DrugsResource) Update(c buffalo.Context) error {
 	}
 
 	/* Reset all dosage enabled flags */
-	for _, d := range drug.Dosages {
-		d.Enabled = false
+	for i := 0; i < len(drug.Dosages); i++ {
+		drug.Dosages[i].Enabled = false
 	}
 
 	// Bind Drug to the html form elements
