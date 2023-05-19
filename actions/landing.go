@@ -10,6 +10,40 @@ import (
 	"github.com/gobuffalo/x/responder"
 )
 
+type listAnimalWithCleanCageReply struct {
+	Id int `db:"ID"`
+}
+
+const SQL_ANIMAL_WITH_CLEAN_CAGE = `
+	SELECT DISTINCT c.animal_id as 'ID'
+	FROM cares c
+	WHERE c.clean = 1
+		AND c.date >= DATE_SUB(now(), INTERVAL 1 DAY)
+`
+
+// List all animals id with a clean cage within the last 24h
+func listAnimalWithCleanCage(c buffalo.Context) (map[int]bool, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	var a []listAnimalWithCleanCageReply
+	// Retrieve all Cares from the DB
+	if err := tx.Eager().RawQuery(SQL_ANIMAL_WITH_CLEAN_CAGE).All(&a); err != nil {
+		return nil, err
+	}
+
+	//remap
+	res := map[int]bool{}
+
+	for _, item := range a {
+		res[item.Id] = true
+	}
+
+	return res, nil
+}
+
 // LandingIndex is the default landing view
 func LandingIndex(c buffalo.Context) error {
 	// Get the DB connection from the context
@@ -33,6 +67,12 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
+		// Add clean cage flag
+		animalWithCleanCage, err := listAnimalWithCleanCage(c)
+		if err != nil {
+			return err
+		}
+		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
