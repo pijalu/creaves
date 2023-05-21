@@ -18,7 +18,7 @@ const SQL_ANIMAL_WITH_CLEAN_CAGE = `
 	SELECT DISTINCT c.animal_id as 'ID'
 	FROM cares c
 	WHERE c.clean = 1
-		AND c.date >= DATE_SUB(now(), INTERVAL 1 DAY)
+		AND c.date >= DATE_ADD(CURDATE(), INTERVAL 2 HOUR)
 `
 
 // List all animals id with a clean cage within the last 24h
