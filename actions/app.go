@@ -144,6 +144,9 @@ func App() *buffalo.App {
 		app.GET("/registertable", RegistertableIndex)
 		app.GET("/registertable/ExportCSV", RegistertableIndexCSV)
 
+		app.GET("/registersnapshot", RegistersnapshotIndex)
+		app.GET("/registersnapshot/ExportCSV", RegistersnapshotIndexCSV)
+
 		maintenance := app.Group("/maintenance")
 		maintenance.GET("/", MaintenanceIndex)
 		maintenance.GET("/renumber", MaintenanceRenumber)
