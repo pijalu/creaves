@@ -13,11 +13,14 @@ import (
 )
 
 const REGISTER_SNAP_SQL = `
-			SELECT DISTINCT a.*
-		FROM animals a, intakes i, outtakes o
-		WHERE a.intake_id=i.id and i.date < ?
-		   and (a.outtake_id is null or (a.outtake_id=o.id and o.date > ?))
+		SELECT DISTINCT a.*
+		FROM animals a
+		LEFT JOIN intakes i ON a.intake_id = i.id AND i.date < ?
+		LEFT JOIN outtakes o ON a.outtake_id = o.id AND o.date > ?
+		WHERE i.id IS NOT NULL
+		OR a.outtake_id IS NULL
 		ORDER BY a.id DESC
+		LIMIT 2000
 `
 
 // RegistertableIndex default implementation.
