@@ -152,6 +152,7 @@ func App() *buffalo.App {
 		maintenance.GET("/renumber", MaintenanceRenumber)
 
 		app.Resource("/species", SpeciesResource{})
+		app.GET("/export/csv", ExportCsv)
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

@@ -1,0 +1,7 @@
+queries:
+  - name: test1
+    description: a test
+    query: select * from animals
+  - name: test2
+    description: another test
+    query: select * from species
