@@ -15,22 +15,27 @@ import (
 const REGISTER_SNAP_SQL = `
 		SELECT DISTINCT a.*
 		FROM animals a
-		LEFT JOIN intakes i ON a.intake_id = i.id AND i.date < ?
-		LEFT JOIN outtakes o ON a.outtake_id = o.id AND o.date > ?
-		WHERE i.id IS NOT NULL
-		OR a.outtake_id IS NULL
+		LEFT JOIN intakes i ON a.intake_id = i.id
+		LEFT JOIN outtakes o ON a.outtake_id = o.id
+		WHERE (i.id IS NOT NULL AND date(i.date) <= date(?))
+		AND (a.outtake_id IS NULL or date(o.date) >= date(?))
 		ORDER BY a.id DESC
 		LIMIT 2000
 `
 
 // RegistertableIndex default implementation.
 func RegistersnapshotIndexCSV(c buffalo.Context) error {
-	snapshotDate := time.Now().Format("2006-01-02")
+	snapshotDate := time.Now().Format("2006/01/02")
 	y := c.Param("snapshotDate")
 	if y != "" {
 		snapshotDate = y
 	}
 	c.Set("snapshotDate", snapshotDate)
+
+	snapshotDateAsDate, err := time.Parse("2006/01/02", snapshotDate)
+	if err != nil {
+		return err
+	}
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -40,7 +45,7 @@ func RegistersnapshotIndexCSV(c buffalo.Context) error {
 
 	animals := &models.Animals{}
 	// Retrieve all animals
-	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDate, snapshotDate).All(animals); err != nil {
+	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDateAsDate, snapshotDateAsDate).All(animals); err != nil {
 		return err
 	}
 
@@ -56,12 +61,17 @@ func RegistersnapshotIndexCSV(c buffalo.Context) error {
 // RegistersnapshotIndex default implementation.
 func RegistersnapshotIndex(c buffalo.Context) error {
 
-	snapshotDate := time.Now().Format("2006-01-02")
+	snapshotDate := time.Now().Format("2006/01/02")
 	y := c.Param("snapshotDate")
 	if y != "" {
 		snapshotDate = y
 	}
 	c.Set("snapshotDate", snapshotDate)
+
+	snapshotDateAsDate, err := time.Parse("2006/01/02", snapshotDate)
+	if err != nil {
+		return err
+	}
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -71,7 +81,7 @@ func RegistersnapshotIndex(c buffalo.Context) error {
 
 	animals := &models.Animals{}
 	// Retrieve all animals
-	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDate, snapshotDate).All(animals); err != nil {
+	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDateAsDate, snapshotDateAsDate).All(animals); err != nil {
 		return err
 	}
 
