@@ -1,7 +1,21 @@
 queries:
-  - name: test1
-    description: a test
-    query: select * from animals
-  - name: test2
-    description: another test
-    query: select * from species
+  - name: animals_types
+    description: NOMBRE D'ANIMAUX ACCUEILLI SELON LE TYPE.
+    query: SELECT year(i.date) as "Année", t.name AS "Type", COUNT(*) AS "Nombre"
+           From animals AS a
+           LEFT JOIN intakes i ON a.intake_id = i.id
+           INNER JOIN animaltypes AS t ON a.animaltype_id = t.id
+           GROUP BY year(i.date), a.animaltype_id
+           ORDER BY 1 DESC
+  - name: entry_day_week
+    description: NOMBRE DENTREE SELON LE JOUR DE LA SEMAINE
+    query: SELECT Year(i.date) AS "Année", Dayofweek(i.date) AS "numéro jour de la semaine - (1=dimanche)",  COUNT(*) AS "Nombre"
+            FROM intakes AS i
+            GROUP BY 1, 2
+            ORDER BY 1 DESC, 2 ASC
+  - name: entry_date_year
+    description: NOMBRE D'ENTREE SELON LE JOURS DE L'ANNEE
+    query: SELECT year(i.date) as "Année", date_format(i.date, "%Y %m %d") AS "Date d'Entrée", COUNT(*) AS "Nombre"
+            From intakes AS i
+            GROUP BY 1, 2
+            ORDER BY 1 DESC, 2 ASC
