@@ -1,4 +1,53 @@
 queries:
+  - name: registre_detail
+    description: registre détaillé
+    query: SELECT distinct
+            a.id AS "ID",
+            a.year AS "année",
+            a.yearNumber AS "N°",
+            a.species AS "Espèce", 
+            if((a.species) = (s.creaves_species), "", "NON CONNUE") AS "Check",
+            a.cage AS  "cage",
+            a.ring AS "Identification",
+            a.gender AS "Genre",
+            aa.name AS "Age",
+            i.date AS "Date d'entrée",
+            i.general AS "état général",
+            i.wounds AS "Bléssures",
+            i.parasites AS "Parasites",
+            i.remarks AS "Remarque d'entrée",
+            d.location AS "lieux de découverte",
+            d.reason As "Cause de découverte",
+            d.date AS "Date de découverte",
+            d.note AS "Note sur la découverte",
+            o.date AS "Date de sortie",
+            oo.name AS "Raison de la sortie",
+            o.location AS "Lieux de relacher",
+            o.note As "Note sur la sortie",
+            di.firstname AS "Prénom",
+            di.lastname AS "Nom",
+            di.address AS "Adresse",
+            di.city AS "Ville",
+            di.country AS "Pays",
+            di.email AS "Adresse mail",
+            di.phone AS "Téléphone",
+            di.note AS "Note",
+            DATEDIFF (o.date, i.date) + 1 AS "séjour",
+            count(distinct vv.id) AS 'Nombre visite VT',
+            sum(t.distance) AS "KM parcouru pour l'animal"
+            FROM animals AS a
+              INNER JOIN intakes AS i ON a.intake_id = i.id
+              INNER JOIN discoveries AS d ON a.discovery_id = d.id
+              INNER JOIN discoverers AS di ON d.discoverer_id = di.id
+              INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+              LEFT JOIN species AS s ON s.creaves_species = a.species
+              LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+              LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+              LEFT JOIN veterinaryvisits AS vv ON a.id = vv.animal_id
+              LEFT JOIN travels AS t ON t.animal_id = a.id
+              GROUP BY a.id
+              ORDER BY a.id asc
+
   - name: animals_types
     description: NOMBRE D'ANIMAUX ACCUEILLI SELON LE TYPE.
     query: SELECT year(i.date) as "Année", t.name AS "Type", COUNT(*) AS "Nombre"
