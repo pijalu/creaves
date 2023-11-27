@@ -2,6 +2,8 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gobuffalo/nulls"
@@ -34,6 +36,17 @@ type Dosage struct {
 func (d Dosage) String() string {
 	jd, _ := json.Marshal(d)
 	return string(jd)
+}
+
+func (d Dosage) PerKilo() nulls.Float64 {
+	if d.DosagePerGrams.Valid {
+		result, err := strconv.ParseFloat(fmt.Sprintf("%.4f", d.DosagePerGrams.Float64*1000), 64)
+		if err != nil {
+			result = 0
+		}
+		return nulls.NewFloat64(result)
+	}
+	return d.DosagePerGrams
 }
 
 // Dosages is a list of dosages
