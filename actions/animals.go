@@ -489,6 +489,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return err
 	}
 
+	// save original cage
+	originalCage := animal.Cage
+
 	// Bind Animal to the html form elements
 	if err := c.Bind(animal); err != nil {
 		return err
@@ -528,6 +531,44 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}
 		if verrs.HasAny() {
 			break
+		}
+	}
+
+	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
+	// Create new defailt care if animal was moved
+	if !verrs.HasAny() && originalCage.String != "" && animal.Cage.String != originalCage.String {
+		c.Logger().Debugf("Creating new care for cage move for animalID %d", animal.ID)
+		care := &models.Care{}
+		care.Animal = *animal
+		care.AnimalID = animal.ID
+		care.Date = time.Now()
+		care.Note = nulls.NewString(fmt.Sprintf("Cage %s to %s", originalCage.String, animal.Cage.String))
+
+		careTypes, err := caretypes(c)
+		if err != nil {
+			return err
+		}
+
+		// Set care to default
+		for _, careType := range *careTypes {
+			ctn := strings.ToLower(careType.Name)
+			// try to find move
+			if strings.Contains(ctn, "move") || strings.Contains(ctn, "déplacement") {
+				care.Type = careType
+				care.TypeID = careType.ID
+				break
+			}
+			// fall back to default
+			if careType.Def {
+				care.Type = careType
+				care.TypeID = careType.ID
+			}
+		}
+
+		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
+		verrs, err = tx.Eager().ValidateAndCreate(care)
+		if err != nil {
+			return err
 		}
 	}
 
