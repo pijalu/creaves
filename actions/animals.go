@@ -542,7 +542,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		care.Animal = *animal
 		care.AnimalID = animal.ID
 		care.Date = time.Now()
-		care.Note = nulls.NewString(fmt.Sprintf("Cage %s to %s", originalCage.String, animal.Cage.String))
+		care.Note = nulls.NewString(fmt.Sprintf("Cage %s => %s", originalCage.String, animal.Cage.String))
 
 		careTypes, err := caretypes(c)
 		if err != nil {
