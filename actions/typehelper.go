@@ -43,13 +43,22 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 
 func animalTypesToSelectables(ts *models.Animaltypes) form.Selectables {
 	res := []form.Selectable{}
+	removeEmpty := false
+
+	res = append(res, &selType{label: "", value: ""})
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
 			label: ts.Name,
 			value: ts.ID,
 		})
+		removeEmpty = removeEmpty || ts.Default
 	}
+
+	if removeEmpty {
+		return res[1:]
+	}
+
 	return res
 }
 

@@ -27,6 +27,12 @@
                     required:"required"}) %>
                 <%= f.InputTag("Species", {label: "Espèce", required: "required"})%>
                 <script>
+                    if ($("#animal-AnimaltypeID")[0][0].value == "") {
+                        $("#animal-AnimaltypeID")[0][0].disabled = true;
+                    }
+                </script>
+                
+                <script>
                 $('input[name="Species"]').autoComplete({
                     minChars: 1,
                     source: function(term, response){
