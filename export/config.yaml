@@ -47,34 +47,31 @@ queries:
               LEFT JOIN travels AS t ON t.animal_id = a.id
               GROUP BY a.id
               ORDER BY a.id asc
-              
-- name: registre
+
+  - name: registre
     description: REGISTRE
     query: SELECT distinct
-           year(i.date) AS "Année",
-           a.yearNumber AS "N°",
-           a.species AS "Espèce", 
-           a.ring AS "Identification",
-           d.location AS "lieux de découverte",
-           i.date AS "Date d'entrée",
-           d.reason As "Cause de découverte",
-           oo.name AS "Raison de la sortie",
-           o.date AS "Date de sortie",
-           o.location AS "Lieux de relacher"
-           FROM animals AS a
-           INNER JOIN intakes AS i ON a.intake_id = i.id
-           INNER JOIN discoveries AS d ON a.discovery_id = d.id
-           INNER JOIN discoverers AS di ON d.discoverer_id = di.id
-           INNER JOIN animalages AS aa ON a.animalage_id = aa.id
-           LEFT JOIN species AS s ON s.creaves_species = a.species
-           LEFT JOIN outtakes AS o ON a.outtake_id = o.id
-           LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           GROUP BY a.id
-           ORDER BY a.yearNumber asc;
-
-
-----------------------------------------------------------------------------------------------------------------------------------------
-
+          year(i.date) AS "Année",
+          a.yearNumber AS "N°",
+          a.species AS "Espèce", 
+          a.ring AS "Identification",
+          d.location AS "lieux de découverte",
+          i.date AS "Date d'entrée",
+          d.reason As "Cause de découverte",
+          oo.name AS "Raison de la sortie",
+          o.date AS "Date de sortie",
+          o.location AS "Lieux de relacher"
+          FROM animals AS a
+          INNER JOIN intakes AS i ON a.intake_id = i.id
+          INNER JOIN discoveries AS d ON a.discovery_id = d.id
+          INNER JOIN discoverers AS di ON d.discoverer_id = di.id
+          INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+          LEFT JOIN species AS s ON s.creaves_species = a.species
+          LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+          LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+          GROUP BY a.id
+          ORDER BY a.yearNumber asc;
+          
   - name: animals_types
     description: NOMBRE D'ANIMAUX ACCUEILLIS SELON LE TYPE
     query: SELECT year(i.date) as "Année", t.name AS "Type", COUNT(*) AS "Nombre"
