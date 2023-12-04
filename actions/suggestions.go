@@ -185,3 +185,29 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 
 	return c.Render(200, r.JSON(s))
 }
+
+// SuggestionsCagesAnimalInCare - specific implementation to only account for cages with animal (no outtake).
+func SuggestionsCageWithAnimalInCare(c buffalo.Context) error {
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := "SELECT DISTINCT Cage FROM animals WHERE outtake_id IS null and Cage is not null"
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" AND Cage like ?", "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
