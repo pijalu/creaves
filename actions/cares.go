@@ -258,7 +258,7 @@ func (v CaresResource) loadAnimalByCage(cage string, c buffalo.Context) (*[]mode
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
-	if err := tx.Where("Cage = ?", cage).All(a); err != nil {
+	if err := tx.Where("outtake_id is null and Cage = ?", cage).All(a); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
 	return a, nil
