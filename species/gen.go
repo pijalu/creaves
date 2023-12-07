@@ -45,34 +45,58 @@ const footer = `
 	if cnt >= len(ts) {
 		fmt.Printf("Already %d records in species - skipping\n", cnt)
 		return nil
+	} else {
+		fmt.Printf("Already %d records in species - expecting %d\n", cnt, len(ts))
 	}
 
 
 	return models.DB.Transaction(func(con *pop.Connection) error {
 		for _, t := range ts {
+			d := &models.Species{
+				Species:        t.Species,
+				Group:          t.Group,
+				Family:         t.Family,
+				CreavesSpecies: t.CreavesSpecies,
+				CreavesGroup:   t.CreavesGroup,
+			}
+			if len(t.Subside) > 0 && t.Subside != "?" {
+				dsf, err := strconv.ParseFloat(t.Subside, 64)
+				if err == nil {
+					d.Subside = nulls.NewFloat64(dsf)
+				} else {
+					fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
+				}
+			}
+
 			if exists, err := con.Where("Species = ?", t.Species).Exists(&models.Species{}); err != nil {
 				return err
 			} else if !exists {
-				d := &models.Species{
-					Species:        t.Species,
-					Group:          t.Group,
-					Family:         t.Family,
-					CreavesSpecies: t.CreavesSpecies,
-					CreavesGroup:   t.CreavesGroup,
-				}
-				if len(t.Subside) > 0 {
-					dsf, err := strconv.ParseFloat(t.Subside, 64)
-					if err == nil {
-						d.Subside = nulls.NewFloat64(dsf)
-					} else {
-						fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
-					}
-				}
 				if err := con.Create(d); err != nil {
 					return err
 				}
 			} else {
-				fmt.Printf("Species %s already exists\n", t.Species)
+				fmt.Printf("Species %s already exists - updating\n", t.Species)
+				d_db := &models.Species{}
+				if err := con.Where("Species = ?", t.Species).First(d_db); err != nil {
+					fmt.Printf("Failure to load: %s - record corrupted... Removing", t.Species)
+					if err := con.RawQuery("delete from species where species = ?", t.Species).Exec(); err != nil {
+						return err
+					}
+					fmt.Printf("Recreating %s", t.Species)
+					if err := con.Create(d); err != nil {
+						return err
+					}
+				} else {
+					// update record
+					d_db.Group = d.Group
+					d_db.Family = d.Family
+					d_db.CreavesSpecies = d.CreavesSpecies
+					d_db.CreavesGroup = d.CreavesGroup
+					if err := con.Update(d_db); err != nil {
+						fmt.Printf("Failure to save: %v", d_db)
+						return err
+					}
+				}
 			}
 		}
 		return nil
