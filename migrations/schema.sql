@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.33, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.35, for Linux (x86_64)
 --
 -- Host: localhost    Database: creaves
 -- ------------------------------------------------------
--- Server version	8.0.33
+-- Server version	8.0.35
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -68,7 +68,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2323 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1392 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -228,6 +228,33 @@ CREATE TABLE `drugs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `export test`
+--
+
+DROP TABLE IF EXISTS `export test`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `export test` (
+  `id` int DEFAULT NULL,
+  `species` text,
+  `ring` text,
+  `cage` text,
+  `animalage_id` text,
+  `animaltype_id` text,
+  `discovery_id` text,
+  `intake_id` text,
+  `outtake_id` text,
+  `created_at` text,
+  `updated_at` text,
+  `feeding` text,
+  `gender` text,
+  `year` int DEFAULT NULL,
+  `yearNumber` int DEFAULT NULL,
+  `IntakeDate` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `intakes`
 --
 
@@ -301,6 +328,9 @@ CREATE TABLE `outtaketypes` (
   `def` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `dead` tinyint(1) NOT NULL DEFAULT '0',
+  `rating` int NOT NULL DEFAULT '0',
+  `discoverer_news` text,
   PRIMARY KEY (`id`),
   UNIQUE KEY `outtaketypes_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -482,4 +512,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-05-01 11:52:01
+-- Dump completed on 2023-12-07 10:32:08

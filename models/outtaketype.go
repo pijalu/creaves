@@ -13,12 +13,15 @@ import (
 
 // Outtaketype is used by pop to map your outtaketypes database table to your go code.
 type Outtaketype struct {
-	ID          uuid.UUID    `json:"id" db:"id"`
-	Name        string       `json:"name" db:"name"`
-	Default     bool         `json:"default" db:"def"`
-	Description nulls.String `json:"description" db:"description"`
-	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID    `json:"id" db:"id"`
+	Name           string       `json:"name" db:"name"`
+	Default        bool         `json:"default" db:"def"`
+	Dead           bool         `json:"dead" db:"dead"`
+	Rating         int          `json:"rating" db:"rating"`
+	Description    nulls.String `json:"description" db:"description"`
+	DiscovererNews nulls.String `json:"discoverer_news" db:"discoverer_news"`
+	CreatedAt      time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 // String is not required by pop and may be deleted

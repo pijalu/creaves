@@ -1,0 +1,10 @@
+add_column("outtaketypes", "dead", "bool", {"default": false})
+add_column("outtaketypes", "rating", "int", {"default": 0})
+add_column("outtaketypes", "discoverer_news", "text", {null: true})
+
+
+sql("update outtaketypes set dead=true, rating=-1, discoverer_news='Malheureusement, et ce malgré nos bons soins, nous n’avons pas pu sauver l’animal que vous êtes venus nous déposer.' where name = 'DCD'")
+sql("update outtaketypes set dead=false, rating=0, discoverer_news='l’animal fut adopter' where name = 'Adoption'")
+sql("update outtaketypes set dead=false, rating=1, discoverer_news='Nous sommes heureux de vous informer que, suite à un parcours de soins en notre centre, nous avons pu relâcher l’animal que vous nous aviez confié.' where name = 'Relacher'")
+sql("update outtaketypes set dead=true, rating=-1, discoverer_news='Malheureusement, et ce malgré nos bons soins, nous n’avons pas pu sauver l’animal que vous êtes venus nous déposer.' where name = 'Euthanasier'")
+sql("update outtaketypes set dead=false, rating=1 where name = 'Transferer'")

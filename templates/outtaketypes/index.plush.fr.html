@@ -12,6 +12,8 @@
     <th>Nom</th>
     <th>description</th>
     <th>Défaut</th>
+    <th>Cadavre</th>
+    <th>Type</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,6 +22,16 @@
         <td class="align-middle"><%= outtaketype.Name %></td>
         <td class="align-middle"><%= outtaketype.Description %></td>
         <td class="align-middle"><%= outtaketype.Default %></td>
+        <td class="align-middle"><%= outtaketype.Dead %></td>
+        <td class="align-middle">
+          <%= if (outtaketype.Rating < 0) { %>
+            Négative
+          <% } else if (outtaketype.Rating > 0) { %>
+            Positive
+          <% } else { %>
+            Neutre
+          <% } %>
+        </td>
         <td>
           <div class="float-right">
             <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
