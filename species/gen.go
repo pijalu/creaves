@@ -52,6 +52,10 @@ const footer = `
 
 	return models.DB.Transaction(func(con *pop.Connection) error {
 		for _, t := range ts {
+			if len(t.Species) == 0 {
+				continue
+			}
+
 			d := &models.Species{
 				Species:        t.Species,
 				Group:          t.Group,
@@ -146,6 +150,9 @@ func main() {
 		data := map[string]string{}
 		for idx, name := range header {
 			data[name] = strings.TrimSpace(record[idx])
+		}
+		if len(strings.TrimSpace(record[0])) == 0 {
+			continue
 		}
 		if err := t.Execute(os.Stdout, data); err != nil {
 			log.Fatal(err)

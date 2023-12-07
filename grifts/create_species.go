@@ -2515,15 +2515,6 @@ func createSpecies(c *Context) error {
 },
 
 {
-	Species        : "",
-	Group          : "", 
-	Family         : "",
-	CreavesSpecies : "",
-	CreavesGroup   : "",        
-	Subside        : "",
-},
-
-{
 	Species        : "Phylloscopus bonelli",
 	Group          : "Oiseaux", 
 	Family         : "Phylloscopidés",
@@ -4294,6 +4285,10 @@ func createSpecies(c *Context) error {
 
 	return models.DB.Transaction(func(con *pop.Connection) error {
 		for _, t := range ts {
+			if len(t.Species) == 0 {
+				continue
+			}
+
 			d := &models.Species{
 				Species:        t.Species,
 				Group:          t.Group,
