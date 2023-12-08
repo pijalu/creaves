@@ -129,12 +129,6 @@ func RunQuery(c buffalo.Context, query string) error {
 		return fmt.Errorf("error opening template: %v", err)
 	}
 	defer f.Close()
-	if err := f.DeleteSheet(sqlQuery.Sheet); err != nil {
-		c.Logger().Debugf("Could not delete sheet %s", sqlQuery.Sheet)
-	}
-	if _, err := f.NewSheet(sqlQuery.Sheet); err != nil {
-		return fmt.Errorf("error creating sheet %s: %v", sqlQuery.Sheet, err)
-	}
 
 	// Run the SQL query against the database and return the result set.
 	c.Logger().Debugf("Running query %s: %s", sqlQuery.Name, sqlQuery.Query)
@@ -194,6 +188,10 @@ func RunQuery(c buffalo.Context, query string) error {
 				return fmt.Errorf("error exporting to cell %s: %s", pos, err)
 			}
 		}
+	}
+
+	if err := f.UpdateLinkedValue(); err != nil {
+		c.Logger().Debugf("Failed updated linked value: %v", err)
 	}
 
 	if cnt, err := f.WriteTo(c.Response()); err != nil {
