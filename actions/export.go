@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"creaves/excel"
 	"creaves/export"
 	"net/http"
 
@@ -16,4 +17,15 @@ func ExportCsv(c buffalo.Context) error {
 	}
 
 	return export.RunQuery(c, query)
+}
+
+// ExportCsv default implementation.
+func ExportExcel(c buffalo.Context) error {
+	query := c.Param("query")
+	if query == "" {
+		c.Set("queries", excel.GetQueries())
+		return c.Render(http.StatusOK, r.HTML("export/excel.html"))
+	}
+
+	return excel.RunQuery(c, query)
 }
