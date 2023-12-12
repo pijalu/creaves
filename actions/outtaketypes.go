@@ -217,6 +217,7 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 
 	// Reset statuses
 	outtaketype.Default = false
+	outtaketype.Dead = false
 
 	// Bind Outtaketype to the html form elements
 	if err := c.Bind(outtaketype); err != nil {
