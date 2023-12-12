@@ -147,7 +147,7 @@ func RunQuery(c buffalo.Context, query string) error {
 	}
 
 	c.Response().Header().Add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xslx"`, sqlQuery.Name))
+	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, sqlQuery.Name))
 
 	line := 1
 	for i, co := range cols {
