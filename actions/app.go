@@ -157,6 +157,7 @@ func App() *buffalo.App {
 		app.GET("/export/csv", ExportCsv)
 		app.GET("/export/excel", ExportExcel)
 
+		app.Resource("/localities", LocalitiesResource{})
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

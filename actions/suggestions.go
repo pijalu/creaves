@@ -48,7 +48,28 @@ func SuggestionsDiscoveryLocation(c buffalo.Context) error {
 
 // SuggestionsOuttakeLocation default implementation.
 func SuggestionsOuttakeLocation(c buffalo.Context) error {
-	return suggest(c, "outtakes", "location")
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := `SELECT CONCAT(postal_code,"_",locality) FROM localities`
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ?`, "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
 }
 
 // SuggestionsDiscovererCity default implementation.
