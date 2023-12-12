@@ -359,13 +359,15 @@ DROP TABLE IF EXISTS `species`;
 CREATE TABLE `species` (
   `id` char(36) NOT NULL,
   `species` varchar(255) NOT NULL,
-  `group` varchar(255) NOT NULL,
+  `class` varchar(255) NOT NULL,
   `family` varchar(255) NOT NULL,
   `creaves_species` varchar(255) NOT NULL,
   `creaves_group` varchar(255) NOT NULL,
   `subside` float DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `order` varchar(255) NOT NULL,
+  `game` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -512,4 +514,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-12-07 10:32:08
+-- Dump completed on 2023-12-12 11:15:02

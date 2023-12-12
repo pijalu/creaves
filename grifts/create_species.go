@@ -14,8 +14,10 @@ import (
 func createSpecies(c *Context) error {
 	ts := []struct {
 		Species        string        
-		Group          string        
-		Family         string       
+		Class          string 
+		Order          string        
+		Family         string    
+		Game	       bool    
 		CreavesSpecies string        
 		CreavesGroup   string        
 		Subside        string
@@ -23,8 +25,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Accipiter gentilis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Autour des palombes",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -32,8 +36,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Accipiter nisus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Epervier d'Europe",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -41,8 +47,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aquila chrysaetos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigle royal",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -50,8 +58,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aquila clanga",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigle criard",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -59,8 +69,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aquila pomarina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigle pomarin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -68,8 +80,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Buteo buteo",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Buse variable",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -77,8 +91,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Buteo lagopus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Buse pattue",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -86,8 +102,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Circaetus gallicus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Circaète Jean le blanc",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -95,8 +113,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Circus aeruginosus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Busard des roseaux",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -104,8 +124,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Circus cyaneus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Busard Saint Martin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -113,8 +135,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Circus macrourus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Busard pâle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -122,8 +146,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Circus pygargus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Busard cendré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -131,8 +157,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Elanus caeruleus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Elanion blanc",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -140,8 +168,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gyps fulvus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Vautour fauve",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -149,8 +179,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Haliaeetus albicilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pygargue à queue blanche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -158,8 +190,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hieraaetus fasciatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigle de Bonelli",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -167,8 +201,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hieraaetus pennatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigle botté",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -176,8 +212,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Milvus migrans",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Milan noir",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -185,8 +223,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Milvus milvus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Milan royal",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -194,8 +234,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Neophron percnopterus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Vautour percnoptère",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -203,8 +245,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pernis apivorus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bondrée apivore",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -212,8 +256,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus agricola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rousserolle isabelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -221,8 +267,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus arundinaceus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rousserolle turdoïde",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -230,8 +278,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus paludicola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Phragmite aquatique",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -239,8 +289,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus palustris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rousserolle verderolle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -248,8 +300,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus schoenobaenus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Phragmite des joncs",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -257,8 +311,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Acrocephalus scirpaceus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rousserolle effarvatte",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -266,8 +322,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hippolais icterina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hypolaïs ictérine",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -275,8 +333,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hippolais polyglotta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Acrocéphalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hypolaïs polyglotte",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -284,8 +344,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aegithalos caudatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Aegithalidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Orite à longue queue",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -293,8 +355,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alauda arvensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette des champs",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -302,17 +366,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calandrella brachydactyla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette calandrelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
 },
 
 {
-	Species        : "Alauda alpestris",
-	Group          : "Oiseaux", 
+	Species        : "Eremophila alpestris",
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette haussecol",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -320,17 +388,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Galerida cristata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cochevis huppé",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
 },
 
 {
-	Species        : "Alauda alpestris bis",
-	Group          : "Oiseaux", 
+	Species        : "Lullula arborea",
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette lulu",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -338,8 +410,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Melanocorypha calandra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette calandre",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -347,8 +421,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Melanocorypha leucoptera",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Alaudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alouette leucoptère",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -356,8 +432,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alcedo atthis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Coraciiformes", 
 	Family         : "Alcédinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Martin-pêcheur d'Europe",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -365,8 +443,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alca torda",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Alcidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pingouin torda",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -374,8 +454,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alle alle",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Alcidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mergule nain",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -383,8 +465,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Fratercula arctica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Alcidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Macareux moine",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -392,8 +476,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mergus albellus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Harle piette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -401,8 +487,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mergus merganser",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Harle bièvre",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -410,8 +498,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mergus serrator",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Harle huppé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -419,8 +509,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Uria aalge",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Alcidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Guillemot de Troïl",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -428,8 +520,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas acuta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard pilet",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -437,8 +531,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas clypeata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard souchet",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -446,8 +542,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas crecca",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Sarcelle d'hiver",
 	CreavesGroup   : "rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "0",
@@ -455,8 +553,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas discors",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sarcelle à ailes bleues",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -464,8 +564,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas penelope",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard siffleur",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -473,8 +575,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas platyrhynchos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Canard colvert",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "0",
@@ -482,8 +586,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anas strepera",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard chipeau",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -491,8 +597,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anser albifrons",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oie rieuse",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -500,8 +608,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anser brachyrhynchus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oie à bec court",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -509,8 +619,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anser fabalis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oie des moissons",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -518,8 +630,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aythya collaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fuligule à bec cerclé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -527,8 +641,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aythya ferina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fuligule milouin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -536,8 +652,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aythya fuligula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fuligule morillon",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -545,8 +663,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aythya marila",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fuligule milouinan",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -554,8 +674,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aythya nyroca",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fuligule nyroca",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -563,8 +685,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Branta bernicla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bernache cravant",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -572,8 +696,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Branta leucopsis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bernache nonnette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -581,8 +707,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Branta ruficollis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bernache à cou roux",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -590,8 +718,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bucephala clangula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Garrot à oeil d'or",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -599,8 +729,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Clangula hyemalis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Harelde boréale",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -608,8 +740,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cygnus columbianus bewickii",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cygne de Bewick",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -617,8 +751,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cygnus cygnus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cygne chanteur",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -626,8 +762,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Melanitta fusca",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Macreuse brune",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -635,8 +773,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Melanitta nigra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Macreuse noire",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -644,8 +784,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Netta rufina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Nette rousse",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -653,8 +795,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oxyura leucocephala",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Erismature à tête blanche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -662,8 +806,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Somateria mollissima",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Eider à duvet",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -671,8 +817,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tadorna tadorna",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tadorne de Belon",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -680,8 +828,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anser anser",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oie cendrée",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -689,26 +839,32 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aix galericulata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard mandarin",
 	CreavesGroup   : "invasif",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Alopochen aegyptiacus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Ouette d'Egypte",
 	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Branta canadensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Bernache du Canada",
 	CreavesGroup   : "invasif",        
 	Subside        : "0",
@@ -716,8 +872,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cygnus olor",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cygne tuberculé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -725,17 +883,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oxyura jamaicensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Erismature rousse",
 	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Anas querquedula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sarcelle d'été",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -743,8 +905,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Apus apus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Apodiformes", 
 	Family         : "Apodidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Martinet noir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -752,8 +916,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Apus melba",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Apodiformes", 
 	Family         : "Apodidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Martinet à ventre blanc",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -761,8 +927,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ardea alba",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grande Aigrette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -770,8 +938,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ardea cinerea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Héron cendré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -779,8 +949,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ardea purpurea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Héron pourpré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -788,8 +960,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ardeola ralloides",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Crabier chevelu",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -797,8 +971,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Botaurus stellaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Butor étoilé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -806,8 +982,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bubulcus ibis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Héron garde-boeufs",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -815,8 +993,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Egretta garzetta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Aigrette garzette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -824,8 +1004,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ixobrychus minutus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Blongios nain",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -833,8 +1015,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Nycticorax nycticorax",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Ardeidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bihoreau gris",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -842,8 +1026,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bombycilla garrulus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Bombycillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Jaseur boréal",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -851,8 +1037,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ovis gmelini musimon x Ovis sp.",
-	Group          : "Mammifères", 
-	Family         : "Bovidés",
+	Class          : "Mammifères", 
+	Order          : "Artiodactyla", 
+	Family         : "Bovidée",
+	Game           : 1 == 1,
 	CreavesSpecies : "Mouflon x Mouton domestique",
 	CreavesGroup   : "domestique",        
 	Subside        : "0",
@@ -860,8 +1048,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Burhinus oedicnemus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Burhinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oedicnème criard",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -869,17 +1059,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Canis lupus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Canidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Loup",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Vulpes vulpes",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Canidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Renard roux",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -887,17 +1081,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Nyctereutes procyonoides",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Canidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chien viverrin",
 	CreavesGroup   : "invasif",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Caprimulgus europaeus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Caprimulgiformes", 
 	Family         : "Caprimulgidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Engoulevent d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -905,17 +1103,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Castor fiber",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Castorimorpha", 
 	Family         : "Castoridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Castor d'Europe",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Certhia brachydactyla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Certhiidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grimperau des jardins",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -923,8 +1125,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Certhia familiaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Certhiidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grimpereau des bois",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -932,8 +1136,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Capreolus capreolus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Pecora", 
 	Family         : "Cervidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Chevreuil",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -941,8 +1147,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cervus elaphus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Pecora", 
 	Family         : "Cervidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Cerf élaphe",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -950,8 +1158,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dama dama",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Pecora", 
 	Family         : "Cervidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Daim",
 	CreavesGroup   : "invasif",        
 	Subside        : "0",
@@ -959,8 +1169,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cettia cetti",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Cettiidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bouscarle de Cetti",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -968,8 +1180,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Charadrius alexandrinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier gravelot à collier interrompu",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -977,8 +1191,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Charadrius dubius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier petit gravelot",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -986,8 +1202,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Charadrius hiaticula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier grand gravelot",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -995,8 +1213,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Charadrius morinellus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier guignard",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1004,8 +1224,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pluvialis apricaria",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier doré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1013,8 +1235,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pluvialis squatarola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pluvier argenté",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1022,8 +1246,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Vanellus vanellus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Charadriidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Vanneau huppé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1031,8 +1257,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ciconia ciconia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ciconiiformes", 
 	Family         : "Ciconiidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cigogne blanche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -1040,8 +1268,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ciconia nigra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ciconiiformes", 
 	Family         : "Ciconiidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cigogne noire",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -1049,8 +1279,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cinclus cinclus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Cinclidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cincle plongeur",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1058,8 +1290,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cisticola juncidis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Cisticolidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cisticole des joncs",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1067,8 +1301,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Columba oenas",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Columbiformes", 
 	Family         : "Colombidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pigeon colombin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1076,8 +1312,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Columba palumbus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Columbiformes", 
 	Family         : "Colombidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Pigeon ramier",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0",
@@ -1085,8 +1323,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Streptopelia decaocto",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Columbiformes", 
 	Family         : "Colombidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tourterelle turque",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1094,8 +1334,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Streptopelia turtur",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Columbiformes", 
 	Family         : "Colombidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tourterelle des bois",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1103,8 +1345,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Columba livia var. domestica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Columbiformes", 
 	Family         : "Colombidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pigeon biset féral",
 	CreavesGroup   : "invasif",        
 	Subside        : "0",
@@ -1112,8 +1356,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Coracias garrulus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Coraciiformes", 
 	Family         : "Coraciidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rollier d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1121,8 +1367,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Corvus corax",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand Corbeau",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1130,8 +1378,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Corvus corone",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Corneille noire",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1139,8 +1389,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Corvus frugilegus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Corbeau freux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1148,8 +1400,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Corvus monedula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Choucas des tours",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1157,8 +1411,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Garrulus glandarius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Geai des chênes",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1166,8 +1422,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Nucifraga caryocatactes",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cassenoix moucheté",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1175,8 +1433,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pica pica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Corvidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pie bavarde",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.5",
@@ -1184,17 +1444,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ondatra zibethicus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Cricétidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rat musqué",
 	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Clamator glandarius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Cuculiformes", 
 	Family         : "Cuculidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Coucou geai",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1202,8 +1466,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Coccyzus americanus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Cuculiformes", 
 	Family         : "Cuculidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Coulicou à bec jaune",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1211,8 +1477,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cuculus canorus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Cuculiformes", 
 	Family         : "Cuculidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Coucou gris",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1220,17 +1488,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myocastor coypus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Caviomorpha", 
 	Family         : "Echimyidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Ragondin",
 	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Calcarius lapponicus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant lapon",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1238,8 +1510,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza aureola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant auréole",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1247,8 +1521,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza calandra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant proyer",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1256,8 +1532,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza cia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant fou",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1265,8 +1543,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza cirlus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant zizi",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1274,8 +1554,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza citrinella",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant jaune",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1283,8 +1565,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza hortulana",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant ortolan",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1292,8 +1576,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza leucocephala",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant à calotte blanche",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1301,8 +1587,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza pusilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant nain",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1310,8 +1598,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza rustica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant rustique",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1319,8 +1609,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Emberiza schoeniclus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant des roseaux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1328,8 +1620,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Plectrophenax nivalis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Emberizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bruant des neiges",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1337,8 +1631,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Falco columbarius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Falconiformes", 
 	Family         : "Falconidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Faucon émerillon",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -1346,8 +1642,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Falco peregrinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Falconiformes", 
 	Family         : "Falconidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Faucon pèlerin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -1355,8 +1653,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Falco subbuteo",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Falconiformes", 
 	Family         : "Falconidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Faucon hobereau",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -1364,8 +1664,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Falco tinnunculus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Falconiformes", 
 	Family         : "Falconidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Faucon crécerelle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -1373,8 +1675,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Falco vespertinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Falconiformes", 
 	Family         : "Falconidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Faucon kobez",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -1382,8 +1686,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Felis silvestris",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Félidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chat sylvestre",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "4.51",
@@ -1391,26 +1697,32 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Felis catus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Félidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chat haret",
 	CreavesGroup   : "domestique",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Lynx lynx",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Carnivora", 
 	Family         : "Félidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lynx boréal",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Carduelis cannabina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Linotte mélodieuse",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1418,8 +1730,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carduelis carduelis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chardonneret élégant",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1427,8 +1741,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carduelis chloris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Verdier d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1436,8 +1752,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carduelis flammea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sizerin flammé",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1445,8 +1763,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carduelis flavirostris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Linotte à bec jaune",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1454,8 +1774,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carduelis spinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tarin des aulnes",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1463,8 +1785,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Carpodacus erythrinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Roselin cramoisi",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1472,8 +1796,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Coccothraustes coccothraustes",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grosbec casse-noyaux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1481,8 +1807,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Fringilla coelebs",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pinson des arbres",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1490,8 +1818,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Fringilla montifringilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pinson du Nord",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1499,8 +1829,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Loxia curvirostra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bec-croisé des sapins",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1508,8 +1840,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Loxia leucoptera",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bec-croisé bifascié",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1517,8 +1851,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Loxia pityopsittacus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bec-croisé perroquet",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1526,8 +1862,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pyrrhula pyrrhula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bouvreuil pivoine",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1535,8 +1873,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Serinus citrinella",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Venturon montagnard",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1544,8 +1884,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Serinus serinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Fringillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Serin cini",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -1553,8 +1895,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gavia arctica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gaviiformes", 
 	Family         : "Gaviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Plongeon arctique",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1562,8 +1906,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gavia stellata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gaviiformes", 
 	Family         : "Gaviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Plongeon catmarin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1571,8 +1917,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Glareola pratincola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Glaréolidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Glaréole à collier",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1580,8 +1928,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Grus grus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Gruidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grue cendrée",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -1589,8 +1939,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Haematopus ostralegus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Haematopodidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Huîtrier pie",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -1598,8 +1950,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Delichon urbica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Hirundinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hirondelle de fenêtre",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1607,8 +1961,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hirundo daurica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Hirundinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hirondelle rousseline",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1616,8 +1972,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hirundo rustica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Hirundinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hirondelle rustique",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1625,8 +1983,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ptyonoprogne rupestris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Hirundinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hirondelle des rochers",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1634,8 +1994,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Riparia riparia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Hirundinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hirondelle de rivage",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1643,8 +2005,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hydrobates pelagicus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Procellariiformes", 
 	Family         : "Hydrobatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Océanite tempête",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1652,8 +2016,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oceanodroma leucorhoa",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Procellariiformes", 
 	Family         : "Hydrobatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Océanite culblanc",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1661,8 +2027,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lanius collurio",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Laniidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pie-grièche écorcheur",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1670,8 +2038,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lanius excubitor",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Laniidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pie-grièche grise",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1679,8 +2049,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lanius minor",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Laniidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pie-grièche à poitrine rose",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1688,8 +2060,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lanius senator",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Laniidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pie-grièche à tête rousse",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1697,8 +2071,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus argentatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland argenté",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1706,8 +2082,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus cachinnans",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland pontique",
 	CreavesGroup   : "rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1715,8 +2093,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus canus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland cendré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1724,8 +2104,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus fuscus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland brun",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1733,8 +2115,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus glaucoides",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland à ailes blanches",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1742,8 +2126,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus hyperboreus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland bourgmestre",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1751,8 +2137,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus marinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland marin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1760,8 +2148,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus melanocephalus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mouette mélanocéphale",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1769,8 +2159,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus minutus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mouette pygmée",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1778,8 +2170,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus ridibundus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mouette rieuse",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1787,8 +2181,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus sabini",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mouette de Sabine",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1796,8 +2192,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rissa triactyla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mouette tridactyle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1805,8 +2203,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Larus michahellis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Laridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Goéland leucophée",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -1814,8 +2214,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lepus europaeus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Lagomorpha", 
 	Family         : "Léporidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Lièvre d'Europe",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -1823,8 +2225,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oryctolagus cuniculus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Lagomorpha", 
 	Family         : "Léporidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Lapin de Garenne",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -1832,8 +2236,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Locustella fluviatilis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Locustellidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Locustelle fluviatile",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1841,8 +2247,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Locustella luscinioides",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Locustellidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Locustelle luscinoïde",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1850,8 +2258,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Locustella naevia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Locustellidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Locustelle tachetée",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1859,8 +2269,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Merops apiaster",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Coraciiformes", 
 	Family         : "Méropidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Guêpier d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1868,8 +2280,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus campestris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit rousseline",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1877,8 +2291,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus cervinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit à gorge rousse",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1886,8 +2302,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus petrosus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit maritime",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1895,8 +2313,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus pratensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit farlouse",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1904,8 +2324,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus richardi",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit de Richard",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1913,8 +2335,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus spinoletta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit spioncelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1922,8 +2346,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anthus trivialis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipit des arbres",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1931,8 +2357,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Motacilla alba",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bergeronnette grise",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1940,8 +2368,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Motacilla cinerea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bergeronnette des ruisseaux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -1949,152 +2379,186 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Motacilla flava",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Motacillidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bergeronnette printanière",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Apodemus flavicollis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mulot",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Apodemus sylvaticus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mulot sylvestre",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Arvicola terrestris",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Campagnol terrestre",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Clethrionomys glareolus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Campagnol",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Cricetus cricetus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand Hasmter",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Micromys minutus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rat des moissons",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Microtus agrestis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Campagnol agreste",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Microtus arvalis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Campagnol",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Microtus subterraneus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Campagnol",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Mus domesticus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Souris",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Rattus rattus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rat noir",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "?",
+	Subside        : "0",
 },
 
 {
 	Species        : "Rattus norvegicus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Muroidea", 
 	Family         : "Muridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rat brun",
 	CreavesGroup   : "invasif",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Eliomys quercinus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Muscardinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lérot",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "??",
+	Subside        : "0",
 },
 
 {
 	Species        : "Glis glis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Muscardinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Loir",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "??",
+	Subside        : "0",
 },
 
 {
 	Species        : "Muscardinus avellanarius",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Muscardinidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Muscardin",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "??",
+	Subside        : "0",
 },
 
 {
 	Species        : "Erithacus rubecula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rougegorge familier",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2102,8 +2566,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ficedula albicollis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gobemouche à collier",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2111,8 +2577,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ficedula hypoleuca",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gobemouche noir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2120,8 +2588,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ficedula parva",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gobemouche nain",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2129,8 +2599,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Luscinia luscinia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rossignol progné",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2138,8 +2610,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Luscinia megarhynchos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rossignol philomèle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2147,8 +2621,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Luscinia svecica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gorgebleue à miroir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2156,8 +2632,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Muscicapa striata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gobemouche gris",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2165,8 +2643,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oenanthe hispanica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Traquet oreillard",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2174,8 +2654,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oenanthe oenanthe",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Traquet motteux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2183,8 +2665,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phoenicurus ochruros",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rougequeue noir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2192,8 +2676,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phoenicurus phoenicurus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rougequeue à front blanc",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2201,8 +2687,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Saxicola rubetra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tarier des prés",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2210,8 +2698,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Saxicola rubicola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Muscicapidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tarier pâtre (torquatus)",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2219,8 +2709,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lutra lutra",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Loutre",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2228,8 +2720,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Martes foina",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fouine",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2237,8 +2731,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Martes martes",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Martre des pins",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2246,8 +2742,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Meles meles",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Blaireau d'Europe",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "4.51",
@@ -2255,8 +2753,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mustela erminea",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hermine",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2264,8 +2764,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mustela nivalis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Belette",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2273,8 +2775,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mustela putorius",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Putois",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.07",
@@ -2282,8 +2786,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Mustela vison (Neovison vison)",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Mustélidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Vison naméricain",
 	CreavesGroup   : "invasif",        
 	Subside        : "0",
@@ -2291,8 +2797,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oriolus oriolus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Oriolidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Loriot d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2300,8 +2808,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Chlamydotis undulata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Otidiformes", 
 	Family         : "Otididés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Outarde houbara",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2309,8 +2819,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Otis tarda",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Otidiformes", 
 	Family         : "Otididés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Outarde barbue",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2318,8 +2830,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tetrax tetrax",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Otidiformes", 
 	Family         : "Otididés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Outarde canepetière",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2327,8 +2841,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pandion haliaetus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Pandionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Balbuzard pêcheur",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -2336,8 +2852,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Panurus biarmicus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Panuridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Panure à moustaches",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2345,8 +2863,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus ater",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange noire",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2354,8 +2874,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus caeruleus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange bleue",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2363,8 +2885,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus cristatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange huppée",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2372,8 +2896,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus major",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange charbonnière",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2381,8 +2907,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus montanus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange boréale",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2390,8 +2918,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parus palustris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Paridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Mésange nonnette",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2399,8 +2929,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Passer domesticus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Passeridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Moineau domestique",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2408,8 +2940,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Passer montanus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Passeridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Moineau friquet",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2417,8 +2951,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Petronia petronia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Passeridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Moineau soulcie",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2426,8 +2962,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phalacrocorax aristotelis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Suliformes", 
 	Family         : "Phalacrocoracidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Cormoran huppé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2435,8 +2973,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phalacrocorax carbo",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Suliformes", 
 	Family         : "Phalacrocoracidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand Cormoran",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2444,8 +2984,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bonasa bonasia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gélinotte des bois",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2453,8 +2995,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Coturnix coturnix",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Caille des blés",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2462,8 +3006,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Perdix perdix",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Perdrix grise",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0",
@@ -2471,8 +3017,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tetrao tetrix",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tetras lyre",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2480,8 +3028,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tetrao urogallus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand Tétras",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2489,17 +3039,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Colinus virginianus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Colin de Virginie",
 	CreavesGroup   : "exotique",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Lagopus lagopus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2507,8 +3061,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phasianus colchicus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Faisan de Colchide",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0",
@@ -2516,8 +3072,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus bonelli",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot de Bonelli",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2525,8 +3083,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus collybita",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot véloce",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2534,8 +3094,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus inornatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot à grands sourcils",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2543,8 +3105,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus proregulus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot de Pallas",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2552,8 +3116,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus schwarzi",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot de Schwarz",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2561,8 +3127,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus sibilatrix",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot siffleur",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2570,8 +3138,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phylloscopus trochilus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Phylloscopidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pouillot fitis",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2579,8 +3149,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dendrocopos leucotos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic à dos blanc",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2588,8 +3160,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dendrocopos major",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic épeiche",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2597,8 +3171,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dendrocopos medius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic mar",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2606,8 +3182,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dendrocopos minor",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic épeichette",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2615,8 +3193,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Dryocopus martius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic noir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2624,8 +3204,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Jynx torquilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Torcol fourmilier",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2633,8 +3215,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Picus canus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic cendré",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2642,8 +3226,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Picus viridis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Piciformes", 
 	Family         : "Picidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pic vert",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2651,8 +3237,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Podiceps auritus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Podicipédiformes", 
 	Family         : "Podicipedidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grèbe esclavon",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2660,8 +3248,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Podiceps cristatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Podicipédiformes", 
 	Family         : "Podicipedidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grèbe huppé",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2669,8 +3259,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Podiceps grisegena",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Podicipédiformes", 
 	Family         : "Podicipedidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grèbe jougris",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2678,8 +3270,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Podiceps nigricollis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Podicipédiformes", 
 	Family         : "Podicipedidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grèbe à cou noir",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2687,8 +3281,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tachybaptus ruficollis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Podicipédiformes", 
 	Family         : "Podicipedidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grèbe castagneux",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2696,8 +3292,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Fulmarus glacialis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Procellariiformes", 
 	Family         : "Procellaridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fulmar boréal",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2705,17 +3303,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Procyon lotor",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Musteloidea", 
 	Family         : "Procyonidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Raton laveur",
 	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Prunella collaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Prunellidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Accenteur alpin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2723,8 +3325,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Prunella modularis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Prunellidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Accenteur mouchet",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2732,17 +3336,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Psittacula krameri",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Psittaciformes", 
 	Family         : "Psittacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Perruche à collier",
 	CreavesGroup   : "invasif",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Pterocles orientalis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pterocliformes", 
 	Family         : "Pteroclidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Ganga unibande",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2750,8 +3358,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Syrrhaptes paradoxus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pterocliformes", 
 	Family         : "Pteroclidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Syrrhapte paradoxal",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.96",
@@ -2759,8 +3369,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Crex crex",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Râle des genêts",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2768,8 +3380,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Fulica atra",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Foulque macroule",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "0",
@@ -2777,8 +3391,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gallinula chloropus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Gallinule poule d'eau",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -2786,8 +3402,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Porzana parva",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Marouette poussin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2795,8 +3413,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Porzana porzana",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Marouette ponctuée",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2804,8 +3424,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Porzana pusilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Marouette de Baillon",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2813,8 +3435,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rallus aquaticus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Gruiformes", 
 	Family         : "Rallidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Râle d'eau",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2822,8 +3446,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Himantopus himantopus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Récurvirostridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Echasse blanche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2831,8 +3457,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Recurvirostra avosetta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Récurvirostridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Avocette élégante",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2840,8 +3468,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Regulus ignicapillus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Régulidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Roitelet à triple bandeau",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2849,8 +3479,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Regulus regulus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Régulidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Roitelet huppé",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2858,8 +3490,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Remiz pendulinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Rémizidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Remiz penduline",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -2867,8 +3501,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rhinolophus ferrumequinum",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Rhinolophidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rhinolophe grand fer à cheval",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -2876,8 +3512,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rhinolophus hipposideros",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Rhinolophidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rhinolophe petit fer à cheval",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -2885,8 +3523,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sciurus vulgaris",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Sciuridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Ecureuil roux",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.12",
@@ -2894,17 +3534,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tamias sibiricus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Sciuridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tamia de Sibérie",
 	CreavesGroup   : "invasif",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Actitis hypoleucos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier guignette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2912,8 +3556,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Arenaria interpres",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tournepierre à collier",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2921,8 +3567,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris acuminata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau à queue pointue",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2930,8 +3578,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris alba",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau sanderling",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2939,8 +3589,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris alpina",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau variable",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2948,8 +3600,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris canutus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau maubèche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2957,17 +3611,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris ferruginea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau cocorli",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
 },
 
 {
-	Species        : "Calidris acuminata bis",
-	Group          : "Oiseaux", 
+	Species        : "Calidris fuscicollis",
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau de Bonaparte",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2975,8 +3633,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris melanotos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau tacheté",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2984,8 +3644,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris minuta",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau minute",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -2993,8 +3655,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Calidris temminckii",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau de Temminck",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3002,8 +3666,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gallinago gallinago",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécassine des marais",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3011,8 +3677,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gallinago media",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécassine double",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3020,8 +3688,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Limicola falcinellus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécasseau falcinelle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3029,8 +3699,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Limosa lapponica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Barge rousse",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3038,8 +3710,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Limosa limosa",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Barge à queue noire",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3047,8 +3721,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lymnocryptes minimus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Bécassine sourde",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3056,8 +3732,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Numenius arquata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Courlis cendré",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3065,8 +3743,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Numenius phaeopus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Courlis corlieu",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3074,8 +3754,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Numenius tenuirostris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Courlis à bec grèle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3083,8 +3765,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phalaropus fulicarius",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Phalarope à bec large",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3092,8 +3776,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Phalaropus lobatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Phalarope à bec étroit",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3101,8 +3787,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Philomachus pugnax",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Combattant varié",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3110,8 +3798,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Scolopax rusticola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Bécasse des bois",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3119,8 +3809,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa cinerea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier bargette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3128,8 +3820,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa erythropus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier arlequin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3137,8 +3831,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa glareola",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier sylvain",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3146,8 +3842,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa nebularia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier aboyeur",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3155,8 +3853,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa ochropus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier culblanc",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3164,8 +3864,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa stagnatilis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier stagnatile",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3173,8 +3875,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tringa totanus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Scolopacidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevalier gambette",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "2.08",
@@ -3182,8 +3886,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sitta europaea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sittidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sittelle d'Europe",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3191,26 +3897,32 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Crocidura leucodon",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne bicolore",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Crocidura russula",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne musette",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Erinaceus europaeus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hérisson",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "1.5",
@@ -3218,53 +3930,65 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Neomys anomalus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Neomys fodiens",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Sorex araneus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne carrelet",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Sorex coronatus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Sorex minutus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Rodentia", 
 	Family         : "Soricidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Musaraigne",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
+	Subside        : "0",
 },
 
 {
 	Species        : "Stercorarius longicaudus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Stercorariidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Labbe à longue queue",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3272,8 +3996,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Stercorarius parasiticus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Stercorariidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Labbe parasite",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3281,8 +4007,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Stercorarius pomarinus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Stercorariidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Labbe pomarin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3290,8 +4018,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Stercorarius skua",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Charadriiformes", 
 	Family         : "Stercorariidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand Labbe",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3299,8 +4029,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Chlidonias hybridus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Guifette moustac",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3308,8 +4040,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Chlidonias leucopterus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Guifette leucoptère",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3317,8 +4051,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Chlidonias niger",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Guifette noire",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3326,8 +4062,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Gelochelidon nilotica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne hansel",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3335,8 +4073,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sterna albifrons",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne naine",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3344,8 +4084,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sterna caspia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne caspienne",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3353,8 +4095,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sterna hirundo",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne pierregarin",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3362,8 +4106,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sterna paradisaea",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne arctique",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3371,8 +4117,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sterna sandvicensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sternidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sterne caugek",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3380,8 +4128,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Aegolius funereus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chouette de Tengmalm",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3389,8 +4139,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Asio flammeus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hibou des marais",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3398,8 +4150,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Asio otus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Hibou moyen-duc",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3407,8 +4161,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Athene noctua",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevêche d'Athena",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3416,8 +4172,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bubo bubo",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grand-Duc d'Europe",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3",
@@ -3425,8 +4183,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Glaucidium passerinum",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chevêchette d'Europe",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3434,8 +4194,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Otus scops",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Petit-duc scops",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3443,8 +4205,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Strix aluco",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chouette hulotte",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3452,8 +4216,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Surnia ulula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Strigidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Chouette épervière",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3461,8 +4227,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sturnus roseus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sturnidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Etourneau roselin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3470,8 +4238,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sturnus vulgaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sturnidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Etourneau sansonnet",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3479,8 +4249,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sus scrofa",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Suina", 
 	Family         : "Suidés",
+	Game           : 1 == 1,
 	CreavesSpecies : "Sanglier",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -3488,8 +4260,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Morus bassanus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Suliformes", 
 	Family         : "Sulidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fou de Bassan",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "3.21",
@@ -3497,8 +4271,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia atricapilla",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette à tête noire",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3506,8 +4282,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia borin",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette des jardins",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3515,8 +4293,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia cantillans",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette passerinette",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3524,8 +4304,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia communis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette grisette",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3533,8 +4315,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia curruca",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette babillarde",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3542,8 +4326,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia hortensis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette orphée",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3551,8 +4337,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia melanocephala",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette mélanocéphale",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3560,8 +4348,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia nisoria",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette épervière",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3569,8 +4359,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Sylvia undata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Sylviidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Fauvette pitchou",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3578,8 +4370,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Talpa europaea",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Eulipotyphla", 
 	Family         : "Talpidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Taupe",
 	CreavesGroup   : "Mammifères non volants",        
 	Subside        : "0",
@@ -3587,8 +4381,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Platalea leucorodia",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Threskiornithidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Spatule blanche",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -3596,8 +4392,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Plegadis falcinellus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Pélécaniformes", 
 	Family         : "Threskiornithidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Ibis falcinelle",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "4.09",
@@ -3605,8 +4403,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tichodroma muraria",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Tichodromidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tichodrome échelette",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3614,8 +4414,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Troglodytes troglodytes",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Troglodytidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Troglodyte mignon",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3623,8 +4425,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Monticola saxatilis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidé",
+	Game           : 1 == 0,
 	CreavesSpecies : "Monticole de roche",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3632,8 +4436,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus iliacus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive mauvis",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3641,8 +4447,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus merula",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Merle noir",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3650,8 +4458,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus naumanni",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive de Nauman",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3659,8 +4469,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus obscurus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive obscure",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3668,8 +4480,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus philomelos",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive musicienne",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3677,8 +4491,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus pilaris",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive litorne",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3686,8 +4502,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus ruficollis",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive à gorge rousse",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3695,8 +4513,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus torquatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Merle à plastron",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3704,8 +4524,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Turdus viscivorus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive draine",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3713,8 +4535,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Zoothera dauma",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive dorée",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3722,8 +4546,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Zoothera sibirica",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Passériformes", 
 	Family         : "Turdidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grive de Sibérie",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3731,8 +4557,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Tyto alba",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Strigiformes", 
 	Family         : "Tytonidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Effraie des clochers",
 	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
 	Subside        : "1.37",
@@ -3740,8 +4568,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Upupa epops",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Bucérotiformes", 
 	Family         : "Upudidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Huppe fasciée",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "1.12",
@@ -3749,8 +4579,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Barbastella barbastellus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Barbastelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3758,8 +4590,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Eptesicus nilssonii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3767,8 +4601,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Eptesicus serotinus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sérotine commune",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3776,8 +4612,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis alcathoe",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3785,8 +4623,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis bechsteinii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3794,8 +4634,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis brandtii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3803,8 +4645,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis dasycneme",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3812,8 +4656,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis daubentonii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin de Daubenton",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3821,8 +4667,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis emarginatus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3830,8 +4678,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis myotis",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3839,8 +4689,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis mystacinus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3848,8 +4700,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Myotis nattereri",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Murin",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3857,8 +4711,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Nyctalus leisleri",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Noctule",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3866,8 +4722,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Nyctalus noctula",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Noctule commune",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3875,8 +4733,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pipistrellus kuhlii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipistrelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3884,8 +4744,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pipistrellus nathusii",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipistrelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3893,8 +4755,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pipistrellus pipistrellus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipistrelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3902,8 +4766,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pipistrellus pygmaeus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pipistrelle",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3911,8 +4777,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Plecotus auritus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oreillard roux",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3920,8 +4788,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Plecotus austriacus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oreillard",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3929,8 +4799,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Vespertilio murinus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Chiroptera", 
 	Family         : "Verspertilionidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Serotine bicolore",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0.75",
@@ -3938,17 +4810,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Genetta genetta",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Viverroidea", 
 	Family         : "Viverridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Genette",
 	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "??",
+	Subside        : "0",
 },
 
 {
 	Species        : "Anser",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Oie domestique",
 	CreavesGroup   : "Domestique",        
 	Subside        : "0",
@@ -3956,8 +4832,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "oisillon",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "oisillon", 
 	Family         : "oisillon",
+	Game           : 1 == 0,
 	CreavesSpecies : "oisillon",
 	CreavesGroup   : "Autres oiseaux et chauves-souris",        
 	Subside        : "0",
@@ -3965,8 +4843,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Coronella austriaca",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Colubridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Coronelle lisse",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -3974,8 +4854,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Natrix natrix",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Natricidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Couleuvre à collier",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -3983,8 +4865,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Podarcis muralis",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Lacertidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lézard des murailles",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -3992,8 +4876,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lacerta agilis",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Lacertidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lézard des souches",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4001,8 +4887,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Zootoca vivipara",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Lacertidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lézard vivipare",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4010,8 +4898,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Anguis fragilis",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Anguidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Orvet fragile",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4019,8 +4909,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Trachemys scripta",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Testudines", 
 	Family         : "Emydidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Tortue de Floride",
 	CreavesGroup   : "invasif préocupant",        
 	Subside        : "0",
@@ -4028,8 +4920,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Vipera berus",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Squamata", 
 	Family         : "Viperidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Vipère péliade",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4037,8 +4931,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alytes obstetricans",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Alytidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Alyte accoucheur",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4046,8 +4942,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bufo calamita",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Bufonidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Crapaud calamite",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4055,8 +4953,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bufo bufo",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Bufonidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Crapaud commun",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4064,8 +4964,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rana dalmatina",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille agile",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4073,8 +4975,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pelophylax lessonae",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille de Lessona",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4082,8 +4986,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pelophylax ridibundus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille rieuse",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4091,8 +4997,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Rana temporaria",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille rousse",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4100,8 +5008,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pelophylax kl. esculentus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille verte",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4109,8 +5019,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Pelobates fuscus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Pelobatidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Pélobate brun",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4118,8 +5030,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Hyla arborea",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Hylidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Rainette verte",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4127,8 +5041,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Salamandra salamandra",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Caudata", 
 	Family         : "Salamandridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Salamandre tachetée",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4136,8 +5052,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Bombina variegata",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Bombinatoridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Sonneur à ventre jaune",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4145,8 +5063,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Ichthyosaura alpestris",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Caudata", 
 	Family         : "Salamandridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Triton alpestre",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4154,8 +5074,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Triturus cristatus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Caudata", 
 	Family         : "Salamandridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Triton crêté",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4163,8 +5085,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lissotriton helveticus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Caudata", 
 	Family         : "Salamandridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Triton palmé",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4172,8 +5096,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lissotriton vulgaris",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Caudata", 
 	Family         : "Salamandridae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Triton ponctué",
 	CreavesGroup   : "Autres que oiseaux et mammifères",        
 	Subside        : "0",
@@ -4181,8 +5107,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Lithobates catesbeianus",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Ranidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Grenouille taureau",
 	CreavesGroup   : "invasif préocupant",        
 	Subside        : "0",
@@ -4190,8 +5118,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Xenopus laevis",
-	Group          : "Amphibiens", 
+	Class          : "Amphibiens", 
+	Order          : "Anura", 
 	Family         : "Pipidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "Xénope lisse",
 	CreavesGroup   : "invasif préocupant",        
 	Subside        : "0",
@@ -4199,17 +5129,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Parabuteo unicinctus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Accipitriformes", 
 	Family         : "Accipitridés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Buse de harris",
 	CreavesGroup   : "Exotique",        
 	Subside        : "0",
 },
 
 {
-	Species        : "Anas platyrhynchos domesticus",
-	Group          : "Oiseaux", 
+	Species        : "Anas platyrhynchos domesticus CI",
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Coureur indien",
 	CreavesGroup   : "Domestique",        
 	Subside        : "0",
@@ -4217,8 +5151,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Melopsittacus undulatus",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Psittaciformes", 
 	Family         : "Psittaculidée",
+	Game           : 1 == 0,
 	CreavesSpecies : "Perruche ondulée",
 	CreavesGroup   : "Exotique",        
 	Subside        : "0",
@@ -4226,8 +5162,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Oryctolagus cuniculus domesticus",
-	Group          : "Mammifères", 
+	Class          : "Mammifères", 
+	Order          : "Lagomorpha", 
 	Family         : "Léporidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Lapin domestique",
 	CreavesGroup   : "Domestique",        
 	Subside        : "0",
@@ -4235,17 +5173,21 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "tortues aquatiques",
-	Group          : "Reptiles", 
+	Class          : "Reptiles", 
+	Order          : "Testudines", 
 	Family         : "Emydidae",
+	Game           : 1 == 0,
 	CreavesSpecies : "tortues aquatiques",
 	CreavesGroup   : "Exotique",        
 	Subside        : "0",
 },
 
 {
-	Species        : "Anas platyrhynchos domesticus bis",
-	Group          : "Oiseaux", 
+	Species        : "Anas platyrhynchos domesticus",
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard domestique",
 	CreavesGroup   : "Domestique",        
 	Subside        : "0",
@@ -4253,8 +5195,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Cairina moschata",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Ansériformes", 
 	Family         : "Anatidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Canard de barbarie",
 	CreavesGroup   : "Domestique",        
 	Subside        : "0",
@@ -4262,8 +5206,10 @@ func createSpecies(c *Context) error {
 
 {
 	Species        : "Alectoris fufa",
-	Group          : "Oiseaux", 
+	Class          : "Oiseaux", 
+	Order          : "Galliformes", 
 	Family         : "Phasianidés",
+	Game           : 1 == 0,
 	CreavesSpecies : "Perdrix rouge",
 	CreavesGroup   : "Exotique",        
 	Subside        : "0",
@@ -4291,8 +5237,10 @@ func createSpecies(c *Context) error {
 
 			d := &models.Species{
 				Species:        t.Species,
-				Group:          t.Group,
+				Class:          t.Class,
+				Order:          t.Order,
 				Family:         t.Family,
+				Game:	        t.Game,
 				CreavesSpecies: t.CreavesSpecies,
 				CreavesGroup:   t.CreavesGroup,
 			}
@@ -4325,8 +5273,10 @@ func createSpecies(c *Context) error {
 					}
 				} else {
 					// update record
-					d_db.Group = d.Group
+					d_db.Class = d.Class
+					d_db.Order = d.Order
 					d_db.Family = d.Family
+					d_db.Game = d.Game
 					d_db.CreavesSpecies = d.CreavesSpecies
 					d_db.CreavesGroup = d.CreavesGroup
 					if err := con.Update(d_db); err != nil {

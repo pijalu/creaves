@@ -1,0 +1,3 @@
+rename_column("species", "class", "group")
+drop_column("species", "order")
+drop_column("species", "game")

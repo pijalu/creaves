@@ -1,0 +1,4 @@
+sql("truncate table species")
+add_column("species", "order", "string", {})
+add_column("species", "game", "bool", {"default": false})
+rename_column("species", "group", "class")

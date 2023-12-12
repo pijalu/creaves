@@ -27,8 +27,10 @@ import (
 func createSpecies(c *Context) error {
 	ts := []struct {
 		Species        string        
-		Group          string        
-		Family         string       
+		Class          string 
+		Order          string        
+		Family         string    
+		Game	       bool    
 		CreavesSpecies string        
 		CreavesGroup   string        
 		Subside        string
@@ -58,8 +60,10 @@ const footer = `
 
 			d := &models.Species{
 				Species:        t.Species,
-				Group:          t.Group,
+				Class:          t.Class,
+				Order:          t.Order,
 				Family:         t.Family,
+				Game:	        t.Game,
 				CreavesSpecies: t.CreavesSpecies,
 				CreavesGroup:   t.CreavesGroup,
 			}
@@ -92,8 +96,10 @@ const footer = `
 					}
 				} else {
 					// update record
-					d_db.Group = d.Group
+					d_db.Class = d.Class
+					d_db.Order = d.Order
 					d_db.Family = d.Family
+					d_db.Game = d.Game
 					d_db.CreavesSpecies = d.CreavesSpecies
 					d_db.CreavesGroup = d.CreavesGroup
 					if err := con.Update(d_db); err != nil {
@@ -111,8 +117,10 @@ const footer = `
 const gencode = `
 {
 	Species        : "{{ .Species }}",
-	Group          : "{{ .Group }}", 
+	Class          : "{{ .Class }}", 
+	Order          : "{{ .Order }}", 
 	Family         : "{{ .Family }}",
+	Game           : 1 == {{ .Game }},
 	CreavesSpecies : "{{ .CreavesSpecies }}",
 	CreavesGroup   : "{{ .CreavesGroup }}",        
 	Subside        : "{{ .Subside }}",

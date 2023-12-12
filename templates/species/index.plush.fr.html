@@ -9,13 +9,20 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Espèce</th><th>Groupe</th><th>Famille</th><th>Espèce Creaves</th><th>Famille Creaves</th><th>Subside</th>
+    <th>Espèce</th><th>Classe</th><th>Ordre</th><th>Famille</th><th>Gibier</th><th>Espèce Creaves</th><th>Famille Creaves</th><th>Subside</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (species) in species { %>
       <tr>
-        <td class="align-middle"><%= species.Species %></td><td class="align-middle"><%= species.Group %></td><td class="align-middle"><%= species.Family %></td><td class="align-middle"><%= species.CreavesSpecies %></td><td class="align-middle"><%= species.CreavesGroup %></td><td class="align-middle"><%= species.Subside %></td>
+        <td class="align-middle"><%= species.Species %></td>
+        <td class="align-middle"><%= species.Class %></td>
+        <td class="align-middle"><%= species.Order %></td>
+        <td class="align-middle"><%= species.Family %></td>
+        <td class="align-middle"><%= species.Game %></td>
+        <td class="align-middle"><%= species.CreavesSpecies %></td>
+        <td class="align-middle"><%= species.CreavesGroup %></td>
+        <td class="align-middle"><%= species.Subside %></td>
         <td>
           <div class="float-end">
             <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-info", title: "voir", body:"<i class='fa fa-eye'></i>"}) %>

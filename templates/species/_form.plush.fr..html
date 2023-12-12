@@ -1,7 +1,9 @@
-<%= f.InputTag("Species") %>
-<%= f.InputTag("Group") %>
-<%= f.InputTag("Family") %>
-<%= f.InputTag("CreavesSpecies") %>
-<%= f.InputTag("CreavesGroup") %>
+<%= f.InputTag("Species", {label:"Espéce"}) %>
+<%= f.InputTag("Class", {label:"Classe"}) %>
+<%= f.InputTag("Order", {label:"Ordre"}) %>
+<%= f.InputTag("Family", {label:"Famille"}) %>
+<%= f.CheckboxTag("Game", {label:"Gibier"}) %>
+<%= f.InputTag("CreavesSpecies", {label:"Espéce Creaves"}) %>
+<%= f.InputTag("CreavesGroup", {label:"Groupe Creaves"}) %>
 <%= f.InputTag("Subside") %>
 <button class="btn btn-success" role="submit">Sauvegarder</button>
