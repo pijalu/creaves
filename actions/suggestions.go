@@ -82,6 +82,32 @@ func SuggestionsDiscovererCountry(c buffalo.Context) error {
 	return suggest(c, "discoverers", "country")
 }
 
+// SuggestionsAnimalTypeDefaultSpecies default implementation.
+func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL "
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" and name like ?", "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
 // SuggestionsTreatmentDrug default implementation.
 func SuggestionsTreatmentDrug(c buffalo.Context) error {
 	q := c.Param("q")

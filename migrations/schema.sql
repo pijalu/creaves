@@ -86,6 +86,7 @@ CREATE TABLE `animaltypes` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   `has_ring` tinyint(1) NOT NULL DEFAULT '0',
+  `default_species` text,
   PRIMARY KEY (`id`),
   UNIQUE KEY `animaltypes_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -538,4 +539,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-12-12 12:48:47
+-- Dump completed on 2023-12-13 10:45:15

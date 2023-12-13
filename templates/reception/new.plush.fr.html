@@ -25,13 +25,24 @@
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
-                <%= f.InputTag("Species", {label: "Espèce", required: "required"})%>
+
                 <script>
-                    if ($("#animal-AnimaltypeID")[0][0].value == "") {
-                        $("#animal-AnimaltypeID")[0][0].disabled = true;
-                    }
+                if ($("#animal-AnimaltypeID")[0][0].value == "") {
+                    $("#animal-AnimaltypeID")[0][0].disabled = true;
+                }
+
+                $( "#animal-AnimaltypeID" ).on( "change", function() {
+                    var term = $("#animal-AnimaltypeID :selected").text();
+                    $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
+                        if ($("#animal-Species").val().length == 0 && data.length > 0 ) {
+                            $("#animal-Species").val(data[0]);
+                            $( "#animal-Species" ).removeClass("is-invalid")
+                        }
+                    });
+                } );
                 </script>
-                
+
+                <%= f.InputTag("Species", {label: "Espèce", required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
                     minChars: 1,
@@ -39,7 +50,19 @@
                         $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
                     }
                 });
+
+                $( "#animal-Species" ).on( "change", function() {
+                    var term = $("#animal-Species").val();
+                    $.getJSON('/suggestions/animal_species', { q: term }, function(data){ 
+                        if (data.length === 1 && term === data[0]) {
+                            $( "#animal-Species" ).removeClass("is-invalid")
+                        } else {
+                            $( "#animal-Species" ).addClass("is-invalid")
+                        }
+                    });
+                } );
                 </script>
+
                 <%= f.InputTag("Ring", {label:"Identification"}) %>
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",

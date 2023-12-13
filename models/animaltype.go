@@ -13,13 +13,14 @@ import (
 
 // Animaltype is used by pop to map your animaltypes database table to your go code.
 type Animaltype struct {
-	ID          uuid.UUID    `json:"id" db:"id"`
-	Name        string       `json:"name" db:"name"`
-	Default     bool         `json:"default" db:"def"`
-	Description nulls.String `json:"description" db:"description"`
-	HasRing     bool         `json:"has_ring" db:"has_ring"`
-	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
+	ID             uuid.UUID    `json:"id" db:"id"`
+	Name           string       `json:"name" db:"name"`
+	Default        bool         `json:"default" db:"def"`
+	Description    nulls.String `json:"description" db:"description"`
+	HasRing        bool         `json:"has_ring" db:"has_ring"`
+	DefaultSpecies nulls.String `json:"default_species" db:"default_species"`
+	CreatedAt      time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 // String is not required by pop and may be deleted
