@@ -64,22 +64,29 @@
   <% } %>
 
 <% } else { %>
+  <% 
+    let cage = ""
+    if (params["cage"]) {
+      cage = params["cage"]
+    }
+  %>
+
   <!-- Form select-->
   <div class="py-4 mb-2">
     <%= if (params["cage"]) { %>
-      <h3 class="d-inline-block">New Care for cage <i><%= params["cage"] %></i></h3>
+      <h3 class="d-inline-block">New Care for cage <i><%= cage %></i></h3>
     <% } else { %>
       <h3 class="d-inline-block">New Care for animal <%= care.Animal.YearNumberFormatted() %></h3>
     <% } %>
   </div>
 
   <%= if (params["back"]) { %>
-    <%= formFor(care, {action: caresPath({back:params["back"],cage:params["cage"]}), method: "POST"}) { %>
+    <%= formFor(care, {action: caresPath({back:params["back"],cage:cage}), method: "POST"}) { %>
       <%= partial("cares/form.html") %>
       <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
     <% } %>
   <% } else {%>
-    <%= formFor(care, {action: caresPath({cage:params["cage"]}), method: "POST"}) { %>
+    <%= formFor(care, {action: caresPath({cage:cage}), method: "POST"}) { %>
       <%= partial("cares/form.html") %>
       <%= linkTo(caresPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
     <% }%>

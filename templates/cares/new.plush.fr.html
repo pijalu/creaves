@@ -54,7 +54,7 @@ $( document ).ready(function(){
     </div>
   </div>
   <div class="form-group row">
-    <button class="btn btn-success" role="submit">Next</button>
+    <button class="btn btn-success" role="submit">Suivant</button>
       <script type="text/javascript">
       $( document ).ready(function(){
           window.submitfix();
@@ -66,26 +66,29 @@ $( document ).ready(function(){
 
 
 <% } else { %>
-<div class="py-4 mb-2">
-  <h3 class="d-inline-block">Nouveaux suivis pour l'animal <%= care.Animal.YearNumberFormatted() %></h3>
-</div>
+  <% 
+    let cage = ""
+    if (params["cage"]) {
+      cage = params["cage"]
+    }
+  %>
 
   <!-- Form select-->
   <div class="py-4 mb-2">
     <%= if (params["cage"]) { %>
-      <h3 class="d-inline-block">Nouveau suivi pour la cage <i><%= params["cage"] %></i></h3>
+      <h3 class="d-inline-block">Nouveau suivi pour la cage <i><%= cage %></i></h3>
     <% } else { %>
       <h3 class="d-inline-block">Nouveau suivi pour l'animal <%= care.Animal.YearNumberFormatted() %></h3>
     <% } %>
   </div>
 
 <%= if (params["back"]) { %>
-  <%= formFor(care, {action: caresPath({back:params["back"],cage:params["cage"]}), method: "POST"}) { %>
+  <%= formFor(care, {action: caresPath({back:params["back"],cage:cage}), method: "POST"}) { %>
     <%= partial("cares/form.plush.fr.html") %>
     <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
   <% } %>
 <% } else {%>
-  <%= formFor(care, {action: caresPath({cage:params["cage"]}), method: "POST"}) { %>
+  <%= formFor(care, {action: caresPath({cage:cage}), method: "POST"}) { %>
     <%= partial("cares/form.plush.fr.html") %>
     <%= linkTo(caresPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr?", body: "Annuler"}) %>
   <% }%>
