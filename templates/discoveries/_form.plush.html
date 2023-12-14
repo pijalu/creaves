@@ -1,5 +1,28 @@
 <div class="container p-3 my-3 border">
     <h4>General</h4>  
+    <div class="form-row">  
+        <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postal Code"}) %>
+        <%= f.InputTag("Discovery.Village", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Village"}) %>
+    
+        <script>
+        $('input[name="Discovery.PostalCode"]').autoComplete({
+            minChars: 1,
+            source: function(term, response){
+                $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+            }
+        });
+
+        $('input[name="Discovery.Village"]').autoComplete({
+            minChars: 0,
+            cache: 0,
+            source: function(term, response){
+                var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+            }
+        });
+        </script>
+    </div>
+
     <div class="form-row">
     <%= f.InputTag("Location", {bootstrap:{form-group-class:"form-group col-md-12"}}) %>
     <script>

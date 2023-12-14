@@ -14,7 +14,9 @@ import (
 // Discovery is used by pop to map your .model.Name.Proper.Pluralize.Underscore database table to your go code.
 type Discovery struct {
 	ID           uuid.UUID    `json:"id" db:"id"`
-	Location     string       `json:"location" db:"location"`
+	Location     nulls.String `json:"location" db:"location"`
+	PostalCode   nulls.String `json:"postal_code" db:"postal_code"`
+	Village      nulls.String `json:"village" db:"village"`
 	Date         time.Time    `json:"date" db:"date"`
 	Reason       nulls.String `json:"reason" db:"reason"`
 	Note         nulls.String `json:"note" db:"note"`
@@ -49,7 +51,6 @@ func (d Discoveries) String() string {
 func (d *Discovery) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		// Discovery
-		&validators.StringIsPresent{Field: d.Location, Name: "Location"},
 		&validators.TimeIsPresent{Field: d.Date, Name: "Date"},
 	), nil
 }

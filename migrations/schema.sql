@@ -173,13 +173,15 @@ DROP TABLE IF EXISTS `discoveries`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `discoveries` (
   `id` char(36) NOT NULL,
-  `location` varchar(255) NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
   `date` datetime NOT NULL,
   `reason` text,
   `note` text,
   `discoverer_id` char(36) NOT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `postal_code` varchar(255) DEFAULT NULL,
+  `village` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
   CONSTRAINT `discoveries_ibfk_1` FOREIGN KEY (`discoverer_id`) REFERENCES `discoverers` (`id`) ON DELETE CASCADE
@@ -539,4 +541,4 @@ CREATE TABLE `veterinaryvisits` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-12-13 10:45:15
+-- Dump completed on 2023-12-13 15:42:52

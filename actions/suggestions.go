@@ -82,6 +82,51 @@ func SuggestionsDiscovererCountry(c buffalo.Context) error {
 	return suggest(c, "discoverers", "country")
 }
 
+// SuggestionsDiscovererCountry default implementation.
+func SuggestionsPostalCode(c buffalo.Context) error {
+	return suggest(c, "localities", "postal_code")
+}
+
+// SuggestionsOuttakeLocation default implementation.
+func SuggestionsLocality(c buffalo.Context) error {
+	z := c.Param("z") // zip
+	l := c.Param("l") // locality
+
+	_ = z
+	_ = l
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := `SELECT distinct locality FROM localities WHERE 1=1 `
+	args := []interface{}{}
+
+	// Add postal code
+	if len(z) > 0 {
+		qroot += ` AND postal_code = ?`
+		args = append(args, z)
+	}
+
+	// Add zip code
+	if len(l) > 0 {
+		qroot += ` AND locality LIKE ?`
+		args = append(args, "%"+l+"%")
+	}
+
+	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
+	query = tx.RawQuery(qroot, args...)
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
 // SuggestionsAnimalTypeDefaultSpecies default implementation.
 func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 	q := c.Param("q")
