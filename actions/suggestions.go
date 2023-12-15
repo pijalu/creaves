@@ -127,6 +127,65 @@ func SuggestionsLocality(c buffalo.Context) error {
 	return c.Render(200, r.JSON(s))
 }
 
+// Suggest discovered
+func SuggestionsDiscoverer(c buffalo.Context) error {
+	f := c.Param("f") // first name
+	l := c.Param("l") // last name
+	a := c.Param("a") // address
+
+	ret := c.Param("r") // return
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	var field string
+
+	switch ret {
+	case "firstname":
+		field = "firstname"
+	case "lastname":
+		field = "lastname"
+	case "address":
+		field = "address"
+	default:
+		return fmt.Errorf("unexpected request for %s", ret)
+	}
+
+	qroot := fmt.Sprintf(`SELECT DISTINCT %s FROM discoverers WHERE 1=1 `, field)
+	args := []interface{}{}
+
+	// Add first name
+	if len(f) > 0 {
+		qroot += ` AND firstname like ?`
+		args = append(args, "%"+f+"%")
+	}
+
+	// Add last name
+	if len(l) > 0 {
+		qroot += ` AND lastname LIKE ?`
+		args = append(args, "%"+l+"%")
+	}
+
+	// add Address
+	if len(a) > 0 {
+		qroot += ` AND address LIKE ?`
+		args = append(args, "%"+a+"%")
+	}
+
+	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
+	query = tx.RawQuery(qroot, args...)
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
 // SuggestionsAnimalTypeDefaultSpecies default implementation.
 func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 	q := c.Param("q")

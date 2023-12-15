@@ -77,7 +77,7 @@
             <div class="col-md-12">
                 <div class="form-row">  
                     <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Code Postal"}) %>
-                    <%= f.InputTag("Discovery.Village", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Village"}) %>
+                    <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
                 
                     <script>
                     $('input[name="Discovery.PostalCode"]').autoComplete({
@@ -87,7 +87,7 @@
                         }
                     });
 
-                    $('input[name="Discovery.Village"]').autoComplete({
+                    $('input[name="Discovery.City"]').autoComplete({
                         minChars: 0,
                         cache: 0,
                         source: function(term, response){

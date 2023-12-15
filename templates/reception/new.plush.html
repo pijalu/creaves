@@ -79,7 +79,7 @@
                 <div class="container p-3 my-3 border">
                     <div class="form-row">  
                         <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postal Code"}) %>
-                        <%= f.InputTag("Discovery.Village", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Village"}) %>
+                        <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
                     
                         <script>
                         $('input[name="Discovery.PostalCode"]').autoComplete({
@@ -89,7 +89,7 @@
                             }
                         });
 
-                        $('input[name="Discovery.Village"]').autoComplete({
+                        $('input[name="Discovery.City"]').autoComplete({
                             minChars: 0,
                             cache: 0,
                             source: function(term, response){
@@ -111,6 +111,36 @@
                     });
                     </script>
                     </div>
+
+                    <div class="form-row">
+                        <div class="form-check text-center col-md-12">
+                            <input class="form-check-input" 
+                                id="discoverer-garden" 
+                                name="discoverer-garden" 
+                                type="checkbox"/>
+                            <label class="form-check-label" for="discoverer-garden">Found in discoverer garden</label>
+
+                            <script>
+                            $( "#discoverer-garden" ).on( "change", function() {
+                                if ($( "#discoverer-garden" ).is(":checked")) {
+                                    console.log("test:", $('input[name="Discovery.Discoverer.PostalCode"]').val() === "", $('input[name="Discovery.Discoverer.City"]').val() === "")
+
+                                    if ($('input[name="Discovery.Discoverer.PostalCode"]').val() === ""
+                                        && $('input[name="Discovery.Discoverer.City"]').val() === "") {
+                                            var cp = $('input[name="Discovery.PostalCode"]').val();
+                                            var city = $('input[name="Discovery.City"]').val();
+
+                                            $('input[name="Discovery.Discoverer.PostalCode"]').val(cp);
+                                            $('input[name="Discovery.Discoverer.City"]').val(city);
+                                        }
+                                } else {
+                                    console.log("found in garden is now false");
+                                }
+                            } );
+                            </script>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                     
                     <div class="form-group col-md-12">
@@ -140,22 +170,78 @@
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Address"}) %>
                     </div>
-                    <div class="form-row">
-                    <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
-                    <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Country"}) %>
+
                     <script>
-                    $('input[name="Discovery.Discoverer.City"]').autoComplete({
-                        minChars: 1,
-                        source: function(term, response){
-                            $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
-                        }
-                    });
-                    $('input[name="Discovery.Discoverer.Country"]').autoComplete({
-                        minChars: 1,
-                        source: function(term, response){
-                            $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
-                        }
-                    });
+                        $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
+                            cache: 0,
+                            minChars: 1,
+                            source: function(term, response){
+                                var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                                var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                                var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                                $.getJSON('/suggestions/discoverer', { r: "firstname", f: firstname, l:lastname, a: address }, function(data){ 
+                                    response(data); 
+                                });
+                            }
+                        });
+
+                        $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
+                            cache: 0,
+                            minChars: 1,
+                            source: function(term, response){
+                                var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                                var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                                var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                                $.getJSON('/suggestions/discoverer', { r: "lastname", f: firstname, l:lastname, a: address }, function(data){ 
+                                    response(data); 
+                                });
+                            }
+                        });
+
+                        $('input[name="Discovery.Discoverer.Address"]').autoComplete({
+                            cache: 0,
+                            minChars: 1,
+                            source: function(term, response){
+                                var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                                var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                                var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                                $.getJSON('/suggestions/discoverer', { r: "address", f: firstname, l:lastname, a: address }, function(data){ 
+                                    response(data); 
+                                });
+                            }
+                        });
+                    </script>
+
+                    <div class="form-row">
+                    <%= f.InputTag("Discovery.Discoverer.PostalCode", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Postal Code"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"City"}) %>
+                    <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Country"}) %>
+                    <script>
+                        $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
+                            minChars: 1,
+                            source: function(term, response){
+                                $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+                            }
+                        });
+
+                        $('input[name="Discovery.Discoverer.City"]').autoComplete({
+                            minChars: 0,
+                            cache: 0,
+                            source: function(term, response){
+                                var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
+                                $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+                            }
+                        });
+
+                        $('input[name="Discovery.Discoverer.Country"]').autoComplete({
+                            minChars: 1,
+                            source: function(term, response){
+                                $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+                            }
+                        });
                     </script>
 
                     </div>
@@ -163,9 +249,34 @@
                     <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
                     <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Phone"}) %>
                     </div>
+
+                    <div class="form-row">
+                        <%= f.InputTag("Discovery.Discoverer.Donation", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Donation"}) %>
+                    </div>
+
+                    <div class="form-row">
+                        <%= f.CheckboxTag("Discovery.Discoverer.ReturnRequest", { unchecked: false, label: "Return requested", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+                        <script>
+                            $('input[name="Discovery.Discoverer.ReturnRequest"]').on( "change", function() {
+                                console.log("Status changed");
+                                if ($('input[name="Discovery.Discoverer.ReturnRequest"]').is(":checked")) {
+                                    console.log("ReturnRequest is true");
+                                    $('input[name="Discovery.ReturnHabitat"]' ).prop( "checked", true );
+                                } else {
+                                    console.log("ReturnRequest is false");
+                                }
+                            });
+                        </script>
+                    </div>
+
+                   
                 </div>
                 <div class="container p-3 my-3 border">
                     <h4>Details</h4> 
+                    <div class="form-row">
+                        <%= f.CheckboxTag("Discovery.ReturnHabitat", { unchecked: false, label: "Return To Habitat", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+                    </div>
+
                     <%= f.TextAreaTag("Discovery.Reason", {label:"Reason", rows: 10, class:"col-md-12"}) %>
                     <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
                     Notes

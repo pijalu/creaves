@@ -12,17 +12,20 @@ import (
 
 // Discoverer is used by pop to map your .model.Name.Proper.Pluralize.Underscore database table to your go code.
 type Discoverer struct {
-	ID        uuid.UUID    `json:"id" db:"id"`
-	Firstname nulls.String `json:"firstname" db:"firstname"`
-	Lastname  nulls.String `json:"lastname" db:"lastname"`
-	Address   nulls.String `json:"address" db:"address"`
-	City      nulls.String `json:"city" db:"city"`
-	Country   nulls.String `json:"country" db:"country"`
-	Email     nulls.String `json:"email" db:"email"`
-	Phone     nulls.String `json:"phone" db:"phone"`
-	Note      nulls.String `json:"note" db:"note"`
-	CreatedAt time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID    `json:"id" db:"id"`
+	Firstname     nulls.String `json:"firstname" db:"firstname"`
+	Lastname      nulls.String `json:"lastname" db:"lastname"`
+	Address       nulls.String `json:"address" db:"address"`
+	PostalCode    nulls.String `json:"postal_code" db:"postal_code"`
+	City          nulls.String `json:"city" db:"city"`
+	Country       nulls.String `json:"country" db:"country"`
+	Email         nulls.String `json:"email" db:"email"`
+	Phone         nulls.String `json:"phone" db:"phone"`
+	Note          nulls.String `json:"note" db:"note"`
+	ReturnRequest bool         `json:"return_request" db:"return_request"`
+	Donation      nulls.String `json:"donation" db:"donation"`
+	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 // String is not required by pop and may be deleted

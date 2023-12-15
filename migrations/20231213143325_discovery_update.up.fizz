@@ -1,3 +1,5 @@
 add_column("discoveries", "postal_code", "string", {null: true})
-add_column("discoveries", "village", "string", {null: true})
+add_column("discoveries", "city", "string", {null: true})
 change_column("discoveries", "location", "string", {null: true})
+
+add_column("discoveries", "return_habitat", "bool", {"default": false})

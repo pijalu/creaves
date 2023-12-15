@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 )
 
 // ReceptionNew default implementation.
@@ -27,6 +28,7 @@ func ReceptionNew(c buffalo.Context) error {
 	a := &models.Animal{}
 
 	a.Discovery.Date = n
+	a.Discovery.Discoverer.Country = nulls.NewString("Belgique")
 	a.Intake.Date = n
 
 	// Set default animal type

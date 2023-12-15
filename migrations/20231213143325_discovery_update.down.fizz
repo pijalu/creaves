@@ -1,3 +1,5 @@
 drop_column("discoveries", "postal_code")
-drop_column("discoveries", "village")
+drop_column("discoveries", "city")
 change_column("discoveries", "location", "string", {null: false})
+
+drop_column("discoveries", "return_habitat")
