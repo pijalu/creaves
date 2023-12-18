@@ -15,14 +15,34 @@
   .auth-wrapper h1{margin-bottom: 20px;}
 </style>
 
-<div class="auth-wrapper">
-  <div class="sign-form">
-    <h1>Sign In</h1>
-
-    <%= form_for(user, {action: authPath(), method: "POST"}) { %>
-      <%= f.InputTag("Login") %>
-      <%= f.InputTag("Password", {type: "password"}) %>
-      <button class="btn btn-success">Sign In!</button>
-    <% } %>
-  </div>
-</div>
+    <div class="container auth-wrapper">
+      <div class="row col-md-12">
+        <div class="col-sm col-sm-3">
+          <div class="container d-flex h-100">
+            <div class="row justify-content-center align-self-center">
+              <img class="float-left" width="100px" alt="Plumes d'eaux" src="<%= assetPath("images/plumes-logo.png") %>">
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <h1>Login</h1>
+          <div class="sign-form">
+            <%= form_for(user, {action: authPath(), method: "POST"}) { %>
+              <%= f.InputTag("Login") %>
+              <%= f.InputTag("Password", {type: "password"}) %>
+              <button class="btn btn-success">Sign In!</button>
+            <% } %>
+          </div>
+        </div>
+          <div class="col-sm-3">
+            <div class="container d-flex h-100">
+              <div class="row justify-content-center align-self-center">
+                <img class="float-right" width="100px" alt="Creaves App" src="<%= assetPath("images/creaves-app.png") %>">
+              </div>
+          </div>
+        </div>
+        <div class="row col-md-12">&nbsp;</div>
+        <div class="row col-md-12 justify-content-md-center">
+            <p class="font-italic font-weight-bold">Powered by Plumes D'eaux ASBL</p>
+        </div>
+    </div>
