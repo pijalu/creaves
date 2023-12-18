@@ -64,6 +64,16 @@
         <p class="d-inline-block"><%= gender %></p>
       </li>
       <li class="list-group-item pb-1">
+        <label class="small d-block">Zone</label>
+        <p class="d-inline-block">
+          <%= if (animal.Zone.Valid) { %>
+          <%= animal.Zone %>
+          <% } else {%>
+          to be defined
+          <% } %>
+        </p>
+      </li>
+      <li class="list-group-item pb-1">
         <label class="small d-block">Cage</label>
         <p class="d-inline-block"><%= animal.Cage %></p>
       </li>

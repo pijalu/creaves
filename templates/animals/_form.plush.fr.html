@@ -31,6 +31,10 @@ $( document ).ready(function(){
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                 <%= f.InputTag("Species", {label:"Espèce", required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
@@ -40,20 +44,40 @@ $( document ).ready(function(){
                     }
                 });
                 </script>
+        </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",
                     options: selectAnimalages, 
                     required:"required"}) %>
+      </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
                 <%= f.InputTag("Ring", {label:"Identification"}) %>
-                <div class="form-group">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                   <label>Sexe</label>
                   <select class="form-control" id="animal-Gender" name="Gender">
                     <option value="" <%= if (animal.Gender.Value() == "") {%> selected <%}%> >Inconnu</option>
                     <option value="M" <%= if (animal.Gender && animal.Gender.Value() == "M") {%> selected <%}%> >Mâle</option>
                     <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Femelle</option>
                   </select>
-                </div>
-                <%= f.InputTag("Cage") %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+                <%= f.InputTag("Cage") %> 
+        </div>
+        <div class="form-group col-md-6">
+          <%= f.SelectTag("Zone", {
+            label: "Zone",
+            options: selectZone, 
+            required:"required"}) %>
         </div>
     </div>
   </div>

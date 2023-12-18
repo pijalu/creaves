@@ -316,7 +316,9 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Animal.
 // This function is mapped to the path GET /animals/new
 func (v AnimalsResource) New(c buffalo.Context) error {
-	c.Set("animal", &models.Animal{})
+	a := &models.Animal{}
+
+	c.Set("animal", a)
 
 	if err := setupContext(c); err != nil {
 		return err
@@ -453,6 +455,12 @@ func setupContext(c buffalo.Context) error {
 		return err
 	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+
+	z, err := zones(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectZone", zonesToSelectables(z))
 
 	return nil
 }

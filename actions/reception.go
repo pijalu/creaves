@@ -25,11 +25,24 @@ func ReceptionNew(c buffalo.Context) error {
 	}
 	c.Set("selectAnimalages", animalagesToSelectables(aa))
 
+	z, err := zones(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectZone", zonesToSelectables(z))
+
 	a := &models.Animal{}
 
 	a.Discovery.Date = n
 	a.Discovery.Discoverer.Country = nulls.NewString("Belgique")
 	a.Intake.Date = n
+
+	if z, err := defZone(c); err == nil {
+		a.Zone = nulls.NewString(z.Zone)
+		c.Logger().Debugf(" zone set to %v", a.Zone)
+	} else {
+		c.Logger().Debugf("Could not retrieve default zone: %v", err)
+	}
 
 	// Set default animal type
 	for _, t := range *at {

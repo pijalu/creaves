@@ -1,0 +1,8 @@
+create_table("zones") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("zone", "string", {})
+	t.Column("type", "string", {})
+	t.Column("default", "bool", {"default": false})
+	t.Timestamps()
+	t.Index("zone", {"unique": true})
+}

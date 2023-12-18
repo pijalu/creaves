@@ -30,6 +30,10 @@ $( document ).ready(function(){
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
                 <%= f.InputTag("Species", {required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
@@ -39,11 +43,23 @@ $( document ).ready(function(){
                     }
                 });
                 </script>
+          </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",
                     options: selectAnimalages, 
                     required:"required"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
                 <%= f.InputTag("Ring", {label:"Identification"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
                 <div class="form-group">
                   <label>Gender</label>
                   <select class="form-control" id="animal-Gender" name="Gender">
@@ -52,9 +68,19 @@ $( document ).ready(function(){
                     <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Female</option>
                   </select>
                 </div>
+          </div>
+      </div>
+      <div class="form-row">
+          <div class="form-group col-md-6">
                 <%= f.InputTag("Cage") %>
-        </div>
-    </div>
+          </div>
+          <div class="form-group col-md-6">
+            <%= f.SelectTag("Zone", {
+              label: "Zone",
+              options: selectZone, 
+              required:"required"}) %>
+          </div>
+      </div>
   </div>
 
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">

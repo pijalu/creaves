@@ -58,12 +58,20 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	animalsByType := models.AnimalsByTypeMap{}
+	animalsByZone := models.AnimalByZoneMap{}
+
 	if _, err := EnrichAnimals(&animals, c); err != nil {
 		return err
 	}
 
 	for _, animal := range animals {
 		animalsByType[animal.Animaltype] = append(animalsByType[animal.Animaltype], animal)
+
+		z := models.ZoneKey{Zone: "?"}
+		if animal.Zone.Valid {
+			z.Zone = animal.Zone.String
+		}
+		animalsByZone[z] = append(animalsByZone[z], animal)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -74,6 +82,7 @@ func LandingIndex(c buffalo.Context) error {
 		}
 		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
+		c.Set("aniamlsByZone", animalsByZone)
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animalsByType))

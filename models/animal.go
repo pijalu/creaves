@@ -23,6 +23,7 @@ type Animal struct {
 	Species      string            `json:"species" db:"species"`
 	Gender       nulls.String      `json:"gender" db:"gender"`
 	Cage         nulls.String      `json:"cage" db:"cage"`
+	Zone         nulls.String      `json:"zone" db:"zone"`
 	Feeding      nulls.String      `json:"feeding" db:"feeding"`
 	ForceFeed    bool              `json:"forceFeed" db:"force_feed"`
 	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
@@ -57,6 +58,20 @@ func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
 	}
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i].Name < keys[j].Name
+	})
+	return keys
+}
+
+type AnimalByZoneMap map[ZoneKey]Animals
+
+// Return orderedkeys from map
+func (t AnimalByZoneMap) OrderedKeys() []ZoneKey {
+	var keys []ZoneKey
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Zone < keys[j].Zone
 	})
 	return keys
 }

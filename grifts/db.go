@@ -32,6 +32,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createLocality(c); err != nil {
 			return err
 		}
+		if err := createZones(c); err != nil {
+			return err
+		}
 
 		return nil
 	})

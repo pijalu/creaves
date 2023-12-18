@@ -1,0 +1,1 @@
+add_column("animals", "zone", "string", {null: true})

@@ -90,6 +90,7 @@
       <thead class="thead-light">
         <th data-sortable="true">Numéro</th>
         <th data-sortable="true">Date d'admission</th>
+        <th data-sortable="true">Zone</th>
         <th data-sortable="true">Cage</th>
         <th data-sortable="true">Espèce</th>
         <th data-sortable="true">Age</th>
@@ -109,6 +110,7 @@
               <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%=animal.YearNumber%></a>
             </td>
             <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+            <td class="align-middle"><%= animal.Zone %></td>
             <td class="align-middle"><%= animal.Cage %></td>
             <td class="align-middle">
             <%

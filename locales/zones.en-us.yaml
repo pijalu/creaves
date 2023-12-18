@@ -1,0 +1,6 @@
+- id: "zone.created.success"
+  translation: "Zone was successfully created."
+- id: "zone.updated.success"
+  translation: "Zone was successfully updated."
+- id: "zone.destroyed.success"
+  translation: "Zone was successfully destroyed."
