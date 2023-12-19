@@ -341,6 +341,17 @@
             
                 <script type="text/javascript">
                     $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+                    $('input[name="Intake.Date"]').on("change", function() {
+                        discoveryDate = $('input[name="Discovery.Date"]').val()
+                        intakeDate = $('input[name="Intake.Date"]').val()
+
+                        let dd = new Date(discoveryDate).getTime();
+                        let id = new Date(intakeDate).getTime();
+
+                        if (dd > id) {
+                            $('input[name="Intake.Date"]').val(discoveryDate);
+                        }
+                    });
                 </script>
                 
                 <div class="form-row">
