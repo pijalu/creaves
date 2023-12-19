@@ -369,7 +369,7 @@ func (v CaresResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Care
 	care := &models.Care{}
 
-	if err := tx.Find(care, c.Param("care_id")); err != nil {
+	if err := tx.Eager().Find(care, c.Param("care_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
