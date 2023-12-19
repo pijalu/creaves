@@ -65,13 +65,15 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	for _, animal := range animals {
-		animalsByType[animal.Animaltype] = append(animalsByType[animal.Animaltype], animal)
+		keyType := models.AnimalViewKey{ID: sha256(animal.Animaltype.Name), Name: animal.Animaltype.Name}
+		animalsByType[keyType] = append(animalsByType[keyType], animal)
 
-		z := models.ZoneKey{Zone: "?"}
+		keyZone := models.AnimalViewKey{ID: sha256("?"), Name: "?"}
 		if animal.Zone.Valid {
-			z.Zone = animal.Zone.String
+			keyZone.ID = sha256(animal.Zone.String)
+			keyZone.Name = animal.Zone.String
 		}
-		animalsByZone[z] = append(animalsByZone[z], animal)
+		animalsByZone[keyZone] = append(animalsByZone[keyZone], animal)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -82,7 +84,7 @@ func LandingIndex(c buffalo.Context) error {
 		}
 		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
-		c.Set("aniamlsByZone", animalsByZone)
+		c.Set("animalsByZone", animalsByZone)
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animalsByType))

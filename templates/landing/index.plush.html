@@ -10,7 +10,11 @@
 <form id="goto_animal" action="<%=animalsPath()%>">
   <div class="form-row">
     <div class="col-5">
-      &nbsp;
+      <%= if (params["v"] == "type") { %>
+        <a href="?v=zone"><span class="badge badge-info">Zone</span></a>
+      <% } else { %>
+        <a href="?v=type"><span class="badge badge-info">Type</span></a>
+      <% } %>
     </div>
     <div class="col-2">
       <label for="goto_animalNumber" class="col-sm-2 col-form-label">Animal&nbsp;number</label>
@@ -35,11 +39,6 @@
   </div>
 </form>
 </div>
-
-<% 
-    let am = animalsByType 
-    let keys = am.OrderedKeys()
-%>
 
 <% contentFor("eveningSVG") { %>
     <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
@@ -66,6 +65,20 @@
       <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
     </g>
  <%}%>
+
+
+  
+<% 
+    if (params["v"] == "type") {
+      let am = animalsByType
+    } else {
+      let am = animalsByZone 
+    }
+    let keys = am.OrderedKeys()
+%>
+
+
+
 
 <ul class="nav nav-tabs" id="landing-abt" role="tablist">
   <%= for (i, at) in keys {%>

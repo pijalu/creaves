@@ -10,7 +10,11 @@
 <form id="goto_animal" action="<%=animalsPath()%>">
   <div class="form-row">
     <div class="col-5">
-      &nbsp;
+      <%= if (params["v"] == "type") { %>
+        <a href="?v=zone"><span class="badge badge-info">Zone</span></a>
+      <% } else { %>
+        <a href="?v=type"><span class="badge badge-info">Type</span></a>
+      <% } %>
     </div>
     <div class="col-2">
       <label for="goto_animalNumber" class="col-sm-2 col-form-label">Numéro&nbsp;Animal</label>
@@ -64,7 +68,11 @@
  <%}%>
 
 <% 
-    let am = animalsByType 
+    if (params["v"] == "type") {
+      let am = animalsByType
+    } else {
+      let am = animalsByZone 
+    }
     let keys = am.OrderedKeys()
 %>
 

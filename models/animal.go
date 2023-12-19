@@ -44,15 +44,21 @@ type Animal struct {
 	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
 
+// View keys
+type AnimalViewKey struct {
+	ID   string
+	Name string
+}
+
 // Animals is not required by pop and may be deleted
 type Animals []Animal
 
 // TreatmentsMap is an organized treaments list
-type AnimalsByTypeMap map[Animaltype]Animals
+type AnimalsByTypeMap map[AnimalViewKey]Animals
 
 // Return orderedkeys from map
-func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
-	var keys []Animaltype
+func (t AnimalsByTypeMap) OrderedKeys() []AnimalViewKey {
+	var keys []AnimalViewKey
 	for k := range t {
 		keys = append(keys, k)
 	}
@@ -62,16 +68,16 @@ func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
 	return keys
 }
 
-type AnimalByZoneMap map[ZoneKey]Animals
+type AnimalByZoneMap map[AnimalViewKey]Animals
 
 // Return orderedkeys from map
-func (t AnimalByZoneMap) OrderedKeys() []ZoneKey {
-	var keys []ZoneKey
+func (t AnimalByZoneMap) OrderedKeys() []AnimalViewKey {
+	var keys []AnimalViewKey
 	for k := range t {
 		keys = append(keys, k)
 	}
 	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].Zone < keys[j].Zone
+		return keys[i].Name < keys[j].Name
 	})
 	return keys
 }
