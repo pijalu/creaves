@@ -29,6 +29,8 @@
     <th>Type</th>
     <th>Espèce</th>
     <th>Identification</th>
+    <th>Zone</th>
+    <th>Cage</th>
     <th>Date d'entrée</th>
     <th>Lieu de découverte</th>
     <th>Âge</th>
@@ -43,6 +45,8 @@
         <td class="align-middle"><%= animal.Animaltype.Name %></td>
         <td class="align-middle"> <%= animal.Species %></td>
         <td class="align-middle"><%= animal.Ring %></td> 
+        <td class="align-middle"><%= animal.Zone %></td> 
+        <td class="align-middle"><%= animal.Cage %></td> 
         <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
         <td class="align-middle"><%= animal.Discovery.Location %></td>
         <td class="align-middle"><%= animal.Animalage.Name %></td>
