@@ -90,6 +90,20 @@ func zones(c buffalo.Context) (*models.Zones, error) {
 	return ts, nil
 }
 
+func zonesMap(c buffalo.Context) (map[string]string, error) {
+	zs, err := zones(c)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := map[string]string{}
+	for _, z := range *zs {
+		ret[z.Zone] = z.Type
+	}
+
+	return ret, nil
+}
+
 func zonesToSelectables(ts *models.Zones) form.Selectables {
 	res := []form.Selectable{}
 	//removeEmpty := false

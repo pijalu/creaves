@@ -76,6 +76,12 @@ func LandingIndex(c buffalo.Context) error {
 		animalsByZone[keyZone] = append(animalsByZone[keyZone], animal)
 	}
 
+	zm, err := zonesMap(c)
+	if err != nil {
+		return err
+	}
+	c.Set("zoneMap", zm)
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// Add clean cage flag
 		animalWithCleanCage, err := listAnimalWithCleanCage(c)

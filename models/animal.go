@@ -87,6 +87,11 @@ func (a Animal) YearNumberFormatted() string {
 	return fmt.Sprintf("%d/%d", a.YearNumber, a.Year%100)
 }
 
+// YearNumberFormatted returns the year number formatted
+func (a Animal) ZoneAsString() string {
+	return a.Zone.String
+}
+
 // String is not required by pop and may be deleted
 func (a Animal) String() string {
 	ja, _ := json.Marshal(a)

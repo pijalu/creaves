@@ -79,7 +79,13 @@
 <ul class="nav nav-tabs" id="landing-abt" role="tablist">
   <%= for (i, at) in keys {%>
   <li class="nav-item">
-    <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true"><%= at.Name %></a>
+    <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true">
+      <%= if (params["v"] != "type" && zoneMap[at.Name] == "external") {%>
+        <i><%= at.Name %></i>
+      <% } else { %>
+        <%= at.Name %>
+      <% } %>
+    </a>
   </li>
   <% } %>
 </ul>
@@ -123,7 +129,13 @@
             </td>
             <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
             <%= if (params["v"] == "type") { %>
-              <td class="align-middle"><%= animal.Zone %></td>
+              <td class="align-middle">
+                <%= if (params["v"] == "type" && zoneMap[ animal.Zone.String ] == "external") {%>
+                  <i><%= animal.Zone %></i>
+                <% } else { %>
+                  <%= animal.Zone %> <%= animal.Zone %>
+                <% } %>
+              </td>
             <% } else { %>
               <td class="align-middle"><%= animal.Animaltype.Name %></td>  
             <% } %>
