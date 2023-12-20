@@ -103,7 +103,11 @@
       <thead class="thead-light">
         <th data-sortable="true">Number</th>
         <th data-sortable="true">Intake date</th>
+        <%= if (params["v"] == "type") { %>
         <th data-sortable="true">Zone</th>
+        <% } else { %>
+        <th data-sortable="true">Type</th>
+        <% } %>
         <th data-sortable="true">Cage</th>
         <th data-sortable="true">Species</th>
         <th data-sortable="true">Age</th>
@@ -123,7 +127,11 @@
               <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%=animal.YearNumber%></a>
             </td>
             <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+            <%= if (params["v"] == "type") { %>
             <td class="align-middle"><%= animal.Zone %></td>
+            <% } else { %>
+              <td class="align-middle"><%= animal.Animaltype.Name %></td>  
+            <% } %>
             <td class="align-middle"><%= animal.Cage %></td>
             <td class="align-middle">
             <%
