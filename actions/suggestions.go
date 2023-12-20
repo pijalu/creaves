@@ -92,8 +92,17 @@ func SuggestionsLocality(c buffalo.Context) error {
 	z := c.Param("z") // zip
 	l := c.Param("l") // locality
 
-	_ = z
-	_ = l
+	ret := c.Param("r") // return
+
+	var field string
+	switch ret {
+	case "postal_code":
+		field = "postal_code"
+	case "locality":
+		field = "locality"
+	default:
+		return fmt.Errorf("unexpected request for %s", ret)
+	}
 
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -101,13 +110,13 @@ func SuggestionsLocality(c buffalo.Context) error {
 	}
 
 	var query *pop.Query
-	qroot := `SELECT distinct locality FROM localities WHERE 1=1 `
+	qroot := fmt.Sprintf(`SELECT distinct %s FROM localities WHERE 1=1`, field)
 	args := []interface{}{}
 
 	// Add postal code
 	if len(z) > 0 {
-		qroot += ` AND postal_code = ?`
-		args = append(args, z)
+		qroot += ` AND postal_code LIKE ?`
+		args = append(args, "%"+z+"%")
 	}
 
 	// Add zip code
@@ -115,7 +124,7 @@ func SuggestionsLocality(c buffalo.Context) error {
 		qroot += ` AND locality LIKE ?`
 		args = append(args, "%"+l+"%")
 	}
-
+	qroot += " ORDER BY 1 LIMIT 10"
 	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
 	query = tx.RawQuery(qroot, args...)
 

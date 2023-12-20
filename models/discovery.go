@@ -23,6 +23,7 @@ type Discovery struct {
 	Discoverer    Discoverer   `belongs_to:"discoverer" json:"discoverer,omitempty"`
 	DiscovererID  uuid.UUID    `json:"discoverer_id" db:"discoverer_id"`
 	ReturnHabitat bool         `json:"return_habitat" db:"return_habitat"`
+	InGarden      bool         `json:"in_garden" db:"in_garden"`
 	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }

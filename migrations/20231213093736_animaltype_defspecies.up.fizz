@@ -1,1 +1,1 @@
-add_column("animaltypes", "default_species", "text", {null: true})
+add_column("animaltypes", "default_species", "string", {null: true})

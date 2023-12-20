@@ -109,7 +109,32 @@ $( document ).ready(function(){
       </div>
 
       <div class="form-row">
-      <%= f.InputTag("Discovery.Location", {label:"Location details", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+        <div class="form-check text-center col-md-12">
+            <%= f.CheckboxTag("Discovery.InGarden", { unchecked: false, label: "found in discoverer garden", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+
+            <script>
+            $( 'input[name="Discovery.InGarden"]' ).on( "change", function() {
+                if ($( 'input[name="Discovery.InGarden"]' ).is(":checked")) {
+                    console.log("test:", $('input[name="Discovery.Discoverer.PostalCode"]').val() === "", $('input[name="Discovery.Discoverer.City"]').val() === "")
+
+                    if ($('input[name="Discovery.Discoverer.PostalCode"]').val() === ""
+                        && $('input[name="Discovery.Discoverer.City"]').val() === "") {
+                            var cp = $('input[name="Discovery.PostalCode"]').val();
+                            var city = $('input[name="Discovery.City"]').val();
+
+                            $('input[name="Discovery.Discoverer.PostalCode"]').val(cp);
+                            $('input[name="Discovery.Discoverer.City"]').val(city);
+                        }
+                } else {
+                    console.log("found in garden is now false");
+                }
+            } );
+            </script>
+        </div>
+      </div>
+
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Location", {label:"Location details", bootstrap:{form-group-class:"form-group col-md-12"} }) %>
       <script>
       $('input[name="Discovery.Location"]').autoComplete({
           minChars: 1,
@@ -154,6 +179,10 @@ $( document ).ready(function(){
               <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
           </div>
       </div>
+
+
+
+
   </div>
 
   <div class="container p-3 my-3 border">
@@ -291,6 +320,51 @@ $( document ).ready(function(){
                 <div class="col-md-12 form-row">
                     <%= f.CheckboxTag("Intake.HasWounds", {label:"Wounds", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
                     <%= f.CheckboxTag("Intake.HasParasites", {label:"Parasites", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+                </div>
+
+                <script>
+                    $('input[name="Intake.HasWounds"]').on( "change", function() {
+                        if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                            $("#Wounds").collapse("show");
+                        } else {
+                            $("#Wounds").collapse("hide");
+                        }
+                    });
+
+                    $('input[name="Intake.HasParasites"]').on( "change", function() {
+                        if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                            $("#Parasites").collapse("show");
+                        } else {
+                            $("#Parasites").collapse("hide");
+                        }
+                    });
+
+                    $( document ).ready(function(){
+                      if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                        $("#Wounds").collapse("show");
+                      }
+                      if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                        $("#Parasites").collapse("show");
+                      }
+                    });
+                </script>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Wounds
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="5"><%= animal.Intake.Wounds %></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasites
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="5"><%= animal.Intake.Parasites %></textarea>
+                    </div>
                 </div>
 
                 <a class="btn btn-primary" name="Intake.RemarksBtn" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">

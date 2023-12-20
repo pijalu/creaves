@@ -94,9 +94,15 @@
         </li>
 
         <li class="list-group-item pb-1">
+          <label class="small d-block">found in discoverer garden</label>
+          <p class="d-inline-block"><%= animal.Discovery.InGarden %></p>
+        </li>
+
+        <li class="list-group-item pb-1">
           <label class="small d-block">Location details</label>
           <p class="d-inline-block"><%= animal.Discovery.Location %></p>
         </li>
+
         <li class="list-group-item pb-1">
           <label class="small d-block">Date</label>
           <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
@@ -162,11 +168,15 @@
       <li class="list-group-item pb-1">
         <label class="small d-block">Wounds</label>
         <p class="d-inline-block"><%= animal.Intake.HasWounds %></p>
+        <br/>
+        <p class="d-inline-block"><%= animal.Intake.Wounds %></p>
       </li>
 
       <li class="list-group-item pb-1">
         <label class="small d-block">Parasites</label>
         <p class="d-inline-block"><%= animal.Intake.HasParasites %></p>
+        <br/>
+        <p class="d-inline-block"><%= animal.Intake.Parasites %></p>
       </li>
 
       <li class="list-group-item pb-1">

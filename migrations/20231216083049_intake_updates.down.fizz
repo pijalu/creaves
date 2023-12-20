@@ -1,6 +1,3 @@
 drop_column("intakes", "has_wounds")
 drop_column("intakes", "has_parasites")
-change_column("intakes", "general", "string", {null: false})
-
-add_column("intakes", "wounds", "text", {null: true})
-add_column("intakes", "parasites", "text", {null: true})
+change_column("intakes", "general", "text", {null: false})

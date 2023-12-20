@@ -16,7 +16,9 @@ type Intake struct {
 	Date         time.Time    `json:"date" db:"date"`
 	General      nulls.String `json:"general" db:"general"`
 	HasWounds    bool         `json:"has_wounds" db:"has_wounds"`
+	Wounds       nulls.String `json:"wounds" db:"wounds"`
 	HasParasites bool         `json:"has_parasites" db:"has_parasites"`
+	Parasites    nulls.String `json:"parasites" db:"parasites"`
 	Remarks      nulls.String `json:"remarks" db:"remarks"`
 	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`

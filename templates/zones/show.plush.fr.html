@@ -24,7 +24,13 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Type</label>
-    <p class="d-inline-block"><%= zone.Type %></p>
+    <p class="d-inline-block">
+        <%= if (zone.Type == "external") { %>
+          externe au centre
+        <% } else { %>
+          interne au centre
+        <% } %>
+    </p>
   </li>
 
 

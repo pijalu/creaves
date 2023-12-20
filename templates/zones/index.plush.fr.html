@@ -15,7 +15,15 @@
   <tbody>
     <%= for (zone) in zones { %>
       <tr>
-        <td class="align-middle"><%= zone.Zone %></td><td class="align-middle"><%= zone.Type %></td><td class="align-middle"><%= zone.Default %></td>
+        <td class="align-middle"><%= zone.Zone %></td>
+        <td class="align-middle">
+          <%= if (zone.Type == "external") { %>
+            externe au centre
+          <% } else { %>
+            interne au centre
+          <% } %>
+        </td>
+        <td class="align-middle"><%= zone.Default %></td>
         <td>
           <div class="float-end">
             <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

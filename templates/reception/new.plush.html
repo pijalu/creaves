@@ -31,14 +31,24 @@
                     }
 
                     $( "#animal-AnimaltypeID" ).on( "change", function() {
-                    var term = $("#animal-AnimaltypeID :selected").text();
-                    $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
-                        if ($("#animal-Species").val().length == 0 && data.length > 0 ) {
-                            $("#animal-Species").val(data[0]);
-                            $( "#animal-Species" ).removeClass("is-invalid")
-                        }
+                        var term = $("#animal-AnimaltypeID :selected").text();
+                        $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
+                            if (data.length > 0 ) {
+                                $("#animal-Species").val(data[0]);
+                                $("#animal-Species").removeClass("is-invalid")
+                            }
+                        });
                     });
-                } );
+
+                    $( document ).ready(function(){
+                        var term = $("#animal-AnimaltypeID :selected").text();
+                        $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
+                            if (data.length > 0 ) {
+                                $("#animal-Species").val(data[0]);
+                                $( "#animal-Species" ).removeClass("is-invalid")
+                            }
+                        });    
+                     });
                 </script>
 
                 <%= f.InputTag("Species", {required: "required"})%>
@@ -78,23 +88,27 @@
                     <div class="form-row">  
                         <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postal Code"}) %>
                         <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"City"}) %>
-                    
-                        <script>
-                        $('input[name="Discovery.PostalCode"]').autoComplete({
-                            minChars: 1,
-                            source: function(term, response){
-                                $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
-                            }
-                        });
 
-                        $('input[name="Discovery.City"]').autoComplete({
-                            minChars: 0,
-                            cache: 0,
-                            source: function(term, response){
-                                var postalCode = $('input[name="Discovery.PostalCode"]').val();
-                                $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
-                            }
-                        });
+                        <script>
+                            $('input[name="Discovery.PostalCode"]').autoComplete({
+                                minChars: 0,
+                                cache: 0,
+                                source: function(term, response){
+                                    var city = $('input[name="Discovery.City"]').val();
+                                    var postalCode = $('input[name="Discovery.PostalCode"]').val();
+
+                                    $.getJSON('/suggestions/locality', { r: "postal_code", z: postalCode, l: city }, function(data){ response(data); });
+                                }
+                            });
+
+                            $('input[name="Discovery.City"]').autoComplete({
+                                minChars: 0,
+                                cache: 0,
+                                source: function(term, response){
+                                    var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                                    $.getJSON('/suggestions/locality', { r: "locality", z: postalCode, l: term }, function(data){ response(data); });
+                                }
+                            });
                         </script>
                     </div>
 
@@ -112,15 +126,11 @@
 
                     <div class="form-row">
                         <div class="form-check text-center col-md-12">
-                            <input class="form-check-input" 
-                                id="discoverer-garden" 
-                                name="discoverer-garden" 
-                                type="checkbox"/>
-                            <label class="form-check-label" for="discoverer-garden">Found in discoverer garden</label>
+                            <%= f.CheckboxTag("Discovery.InGarden", { unchecked: false, label: "found in discoverer garden", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
 
                             <script>
-                            $( "#discoverer-garden" ).on( "change", function() {
-                                if ($( "#discoverer-garden" ).is(":checked")) {
+                            $( 'input[name="Discovery.InGarden"]' ).on( "change", function() {
+                                if ($( 'input[name="Discovery.InGarden"]' ).is(":checked")) {
                                     console.log("test:", $('input[name="Discovery.Discoverer.PostalCode"]').val() === "", $('input[name="Discovery.Discoverer.City"]').val() === "")
 
                                     if ($('input[name="Discovery.Discoverer.PostalCode"]').val() === ""
@@ -234,29 +244,34 @@
                     <%= f.InputTag("Discovery.Discoverer.PostalCode", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Postal Code"}) %>
                     <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"City"}) %>
                     <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Country"}) %>
+                    
                     <script>
-                        $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
-                            minChars: 1,
-                            source: function(term, response){
-                                $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
-                            }
-                        });
+                            $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
+                                minChars: 0,
+                                cache: 0,
+                                source: function(term, response){
+                                    var city = $('input[name="Discovery.Discoverer.City"]').val();
+                                    var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
 
-                        $('input[name="Discovery.Discoverer.City"]').autoComplete({
-                            minChars: 0,
-                            cache: 0,
-                            source: function(term, response){
-                                var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
-                                $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
-                            }
-                        });
+                                    $.getJSON('/suggestions/locality', { r: "postal_code", z: postalCode, l: city }, function(data){ response(data); });
+                                }
+                            });
 
-                        $('input[name="Discovery.Discoverer.Country"]').autoComplete({
-                            minChars: 1,
-                            source: function(term, response){
-                                $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
-                            }
-                        });
+                            $('input[name="Discovery.Discoverer.City"]').autoComplete({
+                                minChars: 0,
+                                cache: 0,
+                                source: function(term, response){
+                                    var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
+                                    $.getJSON('/suggestions/locality', { r: "locality", z: postalCode, l: term }, function(data){ response(data); });
+                                }
+                            });
+
+                            $('input[name="Discovery.Discoverer.Country"]').autoComplete({
+                                minChars: 1,
+                                source: function(term, response){
+                                    $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+                                }
+                            });
                     </script>
 
                     </div>
@@ -354,7 +369,7 @@
                     });
                 </script>
                 
-                <div class="form-row">
+                <div class="form-row d-none">
                     <div class="form-group col-md-6">
                             <%= f.InputTag("Cage") %> 
                     </div>
@@ -371,6 +386,42 @@
                 <div class="col-md-12 form-row">
                     <%= f.CheckboxTag("Intake.HasWounds", {label:"Wounds", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
                     <%= f.CheckboxTag("Intake.HasParasites", {label:"Parasites", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+                </div>
+
+                <script>
+                    $('input[name="Intake.HasWounds"]').on( "change", function() {
+                        if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                            $("#Wounds").collapse("show");
+                        } else {
+                            $("#Wounds").collapse("hide");
+                        }
+                    });
+
+                    $('input[name="Intake.HasParasites"]').on( "change", function() {
+                        if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                            $("#Parasites").collapse("show");
+                        } else {
+                            $("#Parasites").collapse("hide");
+                        }
+                    });
+                </script>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Wounds
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="5"></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasites
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="5"></textarea>
+                    </div>
                 </div>
 
                 <a class="btn btn-primary" name="Intake.RemarksBtn" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">

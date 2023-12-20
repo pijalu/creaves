@@ -69,7 +69,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1402 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=3453 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -87,7 +87,7 @@ CREATE TABLE `animaltypes` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   `has_ring` tinyint(1) NOT NULL DEFAULT '0',
-  `default_species` text,
+  `default_species` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `animaltypes_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -187,6 +187,7 @@ CREATE TABLE `discoveries` (
   `postal_code` varchar(255) DEFAULT NULL,
   `city` varchar(255) DEFAULT NULL,
   `return_habitat` tinyint(1) NOT NULL DEFAULT '0',
+  `in_garden` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
   CONSTRAINT `discoveries_ibfk_1` FOREIGN KEY (`discoverer_id`) REFERENCES `discoverers` (`id`) ON DELETE CASCADE
@@ -236,33 +237,6 @@ CREATE TABLE `drugs` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `export test`
---
-
-DROP TABLE IF EXISTS `export test`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `export test` (
-  `id` int DEFAULT NULL,
-  `species` text,
-  `ring` text,
-  `cage` text,
-  `animalage_id` text,
-  `animaltype_id` text,
-  `discovery_id` text,
-  `intake_id` text,
-  `outtake_id` text,
-  `created_at` text,
-  `updated_at` text,
-  `feeding` text,
-  `gender` text,
-  `year` int DEFAULT NULL,
-  `yearNumber` int DEFAULT NULL,
-  `IntakeDate` text
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `intakes`
 --
 
@@ -272,7 +246,9 @@ DROP TABLE IF EXISTS `intakes`;
 CREATE TABLE `intakes` (
   `id` char(36) NOT NULL,
   `date` datetime NOT NULL,
-  `general` varchar(255) DEFAULT NULL,
+  `general` text,
+  `wounds` text,
+  `parasites` text,
   `remarks` text,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
@@ -565,4 +541,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-12-18 15:57:00
+-- Dump completed on 2023-12-20 10:43:04

@@ -13,10 +13,10 @@ func createZones(c *Context) error {
 		zone_type string
 		def       bool
 	}{
-		{zone: "Centre", zone_type: "zone interne au centre", def: true},
-		{zone: "Cabinet vétérinaire", zone_type: "zone externe au centre", def: false},
-		{zone: "Soft-release", zone_type: "zone externe au centre", def: false},
-		{zone: "Famille d'accueil", zone_type: "zone externe au centre", def: false},
+		{zone: "Centre", zone_type: "internal", def: true},
+		{zone: "Cabinet vétérinaire", zone_type: "external", def: false},
+		{zone: "Soft-release", zone_type: "external", def: false},
+		{zone: "Famille d'accueil", zone_type: "external", def: false},
 	}
 
 	cnt, err := models.DB.Q().Count(&models.Zone{})
