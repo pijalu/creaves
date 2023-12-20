@@ -23,7 +23,7 @@
             interne au centre
           <% } %>
         </td>
-        <td class="align-middle"><%= zone.Default %></td>
+        <td class="align-middle"><%= bool2html(zone.Default) %></td>
         <td>
           <div class="float-end">
             <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

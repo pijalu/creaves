@@ -21,8 +21,8 @@
       <tr>
         <td class="align-middle"><%= animaltype.Name %></td>
         <td class="align-middle"><%= animaltype.Description %></td>
-        <td class="align-middle"><%= animaltype.Default %></td>
-        <td class="align-middle"><%= animaltype.HasRing %></td>
+        <td class="align-middle"><%= bool2html(animaltype.Default) %></td>
+        <td class="align-middle"><%= bool2html(animaltype.HasRing) %></td>
         <td class="align-middle"><%= animaltype.DefaultSpecies %></td>
         <td>
           <div class="float-right">

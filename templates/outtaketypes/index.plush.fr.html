@@ -21,8 +21,8 @@
       <tr>
         <td class="align-middle"><%= outtaketype.Name %></td>
         <td class="align-middle"><%= outtaketype.Description %></td>
-        <td class="align-middle"><%= outtaketype.Default %></td>
-        <td class="align-middle"><%= outtaketype.Dead %></td>
+        <td class="align-middle"><%= bool2html(outtaketype.Default) %></td>
+        <td class="align-middle"><%= bool2html(outtaketype.Dead) %></td>
         <td class="align-middle">
           <%= if (outtaketype.Rating < 0) { %>
             Négative
