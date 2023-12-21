@@ -150,6 +150,7 @@
 <%= f.InputTag("Drug", {label:"Médicament"}) %>
 <script>
     $('input[name="Drug"]').autoComplete({
+        cache:0,
         minChars: 0,
         source: function(term, response){
             $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
@@ -159,6 +160,7 @@
 <%= f.InputTag("Dosage", {label:"Posologie"}) %>
 <script>
     $('input[name="Dosage"]').autoComplete({
+        cache: 0,
         minChars: 0,
         source: function(term, response){
             $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });
