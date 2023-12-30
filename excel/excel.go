@@ -158,30 +158,23 @@ func RunQuery(c buffalo.Context, query string) error {
 		}
 	}
 
-	rowPtr := make([]any, len(cols))
-	rowString := make([]*string, len(cols))
-	for i := range rowString {
-		rowPtr[i] = &rowString[i]
+	values := make([]interface{}, len(cols))
+	valuePtrs := make([]interface{}, len(cols))
+
+	for i := range values {
+		valuePtrs[i] = &values[i]
 	}
-	rowStringNull := make([]string, len(cols))
 
 	for rows.Next() {
 		line = line + 1
 
-		err := rows.Scan(rowPtr...)
+		err := rows.Scan(valuePtrs...)
 		if err != nil {
 			log.Printf("Error fetching results: %v", err)
 			return fmt.Errorf("error getting fetching columns: %v", err)
 		}
-		for i, str := range rowString {
-			if str == nil {
-				rowStringNull[i] = "null"
-			} else {
-				rowStringNull[i] = *str
-			}
-		}
 
-		for i, co := range rowStringNull {
+		for i, co := range values {
 			pos := sheetPosition(line, i+1)
 			if err := f.SetCellValue(sqlQuery.Sheet, pos, co); err != nil {
 				c.Logger().Debugf("error exporting to cell %s: %v", pos, err)
