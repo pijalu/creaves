@@ -130,7 +130,7 @@ queries:
             ORDER BY 1 DESC, 2 ASC;
             
  - name: dead_register
-   description: Registre des découvreurs
+   description: Registre des cadavres
    query: SELECT distinct
             a.year AS "année",
             a.yearNumber AS "N°",
@@ -302,11 +302,12 @@ queries:
    query: SELECT
            year AS "Année",
            sp.species AS "Espèces",
+           sp.creaves_species AS "Espèces CREAVES",
            COUNT(Distinct a.id) AS "Nombre"
            From animals AS a
            INNER JOIN species AS sp ON a.species = creaves_species
            INNER JOIN intakes AS i ON a.intake_id = i.id
-           GROUP BY 1, sp.species
+           GROUP BY 1, 2, 3
            ORDER BY 1 DESC, sp.species ASC;
 
  - name: group_creaves
