@@ -49,3 +49,29 @@ queries:
               LEFT JOIN travels AS t ON t.animal_id = a.id
               GROUP BY a.id
               ORDER BY a.id asc
+  - name: stat_communes
+    description: Statistique Communes
+    template: stats_communes.xlsx
+    sheet: bdd
+    query: SELECT distinct
+            a.year AS "Année",
+            a.yearNumber AS "N°",
+            a.species AS "Espèce",
+            i.date AS "Date d'entrée",
+            d.reason As "Cause de découverte",
+            d.location AS "lieux de découverte",
+            d.city AS "localté",
+            d.postal_code AS "Code postal",
+            l.municipality AS "Commune",
+            l.province AS "Province",
+            l.region AS "Région",
+            l.country AS "Pays",
+            l.zoning AS "Cantonnement",
+            l.direction AS "Direction"
+            FROM animals AS a
+              INNER JOIN intakes AS i ON a.intake_id = i.id
+              INNER JOIN discoveries AS d ON a.discovery_id = d.id
+              INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+              LEFT JOIN localities AS l ON d.city = locality
+              LEFT JOIN species AS s ON s.creaves_species = a.species
+              ORDER BY a.year asc, a.yearNumber asc
