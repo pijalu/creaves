@@ -94,8 +94,7 @@ queries:
            INNER JOIN discoverers AS di ON d.discoverer_id = di.id
            INNER JOIN animalages AS aa ON a.animalage_id = aa.id
            INNER JOIN animaltypes AS ta ON a.animaltype_id = ta.id
-           INNER JOIN outtakes AS o ON a.outtake_id = o.id
-           INNER JOIN cares AS c ON c.animal_id = a.id
+           LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN species AS s ON s.creaves_species = a.species
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
            LEFT JOIN veterinaryvisits AS vv ON a.id = vv.animal_id
