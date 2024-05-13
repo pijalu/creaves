@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier la localité</h3>
+</div>
+
+<%= formFor(locality, {action: localityPath({ locality_id: locality.ID }), method: "PUT"}) { %>
+  <%= partial("localities/form.html") %>
+  <%= linkTo(localityPath({ locality_id: locality.ID }), {class: "btn btn-warning", "data-confirm": "Etes-vous sûr?", body: "Annuler"}) %>
+<% } %>

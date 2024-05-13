@@ -1,0 +1,1 @@
+drop_column("animaltypes", "default_species")

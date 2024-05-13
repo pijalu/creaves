@@ -1,0 +1,13 @@
+create_table("localities") {
+	t.Column("id", "string", {primary: true})
+	t.Column("country", "string", {})
+	t.Column("region", "string", {})
+	t.Column("province", "string", {})
+	t.Column("municipality", "string", {})
+	t.Column("sub_municipality", "bool", {})
+	t.Column("postal_code", "string", {})
+	t.Column("locality", "string", {})
+	t.Column("zoning", "string", {})
+	t.Column("direction", "string", {})
+	t.Timestamps()
+}

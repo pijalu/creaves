@@ -27,8 +27,10 @@ import (
 func createSpecies(c *Context) error {
 	ts := []struct {
 		Species        string        
-		Group          string        
-		Family         string       
+		Class          string 
+		Order          string        
+		Family         string    
+		Game	       bool    
 		CreavesSpecies string        
 		CreavesGroup   string        
 		Subside        string
@@ -45,34 +47,66 @@ const footer = `
 	if cnt >= len(ts) {
 		fmt.Printf("Already %d records in species - skipping\n", cnt)
 		return nil
+	} else {
+		fmt.Printf("Already %d records in species - expecting %d\n", cnt, len(ts))
 	}
 
 
 	return models.DB.Transaction(func(con *pop.Connection) error {
 		for _, t := range ts {
+			if len(t.Species) == 0 {
+				continue
+			}
+
+			d := &models.Species{
+				Species:        t.Species,
+				Class:          t.Class,
+				Order:          t.Order,
+				Family:         t.Family,
+				Game:	        t.Game,
+				CreavesSpecies: t.CreavesSpecies,
+				CreavesGroup:   t.CreavesGroup,
+			}
+			if len(t.Subside) > 0 && t.Subside != "?" {
+				dsf, err := strconv.ParseFloat(t.Subside, 64)
+				if err == nil {
+					d.Subside = nulls.NewFloat64(dsf)
+				} else {
+					fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
+				}
+			}
+
 			if exists, err := con.Where("Species = ?", t.Species).Exists(&models.Species{}); err != nil {
 				return err
 			} else if !exists {
-				d := &models.Species{
-					Species:        t.Species,
-					Group:          t.Group,
-					Family:         t.Family,
-					CreavesSpecies: t.CreavesSpecies,
-					CreavesGroup:   t.CreavesGroup,
-				}
-				if len(t.Subside) > 0 {
-					dsf, err := strconv.ParseFloat(t.Subside, 64)
-					if err == nil {
-						d.Subside = nulls.NewFloat64(dsf)
-					} else {
-						fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
-					}
-				}
 				if err := con.Create(d); err != nil {
 					return err
 				}
 			} else {
-				fmt.Printf("Species %s already exists\n", t.Species)
+				fmt.Printf("Species %s already exists - updating\n", t.Species)
+				d_db := &models.Species{}
+				if err := con.Where("Species = ?", t.Species).First(d_db); err != nil {
+					fmt.Printf("Failure to load: %s - record corrupted... Removing", t.Species)
+					if err := con.RawQuery("delete from species where species = ?", t.Species).Exec(); err != nil {
+						return err
+					}
+					fmt.Printf("Recreating %s", t.Species)
+					if err := con.Create(d); err != nil {
+						return err
+					}
+				} else {
+					// update record
+					d_db.Class = d.Class
+					d_db.Order = d.Order
+					d_db.Family = d.Family
+					d_db.Game = d.Game
+					d_db.CreavesSpecies = d.CreavesSpecies
+					d_db.CreavesGroup = d.CreavesGroup
+					if err := con.Update(d_db); err != nil {
+						fmt.Printf("Failure to save: %v", d_db)
+						return err
+					}
+				}
 			}
 		}
 		return nil
@@ -83,8 +117,10 @@ const footer = `
 const gencode = `
 {
 	Species        : "{{ .Species }}",
-	Group          : "{{ .Group }}", 
+	Class          : "{{ .Class }}", 
+	Order          : "{{ .Order }}", 
 	Family         : "{{ .Family }}",
+	Game           : 1 == {{ .Game }},
 	CreavesSpecies : "{{ .CreavesSpecies }}",
 	CreavesGroup   : "{{ .CreavesGroup }}",        
 	Subside        : "{{ .Subside }}",
@@ -122,6 +158,9 @@ func main() {
 		data := map[string]string{}
 		for idx, name := range header {
 			data[name] = strings.TrimSpace(record[idx])
+		}
+		if len(strings.TrimSpace(record[0])) == 0 {
+			continue
 		}
 		if err := t.Execute(os.Stdout, data); err != nil {
 			log.Fatal(err)

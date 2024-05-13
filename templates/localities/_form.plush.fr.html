@@ -1,0 +1,11 @@
+<%= f.InputTag("ID") %>
+<%= f.InputTag("Country", {label:"Pays"}) %>
+<%= f.InputTag("Region", {label:"Région"}) %>
+<%= f.InputTag("Province", {label:"Province"}) %>
+<%= f.InputTag("Municipality", {label:"Commune"}) %>
+<%= f.CheckboxTag("SubMunicipality", {label:"Sous-Coummune", unchecked: false}) %>
+<%= f.InputTag("PostalCode", {label:"Code Postal"}) %>
+<%= f.InputTag("Locality", {label:"Localité"}) %>
+<%= f.InputTag("Zoning", {label:"Zone"}) %>
+<%= f.InputTag("Direction", {label:"Direction"}) %>
+<button class="btn btn-success" role="submit">Save</button>

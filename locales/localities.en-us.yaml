@@ -1,0 +1,6 @@
+- id: "locality.created.success"
+  translation: "Locality was successfully created."
+- id: "locality.updated.success"
+  translation: "Locality was successfully updated."
+- id: "locality.destroyed.success"
+  translation: "Locality was successfully destroyed."

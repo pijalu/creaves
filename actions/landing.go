@@ -58,13 +58,29 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	animalsByType := models.AnimalsByTypeMap{}
+	animalsByZone := models.AnimalByZoneMap{}
+
 	if _, err := EnrichAnimals(&animals, c); err != nil {
 		return err
 	}
 
 	for _, animal := range animals {
-		animalsByType[animal.Animaltype] = append(animalsByType[animal.Animaltype], animal)
+		keyType := models.AnimalViewKey{ID: sha256(animal.Animaltype.Name), Name: animal.Animaltype.Name}
+		animalsByType[keyType] = append(animalsByType[keyType], animal)
+
+		keyZone := models.AnimalViewKey{ID: sha256("?"), Name: "?"}
+		if animal.Zone.Valid {
+			keyZone.ID = sha256(animal.Zone.String)
+			keyZone.Name = animal.Zone.String
+		}
+		animalsByZone[keyZone] = append(animalsByZone[keyZone], animal)
 	}
+
+	zm, err := zonesMap(c)
+	if err != nil {
+		return err
+	}
+	c.Set("zoneMap", zm)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// Add clean cage flag
@@ -74,6 +90,7 @@ func LandingIndex(c buffalo.Context) error {
 		}
 		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
+		c.Set("animalsByZone", animalsByZone)
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animalsByType))

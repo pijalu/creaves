@@ -1,0 +1,3 @@
+drop_column("outtaketypes", "dead")
+drop_column("outtaketypes", "rating")
+drop_column("outtaketypes", "discoverer_news")

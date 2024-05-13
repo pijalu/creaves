@@ -42,8 +42,8 @@
                 </label>
             </div>
             <div class="form-group col-md-9">
-                <label>Posologie par grammes</label>
-                <input class=" form-control" name="Dosages[<%= i %>].DosagePerGrams" type="number" step="0.00001" min="0" value="<%= d.DosagePerGrams %>" autocomplete="off"/>
+                <label>Posologie par kilo</label>
+                <input class=" form-control" name="Dosages[<%= i %>].DosagePerGrams" type="number" step="0.001" min="0" value="<%= d.PerKilo() %>" autocomplete="off"/>
             </div>
             <div class="form-group col-md-3">
                 <label>Unité de dosage</label>

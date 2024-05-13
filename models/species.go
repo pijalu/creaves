@@ -15,8 +15,10 @@ import (
 type Species struct {
 	ID             uuid.UUID     `json:"id" db:"id"`
 	Species        string        `json:"species" db:"species"`
-	Group          string        `json:"group" db:"group"`
+	Class          string        `json:"class" db:"class"`
+	Order          string        `json:"order" db:"order"`
 	Family         string        `json:"family" db:"family"`
+	Game           bool          `json:"game" db:"game"`
 	CreavesSpecies string        `json:"creaves_species" db:"creaves_species"`
 	CreavesGroup   string        `json:"creaves_group" db:"creaves_group"`
 	Subside        nulls.Float64 `json:"subside" db:"subside"`
@@ -35,7 +37,8 @@ func (s Species) String() string {
 func (s *Species) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		&validators.StringIsPresent{Field: s.Species, Name: "Species"},
-		&validators.StringIsPresent{Field: s.Group, Name: "Group"},
+		&validators.StringIsPresent{Field: s.Class, Name: "Class"},
+		&validators.StringIsPresent{Field: s.Class, Name: "Order"},
 		&validators.StringIsPresent{Field: s.Family, Name: "Family"},
 		&validators.StringIsPresent{Field: s.CreavesSpecies, Name: "CreavesSpecies"},
 		&validators.StringIsPresent{Field: s.CreavesGroup, Name: "CreavesGroup"},

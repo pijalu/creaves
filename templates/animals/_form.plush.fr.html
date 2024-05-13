@@ -31,6 +31,10 @@ $( document ).ready(function(){
                     label: "Type",
                     options: selectAnimalTypes, 
                     required:"required"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                 <%= f.InputTag("Species", {label:"Espèce", required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
@@ -40,131 +44,313 @@ $( document ).ready(function(){
                     }
                 });
                 </script>
+        </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                 <%= f.SelectTag("AnimalageID", {
                     label: "Age",
                     options: selectAnimalages, 
                     required:"required"}) %>
+      </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
                 <%= f.InputTag("Ring", {label:"Identification"}) %>
-                <div class="form-group">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
                   <label>Sexe</label>
                   <select class="form-control" id="animal-Gender" name="Gender">
                     <option value="" <%= if (animal.Gender.Value() == "") {%> selected <%}%> >Inconnu</option>
                     <option value="M" <%= if (animal.Gender && animal.Gender.Value() == "M") {%> selected <%}%> >Mâle</option>
                     <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Femelle</option>
                   </select>
-                </div>
-                <%= f.InputTag("Cage") %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-6">
+                <%= f.InputTag("Cage") %> 
+        </div>
+        <div class="form-group col-md-6">
+          <%= f.SelectTag("Zone", {
+            label: "Zone",
+            options: selectZone, 
+            required:"required"}) %>
         </div>
     </div>
   </div>
 
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
     <div class="container p-3 my-3 border">
-        <div class="form-row">
-        <%= f.InputTag("Discovery.Location", {label:"Lieu", required: "required", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
-        <script>
-          $('input[name="Discovery.Location"]').autoComplete({
+      <div class="form-row">  
+          <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Code Postal"}) %>
+          <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
+      
+          <script>
+          $('input[name="Discovery.PostalCode"]').autoComplete({
               minChars: 1,
               source: function(term, response){
-                  $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+                  $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
               }
           });
-        </script>
+
+          $('input[name="Discovery.City"]').autoComplete({
+              minChars: 0,
+              cache: 0,
+              source: function(term, response){
+                  var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                  $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+              }
+          });
+          </script>
+      </div>
+
+      <div class="form-row">
+        <div class="form-check text-center col-md-12">
+            <%= f.CheckboxTag("Discovery.InGarden", { unchecked: false, label: "Trouvé dans jardin du découvreur", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+            <script>
+            $( 'input[name="Discovery.InGarden"]' ).on( "change", function() {
+                if ($( 'input[name="Discovery.InGarden"]' ).is(":checked")) {
+                    console.log("test:", $('input[name="Discovery.Discoverer.PostalCode"]').val() === "", $('input[name="Discovery.Discoverer.City"]').val() === "")
+
+                    if ($('input[name="Discovery.Discoverer.PostalCode"]').val() === ""
+                        && $('input[name="Discovery.Discoverer.City"]').val() === "") {
+                            var cp = $('input[name="Discovery.PostalCode"]').val();
+                            var city = $('input[name="Discovery.City"]').val();
+
+                            $('input[name="Discovery.Discoverer.PostalCode"]').val(cp);
+                            $('input[name="Discovery.Discoverer.City"]').val(city);
+                        }
+                } else {
+                    console.log("found in garden is now false");
+                }
+            } );
+            </script>
         </div>
-        <div class="form-row">
-        
-        <div class="form-group col-md-12">
-            <label>Date</label>
-            <div class="input-group md-12">
-                <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>"
-                pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])"
-                >
-                <div class="input-group-append">
-                    <div class="input-group-text">
-                        <i class="fa fa-calendar" aria-hidden="true"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script type="text/javascript">
-            $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
-        </script>
-        </div>
-    </div>
-    <div class="container p-3 my-3 border">
-        <h4>Discoverer</h4>
-    
-        <div class="form-row">  
-        <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Prénom"}) %>
-        <%= f.InputTag("Discovery.Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Nom de famille"}) %>
-        </div>
-        <div class="form-row">
-        <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Adresse"}) %>
-        </div>
-        <div class="form-row">
-        <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
-        <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Pays"}) %>
-        <script>
+      </div>
+      
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Location", {label:"Précision lieu", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+      <script>
+      $('input[name="Discovery.Location"]').autoComplete({
+          minChars: 1,
+          source: function(term, response){
+              $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+          }
+      });
+      </script>
+      </div>
+
+      <div class="form-row">
+      <div class="form-group col-md-12">
+          <label>Date</label>
+          <div class="input-group md-12">
+              <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>"
+              pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+              <div class="input-group-append">
+                  <div class="input-group-text">
+                      <i class="fa fa-calendar" aria-hidden="true"></i>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <script type="text/javascript">
+          $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+      </script>
+      </div>
+  </div>
+
+  <div class="container p-3 my-3 border">
+      <h4>Détails</h4> 
+      <div class="form-row">
+          <%= f.CheckboxTag("Discovery.ReturnHabitat", { unchecked: false, label: "Retour à l'habitat", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+      </div>
+
+      <%= f.TextAreaTag("Discovery.Reason", {label:"Raison", rows: 5, class:"col-md-12"}) %>
+      <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+      Notes
+      </a>
+      <div class="collapse" id="DiscoveryNote">
+          <div class="card card-body">
+              <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
+          </div>
+      </div>
+  </div>
+
+  <div class="container p-3 my-3 border">
+      <h4>Découvreur</h4>
+  
+      <div class="form-row">  
+      <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Prénom"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Nom de famille"}) %>
+      </div>
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Adresse"}) %>
+      </div>
+
+      <script>
+          $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "firstname", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "lastname", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.Address"]').autoComplete({
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "address", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+      </script>
+
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.PostalCode", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Code Postal"}) %>
+      <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Ville"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Pays"}) %>
+      <script>
+          $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+              }
+          });
+
           $('input[name="Discovery.Discoverer.City"]').autoComplete({
-              minChars: 1,
+              minChars: 0,
+              cache: 0,
               source: function(term, response){
-                  $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
+                  var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
+                  $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
               }
           });
+
           $('input[name="Discovery.Discoverer.Country"]').autoComplete({
               minChars: 1,
               source: function(term, response){
                   $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
               }
           });
-        </script>
-        </div>
-        <div class="form-row">
-        <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
-        <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
-        </div>
+      </script>
+
+      </div>
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
+      </div>
+
+
+      <div class="form-row">
+          <%= f.InputTag("Discovery.Discoverer.Donation", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Don"}) %>
+      </div>
+
+      <div class="form-row">
+          <%= f.CheckboxTag("Discovery.Discoverer.ReturnRequest", { unchecked: false, label: "Rendre au découvreur", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+          <script>
+              $('input[name="Discovery.Discoverer.ReturnRequest"]').on( "change", function() {
+                  console.log("Status changed");
+                  if ($('input[name="Discovery.Discoverer.ReturnRequest"]').is(":checked")) {
+                      console.log("ReturnRequest is true");
+                      $('input[name="Discovery.ReturnHabitat"]' ).prop( "checked", true );
+                  } else {
+                      console.log("ReturnRequest is false");
+                  }
+              });
+          </script>
+      </div>
     </div>
-    <div class="container p-3 my-3 border">
-        <h4>Details</h4> 
-        <%= f.TextAreaTag("Discovery.Reason", {label:"Condition", rows: 10, class:"col-md-12"}) %>
-        <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
-        Notes
-        </a>
-        <div class="collapse" id="DiscoveryNote">
-            <div class="card card-body">
-                <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"></textarea>
-            </div>
-        </div>
-    </div>
-    </div>  
+  </div> 
   
    <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
     <div class="form-row">
         <div class="form-group col-md-12">
         <div class="container p-3 my-3 border">
+              <label>Date</label>
+              <div class="input-group md-12">
+                  <input class=" form-control" id="intakedate" name="Intake.Date" required="required" type="text" value="<%= animal.Intake.DateFormated() %>"
+                  pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+                  <div class="input-group-append">
+                      <div class="input-group-text">
+                          <i class="fa fa-calendar" aria-hidden="true"></i>
+                      </div>
+                  </div>
+              </div>
+          
+              <script type="text/javascript">
+                  $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+              </script>
+              
 
-                <label>Date</label>
-                <div class="input-group md-12">
-                    <input class=" form-control" id="intakedate" name="Intake.Date" required="required" type="text" value="<%= animal.Intake.DateFormated() %>"
-                    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <i class="fa fa-calendar" aria-hidden="true"></i>
-                        </div>
-                    </div>
-                </div>
-                <script type="text/javascript">
-                    $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+              <%= f.TextAreaTag("Intake.General", {label:"Général", rows: 5}) %>
+
+              <div class="col-md-12 form-row">
+                  <%= f.CheckboxTag("Intake.HasWounds", {label:"Blessures", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+                  <%= f.CheckboxTag("Intake.HasParasites", {label:"Parasites", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+              </div>
+
+              <script>
+                    $('input[name="Intake.HasWounds"]').on( "change", function() {
+                        if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                            $("#Wounds").collapse("show");
+                        } else {
+                            $("#Wounds").collapse("hide");
+                        }
+                    });
+
+                    $('input[name="Intake.HasParasites"]').on( "change", function() {
+                        if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                            $("#Parasites").collapse("show");
+                        } else {
+                            $("#Parasites").collapse("hide");
+                        }
+                    });
+
+                    $( document ).ready(function(){
+                      if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                        $("#Wounds").collapse("show");
+                      }
+                      if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                        $("#Parasites").collapse("show");
+                      }
+                    });
                 </script>
-
-                <%= f.TextAreaTag("Intake.General", {label:"Général", required:"required", rows: 10}) %>
 
                 <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
                     Blessures
                 </a>
                 <div class="collapse" id="Wounds">
                     <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="10"><%= animal.Intake.Wounds %></textarea>
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="5"><%= animal.Intake.Wounds %></textarea>
                     </div>
                 </div>
 
@@ -173,18 +359,18 @@ $( document ).ready(function(){
                 </a>
                 <div class="collapse" id="Parasites">
                     <div class="card card-body">
-                        <textarea  class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="10"><%= animal.Intake.Parasites %></textarea>
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="5"><%= animal.Intake.Parasites %></textarea>
                     </div>
                 </div>
 
-                <a class="btn btn-primary" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
-                    Remarques
-                </a>
-                <div class="collapse" id="Remarks">
-                    <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="10"><%= animal.Intake.Remarks %></textarea>
-                    </div>
-                </div>
+              <a class="btn btn-primary" name="Intake.RemarksBtn" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
+                  Remarques
+              </a>
+              <div class="collapse" id="Remarks">
+                  <div class="card card-body">
+                      <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="5"></textarea>
+                  </div>
+              </div>
             </div>
         </div>
     </div>

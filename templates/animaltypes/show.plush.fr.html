@@ -30,12 +30,17 @@
   
   <li class="list-group-item pb-1">
     <label class="small d-block">Défaut</label>
-    <p class="d-inline-block"><%= animaltype.Default %></p>
+    <p class="d-inline-block"><%= bool2html(animaltype.Default) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Identifié</label>
-    <p class="d-inline-block"><%= animaltype.HasRing %></p>
+    <p class="d-inline-block"><%= bool2html(animaltype.HasRing) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Espèces par défaut</label>
+    <p class="d-inline-block"><%= animaltype.DefaultSpecies %></p>
   </li>
 
 </ul>

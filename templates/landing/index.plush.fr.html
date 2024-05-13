@@ -10,7 +10,11 @@
 <form id="goto_animal" action="<%=animalsPath()%>">
   <div class="form-row">
     <div class="col-5">
-      &nbsp;
+      <%= if (params["v"] == "type") { %>
+        <a href="?v=zone"><span class="badge badge-info">Zone</span></a>
+      <% } else { %>
+        <a href="?v=type"><span class="badge badge-info">Type</span></a>
+      <% } %>
     </div>
     <div class="col-2">
       <label for="goto_animalNumber" class="col-sm-2 col-form-label">Numéro&nbsp;Animal</label>
@@ -64,14 +68,24 @@
  <%}%>
 
 <% 
-    let am = animalsByType 
+    if (params["v"] == "type") {
+      let am = animalsByType
+    } else {
+      let am = animalsByZone 
+    }
     let keys = am.OrderedKeys()
 %>
 
 <ul class="nav nav-tabs" id="landing-abt" role="tablist">
   <%= for (i, at) in keys {%>
   <li class="nav-item">
-    <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true"><%= at.Name %></a>
+    <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true">
+      <%= if (params["v"] != "type" && zoneMap[at.Name] == "external") {%>
+        <i><%= at.Name %></i>
+      <% } else { %>
+        <%= at.Name %>
+      <% } %>
+    </a>
   </li>
   <% } %>
 </ul>
@@ -90,6 +104,11 @@
       <thead class="thead-light">
         <th data-sortable="true">Numéro</th>
         <th data-sortable="true">Date d'admission</th>
+        <%= if (params["v"] == "type") { %>
+          <th data-sortable="true">Zone</th>
+        <% } else { %>
+          <th data-sortable="true">Type</th>
+        <% } %>
         <th data-sortable="true">Cage</th>
         <th data-sortable="true">Espèce</th>
         <th data-sortable="true">Age</th>
@@ -109,6 +128,17 @@
               <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%=animal.YearNumber%></a>
             </td>
             <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+            <%= if (params["v"] == "type") { %>
+              <td class="align-middle">
+                <%= if (params["v"] == "type" && zoneMap[ animal.Zone.String ] == "external") {%>
+                  <i><%= animal.Zone %></i>
+                <% } else { %>
+                  <%= animal.Zone %>
+                <% } %>
+              </td>
+            <% } else { %>
+              <td class="align-middle"><%= animal.Animaltype.Name %></td>  
+            <% } %>
             <td class="align-middle"><%= animal.Cage %></td>
             <td class="align-middle">
             <%

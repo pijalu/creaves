@@ -1,4 +1,3 @@
-
 package grifts
 
 import (
@@ -13,3940 +12,5209 @@ import (
 
 func createSpecies(c *Context) error {
 	ts := []struct {
-		Species        string        
-		Group          string        
-		Family         string       
-		CreavesSpecies string        
-		CreavesGroup   string        
+		Species        string
+		Class          string
+		Order          string
+		Family         string
+		Game           bool
+		CreavesSpecies string
+		CreavesGroup   string
 		Subside        string
 	}{
 
-{
-	Species        : "Corvus corax",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Grand Corbeau",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Capreolus capreolus",
-	Group          : "Mammifères", 
-	Family         : "Cervidés",
-	CreavesSpecies : "Chevreuil",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Cervus elaphus",
-	Group          : "Mammifères", 
-	Family         : "Cervidés",
-	CreavesSpecies : "Cerf élaphe",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "0",
-},
-
-{
-	Species        : "Sus scrofa",
-	Group          : "Mammifères", 
-	Family         : "Suidés",
-	CreavesSpecies : "Sanglier",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "0",
-},
-
-{
-	Species        : "Canis lupus",
-	Group          : "Mammifères", 
-	Family         : "Canidés",
-	CreavesSpecies : "Loup",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Felis silvestris",
-	Group          : "Mammifères", 
-	Family         : "Félidés",
-	CreavesSpecies : "Chat sylvestre",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "4.51",
-},
-
-{
-	Species        : "Lutra lutra",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Loutre",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Martes foina",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Fouine",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Martes martes",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Martre",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Meles meles",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Blaireau",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "4.51",
-},
-
-{
-	Species        : "Mustela erminea",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Hermine",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Mustela nivalis",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Belette",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Mustela putorius",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Putois",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Vulpes vulpes",
-	Group          : "Mammifères", 
-	Family         : "Canidés",
-	CreavesSpecies : "Renard roux",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Barbastella barbastellus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Barbastelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Eptesicus nilssonii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Eptesicus serotinus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Sérotine",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis alcathoe",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis bechsteinii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis brandtii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis dasycneme",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis daubentonii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis emarginatus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis myotis",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis mystacinus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Myotis nattereri",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Murin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Nyctalus leisleri",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Noctule",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Nyctalus noctula",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Noctule",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Pipistrellus kuhlii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Pipistrelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Pipistrellus nathusii",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Pipistrelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Pipistrellus pipistrellus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Pipistrelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Pipistrellus pygmaeus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Pipistrelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Plecotus auritus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Oreillard",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Plecotus austriacus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Oreillard",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Rhinolophus ferrumequinum",
-	Group          : "Mammifères", 
-	Family         : "Rhinolophidés",
-	CreavesSpecies : "Rhinolophe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Rhinolophus hipposideros",
-	Group          : "Mammifères", 
-	Family         : "Rhinolophidés",
-	CreavesSpecies : "Rhinolophe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Vespertilio murinus",
-	Group          : "Mammifères", 
-	Family         : "Verspertilionidés",
-	CreavesSpecies : "Serotine",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.75",
-},
-
-{
-	Species        : "Crocidura leucodon",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Crocidura russula",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Erinaceus europaeus",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Hérisson",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Neomys anomalus",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Neomys fodiens",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Sorex araneus",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Sorex coronatus",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Sorex minutus",
-	Group          : "Mammifères", 
-	Family         : "Soricidés",
-	CreavesSpecies : "Musaraigne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Talpa europaea",
-	Group          : "Mammifères", 
-	Family         : "Talpidés",
-	CreavesSpecies : "Taupe",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Lepus europaeus",
-	Group          : "Mammifères", 
-	Family         : "Léporidés",
-	CreavesSpecies : "Lièvre",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Oryctolagus cuniculus",
-	Group          : "Mammifères", 
-	Family         : "Léporidés",
-	CreavesSpecies : "Lapin de Garenne",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Apodemus flavicollis",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Mulot",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Apodemus sylvaticus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Mulot",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Arvicola terrestris",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Campagnol",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Clethrionomys glareolus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Campagnol",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Cricetus cricetus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Grand Hasmter",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Eliomys quercinus",
-	Group          : "Mammifères", 
-	Family         : "Muscardinidés",
-	CreavesSpecies : "Lérot",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Glis glis",
-	Group          : "Mammifères", 
-	Family         : "Muscardinidés",
-	CreavesSpecies : "Loir",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Micromys minutus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Rat des moissons",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Microtus agrestis",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Campagnol",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Microtus arvalis",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Campagnol",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Microtus subterraneus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Campagnol",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Mus domesticus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Souris",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Muscardinus avellanarius",
-	Group          : "Mammifères", 
-	Family         : "Muscardinidés",
-	CreavesSpecies : "Muscardin",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Rattus rattus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Rat noir",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Sciurus vulgaris",
-	Group          : "Mammifères", 
-	Family         : "Sciuridés",
-	CreavesSpecies : "Ecureuil roux",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Columba oenas",
-	Group          : "Oiseaux", 
-	Family         : "Colombidés",
-	CreavesSpecies : "Pigeon colombin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Columba palumbus",
-	Group          : "Oiseaux", 
-	Family         : "Colombidés",
-	CreavesSpecies : "Pigeon ramier",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Pterocles orientalis",
-	Group          : "Oiseaux", 
-	Family         : "Ptéroclicidés",
-	CreavesSpecies : "Ganga unibande",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Streptopelia decaocto",
-	Group          : "Oiseaux", 
-	Family         : "Colombidés",
-	CreavesSpecies : "Tourterelle turque",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Streptopelia turtur",
-	Group          : "Oiseaux", 
-	Family         : "Colombidés",
-	CreavesSpecies : "Tourterelle des bois",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Syrrhaptes paradoxus",
-	Group          : "Oiseaux", 
-	Family         : "Ptéroclicidés",
-	CreavesSpecies : "Syrrhapte paradoxal",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Alcedo atthis",
-	Group          : "Oiseaux", 
-	Family         : "Alcédinidés",
-	CreavesSpecies : "Martin-pêcheur d'Europe",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Coracias garrulus",
-	Group          : "Oiseaux", 
-	Family         : "Coraciidés",
-	CreavesSpecies : "Rollier d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Merops apiaster",
-	Group          : "Oiseaux", 
-	Family         : "Méropidés",
-	CreavesSpecies : "Guêpier d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Upupa epops",
-	Group          : "Oiseaux", 
-	Family         : "Upudidés",
-	CreavesSpecies : "Huppe fasciée",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Clamator glandarius",
-	Group          : "Oiseaux", 
-	Family         : "Cuculidés",
-	CreavesSpecies : "Coucou geai",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Coccyzus americanus",
-	Group          : "Oiseaux", 
-	Family         : "Cuculidés",
-	CreavesSpecies : "Coulicou à bec jaune",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Cuculus canorus",
-	Group          : "Oiseaux", 
-	Family         : "Cuculidés",
-	CreavesSpecies : "Coucou gris",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Ardea alba",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Grande Aigrette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ardea cinerea",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Héron cendré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ardea purpurea",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Héron pourpré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ardeola ralloides",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Crabier chevelu",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Botaurus stellaris",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Butor étoilé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Bubulcus ibis",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Héron garde-boeufs",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ciconia ciconia",
-	Group          : "Oiseaux", 
-	Family         : "Ciconiidés",
-	CreavesSpecies : "Cigogne blanche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ciconia nigra",
-	Group          : "Oiseaux", 
-	Family         : "Ciconiidés",
-	CreavesSpecies : "Cigogne noire",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Egretta garzetta",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Aigrette garzette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Grus grus",
-	Group          : "Oiseaux", 
-	Family         : "Gruidés",
-	CreavesSpecies : "Grue cendrée",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Ixobrychus minutus",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Blongios nain",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Nycticorax nycticorax",
-	Group          : "Oiseaux", 
-	Family         : "Ardeidés",
-	CreavesSpecies : "Bihoreau gris",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Platalea leucorodia",
-	Group          : "Oiseaux", 
-	Family         : "Threskiornithidés",
-	CreavesSpecies : "Spatule blanche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Plegadis falcinellus",
-	Group          : "Oiseaux", 
-	Family         : "Threskiornithidés",
-	CreavesSpecies : "Ibis falcinelle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "4.09",
-},
-
-{
-	Species        : "Bonasa bonasia",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Gélinotte des bois",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Coturnix coturnix",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Caille des blés",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Perdix perdix",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Perdrix grise",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Tetrao tetrix",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Tetras lyre",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Tetrao urogallus",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Grand Tétras",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Actitis hypoleucos",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier guignette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Arenaria interpres",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Tournepierre à collier",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Burhinus oedicnemus",
-	Group          : "Oiseaux", 
-	Family         : "Burhinidés",
-	CreavesSpecies : "Oedicnème criard",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris acuminata",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau à queue pointue",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris alba",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau sanderling",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris alpina",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau variable",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris canutus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau maubèche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris ferruginea",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau cocorli",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris acuminata",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau de Bonaparte",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris melanotos",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau tacheté",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris minuta",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau minute",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Calidris temminckii",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau de Temminck",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Charadrius alexandrinus",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Pluvier gravelot à collier interrompu",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Charadrius dubius",
-	Group          : "Oiseaux", 
-	Family         : "charadriidés",
-	CreavesSpecies : "Pluvier petit gravelot",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Charadrius hiaticula",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Pluvier grand gravelot",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Charadrius morinellus",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Pluvier guignard",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Gallinago gallinago",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécassine des marais",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Gallinago media",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécassine double",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Glareola pratincola",
-	Group          : "Oiseaux", 
-	Family         : "Glaréolidés",
-	CreavesSpecies : "Glaréole à collier",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Haematopus ostralegus",
-	Group          : "Oiseaux", 
-	Family         : "Haematopodidés",
-	CreavesSpecies : "Huîtrier pie",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Himantopus himantopus",
-	Group          : "Oiseaux", 
-	Family         : "Récurvirostridés",
-	CreavesSpecies : "Echasse blanche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Limicola falcinellus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasseau falcinelle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Limosa lapponica",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Barge rousse",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Limosa limosa",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Barge à queue noire",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Lymnocryptes minimus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécassine sourde",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Numenius arquata",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Courlis cendré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Numenius phaeopus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Courlis corlieu",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Numenius tenuirostris",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Courlis à bec grèle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Phalaropus fulicarius",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Phalarope à bec large",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Phalaropus lobatus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Phalarope à bec étroit",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Philomachus pugnax",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Combattant varié",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Pluvialis apricaria",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Pluvier doré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Pluvialis squatarola",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Pluvier argenté",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Recurvirostra avosetta",
-	Group          : "Oiseaux", 
-	Family         : "Récurvirostridés",
-	CreavesSpecies : "Avocette élégante",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Scolopax rusticola",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Bécasse des bois",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa cinerea",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier bargette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa erythropus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier arlequin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa glareola",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier sylvain",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa nebularia",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier aboyeur",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa ochropus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier culblanc",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa stagnatilis",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier stagnatile",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tringa totanus",
-	Group          : "Oiseaux", 
-	Family         : "Scolopacidés",
-	CreavesSpecies : "Chevalier gambette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Vanellus vanellus",
-	Group          : "Oiseaux", 
-	Family         : "Charadriidés",
-	CreavesSpecies : "Vanneau huppé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Chlamydotis undulata",
-	Group          : "Oiseaux", 
-	Family         : "Otididés",
-	CreavesSpecies : "Outarde houbara",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Otis tarda",
-	Group          : "Oiseaux", 
-	Family         : "Otididés",
-	CreavesSpecies : "Outarde barbue",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Tetrax tetrax",
-	Group          : "Oiseaux", 
-	Family         : "Otididés",
-	CreavesSpecies : "Outarde canepetière",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Alca torda",
-	Group          : "Oiseaux", 
-	Family         : "Alcidés",
-	CreavesSpecies : "Pingouin torda",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Alle alle",
-	Group          : "Oiseaux", 
-	Family         : "Alcidés",
-	CreavesSpecies : "Mergule nain",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas acuta",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard pilet",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas clypeata",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard souchet",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas crecca",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Sarcelle d'hiver",
-	CreavesGroup   : "rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas discors",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Sarcelle à ailes bleues",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas penelope",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard siffleur",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas platyrhynchos",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard colvert",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anas strepera",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard chipeau",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anser albifrons",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Oie rieuse",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anser brachyrhynchus",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Oie à bec court",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Anser fabalis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Oie des moissons",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Aythya collaris",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Fuligule à bec cerclé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Aythya ferina",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Fuligule milouin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Aythya fuligula",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Fuligule morillon",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Aythya marila",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Fuligule milouinan",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Aythya nyroca",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Fuligule nyroca",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Branta bernicla",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Bernache cravant",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Branta leucopsis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Bernache nonnette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Branta ruficollis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Bernache à cou roux",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Bucephala clangula",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Garrot à oeil d'or",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Chlidonias hybridus",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Guifette moustac",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Chlidonias leucopterus",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Guifette leucoptère",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Chlidonias niger",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Guifette noire",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Clangula hyemalis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Harelde boréale",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Crex crex",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Râle des genêts",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Cygnus columbianus bewickii",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Cygne de Bewick",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Cygnus cygnus",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Cygne chanteur",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Fratercula arctica",
-	Group          : "Oiseaux", 
-	Family         : "Alcidés",
-	CreavesSpecies : "Macareux moine",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Fulica atra",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Foulque macroule",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Fulmarus glacialis",
-	Group          : "Oiseaux", 
-	Family         : "Procellaridés",
-	CreavesSpecies : "Fulmar boréal",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Gallinula chloropus",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Gallinule poule d'eau",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Gavia arctica",
-	Group          : "Oiseaux", 
-	Family         : "Gaviidés",
-	CreavesSpecies : "Plongeon arctique",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Gavia stellata",
-	Group          : "Oiseaux", 
-	Family         : "Gaviidés",
-	CreavesSpecies : "Plongeon catmarin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Gelochelidon nilotica",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne hansel",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Hydrobates pelagicus",
-	Group          : "Oiseaux", 
-	Family         : "Hydrobatidés",
-	CreavesSpecies : "Océanite tempête",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus argentatus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland argenté",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus cachinnans",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland pontique",
-	CreavesGroup   : "rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus canus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland cendré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus fuscus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland brun",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus glaucoides",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland à ailes blanches",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus hyperboreus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland bourgmestre",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus marinus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland marin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus melanocephalus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Mouette mélanocéphale",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus minutus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Mouette pygmée",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus ridibundus",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Mouette rieuse",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus sabini",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Mouette de Sabine",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Melanitta fusca",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Macreuse brune",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Melanitta nigra",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Macreuse noire",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Mergus albellus",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Harle piette",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Mergus merganser",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Harle bièvre",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Mergus serrator",
-	Group          : "Oiseaux", 
-	Family         : "Alcidés",
-	CreavesSpecies : "Harle huppé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Morus bassanus",
-	Group          : "Oiseaux", 
-	Family         : "Sulidés",
-	CreavesSpecies : "Fou de Bassan",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Netta rufina",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Nette rousse",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Oceanodroma leucorhoa",
-	Group          : "Oiseaux", 
-	Family         : "Hydrobatidés",
-	CreavesSpecies : "Océanite culblanc",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Oxyura leucocephala",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Erismature à tête blanche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Phalacrocorax aristotelis",
-	Group          : "Oiseaux", 
-	Family         : "Phalacrocoracidés",
-	CreavesSpecies : "Cormoran huppé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Phalacrocorax carbo",
-	Group          : "Oiseaux", 
-	Family         : "Phalacrocoracidés",
-	CreavesSpecies : "Grand Cormoran",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Podiceps auritus",
-	Group          : "Oiseaux", 
-	Family         : "Podicipedidés",
-	CreavesSpecies : "Grèbe esclavon",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Podiceps cristatus",
-	Group          : "Oiseaux", 
-	Family         : "Podicipedidés",
-	CreavesSpecies : "Grèbe huppé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Podiceps grisegena",
-	Group          : "Oiseaux", 
-	Family         : "Podicipedidés",
-	CreavesSpecies : "Grèbe jougris",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Podiceps nigricollis",
-	Group          : "Oiseaux", 
-	Family         : "Podicipedidés",
-	CreavesSpecies : "Grèbe à cou noir",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Porzana parva",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Marouette poussin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Porzana porzana",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Marouette ponctuée",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Porzana pusilla",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Marouette de Baillon",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Rallus aquaticus",
-	Group          : "Oiseaux", 
-	Family         : "Rallidés",
-	CreavesSpecies : "Râle d'eau",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "2.08",
-},
-
-{
-	Species        : "Rissa triactyla",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Mouette tridactyle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Somateria mollissima",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Eider à duvet",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Stercorarius longicaudus",
-	Group          : "Oiseaux", 
-	Family         : "Stercorariidés",
-	CreavesSpecies : "Labbe à longue queue",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Stercorarius parasiticus",
-	Group          : "Oiseaux", 
-	Family         : "Stercorariidés",
-	CreavesSpecies : "Labbe parasite",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Stercorarius pomarinus",
-	Group          : "Oiseaux", 
-	Family         : "Stercorariidés",
-	CreavesSpecies : "Labbe pomarin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Stercorarius skua",
-	Group          : "Oiseaux", 
-	Family         : "Stercorariidés",
-	CreavesSpecies : "Grand Labbe",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Sterna albifrons",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne naine",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Sterna caspia",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne caspienne",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Sterna hirundo",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne pierregarin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Sterna paradisaea",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne arctique",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Sterna sandvicensis",
-	Group          : "Oiseaux", 
-	Family         : "Sternidés",
-	CreavesSpecies : "Sterne caugek",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Tachybaptus ruficollis",
-	Group          : "Oiseaux", 
-	Family         : "Podicipedidés",
-	CreavesSpecies : "Grèbe castagneux",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Tadorna tadorna",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Tadorne de Belon",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Uria aalge",
-	Group          : "Oiseaux", 
-	Family         : "Alcidés",
-	CreavesSpecies : "Guillemot de Troïl",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Acrocephalus agricola",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Rousserolle isabelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Acrocephalus arundinaceus",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Rousserolle turdoïde",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Acrocephalus paludicola",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Phragmite aquatique",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Acrocephalus palustris",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Rousserolle verderolle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Acrocephalus schoenobaenus",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Phragmite des joncs",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Acrocephalus scirpaceus",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Rousserolle effarvatte",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Aegithalos caudatus",
-	Group          : "Oiseaux", 
-	Family         : "Aegithalidés",
-	CreavesSpecies : "Orite à longue queue",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Alauda arvensis",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette des champs",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Anthus campestris",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit rousseline",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus cervinus",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit à gorge rousse",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus petrosus",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit maritime",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus pratensis",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit farlouse",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus richardi",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit de Richard",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus spinoletta",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit spioncelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Anthus trivialis",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Pipit des arbres",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Apus apus",
-	Group          : "Oiseaux", 
-	Family         : "Apodidés",
-	CreavesSpecies : "Martinet noir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Apus melba",
-	Group          : "Oiseaux", 
-	Family         : "Apodidés",
-	CreavesSpecies : "Martinet à ventre blanc",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Bombycilla garrulus",
-	Group          : "Oiseaux", 
-	Family         : "Bombycillidés",
-	CreavesSpecies : "Jaseur boréal",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Calandrella brachydactyla",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette calandrelle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Calcarius lapponicus",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant lapon",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Caprimulgus europaeus",
-	Group          : "Oiseaux", 
-	Family         : "Caprimulgidés",
-	CreavesSpecies : "Engoulevent d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Carduelis cannabina",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Linotte mélodieuse",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carduelis carduelis",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Chardonneret élégant",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carduelis chloris",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Verdier d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carduelis flammea",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Sizerin flammé",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carduelis flavirostris",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Linotte à bec jaune",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carduelis spinus",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Tarin des aulnes",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Carpodacus erythrinus",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Roselin cramoisi",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Certhia brachydactyla",
-	Group          : "Oiseaux", 
-	Family         : "Certhiidés",
-	CreavesSpecies : "Grimperau des jardins",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Certhia familiaris",
-	Group          : "Oiseaux", 
-	Family         : "Certhiidés",
-	CreavesSpecies : "Grimpereau des bois",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Cettia cetti",
-	Group          : "Oiseaux", 
-	Family         : "Cettiidés",
-	CreavesSpecies : "Bouscarle de Cetti",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Cinclus cinclus",
-	Group          : "Oiseaux", 
-	Family         : "Cinclidés",
-	CreavesSpecies : "Cincle plongeur",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Cisticola juncidis",
-	Group          : "Oiseaux", 
-	Family         : "Cisticolidés",
-	CreavesSpecies : "Cisticole des joncs",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Coccothraustes coccothraustes",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Grosbec casse-noyaux",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Corvus corone",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Corneille noire",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Corvus frugilegus",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Corbeau freux",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Corvus monedula",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Choucas des tours",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Delichon urbica",
-	Group          : "Oiseaux", 
-	Family         : "Hirundinidés",
-	CreavesSpecies : "Hirondelle de fenêtre",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Emberiza aureola",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant auréole",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza calandra",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant proyer",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza cia",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant fou",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza cirlus",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant zizi",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza citrinella",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant jaune",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza hortulana",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant ortolan",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza leucocephala",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant à calotte blanche",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza pusilla",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant nain",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza rustica",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant rustique",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Emberiza schoeniclus",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant des roseaux",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Alauda alpestris",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette haussecol",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Erithacus rubecula",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Rougegorge familier",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Ficedula albicollis",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Gobemouche à collier",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Ficedula hypoleuca",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Gobemouche noir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Ficedula parva",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Gobemouche nain",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Fringilla coelebs",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Pinson des arbres",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Fringilla montifringilla",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Pinson du Nord",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Galerida cristata",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Cochevis huppé",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Garrulus glandarius",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Geai des chênes",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Hippolais icterina",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Hypolaïs ictérine",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Hippolais polyglotta",
-	Group          : "Oiseaux", 
-	Family         : "Acrocéphalidés",
-	CreavesSpecies : "Hypolaïs polyglotte",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Hirundo daurica",
-	Group          : "Oiseaux", 
-	Family         : "Hirundinidés",
-	CreavesSpecies : "Hirondelle rousseline",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Hirundo rustica",
-	Group          : "Oiseaux", 
-	Family         : "Hirundinidés",
-	CreavesSpecies : "Hirondelle rustique",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Lanius collurio",
-	Group          : "Oiseaux", 
-	Family         : "Laniidés",
-	CreavesSpecies : "Pie-grièche écorcheur",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Lanius excubitor",
-	Group          : "Oiseaux", 
-	Family         : "Laniidés",
-	CreavesSpecies : "Pie-grièche grise",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Lanius minor",
-	Group          : "Oiseaux", 
-	Family         : "Laniidés",
-	CreavesSpecies : "Pie-grièche à poitrine rose",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Lanius senator",
-	Group          : "Oiseaux", 
-	Family         : "Laniidés",
-	CreavesSpecies : "Pie-grièche à tête rousse",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Locustella fluviatilis",
-	Group          : "Oiseaux", 
-	Family         : "Locustellidés",
-	CreavesSpecies : "Locustelle fluviatile",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Locustella luscinioides",
-	Group          : "Oiseaux", 
-	Family         : "Locustellidés",
-	CreavesSpecies : "Locustelle luscinoïde",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Locustella naevia",
-	Group          : "Oiseaux", 
-	Family         : "Locustellidés",
-	CreavesSpecies : "Locustelle tachetée",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Loxia curvirostra",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Bec-croisé des sapins",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Loxia leucoptera",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Bec-croisé bifascié",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Loxia pityopsittacus",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Bec-croisé perroquet",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Alauda alpestris",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette lulu",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Luscinia luscinia",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Rossignol progné",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Luscinia megarhynchos",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Rossignol philomèle",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Luscinia svecica",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Gorgebleue à miroir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Melanocorypha calandra",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette calandre",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Melanocorypha leucoptera",
-	Group          : "Oiseaux", 
-	Family         : "Alaudidés",
-	CreavesSpecies : "Alouette leucoptère",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Monticola saxatilis",
-	Group          : "Oiseaux", 
-	Family         : "Turdidé",
-	CreavesSpecies : "Monticole de roche",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Motacilla alba",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Bergeronnette grise",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Motacilla cinerea",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Bergeronnette des ruisseaux",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Motacilla flava",
-	Group          : "Oiseaux", 
-	Family         : "Motacillidés",
-	CreavesSpecies : "Bergeronnette printanière",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Muscicapa striata",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Gobemouche gris",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Nucifraga caryocatactes",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Cassenoix moucheté",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Oenanthe hispanica",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Traquet oreillard",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Oenanthe oenanthe",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Traquet motteux",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Oriolus oriolus",
-	Group          : "Oiseaux", 
-	Family         : "Oriolidés",
-	CreavesSpecies : "Loriot d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Panurus biarmicus",
-	Group          : "Oiseaux", 
-	Family         : "Panuridés",
-	CreavesSpecies : "Panure à moustaches",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus ater",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange noire",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus caeruleus",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange bleue",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus cristatus",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange huppée",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus major",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange charbonnière",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus montanus",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange boréale",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Parus palustris",
-	Group          : "Oiseaux", 
-	Family         : "Paridés",
-	CreavesSpecies : "Mésange nonnette",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Passer domesticus",
-	Group          : "Oiseaux", 
-	Family         : "Passeridés",
-	CreavesSpecies : "Moineau domestique",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Passer montanus",
-	Group          : "Oiseaux", 
-	Family         : "Passeridés",
-	CreavesSpecies : "Moineau friquet",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Petronia petronia",
-	Group          : "Oiseaux", 
-	Family         : "Passeridés",
-	CreavesSpecies : "Moineau soulcie",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Phoenicurus ochruros",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Rougequeue noir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phoenicurus phoenicurus",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Rougequeue à front blanc",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus bonelli",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot de Bonelli",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus collybita",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot véloce",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus inornatus",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot à grands sourcils",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus proregulus",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot de Pallas",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus schwarzi",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot de Schwarz",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus sibilatrix",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot siffleur",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Phylloscopus trochilus",
-	Group          : "Oiseaux", 
-	Family         : "Phylloscopidés",
-	CreavesSpecies : "Pouillot fitis",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Pica pica",
-	Group          : "Oiseaux", 
-	Family         : "Corvidés",
-	CreavesSpecies : "Pie bavarde",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.5",
-},
-
-{
-	Species        : "Plectrophenax nivalis",
-	Group          : "Oiseaux", 
-	Family         : "Emberizidés",
-	CreavesSpecies : "Bruant des neiges",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Prunella collaris",
-	Group          : "Oiseaux", 
-	Family         : "Prunellidés",
-	CreavesSpecies : "Accenteur alpin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Prunella modularis",
-	Group          : "Oiseaux", 
-	Family         : "Prunellidés",
-	CreavesSpecies : "Accenteur mouchet",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Ptyonoprogne rupestris",
-	Group          : "Oiseaux", 
-	Family         : "Hirundinidés",
-	CreavesSpecies : "Hirondelle des rochers",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Pyrrhula pyrrhula",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Bouvreuil pivoine",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Regulus ignicapillus",
-	Group          : "Oiseaux", 
-	Family         : "Régulidés",
-	CreavesSpecies : "Roitelet à triple bandeau",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Regulus regulus",
-	Group          : "Oiseaux", 
-	Family         : "Régulidés",
-	CreavesSpecies : "Roitelet huppé",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Remiz pendulinus",
-	Group          : "Oiseaux", 
-	Family         : "Rémizidés",
-	CreavesSpecies : "Remiz penduline",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Riparia riparia",
-	Group          : "Oiseaux", 
-	Family         : "Hirundinidés",
-	CreavesSpecies : "Hirondelle de rivage",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Saxicola rubetra",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Tarier des prés",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Saxicola rubicola",
-	Group          : "Oiseaux", 
-	Family         : "Muscicapidés",
-	CreavesSpecies : "Tarier pâtre (torquatus)",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Serinus citrinella",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Venturon montagnard",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Serinus serinus",
-	Group          : "Oiseaux", 
-	Family         : "Fringillidés",
-	CreavesSpecies : "Serin cini",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Sitta europaea",
-	Group          : "Oiseaux", 
-	Family         : "Sittidés",
-	CreavesSpecies : "Sittelle d'Europe",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sturnus roseus",
-	Group          : "Oiseaux", 
-	Family         : "Sturnidés",
-	CreavesSpecies : "Etourneau roselin",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sturnus vulgaris",
-	Group          : "Oiseaux", 
-	Family         : "Sturnidés",
-	CreavesSpecies : "Etourneau sansonnet",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia atricapilla",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette à tête noire",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia borin",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette des jardins",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia cantillans",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette passerinette",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia communis",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette grisette",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia curruca",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette babillarde",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia hortensis",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette orphée",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia melanocephala",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette mélanocéphale",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia nisoria",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette épervière",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Sylvia undata",
-	Group          : "Oiseaux", 
-	Family         : "Sylviidés",
-	CreavesSpecies : "Fauvette pitchou",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Tichodroma muraria",
-	Group          : "Oiseaux", 
-	Family         : "Tichodromidés",
-	CreavesSpecies : "Tichodrome échelette",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Troglodytes troglodytes",
-	Group          : "Oiseaux", 
-	Family         : "Troglodytidés",
-	CreavesSpecies : "Troglodyte mignon",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus iliacus",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive mauvis",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus merula",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Merle noir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus naumanni",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive de Nauman",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus obscurus",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive obscure",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus philomelos",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive musicienne",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus pilaris",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive litorne",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus ruficollis",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive à gorge rousse",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus torquatus",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Merle à plastron",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Turdus viscivorus",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive draine",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Zoothera dauma",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive dorée",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Zoothera sibirica",
-	Group          : "Oiseaux", 
-	Family         : "Turdidés",
-	CreavesSpecies : "Grive de Sibérie",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Dendrocopos leucotos",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic à dos blanc",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Dendrocopos major",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic épeiche",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Dendrocopos medius",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic mar",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Dendrocopos minor",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic épeichette",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Dryocopus martius",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic noir",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Jynx torquilla",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Torcol fourmilier",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Picus canus",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic cendré",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Picus viridis",
-	Group          : "Oiseaux", 
-	Family         : "Picidés",
-	CreavesSpecies : "Pic vert",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "1.12",
-},
-
-{
-	Species        : "Accipiter gentilis",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Autour des palombes",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Accipiter nisus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Epervier d'Europe",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Aquila chrysaetos",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Aigle royal",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Aquila clanga",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Aigle criard",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Aquila pomarina",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Aigle pomarin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Buteo buteo",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Buse variable",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Buteo lagopus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Buse pattue",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Circaetus gallicus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Circaète Jean le blanc",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Circus aeruginosus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Busard des roseaux",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Circus cyaneus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Busard Saint Martin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Circus macrourus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Busard pâle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Circus pygargus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Busard cendré",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Elanus caeruleus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Elanion blanc",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Falco columbarius",
-	Group          : "Oiseaux", 
-	Family         : "Falconidés",
-	CreavesSpecies : "Faucon émerillon",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Falco peregrinus",
-	Group          : "Oiseaux", 
-	Family         : "Falconidés",
-	CreavesSpecies : "Faucon pèlerin",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Falco subbuteo",
-	Group          : "Oiseaux", 
-	Family         : "Falconidés",
-	CreavesSpecies : "Faucon hobereau",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Falco tinnunculus",
-	Group          : "Oiseaux", 
-	Family         : "Falconidés",
-	CreavesSpecies : "Faucon crécerelle",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Falco vespertinus",
-	Group          : "Oiseaux", 
-	Family         : "Falconidés",
-	CreavesSpecies : "Faucon kobez",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Gyps fulvus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Vautour fauve",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Haliaeetus albicilla",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Pygargue à queue blanche",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Hieraaetus fasciatus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Aigle de Bonelli",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Hieraaetus pennatus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Aigle botté",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Milvus migrans",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Milan noir",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Milvus milvus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Milan royal",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Neophron percnopterus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Vautour percnoptère",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Pandion haliaetus",
-	Group          : "Oiseaux", 
-	Family         : "Pandionidés",
-	CreavesSpecies : "Balbuzard pêcheur",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Pernis apivorus",
-	Group          : "Oiseaux", 
-	Family         : "Accipitridés",
-	CreavesSpecies : "Bondrée apivore",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Aegolius funereus",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Chouette de Tengmalm",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Asio flammeus",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Hibou des marais",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Asio otus",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Hibou moyen duc",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Athene noctua",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Chevêche d'Athena",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Bubo bubo",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Grand-Duc d'Europe",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3",
-},
-
-{
-	Species        : "Glaucidium passerinum",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Chevêchette d'Europe",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Otus scops",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Hibou petit duc scops",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Strix aluco",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Chouette hulotte",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Surnia ulula",
-	Group          : "Oiseaux", 
-	Family         : "Strigidés",
-	CreavesSpecies : "Chouette épervière",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Tyto alba",
-	Group          : "Oiseaux", 
-	Family         : "Tytonidés",
-	CreavesSpecies : "Effraie des clochers",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "1.37",
-},
-
-{
-	Species        : "Anser anser",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Oie cendrée",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Tamias sibiricus",
-	Group          : "Mammifères", 
-	Family         : "Sciuridés",
-	CreavesSpecies : "Tamia de Sibérie",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Dama dama",
-	Group          : "Mammifères", 
-	Family         : "Cervidés",
-	CreavesSpecies : "Daim",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Ovis gmelini musimon x Ovis sp.",
-	Group          : "Mammifères", 
-	Family         : "Bovidés",
-	CreavesSpecies : "Mouflon x  Mouton domestique",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Myocastor coypus",
-	Group          : "Mammifères", 
-	Family         : "Echimyidés",
-	CreavesSpecies : "Ragondin",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Ondatra zibethicus",
-	Group          : "Mammifères", 
-	Family         : "Cricétidés",
-	CreavesSpecies : "Rat musqué",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Rattus norvegicus",
-	Group          : "Mammifères", 
-	Family         : "Muridés",
-	CreavesSpecies : "Rat brun",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Columba livia var. domestica",
-	Group          : "Oiseaux", 
-	Family         : "Colombidés",
-	CreavesSpecies : "Pigeon biset féral",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Colinus virginianus",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Colin de Virginie",
-	CreavesGroup   : "exotique",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Lagopus lagopus",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Lagopède des saules",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Phasianus colchicus",
-	Group          : "Oiseaux", 
-	Family         : "Phasianidés",
-	CreavesSpecies : "Faisan de Colchide",
-	CreavesGroup   : "Autres oiseaux et chauves-souris",        
-	Subside        : "0.96",
-},
-
-{
-	Species        : "Aix galericulata",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Canard mandarin",
-	CreavesGroup   : "exotique",        
-	Subside        : "",
-},
-
-{
-	Species        : "Alopochen aegyptiacus",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Ouette d'Egypte",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Branta canadensis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Bernache du Canada",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Cygnus olor",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Cygne tuberculé",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Oxyura jamaicensis",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Erismature rousse",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Psittacula krameri",
-	Group          : "Oiseaux", 
-	Family         : "Psittacidés",
-	CreavesSpecies : "Perruche à collier",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Felis catus",
-	Group          : "Mammifères", 
-	Family         : "Félidés",
-	CreavesSpecies : "Chat haret",
-	CreavesGroup   : "domestique",        
-	Subside        : "",
-},
-
-{
-	Species        : "Genetta genetta",
-	Group          : "Mammifères", 
-	Family         : "Viverridés",
-	CreavesSpecies : "Genette",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Mustela vison (Neovison vison)",
-	Group          : "Mammifères", 
-	Family         : "Mustélidés",
-	CreavesSpecies : "Vison américain",
-	CreavesGroup   : "invasif",        
-	Subside        : "",
-},
-
-{
-	Species        : "Procyon lotor",
-	Group          : "Mammifères", 
-	Family         : "Procyonidés",
-	CreavesSpecies : "Raton laveur",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Nyctereutes procyonoides",
-	Group          : "Mammifères", 
-	Family         : "Canidés",
-	CreavesSpecies : "Chien viverrin",
-	CreavesGroup   : "invasif préocupant",        
-	Subside        : "",
-},
-
-{
-	Species        : "Castor fiber",
-	Group          : "Mammifères", 
-	Family         : "Castoridés",
-	CreavesSpecies : "Castor d'Europe",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Lynx lynx",
-	Group          : "Mammifères", 
-	Family         : "Félidés",
-	CreavesSpecies : "Lynx boréal",
-	CreavesGroup   : "Mammifères non volants",        
-	Subside        : "",
-},
-
-{
-	Species        : "Anas querquedula",
-	Group          : "Oiseaux", 
-	Family         : "Anatidés",
-	CreavesSpecies : "Sarcelle d'été",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
-{
-	Species        : "Larus michahellis",
-	Group          : "Oiseaux", 
-	Family         : "Laridés",
-	CreavesSpecies : "Goéland leucophée",
-	CreavesGroup   : "Rapaces, oiseaux d’eau, échassiers ou limicoles",        
-	Subside        : "3.21",
-},
-
+		{
+			Species:        "Accipiter gentilis",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Autour des palombes",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Accipiter nisus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Epervier d'Europe",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Aquila chrysaetos",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigle royal",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Aquila clanga",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigle criard",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Aquila pomarina",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigle pomarin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Buteo buteo",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Buse variable",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Buteo lagopus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Buse pattue",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Circaetus gallicus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Circaète Jean le blanc",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Circus aeruginosus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Busard des roseaux",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Circus cyaneus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Busard Saint Martin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Circus macrourus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Busard pâle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Circus pygargus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Busard cendré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Elanus caeruleus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Elanion blanc",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Gyps fulvus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Vautour fauve",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Haliaeetus albicilla",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pygargue à queue blanche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Hieraaetus fasciatus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigle de Bonelli",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Hieraaetus pennatus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigle botté",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Milvus migrans",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Milan noir",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Milvus milvus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Milan royal",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Neophron percnopterus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Vautour percnoptère",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Pernis apivorus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bondrée apivore",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Acrocephalus agricola",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rousserolle isabelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Acrocephalus arundinaceus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rousserolle turdoïde",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Acrocephalus paludicola",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Phragmite aquatique",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Acrocephalus palustris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rousserolle verderolle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Acrocephalus schoenobaenus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Phragmite des joncs",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Acrocephalus scirpaceus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rousserolle effarvatte",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Hippolais icterina",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hypolaïs ictérine",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Hippolais polyglotta",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Acrocéphalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hypolaïs polyglotte",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Aegithalos caudatus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Aegithalidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Orite à longue queue",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Alauda arvensis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette des champs",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Calandrella brachydactyla",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette calandrelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Eremophila alpestris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette haussecol",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Galerida cristata",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cochevis huppé",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Lullula arborea",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette lulu",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Melanocorypha calandra",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette calandre",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Melanocorypha leucoptera",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Alaudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Alouette leucoptère",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Alcedo atthis",
+			Class:          "Oiseaux",
+			Order:          "Coraciiformes",
+			Family:         "Alcédinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Martin-pêcheur d'Europe",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Alca torda",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Alcidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pingouin torda",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Alle alle",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Alcidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mergule nain",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Fratercula arctica",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Alcidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Macareux moine",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Mergus albellus",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Harle piette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Mergus merganser",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Harle bièvre",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Mergus serrator",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Harle huppé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Uria aalge",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Alcidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Guillemot de Troïl",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anas acuta",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard pilet",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anas clypeata",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard souchet",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anas crecca",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Sarcelle d'hiver",
+			CreavesGroup:   "rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anas discors",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sarcelle à ailes bleues",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anas penelope",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard siffleur",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anas platyrhynchos",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Canard colvert",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anas strepera",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard chipeau",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anser albifrons",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oie rieuse",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anser brachyrhynchus",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oie à bec court",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anser fabalis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oie des moissons",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aythya collaris",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fuligule à bec cerclé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aythya ferina",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fuligule milouin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aythya fuligula",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fuligule morillon",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aythya marila",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fuligule milouinan",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aythya nyroca",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fuligule nyroca",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Branta bernicla",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bernache cravant",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Branta leucopsis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bernache nonnette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Branta ruficollis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bernache à cou roux",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Bucephala clangula",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Garrot à oeil d'or",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Clangula hyemalis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Harelde boréale",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Cygnus columbianus bewickii",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cygne de Bewick",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Cygnus cygnus",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cygne chanteur",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Melanitta fusca",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Macreuse brune",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Melanitta nigra",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Macreuse noire",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Netta rufina",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Nette rousse",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Oxyura leucocephala",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Erismature à tête blanche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Somateria mollissima",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Eider à duvet",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Tadorna tadorna",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tadorne de Belon",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Anser anser",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oie cendrée",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aix galericulata",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard mandarin",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Alopochen aegyptiacus",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Ouette d'Egypte",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Branta canadensis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Bernache du Canada",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Cygnus olor",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cygne tuberculé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Oxyura jamaicensis",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Erismature rousse",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anas querquedula",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sarcelle d'été",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Apus apus",
+			Class:          "Oiseaux",
+			Order:          "Apodiformes",
+			Family:         "Apodidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Martinet noir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Apus melba",
+			Class:          "Oiseaux",
+			Order:          "Apodiformes",
+			Family:         "Apodidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Martinet à ventre blanc",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ardea alba",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grande Aigrette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Ardea cinerea",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Héron cendré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Ardea purpurea",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Héron pourpré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Ardeola ralloides",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Crabier chevelu",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Botaurus stellaris",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Butor étoilé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Bubulcus ibis",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Héron garde-boeufs",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Egretta garzetta",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Aigrette garzette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Ixobrychus minutus",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Blongios nain",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Nycticorax nycticorax",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Ardeidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bihoreau gris",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Bombycilla garrulus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Bombycillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Jaseur boréal",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ovis gmelini musimon x Ovis sp.",
+			Class:          "Mammifères",
+			Order:          "Artiodactyla",
+			Family:         "Bovidée",
+			Game:           1 == 1,
+			CreavesSpecies: "Mouflon x Mouton domestique",
+			CreavesGroup:   "domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Burhinus oedicnemus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Burhinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oedicnème criard",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Canis lupus",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Canidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Loup",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Vulpes vulpes",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Canidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Renard roux",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Nyctereutes procyonoides",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Canidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chien viverrin",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Caprimulgus europaeus",
+			Class:          "Oiseaux",
+			Order:          "Caprimulgiformes",
+			Family:         "Caprimulgidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Engoulevent d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Castor fiber",
+			Class:          "Mammifères",
+			Order:          "Castorimorpha",
+			Family:         "Castoridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Castor d'Europe",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Certhia brachydactyla",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Certhiidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grimperau des jardins",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Certhia familiaris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Certhiidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grimpereau des bois",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Capreolus capreolus",
+			Class:          "Mammifères",
+			Order:          "Pecora",
+			Family:         "Cervidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Chevreuil",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Cervus elaphus",
+			Class:          "Mammifères",
+			Order:          "Pecora",
+			Family:         "Cervidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Cerf élaphe",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Dama dama",
+			Class:          "Mammifères",
+			Order:          "Pecora",
+			Family:         "Cervidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Daim",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Cettia cetti",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Cettiidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bouscarle de Cetti",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Charadrius alexandrinus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier gravelot à collier interrompu",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Charadrius dubius",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier petit gravelot",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Charadrius hiaticula",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier grand gravelot",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Charadrius morinellus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier guignard",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Pluvialis apricaria",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier doré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Pluvialis squatarola",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pluvier argenté",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Vanellus vanellus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Charadriidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Vanneau huppé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Ciconia ciconia",
+			Class:          "Oiseaux",
+			Order:          "Ciconiiformes",
+			Family:         "Ciconiidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cigogne blanche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Ciconia nigra",
+			Class:          "Oiseaux",
+			Order:          "Ciconiiformes",
+			Family:         "Ciconiidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cigogne noire",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Cinclus cinclus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Cinclidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cincle plongeur",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Cisticola juncidis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Cisticolidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cisticole des joncs",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Columba oenas",
+			Class:          "Oiseaux",
+			Order:          "Columbiformes",
+			Family:         "Colombidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pigeon colombin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Columba palumbus",
+			Class:          "Oiseaux",
+			Order:          "Columbiformes",
+			Family:         "Colombidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Pigeon ramier",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Streptopelia decaocto",
+			Class:          "Oiseaux",
+			Order:          "Columbiformes",
+			Family:         "Colombidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tourterelle turque",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Streptopelia turtur",
+			Class:          "Oiseaux",
+			Order:          "Columbiformes",
+			Family:         "Colombidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tourterelle des bois",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Columba livia var. domestica",
+			Class:          "Oiseaux",
+			Order:          "Columbiformes",
+			Family:         "Colombidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pigeon biset féral",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Coracias garrulus",
+			Class:          "Oiseaux",
+			Order:          "Coraciiformes",
+			Family:         "Coraciidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rollier d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Corvus corax",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand Corbeau",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Corvus corone",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Corneille noire",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Corvus frugilegus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Corbeau freux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Corvus monedula",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Choucas des tours",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Garrulus glandarius",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Geai des chênes",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Nucifraga caryocatactes",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cassenoix moucheté",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Pica pica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Corvidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pie bavarde",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Ondatra zibethicus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Cricétidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rat musqué",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Clamator glandarius",
+			Class:          "Oiseaux",
+			Order:          "Cuculiformes",
+			Family:         "Cuculidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Coucou geai",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Coccyzus americanus",
+			Class:          "Oiseaux",
+			Order:          "Cuculiformes",
+			Family:         "Cuculidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Coulicou à bec jaune",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Cuculus canorus",
+			Class:          "Oiseaux",
+			Order:          "Cuculiformes",
+			Family:         "Cuculidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Coucou gris",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Myocastor coypus",
+			Class:          "Mammifères",
+			Order:          "Caviomorpha",
+			Family:         "Echimyidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Ragondin",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Calcarius lapponicus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant lapon",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza aureola",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant auréole",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza calandra",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant proyer",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza cia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant fou",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza cirlus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant zizi",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza citrinella",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant jaune",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza hortulana",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant ortolan",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza leucocephala",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant à calotte blanche",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza pusilla",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant nain",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza rustica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant rustique",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Emberiza schoeniclus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant des roseaux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Plectrophenax nivalis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Emberizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bruant des neiges",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Falco columbarius",
+			Class:          "Oiseaux",
+			Order:          "Falconiformes",
+			Family:         "Falconidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Faucon émerillon",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Falco peregrinus",
+			Class:          "Oiseaux",
+			Order:          "Falconiformes",
+			Family:         "Falconidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Faucon pèlerin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Falco subbuteo",
+			Class:          "Oiseaux",
+			Order:          "Falconiformes",
+			Family:         "Falconidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Faucon hobereau",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Falco tinnunculus",
+			Class:          "Oiseaux",
+			Order:          "Falconiformes",
+			Family:         "Falconidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Faucon crécerelle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Falco vespertinus",
+			Class:          "Oiseaux",
+			Order:          "Falconiformes",
+			Family:         "Falconidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Faucon kobez",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Felis silvestris",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Félidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chat sylvestre",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "4.51",
+		},
+
+		{
+			Species:        "Felis catus",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Félidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chat haret",
+			CreavesGroup:   "domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lynx lynx",
+			Class:          "Mammifères",
+			Order:          "Carnivora",
+			Family:         "Félidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Lynx boréal",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Carduelis cannabina",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Linotte mélodieuse",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carduelis carduelis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chardonneret élégant",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carduelis chloris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Verdier d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carduelis flammea",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sizerin flammé",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carduelis flavirostris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Linotte à bec jaune",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carduelis spinus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tarin des aulnes",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Carpodacus erythrinus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Roselin cramoisi",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Coccothraustes coccothraustes",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grosbec casse-noyaux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Fringilla coelebs",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pinson des arbres",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Fringilla montifringilla",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pinson du Nord",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Loxia curvirostra",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bec-croisé des sapins",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Loxia leucoptera",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bec-croisé bifascié",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Loxia pityopsittacus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bec-croisé perroquet",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Pyrrhula pyrrhula",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bouvreuil pivoine",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Serinus citrinella",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Venturon montagnard",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Serinus serinus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Fringillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Serin cini",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Gavia arctica",
+			Class:          "Oiseaux",
+			Order:          "Gaviiformes",
+			Family:         "Gaviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Plongeon arctique",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Gavia stellata",
+			Class:          "Oiseaux",
+			Order:          "Gaviiformes",
+			Family:         "Gaviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Plongeon catmarin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Glareola pratincola",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Glaréolidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Glaréole à collier",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Grus grus",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Gruidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grue cendrée",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Haematopus ostralegus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Haematopodidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Huîtrier pie",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Delichon urbica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Hirundinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hirondelle de fenêtre",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Hirundo daurica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Hirundinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hirondelle rousseline",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Hirundo rustica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Hirundinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hirondelle rustique",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ptyonoprogne rupestris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Hirundinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hirondelle des rochers",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Riparia riparia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Hirundinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hirondelle de rivage",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Hydrobates pelagicus",
+			Class:          "Oiseaux",
+			Order:          "Procellariiformes",
+			Family:         "Hydrobatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Océanite tempête",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Oceanodroma leucorhoa",
+			Class:          "Oiseaux",
+			Order:          "Procellariiformes",
+			Family:         "Hydrobatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Océanite culblanc",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Lanius collurio",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Laniidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pie-grièche écorcheur",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Lanius excubitor",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Laniidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pie-grièche grise",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Lanius minor",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Laniidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pie-grièche à poitrine rose",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Lanius senator",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Laniidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pie-grièche à tête rousse",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Larus argentatus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland argenté",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus cachinnans",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland pontique",
+			CreavesGroup:   "rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus canus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland cendré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus fuscus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland brun",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus glaucoides",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland à ailes blanches",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus hyperboreus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland bourgmestre",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus marinus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland marin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus melanocephalus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mouette mélanocéphale",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus minutus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mouette pygmée",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus ridibundus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mouette rieuse",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus sabini",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mouette de Sabine",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Rissa triactyla",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mouette tridactyle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Larus michahellis",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Laridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Goéland leucophée",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Lepus europaeus",
+			Class:          "Mammifères",
+			Order:          "Lagomorpha",
+			Family:         "Léporidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Lièvre d'Europe",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Oryctolagus cuniculus",
+			Class:          "Mammifères",
+			Order:          "Lagomorpha",
+			Family:         "Léporidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Lapin de Garenne",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Locustella fluviatilis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Locustellidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Locustelle fluviatile",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Locustella luscinioides",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Locustellidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Locustelle luscinoïde",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Locustella naevia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Locustellidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Locustelle tachetée",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Merops apiaster",
+			Class:          "Oiseaux",
+			Order:          "Coraciiformes",
+			Family:         "Méropidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Guêpier d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus campestris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit rousseline",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus cervinus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit à gorge rousse",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus petrosus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit maritime",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus pratensis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit farlouse",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus richardi",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit de Richard",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus spinoletta",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit spioncelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Anthus trivialis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipit des arbres",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Motacilla alba",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bergeronnette grise",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Motacilla cinerea",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bergeronnette des ruisseaux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Motacilla flava",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Motacillidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bergeronnette printanière",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Apodemus flavicollis",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mulot",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Apodemus sylvaticus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mulot sylvestre",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Arvicola terrestris",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Campagnol terrestre",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Clethrionomys glareolus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Campagnol",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Cricetus cricetus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand Hasmter",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Micromys minutus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rat des moissons",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Microtus agrestis",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Campagnol agreste",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Microtus arvalis",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Campagnol",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Microtus subterraneus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Campagnol",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Mus domesticus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Souris",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Rattus rattus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rat noir",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Rattus norvegicus",
+			Class:          "Mammifères",
+			Order:          "Muroidea",
+			Family:         "Muridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rat brun",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Eliomys quercinus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Muscardinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Lérot",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Glis glis",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Muscardinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Loir",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Muscardinus avellanarius",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Muscardinidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Muscardin",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Erithacus rubecula",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rougegorge familier",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ficedula albicollis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gobemouche à collier",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ficedula hypoleuca",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gobemouche noir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Ficedula parva",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gobemouche nain",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Luscinia luscinia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rossignol progné",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Luscinia megarhynchos",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rossignol philomèle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Luscinia svecica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gorgebleue à miroir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Muscicapa striata",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gobemouche gris",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Oenanthe hispanica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Traquet oreillard",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Oenanthe oenanthe",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Traquet motteux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phoenicurus ochruros",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rougequeue noir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phoenicurus phoenicurus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rougequeue à front blanc",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Saxicola rubetra",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tarier des prés",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Saxicola rubicola",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Muscicapidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tarier pâtre (torquatus)",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Lutra lutra",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Loutre",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Martes foina",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fouine",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Martes martes",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Martre des pins",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Meles meles",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Blaireau d'Europe",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "4.51",
+		},
+
+		{
+			Species:        "Mustela erminea",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hermine",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Mustela nivalis",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Belette",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Mustela putorius",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Putois",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.07",
+		},
+
+		{
+			Species:        "Mustela vison (Neovison vison)",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Mustélidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Vison naméricain",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Oriolus oriolus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Oriolidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Loriot d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Chlamydotis undulata",
+			Class:          "Oiseaux",
+			Order:          "Otidiformes",
+			Family:         "Otididés",
+			Game:           1 == 0,
+			CreavesSpecies: "Outarde houbara",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Otis tarda",
+			Class:          "Oiseaux",
+			Order:          "Otidiformes",
+			Family:         "Otididés",
+			Game:           1 == 0,
+			CreavesSpecies: "Outarde barbue",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tetrax tetrax",
+			Class:          "Oiseaux",
+			Order:          "Otidiformes",
+			Family:         "Otididés",
+			Game:           1 == 0,
+			CreavesSpecies: "Outarde canepetière",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Pandion haliaetus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Pandionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Balbuzard pêcheur",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Panurus biarmicus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Panuridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Panure à moustaches",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus ater",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange noire",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus caeruleus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange bleue",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus cristatus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange huppée",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus major",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange charbonnière",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus montanus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange boréale",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Parus palustris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Paridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Mésange nonnette",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Passer domesticus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Passeridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Moineau domestique",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Passer montanus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Passeridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Moineau friquet",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Petronia petronia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Passeridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Moineau soulcie",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Phalacrocorax aristotelis",
+			Class:          "Oiseaux",
+			Order:          "Suliformes",
+			Family:         "Phalacrocoracidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Cormoran huppé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Phalacrocorax carbo",
+			Class:          "Oiseaux",
+			Order:          "Suliformes",
+			Family:         "Phalacrocoracidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand Cormoran",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Bonasa bonasia",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gélinotte des bois",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Coturnix coturnix",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Caille des blés",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Perdix perdix",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Perdrix grise",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Tetrao tetrix",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tetras lyre",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Tetrao urogallus",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand Tétras",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Colinus virginianus",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Colin de Virginie",
+			CreavesGroup:   "exotique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lagopus lagopus",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Phasianus colchicus",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Faisan de Colchide",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Phylloscopus bonelli",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot de Bonelli",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus collybita",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot véloce",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus inornatus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot à grands sourcils",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus proregulus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot de Pallas",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus schwarzi",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot de Schwarz",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus sibilatrix",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot siffleur",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Phylloscopus trochilus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Phylloscopidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pouillot fitis",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Dendrocopos leucotos",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic à dos blanc",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Dendrocopos major",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic épeiche",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Dendrocopos medius",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic mar",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Dendrocopos minor",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic épeichette",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Dryocopus martius",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic noir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Jynx torquilla",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Torcol fourmilier",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Picus canus",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic cendré",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Picus viridis",
+			Class:          "Oiseaux",
+			Order:          "Piciformes",
+			Family:         "Picidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pic vert",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Podiceps auritus",
+			Class:          "Oiseaux",
+			Order:          "Podicipédiformes",
+			Family:         "Podicipedidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grèbe esclavon",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Podiceps cristatus",
+			Class:          "Oiseaux",
+			Order:          "Podicipédiformes",
+			Family:         "Podicipedidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grèbe huppé",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Podiceps grisegena",
+			Class:          "Oiseaux",
+			Order:          "Podicipédiformes",
+			Family:         "Podicipedidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grèbe jougris",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Podiceps nigricollis",
+			Class:          "Oiseaux",
+			Order:          "Podicipédiformes",
+			Family:         "Podicipedidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grèbe à cou noir",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Tachybaptus ruficollis",
+			Class:          "Oiseaux",
+			Order:          "Podicipédiformes",
+			Family:         "Podicipedidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grèbe castagneux",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Fulmarus glacialis",
+			Class:          "Oiseaux",
+			Order:          "Procellariiformes",
+			Family:         "Procellaridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fulmar boréal",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Procyon lotor",
+			Class:          "Mammifères",
+			Order:          "Musteloidea",
+			Family:         "Procyonidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Raton laveur",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Prunella collaris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Prunellidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Accenteur alpin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Prunella modularis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Prunellidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Accenteur mouchet",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Psittacula krameri",
+			Class:          "Oiseaux",
+			Order:          "Psittaciformes",
+			Family:         "Psittacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Perruche à collier",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Pterocles orientalis",
+			Class:          "Oiseaux",
+			Order:          "Pterocliformes",
+			Family:         "Pteroclidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Ganga unibande",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Syrrhaptes paradoxus",
+			Class:          "Oiseaux",
+			Order:          "Pterocliformes",
+			Family:         "Pteroclidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Syrrhapte paradoxal",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.96",
+		},
+
+		{
+			Species:        "Crex crex",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Râle des genêts",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Fulica atra",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Foulque macroule",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Gallinula chloropus",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Gallinule poule d'eau",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Porzana parva",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Marouette poussin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Porzana porzana",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Marouette ponctuée",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Porzana pusilla",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Marouette de Baillon",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Rallus aquaticus",
+			Class:          "Oiseaux",
+			Order:          "Gruiformes",
+			Family:         "Rallidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Râle d'eau",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Himantopus himantopus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Récurvirostridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Echasse blanche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Recurvirostra avosetta",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Récurvirostridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Avocette élégante",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Regulus ignicapillus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Régulidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Roitelet à triple bandeau",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Regulus regulus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Régulidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Roitelet huppé",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Remiz pendulinus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Rémizidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Remiz penduline",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Rhinolophus ferrumequinum",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Rhinolophidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rhinolophe grand fer à cheval",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Rhinolophus hipposideros",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Rhinolophidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Rhinolophe petit fer à cheval",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Sciurus vulgaris",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Sciuridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Ecureuil roux",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Tamias sibiricus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Sciuridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tamia de Sibérie",
+			CreavesGroup:   "invasif",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Actitis hypoleucos",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier guignette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Arenaria interpres",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tournepierre à collier",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris acuminata",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau à queue pointue",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris alba",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau sanderling",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris alpina",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau variable",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris canutus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau maubèche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris ferruginea",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau cocorli",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris fuscicollis",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau de Bonaparte",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris melanotos",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau tacheté",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris minuta",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau minute",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Calidris temminckii",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau de Temminck",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Gallinago gallinago",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécassine des marais",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Gallinago media",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécassine double",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Limicola falcinellus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécasseau falcinelle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Limosa lapponica",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Barge rousse",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Limosa limosa",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Barge à queue noire",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Lymnocryptes minimus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Bécassine sourde",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Numenius arquata",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Courlis cendré",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Numenius phaeopus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Courlis corlieu",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Numenius tenuirostris",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Courlis à bec grèle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Phalaropus fulicarius",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Phalarope à bec large",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Phalaropus lobatus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Phalarope à bec étroit",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Philomachus pugnax",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Combattant varié",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Scolopax rusticola",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Bécasse des bois",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa cinerea",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier bargette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa erythropus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier arlequin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa glareola",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier sylvain",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa nebularia",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier aboyeur",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa ochropus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier culblanc",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa stagnatilis",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier stagnatile",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Tringa totanus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Scolopacidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevalier gambette",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "2.08",
+		},
+
+		{
+			Species:        "Sitta europaea",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sittidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sittelle d'Europe",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Crocidura leucodon",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne bicolore",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Crocidura russula",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne musette",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Erinaceus europaeus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hérisson",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "1.5",
+		},
+
+		{
+			Species:        "Neomys anomalus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Neomys fodiens",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Sorex araneus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne carrelet",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Sorex coronatus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Sorex minutus",
+			Class:          "Mammifères",
+			Order:          "Rodentia",
+			Family:         "Soricidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Musaraigne",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Stercorarius longicaudus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Stercorariidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Labbe à longue queue",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Stercorarius parasiticus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Stercorariidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Labbe parasite",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Stercorarius pomarinus",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Stercorariidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Labbe pomarin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Stercorarius skua",
+			Class:          "Oiseaux",
+			Order:          "Charadriiformes",
+			Family:         "Stercorariidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand Labbe",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Chlidonias hybridus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Guifette moustac",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Chlidonias leucopterus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Guifette leucoptère",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Chlidonias niger",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Guifette noire",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Gelochelidon nilotica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne hansel",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sterna albifrons",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne naine",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sterna caspia",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne caspienne",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sterna hirundo",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne pierregarin",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sterna paradisaea",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne arctique",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sterna sandvicensis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sternidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sterne caugek",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Aegolius funereus",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chouette de Tengmalm",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Asio flammeus",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hibou des marais",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Asio otus",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Hibou moyen-duc",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Athene noctua",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevêche d'Athena",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Bubo bubo",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grand-Duc d'Europe",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3",
+		},
+
+		{
+			Species:        "Glaucidium passerinum",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chevêchette d'Europe",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Otus scops",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Petit-duc scops",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Strix aluco",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chouette hulotte",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Surnia ulula",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Strigidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Chouette épervière",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Sturnus roseus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sturnidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Etourneau roselin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sturnus vulgaris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sturnidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Etourneau sansonnet",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sus scrofa",
+			Class:          "Mammifères",
+			Order:          "Suina",
+			Family:         "Suidés",
+			Game:           1 == 1,
+			CreavesSpecies: "Sanglier",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Morus bassanus",
+			Class:          "Oiseaux",
+			Order:          "Suliformes",
+			Family:         "Sulidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fou de Bassan",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "3.21",
+		},
+
+		{
+			Species:        "Sylvia atricapilla",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette à tête noire",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia borin",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette des jardins",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia cantillans",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette passerinette",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia communis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette grisette",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia curruca",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette babillarde",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia hortensis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette orphée",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia melanocephala",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette mélanocéphale",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia nisoria",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette épervière",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Sylvia undata",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Sylviidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Fauvette pitchou",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Talpa europaea",
+			Class:          "Mammifères",
+			Order:          "Eulipotyphla",
+			Family:         "Talpidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Taupe",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Platalea leucorodia",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Threskiornithidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Spatule blanche",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Plegadis falcinellus",
+			Class:          "Oiseaux",
+			Order:          "Pélécaniformes",
+			Family:         "Threskiornithidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Ibis falcinelle",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "4.09",
+		},
+
+		{
+			Species:        "Tichodroma muraria",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Tichodromidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Tichodrome échelette",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Troglodytes troglodytes",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Troglodytidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Troglodyte mignon",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Monticola saxatilis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidé",
+			Game:           1 == 0,
+			CreavesSpecies: "Monticole de roche",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus iliacus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive mauvis",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus merula",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Merle noir",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus naumanni",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive de Nauman",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus obscurus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive obscure",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus philomelos",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive musicienne",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus pilaris",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive litorne",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus ruficollis",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive à gorge rousse",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus torquatus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Merle à plastron",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Turdus viscivorus",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive draine",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Zoothera dauma",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive dorée",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Zoothera sibirica",
+			Class:          "Oiseaux",
+			Order:          "Passériformes",
+			Family:         "Turdidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Grive de Sibérie",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Tyto alba",
+			Class:          "Oiseaux",
+			Order:          "Strigiformes",
+			Family:         "Tytonidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Effraie des clochers",
+			CreavesGroup:   "Rapaces, oiseaux d’eau, échassiers ou limicoles",
+			Subside:        "1.37",
+		},
+
+		{
+			Species:        "Upupa epops",
+			Class:          "Oiseaux",
+			Order:          "Bucérotiformes",
+			Family:         "Upudidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Huppe fasciée",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "1.12",
+		},
+
+		{
+			Species:        "Barbastella barbastellus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Barbastelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Eptesicus nilssonii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Eptesicus serotinus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Sérotine commune",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis alcathoe",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis bechsteinii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis brandtii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis dasycneme",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis daubentonii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin de Daubenton",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis emarginatus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis myotis",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis mystacinus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Myotis nattereri",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Murin",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Nyctalus leisleri",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Noctule",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Nyctalus noctula",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Noctule commune",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Pipistrellus kuhlii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipistrelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Pipistrellus nathusii",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipistrelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Pipistrellus pipistrellus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipistrelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Pipistrellus pygmaeus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Pipistrelle",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Plecotus auritus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oreillard roux",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Plecotus austriacus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oreillard",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Vespertilio murinus",
+			Class:          "Mammifères",
+			Order:          "Chiroptera",
+			Family:         "Verspertilionidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Serotine bicolore",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0.75",
+		},
+
+		{
+			Species:        "Genetta genetta",
+			Class:          "Mammifères",
+			Order:          "Viverroidea",
+			Family:         "Viverridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Genette",
+			CreavesGroup:   "Mammifères non volants",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anser",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Oie domestique",
+			CreavesGroup:   "Domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "oisillon",
+			Class:          "Oiseaux",
+			Order:          "oisillon",
+			Family:         "oisillon",
+			Game:           1 == 0,
+			CreavesSpecies: "oisillon",
+			CreavesGroup:   "Autres oiseaux et chauves-souris",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Coronella austriaca",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Colubridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Coronelle lisse",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Natrix natrix",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Natricidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Couleuvre à collier",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Podarcis muralis",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Lacertidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Lézard des murailles",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lacerta agilis",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Lacertidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Lézard des souches",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Zootoca vivipara",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Lacertidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Lézard vivipare",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anguis fragilis",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Anguidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Orvet fragile",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Trachemys scripta",
+			Class:          "Reptiles",
+			Order:          "Testudines",
+			Family:         "Emydidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Tortue de Floride",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Vipera berus",
+			Class:          "Reptiles",
+			Order:          "Squamata",
+			Family:         "Viperidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Vipère péliade",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Alytes obstetricans",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Alytidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Alyte accoucheur",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Bufo calamita",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Bufonidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Crapaud calamite",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Bufo bufo",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Bufonidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Crapaud commun",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Rana dalmatina",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille agile",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Pelophylax lessonae",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille de Lessona",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Pelophylax ridibundus",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille rieuse",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Rana temporaria",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille rousse",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Pelophylax kl. esculentus",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille verte",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Pelobates fuscus",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Pelobatidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Pélobate brun",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Hyla arborea",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Hylidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Rainette verte",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Salamandra salamandra",
+			Class:          "Amphibiens",
+			Order:          "Caudata",
+			Family:         "Salamandridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Salamandre tachetée",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Bombina variegata",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Bombinatoridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Sonneur à ventre jaune",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Ichthyosaura alpestris",
+			Class:          "Amphibiens",
+			Order:          "Caudata",
+			Family:         "Salamandridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Triton alpestre",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Triturus cristatus",
+			Class:          "Amphibiens",
+			Order:          "Caudata",
+			Family:         "Salamandridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Triton crêté",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lissotriton helveticus",
+			Class:          "Amphibiens",
+			Order:          "Caudata",
+			Family:         "Salamandridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Triton palmé",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lissotriton vulgaris",
+			Class:          "Amphibiens",
+			Order:          "Caudata",
+			Family:         "Salamandridae",
+			Game:           1 == 0,
+			CreavesSpecies: "Triton ponctué",
+			CreavesGroup:   "Autres que oiseaux et mammifères",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Lithobates catesbeianus",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Ranidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Grenouille taureau",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Xenopus laevis",
+			Class:          "Amphibiens",
+			Order:          "Anura",
+			Family:         "Pipidae",
+			Game:           1 == 0,
+			CreavesSpecies: "Xénope lisse",
+			CreavesGroup:   "invasif préocupant",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Parabuteo unicinctus",
+			Class:          "Oiseaux",
+			Order:          "Accipitriformes",
+			Family:         "Accipitridés",
+			Game:           1 == 0,
+			CreavesSpecies: "Buse de harris",
+			CreavesGroup:   "Exotique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anas platyrhynchos domesticus CI",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Coureur indien",
+			CreavesGroup:   "Domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Melopsittacus undulatus",
+			Class:          "Oiseaux",
+			Order:          "Psittaciformes",
+			Family:         "Psittaculidée",
+			Game:           1 == 0,
+			CreavesSpecies: "Perruche ondulée",
+			CreavesGroup:   "Exotique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Oryctolagus cuniculus domesticus",
+			Class:          "Mammifères",
+			Order:          "Lagomorpha",
+			Family:         "Léporidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Lapin domestique",
+			CreavesGroup:   "Domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "tortues aquatiques",
+			Class:          "Reptiles",
+			Order:          "Testudines",
+			Family:         "Emydidae",
+			Game:           1 == 0,
+			CreavesSpecies: "tortues aquatiques",
+			CreavesGroup:   "Exotique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Anas platyrhynchos domesticus",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard domestique",
+			CreavesGroup:   "Domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Cairina moschata",
+			Class:          "Oiseaux",
+			Order:          "Ansériformes",
+			Family:         "Anatidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Canard de barbarie",
+			CreavesGroup:   "Domestique",
+			Subside:        "0",
+		},
+
+		{
+			Species:        "Alectoris fufa",
+			Class:          "Oiseaux",
+			Order:          "Galliformes",
+			Family:         "Phasianidés",
+			Game:           1 == 0,
+			CreavesSpecies: "Perdrix rouge",
+			CreavesGroup:   "Exotique",
+			Subside:        "0",
+		},
 	}
-	
+
 	cnt, err := models.DB.Q().Count(&models.Species{})
 	if err != nil {
 		return err
@@ -3954,34 +5222,65 @@ func createSpecies(c *Context) error {
 	if cnt >= len(ts) {
 		fmt.Printf("Already %d records in species - skipping\n", cnt)
 		return nil
+	} else {
+		fmt.Printf("Already %d records in species - expecting %d\n", cnt, len(ts))
 	}
-
 
 	return models.DB.Transaction(func(con *pop.Connection) error {
 		for _, t := range ts {
+			if len(t.Species) == 0 {
+				continue
+			}
+
+			d := &models.Species{
+				Species:        t.Species,
+				Class:          t.Class,
+				Order:          t.Order,
+				Family:         t.Family,
+				Game:           t.Game,
+				CreavesSpecies: t.CreavesSpecies,
+				CreavesGroup:   t.CreavesGroup,
+			}
+			if len(t.Subside) > 0 && t.Subside != "?" {
+				dsf, err := strconv.ParseFloat(t.Subside, 64)
+				if err == nil {
+					d.Subside = nulls.NewFloat64(dsf)
+				} else {
+					fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
+				}
+			}
+
 			if exists, err := con.Where("Species = ?", t.Species).Exists(&models.Species{}); err != nil {
 				return err
 			} else if !exists {
-				d := &models.Species{
-					Species:        t.Species,
-					Group:          t.Group,
-					Family:         t.Family,
-					CreavesSpecies: t.CreavesSpecies,
-					CreavesGroup:   t.CreavesGroup,
-				}
-				if len(t.Subside) > 0 {
-					dsf, err := strconv.ParseFloat(t.Subside, 64)
-					if err == nil {
-						d.Subside = nulls.NewFloat64(dsf)
-					} else {
-						fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
-					}
-				}
 				if err := con.Create(d); err != nil {
 					return err
 				}
 			} else {
-				fmt.Printf("Species %s already exists\n", t.Species)
+				fmt.Printf("Species %s already exists - updating\n", t.Species)
+				d_db := &models.Species{}
+				if err := con.Where("Species = ?", t.Species).First(d_db); err != nil {
+					fmt.Printf("Failure to load: %s - record corrupted... Removing", t.Species)
+					if err := con.RawQuery("delete from species where species = ?", t.Species).Exec(); err != nil {
+						return err
+					}
+					fmt.Printf("Recreating %s", t.Species)
+					if err := con.Create(d); err != nil {
+						return err
+					}
+				} else {
+					// update record
+					d_db.Class = d.Class
+					d_db.Order = d.Order
+					d_db.Family = d.Family
+					d_db.Game = d.Game
+					d_db.CreavesSpecies = d.CreavesSpecies
+					d_db.CreavesGroup = d.CreavesGroup
+					if err := con.Update(d_db); err != nil {
+						fmt.Printf("Failure to save: %v", d_db)
+						return err
+					}
+				}
 			}
 		}
 		return nil

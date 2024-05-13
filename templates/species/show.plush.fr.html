@@ -23,15 +23,23 @@
 
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Groupe</label>
-    <p class="d-inline-block"><%= species.Group %></p>
+    <label class="small d-block">Classe</label>
+    <p class="d-inline-block"><%= species.Class %></p>
   </li>
 
-
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Ordre</label>
+    <p class="d-inline-block"><%= species.Order %></p>
+  </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Famille</label>
     <p class="d-inline-block"><%= species.Family %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Gibier</label>
+    <p class="d-inline-block"><%= bool2html(species.Game) %></p>
   </li>
 
 

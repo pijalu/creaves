@@ -43,13 +43,86 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 
 func animalTypesToSelectables(ts *models.Animaltypes) form.Selectables {
 	res := []form.Selectable{}
+	removeEmpty := false
+
+	res = append(res, &selType{label: "", value: ""})
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
 			label: ts.Name,
 			value: ts.ID,
 		})
+		removeEmpty = removeEmpty || ts.Default
 	}
+
+	if removeEmpty {
+		return res[1:]
+	}
+
+	return res
+}
+
+func defZone(c buffalo.Context) (*models.Zone, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.Zone{}
+	if err := tx.Where("`default` is true").Order("zone asc").First(ts); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
+func zones(c buffalo.Context) (*models.Zones, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.Zones{}
+	if err := tx.Order("zone asc").All(ts); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
+func zonesMap(c buffalo.Context) (map[string]string, error) {
+	zs, err := zones(c)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := map[string]string{}
+	for _, z := range *zs {
+		ret[z.Zone] = z.Type
+	}
+
+	return ret, nil
+}
+
+func zonesToSelectables(ts *models.Zones) form.Selectables {
+	res := []form.Selectable{}
+	//removeEmpty := false
+
+	res = append(res, &selType{label: "", value: ""})
+
+	for _, ts := range *ts {
+		res = append(res, &selType{
+			label: ts.Zone,
+			value: ts.Zone,
+		})
+		//removeEmpty = removeEmpty || ts.Default
+	}
+	/*
+		if removeEmpty {
+			return res[1:]
+		}
+	*/
+
 	return res
 }
 

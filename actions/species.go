@@ -45,7 +45,7 @@ func (v SpeciesResource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.PaginateFromParams(c.Params())
+	q := tx.PaginateFromParams(c.Params()).Order("class ASC, `order` ASC, family ASC, creaves_species ASC")
 
 	// Retrieve all Species from the DB
 	if err := q.All(species); err != nil {
@@ -213,6 +213,9 @@ func (v SpeciesResource) Update(c buffalo.Context) error {
 	if err := tx.Find(species, c.Param("species_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
+
+	// reset flags
+	species.Game = false
 
 	// Bind Species to the html form elements
 	if err := c.Bind(species); err != nil {

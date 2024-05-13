@@ -1,0 +1,379 @@
+queries:
+ - name: Annexe_2A_2023
+   description: Annexe 2A 2023
+   query: SELECT distinct
+            a.id AS "ID",
+            a.year AS "année",
+            a.yearNumber AS "N°",
+            a.species AS "Espèce",
+            CASE
+            WHEN s.creaves_group="Mammifères non volants" THEN "A) Mammifères non volants"
+            WHEN s.creaves_group="Rapaces, oiseaux d’eau, échassiers ou limicoles" THEN "B) Rapaces, oiseaux d’eau, échassiers ou limicoles"
+            WHEN s.creaves_group="Autres oiseaux et chauves-souris" THEN "C) Autres oiseaux et chauves-souris, batraciens et reptiles"
+            WHEN s.creaves_group="Autres que oiseaux et mammifères" THEN "C) Autres oiseaux et chauves-souris, batraciens et reptiles"
+            END AS "Groupe",
+            DATE_FORMAT(i.date, "%d/%m/%Y") AS "Date d'Entrée",
+            DATE_FORMAT(o.date, "%d/%m/%Y") AS "Date de Sortie",
+            DATE_FORMAT(o.date, "%Y") AS "Année de Sortie",
+            CASE
+            WHEN oo.name="DCD" THEN "DCD"
+            WHEN oo.name="Euthanasier" THEN "DCD"
+            WHEN oo.name="Mort à l'arrivée avant l'encodage" THEN "DCD"
+            WHEN oo.name="Relacher" THEN "Relacher"
+            WHEN oo.name="Transferer" THEN "Transferer"
+            WHEN oo.name="Adoption" THEN "Adoption"
+            END AS "Raison de la sortie"
+            FROM animals AS a
+            INNER JOIN intakes AS i ON a.intake_id = i.id
+            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+            LEFT JOIN species AS s ON s.creaves_species = a.species
+            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+            Where s.creaves_group IN("Mammifères non volants","Rapaces, oiseaux d’eau, échassiers ou limicoles","Autres oiseaux et chauves-souris","Autres que oiseaux et mammifères")
+            ORDER BY a.id desc;
+  
+ - name: Annexe_2B_2023
+   description: Annexe 2B 2023
+   query: SELECT DISTINCT
+            a.year AS "Année",
+            CASE
+            WHEN sp.creaves_group="Mammifères non volants" THEN "A) Mammifères non volants (100/tranche)"
+            WHEN sp.creaves_group="Rapaces, oiseaux d’eau, échassiers ou limicoles" THEN "B) Rapaces, oiseaux d’eau, échassiers ou limicoles (50/tranche)"
+            WHEN sp.creaves_group="Autres oiseaux et chauves-souris" THEN "C) Autres oiseaux et chauves-souris, batraciens et reptiles (100/tranche)"
+            WHEN sp.creaves_group="Autres que oiseaux et mammifères" THEN "C) Autres oiseaux et chauves-souris, batraciens et reptiles (100/tranche)"
+            END AS "Groupes SUBSIDE",
+            COUNT(Distinct a.id) AS "Nombre"
+            From animals AS a
+            INNER JOIN species AS sp ON a.species = creaves_species
+            INNER JOIN intakes AS i ON a.intake_id = i.id
+            WHERE sp.creaves_group IN ("Mammifères non volants","Rapaces, oiseaux d’eau, échassiers ou limicoles","Autres oiseaux et chauves-souris","Autres que oiseaux et mammifères")
+            GROUP BY 1, 2
+            ORDER BY 1 ASC;
+  
+ - name: detail_register
+   description: Registre détaillé
+   query: SELECT distinct
+           a.year AS "année",
+           a.id AS "ID",
+           a.yearNumber AS "N°",
+           a.species AS "Espèce", 
+           if((a.species) = (s.creaves_species), "", "NON CONNUE") AS "Check",
+           ta.name AS "Type",
+           a.cage AS  "cage",
+           a.ring AS "Identification",
+           a.gender AS "Genre",
+           aa.name AS "Age",
+           i.date AS "Date d'entrée",
+           DATEDIFF (d.date, i.date) AS "dif découverte/admission",
+           i.general AS "état général",
+           i.wounds AS "Bléssures",
+           i.parasites AS "Parasites",
+           i.remarks AS "Remarque d'entrée",
+           d.city AS "Ville",
+           d.postal_code AS "Code postal",
+           d.location AS "lieux de découverte",
+           d.reason As "Cause de découverte",
+           d.date AS "Date de découverte",
+           d.note AS "Note sur la découverte",
+           o.date AS "Date de sortie",
+           oo.name AS "Raison de la sortie",
+           o.location AS "Lieux de relacher",
+           o.note As "Note sur la sortie",
+           DATEDIFF (o.date, i.date) + 1 AS "séjour",
+           di.firstname AS "Prénom",
+           di.lastname AS "Nom",
+           di.address AS "Adresse",
+           di.city AS "Ville",
+           di.country AS "Pays",
+           di.note AS "Note",
+           DATEDIFF (o.date, i.date) + 1 AS "séjour", 
+           count(distinct vv.id) AS 'Nombre visite VT',
+           sum(t.distance) AS "KM parcouru pour l'animal"
+           FROM animals AS a
+           INNER JOIN intakes AS i ON a.intake_id = i.id
+           INNER JOIN discoveries AS d ON a.discovery_id = d.id
+           INNER JOIN discoverers AS di ON d.discoverer_id = di.id
+           INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+           INNER JOIN animaltypes AS ta ON a.animaltype_id = ta.id
+           LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+           LEFT JOIN species AS s ON s.creaves_species = a.species
+           LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+           LEFT JOIN veterinaryvisits AS vv ON a.id = vv.animal_id
+           LEFT JOIN travels AS t ON t.animal_id = a.id
+           GROUP BY a.id
+           ORDER BY 1 DESC, 2 ASC, 3 ASC;
+
+ - name: register
+   description: Registre
+   query: SELECT distinct
+            a.year AS "année",
+            a.yearNumber AS "N°",
+            a.species AS "Espèce", 
+            a.ring AS "Identification",
+            d.city AS "Ville découverte",
+            d.postal_code AS "Code postal découverte",
+            d.location AS "lieux de découverte",
+            i.date AS "Date d'entrée",
+            d.reason As "Cause de découverte",
+            oo.name AS "Raison de la sortie",
+            o.date AS "Date de sortie",
+            o.location AS "Lieux de relacher"
+            FROM animals AS a
+            INNER JOIN intakes AS i ON a.intake_id = i.id
+            INNER JOIN discoveries AS d ON a.discovery_id = d.id
+            INNER JOIN discoverers AS di ON d.discoverer_id = di.id
+            INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+            LEFT JOIN species AS s ON s.creaves_species = a.species
+            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+            GROUP BY a.id
+            ORDER BY 1 DESC, 2 ASC;
+            
+ - name: dead_register
+   description: Registre des cadavres
+   query: SELECT distinct
+            a.year AS "année",
+            a.yearNumber AS "N°",
+            a.species AS "Espèce", 
+            a.ring AS "Identification",
+            i.date AS "Date d'entrée",
+            oo.name AS "Raison de la sortie",
+            o.date AS "Date de sortie"
+            FROM animals AS a
+            INNER JOIN intakes AS i ON a.intake_id = i.id
+            INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+            LEFT JOIN species AS s ON s.creaves_species = a.species
+            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+            WHERE oo.dead = 1
+            GROUP BY a.id
+            ORDER BY 1 DESC, 2 ASC;
+
+ - name: descoverer_register
+   description: Registre des découvreurs
+   query: SELECT
+           a.year AS "Année",
+           a.id, 
+           a.yearNumber AS "numéro annuel",
+           a.species AS "espèce", DATE_FORMAT(i.date, "%d %m %Y") AS "Date d'entrée",
+           ot.name AS "raison de sortie",
+           di.firstname AS "Prénom",
+           di.lastname AS "Nom",
+           di.address AS "adresse",
+           di.city AS "ville",
+           di.email AS "mail", 
+           di.phone AS "téléphone", 
+           di.donation AS "Don",
+           di.note AS "Note sur la découverte"
+           FROM animals AS a
+           INNER JOIN intakes AS i ON a.intake_id = i.id
+           INNER JOIN discoveries AS d ON a.discovery_id = d.id
+           LEFT jOIN outtakes AS o ON a.outtake_id = o.id
+           LEFT JOIN outtaketypes AS ot ON ot.id = o.outtaketype_id,
+           discoverers di WHERE d.discoverer_id = di.id
+           GROUP BY a.id
+           ORDER BY 1 DESC, 2 ASC, 3 ASC;
+           
+ - name: donation_register
+   description: Registre des dons
+   query: SELECT
+           year(di.created_at) as "Année", DATE_FORMAT(di.created_at, "%Y %m %d") AS "Date du don",
+           di.firstname AS "Prénom",
+           di.lastname AS "Nom",
+           di.address AS "Adresse",
+           di.postal_code AS "Code postal",
+           di.city AS "ville",
+           di.email AS "mail", 
+           di.phone AS "Téléphone", 
+           di.donation AS "Don"
+           FROM discoverers AS di
+           WHERE di.donation > "0,01"
+           ORDER BY 1 DESC, 2 ASC, 3 ASC, 4 ASC, 5 ASC, 6 ASC, 7 ASC;
+           
+ - name: species_registre
+   description: Registre détailé des espèces
+   query: SELECT DISTINCT
+           a.year AS "Année",
+           a.yearNumber AS "N°",
+           a.species AS "Espèce",
+           s.family AS "Famille",
+           s.order AS "Ordre",
+           s.class AS "Classe",
+           s.creaves_group AS "CREAVES Groupes",
+           CASE
+           WHEN s.game=0 THEN ""
+           WHEN s.game=1 THEN "Gibier"
+           END AS "Gibier",
+           a.ring AS "Identification",
+           d.location AS "lieux de découverte",
+           i.date AS "Date d'entrée",
+           d.reason As "Cause de découverte",
+           oo.name AS "Raison de la sortie",
+           o.date AS "Date de sortie"
+           FROM animals AS a
+           INNER JOIN intakes AS i ON a.intake_id = i.id
+           INNER JOIN discoveries AS d ON a.discovery_id = d.id
+           INNER JOIN discoverers AS di ON d.discoverer_id = di.id
+           INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+           LEFT JOIN species AS s ON s.creaves_species = a.species
+           LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+           LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+           ORDER BY 1 DESC, 2 ASC;
+
+ - name: entry_age
+   description: Age à l'entrée
+   query: SELECT
+           a.year AS "Année", 
+           aa.name AS "Age à l'Entrée",
+           COUNT(*) AS "Nombre"
+           From animals AS a
+           INNER JOIN animalages AS aa ON a.animalage_id = aa.id
+           GROUP BY 1, a.animalage_id
+           ORDER BY 1 DESC, 2 ASC
+
+ - name: sortie_reason
+   description: Causes de sortie
+   query: SELECT DISTINCT 
+           a.year AS "Année",
+           ot.name AS "Causes de sortie",
+           COUNT(*) AS "Nombre"
+           From animals AS a
+           INNER JOIN outtakes AS o ON a.outtake_id = o.id
+           INNER JOIN outtaketypes AS ot ON ot.id = o.outtaketype_id
+           GROUP BY 1, ot.name
+           ORDER BY 1 DESC, 2 ASC;
+
+ - name: sortie_types
+   description: Types de sortie
+   query: SELECT DISTINCT
+           a.year AS "Année",
+           CASE
+           WHEN ot.rating=-1 THEN "Animal sorti Mort"
+           WHEN ot.rating=0 THEN "La sortie est Neutre"
+           WHEN ot.rating=1 THEN "Animal sorti Vivant"
+           END AS "Type de sortie",
+           COUNT(*) AS "Nombre"
+           From animals AS a
+           INNER JOIN outtakes AS o ON a.outtake_id = o.id
+           INNER JOIN outtaketypes AS ot ON ot.id = o.outtaketype_id
+           GROUP BY 1, ot.rating
+           ORDER BY 1 DESC, 2 ASC;
+
+ - name: entry_date_year
+   description: Nombre d'animaux accueillis selon le jour de l'année
+   query: SELECT 
+            year(i.date) as "Année", 
+            date_format(i.date, "%Y %m %d") AS "Date d'Entrée", 
+            COUNT(*) AS "Nombre"
+            From intakes AS i
+            GROUP BY 1, 2
+            ORDER BY 1 DESC, 2 ASC;
+          
+ - name: entry_day_week
+   description: Nombre d'animaux accueillis selon le jour de la semaine
+   query: SELECT Year(i.date) AS "Année", 
+            Dayofweek(i.date) AS "numéro jour de la semaine - (1=dimanche)",  
+            COUNT(*) AS "Nombre"
+            FROM intakes AS i
+            GROUP BY 1, 2
+            ORDER BY 1 DESC, 2 ASC;
+
+ - name: day_to_month
+   description: Nombre d'animaux accueillis selon le mois
+   query: SELECT 
+           Year(i.date) AS "Année",
+           DATE_FORMAT(i.date, "%m") AS "Mois d'Entrée", 
+           COUNT(*) AS "Nombre d'Animaux"
+           From intakes AS i
+           GROUP BY 1, DATE_FORMAT(i.date, "%m")
+           ORDER BY 1 DESC, DATE_FORMAT(i.date, "%m") ASC;
+
+ - name: treatments_day_year
+   description: Nombre de traitement selon le jour de l'année
+   query: SELECT Year(date) AS "Année",
+           DATE_FORMAT(date, "%Y %m %d") AS "Date de traitement", 
+           COUNT(*) AS "Nombre"
+           From treatments
+           GROUP BY 1, DATE_FORMAT(date, "%Y %m %d")
+           ORDER BY 1 DESC, DATE_FORMAT(date, "%Y %m %d") ASC;
+
+ - name: animals_species
+   description: Nombre d'animaux accueillis selon l'éspece
+   query: SELECT
+           year AS "Année",
+           sp.species AS "Espèces",
+           sp.creaves_species AS "Espèces CREAVES",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           INNER JOIN intakes AS i ON a.intake_id = i.id
+           GROUP BY 1, 2, 3
+           ORDER BY 1 DESC, sp.species ASC;
+
+ - name: group_creaves
+   description: Nombre d'animaux accueillis selon le groupe CREAVES
+   query: SELECT
+           year AS "Année",
+           sp.creaves_group AS "CREAVES Groupe",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           INNER JOIN intakes AS i ON a.intake_id = i.id
+           GROUP BY 1, sp.creaves_group
+           ORDER BY 1 DESC, sp.creaves_group ASC;
+
+ - name: animals_types
+   description: Nombre d'animaux accueillis selon le type
+   query: SELECT 
+           a.year as "Année",
+           t.name AS "Type",
+           COUNT(*) AS "Nombre"
+           From animals AS a
+           LEFT JOIN intakes i ON a.intake_id = i.id
+           INNER JOIN animaltypes AS t ON a.animaltype_id = t.id
+           GROUP BY 1, a.animaltype_id
+           ORDER BY 1 DESC, 2 ASC;
+
+ - name: animals_family
+   description: Nombre d'animaux accueillis selon la famille
+   query: SELECT 
+           year AS "Année",
+           sp.family AS "Famille",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           GROUP BY 1, sp.family
+           ORDER BY 1 DESC, sp.family ASC;
+
+ - name: animals_order
+   description: Nombre d'animaux accueillis selon l'ordre
+   query: SELECT
+           year AS "Année",
+           sp.order AS "Ordre",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           GROUP BY 1,sp.order
+           ORDER BY 1 DESC, sp.order ASC;
+
+ - name: animals_class
+   description: Nombre d'animaux accueillis selon la classe
+   query: SELECT DISTINCT
+           year AS "Année",
+           sp.class AS "Classe",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           GROUP BY 1, sp.class
+           ORDER BY 1 DESC, sp.class ASC;
+
+ - name: animals_game
+   description: Espèce gibier accueillie
+   query: SELECT 
+           year AS "Année",
+           sp.creaves_species AS "Espèce",
+           COUNT(Distinct a.id) AS "Nombre"
+           From animals AS a
+           INNER JOIN species AS sp ON a.species = creaves_species
+           WHERE sp.game = 1
+           GROUP BY 1, sp.creaves_species
+           ORDER BY 1 DESC, sp.creaves_species ASC;

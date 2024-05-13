@@ -23,6 +23,7 @@ type Animal struct {
 	Species      string            `json:"species" db:"species"`
 	Gender       nulls.String      `json:"gender" db:"gender"`
 	Cage         nulls.String      `json:"cage" db:"cage"`
+	Zone         nulls.String      `json:"zone" db:"zone"`
 	Feeding      nulls.String      `json:"feeding" db:"feeding"`
 	ForceFeed    bool              `json:"forceFeed" db:"force_feed"`
 	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
@@ -43,15 +44,35 @@ type Animal struct {
 	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
 
+// View keys
+type AnimalViewKey struct {
+	ID   string
+	Name string
+}
+
 // Animals is not required by pop and may be deleted
 type Animals []Animal
 
 // TreatmentsMap is an organized treaments list
-type AnimalsByTypeMap map[Animaltype]Animals
+type AnimalsByTypeMap map[AnimalViewKey]Animals
 
 // Return orderedkeys from map
-func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
-	var keys []Animaltype
+func (t AnimalsByTypeMap) OrderedKeys() []AnimalViewKey {
+	var keys []AnimalViewKey
+	for k := range t {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Name < keys[j].Name
+	})
+	return keys
+}
+
+type AnimalByZoneMap map[AnimalViewKey]Animals
+
+// Return orderedkeys from map
+func (t AnimalByZoneMap) OrderedKeys() []AnimalViewKey {
+	var keys []AnimalViewKey
 	for k := range t {
 		keys = append(keys, k)
 	}
@@ -64,6 +85,11 @@ func (t AnimalsByTypeMap) OrderedKeys() []Animaltype {
 // YearNumberFormatted returns the year number formatted
 func (a Animal) YearNumberFormatted() string {
 	return fmt.Sprintf("%d/%d", a.YearNumber, a.Year%100)
+}
+
+// YearNumberFormatted returns the year number formatted
+func (a Animal) ZoneAsString() string {
+	return a.Zone.String
 }
 
 // String is not required by pop and may be deleted

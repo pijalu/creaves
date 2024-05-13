@@ -27,7 +27,30 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Défaut</label>
-    <p class="d-inline-block"><%= outtaketype.Default %></p>
+    <p class="d-inline-block"><%= bool2html(outtaketype.Default) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Cadavre</label>
+    <p class="d-inline-block"><%= bool2html(outtaketype.Dead) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p>
+      <%= if (outtaketype.Rating < 0) { %>
+        Négative
+      <% } else if (outtaketype.Rating > 0) { %>
+        Positive
+      <% } else { %>
+        Neutre
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Nouvelles découvreur</label>
+    <p class="d-inline-block"><%= outtaketype.DiscovererNews %></p>
   </li>
 
 </ul>

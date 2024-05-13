@@ -13,15 +13,19 @@ import (
 
 // Discovery is used by pop to map your .model.Name.Proper.Pluralize.Underscore database table to your go code.
 type Discovery struct {
-	ID           uuid.UUID    `json:"id" db:"id"`
-	Location     string       `json:"location" db:"location"`
-	Date         time.Time    `json:"date" db:"date"`
-	Reason       nulls.String `json:"reason" db:"reason"`
-	Note         nulls.String `json:"note" db:"note"`
-	Discoverer   Discoverer   `belongs_to:"discoverer" json:"discoverer,omitempty"`
-	DiscovererID uuid.UUID    `json:"discoverer_id" db:"discoverer_id"`
-	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
+	ID            uuid.UUID    `json:"id" db:"id"`
+	Location      nulls.String `json:"location" db:"location"`
+	PostalCode    nulls.String `json:"postal_code" db:"postal_code"`
+	City          nulls.String `json:"city" db:"city"`
+	Date          time.Time    `json:"date" db:"date"`
+	Reason        nulls.String `json:"reason" db:"reason"`
+	Note          nulls.String `json:"note" db:"note"`
+	Discoverer    Discoverer   `belongs_to:"discoverer" json:"discoverer,omitempty"`
+	DiscovererID  uuid.UUID    `json:"discoverer_id" db:"discoverer_id"`
+	ReturnHabitat bool         `json:"return_habitat" db:"return_habitat"`
+	InGarden      bool         `json:"in_garden" db:"in_garden"`
+	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 // DateFormated returns a formated date
@@ -49,7 +53,6 @@ func (d Discoveries) String() string {
 func (d *Discovery) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(
 		// Discovery
-		&validators.StringIsPresent{Field: d.Location, Name: "Location"},
 		&validators.TimeIsPresent{Field: d.Date, Name: "Date"},
 	), nil
 }

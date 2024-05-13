@@ -1,0 +1,57 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Registre au jour</h3>
+</div>
+
+<form>
+  <label>Date</label>
+  <div class="input-group md-12">
+      <input class=" form-control" id="snapshotDate" name="snapshotDate" required="required" type="text" onchange="this.form.submit()" value="<%= snapshotDate %>"
+      pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">
+      <div class="input-group-append">
+          <div class="input-group-text">
+              <i class="fa fa-calendar" aria-hidden="true"></i>
+          </div>
+      </div>
+  </div>
+  
+  <script type="text/javascript">
+      $('#snapshotDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d'});
+  </script>
+</form>
+
+<div class="text-right">
+  <a href="/registersnapshot/ExportCSV?=<%= snapshotDate %>" target="_new" title="Export"/><i class="fas fa-cloud-download-alt"></i></a>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Numero</th>
+    <th>Type</th>
+    <th>Espèce</th>
+    <th>Identification</th>
+    <th>Zone</th>
+    <th>Cage</th>
+    <th>Date d'entrée</th>
+    <th>Lieu de découverte</th>
+    <th>Âge</th>
+    <th>Raison</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animals { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%= animal.YearNumber %></a>
+        </td>
+        <td class="align-middle"><%= animal.Animaltype.Name %></td>
+        <td class="align-middle"> <%= animal.Species %></td>
+        <td class="align-middle"><%= animal.Ring %></td> 
+        <td class="align-middle"><%= animal.Zone %></td> 
+        <td class="align-middle"><%= animal.Cage %></td> 
+        <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+        <td class="align-middle"><%= animal.Discovery.Location %></td>
+        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= animal.Discovery.Reason %></td>
+    <% } %>
+  </tbody>
+</table>
+

@@ -20,7 +20,7 @@
     <% } else {%>
     <a class="navbar-brand" href="<%= newAuthPath() %>">
     <% } %>
-      <img style="height:32px;" alt="LaGrange" src="<%= assetPath("images/lagrange-small.png") %>">
+      <img style="height:32px;" alt="Creaves-App" src="<%= assetPath("images/creaves-app-small.png") %>">
     </a>
 
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,8 @@
           <a class="dropdown-item" href="<%= caretypesPath() %>">Types de suivis</a>
           <a class="dropdown-item" href="<%= traveltypesPath() %>">Types de voyages</a>
           <a class="dropdown-item" href="/species">Espèces</a>
+          <a class="dropdown-item" href="<%= localitiesPath() %>">Localité</a>
+          <a class="dropdown-item" href="<%= zonesPath() %>">Zones</a>
           <div class="dropdown-divider"></div>
           <a class="dropdown-item" href="<%= pathsPath() %>">Tous les routes</a>
           <div class="dropdown-divider"></div>
@@ -60,6 +62,11 @@
           </a>
           <div class="dropdown-menu" aria-labelledby="reportDropdown">
             <a class="dropdown-item" href="<%= registertablePath() %>">Registre</a>
+            <a class="dropdown-item" href="<%= registersnapshotPath() %>">Instantané</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="<%= exportCsvPath() %>">exports CSV</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="<%= exportExcelPath() %>">exports Excel</a>
           </div>
         </li>
 

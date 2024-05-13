@@ -33,17 +33,17 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Défaut</label>
-    <p class="d-inline-block"><%= caretype.Def %></p>
+    <p class="d-inline-block"><%= bool2html(caretype.Def) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Avertissement</label>
-    <p class="d-inline-block"><%= caretype.Warning %></p>
+    <p class="d-inline-block"><%= bool2html(caretype.Warning) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Réinitialiser l'avertissement</label>
-    <p class="d-inline-block"><%= caretype.ResetWarning %></p>
+    <p class="d-inline-block"><%= bool2html(caretype.ResetWarning) %></p>
   </li>
 
 </ul>

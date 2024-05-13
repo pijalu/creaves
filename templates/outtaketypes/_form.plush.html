@@ -1,6 +1,12 @@
 <%= f.InputTag("Name") %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
+
+<%= f.SelectTag("Rating", {label:"Type", options: {"Negative": "-1", "Neutral": "0", "Positive": "1"} } ) %>
+
 <%= f.CheckboxTag("Default") %>
+<%= f.CheckboxTag("Dead", {label:"Dead"}) %>
+<%= f.TextAreaTag("DiscovererNews", {label:"News for Discoverer", rows: 10}) %>
+
 <button class="btn btn-success" role="submit">Save</button>
 <script type="text/javascript">
 $( document ).ready(function(){

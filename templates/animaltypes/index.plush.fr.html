@@ -13,6 +13,7 @@
     <th>Description</th>
     <th>Défaut</th>
     <th>Identifié</th>
+    <th>Espèces par déf.</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,8 +21,9 @@
       <tr>
         <td class="align-middle"><%= animaltype.Name %></td>
         <td class="align-middle"><%= animaltype.Description %></td>
-        <td class="align-middle"><%= animaltype.Default %></td>
-        <td class="align-middle"><%= animaltype.HasRing %></td>
+        <td class="align-middle"><%= bool2html(animaltype.Default) %></td>
+        <td class="align-middle"><%= bool2html(animaltype.HasRing) %></td>
+        <td class="align-middle"><%= animaltype.DefaultSpecies %></td>
         <td>
           <div class="float-right">
             <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>

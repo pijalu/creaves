@@ -1,0 +1,8 @@
+<h1>CSV exports</h1>
+<ul>
+<%= for (query) in queries { %>
+    <li>
+        <a href="/export/csv?query=<%= query.Name %>" title="<%= query.Description%>"><%=query.Description%></a>
+    </li>
+<% } %>
+</ul>

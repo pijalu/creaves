@@ -8,6 +8,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
 	"github.com/gofrs/uuid"
 )
@@ -177,6 +178,29 @@ func (v CaresResource) New(c buffalo.Context) error {
 	c.Set("care", care)
 
 	animalYearNumber := c.Param("animal_year_number")
+	cageNumber := c.Param("cage")
+
+	// Short cut rendering
+	if len(cageNumber) == 0 && len(animalYearNumber) == 0 {
+		return c.Render(http.StatusOK, r.HTML("/cares/new.plush.html"))
+	}
+
+	// Set care type
+	ct, err := caretypes(c)
+	if err != nil {
+		return err
+	}
+
+	// Set default care type
+	for _, c := range *ct {
+		if c.Def {
+			care.Type = c
+			care.TypeID = c.ID
+			break
+		}
+	}
+	c.Set("selectCaretype", caretypesToSelectables(ct))
+
 	if len(animalYearNumber) > 0 {
 		// Get the DB connection from the context
 		tx, ok := c.Value("tx").(*pop.Connection)
@@ -223,24 +247,21 @@ func (v CaresResource) New(c buffalo.Context) error {
 
 		care.Animal = *animal
 		care.AnimalID = animal.ID
-
-		// Set care type
-		ct, err := caretypes(c)
-		if err != nil {
-			return err
-		}
-
-		// Set default care type
-		for _, c := range *ct {
-			if c.Def {
-				care.Type = c
-				care.TypeID = c.ID
-				break
-			}
-		}
-		c.Set("selectCaretype", caretypesToSelectables(ct))
 	}
 	return c.Render(http.StatusOK, r.HTML("/cares/new.plush.html"))
+}
+
+func (v CaresResource) loadAnimalByCage(cage string, c buffalo.Context) (*[]models.Animal, error) {
+	a := &[]models.Animal{}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+	if err := tx.Where("outtake_id is null and Cage = ?", cage).All(a); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+	return a, nil
 }
 
 // Create adds a Care to the DB. This function is mapped to the
@@ -260,10 +281,41 @@ func (v CaresResource) Create(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	// Validate the data from the html form
-	verrs, err := tx.ValidateAndCreate(care)
-	if err != nil {
-		return err
+	var verrs *validate.Errors
+	var err error
+
+	if len(c.Param("cage")) > 0 {
+		cage := c.Param("cage")
+
+		animals, err := v.loadAnimalByCage(cage, c)
+		if err != nil {
+			return err
+		}
+
+		if len(*animals) == 0 {
+			return fmt.Errorf("cage %s : no animals found", cage)
+		}
+
+		c.Logger().Debugf("Care for cage %s: Creating for %d animal(s)", cage, len(*animals))
+
+		for _, a := range *animals {
+			c.Logger().Debugf("Care for cage %s: Creating for animal ID %d", cage, a.ID)
+			care.ID = uuid.Nil
+			care.AnimalID = a.ID
+			verrs, err = tx.ValidateAndCreate(care)
+			if err != nil {
+				return err
+			}
+			if verrs.HasAny() {
+				break
+			}
+		}
+	} else {
+		// Validate the data from the html form
+		verrs, err = tx.ValidateAndCreate(care)
+		if err != nil {
+			return err
+		}
 	}
 
 	if verrs.HasAny() {
@@ -317,7 +369,7 @@ func (v CaresResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Care
 	care := &models.Care{}
 
-	if err := tx.Find(care, c.Param("care_id")); err != nil {
+	if err := tx.Eager().Find(care, c.Param("care_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 

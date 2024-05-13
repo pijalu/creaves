@@ -27,7 +27,30 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Default</label>
-    <p class="d-inline-block"><%= outtaketype.Default %></p>
+    <p class="d-inline-block"><%= bool2html(outtaketype.Default) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Dead</label>
+    <p class="d-inline-block"><%= bool2html(outtaketype.Dead) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p>
+      <%= if (outtaketype.Rating < 0) { %>
+        Negative
+      <% } else if (outtaketype.Rating > 0) { %>
+        Positive
+      <% } else { %>
+        Neutral
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">News for discoverer</label>
+    <p class="d-inline-block"><%= outtaketype.DiscovererNews %></p>
   </li>
 
 </ul>

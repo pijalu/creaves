@@ -1,0 +1,41 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Zones</h3>
+  <div class="float-end">
+    <%= linkTo(newZonesPath(), {class: "btn btn-primary"}) { %>
+      Create New Zone
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Zone</th><th>Type</th><th>Default</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (zone) in zones { %>
+      <tr>
+        <td class="align-middle"><%= zone.Zone %></td>
+        <td class="align-middle">
+          <%= if (zone.Type == "external") { %>
+            external to the center
+          <% } else { %>
+            internal to the center
+          <% } %>
+        </td>
+        <td class="align-middle"><%= bool2html(zone.Default) %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

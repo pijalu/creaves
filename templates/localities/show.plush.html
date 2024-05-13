@@ -1,0 +1,87 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Locality Details</h3>
+
+  <div class="float-end">
+    <%= linkTo(localitiesPath(), {class: "btn btn-info"}) { %>
+      Back to all Localities
+    <% } %>
+    <%= linkTo(editLocalityPath({ locality_id: locality.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(localityPath({ locality_id: locality.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= locality.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Country</label>
+    <p class="d-inline-block"><%= locality.Country %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Region</label>
+    <p class="d-inline-block"><%= locality.Region %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Province</label>
+    <p class="d-inline-block"><%= locality.Province %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Municipality</label>
+    <p class="d-inline-block"><%= locality.Municipality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">SubMunicipality</label>
+    <p class="d-inline-block"><%= locality.SubMunicipality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">PostalCode</label>
+    <p class="d-inline-block"><%= locality.PostalCode %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Locality</label>
+    <p class="d-inline-block"><%= locality.Locality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Zoning</label>
+    <p class="d-inline-block"><%= locality.Zoning %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Direction</label>
+    <p class="d-inline-block"><%= locality.Direction %></p>
+  </li>
+
+
+</ul>

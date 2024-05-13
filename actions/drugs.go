@@ -77,6 +77,12 @@ func enrichDrug(drug *models.Drug, c buffalo.Context) error {
 }
 
 func (v DrugsResource) saveDrugs(d *models.Drug, c buffalo.Context) (*validate.Errors, error) {
+	for i := 0; i < len(d.Dosages); i++ {
+		if d.Dosages[i].DosagePerGrams.Valid {
+			d.Dosages[i].DosagePerGrams.Float64 /= 1000
+		}
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

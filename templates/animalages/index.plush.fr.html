@@ -19,7 +19,7 @@
       <tr>
         <td class="align-middle"><%= animalage.Name %></td>
         <td class="align-middle"><%= animalage.Description %></td>
-        <td class="align-middle"><%= animalage.Default %></td>
+        <td class="align-middle"><%= bool2html(animalage.Default) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>

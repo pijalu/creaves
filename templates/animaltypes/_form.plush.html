@@ -2,6 +2,17 @@
 <%= f.TextAreaTag("Description", {rows: 10}) %>
 <%= f.CheckboxTag("Default") %>
 <%= f.CheckboxTag("HasRing", {label:"Has identification"}) %>
+
+<%= f.InputTag("DefaultSpecies", {label:"Default species"}) %>
+<script>
+    $('input[name="DefaultSpecies"]').autoComplete({
+        minChars: 1,
+        source: function(term, response){
+            $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+        }
+    });
+</script>
+
 <button class="btn btn-success" role="submit">Save</button>
 <script type="text/javascript">
 $( document ).ready(function(){

@@ -63,6 +63,7 @@
   <thead class="thead-light">
     <th>Number</th>
     <th>Intake date</th>
+    <th>Zone</th>
     <th>Cage</th>
     <th>Type</th>
     <th>Species</th>
@@ -84,6 +85,7 @@
         </td>
         
         <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+        <td class="align-middle"><%= animal.Zone %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle"><%= animal.Animaltype.Name %></td>
         <td class="align-middle">

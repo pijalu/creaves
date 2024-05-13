@@ -1,0 +1,6 @@
+add_column("intakes", "has_wounds", "bool", {"default": false})
+add_column("intakes", "has_parasites", "bool", {"default": false})
+change_column("intakes", "general", "text", {null: true})
+
+sql("update intakes set has_wounds=(wounds is not null and wounds <> '')")
+sql("update intakes set has_parasites=(parasites is not null and parasites <> '')")

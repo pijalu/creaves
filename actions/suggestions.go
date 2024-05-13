@@ -48,7 +48,28 @@ func SuggestionsDiscoveryLocation(c buffalo.Context) error {
 
 // SuggestionsOuttakeLocation default implementation.
 func SuggestionsOuttakeLocation(c buffalo.Context) error {
-	return suggest(c, "outtakes", "location")
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := `SELECT CONCAT(postal_code,"_",locality) FROM localities`
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ?`, "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
 }
 
 // SuggestionsDiscovererCity default implementation.
@@ -59,6 +80,145 @@ func SuggestionsDiscovererCity(c buffalo.Context) error {
 // SuggestionsDiscovererCountry default implementation.
 func SuggestionsDiscovererCountry(c buffalo.Context) error {
 	return suggest(c, "discoverers", "country")
+}
+
+// SuggestionsDiscovererCountry default implementation.
+func SuggestionsPostalCode(c buffalo.Context) error {
+	return suggest(c, "localities", "postal_code")
+}
+
+// SuggestionsOuttakeLocation default implementation.
+func SuggestionsLocality(c buffalo.Context) error {
+	z := c.Param("z") // zip
+	l := c.Param("l") // locality
+
+	ret := c.Param("r") // return
+
+	var field string
+	switch ret {
+	case "postal_code":
+		field = "postal_code"
+	case "locality":
+		field = "locality"
+	default:
+		return fmt.Errorf("unexpected request for %s", ret)
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := fmt.Sprintf(`SELECT distinct %s FROM localities WHERE 1=1`, field)
+	args := []interface{}{}
+
+	// Add postal code
+	if len(z) > 0 {
+		qroot += ` AND postal_code LIKE ?`
+		args = append(args, "%"+z+"%")
+	}
+
+	// Add zip code
+	if len(l) > 0 {
+		qroot += ` AND locality LIKE ?`
+		args = append(args, "%"+l+"%")
+	}
+	qroot += " ORDER BY 1 LIMIT 10"
+	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
+	query = tx.RawQuery(qroot, args...)
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
+// Suggest discovered
+func SuggestionsDiscoverer(c buffalo.Context) error {
+	f := c.Param("f") // first name
+	l := c.Param("l") // last name
+	a := c.Param("a") // address
+
+	ret := c.Param("r") // return
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	var field string
+
+	switch ret {
+	case "firstname":
+		field = "firstname"
+	case "lastname":
+		field = "lastname"
+	case "address":
+		field = "address"
+	default:
+		return fmt.Errorf("unexpected request for %s", ret)
+	}
+
+	qroot := fmt.Sprintf(`SELECT DISTINCT %s FROM discoverers WHERE 1=1 `, field)
+	args := []interface{}{}
+
+	// Add first name
+	if len(f) > 0 {
+		qroot += ` AND firstname like ?`
+		args = append(args, "%"+f+"%")
+	}
+
+	// Add last name
+	if len(l) > 0 {
+		qroot += ` AND lastname LIKE ?`
+		args = append(args, "%"+l+"%")
+	}
+
+	// add Address
+	if len(a) > 0 {
+		qroot += ` AND address LIKE ?`
+		args = append(args, "%"+a+"%")
+	}
+
+	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
+	query = tx.RawQuery(qroot, args...)
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
+// SuggestionsAnimalTypeDefaultSpecies default implementation.
+func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL "
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" and name like ?", "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
+	}
+
+	return c.Render(200, r.JSON(s))
 }
 
 // SuggestionsTreatmentDrug default implementation.
@@ -181,6 +341,32 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 	s := []string{}
 	for _, result := range results {
 		s = append(s, fmt.Sprintf("%s/%s", result.YearNumber, result.Year[2:]))
+	}
+
+	return c.Render(200, r.JSON(s))
+}
+
+// SuggestionsCagesAnimalInCare - specific implementation to only account for cages with animal (no outtake).
+func SuggestionsCageWithAnimalInCare(c buffalo.Context) error {
+	q := c.Param("q")
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var query *pop.Query
+	qroot := "SELECT DISTINCT Cage FROM animals WHERE outtake_id IS null and Cage is not null"
+
+	if len(q) > 0 {
+		query = tx.RawQuery(qroot+" AND Cage like ?", "%"+q+"%")
+	} else {
+		query = tx.RawQuery(qroot)
+	}
+
+	s := []string{}
+	if err := query.All(&s); err != nil {
+		return err
 	}
 
 	return c.Render(200, r.JSON(s))

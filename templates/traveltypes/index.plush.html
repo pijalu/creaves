@@ -15,7 +15,7 @@
   <tbody>
     <%= for (traveltype) in traveltypes { %>
       <tr>
-        <td class="align-middle"><%= traveltype.Name %></td><td class="align-middle"><%= traveltype.Def %></td>
+        <td class="align-middle"><%= traveltype.Name %></td><td class="align-middle"><%= bool2html(traveltype.Def) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

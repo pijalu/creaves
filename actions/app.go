@@ -126,6 +126,12 @@ func App() *buffalo.App {
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
 		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
+		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
+		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
+		app.GET("/suggestions/postal_code", SuggestionsPostalCode)
+		app.GET("/suggestions/locality", SuggestionsLocality)
+		app.GET("/suggestions/discoverer", SuggestionsDiscoverer)
+
 		app.GET("/crash", func(c buffalo.Context) error {
 			return fmt.Errorf("Crash me !")
 		})
@@ -144,11 +150,19 @@ func App() *buffalo.App {
 		app.GET("/registertable", RegistertableIndex)
 		app.GET("/registertable/ExportCSV", RegistertableIndexCSV)
 
+		app.GET("/registersnapshot", RegistersnapshotIndex)
+		app.GET("/registersnapshot/ExportCSV", RegistersnapshotIndexCSV)
+
 		maintenance := app.Group("/maintenance")
 		maintenance.GET("/", MaintenanceIndex)
 		maintenance.GET("/renumber", MaintenanceRenumber)
 
 		app.Resource("/species", SpeciesResource{})
+		app.GET("/export/csv", ExportCsv)
+		app.GET("/export/excel", ExportExcel)
+
+		app.Resource("/localities", LocalitiesResource{})
+		app.Resource("/zones", ZonesResource{})
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

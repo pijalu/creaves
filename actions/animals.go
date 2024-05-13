@@ -316,7 +316,9 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Animal.
 // This function is mapped to the path GET /animals/new
 func (v AnimalsResource) New(c buffalo.Context) error {
-	c.Set("animal", &models.Animal{})
+	a := &models.Animal{}
+
+	c.Set("animal", a)
 
 	if err := setupContext(c); err != nil {
 		return err
@@ -454,6 +456,12 @@ func setupContext(c buffalo.Context) error {
 	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
 
+	z, err := zones(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectZone", zonesToSelectables(z))
+
 	return nil
 }
 
@@ -488,6 +496,10 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// save original cage
+	originalCage := animal.Cage
+	originalFeeding := animal.Feeding
 
 	// Bind Animal to the html form elements
 	if err := c.Bind(animal); err != nil {
@@ -528,6 +540,79 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}
 		if verrs.HasAny() {
 			break
+		}
+	}
+
+	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
+
+	// Load care types
+	careTypes, err := caretypes(c)
+	if err != nil {
+		return err
+	}
+
+	// Create new defailt care if animal was moved
+	if !verrs.HasAny() && originalCage.String != "" && animal.Cage.String != originalCage.String {
+		c.Logger().Debugf("Creating new care for cage move for animalID %d", animal.ID)
+		care := &models.Care{}
+		care.Animal = *animal
+		care.AnimalID = animal.ID
+		care.Date = time.Now()
+		care.Note = nulls.NewString(fmt.Sprintf("Cage %s => %s", originalCage.String, animal.Cage.String))
+
+		// Set care to default
+		for _, careType := range *careTypes {
+			ctn := strings.ToLower(careType.Name)
+			// try to find move
+			if strings.Contains(ctn, "move") || strings.Contains(ctn, "déplacement") {
+				care.Type = careType
+				care.TypeID = careType.ID
+				break
+			}
+			// fall back to default
+			if careType.Def {
+				care.Type = careType
+				care.TypeID = careType.ID
+			}
+		}
+
+		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
+		verrs, err = tx.Eager().ValidateAndCreate(care)
+		if err != nil {
+			return err
+		}
+	}
+
+	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
+	// Create new defailt care if animal feeding is updated
+	if !verrs.HasAny() && animal.Feeding.String != originalFeeding.String && animal.Feeding.String != "" {
+		c.Logger().Debugf("Creating new care for updated feeding animalID %d", animal.ID)
+		care := &models.Care{}
+		care.Animal = *animal
+		care.AnimalID = animal.ID
+		care.Date = time.Now()
+		care.Note = animal.Feeding
+
+		// Set care to default
+		for _, careType := range *careTypes {
+			ctn := strings.ToLower(careType.Name)
+			// try to find move
+			if strings.Contains(ctn, "feedings") || strings.Contains(ctn, "alimentation") {
+				care.Type = careType
+				care.TypeID = careType.ID
+				break
+			}
+			// fall back to default
+			if careType.Def {
+				care.Type = careType
+				care.TypeID = careType.ID
+			}
+		}
+
+		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
+		verrs, err = tx.Eager().ValidateAndCreate(care)
+		if err != nil {
+			return err
 		}
 	}
 

@@ -1,5 +1,5 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Animal number <%=animal.YearNumber%> (<%= animal.Year %>) [ID: <%= animal.ID %>]</h3>
+  <h3 class="d-inline-block">Animal number <%=animal.YearNumber%> (<%= animal.Year %>)</h3>
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Outtaken)</em></h4>
   <% } %>
@@ -64,6 +64,16 @@
         <p class="d-inline-block"><%= gender %></p>
       </li>
       <li class="list-group-item pb-1">
+        <label class="small d-block">Zone</label>
+        <p class="d-inline-block">
+          <%= if (animal.Zone.Valid) { %>
+          <%= animal.Zone %>
+          <% } else {%>
+          to be defined
+          <% } %>
+        </p>
+      </li>
+      <li class="list-group-item pb-1">
         <label class="small d-block">Cage</label>
         <p class="d-inline-block"><%= animal.Cage %></p>
       </li>
@@ -74,9 +84,30 @@
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
       <ul class="list-group mb-2 ">
         <li class="list-group-item pb-1">
-          <label class="small d-block">Location</label>
+          <label class="small d-block">Postal Code</label>
+          <p class="d-inline-block"><%= animal.Discovery.PostalCode %></p>
+        </li>
+
+        <li class="list-group-item pb-1">
+          <label class="small d-block">City</label>
+          <p class="d-inline-block"><%= animal.Discovery.City %></p>
+        </li>
+
+        <li class="list-group-item pb-1">
+          <label class="small d-block">found in discoverer garden</label>
+          <p class="d-inline-block"><%= bool2html(animal.Discovery.InGarden) %></p>
+        </li>
+
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Location details</label>
           <p class="d-inline-block"><%= animal.Discovery.Location %></p>
         </li>
+
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Return to habitat</label>
+          <p class="d-inline-block"><%= bool2html(animal.Discovery.ReturnHabitat) %></p>
+        </li>
+
         <li class="list-group-item pb-1">
           <label class="small d-block">Date</label>
           <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
@@ -114,6 +145,10 @@
             <p class="d-inline-block"><%= animal.Discovery.Discoverer.Country %></p>
           </li>
           <li class="list-group-item pb-1">
+            <label class="small d-block">Return requested</label>
+            <p class="d-inline-block"><%= bool2html(animal.Discovery.Discoverer.ReturnRequest) %></p>
+          </li>
+          <li class="list-group-item pb-1">
             <label class="small d-block">Contacts</label>
             <%= if ( len(animal.Discovery.Discoverer.Email.Value()) > 0 ) {%>
             <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Email %></p>
@@ -141,11 +176,15 @@
 
       <li class="list-group-item pb-1">
         <label class="small d-block">Wounds</label>
+        <p class="d-inline-block"><%= bool2html(animal.Intake.HasWounds) %></p>
+        <br/>
         <p class="d-inline-block"><%= animal.Intake.Wounds %></p>
       </li>
 
       <li class="list-group-item pb-1">
         <label class="small d-block">Parasites</label>
+        <p class="d-inline-block"><%= bool2html(animal.Intake.HasParasites) %></p>
+        <br/>
         <p class="d-inline-block"><%= animal.Intake.Parasites %></p>
       </li>
 

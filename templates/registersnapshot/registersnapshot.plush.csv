@@ -1,0 +1,3 @@
+Numero;Type;Species;identification;Zone;Cage;Entry Date;Discovery Location;Age;Reason;
+<%= for (animal) in animals { %>"<%= animal.YearNumber %>";"<%= animal.Animaltype.Name %>";"<%= animal.Species %>";"<%= animal.Ring %>";"<%= animal.Zone %>";"<%= animal.Cage %>";"<%= animal.Intake.DateFormated() %>";"<%= animal.Discovery.Location %>";"<%= animal.Animalage.Name %>";"<%= animal.Discovery.Reason %>";
+<% } %>

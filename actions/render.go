@@ -20,10 +20,13 @@ func init() {
 
 		// Add template helpers here:
 		Helpers: render.Helpers{
-			// for non-bootstrap form helpers uncomment the lines
-			// below and import "github.com/gobuffalo/helpers/forms"
-			// forms.FormKey:     forms.Form,
-			// forms.FormForKey:  forms.FormFor,
+			"bool2html": func(s bool) string {
+				if s {
+					return "✓"
+				} else {
+					return "𐄂"
+				}
+			},
 		},
 	})
 }

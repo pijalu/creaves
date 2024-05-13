@@ -1,0 +1,5 @@
+<%= f.InputTag("Zone") %>
+<%= f.SelectTag("Type", {label:"Type", options: {"internal": "internal", "external": "external"} } ) %>
+
+<%= f.CheckboxTag("Default", {unchecked: false}) %>
+<button class="btn btn-success" role="submit">Save</button>
