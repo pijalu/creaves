@@ -377,3 +377,20 @@ queries:
            WHERE sp.game = 1
            GROUP BY 1, sp.creaves_species
            ORDER BY 1 DESC, sp.creaves_species ASC;
+
+ - name: animal_gavage
+   description: Animaux en gavage
+   query: SELECT
+            a.yearNumber AS "N°",
+            ta.name AS "Type",
+            a.species AS "Espèce", 
+            a.zone AS "Zone",
+            a.cage AS  "Cage",
+            a.ring AS "Identification",
+            a.feeding AS "Alimentation"
+            FROM animals AS a
+              INNER JOIN animaltypes AS ta ON a.animaltype_id = ta.id
+              LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+              WHERE o.date IS null AND force_feed = 1
+              GROUP BY a.id
+              ORDER BY a.zone asc, a.species asc, a.cage asc, a.id asc;
