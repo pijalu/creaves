@@ -26,7 +26,7 @@ type Intake struct {
 
 // DateFormated returns a formated date
 func (i Intake) DateFormated() string {
-	return i.Date.Format(DateTimeFormat) + "test"
+	return i.Date.Format(DateTimeFormat)
 }
 
 // String is not required by pop and may be deleted
