@@ -18,8 +18,8 @@
   <tbody>
     <%= for (logentry) in logentries { %>
       <tr>
-        <td class="align-middle"><%= logentry.CreatedAt.Format("02/01/06 15:04:05") %></td>
-        <td class="align-middle"><%= logentry.UpdatedAt.Format("02/01/06 15:04:05") %></td>
+        <td class="align-middle"><%= logentry.CreatedAtFormated() %></td>
+        <td class="align-middle"><%= logentry.UpdatedAtFormated() %></td>
         <td class="align-middle"><%= logentry.User.Login %></td>
         <td class="align-middle" width="100%"><%= logentry.Description %></td>
         <td>

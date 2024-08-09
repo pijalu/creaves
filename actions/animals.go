@@ -557,7 +557,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		care := &models.Care{}
 		care.Animal = *animal
 		care.AnimalID = animal.ID
-		care.Date = time.Now()
+		care.Date = models.NowOffset()
 		care.Note = nulls.NewString(fmt.Sprintf("Cage %s => %s", originalCage.String, animal.Cage.String))
 
 		// Set care to default

@@ -18,12 +18,12 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Créé</label>
-    <p class="d-inline-block"><%= logentry.CreatedAt.Format("02/01/06 15:04:05") %></p>
+    <p class="d-inline-block"><%= logentry.CreatedAtFormated() %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Mise à jour</label>
-    <p class="d-inline-block"><%= logentry.UpdatedAt.Format("02/01/06 15:04:05") %></p>
+    <p class="d-inline-block"><%= logentry.UpdatedAtFormated() %></p>
   </li>
 
   <li class="list-group-item pb-1">

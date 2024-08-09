@@ -35,6 +35,16 @@ func (l Logentries) String() string {
 	return string(jl)
 }
 
+// CreatedAtFormated returns a formated date
+func (l Logentry) CreatedAtFormated() string {
+	return l.CreatedAt.Format(DateTimeFormat)
+}
+
+// CreatedAtFormated returns a formated date
+func (l Logentry) UpdatedAtFormated() string {
+	return l.UpdatedAt.Format(DateTimeFormat)
+}
+
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (l *Logentry) Validate(tx *pop.Connection) (*validate.Errors, error) {
