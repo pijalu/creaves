@@ -590,7 +590,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		care := &models.Care{}
 		care.Animal = *animal
 		care.AnimalID = animal.ID
-		care.Date = time.Now()
+		care.Date = models.NowOffset()
 		care.Note = animal.Feeding
 
 		// Set care to default
