@@ -22,8 +22,9 @@ AND a.feeding_period > 0
 GROUP BY a.id;`
 
 const LOWTIMELIMIT = 2 * time.Hour
-const HIGHTIMELIMIT = 15 * time.Minute
-const NEARTIMELIMIT = 10 * time.Minute
+const HIGHTIMELIMIT = 2 * time.Hour
+
+const NEARTIMELIMIT = 15 * time.Minute
 
 type AnimalFeeding struct {
 	ID         int          `db:"id"`
