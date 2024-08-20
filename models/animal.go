@@ -16,16 +16,21 @@ import (
 
 // Animal is used by pop to map your animals database table to your go code.
 type Animal struct {
-	ID           int               `json:"id" db:"id"`
-	Year         int               `json:"Year" db:"year"`
-	YearNumber   int               `json:"YearNumber" db:"yearNumber"`
-	Ring         nulls.String      `json:"ring" db:"ring"`
-	Species      string            `json:"species" db:"species"`
-	Gender       nulls.String      `json:"gender" db:"gender"`
-	Cage         nulls.String      `json:"cage" db:"cage"`
-	Zone         nulls.String      `json:"zone" db:"zone"`
-	Feeding      nulls.String      `json:"feeding" db:"feeding"`
-	ForceFeed    bool              `json:"forceFeed" db:"force_feed"`
+	ID         int          `json:"id" db:"id"`
+	Year       int          `json:"Year" db:"year"`
+	YearNumber int          `json:"YearNumber" db:"yearNumber"`
+	Ring       nulls.String `json:"ring" db:"ring"`
+	Species    string       `json:"species" db:"species"`
+	Gender     nulls.String `json:"gender" db:"gender"`
+	Cage       nulls.String `json:"cage" db:"cage"`
+	Zone       nulls.String `json:"zone" db:"zone"`
+	Feeding    nulls.String `json:"feeding" db:"feeding"`
+	ForceFeed  bool         `json:"forceFeed" db:"force_feed"`
+
+	FeedingStart  nulls.Time `json:"feedingStart" db:"feeding_start"`
+	FeedingEnd    nulls.Time `json:"feedingEnd" db:"feeding_end"`
+	FeedingPeriod int        `json:"feedingPeriod" db:"feeding_period"`
+
 	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
 	AnimalageID  uuid.UUID         `json:"animalage_id" db:"animalage_id"`
 	Animaltype   Animaltype        `json:"animaltype" belongs_to:"animaltype"`
@@ -102,6 +107,22 @@ func (a Animal) String() string {
 func (a Animals) String() string {
 	ja, _ := json.Marshal(a)
 	return string(ja)
+}
+
+// FeedingStartFmt
+func (a Animal) FeedingStartFmt() string {
+	if !a.FeedingStart.Valid {
+		return ""
+	}
+	return a.FeedingStart.Time.Format("15:04")
+}
+
+// FeedingStartFmt
+func (a Animal) FeedingEndFmt() string {
+	if !a.FeedingEnd.Valid {
+		return ""
+	}
+	return a.FeedingEnd.Time.Format("15:04")
 }
 
 // LastWeight returns the last weight of the animal

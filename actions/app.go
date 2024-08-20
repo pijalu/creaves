@@ -163,6 +163,7 @@ func App() *buffalo.App {
 
 		app.Resource("/localities", LocalitiesResource{})
 		app.Resource("/zones", ZonesResource{})
+		app.GET("/feeding", FeedingIndex)
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

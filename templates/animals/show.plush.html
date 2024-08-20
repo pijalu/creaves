@@ -206,6 +206,10 @@
       <div class="p-3 mb-2 bg-danger text-white">Force Feed !</div>
     <% } %>
 
+    <%= if (animal.FeedingPeriod != 0) {%>
+      <div class="p-3 mb-2 bg-info text-white">Feeding from <%= animal.FeedingStartFmt() %> -  <%= animal.FeedingEndFmt() %>, every <%= animal.FeedingPeriod %> minutes</div>
+    <% } %>
+
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">

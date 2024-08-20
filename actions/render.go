@@ -3,6 +3,7 @@ package actions
 import (
 	"creaves/public"
 	"creaves/templates"
+	"fmt"
 
 	"github.com/gobuffalo/buffalo/render"
 )
@@ -24,8 +25,11 @@ func init() {
 				if s {
 					return "✓"
 				} else {
-					return "𐄂"
+					return "🞩"
 				}
+			},
+			"dbgDump": func(s any) string {
+				return fmt.Sprintf("%v", s)
 			},
 		},
 	})

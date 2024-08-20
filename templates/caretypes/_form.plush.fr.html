@@ -1,5 +1,7 @@
 <%= f.InputTag("Name", {label:"Nom"}) %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
+<%= f.InputTag("Type", {label:"Type (1-alim, 2-déplacement...)"}) %>
+
 <%= f.CheckboxTag("Def", {label:"Défaut", unchecked: false}) %>
 <%= f.CheckboxTag("Warning", {label:"Avertissement", unchecked: false}) %>
 <%= f.CheckboxTag("ResetWarning", {label:"Réinitialiser l'avertissement", unchecked: false}) %>

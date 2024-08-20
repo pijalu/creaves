@@ -1,0 +1,5 @@
+drop_column("animals", "feeding_start")
+drop_column("animals", "feeding_end")
+drop_column("animals", "feeding_period")
+
+drop_column("caretype", "feeding")

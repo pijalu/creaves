@@ -1,0 +1,8 @@
+add_column("animals", "feeding_start", "timestamp", {null: true})
+add_column("animals", "feeding_end", "timestamp", {null: true})
+add_column("animals", "feeding_period", "integer", {"default": 0})
+
+add_column("caretypes", "type", "int", {"default": 0})
+
+sql("update caretypes set type=1 where name in ('Feeding','Alimentation')")
+sql("update caretypes set type=2 where name in ('Move','Déplacement')")

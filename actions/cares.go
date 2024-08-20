@@ -4,9 +4,11 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
@@ -179,6 +181,16 @@ func (v CaresResource) New(c buffalo.Context) error {
 
 	animalYearNumber := c.Param("animal_year_number")
 	cageNumber := c.Param("cage")
+	note := c.Param("note")
+	if note != "" {
+		care.Note = nulls.NewString(note)
+	}
+
+	careType, err := strconv.Atoi(c.Param("careType"))
+	if err != nil {
+		c.Logger().Error("Unexepected non int param for careType: %s", c.Param("careType"))
+		careType = -1
+	}
 
 	// Short cut rendering
 	if len(cageNumber) == 0 && len(animalYearNumber) == 0 {
@@ -193,7 +205,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 
 	// Set default care type
 	for _, c := range *ct {
-		if c.Def {
+		if (careType < 0 && c.Def) || c.Type == careType {
 			care.Type = c
 			care.TypeID = c.ID
 			break

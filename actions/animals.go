@@ -456,6 +456,8 @@ func setupContext(c buffalo.Context) error {
 	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
 
+	c.Set("selectFeedingPeriod", selectFeedingPeriod())
+
 	z, err := zones(c)
 	if err != nil {
 		return err
@@ -505,6 +507,18 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(animal); err != nil {
 		return err
 	}
+
+	// Decode Feeding times
+	feedingTimes := struct {
+		AnimalFeedingStartTime string
+		AnimalFeedingEndTime   string
+	}{}
+	if err := c.Bind(&feedingTimes); err != nil {
+		return err
+	}
+	c.Logger().Debugf("feedingTimes: %v", feedingTimes)
+	animal.FeedingStart = timeToNullTime(feedingTimes.AnimalFeedingStartTime)
+	animal.FeedingEnd = timeToNullTime(feedingTimes.AnimalFeedingEndTime)
 
 	// Decode additonal form param
 	backUrl := struct {

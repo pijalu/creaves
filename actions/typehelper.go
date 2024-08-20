@@ -268,6 +268,35 @@ func usersToSelectables(ts *models.Users) form.Selectables {
 	return res
 }
 
+func selectFeedingPeriod() form.Selectables {
+	res := []form.Selectable{}
+
+	// custom minutes
+	res = append(res,
+		&selType{
+			label: "N.A.",
+			value: 0,
+		},
+		&selType{
+			label: "15min",
+			value: 15,
+		},
+		&selType{
+			label: "30min",
+			value: 30,
+		},
+	)
+
+	// Up to 12h
+	for h := 1; h <= 12; h++ {
+		res = append(res, &selType{
+			label: fmt.Sprintf("%dh", h),
+			value: h * 60,
+		})
+	}
+	return res
+}
+
 func BoolToInt(b bool) int {
 	if b {
 		return 1
