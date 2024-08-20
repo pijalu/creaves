@@ -41,9 +41,12 @@ type AnimalFeeding struct {
 	FeedingPeriod int        `db:"feeding_period"`
 	LastFeeding   nulls.Time `db:"last_feeding"`
 
-	NextFeeding nulls.Time
+	NextFeedings []time.Time
 	// 0 - Late, 1 - in time, 2 - future
 	NextFeedingCode int
+
+	// Missing feeding count
+	MissingFeedingCount int
 }
 
 func (a AnimalFeeding) String() string {
@@ -55,10 +58,18 @@ func (a AnimalFeeding) String() string {
 }
 
 func (a AnimalFeeding) NextFeedingTime() string {
-	if !a.NextFeeding.Valid {
+	if len(a.NextFeedings) == 0 {
 		return "n.a."
 	}
-	return a.NextFeeding.Time.Format("15:04")
+	return a.NextFeedings[0].Format("15:04")
+}
+
+func (a AnimalFeeding) NextFeedingTimes() []string {
+	times := []string{}
+	for i := 0; i < len(a.NextFeedings); i++ {
+		times = append(times, a.NextFeedings[i].Format("15:04"))
+	}
+	return times
 }
 
 // YearNumberFormatted returns the year number formatted
@@ -130,28 +141,37 @@ func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
 			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
 			//c.Logger().Debugf("startTime (next): %s", startTime.Format(time.RFC3339))
 		}
-		if startTime.Before(af.FeedingEnd) && startTime.Before(highTimeLimit) {
+		for startTime.Before(af.FeedingEnd) && startTime.Before(highTimeLimit) {
 			//c.Logger().Debugf("startTime (end): %s", startTime.Format(time.RFC3339))
-			af.NextFeeding = nulls.NewTime(startTime)
+			af.NextFeedings = append(af.NextFeedings, startTime)
 
-			// Calc color of feeding
-			if startTime.After(af.FeedingStart) && !af.LastFeeding.Valid {
-				af.NextFeedingCode = 0 // late - but starttime moved
-			} else if startTime.Before(lowNearTimeLimit) {
-				af.NextFeedingCode = 0 // late
-			} else if startTime.Before(highNearTimeLimit) {
-				af.NextFeedingCode = 1 // to do
-			} else {
-				af.NextFeedingCode = 2 // future
+			if startTime.Before(lowNearTimeLimit) {
+				af.MissingFeedingCount++
 			}
 
+			// Calc color of feeding (first occurence)
+			if len(af.NextFeedings) == 1 {
+				if startTime.After(af.FeedingStart) && !af.LastFeeding.Valid {
+					af.NextFeedingCode = 0 // late - but starttime moved
+				} else if startTime.Before(lowNearTimeLimit) {
+					af.NextFeedingCode = 0 // late
+				} else if startTime.Before(highNearTimeLimit) {
+					af.NextFeedingCode = 1 // to do
+				} else {
+					af.NextFeedingCode = 2 // future
+				}
+			}
+			// next
+			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
+		}
+		if len(af.NextFeedings) > 0 {
 			afCalc = append(afCalc, af)
 		}
 	}
 
-	// Sort the feeding
+	// Sort the feeding (always 1 elem)
 	sort.Slice(afCalc, func(i, j int) bool {
-		return afCalc[i].NextFeeding.Time.Before(afCalc[j].NextFeeding.Time)
+		return afCalc[i].NextFeedings[0].Before(afCalc[j].NextFeedings[0])
 	})
 
 	feedingByZone := FeedingByZoneMap{}
