@@ -49,6 +49,9 @@ type Animal struct {
 	UpdatedAt    time.Time         `json:"updated_at" db:"updated_at"`
 }
 
+const DEF_FEEDING_START = "07:00"
+const DEF_FEEDING_END = "22:00"
+
 // View keys
 type AnimalViewKey struct {
 	ID   string
@@ -112,7 +115,7 @@ func (a Animals) String() string {
 // FeedingStartFmt
 func (a Animal) FeedingStartFmt() string {
 	if !a.FeedingStart.Valid {
-		return ""
+		return DEF_FEEDING_START
 	}
 	return a.FeedingStart.Time.Format("15:04")
 }
@@ -120,7 +123,7 @@ func (a Animal) FeedingStartFmt() string {
 // FeedingStartFmt
 func (a Animal) FeedingEndFmt() string {
 	if !a.FeedingEnd.Valid {
-		return ""
+		return DEF_FEEDING_END
 	}
 	return a.FeedingEnd.Time.Format("15:04")
 }
