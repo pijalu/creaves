@@ -231,7 +231,7 @@
           }
       </script>
 
-      <div class="p-3 mb-2 bg-info text-white">Feeding from <%= animal.FeedingStartFmt() %> -  <%= animal.FeedingEndFmt() %>, every <%= animal.FeedingPeriod %> minutes <span id="feedingCount"></span></div>
+      <div class="p-3 mb-2 bg-info text-white">Feeding from <%= animal.FeedingStartFmt() %> -  <%= animal.FeedingEndFmt() %>, every <%= animal.FeedingPeriodHourMinute() %>h  <span id="feedingCount"></span></div>
 
       <script>
           document.getElementById('feedingCount').innerHTML = "<i>("+ calculatePeriodRepetitions("<%= animal.FeedingStartFmt() %>", "<%= animal.FeedingEndFmt() %>", "<%= animal.FeedingPeriod %>") + " meal(s))</i>" ; 

@@ -128,6 +128,11 @@ func (a Animal) FeedingEndFmt() string {
 	return a.FeedingEnd.Time.Format("15:04")
 }
 
+// FeedingPeriodHourMinute
+func (a Animal) FeedingPeriodHourMinute() string {
+	return fmt.Sprintf("%02d:%02d", a.FeedingPeriod/60, a.FeedingPeriod%60)
+}
+
 // LastWeight returns the last weight of the animal
 func (a Animal) LastWeight() nulls.Int {
 	// No cares

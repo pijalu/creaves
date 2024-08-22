@@ -510,8 +510,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 
 	// Decode Feeding times
 	feedingTimes := struct {
-		AnimalFeedingStartTime string
-		AnimalFeedingEndTime   string
+		AnimalFeedingStartTime        string
+		AnimalFeedingEndTime          string
+		AnimalFeedingPeriodHourMinute string
 	}{}
 	if err := c.Bind(&feedingTimes); err != nil {
 		return err
@@ -519,6 +520,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	c.Logger().Debugf("feedingTimes: %v", feedingTimes)
 	animal.FeedingStart = timeToNullTime(feedingTimes.AnimalFeedingStartTime)
 	animal.FeedingEnd = timeToNullTime(feedingTimes.AnimalFeedingEndTime)
+	animal.FeedingPeriod = timeToMinutes(feedingTimes.AnimalFeedingPeriodHourMinute)
 
 	// Decode additonal form param
 	backUrl := struct {
