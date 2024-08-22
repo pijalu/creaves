@@ -395,6 +395,12 @@ $( document ).ready(function(){
               const endTime = document.getElementById('AnimalFeedingEndTime').value;
               const periodLength = document.getElementById('animalFeedingPeriod').value;
 
+              // if we don't have feeding plan
+              if (periodLength === "0" || periodLength === "") {
+                document.getElementById('mealCount').innerHTML = 0;
+                return;
+              }
+
 
               // Convert startTime and endTime to minutes from midnight
               const [startHour, startMinute] = startTime.split(":").map(Number);
