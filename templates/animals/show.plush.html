@@ -225,7 +225,7 @@
             }
 
             // Calculate how many times the period fits into the timeDifference
-            const periodCount = Math.floor(timeDifference / periodLength);
+            const periodCount = 1 + Math.floor(timeDifference / periodLength);
 
             return periodCount;
           }
