@@ -14,14 +14,14 @@ import (
 )
 
 const FEEDING_SQL = `
-SELECT a.id, a.year, a.yearNumber, a.cage, a.zone, a.feeding, a.force_feed, a.feeding_start, a.feeding_end, a.feeding_period, MAX(c.date) AS last_feeding
+SELECT a.id, a.year, a.yearNumber, a.species, a.cage, a.zone, a.feeding, a.force_feed, a.feeding_start, a.feeding_end, a.feeding_period, MAX(c.date) AS last_feeding
 FROM animals a
 LEFT JOIN cares c ON (a.id = c.animal_id and c.type_id in (select id from caretypes where type=1))
 WHERE a.outtake_id IS NULL and a.feeding_start IS NOT NULL and a.feeding_end IS NOT NULL
 AND a.feeding_period > 0
 GROUP BY a.id;`
 
-const LOWTIMELIMIT = 2 * time.Hour
+const LOWTIMELIMIT = 4 * time.Hour
 const HIGHTIMELIMIT = 2 * time.Hour
 
 const NEARTIMELIMIT = 15 * time.Minute
@@ -30,6 +30,7 @@ type AnimalFeeding struct {
 	ID         int          `db:"id"`
 	Year       int          `db:"year"`
 	YearNumber int          `db:"yearNumber"`
+	Species    string       `db:"species"`
 	Cage       nulls.String `db:"cage"`
 	Zone       nulls.String `db:"zone"`
 

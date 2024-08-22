@@ -207,7 +207,35 @@
     <% } %>
 
     <%= if (animal.FeedingPeriod != 0) {%>
-      <div class="p-3 mb-2 bg-info text-white">Feeding from <%= animal.FeedingStartFmt() %> -  <%= animal.FeedingEndFmt() %>, every <%= animal.FeedingPeriod %> minutes</div>
+      <script>
+          function calculatePeriodRepetitions(startTime, endTime, periodLength) {
+            // Convert startTime and endTime to minutes from midnight
+            const [startHour, startMinute] = startTime.split(":").map(Number);
+            const [endHour, endMinute] = endTime.split(":").map(Number);
+            
+            const startTotalMinutes = startHour * 60 + startMinute;
+            const endTotalMinutes = endHour * 60 + endMinute;
+            
+            // Calculate the difference in minutes between startTime and endTime
+            let timeDifference = endTotalMinutes - startTotalMinutes;
+
+            // Handle cases where the endTime is on the next day
+            if (timeDifference < 0) {
+                timeDifference += 24 * 60; // Add 24 hours worth of minutes
+            }
+
+            // Calculate how many times the period fits into the timeDifference
+            const periodCount = Math.floor(timeDifference / periodLength);
+
+            return periodCount;
+          }
+      </script>
+
+      <div class="p-3 mb-2 bg-info text-white">Feeding from <%= animal.FeedingStartFmt() %> -  <%= animal.FeedingEndFmt() %>, every <%= animal.FeedingPeriod %> minutes <span id="feedingCount"></span></div>
+
+      <script>
+          document.getElementById('feedingCount').innerHTML = "<i>("+ calculatePeriodRepetitions("<%= animal.FeedingStartFmt() %>", "<%= animal.FeedingEndFmt() %>", "<%= animal.FeedingPeriod %>") + " meal(s))</i>" ; 
+      </script>
     <% } %>
 
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>

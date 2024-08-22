@@ -37,6 +37,7 @@
         <thead class="thead-light">
           <th data-sortable="true">Next Feeding</th>
           <th data-sortable="true">Number</th>
+          <th data-sortable="true">Species</th>
           <th data-sortable="true">Cage</th>
           <th data-sortable="true">Feeding Instruction</th>
           <th title="Force Feed">FF</th>
@@ -56,8 +57,11 @@
                     <%= af.NextFeedingTime() %> <i>(<%= af.MissingFeedingCount %> late)</i>
                 </td>
                 <td class="align-middle">
-                    <a class="btn btn-primary" href="/animals/<%= af.ID %>"><%=af.YearNumber%></a>
+                    <a class="btn btn-primary" href="/animals/<%= af.ID %>#nav-care"><%=af.YearNumber%></a>
                 </td>
+                <td class="align-middle">
+                  <%=af.Species%></a>
+              </td>
                 <td class="align-middle">
                     <%=af.Cage%></a>
                 </td>
@@ -72,7 +76,7 @@
                     <% } %>
                 </td>
                 <td class="align-middle">
-                    <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:af.Feeding, back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
+                    <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:"Animal fed :" + af.Feeding, back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
                         Feed
                     <% } %>
                 </td>
