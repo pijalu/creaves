@@ -21,9 +21,7 @@ WHERE a.outtake_id IS NULL and a.feeding_start IS NOT NULL and a.feeding_end IS 
 AND a.feeding_period > 0
 GROUP BY a.id;`
 
-const LOWTIMELIMIT = 4 * time.Hour
 const HIGHTIMELIMIT = 2 * time.Hour
-
 const NEARTIMELIMIT = 15 * time.Minute
 
 type AnimalFeeding struct {
@@ -42,12 +40,10 @@ type AnimalFeeding struct {
 	FeedingPeriod int        `db:"feeding_period"`
 	LastFeeding   nulls.Time `db:"last_feeding"`
 
-	NextFeedings []time.Time
+	NextFeeding nulls.Time
 	// 0 - Late, 1 - in time, 2 - future
-	NextFeedingCode int
 
-	// Missing feeding count
-	MissingFeedingCount int
+	NextFeedingCode int
 }
 
 func (a AnimalFeeding) String() string {
@@ -59,18 +55,10 @@ func (a AnimalFeeding) String() string {
 }
 
 func (a AnimalFeeding) NextFeedingTime() string {
-	if len(a.NextFeedings) == 0 {
-		return "n.a."
+	if a.NextFeeding.Valid {
+		return a.NextFeeding.Time.Format("15:04")
 	}
-	return a.NextFeedings[0].Format("15:04")
-}
-
-func (a AnimalFeeding) NextFeedingTimes() []string {
-	times := []string{}
-	for i := 0; i < len(a.NextFeedings); i++ {
-		times = append(times, a.NextFeedings[i].Format("15:04"))
-	}
-	return times
+	return "n.a."
 }
 
 // YearNumberFormatted returns the year number formatted
@@ -107,16 +95,10 @@ func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
 	// Set time
 	// Fix start-end
 	now := time.Now()
+	lowNearLimit := now.Add(-1 * NEARTIMELIMIT)
+	highNearLimit := now.Add(1 * NEARTIMELIMIT)
+
 	//_, offsetSec := now.Zone()
-
-	lowTimeLimit := now.Add(-1 * LOWTIMELIMIT)
-	highTimeLimit := now.Add(HIGHTIMELIMIT)
-
-	// To calculate if near
-	lowNearTimeLimit := now.Add(-1 * NEARTIMELIMIT)
-	highNearTimeLimit := now.Add(NEARTIMELIMIT)
-
-	c.Logger().Debugf("low time: %s - high time: %s", lowTimeLimit.Format(time.RFC3339), highTimeLimit.Format(time.RFC3339))
 
 	afCalc := []AnimalFeeding{}
 
@@ -125,54 +107,46 @@ func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
 		// Recalc Start/End to match today
 		af.FeedingStart = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingStart.Hour(), af.FeedingStart.Minute(), 0, 0, time.Local)
 		af.FeedingEnd = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingEnd.Hour(), af.FeedingEnd.Minute(), 0, 0, time.Local)
+		if af.FeedingEnd.Before(af.FeedingStart) {
+			af.FeedingEnd = af.FeedingEnd.Add(24 * time.Hour)
+		}
 
-		//c.Logger().Debugf("Start: %s - End: %s", af.FeedingStart.Format(time.RFC3339), af.FeedingEnd.Format(time.RFC3339))
 		startTime := af.FeedingStart
 		if af.LastFeeding.Valid {
 			// fix last feeding time zone
-			af.LastFeeding.Time = switchTimeZone(af.LastFeeding.Time, time.Local)
-			if af.LastFeeding.Time.After(af.FeedingStart) {
-				startTime = af.LastFeeding.Time.Add(time.Minute * time.Duration(af.FeedingPeriod))
-				switchTimeZone(startTime, time.Local)
+			startTime = switchTimeZone(af.LastFeeding.Time, time.Local)
+
+			previousStarttime := af.FeedingStart.Add(-24 * time.Hour)
+			previousEndtime := af.FeedingEnd.Add(-24 * time.Hour)
+
+			if startTime.Before(previousStarttime) {
+				startTime = af.FeedingStart
+			} else if startTime.Before(af.FeedingStart) && (startTime.After(previousEndtime) || startTime.Equal(previousEndtime)) {
+				startTime = af.FeedingStart
+			} else {
+				startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
 			}
 		}
-		//c.Logger().Debugf("startTime (start): %s", startTime.Format(time.RFC3339))
 
-		for startTime.Before(af.FeedingEnd) && startTime.Before(lowTimeLimit) {
-			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
-			//c.Logger().Debugf("startTime (next): %s", startTime.Format(time.RFC3339))
-		}
-		for startTime.Before(af.FeedingEnd) && startTime.Before(highTimeLimit) {
-			//c.Logger().Debugf("startTime (end): %s", startTime.Format(time.RFC3339))
-			af.NextFeedings = append(af.NextFeedings, startTime)
+		// not in the future
+		if startTime.Before(now.Add(HIGHTIMELIMIT)) {
+			af.NextFeeding = nulls.NewTime(startTime)
 
-			if startTime.Before(lowNearTimeLimit) {
-				af.MissingFeedingCount++
+			if startTime.Before(lowNearLimit) {
+				af.NextFeedingCode = 0
+			} else if startTime.Before(highNearLimit) {
+				af.NextFeedingCode = 1
+			} else {
+				af.NextFeedingCode = 2
 			}
 
-			// Calc color of feeding (first occurence)
-			if len(af.NextFeedings) == 1 {
-				if startTime.After(af.FeedingStart) && !af.LastFeeding.Valid {
-					af.NextFeedingCode = 0 // late - but starttime moved
-				} else if startTime.Before(lowNearTimeLimit) {
-					af.NextFeedingCode = 0 // late
-				} else if startTime.Before(highNearTimeLimit) {
-					af.NextFeedingCode = 1 // to do
-				} else {
-					af.NextFeedingCode = 2 // future
-				}
-			}
-			// next
-			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
-		}
-		if len(af.NextFeedings) > 0 {
 			afCalc = append(afCalc, af)
 		}
 	}
 
 	// Sort the feeding (always 1 elem)
 	sort.Slice(afCalc, func(i, j int) bool {
-		return afCalc[i].NextFeedings[0].Before(afCalc[j].NextFeedings[0])
+		return afCalc[i].NextFeeding.Time.Before(afCalc[j].NextFeeding.Time)
 	})
 
 	feedingByZone := FeedingByZoneMap{}
