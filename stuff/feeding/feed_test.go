@@ -69,6 +69,14 @@ func TestCalculateNextMealTime(t *testing.T) {
 			currentTime:      "2024-08-23 09:00",
 			expectedResult:   "2024-08-23 08:00", // First meal of the day
 		},
+		{
+			startTime:        "08:00",
+			endTime:          "20:00",
+			mealFrequency:    "30",
+			previousMealTime: "2024-08-23 20:45",
+			currentTime:      "2024-08-23 21:00",
+			expectedResult:   "2024-08-24 08:00", // First meal of the day
+		},
 	}
 
 	for _, test := range tests {

@@ -119,7 +119,9 @@ func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
 			previousStarttime := af.FeedingStart.Add(-24 * time.Hour)
 			previousEndtime := af.FeedingEnd.Add(-24 * time.Hour)
 
-			if startTime.Before(previousStarttime) {
+			if startTime.After(af.FeedingEnd) || startTime.Equal(af.FeedingEnd) {
+				startTime = af.FeedingStart.Add(24 * time.Hour)
+			} else if startTime.Before(previousStarttime) {
 				startTime = af.FeedingStart
 			} else if startTime.Before(af.FeedingStart) && (startTime.After(previousEndtime) || startTime.Equal(previousEndtime)) {
 				startTime = af.FeedingStart
