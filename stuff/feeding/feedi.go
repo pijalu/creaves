@@ -51,9 +51,11 @@ func calculateNextMealTime(startTime, endTime, mealFrequency, previousMealTime, 
 		nextMealTime = start
 	} else {
 		nextMealTime = previous
+		heuristicEnd := end.Add(-1 * (frequency / 2))
+
 		// If the calculated next meal time is before the start time, set it to start time
-		lastEndtime := end.Add(-24 * time.Hour)
-		if nextMealTime.After(end) || nextMealTime.Equal(end) {
+		lastEndtime := heuristicEnd.Add(-24 * time.Hour)
+		if nextMealTime.After(heuristicEnd) || nextMealTime.Equal(heuristicEnd) {
 			nextMealTime = start.Add(24 * time.Hour)
 		} else if nextMealTime.Before(start) && (nextMealTime.After(lastEndtime) || nextMealTime.Equal(lastEndtime)) {
 			nextMealTime = start
@@ -67,9 +69,9 @@ func calculateNextMealTime(startTime, endTime, mealFrequency, previousMealTime, 
 
 func main() {
 	startTime := "08:00"
-	endTime := "20:00"
-	mealFrequency := "30" // in minutes
-	previousMealTime := "2024-08-22 20:45"
+	endTime := "18:00"
+	mealFrequency := "120" // in minutes
+	previousMealTime := "2024-08-22 17:00"
 	currentTime := "2024-08-22 21:00"
 
 	nextMealTime, err := calculateNextMealTime(startTime, endTime, mealFrequency, previousMealTime, currentTime)

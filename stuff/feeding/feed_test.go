@@ -19,7 +19,7 @@ func TestCalculateNextMealTime(t *testing.T) {
 			mealFrequency:    "120",
 			previousMealTime: "",
 			currentTime:      "2024-08-23 09:00",
-			expectedResult:   "2024-08-23 08:00", // First meal of the day
+			expectedResult:   "2024-08-23 08:00", // First meal of the day (no feeding)
 		},
 		{
 			startTime:        "08:00",
@@ -27,15 +27,15 @@ func TestCalculateNextMealTime(t *testing.T) {
 			mealFrequency:    "120",
 			previousMealTime: "",
 			currentTime:      "2024-08-23 19:00",
-			expectedResult:   "2024-08-23 08:00", // First meal of the day
+			expectedResult:   "2024-08-23 08:00", // First meal of the day (no feeding)
 		},
 		{
 			startTime:        "08:00",
 			endTime:          "18:00",
 			mealFrequency:    "120",
-			previousMealTime: "2024-08-22 17:00",
+			previousMealTime: "2024-08-22 16:59",
 			currentTime:      "2024-08-23 09:00",
-			expectedResult:   "2024-08-22 19:00", // previous day meal
+			expectedResult:   "2024-08-22 18:59", // last feeding+freq as last feeding too early to finish day
 		},
 		{
 			startTime:        "08:00",
@@ -49,9 +49,17 @@ func TestCalculateNextMealTime(t *testing.T) {
 			startTime:        "08:00",
 			endTime:          "18:00",
 			mealFrequency:    "120",
+			previousMealTime: "2024-08-22 16:30",
+			currentTime:      "2024-08-22 17:05",
+			expectedResult:   "2024-08-22 18:30",
+		},
+		{
+			startTime:        "08:00",
+			endTime:          "18:00",
+			mealFrequency:    "120",
 			previousMealTime: "2024-08-22 17:00",
 			currentTime:      "2024-08-22 17:05",
-			expectedResult:   "2024-08-22 19:00",
+			expectedResult:   "2024-08-23 08:00",
 		},
 		{
 			startTime:        "08:00",
