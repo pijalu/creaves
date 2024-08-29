@@ -129,6 +129,14 @@ var feedingTests = []struct {
 		mealFrequency:    "60",
 		previousMealTime: "2024-08-24 07:25",
 		currentTime:      "2024-08-24 07:30",
+		expectedResult:   "2024-08-24 08:25", // First meal of the day
+	},
+	{
+		startTime:        "08:00",
+		endTime:          "23:59",
+		mealFrequency:    "60",
+		previousMealTime: "2024-08-24 06:59",
+		currentTime:      "2024-08-24 07:30",
 		expectedResult:   "2024-08-24 08:00", // First meal of the day
 	},
 }

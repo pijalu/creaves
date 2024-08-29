@@ -97,7 +97,7 @@ func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 		startTime = switchTimeZone(af.LastFeeding.Time, time.Local)
 
 		heuristicEndtime := af.FeedingEnd.Add((time.Duration(-1 * int(af.FeedingPeriod/2) * int(time.Minute))))
-		heuristicStarttime := af.FeedingStart.Add(-1 * (time.Duration(int(af.FeedingPeriod/2) * int(time.Minute))))
+		heuristicStarttime := af.FeedingStart.Add(-1 * (time.Duration(int(af.FeedingPeriod) * int(time.Minute))))
 
 		previousStarttime := heuristicStarttime.Add(-24 * time.Hour)
 		previousEndtime := heuristicEndtime.Add(-24 * time.Hour)
