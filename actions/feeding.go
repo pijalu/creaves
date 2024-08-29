@@ -80,69 +80,67 @@ func (t FeedingByZoneMap) OrderedKeys() []models.AnimalViewKey {
 	return keys
 }
 
-func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	afRaw := []AnimalFeeding{}
-	// Retrieve all Cares from the DB
-	if err := tx.Eager().RawQuery(FEEDING_SQL).All(&afRaw); err != nil {
-		return nil, err
-	}
-
-	// Set time
-	// Fix start-end
-	now := time.Now()
+func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 	lowNearLimit := now.Add(-1 * NEARTIMELIMIT)
 	highNearLimit := now.Add(1 * NEARTIMELIMIT)
 
-	//_, offsetSec := now.Zone()
+	// Recalc Start/End to match today
+	af.FeedingStart = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingStart.Hour(), af.FeedingStart.Minute(), 0, 0, time.Local)
+	af.FeedingEnd = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingEnd.Hour(), af.FeedingEnd.Minute(), 0, 0, time.Local)
+	if af.FeedingEnd.Before(af.FeedingStart) {
+		af.FeedingEnd = af.FeedingEnd.Add(24 * time.Hour)
+	}
 
+	startTime := af.FeedingStart
+	if af.LastFeeding.Valid {
+		// fix last feeding time zone
+		startTime = switchTimeZone(af.LastFeeding.Time, time.Local)
+
+		heuristicEndtime := af.FeedingEnd.Add((time.Duration(-1 * int(af.FeedingPeriod/2) * int(time.Minute))))
+		heuristicStarttime := af.FeedingStart.Add(-1 * (time.Duration(int(af.FeedingPeriod/2) * int(time.Minute))))
+
+		previousStarttime := heuristicStarttime.Add(-24 * time.Hour)
+		previousEndtime := heuristicEndtime.Add(-24 * time.Hour)
+
+		if startTime.After(heuristicEndtime) || startTime.Equal(heuristicEndtime) {
+			startTime = af.FeedingStart.Add(24 * time.Hour)
+		} else if startTime.Before(previousStarttime) {
+			startTime = af.FeedingStart
+		} else if startTime.Before(heuristicStarttime) && (startTime.After(previousEndtime) || startTime.Equal(previousEndtime)) {
+			startTime = af.FeedingStart
+		} else {
+			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
+		}
+	}
+
+	// not in the future
+	if startTime.Before(now.Add(HIGHTIMELIMIT)) {
+		af.NextFeeding = nulls.NewTime(startTime)
+
+		if startTime.Before(lowNearLimit) {
+			af.NextFeedingCode = 0
+		} else if startTime.Before(highNearLimit) {
+			af.NextFeedingCode = 1
+		} else {
+			af.NextFeedingCode = 2
+		}
+	} else {
+		af.NextFeeding = nulls.Time{}
+	}
+
+	return af
+}
+
+func calculateFeedings(afRaw []AnimalFeeding) (FeedingByZoneMap, error) {
+	// Set time
+	// Fix start-end
+	now := time.Now()
 	afCalc := []AnimalFeeding{}
 
 	// Calculate next feedings
 	for _, af := range afRaw {
-		// Recalc Start/End to match today
-		af.FeedingStart = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingStart.Hour(), af.FeedingStart.Minute(), 0, 0, time.Local)
-		af.FeedingEnd = time.Date(now.Year(), now.Month(), now.Day(), af.FeedingEnd.Hour(), af.FeedingEnd.Minute(), 0, 0, time.Local)
-		if af.FeedingEnd.Before(af.FeedingStart) {
-			af.FeedingEnd = af.FeedingEnd.Add(24 * time.Hour)
-		}
-
-		startTime := af.FeedingStart
-		if af.LastFeeding.Valid {
-			// fix last feeding time zone
-			startTime = switchTimeZone(af.LastFeeding.Time, time.Local)
-
-			previousStarttime := af.FeedingStart.Add(-24 * time.Hour)
-			heuristicEndtime := af.FeedingEnd.Add(time.Duration(-1 * (af.FeedingPeriod / 2)))
-			previousEndtime := heuristicEndtime.Add(-24 * time.Hour)
-
-			if startTime.After(heuristicEndtime) || startTime.Equal(heuristicEndtime) {
-				startTime = af.FeedingStart.Add(24 * time.Hour)
-			} else if startTime.Before(previousStarttime) {
-				startTime = af.FeedingStart
-			} else if startTime.Before(af.FeedingStart) && (startTime.After(previousEndtime) || startTime.Equal(previousEndtime)) {
-				startTime = af.FeedingStart
-			} else {
-				startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
-			}
-		}
-
-		// not in the future
-		if startTime.Before(now.Add(HIGHTIMELIMIT)) {
-			af.NextFeeding = nulls.NewTime(startTime)
-
-			if startTime.Before(lowNearLimit) {
-				af.NextFeedingCode = 0
-			} else if startTime.Before(highNearLimit) {
-				af.NextFeedingCode = 1
-			} else {
-				af.NextFeedingCode = 2
-			}
-
+		af = calculateFeeding(af, now)
+		if af.NextFeeding.Valid {
 			afCalc = append(afCalc, af)
 		}
 	}
@@ -165,6 +163,22 @@ func computeAnimalFeeding(c buffalo.Context) (FeedingByZoneMap, error) {
 	return feedingByZone, nil
 }
 
+func generateAnimalFeedings(c buffalo.Context) (FeedingByZoneMap, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	// Retrieve info from the DB
+	afRaw := []AnimalFeeding{}
+	if err := tx.Eager().RawQuery(FEEDING_SQL).All(&afRaw); err != nil {
+		return nil, err
+	}
+
+	// Calculate results
+	return calculateFeedings(afRaw)
+}
+
 // FeedingFeeding default implementation.
 func FeedingIndex(c buffalo.Context) error {
 	zm, err := zonesMap(c)
@@ -173,7 +187,7 @@ func FeedingIndex(c buffalo.Context) error {
 	}
 	c.Set("zoneMap", zm)
 
-	af, err := computeAnimalFeeding(c)
+	af, err := generateAnimalFeedings(c)
 	if err != nil {
 		return err
 	}
