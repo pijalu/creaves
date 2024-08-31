@@ -79,6 +79,9 @@
                     <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:"Animal fed :" + af.Feeding, back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
                         Feed
                     <% } %>
+                    <%= linkTo("feeding/close?ID=" + af.ID + "&time=" + af.NextFeedingFmt() + "&note=skipped", {class: "btn btn-warning"}) { %>
+                      close
+                    <% } %> 
                 </td>
             </tr>
             <% } %>

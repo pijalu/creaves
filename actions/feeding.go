@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -59,6 +60,14 @@ func (a AnimalFeeding) NextFeedingTime() string {
 		return a.NextFeeding.Time.Format("15:04")
 	}
 	return "n.a."
+}
+
+const feeding_dateFormat = "2006-01-02 15:04" // Date and 24-hour time format
+func (a AnimalFeeding) NextFeedingFmt() string {
+	if a.NextFeeding.Valid {
+		return a.NextFeeding.Time.Format(feeding_dateFormat)
+	}
+	return ""
 }
 
 // YearNumberFormatted returns the year number formatted
@@ -194,4 +203,51 @@ func FeedingIndex(c buffalo.Context) error {
 	c.Set("feedingByZone", af)
 
 	return c.Render(http.StatusOK, r.HTML("feeding/index.html"))
+}
+
+// FeedingFeeding default implementation.
+func FeedingClose(c buffalo.Context) error {
+	animalIDStr := c.Param("ID")
+	timeToCloseSTR := c.Param("time")
+	note := c.Param("note")
+
+	care := &models.Care{}
+	var err error
+	if care.AnimalID, err = strconv.Atoi(animalIDStr); err != nil {
+		return err
+	}
+	if care.Date, err = time.Parse(feeding_dateFormat, timeToCloseSTR); err != nil {
+		return err
+	}
+	if len(note) > 0 {
+		care.Note = nulls.NewString(note)
+	}
+
+	// Set care type
+	ct, err := caretypes(c)
+	if err != nil {
+		return err
+	}
+
+	// get feeding caretype
+	for i := 0; i < len(*ct); i++ {
+		c := (*ct)[i]
+		if c.Type == models.CareTypeFeed {
+			care.Type = c
+			break
+		}
+	}
+	c.Logger().Debugf("Closing feeding for animalID %d with date at %s", care.AnimalID, care.Date)
+
+	// Get the DB connection from the context
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	if err = tx.Create(care); err != nil {
+		return err
+	}
+
+	c.Flash().Add("success", T.Translate(c, "feeding.close.success"))
+	return c.Redirect(http.StatusSeeOther, "/feeding")
 }
