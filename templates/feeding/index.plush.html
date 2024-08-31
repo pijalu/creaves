@@ -45,13 +45,15 @@
         </thead>
         <tbody>
             <%= for (af) in am[at] { %>
-            
+
             <%= if (af.NextFeedingCode == 0) { %>
                 <tr class="table-danger">
             <% } else if (af.NextFeedingCode == 1) { %>
                 <tr class="table-warning">
-            <% } else { %>
+            <% } else if (af.NextFeedingCode == 2) { %>
                 <tr class="table-success">
+            <% } else {%>
+              <tr class="table-info">
             <% } %>
                 <td class="align-middle">
                     <%= af.NextFeedingTime() %>
@@ -76,10 +78,10 @@
                     <% } %>
                 </td>
                 <td class="align-middle">
-                    <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:"Animal fed :" + af.Feeding, back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
+                    <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:"Animal fed", back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
                         Feed
                     <% } %>
-                    <%= linkTo("feeding/close?ID=" + af.ID + "&time=" + af.NextFeedingFmt() + "&note=skipped", {class: "btn btn-warning"}) { %>
+                    <%= linkTo("feeding/close?ID=" + af.ID + "&time=" + af.NextFeedingFmt() + "&note=skipped&back=/feeding#t-" + at.ID, {class: "btn btn-warning"}) { %>
                       close
                     <% } %> 
                 </td>

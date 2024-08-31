@@ -126,12 +126,16 @@ func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 	if startTime.Before(now.Add(HIGHTIMELIMIT)) {
 		af.NextFeeding = nulls.NewTime(startTime)
 
-		if startTime.Before(lowNearLimit) {
+		criticalLimit := now.Add(time.Duration(-1 * int(af.FeedingPeriod/2) * int(time.Minute)))
+
+		if startTime.Before(criticalLimit) {
 			af.NextFeedingCode = 0
-		} else if startTime.Before(highNearLimit) {
+		} else if startTime.Before(lowNearLimit) {
 			af.NextFeedingCode = 1
-		} else {
+		} else if startTime.Before(highNearLimit) {
 			af.NextFeedingCode = 2
+		} else {
+			af.NextFeedingCode = 3
 		}
 	} else {
 		af.NextFeeding = nulls.Time{}
@@ -201,6 +205,7 @@ func FeedingIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("feedingByZone", af)
+	c.Logger().Debugf("Feeding: %v", af)
 
 	return c.Render(http.StatusOK, r.HTML("feeding/index.html"))
 }
@@ -219,9 +224,13 @@ func FeedingClose(c buffalo.Context) error {
 	if care.Date, err = time.Parse(feeding_dateFormat, timeToCloseSTR); err != nil {
 		return err
 	}
+	now := time.Now().Format(models.DateTimeFormat)
 	if len(note) > 0 {
-		care.Note = nulls.NewString(note)
+		note = fmt.Sprintf("%s - %s", now, note)
+	} else {
+		note = now
 	}
+	care.Note = nulls.NewString(note)
 
 	// Set care type
 	ct, err := caretypes(c)
@@ -249,5 +258,8 @@ func FeedingClose(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", T.Translate(c, "feeding.close.success"))
+	if len(c.Param("back")) > 0 {
+		return c.Redirect(http.StatusSeeOther, c.Param("back"))
+	}
 	return c.Redirect(http.StatusSeeOther, "/feeding")
 }
