@@ -299,6 +299,11 @@ func (v UsersResource) Update(c buffalo.Context) error {
 		return err
 	}
 
+	// Keep default approval if not admin
+	if !cu.Admin {
+		user.Approved = cu.Approved
+	}
+
 	// change password
 	if len(user.Password) > 0 {
 		// Update password hash
