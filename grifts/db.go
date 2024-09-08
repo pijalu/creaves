@@ -20,6 +20,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createCaretype(c); err != nil {
 			return err
 		}
+		if err := extendCaretype(c); err != nil {
+			return err
+		}
 		if err := createTraveltype(c); err != nil {
 			return err
 		}

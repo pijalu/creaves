@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.0.35, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.4.2, for Linux (x86_64)
 --
 -- Host: localhost    Database: creaves
 -- ------------------------------------------------------
--- Server version	8.0.35
+-- Server version	8.4.2
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -59,6 +59,9 @@ CREATE TABLE `animals` (
   `IntakeDate` datetime NOT NULL,
   `force_feed` tinyint(1) NOT NULL DEFAULT '0',
   `zone` varchar(255) DEFAULT NULL,
+  `feeding_start` datetime DEFAULT NULL,
+  `feeding_end` datetime DEFAULT NULL,
+  `feeding_period` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `animals_year_yearNumber_idx` (`year`,`yearNumber`),
   KEY `animaltype_id` (`animaltype_id`),
@@ -69,7 +72,34 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3453 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1670 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `animalsvirellesexportimport`
+--
+
+DROP TABLE IF EXISTS `animalsvirellesexportimport`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `animalsvirellesexportimport` (
+  `id` int DEFAULT NULL,
+  `species` text,
+  `ring` text,
+  `cage` text,
+  `animalage_id` text,
+  `animaltype_id` text,
+  `discovery_id` text,
+  `intake_id` text,
+  `outtake_id` text,
+  `created_at` text,
+  `updated_at` text,
+  `feeding` text,
+  `gender` text,
+  `year` int DEFAULT NULL,
+  `yearNumber` int DEFAULT NULL,
+  `IntakeDate` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -138,6 +168,7 @@ CREATE TABLE `caretypes` (
   `reset_warning` tinyint(1) NOT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `type` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -169,6 +200,28 @@ CREATE TABLE `discoverers` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `discoverersexportvirelles`
+--
+
+DROP TABLE IF EXISTS `discoverersexportvirelles`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `discoverersexportvirelles` (
+  `id` text,
+  `firstname` text,
+  `lastname` text,
+  `address` text,
+  `city` text,
+  `country` text,
+  `email` text,
+  `phone` text,
+  `note` text,
+  `created_at` text,
+  `updated_at` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `discoveries`
 --
 
@@ -191,6 +244,25 @@ CREATE TABLE `discoveries` (
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
   CONSTRAINT `discoveries_ibfk_1` FOREIGN KEY (`discoverer_id`) REFERENCES `discoverers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `discoveriesexportvirelles`
+--
+
+DROP TABLE IF EXISTS `discoveriesexportvirelles`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `discoveriesexportvirelles` (
+  `id` text,
+  `location` text,
+  `date` text,
+  `reason` text,
+  `note` text,
+  `discoverer_id` text,
+  `created_at` text,
+  `updated_at` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -323,6 +395,24 @@ CREATE TABLE `outtakes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `outtakesvirellesimport`
+--
+
+DROP TABLE IF EXISTS `outtakesvirellesimport`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `outtakesvirellesimport` (
+  `id` text,
+  `date` text,
+  `outtaketype_id` text,
+  `location` text,
+  `note` text,
+  `created_at` text,
+  `updated_at` text
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `outtaketypes`
 --
 
@@ -377,24 +467,6 @@ CREATE TABLE `species` (
   `order` varchar(255) NOT NULL,
   `game` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `speciesa`
---
-
-DROP TABLE IF EXISTS `speciesa`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `speciesa` (
-  `id` text,
-  `specie` text,
-  `cout` text,
-  `latin` text,
-  `type_id` text,
-  `food` text,
-  `description` text
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -541,4 +613,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2023-12-20 10:43:04
+-- Dump completed on 2024-08-19 13:22:43

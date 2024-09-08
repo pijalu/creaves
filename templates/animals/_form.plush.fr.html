@@ -380,7 +380,99 @@ $( document ).ready(function(){
     <div class="container p-3 my-3 border">
     <%= f.TextAreaTag("Feeding", {label:"Alimentation", rows: 2, class:"col-md-12"}) %>
     <%= f.CheckboxTag("ForceFeed", {label:"Gavage", unchecked: false}) %>
-    </div>
+    <br/>
+
+      <div class="form-row">
+          <script>
+            function calculatePeriodRepetitions() {
+              const startTime = document.getElementById('AnimalFeedingStartTime').value;
+              const endTime = document.getElementById('AnimalFeedingEndTime').value;
+              const periodLengthHM = document.getElementById('AnimalFeedingPeriodHourMinute').value;
+              const [plHour, plMinute] = periodLengthHM.split(":").map(Number);
+              const periodLength = plHour * 60 + plMinute;
+
+              // if we don't have feeding plan
+              if (periodLength === 0) {
+                document.getElementById('mealCount').innerHTML = 0;
+                return;
+              }
+
+              // Convert startTime and endTime to minutes from midnight
+              const [startHour, startMinute] = startTime.split(":").map(Number);
+              const [endHour, endMinute] = endTime.split(":").map(Number);
+              
+              const startTotalMinutes = startHour * 60 + startMinute;
+              const endTotalMinutes = endHour * 60 + endMinute;
+              
+              // Calculate the difference in minutes between startTime and endTime
+              let timeDifference = endTotalMinutes - startTotalMinutes;
+
+              // Handle cases where the endTime is on the next day
+              if (timeDifference < 0) {
+                  timeDifference += 24 * 60; // Add 24 hours worth of minutes
+              }
+
+              // Calculate how many times the period fits into the timeDifference
+              const periodCount = 1 +
+               Math.floor(timeDifference / periodLength);
+
+              document.getElementById('mealCount').innerHTML = periodCount;
+            }
+            // run once at load
+            document.addEventListener('DOMContentLoaded', function() {
+              calculatePeriodRepetitions();
+
+              document.getElementById('AnimalFeedingStartTime').addEventListener("change", calculatePeriodRepetitions);
+              document.getElementById('AnimalFeedingEndTime').addEventListener("change", calculatePeriodRepetitions);
+              document.getElementById('AnimalFeedingPeriodHourMinute').addEventListener("change", calculatePeriodRepetitions);
+            }, false);
+        </script>
+
+        <div class="input-group col-md-2">
+          <input class="form-control" id="AnimalFeedingStartTime" name="AnimalFeedingStartTime" type="text" value="<%= animal.FeedingStartFmt() %>"
+          pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+          <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+          </div>
+          <script type="text/javascript">
+            $('#AnimalFeedingStartTime').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+          </script>
+        </div>
+
+        <div class="input-group col-md-2">
+          <input class="form-control" id="AnimalFeedingEndTime" name="AnimalFeedingEndTime" type="text" value="<%= animal.FeedingEndFmt() %>"
+          pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+          <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+          </div>
+          <script type="text/javascript">
+            $('#AnimalFeedingEndTime').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+          </script>
+        </div>
+
+        <div class="input-group col-md-4">
+            <label>Toutes</label>
+            <input class="form-control" id="AnimalFeedingPeriodHourMinute" name="AnimalFeedingPeriodHourMinute" type="text" value="<%= animal.FeedingPeriodHourMinute() %>"
+            pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+            <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+            </div>
+            <script type="text/javascript">
+              $('#AnimalFeedingPeriodHourMinute').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+            </script>
+            <label>
+              &nbsp; <i>(<span id="mealCount">0</span> repas)</i>
+            </label>
+        </div>
+      </div>
+  </div>
+
     <div class="py-4 mb-2">
       <div class="float-right">
         <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-primary"}) { %>

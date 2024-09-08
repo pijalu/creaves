@@ -1,5 +1,8 @@
 <%= f.InputTag("Name") %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
+<%= f.InputTag("Type", {label:"Type (1-Feed, 2-Move...)"}) %>
+
+
 <%= f.CheckboxTag("Def", {unchecked: false}) %>
 <%= f.CheckboxTag("Warning", {unchecked: false}) %>
 <%= f.CheckboxTag("ResetWarning", {label:"Reset Warning", unchecked: false}) %>

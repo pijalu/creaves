@@ -1,0 +1,111 @@
+<div class="py-4 mb-2">
+    <h3 class="d-inline-block">Feeding</h3>
+</div>
+
+<% 
+    let am = feedingByZone 
+    let keys = am.OrderedKeys()
+%>
+
+
+<ul class="nav nav-tabs" id="landing-abt" role="tablist">
+  <%= for (i, at) in keys {%>
+  <li class="nav-item">
+    <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true">
+      <%= if (zoneMap[at.Name] == "external") {%>
+        <i><%= at.Name %></i>
+      <% } else { %>
+        <%= at.Name %>
+      <% } %>
+    </a>
+  </li>
+  <% } %>
+</ul>
+
+<div class="tab-content" id="landing-abt-content">    
+  <%= for (i, at) in keys {%>
+    <div class="tab-pane fade <%= if (i==0) {%>show active<%}%>" id="t-<%= at.ID %>" role="tabpanel" aria-labelledby="t-<%= at.ID %>-tab">
+        <table class="table table-hover table-bordered"
+        data-pagination="true"
+        data-toggle="table"
+        data-search="true"
+        data-show-columns="false"
+        data-locale="en-US"
+        data-page-size="50"
+        >
+  
+        <thead class="thead-light">
+          <th data-sortable="true">Next Feeding</th>
+          <th data-sortable="true">Number</th>
+          <th data-sortable="true">Species</th>
+          <th data-sortable="true">Cage</th>
+          <th data-sortable="true">Feeding Instruction</th>
+          <th title="Force Feed">FF</th>
+          <th>&nbsp;</th>
+        </thead>
+        <tbody>
+            <%= for (af) in am[at] { %>
+
+            <%= if (af.NextFeedingCode == 0) { %>
+                <tr class="table-danger">
+            <% } else if (af.NextFeedingCode == 1) { %>
+                <tr class="table-warning">
+            <% } else if (af.NextFeedingCode == 2) { %>
+                <tr class="table-success">
+            <% } else {%>
+              <tr class="table-info">
+            <% } %>
+                <td class="align-middle">
+                    <%= af.NextFeedingTime() %>
+                </td>
+                <td class="align-middle">
+                    <a class="btn btn-primary" href="/animals/<%= af.ID %>#nav-care"><%=af.YearNumber%></a>
+                </td>
+                <td class="align-middle">
+                  <%=af.Species%></a>
+              </td>
+                <td class="align-middle">
+                    <%=af.Cage%></a>
+                </td>
+                <td class="align-middle">
+                    <%=af.Feeding%></a>
+                </td>
+                <td>
+                    <%= if (af.ForceFeed) {%>
+                      <i class="fa fa-check"></i>
+                    <% } else { %>
+                      <i class="fa fa-times"></i> 
+                    <% } %>
+                </td>
+                <td class="align-middle">
+                    <%= linkTo(newCaresPath({animal_year_number: af.YearNumberFormatted(), careType:1 , note:"Animal fed", back: "/feeding#t-" + at.ID}), {class: "btn btn-primary"}) { %>
+                        Feed
+                    <% } %>
+                    <%= linkTo("feeding/close?ID=" + af.ID + "&time=" + af.NextFeedingFmt() + "&note=skipped&back=/feeding#t-" + at.ID, {class: "btn btn-warning"}) { %>
+                      close
+                    <% } %> 
+                </td>
+            </tr>
+            <% } %>
+        </tbody>
+        </table>
+    </div>
+  <%}%>
+</div>
+
+<script>
+    $(".nav-tabs").find("a").first().click();
+
+    var url = document.URL;
+    var hash = url.substring(url.indexOf('#'));
+
+    $(".nav-tabs").find("a").each(function(key, val) {
+    if (hash == $(val).attr('href')) {
+    $(val).click();
+    }
+    $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+    });
+    });
+</script>

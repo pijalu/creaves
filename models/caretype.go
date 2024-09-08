@@ -11,6 +11,9 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+const CareTypeFeed = 1
+const CareTypeMove = 2
+
 // Caretype is used by pop to map your caretypes database table to your go code.
 type Caretype struct {
 	ID           uuid.UUID    `json:"id" db:"id"`
@@ -19,6 +22,7 @@ type Caretype struct {
 	Def          bool         `json:"def" db:"def"`
 	Warning      bool         `json:"warning" db:"warning"`
 	ResetWarning bool         `json:"reset_warning" db:"reset_warning"`
+	Type         int          `json:"Type" db:"type"`
 	CreatedAt    time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time    `json:"updated_at" db:"updated_at"`
 }

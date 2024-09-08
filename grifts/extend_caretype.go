@@ -8,7 +8,7 @@ import (
 	"github.com/gobuffalo/nulls"
 )
 
-func createCaretype(c *Context) error {
+func extendCaretype(c *Context) error {
 	ts := []struct {
 		name         string
 		description  string
@@ -17,20 +17,7 @@ func createCaretype(c *Context) error {
 		ResetWarning bool
 		Type         int
 	}{
-		{name: "Care", description: "Animal had care given", def: true},
-		{name: "Feeding", description: "Animal is fed"},
-		{name: "Move", description: "Animal is moved", Type: 2},
-		{name: "Warning", description: "Attention needed", Warning: true},
-		{name: "Warning Response", description: "Response to attention", ResetWarning: true},
-	}
-
-	cnt, err := models.DB.Q().Count(&models.Caretype{})
-	if err != nil {
-		return err
-	}
-	if cnt > 0 {
-		fmt.Printf("Already %d records in care types - skipping\n", cnt)
-		return nil
+		{name: "Repas", description: "Animal got food", Type: 1},
 	}
 
 	for _, t := range ts {
