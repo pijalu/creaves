@@ -166,6 +166,7 @@ func App() *buffalo.App {
 		app.GET("/feeding", FeedingIndex)
 		app.GET("/feeding/close", FeedingClose)
 
+		app.Resource("/native_statuses", NativeStatusesResource{})
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

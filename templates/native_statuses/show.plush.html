@@ -1,0 +1,50 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">NativeStatus Details</h3>
+
+  <div class="float-end">
+    <%= linkTo(nativeStatusesPath(), {class: "btn btn-info"}) { %>
+      Back to all NativeStatuses
+    <% } %>
+    <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= nativeStatus.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Status</label>
+    <p class="d-inline-block"><%= nativeStatus.Status %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Indication</label>
+    <p class="d-inline-block"><%= nativeStatus.Indication %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Freeable</label>
+    <p class="d-inline-block"><%= nativeStatus.Freeable %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Precision</label>
+    <p class="d-inline-block"><%= nativeStatus.Precision %></p>
+  </li>
+
+
+</ul>

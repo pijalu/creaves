@@ -1,0 +1,8 @@
+create_table("native_statuses") {
+	t.Column("id", "string", {primary: true})
+	t.Column("status", "string", {})
+	t.Column("indication", "string", {})
+	t.Column("precision", "string", {null: true})
+	t.Column("freeable", "bool", {})
+	t.Timestamps()
+}

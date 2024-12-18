@@ -1,0 +1,6 @@
+- id: "native_status.created.success"
+  translation: "NativeStatus was successfully created."
+- id: "native_status.updated.success"
+  translation: "NativeStatus was successfully updated."
+- id: "native_status.destroyed.success"
+  translation: "NativeStatus was successfully destroyed."

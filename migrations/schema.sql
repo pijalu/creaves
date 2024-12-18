@@ -374,6 +374,25 @@ CREATE TABLE `logentries` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `native_statuses`
+--
+
+DROP TABLE IF EXISTS `native_statuses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `native_statuses` (
+  `id` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL,
+  `indication` varchar(255) NOT NULL,
+  `precision` varchar(255) DEFAULT NULL,
+  `freeable` tinyint(1) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `outtakes`
 --
 
@@ -615,4 +634,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-12-18 11:21:05
+-- Dump completed on 2024-12-18 19:57:03
