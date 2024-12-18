@@ -65,10 +65,11 @@
                 $( "#animal-Species" ).on( "change", function() {
                     var term = $("#animal-Species").val();
                     $.getJSON('/suggestions/animal_species', { q: term }, function(data){ 
-                        if (data.length === 1 && term === data[0]) {
-                            $( "#animal-Species" ).removeClass("is-invalid")
-                        } else {
-                            $( "#animal-Species" ).addClass("is-invalid")
+                        $( "#animal-Species" ).addClass("is-invalid")
+                        for (var i=0; i < data.length ; i++ ) {
+                            if (term === data[i]) {
+                                $( "#animal-Species" ).removeClass("is-invalid");
+                            } 
                         }
                     });
                 } );
