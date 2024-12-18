@@ -17,23 +17,24 @@ package grifts
 import (
 	"creaves/models"
 	"fmt"
-	"strconv"
 
 	. "github.com/gobuffalo/grift/grift"
-	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 )
 
 func createSpecies(c *Context) error {
 	ts := []struct {
-		Species        string        
+		ID			   string
+		Species        string   
+		CreavesSpecies string      
 		Class          string 
 		Order          string        
-		Family         string    
-		Game	       bool    
-		CreavesSpecies string        
-		CreavesGroup   string        
-		Subside        string
+		Family         string
+		NativeStatus   string
+		AgwGroup       string
+		SubsideGroup   string 
+		Game	       bool
+		Huntable       bool
 	}{
 `
 
@@ -44,6 +45,7 @@ const footer = `
 	if err != nil {
 		return err
 	}
+
 	if cnt >= len(ts) {
 		fmt.Printf("Already %d records in species - skipping\n", cnt)
 		return nil
@@ -59,21 +61,17 @@ const footer = `
 			}
 
 			d := &models.Species{
+				ID: 			t.ID,
 				Species:        t.Species,
+				CreavesSpecies: t.CreavesSpecies,
 				Class:          t.Class,
 				Order:          t.Order,
 				Family:         t.Family,
+				NativeStatus:   t.NativeStatus,
+				AgwGroup:   	t.AgwGroup,
+				SubsideGroup:   t.SubsideGroup,
 				Game:	        t.Game,
-				CreavesSpecies: t.CreavesSpecies,
-				CreavesGroup:   t.CreavesGroup,
-			}
-			if len(t.Subside) > 0 && t.Subside != "?" {
-				dsf, err := strconv.ParseFloat(t.Subside, 64)
-				if err == nil {
-					d.Subside = nulls.NewFloat64(dsf)
-				} else {
-					fmt.Printf("Error parsing subside %s: %v", t.Subside, err)
-				}
+				Huntable:	    t.Huntable,
 			}
 
 			if exists, err := con.Where("Species = ?", t.Species).Exists(&models.Species{}); err != nil {
@@ -96,12 +94,17 @@ const footer = `
 					}
 				} else {
 					// update record
-					d_db.Class = d.Class
-					d_db.Order = d.Order
-					d_db.Family = d.Family
-					d_db.Game = d.Game
-					d_db.CreavesSpecies = d.CreavesSpecies
-					d_db.CreavesGroup = d.CreavesGroup
+					d_db.ID = t.ID
+					d_db.CreavesSpecies = t.CreavesSpecies
+					d_db.Class = t.Class
+					d_db.Order = t.Order
+					d_db.Family = t.Family
+					d_db.NativeStatus = t.NativeStatus
+					d_db.AgwGroup = t.AgwGroup
+					d_db.SubsideGroup = t.SubsideGroup
+					d_db.Game = t.Game
+					d_db.Huntable = t.Huntable
+					
 					if err := con.Update(d_db); err != nil {
 						fmt.Printf("Failure to save: %v", d_db)
 						return err
@@ -116,14 +119,17 @@ const footer = `
 
 const gencode = `
 {
+	ID			   : "{{ .ID }}",
 	Species        : "{{ .Species }}",
+	CreavesSpecies : "{{ .CreavesSpecies }}",
 	Class          : "{{ .Class }}", 
 	Order          : "{{ .Order }}", 
 	Family         : "{{ .Family }}",
+	NativeStatus   : "{{ .NativeStatus }}",
+	AgwGroup   	   : "{{ .AgwGroup }}",
+	SubsideGroup   : "{{ .SubsideGroup }}",
 	Game           : 1 == {{ .Game }},
-	CreavesSpecies : "{{ .CreavesSpecies }}",
-	CreavesGroup   : "{{ .CreavesGroup }}",        
-	Subside        : "{{ .Subside }}",
+	Huntable       : 1 == {{ .Huntable }},
 },
 `
 

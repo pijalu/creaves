@@ -1,0 +1,8 @@
+sql("truncate table species")
+
+change_column("species", "ID", "string", {primary: true})
+rename_column("species", "creaves_group", "subside_group")
+add_column("species", "agw_group", "string", {})
+add_column("species", "native_status", "string", {})
+add_column("species", "huntable", "bool", {"default": false})
+drop_column("species", "subside")

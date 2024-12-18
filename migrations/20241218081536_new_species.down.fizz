@@ -1,0 +1,6 @@
+change_column("species", "ID", "uuid", {primary: true})
+rename_column("species", "subside_group", "creaves_group")
+drop_column("species", "agw_group")
+drop_column("species", "native_status")
+drop_column("species", "huntable")
+add_column("species", "subside", "float", {null: true})

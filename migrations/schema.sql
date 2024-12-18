@@ -1,8 +1,8 @@
--- MySQL dump 10.13  Distrib 8.4.2, for Linux (x86_64)
+-- MySQL dump 10.13  Distrib 8.4.3, for Linux (x86_64)
 --
 -- Host: localhost    Database: creaves
 -- ------------------------------------------------------
--- Server version	8.4.2
+-- Server version	8.4.3
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -72,7 +72,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1670 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1671 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -455,18 +455,20 @@ DROP TABLE IF EXISTS `species`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `species` (
-  `id` char(36) NOT NULL,
+  `ID` varchar(255) NOT NULL,
   `species` varchar(255) NOT NULL,
   `class` varchar(255) NOT NULL,
   `family` varchar(255) NOT NULL,
   `creaves_species` varchar(255) NOT NULL,
-  `creaves_group` varchar(255) NOT NULL,
-  `subside` float DEFAULT NULL,
+  `subside_group` varchar(255) NOT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   `order` varchar(255) NOT NULL,
   `game` tinyint(1) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`)
+  `agw_group` varchar(255) NOT NULL,
+  `native_status` varchar(255) NOT NULL,
+  `huntable` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -613,4 +615,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2024-08-19 13:22:43
+-- Dump completed on 2024-12-18 11:21:05
