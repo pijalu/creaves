@@ -397,6 +397,6 @@ queries:
 
  - name: controle_espèce
    description: Animaux avec un nom d'espèce inconnue
-   query: select a.year, a.yearNumber, a.species
+   query: select a.year AS "Année", a.yearNumber AS "N°", a.species AS "Espèce"
             from animals a
             where a.species not in(select creaves_species from species)
