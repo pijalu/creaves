@@ -123,7 +123,7 @@ $( document ).ready(function(){
               cache: 0,
               source: function(term, response){
                   var postalCode = $('input[name="Discovery.PostalCode"]').val();
-                  $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+                  $.getJSON('/suggestions/locality', { r: "locality", z: postalCode, l: term }, function(data){ response(data); });
               }
           });
           </script>
