@@ -69,8 +69,7 @@
                         for (var i=0; i < data.length ; i++ ) {
                             if (term === data[i]) {
                                 $( "#animal-Species" ).removeClass("is-invalid");
-                                $.getJSON('/hint/nativeStatusBySpecies', { q: term }, function(data){
-                                    console.log("got stuff", data)
+                                $.getJSON('/hint/specieDetails', { q: term }, function(data){
                                     $( "#nativeGroupHint").html(data[0].indication).addClass("alert alert-primary")
                                 });
                                 break;

@@ -1,21 +1,26 @@
 package actions
 
 import (
-	"creaves/models"
 	"fmt"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 )
 
-const HINT_NATIVESPECIES = `SELECT distinct ns.*
+const HINT_SPECIE_DETAILS = `SELECT distinct ns.status, ns.indication, ns.freeable, s.game, s.huntable
 FROM native_statuses ns
 JOIN species s ON s.native_status=ns.ID
 where s.creaves_species = "%s"`
 
-// HintNativeStatusBySpecies default implementation.
-func HintNativeStatusBySpecies(c buffalo.Context) error {
-	s := []models.NativeStatus{}
+// HintSpecieDetails default implementation.
+func HintSpecieDetails(c buffalo.Context) error {
+	s := []struct {
+		Status     string `json:"status" db:"status"`
+		Freeable   bool   `json:"freeable" db:"freeable"`
+		Indication string `json:"indication" db:"indication"`
+		Game       bool   `json:"game" db:"game"`
+		Huntable   bool   `json:"huntable" db:"huntable"`
+	}{}
 
 	q := c.Param("q")
 	if len(q) == 0 {
@@ -27,7 +32,7 @@ func HintNativeStatusBySpecies(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query = tx.RawQuery(fmt.Sprintf(HINT_NATIVESPECIES, q))
+	var query = tx.RawQuery(fmt.Sprintf(HINT_SPECIE_DETAILS, q))
 	if err := query.All(&s); err != nil {
 		return err
 	}
