@@ -1,6 +1,7 @@
 package models
 
 import (
+	"creaves/utils"
 	"encoding/json"
 	"time"
 
@@ -48,6 +49,7 @@ func (l Logentry) UpdatedAtFormated() string {
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (l *Logentry) Validate(tx *pop.Connection) (*validate.Errors, error) {
+	utils.TrimStringFields(l)
 	return validate.Validate(
 		&validators.StringIsPresent{Field: l.Description, Name: "Description"},
 	), nil

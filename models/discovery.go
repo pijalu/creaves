@@ -1,6 +1,7 @@
 package models
 
 import (
+	"creaves/utils"
 	"encoding/json"
 	"time"
 
@@ -51,6 +52,7 @@ func (d Discoveries) String() string {
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (d *Discovery) Validate(tx *pop.Connection) (*validate.Errors, error) {
+	utils.TrimStringFields(d)
 	return validate.Validate(
 		// Discovery
 		&validators.TimeIsPresent{Field: d.Date, Name: "Date"},

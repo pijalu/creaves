@@ -1,6 +1,7 @@
 package models
 
 import (
+	"creaves/utils"
 	"encoding/json"
 	"sort"
 	"time"
@@ -198,6 +199,7 @@ func (t *Treatment) IsFuture() bool {
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (t *Treatment) Validate(tx *pop.Connection) (*validate.Errors, error) {
+	utils.TrimStringFields(t)
 	return validate.Validate(
 		&validators.TimeIsPresent{Field: t.Date, Name: "Date"},
 		&validators.IntIsPresent{Field: t.AnimalID, Name: "AnimalID"},

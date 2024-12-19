@@ -1,6 +1,7 @@
 package models
 
 import (
+	"creaves/utils"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -164,6 +165,7 @@ func (a Animal) LastWeight() nulls.Int {
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (a *Animal) Validate(tx *pop.Connection) (*validate.Errors, error) {
+	utils.TrimStringFields(a)
 	return validate.NewErrors(), nil
 }
 

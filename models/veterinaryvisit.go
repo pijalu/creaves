@@ -1,6 +1,7 @@
 package models
 
 import (
+	"creaves/utils"
 	"encoding/json"
 	"time"
 
@@ -48,6 +49,7 @@ func (v Veterinaryvisit) DateFormated() string {
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (v *Veterinaryvisit) Validate(tx *pop.Connection) (*validate.Errors, error) {
+	utils.TrimStringFields(v)
 	return validate.Validate(
 		&validators.TimeIsPresent{Field: v.Date, Name: "Date"},
 	), nil
