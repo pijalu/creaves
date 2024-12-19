@@ -1,0 +1,7 @@
+create_table("subside_groups") {
+	t.Column("id", "string", {primary: true})
+	t.Column("group", "string", {})
+	t.Column("size", "integer", {})
+	t.Column("amount", "float", {})
+	t.Timestamps()
+}

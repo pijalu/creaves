@@ -1,0 +1,45 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">SubsideGroup Details</h3>
+
+  <div class="float-end">
+    <%= linkTo(subsideGroupsPath(), {class: "btn btn-info"}) { %>
+      Back to all SubsideGroups
+    <% } %>
+    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= subsideGroup.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Group</label>
+    <p class="d-inline-block"><%= subsideGroup.Group %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Size</label>
+    <p class="d-inline-block"><%= subsideGroup.Size %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Amount</label>
+    <p class="d-inline-block"><%= subsideGroup.Amount %></p>
+  </li>
+
+
+</ul>

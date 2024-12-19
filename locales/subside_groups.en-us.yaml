@@ -1,0 +1,6 @@
+- id: "subside_group.created.success"
+  translation: "SubsideGroup was successfully created."
+- id: "subside_group.updated.success"
+  translation: "SubsideGroup was successfully updated."
+- id: "subside_group.destroyed.success"
+  translation: "SubsideGroup was successfully destroyed."

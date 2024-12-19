@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">SubsideGroups</h3>
+  <div class="float-end">
+    <%= linkTo(newSubsideGroupsPath(), {class: "btn btn-primary"}) { %>
+      Create New SubsideGroup
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID</th><th>Group</th><th>Size</th><th>Amount</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (subsideGroup) in subsideGroups { %>
+      <tr>
+        <td class="align-middle"><%= subsideGroup.ID %></td><td class="align-middle"><%= subsideGroup.Group %></td><td class="align-middle"><%= subsideGroup.Size %></td><td class="align-middle"><%= subsideGroup.Amount %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-info", body: "View"}) %>
+            <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>
