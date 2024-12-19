@@ -394,3 +394,9 @@ queries:
               WHERE o.date IS null AND force_feed = 1
               GROUP BY a.id
               ORDER BY a.zone asc, a.species asc, a.cage asc, a.id asc;
+
+ - name: controle_espèce
+   description: Animaux avec un nom d'espèce inconnue
+   query: select a.year, a.yearNumber, a.species
+            from animals a
+            where a.species not in(select creaves_species from species)
