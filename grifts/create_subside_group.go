@@ -17,7 +17,7 @@ func createSubsideGroup(c *Context) error {
 		{ID: "SG1", Group: "Rapaces, oiseaux d'eau, échassiers ou limicoles", Size: 50, Amount: 1250},
 		{ID: "SG2", Group: "Autres oiseaux et chauves-souris", Size: 100, Amount: 1250},
 		{ID: "SG3", Group: "Mammifères non volants", Size: 100, Amount: 3000},
-		{ID: "SG4", Group: "Non financable", Size: 0, Amount: 0},
+		{ID: "SG4", Group: "Non finançable", Size: 0, Amount: 0},
 	}
 
 	cnt, err := models.DB.Q().Count(&models.SubsideGroup{})

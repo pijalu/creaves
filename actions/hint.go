@@ -7,13 +7,13 @@ import (
 	"github.com/gobuffalo/pop/v6"
 )
 
-const HINT_SPECIE_DETAILS = `SELECT distinct ns.status, ns.indication, ns.freeable, s.game, s.huntable
+const HINT_SPECIES_DETAILS = `SELECT distinct ns.status, ns.indication, ns.freeable, s.game, s.huntable
 FROM native_statuses ns
 JOIN species s ON s.native_status=ns.ID
 where s.creaves_species = "%s"`
 
-// HintSpecieDetails default implementation.
-func HintSpecieDetails(c buffalo.Context) error {
+// HintSpeciesDetails default implementation.
+func HintSpeciesDetails(c buffalo.Context) error {
 	s := []struct {
 		Status     string `json:"status" db:"status"`
 		Freeable   bool   `json:"freeable" db:"freeable"`
@@ -32,7 +32,7 @@ func HintSpecieDetails(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query = tx.RawQuery(fmt.Sprintf(HINT_SPECIE_DETAILS, q))
+	var query = tx.RawQuery(fmt.Sprintf(HINT_SPECIES_DETAILS, q))
 	if err := query.All(&s); err != nil {
 		return err
 	}

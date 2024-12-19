@@ -170,7 +170,7 @@ func App() *buffalo.App {
 		app.Resource("/subside_groups", SubsideGroupsResource{})
 
 		// Hints
-		app.GET("/hint/specieDetails", HintSpecieDetails)
+		app.GET("/hint/speciesDetails", HintSpeciesDetails)
 
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})

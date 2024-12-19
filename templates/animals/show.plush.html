@@ -41,7 +41,26 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Species</label>
-        <p class="d-inline-block"><%= animal.Species %></p>
+        <p id="animal-Species" class="d-inline-block"><%= animal.Species %></p>
+        <div id="speciesHint"></div>
+        <script type="text/javascript">
+        function setSpeciesHint() {
+          var term = $("#animal-Species").text();
+          $( "#speciesHint").html("").removeClass("alert alert-primary alert-danger");
+          $.getJSON('/hint/speciesDetails', { q: term }, function(data){
+            if (data.length === 1) {
+              let indication=`<strong>${data[0].status}</strong> - <b>${data[0].freeable ? "freeable":"not freeable"}</b> - ${data[0].indication} 
+              <br/> <i>${data[0].game ? "game":"not game"} - ${data[0].huntable ? "hunatable":"not huntable"}</i>`;
+              $( "#speciesHint").html(indication).addClass("alert alert-primary");
+            } else {
+              $( "#speciesHint").html("Unknown species !").addClass("alert alert-danger");
+            }
+          });
+        }
+        $( document ).ready(function(){
+            setSpeciesHint();
+        });
+        </script>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Age</label>
