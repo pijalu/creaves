@@ -55,7 +55,7 @@ $( document ).ready(function(){
                       <br/> <i>${data[0].game ? "gibier":"non-gibier"} - ${data[0].huntable ? "châssable":"non-châssable"}</i>`;
                       $( "#speciesHint").html(indication).addClass("alert alert-primary");
                     } else {
-                      $( "#speciesHint").html("Unknown species !").addClass("alert alert-danger");
+                      $( "#speciesHint").html("Espèce inconnue !").addClass("alert alert-danger");
                     }
                   });
                 }
