@@ -156,6 +156,12 @@ func listLast24hLogEntries(c buffalo.Context) (models.Logentries, error) {
 
 // DashboardIndex default implementation.
 func DashboardIndex(c buffalo.Context) error {
+	wla, err := listAnimalWithWeightLoss(c)
+	if err != nil {
+		return err
+	}
+	c.Set("animalsWithWeightLoss", wla)
+
 	oc, err := listOpenCares(c)
 	if err != nil {
 		return err
