@@ -1,0 +1,2 @@
+sql("truncate table entry_causes")
+add_column("entry_causes", "sort_order", "int", {})

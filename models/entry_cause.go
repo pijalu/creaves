@@ -16,6 +16,7 @@ type EntryCause struct {
 	Detail     string    `json:"detail" db:"detail"`
 	Nature     string    `json:"nature" db:"nature"`
 	Indication string    `json:"indication" db:"indication"`
+	SortOrder  int       `json:"sort_order" db:"sort_order"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }

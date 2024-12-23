@@ -306,3 +306,29 @@ func BoolToInt(b bool) int {
 
 // AnimalYearNumberRegEx
 var AnimalYearNumberRegEx = regexp.MustCompile(`(\d+)(/(\d{2}))?`)
+
+func entryCauses(c buffalo.Context) (*models.EntryCauses, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.EntryCauses{}
+	if err := tx.Order("sort_order asc").All(ts); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
+func entryCausesToSelectables(ts *models.EntryCauses) form.Selectables {
+	res := []form.Selectable{}
+
+	for _, ts := range *ts {
+		res = append(res, &selType{
+			label: fmt.Sprintf("%s - %s", ts.Cause, ts.Detail),
+			value: ts.ID,
+		})
+	}
+	return res
+}

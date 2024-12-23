@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 
 	. "github.com/gobuffalo/grift/grift"
@@ -46,12 +47,17 @@ func createEntryCause(c *Context) error {
 			continue
 		}
 
+		so, err := strconv.Atoi(data["sort_order"])
+		if err != nil {
+			return err
+		}
 		ts = append(ts, models.EntryCause{
 			ID:         data["ID"],
 			Cause:      data["cause"],
 			Detail:     data["detail"],
 			Nature:     data["nature"],
 			Indication: data["indication"],
+			SortOrder:  so,
 		})
 	}
 
