@@ -183,6 +183,16 @@
                         <%= f.CheckboxTag("Discovery.ReturnHabitat", { unchecked: false, label: "Retour à l'habitat", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
                     </div>
 
+                    <%= f.SelectTag("Discovery.EntryCauseID", {
+                        label: "Cause d'entrée Cause",
+                        options: selectEntryCause,
+                        required:"required"}) %>
+                    <script type="text/javascript">
+                        $('select[name="Discovery.EntryCauseID"]').select2({
+                            width: 'resolve' // need to override the changed default
+                        });
+                    </script>
+
                     <%= f.TextAreaTag("Discovery.Reason", {label:"Raison", rows: 5, class:"col-md-12"}) %>
                     <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
                     Notes

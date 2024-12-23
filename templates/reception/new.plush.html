@@ -170,7 +170,7 @@
                         </div>
                     </div>
                     <script type="text/javascript">
-                        $('#animal-entryCauseID').chosen();
+                        $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
                     </script>
                     </div>
                 </div>
@@ -181,12 +181,14 @@
                         <%= f.CheckboxTag("Discovery.ReturnHabitat", { unchecked: false, label: "Return To Habitat", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
                     </div>
 
-                    <%= f.SelectTag("entryCauseID", {
+                    <%= f.SelectTag("Discovery.EntryCauseID", {
                         label: "Entry Cause",
                         options: selectEntryCause,
                         required:"required"}) %>
                     <script type="text/javascript">
-                        $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+                        $('select[name="Discovery.EntryCauseID"]').select2({
+                            width: 'resolve' // need to override the changed default
+                        });
                     </script>
 
                     <%= f.TextAreaTag("Discovery.Reason", {label:"Reason", rows: 5, class:"col-md-12"}) %>
