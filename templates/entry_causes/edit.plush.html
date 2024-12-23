@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Edit EntryCause</h3>
+</div>
+
+<%= formFor(entryCause, {action: entryCausePath({ entry_cause_id: entryCause.ID }), method: "PUT"}) { %>
+  <%= partial("entry_causes/form.html") %>
+  <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>

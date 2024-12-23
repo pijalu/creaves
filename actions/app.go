@@ -172,6 +172,7 @@ func App() *buffalo.App {
 		// Hints
 		app.GET("/hint/speciesDetails", HintSpeciesDetails)
 
+		app.Resource("/entry_causes", EntryCausesResource{})
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

@@ -44,6 +44,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createSubsideGroup(c); err != nil {
 			return err
 		}
+		if err := createEntryCause(c); err != nil {
+			return err
+		}
 		return nil
 	})
 

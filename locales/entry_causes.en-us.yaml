@@ -1,0 +1,6 @@
+- id: "entry_cause.created.success"
+  translation: "EntryCause was successfully created."
+- id: "entry_cause.updated.success"
+  translation: "EntryCause was successfully updated."
+- id: "entry_cause.destroyed.success"
+  translation: "EntryCause was successfully destroyed."

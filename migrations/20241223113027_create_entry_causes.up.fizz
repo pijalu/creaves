@@ -1,0 +1,8 @@
+create_table("entry_causes") {
+	t.Column("id", "string", {primary: true})
+	t.Column("cause", "string", {})
+	t.Column("detail", "string", {})
+	t.Column("nature", "string", {})
+	t.Column("indication", "string", {})
+	t.Timestamps()
+}

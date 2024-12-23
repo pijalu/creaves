@@ -1,0 +1,52 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">EntryCause Details</h3>
+
+  <div class="float-end">
+    <%= linkTo(entryCausesPath(), {class: "btn btn-info"}) { %>
+      Back to all EntryCauses
+    <% } %>
+    <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+    <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= entryCause.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Cause</label>
+    <p class="d-inline-block"><%= entryCause.Cause %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Detail</label>
+    <p class="d-inline-block"><%= entryCause.Detail %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Nature</label>
+    <p class="d-inline-block"><%= entryCause.Nature %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Indication</label>
+    <p class="d-inline-block"><%= entryCause.Indication %></p>
+  </li>
+
+
+</ul>

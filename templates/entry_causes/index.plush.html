@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">EntryCauses</h3>
+  <div class="float-end">
+    <%= linkTo(newEntryCausesPath(), {class: "btn btn-primary"}) { %>
+      Create New EntryCause
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID</th><th>Cause</th><th>Detail</th><th>Nature</th><th>Indication</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (entryCause) in entryCauses { %>
+      <tr>
+        <td class="align-middle"><%= entryCause.ID %></td><td class="align-middle"><%= entryCause.Cause %></td><td class="align-middle"><%= entryCause.Detail %></td><td class="align-middle"><%= entryCause.Nature %></td><td class="align-middle"><%= entryCause.Indication %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", body: "View"}) %>
+            <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>
