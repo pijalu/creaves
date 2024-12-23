@@ -1,4 +1,4 @@
-<h3 class="d-inline-block">Cares in need of response</h3>
+<h3 class="d-inline-block">Animals in alert</h3>
 <%= if (len(openCares)>0) {%>
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
@@ -46,14 +46,16 @@
 <br/>
 
 
-<h3 class="d-inline-block">Animal with weight loss</h3>
+<h3 class="d-inline-block">Animals with weight loss</h3>
 <%= if (len(animalsWithWeightLoss)>0) {%>
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>ID</th>
+    <th>Animal</th>
+    <th>Zone</th>
     <th>Cage</th>
     <th>Species</th>
-    <th>Feeding</th>
+    <th>Age</th>
+    <th>Weights</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
@@ -61,6 +63,7 @@
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
         </td>
+        <td class="align-middle"><%= animal.Zone %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle">
           <%
@@ -73,7 +76,8 @@
           %>
           <%= animal.Species %> (<%= gender %>)
         </td>
-        <td class="align-middle"><p><%= animal.Feeding %></p></td>
+        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><p><%= animal.Weights %></p></td>
       </tr>
     <% } %>
   </tbody>
