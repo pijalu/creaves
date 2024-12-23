@@ -16,8 +16,8 @@ WITH ParsedWeights AS (
         date,
         CAST(NULLIF(weight, '') AS DECIMAL(10,0)) AS weight_in_grams
     FROM cares 
-    WHERE date >= DATE_SUB(CURDATE(), INTERVAL 7 day) -- Filter last 7 days
-      AND weight is not null and weight <> "" and (CAST(NULLIF(weight, '') AS DECIMAL(10,2))) is not null
+    WHERE date >= DATE_SUB(CURDATE(), INTERVAL 10 day) -- Filter last 10 days
+      AND weight is not null and weight <> "" and (CAST(NULLIF(weight, '') AS DECIMAL(10,0))) is not null
 ),
 RankedWeights AS (
     SELECT
