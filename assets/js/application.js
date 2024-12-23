@@ -8,6 +8,7 @@ require("flatpickr");
 require('jquery-ujs');
 require('bootstrap-table/dist/bootstrap-table.js');
 require('bootstrap-table/dist/bootstrap-table-locale-all.js');
+require('select2/dist/js/select2.full.js');
 //require('bootstrap-table/dist/extensions/filter-control/bootstrap-table-filter-control.js');
 
 $(() => {
