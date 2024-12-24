@@ -17,6 +17,7 @@ type Outtaketype struct {
 	Name           string       `json:"name" db:"name"`
 	Default        bool         `json:"default" db:"def"`
 	Dead           bool         `json:"dead" db:"dead"`
+	Error          bool         `json:"error" db:"error"`
 	Rating         int          `json:"rating" db:"rating"`
 	Description    nulls.String `json:"description" db:"description"`
 	DiscovererNews nulls.String `json:"discoverer_news" db:"discoverer_news"`

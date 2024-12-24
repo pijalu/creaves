@@ -17,6 +17,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createOuttaketype(c); err != nil {
 			return err
 		}
+		if err := createRequiredOuttaketype(c); err != nil {
+			return err
+		}
 		if err := createCaretype(c); err != nil {
 			return err
 		}

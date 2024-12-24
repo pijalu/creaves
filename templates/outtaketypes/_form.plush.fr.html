@@ -3,8 +3,10 @@
 
 <%= f.SelectTag("Rating", {label:"Type", options: {"Négative": "-1", "Neutre": "0", "Positive": "1"} } ) %>
 
-<%= f.CheckboxTag("Default", {label:"Défault"}) %>
-<%= f.CheckboxTag("Dead", {label:"Cadavre"}) %>
+<%= f.CheckboxTag("Default", {label:"Défault", unchecked: false}) %>
+<%= f.CheckboxTag("Dead", {label:"Cadavre", unchecked: false}) %>
+<%= f.CheckboxTag("Error", {label:"Erreur", unchecked: false}) %>
+
 <%= f.TextAreaTag("DiscovererNews", {label:"Nouvelles découvreur", rows: 10}) %>
 
 <button class="btn btn-success" role="submit">Sauvegarder</button>

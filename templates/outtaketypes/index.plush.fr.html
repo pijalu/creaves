@@ -13,6 +13,7 @@
     <th>description</th>
     <th>Défaut</th>
     <th>Cadavre</th>
+    <th>Erreur</th>
     <th>Type</th>
     <th>&nbsp;</th>
   </thead>
@@ -23,6 +24,7 @@
         <td class="align-middle"><%= outtaketype.Description %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Default) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Dead) %></td>
+        <td class="align-middle"><%= bool2html(outtaketype.Error) %></td>
         <td class="align-middle">
           <%= if (outtaketype.Rating < 0) { %>
             Négative

@@ -1,0 +1,3 @@
+add_column("outtaketypes", "error", "bool", {"default": false})
+
+sql("update outtaketypes set error=true, rating=-1 where name = 'Doublon'")

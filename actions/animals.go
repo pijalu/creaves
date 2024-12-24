@@ -684,17 +684,33 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	// Allocate an empty Animal
-	animal := &models.Animal{}
+	// Load animal
+	animal, err := v.loadAnimal(c.Param("animal_id"), c)
+	if err != nil {
+		return err
+	}
 
-	// To find the Animal the parameter animal_id is used.
-	if err := tx.Eager().Find(animal, c.Param("animal_id")); err != nil {
+	// Find 1st error
+	ot := &models.Outtaketype{}
+	if err := tx.Where("error = ?", true).First(ot); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	if err := tx.Eager().Destroy(animal); err != nil {
+	animal.Outtake = &models.Outtake{
+		Animal: *animal,
+		Date:   models.NowOffset(),
+		Type:   *ot,
+		TypeID: ot.ID,
+	}
+
+	if err := tx.Eager().Create(animal.Outtake); err != nil {
 		return err
 	}
+
+	/*animal.OuttakeID = nulls.NewUUID(animal.Outtake.ID)
+	if err := tx.Eager().Update(animal); err != nil {
+		return err
+	}*/
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
