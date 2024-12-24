@@ -45,7 +45,7 @@ func (e EntryCause) Fmt(withId bool) string {
 	if e.Cause == e.Detail {
 		return fmt.Sprintf("%s%s", prefix, e.Cause)
 	}
-	return fmt.Sprintf("%s%s ➤ %s", prefix, e.Cause, e.Detail)
+	return fmt.Sprintf("%s%s ⇨ %s", prefix, e.Cause, e.Detail)
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
