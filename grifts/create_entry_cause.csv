@@ -1,7 +1,7 @@
 ID,cause,detail,nature,indication,sort_order
 1.1,Indéterminé,Indéterminé,Non identifiée,"déposer devant le centre, pas de découvreur, aucune info",1
 2.1,"Trouvé en un lieu, ou à un moment, ou dans un état inhabituel ","Trouvé en un lieu, ou à un moment, ou dans un état inhabituel ",Cause naturelle ou humaine,"( juvénile, bébé, hérisson en journée, oiseaux au sol, coincé dans un trou naturel, ...)",2
-3.1,"Autres activités humaines ( électrocution, maltraitance, …)  ","Autres activités humaines ( électrocution, maltraitance, …)  ",Activité humaine,"( électrocution, maltraitance, abandonné, piscine, empoisonnement,…)",3
+3.1,"Autres activités humaines ( électrocution, maltraitance, …)  ","Autres activités humaines ( électrocution, maltraitance, …)  ",Activité humaine,"( électrocution, maltraitance, abandonné, piscine, empoisonnement, gardé par le découvreur,…)",3
 4.1,Destruction/Perturbation de l'habitat,"Feu, incendie",Activité humaine,,4
 4.2,Destruction/Perturbation de l'habitat,"Abattage d'arbre, …",Activité humaine,,5
 4.3,Destruction/Perturbation de l'habitat,Travaux ,Activité humaine,,6
@@ -17,11 +17,11 @@ ID,cause,detail,nature,indication,sort_order
 8.3,Collision,"Collision autre ( avion, éolienne, train…)",Activité humaine,"( avion, éolienne, train…)",16
 9.1,"Chasse, Pêche",Tir,Activité humaine,,17
 9.2,"Chasse, Pêche","Hameçons, fil de pêche",Activité humaine,,18
-10.1,Piègeage anti-nuisible,"Piège à colle,",Activité humaine,,19
+10.1,Piègeage anti-nuisible,"Piège à colle",Activité humaine,,19
 10.2,Piègeage anti-nuisible,"Piège physiques ( Nasse, clapet, collet, machoire..)",Activité humaine,,20
-11.1,PREDATION - BAGARRE,Chat,Activité humaine,,21
-11.2,PREDATION - BAGARRE,Chien,Activité humaine,,22
-11.3,PREDATION - BAGARRE,Animal sauvage ,Cause naturelle,Blessures dues à un animal dans l'environnement inter ou intraspécifique,23
-12.1,Circonstances climatiques  ,Circonstances climatiques  ,Cause naturelle,"Froid, chaud, vent, tempête,canicule…",24
-13.1,TRANSFERT,TRANSFERT,Non identifiée,Transfert d'un autre centre ou refuge,25
-14.1,SAISIE,SAISIE,Cause naturelle ou humaine,Animal saisi par une autorité,26
+11.1,Prédation - Bagarre,Chat,Activité humaine,,21
+11.2,Prédation - Bagarre,Chien,Activité humaine,,22
+11.3,Prédation - Bagarre,Animal sauvage ,Cause naturelle,Blessures dues à un animal dans l'environnement inter ou intraspécifique,23
+12.1,Circonstances climatiques,Circonstances climatiques,Cause naturelle,"Froid, chaud, vent, tempête,canicule…",24
+13.1,Transfert,Transfert,Non identifiée,Transfert d'un autre centre ou refuge,25
+14.1,Saisie,Saisie,Cause naturelle ou humaine,Animal saisi par une autorité,26
