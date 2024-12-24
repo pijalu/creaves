@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/gobuffalo/pop/v6"
@@ -34,6 +35,17 @@ type EntryCauses []EntryCause
 func (e EntryCauses) String() string {
 	je, _ := json.Marshal(e)
 	return string(je)
+}
+
+func (e EntryCause) Fmt(withId bool) string {
+	var prefix = ""
+	if withId {
+		prefix = fmt.Sprintf("%s - ", e.ID)
+	}
+	if e.Cause == e.Detail {
+		return fmt.Sprintf("%s%s", prefix, e.Cause)
+	}
+	return fmt.Sprintf("%s%s ➤ %s", prefix, e.Cause, e.Detail)
 }
 
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.

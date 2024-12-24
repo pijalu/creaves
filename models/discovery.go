@@ -19,6 +19,8 @@ type Discovery struct {
 	PostalCode    nulls.String `json:"postal_code" db:"postal_code"`
 	City          nulls.String `json:"city" db:"city"`
 	Date          time.Time    `json:"date" db:"date"`
+	EntryCause    EntryCause   `belongs_to:"entry_cause" json:"entry_cause,omitempty"`
+	EntryCauseID  string       `json:"entry_cause_id" db:"entry_cause_id"`
 	Reason        nulls.String `json:"reason" db:"reason"`
 	Note          nulls.String `json:"note" db:"note"`
 	Discoverer    Discoverer   `belongs_to:"discoverer" json:"discoverer,omitempty"`

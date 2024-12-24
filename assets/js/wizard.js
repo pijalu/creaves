@@ -51,11 +51,10 @@ function setupWizard() {
                 console.log(curInputs[i], "is not valid");
                 isValid = false;
                 console.log("Close:",  $(curInputs[i]).closest(".form-group"));
-                //$(curInputs[i]).closest(".form-group").addClass("invalid");
+                $(curInputs[i]).closest(".form-group").addClass("is-invalid");
                 $(curInputs[i]).addClass("is-invalid").removeClass("is-valid");
             } else {
-                $(curInputs[i]).closest(".form-group").addClass("valid");
-                //console.log(curInputs[i], "is valid");
+                $(curInputs[i]).closest(".form-group").addClass("is-valid");
                 $(curInputs[i]).addClass("is-valid").removeClass("is-invalid");
             }
         }

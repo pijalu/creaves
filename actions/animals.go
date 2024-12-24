@@ -464,6 +464,12 @@ func setupContext(c buffalo.Context) error {
 	}
 	c.Set("selectZone", zonesToSelectables(z))
 
+	ec, err := entryCauses(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectEntryCause", entryCausesToSelectables(ec, false))
+
 	return nil
 }
 

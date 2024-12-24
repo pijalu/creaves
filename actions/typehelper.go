@@ -321,12 +321,15 @@ func entryCauses(c buffalo.Context) (*models.EntryCauses, error) {
 	return ts, nil
 }
 
-func entryCausesToSelectables(ts *models.EntryCauses) form.Selectables {
+func entryCausesToSelectables(ts *models.EntryCauses, withBlank bool) form.Selectables {
 	res := []form.Selectable{}
+	if withBlank {
+		res = append(res, &selType{label: " ", value: ""})
+	}
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: fmt.Sprintf("%s - %s", ts.Cause, ts.Detail),
+			label: ts.Fmt(true),
 			value: ts.ID,
 		})
 	}

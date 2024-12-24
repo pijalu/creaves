@@ -1,0 +1,1 @@
+drop_column("discoveries", "entry_cause_id")

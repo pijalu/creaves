@@ -35,7 +35,7 @@ func ReceptionNew(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectEntryCause", entryCausesToSelectables(ec))
+	c.Set("selectEntryCause", entryCausesToSelectables(ec, true))
 
 	a := &models.Animal{}
 
