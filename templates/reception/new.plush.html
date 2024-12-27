@@ -50,28 +50,25 @@
 
                                 $('input[name="Intake.Parasites"]' ).prop("disabled",multipleAnimals);
                                 $('a[name="Intake.ParasitesBtn"]' ).prop("disabled",multipleAnimals);
-                                if (multipleAnimals) {
-                                    $('a[name="Intake.ParasitesBtn"]' ).addClass("disabled");
-                                } else {
-                                    $('a[name="Intake.ParasitesBtn"]' ).removeClass("disabled");
-                                }
-                            
+                               
                                 $('input[name="Intake.Wounds"]' ).prop("disabled",multipleAnimals);
-                                $('a[name="Intake.WoundsBtn"]' ).prop("disabled",multipleAnimals);
-                                if (multipleAnimals) {
-                                    $('a[name="Intake.WoundsBtn"]' ).addClass("disabled");
-                                } else {
-                                    $('a[name="Intake.WoundsBtn"]' ).removeClass("disabled");
-   
-                                }                                
+                                $('a[name="Intake.WoundsBtn"]' ).prop("disabled",multipleAnimals);                     
 
                                 $('input[name="Intake.Remarks"]' ).prop("disabled",multipleAnimals);
                                 $('a[name="Intake.RemarksBtn"]').prop("disabled",multipleAnimals);
+
                                 if (multipleAnimals) {
+                                    $('a[name="Intake.ParasitesBtn"]' ).addClass("disabled");
+                                    $('a[name="Intake.WoundsBtn"]' ).addClass("disabled");
                                     $('a[name="Intake.RemarksBtn"]' ).addClass("disabled");
+
+                                    $('div[name="Intake.StateDiv"]' ).addClass("d-none");
                                 } else {
+                                    $('a[name="Intake.ParasitesBtn"]' ).removeClass("disabled");
                                     $('a[name="Intake.RemarksBtn"]' ).removeClass("disabled");
-   
+                                    $('a[name="Intake.WoundsBtn"]' ).removeClass("disabled");
+
+                                    $('div[name="Intake.StateDiv"]' ).removeClass("d-none");
                                 }
                             };
                         }());
@@ -426,7 +423,7 @@
                     </script>
                 </div>
 
-                <div class="container p-3 my-3 border">
+                <div class="container p-3 my-3 border" name="Intake.StateDiv">
                 <h4>State</h4>
                 
                 <div class="form-row d-none">

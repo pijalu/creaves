@@ -5,7 +5,7 @@
     <div class="stepwizard-row setup-panel">
         <div class="stepwizard-step">
             <a href="#step-0" type="button" class="btn btn-primary btn-circle">0</a>
-            <p>Step 0: Nombre d'animaux</p>
+            <p>Étape 0: Nombre d'animaux</p>
         </div>
         <div class="stepwizard-step">
             <a href="#step-1" type="button" class="btn btn-default btn-circle disabled" >1</a>
@@ -51,35 +51,32 @@
 
                                 $('input[name="Intake.Parasites"]' ).prop("disabled",multipleAnimals);
                                 $('a[name="Intake.ParasitesBtn"]' ).prop("disabled",multipleAnimals);
-                                if (multipleAnimals) {
-                                    $('a[name="Intake.ParasitesBtn"]' ).addClass("disabled");
-                                } else {
-                                    $('a[name="Intake.ParasitesBtn"]' ).removeClass("disabled");
-                                }
                             
                                 $('input[name="Intake.Wounds"]' ).prop("disabled",multipleAnimals);
                                 $('a[name="Intake.WoundsBtn"]' ).prop("disabled",multipleAnimals);
-                                if (multipleAnimals) {
-                                    $('a[name="Intake.WoundsBtn"]' ).addClass("disabled");
-                                } else {
-                                    $('a[name="Intake.WoundsBtn"]' ).removeClass("disabled");
-   
-                                }                                
 
                                 $('input[name="Intake.Remarks"]' ).prop("disabled",multipleAnimals);
                                 $('a[name="Intake.RemarksBtn"]').prop("disabled",multipleAnimals);
+                                
                                 if (multipleAnimals) {
+                                    $('a[name="Intake.ParasitesBtn"]' ).addClass("disabled");
+                                    $('a[name="Intake.WoundsBtn"]' ).addClass("disabled");
                                     $('a[name="Intake.RemarksBtn"]' ).addClass("disabled");
+
+                                    $('div[name="Intake.StateDiv"]' ).addClass("d-none");
                                 } else {
+                                    $('a[name="Intake.ParasitesBtn"]' ).removeClass("disabled");
                                     $('a[name="Intake.RemarksBtn"]' ).removeClass("disabled");
-   
+                                    $('a[name="Intake.WoundsBtn"]' ).removeClass("disabled");
+
+                                    $('div[name="Intake.StateDiv"]' ).removeClass("d-none");
                                 }
                             };
                         }());
                     </script>
                 </div>
             </div>
-            <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Next</button>
+            <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Suivant</button>
         </div> 
     </div>
 </div>
@@ -152,6 +149,8 @@
                     label: "Age",
                     options: selectAnimalages, 
                     required:"required"}) %>
+                
+                <button class="btn btn-primary prevBtn btn-lg pull-right" type="button" >Précedent</button>
                 <button class="btn btn-primary nextBtn btn-lg pull-right" type="button" >Suivant</button>
         </div>
     </div>
@@ -425,7 +424,7 @@
                     </script>
                 </div>
 
-                <div class="container p-3 my-3 border">
+                <div class="container p-3 my-3 border" name="Intake.StateDiv">
                 <h4>Etat</h4>
 
 
@@ -467,7 +466,7 @@
                     });
                 </script>
 
-                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                <a class="btn btn-primary" name="Intake.WoundsBtn" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
                     l'animal est blessé
                 </a>
                 <div class="collapse" id="Wounds">
@@ -476,7 +475,7 @@
                     </div>
                 </div>
 
-                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                <a class="btn btn-primary" name="Intake.ParasitesBtn" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
                     l'animal est parasité
                 </a>
                 <div class="collapse" id="Parasites">
