@@ -39,7 +39,7 @@ AnimalsInNeed AS (
 	  AND t2.oldest_rank = 1  -- oldest recent weight
 	  AND t1.weight_in_grams IS NOT NULL
 	  AND t2.weight_in_grams IS NOT NULL
-	  AND t1.weight_in_grams < t2.weight_in_grams * 0.9 -- Weight decreased by 10%
+	  AND t1.weight_in_grams <= t2.weight_in_grams * 0.93 -- Weight decreased by 7%
 	  AND a.outtake_id is null)
 SELECT a.*, group_concat(rw.weight_in_grams ORDER by rw.oldest_rank asc SEPARATOR '⇨') AS 'weights'
 	FROM AnimalsInNeed a
