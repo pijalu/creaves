@@ -25,6 +25,10 @@ type Outtake struct {
 	UpdatedAt time.Time    `json:"updated_at" db:"updated_at"`
 }
 
+func (o Outtake) IsSelected(value interface{}) bool {
+	return o.TypeID == value.(uuid.UUID)
+}
+
 // DateFormated returns a formated date
 func (o Outtake) DateFormated() string {
 	return o.Date.Format(DateTimeFormat)

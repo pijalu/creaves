@@ -18,14 +18,18 @@
 <%= for (ot) in selectOuttaketype {%>
     <div class="form-check-inline">
         <label class="form-check-label">
-            <input type="radio" class="form-check-input" name="TypeID" value="<%= ot.SelectValue() %>" required>
+            <input type="radio" class="form-check-input" name="TypeID" value="<%= ot.SelectValue() %>" required 
+            <%= if ( outtake.IsSelected(ot.SelectValue()) ) { %>
+                <%= "checked" %>
+            <% } %>
+            >
             <%= ot.SelectLabel() %>
         </label>
     </div>
 <%}%>
 </div>
 
-<%= f.InputTag("Location") %>
+<%= f.InputTag("Location", {label: "Lieu"}) %>
 <script>
 $('input[name="Location"]').autoComplete({
     minChars: 1,
