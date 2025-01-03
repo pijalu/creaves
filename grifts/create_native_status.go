@@ -19,7 +19,8 @@ func createNativeStatus(c *Context) error {
 		{ID: "NS1", Status: "Indigène", Indication: "L'animal doit être relâché dans son milieu", Freeable: true, Precision: nulls.String{}},
 		{ID: "NS2", Status: "Exotique", Indication: "L'animal est transféré en refuge, Parcs ou centres faune sauvage.", Freeable: false, Precision: nulls.NewString("Doit être transferé dans un parc ou refuge pour les individus nés en captivité et pour les individus nés à l'état sauvage: transfert dans un centre de leurs aires d'indigénat (Art. 5/1 e)")},
 		{ID: "NS3", Status: "Exotique préoccupant", Indication: "L'animal doit être euthanasié.", Freeable: false, Precision: nulls.NewString("Conformément à la législation européenne")},
-		{ID: "NS4", Status: "Domestique", Indication: "L'animal est transféré en refuge, Parcs et particuliers.", Freeable: false, Precision: nulls.NewString("(Art. 5/1 e)")},
+		{ID: "NS4", Status: "Domestique", Indication: "L'animal est transféré en refuge, Parcs ou particuliers.", Freeable: false, Precision: nulls.NewString("(Art. 5/1 e)")},
+                {ID: "NS5", Status: "Exotique / Domestique", Indication: "L'animal est transféré en refuge, Parcs ou particuliers.", Freeable: false, Precision: nulls.NewString("(Art. 5/1 e)")},
 	}
 
 	cnt, err := models.DB.Q().Count(&models.NativeStatus{})

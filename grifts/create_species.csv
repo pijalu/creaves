@@ -22,7 +22,7 @@ SP116,Ciconia ciconia,Cigogne blanche,Aves,Ciconiiformes,Ciconiidés,NS1,Grand �
 SP117,Ciconia nigra,Cigogne noire,Aves,Ciconiiformes,Ciconiidés,NS1,Grand échassier,SG1,0,0
 SP118,Cinclus cinclus,Cincle plongeur,Aves,Passériformes,Cinclidés,NS1,Autre oiseau d'eau,SG2,0,0
 SP119,Circaetus gallicus,Circaète Jean le blanc,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
-SP12,Aix galericulata,Canard mandarin,Aves,Ansériformes,Anatidés,NS2,Anatidé  / grèbe,SG4,0,0
+SP12,Aix galericulata,Canard mandarin,Aves,Ansériformes,Anatidés,NS5,Anatidé  / grèbe,SG4,0,0
 SP120,Circus aeruginosus,Busard des roseaux,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
 SP121,Circus cyaneus,Busard Saint Martin,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
 SP122,Circus macrourus,Busard pâle,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
@@ -35,7 +35,7 @@ SP128,Coccothraustes coccothraustes,Grosbec casse-noyaux,Aves,Passériformes,Fri
 SP129,Coccyzus americanus,Coulicou à bec jaune,Aves,Cuculiformes,Cuculidés,NS1,Autre oiseau,SG2,0,0
 SP13,Alauda arvensis,Alouette des champs,Aves,Passériformes,Alaudidés,NS1,Autre oiseau,SG2,0,0
 SP130,Colinus virginianus,Colin de Virginie,Aves,Galliformes,Phasianidés,NS2,Autre oiseau,SG2,0,0
-SP131,Columba livia var. domestica,Pigeon biset féral,Aves,Columbiformes,Colombidés,NS4,Domestique,SG4,0,0
+SP131,Columba livia,Pigeon biset féral,Aves,Columbiformes,Colombidés,NS1,Autre oiseau,SG2,0,0
 SP132,Columba oenas,Pigeon colombin,Aves,Columbiformes,Colombidés,NS1,Autre oiseau,SG2,0,0
 SP133,Columba palumbus,Pigeon ramier,Aves,Columbiformes,Colombidés,NS1,Autre oiseau,SG2,1,1
 SP134,Coracias garrulus,Rollier d'Europe,Aves,Coraciiformes,Coraciidés,NS1,Autre oiseau,SG2,0,0
@@ -66,7 +66,7 @@ SP156,Egretta garzetta,Aigrette garzette,Aves,Pélécaniformes,Ardeidés,NS1,Gra
 SP157,Elanus caeruleus,Elanion blanc,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
 SP158,Eliomys quercinus,Lérot,Mammalia,Rodentia,Muscardinidés,NS1,Micro-mammifère,SG3,0,0
 SP159,Emberiza aureola,Bruant auréole,Aves,Passériformes,Emberizidés,NS1,Autre oiseau,SG2,0,0
-SP16,Alectoris fufa,Perdrix rouge,Aves,Galliformes,Phasianidés,NS2,Autre oiseau,SG2,0,0
+SP16,Alectoris fufa,Perdrix rouge,Aves,Galliformes,Phasianidés,NS5,Autre oiseau,SG2,0,0
 SP160,Emberiza calandra,Bruant proyer,Aves,Passériformes,Emberizidés,NS1,Autre oiseau,SG2,0,0
 SP161,Emberiza cia,Bruant fou,Aves,Passériformes,Emberizidés,NS1,Autre oiseau,SG2,0,0
 SP162,Emberiza cirlus,Bruant zizi,Aves,Passériformes,Emberizidés,NS1,Autre oiseau,SG2,0,0
@@ -88,7 +88,7 @@ SP176,Falco subbuteo,Faucon hobereau,Aves,Falconiformes,Falconidés,NS1,Rapace,S
 SP177,Falco tinnunculus,Faucon crécerelle,Aves,Falconiformes,Falconidés,NS1,Rapace,SG1,0,0
 SP178,Falco vespertinus,Faucon kobez,Aves,Falconiformes,Falconidés,NS1,Rapace,SG1,0,0
 SP179,Felis catus,Chat haret,Mammalia,Carnivora,Félidés,NS4,Domestique,SG4,1,0
-SP18,Alopochen aegyptiacus,Ouette d'Egypte,Aves,Ansériformes,Anatidés,NS3,Anatidé  / grèbe,SG4,0,0
+SP18,Alopochen aegyptiacus,Ouette d'Egypte,Aves,Ansériformes,Anatidés,NS3,Anatidé  / grèbe,SG1,0,0
 SP180,Felis silvestris,Chat sylvestre,Mammalia,Carnivora,Félidés,NS1,Mammifère taille moyenne,SG3,0,0
 SP181,Ficedula albicollis,Gobemouche à collier,Aves,Passériformes,Muscicapidés,NS1,Autre oiseau,SG2,0,0
 SP182,Ficedula hypoleuca,Gobemouche noir,Aves,Passériformes,Muscicapidés,NS1,Autre oiseau,SG2,0,0
@@ -180,7 +180,7 @@ SP259,Melanocorypha calandra,Alouette calandre,Aves,Passériformes,Alaudidés,NS
 SP26,Anas platyrhynchos domesticus CI,Colvert hybride,Aves,Ansériformes,Anatidés,NS4,Domestique,SG4,0,0
 SP260,Melanocorypha leucoptera,Alouette leucoptère,Aves,Passériformes,Alaudidés,NS1,Autre oiseau,SG2,0,0
 SP261,Meles meles,Blaireau d'Europe,Mammalia,Musteloidea,Mustélidés,NS1,Mustélidé,SG3,0,0
-SP262,Melopsittacus undulatus,Perruche ondulée,Aves,Psittaciformes,Psittaculidée,NS2,Autre oiseau,SG2,0,0
+SP262,Melopsittacus undulatus,Perruche ondulée,Aves,Psittaciformes,Psittaculidée,NS5,Autre oiseau,SG4,0,0
 SP263,Mergus albellus,Harle piette,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP264,Mergus merganser,Harle bièvre,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP265,Mergus serrator,Harle huppé,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
@@ -231,7 +231,7 @@ SP304,Nyctalus leisleri,Noctule,Mammalia,Chiroptera,Verspertilionidés,NS1,Chauv
 SP305,Nyctalus noctula,Noctule commune,Mammalia,Chiroptera,Verspertilionidés,NS1,Chauve-souris,SG2,0,0
 SP306,Nyctereutes procyonoides,Chien viverrin,Mammalia,Carnivora,Canidés,NS3,Mammifère taille moyenne,SG3,0,0
 SP307,Nycticorax nycticorax,Bihoreau gris,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
-SP308,Nymphicus hollandicus,Calopsitte,Aves,Psittaciformes,Psittacidés,NS2,Autre oiseau,SG2,0,0
+SP308,Nymphicus hollandicus,Calopsitte,Aves,Psittaciformes,Psittacidés,NS5,Autre oiseau,SG4,0,0
 SP309,Oceanodroma leucorhoa,Océanite culblanc,Aves,Procellariiformes,Hydrobatidés,NS1,Autre oiseau d'eau,SG1,0,0
 SP31,Anser albifrons,Oie rieuse,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,1,0
 SP310,Oenanthe hispanica,Traquet oreillard,Aves,Passériformes,Muscicapidés,NS1,Autre oiseau,SG2,0,0
@@ -245,11 +245,11 @@ SP317,Otis tarda,Outarde barbue,Aves,Otidiformes,Otididés,NS1,Autre oiseau,SG1,
 SP318,Otus scops,Petit-duc scops,Aves,Strigiformes,Strigidés,NS1,Rapace,SG1,0,0
 SP319,Ovis gmelini musimon x Ovis sp.,Mouflon x Mouton domestique,Mammalia,Artiodactyla,Bovidée,NS2,Ongulé,SG3,1,1
 SP32,Anser anser,Oie cendrée,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,1,0
-SP320,Oxyura jamaicensis,Erismature rousse,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG4,0,0
+SP320,Oxyura jamaicensis,Erismature rousse,Aves,Ansériformes,Anatidés,NS3,Anatidé  / grèbe,SG1,0,0
 SP321,Oxyura leucocephala,Erismature à tête blanche,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP322,Pandion haliaetus,Balbuzard pêcheur,Aves,Accipitriformes,Pandionidés,NS1,Rapace,SG1,0,0
 SP323,Panurus biarmicus,Panure à moustaches,Aves,Passériformes,Panuridés,NS1,Autre oiseau,SG2,0,0
-SP324,Parabuteo unicinctus,Buse de harris,Aves,Accipitriformes,Accipitridés,NS4,Rapace,SG4,0,0
+SP324,Parabuteo unicinctus,Buse de harris,Aves,Accipitriformes,Accipitridés,NS5,Rapace,SG4,0,0
 SP325,Parus ater,Mésange noire,Aves,Passériformes,Paridés,NS1,Autre oiseau,SG2,0,0
 SP326,Parus caeruleus,Mésange bleue,Aves,Passériformes,Paridés,NS1,Autre oiseau,SG2,0,0
 SP327,Parus cristatus,Mésange huppée,Aves,Passériformes,Paridés,NS1,Autre oiseau,SG2,0,0
@@ -380,7 +380,7 @@ SP439,Tetrao urogallus,Grand Tétras,Aves,Galliformes,Phasianidés,NS1,Autre ois
 SP44,Apus apus,Martinet noir,Aves,Apodiformes,Apodidés,NS1,Autre oiseau,SG2,0,0
 SP440,Tetrax tetrax,Outarde canepetière,Aves,Otidiformes,Otididés,NS1,Autre oiseau,SG1,0,0
 SP441,Tichodroma muraria,Tichodrome échelette,Aves,Passériformes,Tichodromidés,NS1,Autre oiseau,SG2,0,0
-SP442,Tortues aquatiques,Tortue aquatique,Reptilia,Testudines,Emydidae,NS2,Reptile,SG2,0,0
+SP442,Tortue aquatique,Tortue aquatique,Reptilia,Testudines,Emydidae,NS2,Reptile,SG2,0,0
 SP443,Trachemys scripta,Tortue de Floride,Reptilia,Testudines,Emydidae,NS3,Reptile,SG2,0,0
 SP444,Tringa cinerea,Chevalier bargette,Aves,Charadriiformes,Scolopacidés,NS1,Limicole,SG1,0,0
 SP445,Tringa erythropus,Chevalier arlequin,Aves,Charadriiformes,Scolopacidés,NS1,Limicole,SG1,0,0
@@ -417,16 +417,15 @@ SP472,Zootoca vivipara,Lézard vivipare,Reptilia,Squamata,Lacertidae,NS1,Reptile
 SP473,Acanthis cabaret,Sizerin cabaret,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP474,Anas,Canard semi-domestique,Aves,Ansériformes,Anatidés,NS4,Domestique,SG4,0,0
 SP475,Anser indicus,Oie à tête barrée,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
-SP476,Atelerix albiventris,Hérisson à ventre blanc,Mammalia,Érinaceomorphes,Érinacéidés,NS2,Domestique,SG3,0,0
-SP477,Balearica regulorum,Grue royale,Aves,Gruiformes,Gruidés,NS2,Domestique,SG2,0,0
+SP476,Atelerix albiventris,Hérisson à ventre blanc,Mammalia,Érinaceomorphes,Érinacéidés,NS5,Micro-mammifère,SG4,0,0
+SP477,Balearica regulorum,Grue royale,Aves,Gruiformes,Gruidés,NS5,Autre oiseau d'eau,SG4,0,0
 SP478,Coturnix japonica,Caille du Japon,Aves,Galliformes,Phasianidés,NS4,Domestique,SG4,0,0
-SP479,Emys,Cistude,Reptilia,Testudines,Emydidés,NS2,Domestique,SG2,0,0
+SP479,Emys,Cistude,Reptilia,Testudines,Emydidés,NS5,Reptile,SG4,0,0
 SP48,Aquila pomarina,Aigle pomarin,Aves,Accipitriformes,Accipitridés,NS1,Rapace,SG1,0,0
-SP480,Pavo,Paon,Aves,Galliformes,Phasianidés,NS2,Domestique,SG2,0,0
-SP481,Pyrrhula pyrrhula pyrrhula,Bouvreuil ponceau,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
-SP483,Testudinidae,Tortue terrestre,Reptilia,Testudines,Testudinidés,NS2,Domestique,SG2,0,0
-SP484,Testudo hermanni,Tortue d'Hermann,Reptilia,Testudines,Testudinidés,NS2,Domestique,SG2,0,0
-SP485,Tortue aquatique,Tortue aquatique,Reptilia,Testudines,Emydidés,NS2,Domestique,SG2,0,0
+SP480,Pavo,Paon,Aves,Galliformes,Phasianidés,NS4,Autre oiseau,SG4,0,0
+SP481,Pyrrhula pyrrhula pyrrhula,Bouvreuil ponceau,Aves,Passériformes,Fringillidés,NS4,Autre oiseau,SG4,0,0
+SP483,Testudinidae,Tortue terrestre,Reptilia,Testudines,Testudinidés,NS2,Reptile,SG4,0,0
+SP484,Testudo hermanni,Tortue d'Hermann,Reptilia,Testudines,Testudinidés,NS5,Reptile,SG4,0,0
 SP49,Ardea alba,Grande Aigrette,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
 SP5,Acrocephalus paludicola,Phragmite aquatique,Aves,Passériformes,Acrocéphalidés,NS1,Autre oiseau,SG2,0,0
 SP50,Ardea cinerea,Héron cendré,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
@@ -483,3 +482,4 @@ SP96,Carduelis cannabina,Linotte mélodieuse,Aves,Passériformes,Fringillidés,N
 SP97,Carduelis carduelis,Chardonneret élégant,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP98,Carduelis chloris,Verdier d'Europe,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP99,Carduelis flammea,Sizerin flammé,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
+SP487,Columba livia var. domestica,Pigeon domestique,Aves,Columbiformes,Colombidés,NS4,Domestique,SG4,0,0
