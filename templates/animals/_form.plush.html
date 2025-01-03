@@ -804,6 +804,11 @@ $( document ).ready(function(){
   <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
     <div class="form-row">
         <div class="form-group col-md-12">
+            <%= if (current_user.Admin) {%>
+              <div class="float-right">
+                <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Delete outtake", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+              </div>
+            <% } %>
             <label>Date</label>
             <div class="input-group md-12">
                 <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= animal.Outtake.DateFormated() %>"

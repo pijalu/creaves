@@ -560,6 +560,11 @@
   <div class="tab-pane fade" id="nav-outtake" role="tabpanel" aria-labelledby="nav-outtake-tab">
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
+        <%= if (current_user.Admin) {%>
+          <div class="float-right">
+            <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire la sortie", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        <% } %>
         <label class="small d-block">Date</label>
         <p class="d-inline-block"><%= animal.Outtake.DateFormated() %></p>
       </li>
