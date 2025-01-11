@@ -27,7 +27,7 @@ queries:
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN species AS s ON s.creaves_species = a.species
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            Where s.subside_group IN("SG1","SG2","SG3")
+            Where s.subside_group IN("SG1","SG2","SG3") AND oo.error = 0 OR oo.error IS NULL
             ORDER BY a.id desc;
   
  - name: Annexe_2B_2024
@@ -43,7 +43,9 @@ queries:
             From animals AS a
             INNER JOIN species AS s ON a.species = creaves_species
             INNER JOIN intakes AS i ON a.intake_id = i.id
-            WHERE s.subside_group IN ("SG1","SG2","SG3")
+            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
+            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
+            WHERE s.subside_group IN ("SG1","SG2","SG3") AND oo.error = 0 OR oo.error IS NULL
             GROUP BY 1, 2
             ORDER BY 1 DESC;
 
@@ -52,7 +54,6 @@ queries:
    query: SELECT distinct
             a.year AS "année",
             CASE
-            WHEN s.creaves_species="Hérisson" THEN "Hérissons"
             WHEN s.class="Aves" THEN "Oiseaux"
             WHEN s.order="Artiodactyla" THEN "Mammifères non volants"
             WHEN s.order="Carnivora" THEN "Mammifères non volants"
