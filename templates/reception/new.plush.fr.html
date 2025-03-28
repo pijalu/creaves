@@ -29,7 +29,11 @@
             <div class="container p-3 my-3 border">
                 <label>Nombre d'individus dans cette entrée</label>
                 <div class="input-group md-12">
-                    <input class="form-control" id="animalcount" name="AnimalCount" required="required" type="number" value="1" min="1" max="15"/>
+                    <input class="form-control" id="animalcount" name="AnimalCount" required="required" type="number" value="1" min="1" 
+                    <%= if (!current_user.Admin) {%>
+                    max="15"
+                    <% } %>
+                    />
                     <script type="text/javascript">
                         console.log("Doing stuff on ", $('#animalcount'));
                         $('#animalcount').on("change", function(){
