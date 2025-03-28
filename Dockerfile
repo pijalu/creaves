@@ -1,6 +1,6 @@
 # This is a multi-stage Dockerfile and requires >= Docker 17.05
 # https://docs.docker.com/engine/userguide/eng-image/multistage-build/
-FROM gobuffalo/buffalo:v0.18.9 as builder
+FROM gobuffalo/buffalo:v0.18.9 AS builder
 
 ENV GOPROXY http://proxy.golang.org
 
@@ -34,10 +34,10 @@ WORKDIR /bin/
 COPY --from=builder /bin/app .
 COPY dockerscript/* /bin/
 
-ENV GO_ENV=production
+ENV GO_ENV production
 
 # Bind the app to 0.0.0.0 so it can be seen from outside the container
-ENV ADDR=0.0.0.0
+ENV ADDR 0.0.0.0
 
 EXPOSE 3000
 
