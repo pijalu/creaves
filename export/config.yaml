@@ -91,6 +91,7 @@ queries:
            if((a.species) = (s.creaves_species), "", "NON CONNUE") AS "Check",
            ta.name AS "Type",
            a.cage AS  "cage",
+           a.zone AS " zone",
            a.ring AS "Identification",
            a.gender AS "Genre",
            aa.name AS "Age",
@@ -101,27 +102,41 @@ queries:
            i.wounds AS "Bléssures",
            i.parasites AS "Parasites",
            i.remarks AS "Remarque d'entrée",
-           d.city AS "Ville",
-           d.postal_code AS "Code postal",
-           d.location AS "lieux de découverte",
-           ec.cause AS "Cause d'entrée",
+           d.city AS "Ville de découverte",
+           d.postal_code AS "Code postal de découverte",
+           d.location AS "lieux / Adresse de découverte",
+           ec.id AS "Numéro Cause de découverte",
+           ec.cause AS "Cause de découverte principale",
+           ec.detail AS "Cause de découverte détaillée",
+           ec.nature AS "Nature de la cause d'entrée",
            d.reason As "Détails découverte",
+           CASE
+           WHEN d.in_garden=0 THEN "Non"
+           WHEN d.in_garden=1 THEN "Oui"
+           END AS "A l'adresse du découvreur",
            DATE_FORMAT(d.date, "%d/%m/%Y") AS "Date de découverte",
            DATE_FORMAT(d.date, "%H:%i") AS "Heure de découverte",
            d.note AS "Note sur la découverte",
            DATE_FORMAT(o.date, "%d/%m/%Y") AS "Date de sortie",
            DATE_FORMAT(o.date, "%H:%i") AS "Heure de sortie",
+           DATEDIFF (o.date, i.date) + 1 AS "séjour", 
            oo.name AS "Raison de la sortie",
            o.location AS "Lieux de relacher",
            o.note As "Note sur la sortie",
-           DATEDIFF (o.date, i.date) + 1 AS "séjour",
+           DATEDIFF (o.date, i.date) + 1 AS "séjour", 
            di.firstname AS "Prénom",
            di.lastname AS "Nom",
            di.address AS "Adresse",
+           di.postal_code AS "Code postal",
            di.city AS "Ville",
            di.country AS "Pays",
+           di.email AS "E mail",
+           di.phone AS "Téléphone",
+           CASE
+           WHEN di.return_request=0 THEN "Non"
+           WHEN di.return_request=1 THEN "Oui"
+           END AS "Rendre au découvreur",
            di.note AS "Note",
-           DATEDIFF (o.date, i.date) + 1 AS "séjour", 
            count(distinct vv.id) AS 'Nombre visite VT',
            sum(t.distance) AS "KM parcouru pour l'animal"
            FROM animals AS a
@@ -146,18 +161,17 @@ queries:
             a.year AS "année",
             a.yearNumber AS "N°",
             a.species AS "Espèce", 
-            a.ring AS "Identification",
-            d.city AS "Ville découverte",
-            d.postal_code AS "Code postal découverte",
-            d.location AS "lieux de découverte",
+            a.ring AS "Identification", 
             DATE_FORMAT(i.date, "%d/%m/%Y") AS "Date d'entrée",
             DATE_FORMAT(i.date, "%H:%i") AS "Heure d'entrée", 
-            ec.cause AS "Cause d'entrée",
-            d.reason As "Détails découverte",
+            d.location AS "Lieux / Adresse de découverte",
+            d.postal_code AS "Code postal découverte",
+            d.city AS "Ville découverte",
+            concat(ec.id," - ",ec.cause," - ",ec.detail) AS "Cause de découverte",
             oo.name AS "Raison de la sortie",
             DATE_FORMAT(o.date, "%d/%m/%Y") AS "Date de sortie",
             DATE_FORMAT(o.date, "%H:%i") AS "Heure de sortie",
-            o.location AS "Lieux de relacher"
+            o.location AS "Lieux de la sortie"
             FROM animals AS a
             INNER JOIN intakes AS i ON a.intake_id = i.id
             INNER JOIN discoveries AS d ON a.discovery_id = d.id
@@ -169,7 +183,7 @@ queries:
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
             WHERE oo.error = 0 OR oo.error IS NULL
             GROUP BY a.id
-            ORDER BY 1 DESC, 2 ASC;
+            ORDER BY 1 DESC, 2 ASC;    
             
  - name: dead_register
    description: Registre des cadavres
