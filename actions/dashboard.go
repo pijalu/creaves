@@ -13,24 +13,40 @@ import (
 
 // SQL_CARES_IN_WARNING lists all cares in warning
 const SQL_CARES_IN_WARNING = `
-select c.*, a.year, a.yearNumber
-from cares c, animals a
-where  c.type_id in (
-	  select id from caretypes where warning = true
- )
- and c.date in (
-     select max(c2.date)
-     from cares c2
-     where c2.animal_id = c.animal_id
-       and c2.type_id in (
-            select id from caretypes where reset_warning is true or warning = true
-       )
-    )
- and c.animal_id in (
-	 select id from animals where outtake_id is null
- )
- and c.animal_id = a.id
- order by c.date desc
+SELECT
+  c.*,
+  a.year,
+  a.yearNumber
+FROM
+  cares c
+JOIN
+  animals a ON c.animal_id = a.id
+JOIN
+  caretypes ct_warning ON c.type_id = ct_warning.id AND ct_warning.warning = TRUE
+JOIN
+  (
+    SELECT
+      animal_id,
+      MAX(date) AS last_care_date
+    FROM
+      cares
+    WHERE
+      type_id IN (
+        SELECT
+          id
+        FROM
+          caretypes
+        WHERE
+          reset_warning = TRUE OR warning = TRUE
+      )
+    GROUP BY
+      animal_id
+  ) AS last_cares ON c.animal_id = last_cares.animal_id AND c.date = last_cares.last_care_date
+WHERE
+  a.outtake_id IS NULL
+  AND c.type_id IN (SELECT id FROM caretypes WHERE warning = TRUE)
+ORDER BY
+  c.date DESC
 `
 
 // SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
