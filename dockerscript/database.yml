@@ -1,0 +1,13 @@
+---
+development:
+  dialect: "mysql"
+  url: "mysql://creaves:creaves@(localhost:3306)/creaves?parseTime=true&multiStatements=true&readTimeout=3s"
+
+test:
+  dialect: "mysql"
+  url: "mysql://creaves:creaves@(localhost:3306)/creaves?parseTime=true&multiStatements=true&readTimeout=3s"
+
+production:
+  dialect: "mysql"
+  url: {{envOr "DATABASE_URL" "mysql://creaves:creaves@(localhost:3306)/creaves?parseTime=true&multiStatements=true&readTimeout=3s"}}
+ 

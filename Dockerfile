@@ -1,15 +1,17 @@
 # This is a multi-stage Dockerfile and requires >= Docker 17.05
 # https://docs.docker.com/engine/userguide/eng-image/multistage-build/
-FROM gobuffalo/buffalo:v0.18.9 AS builder
+FROM golang AS builder
 
 ENV GOPROXY http://proxy.golang.org
-
+RUN go install github.com/gobuffalo/cli/cmd/buffalo@latest
+RUN apt-get update && apt-get install -y npm
+RUN npm install -g yarn
 RUN mkdir -p /src/creaves
 WORKDIR /src/creaves
 
 # this will cache the npm install step, unless package.json changes
 ADD package.json .
-ADD yarn.lock ./
+RUN npm install
 RUN yarn install
 # Copy the Go Modules manifests
 COPY go.mod go.mod
@@ -19,6 +21,7 @@ COPY go.sum go.sum
 RUN go mod download
 
 ADD . .
+RUN buffalo plugins install
 RUN buffalo build --environment production --static -o /bin/app
 
 FROM alpine
