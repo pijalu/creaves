@@ -139,6 +139,30 @@ var feedingTests = []struct {
 		currentTime:      "2024-08-24 07:30",
 		expectedResult:   "2024-08-24 08:00", // First meal of the day
 	},
+	{
+		startTime:        "18:00",
+		endTime:          "18:00",
+		mealFrequency:    "240",
+		previousMealTime: "2024-08-23 18:00",
+		currentTime:      "2024-08-24 23:30",
+		expectedResult:   "2024-08-24 18:00",
+	},
+	{
+		startTime:        "18:00",
+		endTime:          "18:00",
+		mealFrequency:    "240",
+		previousMealTime: "2024-08-23 18:00",
+		currentTime:      "2024-08-25 00:01",
+		expectedResult:   "2024-08-24 18:00",
+	},
+	{
+		startTime:        "18:00",
+		endTime:          "18:00",
+		mealFrequency:    "240",
+		previousMealTime: "2024-08-23 18:00",
+		currentTime:      "2024-08-26 17:45",
+		expectedResult:   "2024-08-26 18:00",
+	},
 }
 
 func TestCalculateFeeding(t *testing.T) {

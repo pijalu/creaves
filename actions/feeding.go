@@ -90,6 +90,9 @@ func (t FeedingByZoneMap) OrderedKeys() []models.AnimalViewKey {
 }
 
 func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
+	// Debug log for input parameters
+	//log.Printf("calculateFeeding called with: %+v, now: %v", af, now)
+
 	lowNearLimit := now.Add(-1 * NEARTIMELIMIT)
 	highNearLimit := now.Add(1 * NEARTIMELIMIT)
 
@@ -99,6 +102,9 @@ func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 	if af.FeedingEnd.Before(af.FeedingStart) {
 		af.FeedingEnd = af.FeedingEnd.Add(24 * time.Hour)
 	}
+
+	// Debug log after adjusting feeding start/end times
+	//log.Printf("After adjusting feeding times - Start: %v, End: %v", af.FeedingStart, af.FeedingEnd)
 
 	startTime := af.FeedingStart
 	if af.LastFeeding.Valid {
@@ -114,13 +120,30 @@ func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 		if startTime.After(heuristicEndtime) || startTime.Equal(heuristicEndtime) {
 			startTime = af.FeedingStart.Add(24 * time.Hour)
 		} else if startTime.Before(previousStarttime) {
-			startTime = af.FeedingStart
+			// Check if the last feeding was less than 24 hours ago
+			if now.Sub(af.LastFeeding.Time) <= 24*time.Hour {
+				// If less than 24 hours ago, show previous day's feeding
+				startTime = af.FeedingStart.Add(-24 * time.Hour)
+			} else {
+				// If more than 24 hours ago, check if current time is close to feeding time
+				feedingTimeToday := af.FeedingStart
+				if now.Add(HIGHTIMELIMIT).After(feedingTimeToday) && now.Before(feedingTimeToday.Add(HIGHTIMELIMIT)) {
+					// Current time is close to feeding time, show current day's feeding
+					startTime = feedingTimeToday
+				} else {
+					// Current time is not close to feeding time, show previous day's feeding
+					startTime = af.FeedingStart.Add(-24 * time.Hour)
+				}
+			}
 		} else if startTime.Before(heuristicStarttime) && (startTime.After(previousEndtime) || startTime.Equal(previousEndtime)) {
 			startTime = af.FeedingStart
 		} else {
 			startTime = startTime.Add(time.Minute * time.Duration(af.FeedingPeriod))
 		}
 	}
+
+	// Debug log after calculating startTime
+	//log.Printf("Calculated startTime: %v", startTime)
 
 	// not in the future
 	if startTime.Before(now.Add(HIGHTIMELIMIT)) {
@@ -137,9 +160,18 @@ func calculateFeeding(af AnimalFeeding, now time.Time) AnimalFeeding {
 		} else {
 			af.NextFeedingCode = 3
 		}
+
+		// Debug log after calculating NextFeeding and NextFeedingCode
+		//log.Printf("Calculated NextFeeding: %v, NextFeedingCode: %d", af.NextFeeding, af.NextFeedingCode)
 	} else {
 		af.NextFeeding = nulls.Time{}
+
+		// Debug log when NextFeeding is not set
+		//log.Printf("NextFeeding not set as startTime is in the future")
 	}
+
+	// Debug log before returning the result
+	//log.Printf("calculateFeeding returning: %+v", af)
 
 	return af
 }
