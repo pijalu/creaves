@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile
+    ports:
+      - "80:3000"
+    volumes:
+      - ./database.yml:/bin/database.yml
+      - ./start.sh:/bin/start.sh
+    command: /bin/start.sh
+    depends_on:
+      - db
+    environment:
+      - GO_ENV=development
+
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: creaves
+      MYSQL_USER: creaves
+      MYSQL_PASSWORD: creaves
+    volumes:
+      - ./db_data:/var/lib/mysql
