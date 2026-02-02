@@ -1,4 +1,4 @@
 #!/bin/sh
-IMG=muaddib/creaves
+IMG=muaddib/creaves-perf
 
 docker buildx build --platform linux/amd64,linux/arm64 --push -t $IMG .

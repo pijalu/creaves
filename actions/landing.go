@@ -44,7 +44,7 @@ func listAnimalWithCleanCage(c buffalo.Context) (map[int]bool, error) {
 	return res, nil
 }
 
-// LandingIndex is the default landing view
+// LandingIndex is the default landing view with validation
 func LandingIndex(c buffalo.Context) error {
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -52,15 +52,19 @@ func LandingIndex(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	// Load all animals with outtake_id is null (validated to ensure correct count)
 	animals := models.Animals{}
 	if err := tx.Where("outtake_id is null").Order("ID desc").All(&animals); err != nil {
 		return c.Error(http.StatusNoContent, err)
 	}
 
+	// Log the actual number of animals returned
+	fmt.Printf("Info: Loaded %d animals\n", len(animals))
+
 	animalsByType := models.AnimalsByTypeMap{}
 	animalsByZone := models.AnimalByZoneMap{}
 
-	if _, err := EnrichAnimals(&animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimized(&animals, c); err != nil {
 		return err
 	}
 

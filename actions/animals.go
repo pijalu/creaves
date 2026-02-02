@@ -33,7 +33,171 @@ type AnimalsResource struct {
 	buffalo.Resource
 }
 
+// EnrichAnimalsOptimized loads dependencies of animal records more efficiently using bulk queries
+func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Animals, error) {
+	// If nothing to enrich, don't preload
+	if len(*a) == 0 {
+		return a, nil
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	// Get all IDs to fetch in bulk
+	animalIds := make([]string, len(*a))
+	animalTypeIds := make([]uuid.UUID, 0, len(*a))
+	animalAgeIds := make([]uuid.UUID, 0, len(*a))
+	discoveryIds := make([]uuid.UUID, 0, len(*a))
+	intakeIds := make([]uuid.UUID, 0, len(*a))
+	outtakeIds := make([]uuid.UUID, 0, len(*a))
+
+	for i, animal := range *a {
+		animalIds[i] = fmt.Sprintf("%d", animal.ID)
+
+		// Collect unique IDs for bulk fetching
+		if !containsUUID(animalTypeIds, animal.AnimaltypeID) {
+			animalTypeIds = append(animalTypeIds, animal.AnimaltypeID)
+		}
+		if !containsUUID(animalAgeIds, animal.AnimalageID) {
+			animalAgeIds = append(animalAgeIds, animal.AnimalageID)
+		}
+		if !containsUUID(discoveryIds, animal.DiscoveryID) {
+			discoveryIds = append(discoveryIds, animal.DiscoveryID)
+		}
+		if !containsUUID(intakeIds, animal.IntakeID) {
+			intakeIds = append(intakeIds, animal.IntakeID)
+		}
+		if animal.OuttakeID.Valid {
+			if !containsUUID(outtakeIds, animal.OuttakeID.UUID) {
+				outtakeIds = append(outtakeIds, animal.OuttakeID.UUID)
+			}
+		}
+	}
+
+	// Bulk fetch all related data
+	animalTypes := make(map[uuid.UUID]models.Animaltype)
+	if len(animalTypeIds) > 0 {
+		var ats models.Animaltypes
+		if err := tx.Where("id IN (?)", animalTypeIds).All(&ats); err != nil {
+			return nil, err
+		}
+		for _, at := range ats {
+			animalTypes[at.ID] = at
+		}
+	}
+
+	animalAges := make(map[uuid.UUID]models.Animalage)
+	if len(animalAgeIds) > 0 {
+		var ags models.Animalages
+		if err := tx.Where("id IN (?)", animalAgeIds).All(&ags); err != nil {
+			return nil, err
+		}
+		for _, ag := range ags {
+			animalAges[ag.ID] = ag
+		}
+	}
+
+	discoveries := make(map[uuid.UUID]models.Discovery)
+	if len(discoveryIds) > 0 {
+		var dts models.Discoveries
+		if err := tx.Where("id IN (?)", discoveryIds).All(&dts); err != nil {
+			return nil, err
+		}
+		for _, dt := range dts {
+			discoveries[dt.ID] = dt
+		}
+	}
+
+	intakes := make(map[uuid.UUID]models.Intake)
+	if len(intakeIds) > 0 {
+		var its models.Intakes
+		if err := tx.Where("id IN (?)", intakeIds).All(&its); err != nil {
+			return nil, err
+		}
+		for _, it := range its {
+			intakes[it.ID] = it
+		}
+	}
+
+	outtakes := make(map[uuid.UUID]models.Outtake)
+	outtakeTypes := make(map[uuid.UUID]models.Outtaketype)
+	if len(outtakeIds) > 0 {
+		var ots models.Outtakes
+		if err := tx.Where("id IN (?)", outtakeIds).All(&ots); err != nil {
+			return nil, err
+		}
+		for _, ot := range ots {
+			outtakes[ot.ID] = ot
+		}
+
+		// Also fetch outtake types
+		outtakeTypeIds := make([]uuid.UUID, 0, len(ots))
+		for _, ot := range ots {
+			if !containsUUID(outtakeTypeIds, ot.TypeID) {
+				outtakeTypeIds = append(outtakeTypeIds, ot.TypeID)
+			}
+		}
+		if len(outtakeTypeIds) > 0 {
+			var otTypes models.Outtaketypes
+			if err := tx.Where("id IN (?)", outtakeTypeIds).All(&otTypes); err != nil {
+				return nil, err
+			}
+			for _, ott := range otTypes {
+				outtakeTypes[ott.ID] = ott
+			}
+		}
+	}
+
+	// Fetch today's treatments for all animals in one query
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tmrDt := nowDt.AddDate(0, 0, 1)
+
+	treatments := make(map[int]models.Treatments)
+	if len(animalIds) > 0 {
+		var allTreatments models.Treatments
+		query := fmt.Sprintf("animal_id IN (%s)", strings.Join(animalIds, ","))
+		if err := tx.Where(query).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
+			return nil, err
+		}
+		// Group treatments by animal ID
+		for _, t := range allTreatments {
+			treatments[t.AnimalID] = append(treatments[t.AnimalID], t)
+		}
+	}
+
+	// Populate all animals with the fetched data
+	for i := range *a {
+		(*a)[i].Animaltype = animalTypes[(*a)[i].AnimaltypeID]
+		(*a)[i].Animalage = animalAges[(*a)[i].AnimalageID]
+		(*a)[i].Discovery = discoveries[(*a)[i].DiscoveryID]
+		(*a)[i].Intake = intakes[(*a)[i].IntakeID]
+		(*a)[i].Treatments = treatments[(*a)[i].ID]
+
+		if (*a)[i].OuttakeID.Valid {
+			outtake := outtakes[(*a)[i].OuttakeID.UUID]
+			outtake.Type = outtakeTypes[outtake.TypeID]
+			(*a)[i].Outtake = &outtake
+		}
+	}
+
+	return a, nil
+}
+
+// Helper function to check if UUID slice contains a UUID
+func containsUUID(slice []uuid.UUID, id uuid.UUID) bool {
+	for _, v := range slice {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
 // EnrichAnimals load deps of an animal record required for general listings
+// This is the original function kept for compatibility
 func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error) {
 	// If nothing to enrich, don't preload
 	if len(*a) == 0 {

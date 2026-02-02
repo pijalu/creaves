@@ -1,0 +1,8 @@
+add_index("caretypes", ["warning"], {})
+add_index("logentries", ["updated_at"], {})
+add_index("cares", ["date"], {})
+add_index("cares", ["date", "type_id", "animal_id"], {})
+add_index("cares", ["animal_id", "date"], {})
+add_index("treatments", ["date"], {})
+add_index("treatments", ["date", "animal_id"], {})
+add_index("treatments", ["animal_id", "timebitmap", "timedonebitmap"], {})

@@ -1,0 +1,8 @@
+drop_index("caretypes", "caretypes_warning_idx")
+drop_index("logentries", "logentries_updated_at_idx")
+drop_index("cares", "cares_date_idx")
+drop_index("cares", "cares_date_type_id_animal_id_idx")
+drop_index("cares", "cares_animal_id_date_idx")
+drop_index("treatments", "treatments_date_idx")
+drop_index("treatments", "treatments_date_animal_id_idx")
+drop_index("treatments", "treatments_animal_id_timebitmap_timedonebitmap_idx")

@@ -347,6 +347,11 @@ func (v CaresResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Invalidate the weight loss cache if a weight was added/updated
+	if care.Weight.Valid && len(care.Weight.String) > 0 {
+		InvalidateWeightLossCache()
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "care.created.success"))
@@ -440,6 +445,11 @@ func (v CaresResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Invalidate the weight loss cache if a weight was added/updated
+	if care.Weight.Valid && len(care.Weight.String) > 0 {
+		InvalidateWeightLossCache()
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "care.updated.success"))
@@ -479,6 +489,11 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 
 	if err := tx.Destroy(care); err != nil {
 		return err
+	}
+
+	// Invalidate the weight loss cache if a weight was removed
+	if care.Weight.Valid && len(care.Weight.String) > 0 {
+		InvalidateWeightLossCache()
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
