@@ -26,4 +26,8 @@ generated/
 .vendor/
 
 db
+<<<<<<< HEAD
 test/db_data
+=======
+test
+>>>>>>> a928d75 (Performance updates)

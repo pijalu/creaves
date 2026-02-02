@@ -59,24 +59,24 @@ GROUP BY at.name
 ORDER by at.name
 `
 
-// SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal with care per type
+// SQL_ANIMAL_WITH_TODAY_TREATMENTS returns the animals with today treatments
 const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
-SELECT a.* 
-FROM animals a 
+SELECT a.*
+FROM animals a
 WHERE EXISTS(
-	SELECT * 
-	FROM treatments t 
+	SELECT *
+	FROM treatments t
 	WHERE t.animal_id = a.id
 	  AND t.timebitmap <> t.timedonebitmap
-	  AND t.date >= ? 
-	  AND t.date < ?) 
+	  AND t.date >= ?
+	  AND t.date < ?)
 `
 
 // SQL_ANIMAL_TOBE_FORCEFEED returns the animals than need force feeding
 const SQL_ANIMAL_TOBE_FORCEFEED = `
-SELECT a.* 
+SELECT a.*
 FROM animals a
-WHERE outtake_id is null 
+WHERE outtake_id is null
  AND force_feed is true
 `
 
@@ -87,7 +87,7 @@ func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	}
 
 	cares := []models.CareWithAnimalNumber{}
-	// Retrieve all Cares from the DB
+	// Retrieve all Cares from the DB with optimized query
 	if err := tx.RawQuery(SQL_CARES_IN_WARNING).All(&cares); err != nil {
 		return nil, err
 	}
@@ -111,11 +111,11 @@ func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	// Retrieve all animals with today treatments from the DB
+	// Retrieve all animals with today treatments from the DB with optimized query
 	if err := tx.RawQuery(SQL_ANIMAL_WITH_TODAY_TREATMENTS, nowDt, tmrDt).All(animals); err != nil {
 		return nil, err
 	}
-	return EnrichAnimals(animals, c)
+	return EnrichAnimalsOptimized(animals, c)
 }
 
 func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
@@ -126,11 +126,11 @@ func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	// Retrieve all animals with today treatments from the DB
+	// Retrieve all animals with force feed requirement from the DB with optimized query
 	if err := tx.RawQuery(SQL_ANIMAL_TOBE_FORCEFEED).All(animals); err != nil {
 		return nil, err
 	}
-	return EnrichAnimals(animals, c)
+	return EnrichAnimalsOptimized(animals, c)
 }
 
 type listAnimalCountPerTypeReply struct {
@@ -145,8 +145,8 @@ func listAnimalCountPerType(c buffalo.Context) ([]listAnimalCountPerTypeReply, e
 	}
 
 	ct := []listAnimalCountPerTypeReply{}
-	// Retrieve all Cares from the DB
-	if err := tx.Eager().RawQuery(SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE).All(&ct); err != nil {
+	// Retrieve all animal counts per type with optimized query
+	if err := tx.RawQuery(SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE).All(&ct); err != nil {
 		return nil, err
 	}
 
@@ -161,21 +161,23 @@ func listLast24hLogEntries(c buffalo.Context) (models.Logentries, error) {
 
 	logentries := models.Logentries{}
 
-	// Retrieve all Logentries from the DB
+	// Retrieve all Logentries from the DB with optimized query
 	yesterday := time.Now().AddDate(0, 0, -1)
-	if err := tx.Eager().Where("updated_at >= ?", yesterday).All(&logentries); err != nil {
+	if err := tx.Where("updated_at >= ?", yesterday).Order("updated_at DESC").All(&logentries); err != nil {
 		return nil, err
 	}
 
 	return logentries, nil
 }
 
-// DashboardIndex default implementation.
+// DashboardIndex default implementation with optimizations.
 func DashboardIndex(c buffalo.Context) error {
-	wla, err := listAnimalWithWeightLoss(c)
+	// Use cached weight loss data
+	wla, err := GetWeightLossData(c)
 	if err != nil {
 		return err
 	}
+
 	c.Set("animalsWithWeightLoss", wla)
 
 	oc, err := listOpenCares(c)
