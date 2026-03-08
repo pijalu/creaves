@@ -26,4 +26,5 @@ generated/
 .vendor/
 
 db
-test
+test/db_data
+
