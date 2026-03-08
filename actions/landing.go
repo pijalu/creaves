@@ -69,12 +69,12 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	for _, animal := range animals {
-		keyType := models.AnimalViewKey{ID: sha256(animal.Animaltype.Name), Name: animal.Animaltype.Name}
+		keyType := models.AnimalViewKey{ID: sha1Hash(animal.Animaltype.Name), Name: animal.Animaltype.Name}
 		animalsByType[keyType] = append(animalsByType[keyType], animal)
 
-		keyZone := models.AnimalViewKey{ID: sha256("?"), Name: "?"}
+		keyZone := models.AnimalViewKey{ID: sha1Hash("?"), Name: "?"}
 		if animal.Zone.Valid {
-			keyZone.ID = sha256(animal.Zone.String)
+			keyZone.ID = sha1Hash(animal.Zone.String)
 			keyZone.Name = animal.Zone.String
 		}
 		animalsByZone[keyZone] = append(animalsByZone[keyZone], animal)

@@ -15,23 +15,9 @@ var (
 	cacheUpdateInterval = 12 * time.Hour // Update cache every 12 hours
 )
 
-// Initialize the cache at startup
-func init() {
-	// Start a goroutine to refresh the cache periodically
-	go func() {
-		for {
-			time.Sleep(cacheUpdateInterval)
-			refreshWeightLossCache()
-		}
-	}()
-}
-
 // refreshWeightLossCache refreshes the weight loss cache
-func refreshWeightLossCache() {
-	// Note: Since this runs outside of a Buffalo context, we can't directly access the DB
-	// This would need to be called from a context where DB is available
-	// For now, we'll implement a manual refresh mechanism
-}
+// Note: Cache relies on manual invalidation when animal data changes
+func refreshWeightLossCache() {}
 
 // GetWeightLossData returns weight loss data, using cache if available
 func GetWeightLossData(c buffalo.Context) (*[]AnimalWithWeight, error) {

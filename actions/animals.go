@@ -359,7 +359,6 @@ func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 	}
 
 	if a.OuttakeID.Valid {
-		c.Logger().Debugf("Loading outtake %v", a.OuttakeID)
 		a.Outtake = &models.Outtake{}
 		if err := tx.Eager().Find(a.Outtake, a.OuttakeID); err != nil {
 			return nil, c.Error(http.StatusNotFound, err)
@@ -392,12 +391,10 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 
 	animalYearNumber := c.Param("animal_year_number")
 	if len(animalYearNumber) > 0 {
-		c.Logger().Debug("animalYearNumber:", animalYearNumber)
 		matches := AnimalYearNumberRegEx.FindStringSubmatch(animalYearNumber)
 		if matches == nil {
 			return fmt.Errorf("invalid year number: %s", animalYearNumber)
 		}
-		c.Logger().Debug("animalYearNumber regex matches:", matches)
 		q := tx.Where("YearNumber = ?", matches[1])
 		if len(matches) == 4 && len(matches[3]) == 2 {
 			q = q.Where("Year = ?", fmt.Sprintf("20%s", matches[3]))
@@ -558,8 +555,6 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 			return err
 		}
 		if !verrs.HasAny() {
-			c.Logger().Debugf("Animal: %v", animal)
-
 			verrs, err = tx.Eager().ValidateAndCreate(animal)
 			if err != nil {
 				return err
@@ -687,7 +682,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(&feedingTimes); err != nil {
 		return err
 	}
-	c.Logger().Debugf("feedingTimes: %v", feedingTimes)
 	animal.FeedingStart = timeToNullTime(feedingTimes.AnimalFeedingStartTime)
 	animal.FeedingEnd = timeToNullTime(feedingTimes.AnimalFeedingEndTime)
 	animal.FeedingPeriod = timeToMinutes(feedingTimes.AnimalFeedingPeriodHourMinute)
@@ -700,7 +694,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(&backUrl); err != nil {
 		return err
 	}
-	c.Logger().Debugf("Back: %v", backUrl)
 
 	// Fix link
 	animal.Discovery.Discoverer.ID = animal.Discovery.DiscovererID
@@ -719,7 +712,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		if reflect.ValueOf(m).IsNil() {
 			continue
 		}
-		c.Logger().Debugf("Updating %v", m)
 		verrs, err = tx.Eager().ValidateAndUpdate(m)
 		if err != nil {
 			return err
@@ -729,8 +721,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}
 	}
 
-	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
-
 	// Load care types
 	careTypes, err := caretypes(c)
 	if err != nil {
@@ -739,7 +729,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 
 	// Create new defailt care if animal was moved
 	if !verrs.HasAny() && originalCage.String != "" && animal.Cage.String != originalCage.String {
-		c.Logger().Debugf("Creating new care for cage move for animalID %d", animal.ID)
 		care := &models.Care{}
 		care.Animal = *animal
 		care.AnimalID = animal.ID
@@ -762,17 +751,14 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 			}
 		}
 
-		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
 		verrs, err = tx.Eager().ValidateAndCreate(care)
 		if err != nil {
 			return err
 		}
 	}
 
-	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
 	// Create new defailt care if animal feeding is updated
 	if !verrs.HasAny() && animal.Feeding.String != originalFeeding.String && animal.Feeding.String != "" {
-		c.Logger().Debugf("Creating new care for updated feeding animalID %d", animal.ID)
 		care := &models.Care{}
 		care.Animal = *animal
 		care.AnimalID = animal.ID
@@ -795,7 +781,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 			}
 		}
 
-		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
 		verrs, err = tx.Eager().ValidateAndCreate(care)
 		if err != nil {
 			return err

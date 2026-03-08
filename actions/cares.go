@@ -228,12 +228,10 @@ func (v CaresResource) New(c buffalo.Context) error {
 			"animalID": animalYearNumber,
 		}
 
-		c.Logger().Debug("animalYearNumber:", animalYearNumber)
 		matches := AnimalYearNumberRegEx.FindStringSubmatch(animalYearNumber)
 		if matches == nil {
 			return fmt.Errorf("invalid year number: %s", animalYearNumber)
 		}
-		c.Logger().Debug("animalYearNumber regex matches:", matches)
 		q := tx.Where("yearNumber = ?", matches[1])
 		if len(matches) == 4 && len(matches[3]) == 2 {
 			q = q.Where("year = ?", fmt.Sprintf("20%s", matches[3]))
@@ -241,12 +239,9 @@ func (v CaresResource) New(c buffalo.Context) error {
 
 		err := q.Order("ID desc").Eager().First(animal)
 		if err != nil {
-			c.Logger().Debug("Error:", err)
 			c.Flash().Add("danger", T.Translate(c, "care.animal.not.found", data))
 			errCode = http.StatusNotFound
 		}
-
-		c.Logger().Debugf("Loaded animal %v", animal)
 
 		if animal.OuttakeID.Valid {
 			c.Flash().Add("danger", T.Translate(c, "care.animal.outtake.already.exist", data))
@@ -308,10 +303,7 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			return fmt.Errorf("cage %s : no animals found", cage)
 		}
 
-		c.Logger().Debugf("Care for cage %s: Creating for %d animal(s)", cage, len(*animals))
-
 		for _, a := range *animals {
-			c.Logger().Debugf("Care for cage %s: Creating for animal ID %d", cage, a.ID)
 			care.ID = uuid.Nil
 			care.AnimalID = a.ID
 			verrs, err = tx.ValidateAndCreate(care)

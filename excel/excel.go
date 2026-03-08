@@ -103,7 +103,6 @@ func sheetPosition(line, col int) string {
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
 	// Connect to the database using the connection information from the config file.
-	c.Logger().Debugf("Connecting to db type '%s' - with url %s", models.DB.Dialect.Name(), models.DB.Dialect.URL())
 	db, err := sql.Open(models.DB.Dialect.Name(), models.DB.Dialect.URL())
 	if err != nil {
 		return fmt.Errorf("error connecting to database: %v", err)
@@ -112,7 +111,6 @@ func RunQuery(c buffalo.Context, query string) error {
 
 	sqlQuery, err := config.getQuery(query)
 	if err != nil {
-		c.Logger().Debugf("Could not find query %s", query)
 		c.Response().WriteHeader(http.StatusNotFound)
 		c.Response().Write([]byte("404 - Not Found"))
 		return nil
@@ -131,10 +129,8 @@ func RunQuery(c buffalo.Context, query string) error {
 	defer f.Close()
 
 	// Run the SQL query against the database and return the result set.
-	c.Logger().Debugf("Running query %s: %s", sqlQuery.Name, sqlQuery.Query)
 	rows, err := db.Query(sqlQuery.Query)
 	if err != nil {
-		c.Logger().Debugf("Error running query: %v", err)
 		return fmt.Errorf("error running query: %s", err)
 	}
 	defer rows.Close()
@@ -153,7 +149,6 @@ func RunQuery(c buffalo.Context, query string) error {
 	for i, co := range cols {
 		pos := sheetPosition(line, i+1)
 		if err := f.SetCellValue(sqlQuery.Sheet, pos, co); err != nil {
-			c.Logger().Debugf("error exporting to cell %s: %v", pos, err)
 			return fmt.Errorf("error exporting to cell %s: %s", pos, err)
 		}
 	}
@@ -177,21 +172,17 @@ func RunQuery(c buffalo.Context, query string) error {
 		for i, co := range values {
 			pos := sheetPosition(line, i+1)
 			if err := f.SetCellValue(sqlQuery.Sheet, pos, co); err != nil {
-				c.Logger().Debugf("error exporting to cell %s: %v", pos, err)
 				return fmt.Errorf("error exporting to cell %s: %s", pos, err)
 			}
 		}
 	}
 
 	if err := f.UpdateLinkedValue(); err != nil {
-		c.Logger().Debugf("Failed updated linked value: %v", err)
+		// Ignore linked value update errors
 	}
 
-	if cnt, err := f.WriteTo(c.Response()); err != nil {
-		c.Logger().Debugf("Failed writing excel file: %v", err)
+	if _, err := f.WriteTo(c.Response()); err != nil {
 		return fmt.Errorf("failed writing excel file: %s", err)
-	} else {
-		c.Logger().Debugf("wrote %d bytes to file", cnt)
 	}
 
 	return nil

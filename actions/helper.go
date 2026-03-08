@@ -8,7 +8,8 @@ import (
 	"github.com/gobuffalo/nulls"
 )
 
-func sha256(s string) string {
+// sha1Hash computes SHA-1 hash of a string (used for feeding zone hashing)
+func sha1Hash(s string) string {
 	h := sha1.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))

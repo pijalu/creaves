@@ -125,7 +125,6 @@ func SuggestionsLocality(c buffalo.Context) error {
 		args = append(args, "%"+l+"%")
 	}
 	qroot += " ORDER BY 1 LIMIT 10"
-	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
 	query = tx.RawQuery(qroot, args...)
 
 	s := []string{}
@@ -184,7 +183,6 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 		args = append(args, "%"+a+"%")
 	}
 
-	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
 	query = tx.RawQuery(qroot, args...)
 
 	s := []string{}
@@ -262,14 +260,10 @@ func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 	at := c.Param("at")
 	w, err := strconv.ParseFloat(c.Param("w"), 64)
 	if err != nil {
-		c.Logger().Debugf("Failed to convert weight to integer:%v", err)
 		return c.Render(http.StatusNotFound, r.JSON(result))
 	}
 
-	c.Logger().Debugf("Dosage for: %v %v %v", q, at, w)
-
 	if len(q) == 0 {
-		c.Logger().Debugf("No medication name provided")
 		return c.Render(http.StatusNotFound, r.JSON(result))
 	}
 
@@ -281,9 +275,9 @@ func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 	d := &models.Dosage{}
 	var query *pop.Query
 	qroot := `
-		SELECT s.* 
-		FROM drugs d, 
-		     dosages s 
+		SELECT s.*
+		FROM drugs d,
+		     dosages s
 		WHERE d.Name = ?
 		  AND d.ID = s.drug_id
 		  AND s.animaltype_id = ?`
@@ -291,18 +285,13 @@ func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 	query = tx.RawQuery(qroot, q, at)
 
 	if err := query.First(d); err != nil {
-		c.Logger().Debugf("Dosage lookup failed: %v", err)
 		return c.Render(http.StatusNotFound, r.JSON(result))
 	}
-
-	//c.Logger().Debugf("Loaded mediaction/dosage: %v", d)
 
 	if !d.DosagePerGrams.Valid {
-		c.Logger().Debugf("No dosage for drug")
 		return c.Render(http.StatusNotFound, r.JSON(result))
 	}
 
-	c.Logger().Debugf("Dosage: %v * %v", w, d.DosagePerGrams.Float64)
 	ds := w * d.DosagePerGrams.Float64
 
 	result = append(result, fmt.Sprintf("%.2f %s", ds, d.DosagePerGramsUnit.String))

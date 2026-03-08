@@ -112,7 +112,6 @@ func (v UsersResource) New(c buffalo.Context) error {
 func (v UsersResource) Create(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		c.Logger().Debugf("Create user rejected with user %v", cu)
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 	// Allocate an empty User
@@ -175,7 +174,6 @@ func (v UsersResource) Create(c buffalo.Context) error {
 func (v UsersResource) List(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		c.Logger().Debugf("List user rejected with user %v", cu)
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 	// Get the DB connection from the context
@@ -213,7 +211,6 @@ func (v UsersResource) List(c buffalo.Context) error {
 func (v UsersResource) Show(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin && cu.ID.String() != c.Param("user_id") {
-		c.Logger().Debugf("Show user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 
@@ -247,7 +244,6 @@ func (v UsersResource) Show(c buffalo.Context) error {
 func (v UsersResource) Edit(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
-		c.Logger().Debugf("Edit user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 
@@ -273,7 +269,6 @@ func (v UsersResource) Edit(c buffalo.Context) error {
 func (v UsersResource) Update(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
-		c.Logger().Debugf("Update user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 
@@ -352,7 +347,6 @@ func (v UsersResource) Update(c buffalo.Context) error {
 func (v UsersResource) Destroy(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if cu.Shared || (!cu.Admin && cu.ID.String() != c.Param("user_id")) {
-		c.Logger().Debugf("Destroy user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
 	}
 

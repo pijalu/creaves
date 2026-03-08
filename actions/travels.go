@@ -145,12 +145,10 @@ func (v TravelsResource) New(c buffalo.Context) error {
 			"animalID": animalYearNumber,
 		}
 
-		c.Logger().Debug("animalYearNumber:", animalYearNumber)
 		matches := AnimalYearNumberRegEx.FindStringSubmatch(animalYearNumber)
 		if matches == nil {
 			return fmt.Errorf("invalid year number: %s", animalYearNumber)
 		}
-		c.Logger().Debug("animalYearNumber regex matches:", matches)
 		q := tx.Where("yearNumber = ?", matches[1])
 		if len(matches) == 4 && len(matches[3]) == 2 {
 			q = q.Where("year = ?", fmt.Sprintf("20%s", matches[3]))
@@ -158,7 +156,6 @@ func (v TravelsResource) New(c buffalo.Context) error {
 
 		err := q.Order("ID desc").Eager().First(animal)
 		if err != nil {
-			c.Logger().Debug("Error:", err)
 			c.Flash().Add("danger", T.Translate(c, "travels.animal.not.found", data))
 			errCode = http.StatusNotFound
 		}
@@ -166,8 +163,6 @@ func (v TravelsResource) New(c buffalo.Context) error {
 		if errCode != http.StatusOK {
 			return c.Render(errCode, r.HTML("/travels/new.plush.html"))
 		}
-
-		c.Logger().Debugf("Loaded animal %v", animal)
 
 		travel.Animal = animal
 		travel.AnimalID = animal.ID

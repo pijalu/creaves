@@ -67,8 +67,6 @@ func AuthCreate(c buffalo.Context) error {
 		return bad()
 	}
 
-	c.Logger().Debugf("User: %v", u)
-
 	// check if enabled
 	if !u.Approved {
 		return bad("Not approved account")

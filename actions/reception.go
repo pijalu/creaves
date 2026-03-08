@@ -45,9 +45,6 @@ func ReceptionNew(c buffalo.Context) error {
 
 	if z, err := defZone(c); err == nil {
 		a.Zone = nulls.NewString(z.Zone)
-		c.Logger().Debugf(" zone set to %v", a.Zone)
-	} else {
-		c.Logger().Debugf("Could not retrieve default zone: %v", err)
 	}
 
 	// Set default animal type
@@ -55,11 +52,9 @@ func ReceptionNew(c buffalo.Context) error {
 		if t.Default {
 			a.Animaltype = t
 			a.AnimaltypeID = t.ID
-			c.Logger().Debugf("Set default type to %v", t)
 			break
 		}
 	}
-	c.Logger().Debugf("Created blank animal: %v", a)
 	c.Set("animal", a)
 
 	return c.Render(http.StatusOK, r.HTML("reception/new.plush.html"))

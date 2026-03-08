@@ -165,9 +165,9 @@ func calculateFeedings(afRaw []AnimalFeeding) (FeedingByZoneMap, error) {
 
 	feedingByZone := FeedingByZoneMap{}
 	for _, f := range afCalc {
-		keyZone := models.AnimalViewKey{ID: sha256("?"), Name: "?"}
+		keyZone := models.AnimalViewKey{ID: sha1Hash("?"), Name: "?"}
 		if f.Zone.Valid {
-			keyZone.ID = sha256(f.Zone.String)
+			keyZone.ID = sha1Hash(f.Zone.String)
 			keyZone.Name = f.Zone.String
 		}
 		feedingByZone[keyZone] = append(feedingByZone[keyZone], f)
@@ -205,7 +205,6 @@ func FeedingIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("feedingByZone", af)
-	c.Logger().Debugf("Feeding: %v", af)
 
 	return c.Render(http.StatusOK, r.HTML("feeding/index.html"))
 }
@@ -246,7 +245,6 @@ func FeedingClose(c buffalo.Context) error {
 			break
 		}
 	}
-	c.Logger().Debugf("Closing feeding for animalID %d with date at %s", care.AnimalID, care.Date)
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
