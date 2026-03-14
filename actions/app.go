@@ -18,6 +18,7 @@ import (
 	"creaves/public"
 
 	csrf "github.com/gobuffalo/mw-csrf"
+	"creaves/actions/middleware"
 
 	"sync"
 )
@@ -85,6 +86,8 @@ func App() *buffalo.App {
 		auth.POST("/", AuthCreate)
 		auth.DELETE("/", AuthDestroy)
 		auth.Middleware.Skip(Authorize, AuthLanding, AuthNew, AuthCreate)
+		// Apply rate limiting to authentication endpoints
+		auth.Use(middleware.AuthRateLimiter.Handler)
 
 		//Routes for languages
 		language := app.Group("/lang")
@@ -191,6 +194,12 @@ func translations() buffalo.MiddlewareFunc {
 	return T.Middleware()
 }
 
+// init initializes the middleware render engine
+func init() {
+	// Initialize the render engine for middleware usage
+	middleware.SetRenderEngine(r)
+}
+
 // forceSSL will return a middleware that will redirect an incoming request
 // if it is not HTTPS. "http://example.com" => "https://example.com".
 // This middleware does **not** enable SSL. for your application. To do that
@@ -200,5 +209,13 @@ func forceSSL() buffalo.MiddlewareFunc {
 	return forcessl.Middleware(secure.Options{
 		SSLRedirect:     ENV == "production",
 		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
+		// Content Security Policy headers
+		ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'",
+		// Prevent MIME type sniffing
+		ContentTypeNosniff: true,
+		// Clickjacking protection
+		FrameDeny: true,
+		// XSS protection
+		BrowserXssFilter: true,
 	})
 }

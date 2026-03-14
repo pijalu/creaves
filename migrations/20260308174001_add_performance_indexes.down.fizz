@@ -1,0 +1,7 @@
+drop_index("animals", "animals_outtake_id_idx")
+drop_index("animals", "animals_zone_idx")
+drop_index("animals", "animals_cage_idx")
+drop_index("animals", "animals_IntakeDate_idx")
+drop_index("cares", "cares_type_id_idx")
+drop_index("treatments", "treatments_animal_id_date_idx")
+drop_index("discoveries", "discoveries_location_idx")

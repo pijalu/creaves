@@ -68,6 +68,10 @@ CREATE TABLE `animals` (
   KEY `discovery_id` (`discovery_id`),
   KEY `intake_id` (`intake_id`),
   KEY `outtake_id` (`outtake_id`),
+  KEY `animals_outtake_id_idx` (`outtake_id`),
+  KEY `animals_zone_idx` (`zone`),
+  KEY `animals_cage_idx` (`cage`),
+  KEY `animals_IntakeDate_idx` (`IntakeDate`),
   CONSTRAINT `animals_ibfk_1` FOREIGN KEY (`animaltype_id`) REFERENCES `animaltypes` (`id`),
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
@@ -122,6 +126,7 @@ CREATE TABLE `cares` (
   KEY `cares_date_idx` (`date`),
   KEY `cares_date_type_id_animal_id_idx` (`date`,`type_id`,`animal_id`),
   KEY `cares_animal_id_date_idx` (`animal_id`,`date`),
+  KEY `cares_type_id_idx` (`type_id`),
   CONSTRAINT `cares_ibfk_1` FOREIGN KEY (`type_id`) REFERENCES `caretypes` (`id`),
   CONSTRAINT `cares_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`),
   CONSTRAINT `cares_ibfk_3` FOREIGN KEY (`link_to_id`) REFERENCES `cares` (`id`)
@@ -199,6 +204,7 @@ CREATE TABLE `discoveries` (
   `entry_cause_id` varchar(255) NOT NULL DEFAULT '1.1',
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
+  KEY `discoveries_location_idx` (`location`),
   CONSTRAINT `discoveries_ibfk_1` FOREIGN KEY (`discoverer_id`) REFERENCES `discoverers` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -519,6 +525,7 @@ CREATE TABLE `treatments` (
   KEY `treatments_date_idx` (`date`),
   KEY `treatments_date_animal_id_idx` (`date`,`animal_id`),
   KEY `treatments_animal_id_timebitmap_timedonebitmap_idx` (`animal_id`,`timebitmap`,`timedonebitmap`),
+  KEY `treatments_animal_id_date_idx` (`animal_id`,`date`),
   CONSTRAINT `treatments_animals_id_fk` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -596,4 +603,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-01-22  8:51:49
+-- Dump completed on 2026-03-14  9:41:36

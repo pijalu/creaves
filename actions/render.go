@@ -8,10 +8,11 @@ import (
 	"github.com/gobuffalo/buffalo/render"
 )
 
-var r *render.Engine
+// R is the global render engine
+var R *render.Engine
 
 func init() {
-	r = render.New(render.Options{
+	R = render.New(render.Options{
 		// HTML layout to be used for all HTML requests:
 		HTMLLayout: "application.plush.html",
 
@@ -33,4 +34,10 @@ func init() {
 			},
 		},
 	})
+
+	// Also assign to old variable for backward compatibility
+	r = R
 }
+
+// For backward compatibility
+var r *render.Engine

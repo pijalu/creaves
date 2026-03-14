@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"creaves/actions/middleware"
 	"creaves/models"
 
 	"github.com/gobuffalo/buffalo"
@@ -32,6 +33,12 @@ func AuthCreate(c buffalo.Context) error {
 		return errors.WithStack(err)
 	}
 
+	// Check if client is locked out due to too many failed attempts
+	if middleware.AuthRateLimiter.IsLocked(c) {
+		middleware.AuthRateLimiter.RecordFailedAttempt(c)
+		return c.Render(http.StatusTooManyRequests, r.HTML("/auth/locked.plush.html"))
+	}
+
 	tx := c.Value("tx").(*pop.Connection)
 
 	// find a user with the login
@@ -39,6 +46,9 @@ func AuthCreate(c buffalo.Context) error {
 
 	// helper function to handle bad attempts
 	bad := func(er ...string) error {
+		// Record failed attempt for rate limiting
+		middleware.AuthRateLimiter.RecordFailedAttempt(c)
+
 		verrs := validate.NewErrors()
 		if er == nil {
 			verrs.Add("login", T.Translate(c, "users.invalid"))
@@ -71,6 +81,9 @@ func AuthCreate(c buffalo.Context) error {
 	if !u.Approved {
 		return bad("Not approved account")
 	}
+
+	// Record successful login
+	middleware.AuthRateLimiter.RecordSuccess(c)
 
 	c.Session().Set("current_user_id", u.ID)
 	c.Flash().Add("success", T.Translate(c, "welcome_greeting"))

@@ -1,0 +1,7 @@
+add_index("animals", ["outtake_id"], {})
+add_index("animals", ["zone"], {})
+add_index("animals", ["cage"], {})
+add_index("animals", ["IntakeDate"], {})
+add_index("cares", ["type_id"], {})
+add_index("treatments", ["animal_id", "date"], {})
+add_index("discoveries", ["location"], {})

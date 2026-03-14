@@ -328,42 +328,87 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	return a, nil
 }
 
-// EnrichAnimal load all deps of an animal record
+// EnrichAnimal load all deps of an animal record (optimized for single animal)
 func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	if err := tx.Find(&a.Animalage, a.AnimalageID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-	if err := tx.Find(&a.Animaltype, a.AnimaltypeID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-	if err := tx.Eager().Find(&a.Discovery, a.DiscoveryID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-	if err := tx.Eager().Find(&a.Intake, a.IntakeID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-
-	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.Cares); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.VetVisits); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.Treatments); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
-	}
-
-	if a.OuttakeID.Valid {
-		a.Outtake = &models.Outtake{}
-		if err := tx.Eager().Find(a.Outtake, a.OuttakeID); err != nil {
-			return nil, c.Error(http.StatusNotFound, err)
+	// Preload lookup maps for reference data
+	atsMap := make(map[uuid.UUID]models.Animaltype)
+	if ats, err := animalTypes(c); err != nil {
+		return nil, err
+	} else {
+		for _, at := range *ats {
+			atsMap[at.ID] = at
 		}
 	}
+
+	agsMap := make(map[uuid.UUID]models.Animalage)
+	if ags, err := animalages(c); err != nil {
+		return nil, err
+	} else {
+		for _, ag := range *ags {
+			agsMap[ag.ID] = ag
+		}
+	}
+
+	otkMap := make(map[uuid.UUID]models.Outtaketype)
+	if otk, err := outtakeTypes(c); err != nil {
+		return nil, err
+	} else {
+		for _, ot := range *otk {
+			otkMap[ot.ID] = ot
+		}
+	}
+
+	// Load related data using batch queries
+	discovery := &models.Discovery{}
+	if err := tx.Find(discovery, a.DiscoveryID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+
+	intake := &models.Intake{}
+	if err := tx.Find(intake, a.IntakeID); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+
+	// Load cares, vet visits, and treatments with single queries each
+	cares := models.Cares{}
+	if err := tx.Where("animal_id = ?", a.ID).Order("date desc").All(&cares); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+
+	vetVisits := models.Veterinaryvisits{}
+	if err := tx.Where("animal_id = ?", a.ID).Order("date desc").All(&vetVisits); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+
+	treatments := models.Treatments{}
+	if err := tx.Where("animal_id = ?", a.ID).Order("date desc").All(&treatments); err != nil {
+		return nil, c.Error(http.StatusNotFound, err)
+	}
+
+	// Set loaded data
+	a.Animalage = agsMap[a.AnimalageID]
+	a.Animaltype = atsMap[a.AnimaltypeID]
+	a.Discovery = *discovery
+	a.Intake = *intake
+	a.Cares = cares
+	a.VetVisits = vetVisits
+	a.Treatments = treatments
+
+	// Load outtake if present
+	if a.OuttakeID.Valid {
+		outtake := &models.Outtake{}
+		if err := tx.Find(outtake, a.OuttakeID.UUID); err != nil {
+			return nil, c.Error(http.StatusNotFound, err)
+		}
+		outtake.Type = otkMap[outtake.TypeID]
+		a.Outtake = outtake
+	}
+
 	return a, nil
 }
 
@@ -580,6 +625,10 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 
 		animals = append(animals, *animal)
 	}
+
+	// Invalidate caches after creating animals
+	InvalidateWeightLossCache()
+	InvalidateDashboardCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
@@ -804,6 +853,10 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Invalidate caches after updating animal
+	InvalidateWeightLossCache()
+	InvalidateDashboardCache()
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.updated.success"))
@@ -855,6 +908,10 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Eager().Create(animal.Outtake); err != nil {
 		return err
 	}
+
+	// Invalidate caches after destroying animal
+	InvalidateWeightLossCache()
+	InvalidateDashboardCache()
 
 	/*animal.OuttakeID = nulls.NewUUID(animal.Outtake.ID)
 	if err := tx.Eager().Update(animal); err != nil {

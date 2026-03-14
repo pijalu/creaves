@@ -198,16 +198,12 @@ func DashboardIndex(c buffalo.Context) error {
 	}
 	c.Set("animalsToForceFeed", animalsToForceFeed)
 
-	ct, err := listAnimalCountPerType(c)
+	// Use cached animal count per type
+	ct, totalAnimal, err := GetCachedAnimalCountPerType(c)
 	if err != nil {
 		return err
 	}
 	c.Set("animalCountPerType", ct)
-	// Add total
-	totalAnimal := 0
-	for _, cti := range ct {
-		totalAnimal += cti.Count
-	}
 	c.Set("totalAnimalCount", totalAnimal)
 
 	le, err := listLast24hLogEntries(c)
