@@ -59,6 +59,12 @@ func SetCurrentUser(next buffalo.Handler) buffalo.Handler {
 				c.Session().Set("redirectURL", c.Request().URL.String())
 				return next(c)
 			}
+			// check if still approved
+			if !u.Approved {
+				c.Session().Clear()
+				c.Flash().Add("danger", "Your account is no longer approved")
+				return c.Redirect(302, "/auth/new")
+			}
 			c.Set("current_user", u)
 		}
 		return next(c)
