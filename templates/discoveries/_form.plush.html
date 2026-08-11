@@ -7,7 +7,7 @@
         <script>
         $('input[name="Discovery.PostalCode"]').autoComplete({
             delay: 250,
-            minChars: 2,
+            minChars: 1,
             source: function(term, response){
                 $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
             }
@@ -30,7 +30,7 @@
     <script>
         $('input[name="Location"]').autoComplete({
             delay: 250,
-            minChars: 2,
+            minChars: 1,
             source: function(term, response){
                 $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
             }

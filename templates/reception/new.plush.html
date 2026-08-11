@@ -122,7 +122,7 @@
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
-                    minChars: 2,
+                    minChars: 1,
                     source: function(term, response){
                         $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
                     }
@@ -195,7 +195,7 @@
                     <script>
                     $('input[name="Discovery.Location"]').autoComplete({
                         delay: 250,
-                        minChars: 2,
+                        minChars: 1,
                         source: function(term, response){
                             $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
                         }
@@ -291,7 +291,7 @@
                         $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
                             delay: 250,
                             cache: 0,
-                            minChars: 2,
+                            minChars: 1,
                             source: function(term, response){
                                 var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                                 var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -306,7 +306,7 @@
                         $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
                             delay: 250,
                             cache: 0,
-                            minChars: 2,
+                            minChars: 1,
                             source: function(term, response){
                                 var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                                 var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -321,7 +321,7 @@
                         $('input[name="Discovery.Discoverer.Address"]').autoComplete({
                             delay: 250,
                             cache: 0,
-                            minChars: 2,
+                            minChars: 1,
                             source: function(term, response){
                                 var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                                 var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -364,7 +364,7 @@
 
                             $('input[name="Discovery.Discoverer.Country"]').autoComplete({
                                 delay: 250,
-                                minChars: 2,
+                                minChars: 1,
                                 source: function(term, response){
                                     $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
                                 }

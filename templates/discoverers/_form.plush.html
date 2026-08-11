@@ -6,14 +6,14 @@
 <script>
 $('input[name="City"]').autoComplete({
     delay: 250,
-    minChars: 2,
+    minChars: 1,
     source: function(term, response){
         $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
     }
 });
 $('input[name="Country"]').autoComplete({
     delay: 250,
-    minChars: 2,
+    minChars: 1,
     source: function(term, response){
         $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
     }
