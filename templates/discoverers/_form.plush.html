@@ -5,13 +5,15 @@
 <%= f.InputTag("Country") %>
 <script>
 $('input[name="City"]').autoComplete({
-    minChars: 1,
+    delay: 250,
+    minChars: 2,
     source: function(term, response){
         $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
     }
 });
 $('input[name="Country"]').autoComplete({
-    minChars: 1,
+    delay: 250,
+    minChars: 2,
     source: function(term, response){
         $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
     }

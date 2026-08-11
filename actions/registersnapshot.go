@@ -17,8 +17,8 @@ const REGISTER_SNAP_SQL = `
 		FROM animals a
 		LEFT JOIN intakes i ON a.intake_id = i.id
 		LEFT JOIN outtakes o ON a.outtake_id = o.id
-		WHERE (i.id IS NOT NULL AND date(i.date) <= date(?))
-		AND (a.outtake_id IS NULL or date(o.date) >= date(?))
+		WHERE (i.id IS NOT NULL AND i.date < ?)
+		AND (a.outtake_id IS NULL OR o.date >= ?)
 		ORDER BY a.id DESC
 		LIMIT 2000
 `
@@ -45,7 +45,10 @@ func RegistersnapshotIndexCSV(c buffalo.Context) error {
 
 	animals := &models.Animals{}
 	// Retrieve all animals
-	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDateAsDate, snapshotDateAsDate).All(animals); err != nil {
+	// Intake: on or before snapshotDate (exclusive upper bound = day after snapshotDate)
+	// Outtake: on or after snapshotDate
+	snapshotEnd := snapshotDateAsDate.AddDate(0, 0, 1)
+	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotEnd, snapshotDateAsDate).All(animals); err != nil {
 		return err
 	}
 
@@ -81,7 +84,10 @@ func RegistersnapshotIndex(c buffalo.Context) error {
 
 	animals := &models.Animals{}
 	// Retrieve all animals
-	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotDateAsDate, snapshotDateAsDate).All(animals); err != nil {
+	// Intake: on or before snapshotDate (exclusive upper bound = day after snapshotDate)
+	// Outtake: on or after snapshotDate
+	snapshotEnd := snapshotDateAsDate.AddDate(0, 0, 1)
+	if err := tx.RawQuery(REGISTER_SNAP_SQL, snapshotEnd, snapshotDateAsDate).All(animals); err != nil {
 		return err
 	}
 

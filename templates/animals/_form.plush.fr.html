@@ -38,7 +38,8 @@ $( document ).ready(function(){
                 <%= f.InputTag("Species", {label:"Espèce", required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
-                    minChars: 1,
+                    delay: 250,
+                    minChars: 2,
                     source: function(term, response){
                         $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
                     }
@@ -112,13 +113,15 @@ $( document ).ready(function(){
       
           <script>
           $('input[name="Discovery.PostalCode"]').autoComplete({
-              minChars: 1,
+              delay: 250,
+              minChars: 2,
               source: function(term, response){
                   $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
               }
           });
 
           $('input[name="Discovery.City"]').autoComplete({
+              delay: 250,
               minChars: 0,
               cache: 0,
               source: function(term, response){
@@ -157,7 +160,8 @@ $( document ).ready(function(){
       <%= f.InputTag("Discovery.Location", {label:"Précision lieu", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
       <script>
       $('input[name="Discovery.Location"]').autoComplete({
-          minChars: 1,
+          delay: 250,
+          minChars: 2,
           source: function(term, response){
               $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
           }
@@ -224,8 +228,9 @@ $( document ).ready(function(){
 
       <script>
           $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
+              delay: 250,
               cache: 0,
-              minChars: 1,
+              minChars: 2,
               source: function(term, response){
                   var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                   var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -238,8 +243,9 @@ $( document ).ready(function(){
           });
 
           $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
+              delay: 250,
               cache: 0,
-              minChars: 1,
+              minChars: 2,
               source: function(term, response){
                   var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                   var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -252,8 +258,9 @@ $( document ).ready(function(){
           });
 
           $('input[name="Discovery.Discoverer.Address"]').autoComplete({
+              delay: 250,
               cache: 0,
-              minChars: 1,
+              minChars: 2,
               source: function(term, response){
                   var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
                   var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
@@ -272,13 +279,15 @@ $( document ).ready(function(){
       <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Pays"}) %>
       <script>
           $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
-              minChars: 1,
+              delay: 250,
+              minChars: 2,
               source: function(term, response){
                   $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
               }
           });
 
           $('input[name="Discovery.Discoverer.City"]').autoComplete({
+              delay: 250,
               minChars: 0,
               cache: 0,
               source: function(term, response){
@@ -288,7 +297,8 @@ $( document ).ready(function(){
           });
 
           $('input[name="Discovery.Discoverer.Country"]').autoComplete({
-              minChars: 1,
+              delay: 250,
+              minChars: 2,
               source: function(term, response){
                   $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
               }

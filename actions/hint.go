@@ -10,7 +10,7 @@ import (
 const HINT_SPECIES_DETAILS = `SELECT distinct ns.status, ns.indication, ns.freeable, s.game, s.huntable
 FROM native_statuses ns
 JOIN species s ON s.native_status=ns.ID
-where s.creaves_species = "%s"`
+where s.creaves_species = ?`
 
 // HintSpeciesDetails default implementation.
 func HintSpeciesDetails(c buffalo.Context) error {
@@ -32,7 +32,7 @@ func HintSpeciesDetails(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query = tx.RawQuery(fmt.Sprintf(HINT_SPECIES_DETAILS, q))
+	var query = tx.RawQuery(HINT_SPECIES_DETAILS, q)
 	if err := query.All(&s); err != nil {
 		return err
 	}

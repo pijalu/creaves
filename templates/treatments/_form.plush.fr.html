@@ -150,6 +150,7 @@
 <%= f.InputTag("Drug", {label:"Médicament"}) %>
 <script>
     $('input[name="Drug"]').autoComplete({
+        delay: 250,
         cache:0,
         minChars: 0,
         source: function(term, response){
@@ -160,6 +161,7 @@
 <%= f.InputTag("Dosage", {label:"Posologie"}) %>
 <script>
     $('input[name="Dosage"]').autoComplete({
+        delay: 250,
         cache: 0,
         minChars: 0,
         source: function(term, response){

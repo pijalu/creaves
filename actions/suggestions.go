@@ -15,19 +15,18 @@ func suggest(c buffalo.Context, table string, field string) error {
 
 	q := c.Param("q")
 
+	// Empty query: nothing meaningful to suggest; avoid full-table dumps.
+	if len(q) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT DISTINCT " + field + " FROM " + table
-
-	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" WHERE "+field+" like ?", "%"+q+"%")
-	} else {
-		query = tx.RawQuery(qroot)
-	}
+	query := tx.RawQuery(qroot+" WHERE "+field+" like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 
 	if err := query.All(&s); err != nil {
 		return err
@@ -50,21 +49,21 @@ func SuggestionsDiscoveryLocation(c buffalo.Context) error {
 func SuggestionsOuttakeLocation(c buffalo.Context) error {
 	q := c.Param("q")
 
+	s := []string{}
+
+	// Empty query: nothing meaningful to suggest; avoid full-table dumps.
+	if len(q) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := `SELECT CONCAT(postal_code,"_",locality) FROM localities`
+	query := tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ? ORDER BY 1 LIMIT 25`, "%"+q+"%")
 
-	if len(q) > 0 {
-		query = tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ?`, "%"+q+"%")
-	} else {
-		query = tx.RawQuery(qroot)
-	}
-
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -104,12 +103,18 @@ func SuggestionsLocality(c buffalo.Context) error {
 		return fmt.Errorf("unexpected request for %s", ret)
 	}
 
+	s := []string{}
+
+	// No filter: nothing meaningful to suggest; avoid full-table dumps.
+	if len(z) == 0 && len(l) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := fmt.Sprintf(`SELECT distinct %s FROM localities WHERE 1=1`, field)
 	args := []interface{}{}
 
@@ -126,9 +131,8 @@ func SuggestionsLocality(c buffalo.Context) error {
 	}
 	qroot += " ORDER BY 1 LIMIT 10"
 	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
-	query = tx.RawQuery(qroot, args...)
+	query := tx.RawQuery(qroot, args...)
 
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -144,12 +148,18 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 
 	ret := c.Param("r") // return
 
+	s := []string{}
+
+	// No criteria: nothing meaningful to suggest; avoid full-table dumps.
+	if len(f) == 0 && len(l) == 0 && len(a) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	var field string
 
 	switch ret {
@@ -184,10 +194,10 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 		args = append(args, "%"+a+"%")
 	}
 
+	qroot += " ORDER BY 1 LIMIT 25"
 	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
-	query = tx.RawQuery(qroot, args...)
+	query := tx.RawQuery(qroot, args...)
 
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -199,21 +209,21 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 	q := c.Param("q")
 
+	s := []string{}
+
+	// Empty query: nothing meaningful to suggest; avoid full-table dumps.
+	if len(q) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL "
+	query := tx.RawQuery(qroot+" and name like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 
-	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" and name like ?", "%"+q+"%")
-	} else {
-		query = tx.RawQuery(qroot)
-	}
-
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -241,9 +251,9 @@ func SuggestionsTreatmentDrug(c buffalo.Context) error {
 		  AND s.animaltype_id = ?`
 
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND d.Name like ?", at, "%"+q+"%")
+		query = tx.RawQuery(qroot+" AND d.Name like ? ORDER BY 1 LIMIT 25", at, "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot, at)
+		query = tx.RawQuery(qroot+" ORDER BY 1 LIMIT 25", at)
 	}
 
 	s := []string{}
@@ -319,26 +329,26 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 
 	q := c.Param("q")
 
+	s := []string{}
+
+	// Empty query: nothing meaningful to suggest; avoid full-table dumps.
+	if len(q) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT Year, YearNumber FROM animals WHERE outtake_id IS null "
-
-	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND YearNumber like ?", "%"+q+"%")
-	} else {
-		query = tx.RawQuery(qroot)
-	}
+	query := tx.RawQuery(qroot+" AND YearNumber like ? ORDER BY Year, YearNumber LIMIT 25", "%"+q+"%")
 
 	if err := query.All(&results); err != nil {
 		return err
 	}
 
 	// return a series of strings
-	s := []string{}
 	for _, result := range results {
 		s = append(s, fmt.Sprintf("%s/%s", result.YearNumber, result.Year[2:]))
 	}
@@ -350,21 +360,21 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 func SuggestionsCageWithAnimalInCare(c buffalo.Context) error {
 	q := c.Param("q")
 
+	s := []string{}
+
+	// Empty query: nothing meaningful to suggest; avoid full-table dumps.
+	if len(q) == 0 {
+		return c.Render(200, r.JSON(s))
+	}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT DISTINCT Cage FROM animals WHERE outtake_id IS null and Cage is not null"
+	query := tx.RawQuery(qroot+" AND Cage like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 
-	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND Cage like ?", "%"+q+"%")
-	} else {
-		query = tx.RawQuery(qroot)
-	}
-
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}

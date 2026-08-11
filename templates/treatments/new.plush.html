@@ -17,6 +17,7 @@
       required>
       <script>
         $('input[name="animal_year_number"]').autoComplete({
+            delay: 250,
             minChars: 0,
             source: function(term, response){
                 $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
@@ -158,6 +159,7 @@ $( document ).ready(function(){
         <%= f.InputTag("Drug", {required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Drug"]').autoComplete({
+              delay: 250,
               minChars: 0,
               source: function(term, response){
                   $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
@@ -167,6 +169,7 @@ $( document ).ready(function(){
         <%= f.InputTag("Dosage", { required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Dosage"]').autoComplete({
+              delay: 250,
               minChars: 0,
               source: function(term, response){
                   $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });

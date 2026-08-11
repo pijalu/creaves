@@ -1,0 +1,2 @@
+drop_index("intakes", "intakes_date_idx")
+drop_index("outtakes", "outtakes_date_idx")
