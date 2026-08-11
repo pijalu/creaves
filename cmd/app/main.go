@@ -14,6 +14,10 @@ import (
 // application that is. :)
 func main() {
 	app := actions.App()
+	
+	// Register webhook graceful shutdown
+	actions.RegisterWebhookShutdown(app)
+	
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

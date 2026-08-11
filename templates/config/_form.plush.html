@@ -1,0 +1,54 @@
+<%= f.InputTag("InstanceID", {label: "Instance ID"}) %>
+<%= f.InputTag("Name", {label: "Name"}) %>
+<%= f.TextArea("Description", {label: "Description", rows: 3}) %>
+<%= f.CheckboxTag("Active", {label: "Active", unchecked: false}) %>
+
+<hr/>
+<h5>Event Stream</h5>
+<p class="text-muted">Configure event stream for multi-instance consolidation.</p>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.EnableEventStream" value="false" />
+  <input type="checkbox" class="form-check-input" id="enable_event_stream" name="Settings.EnableEventStream" value="true" <%= if (settings.EnableEventStream) { %>checked<% } %>>
+  <label class="form-check-label" for="enable_event_stream">
+    <strong>Enable Event Stream</strong>
+  </label>
+  <small class="form-text text-muted">When enabled, animal lifecycle events (discovery, status changes, outtakes) are recorded for cross-instance reporting and consolidation.</small>
+</div>
+
+<hr/>
+<h5>Webhook Configuration</h5>
+<p class="text-muted">Configure webhook to push events to Creaves Console.</p>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.WebhookEnabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="webhook_enabled" name="Settings.WebhookEnabled" value="true" <%= if (settings.WebhookEnabled) { %>checked<% } %>>
+  <label class="form-check-label" for="webhook_enabled">
+    <strong>Enable Webhook</strong>
+  </label>
+  <small class="form-text text-muted">When enabled, events will be pushed to the configured webhook URL.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">Webhook URL</label>
+  <input type="url" class="form-control" id="webhook_url" name="Settings.WebhookURL" value="<%= settings.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">The URL of the Creaves Console webhook endpoint.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">API Key</label>
+  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="Enter API key from console">
+  <small class="form-text text-muted">API key generated in Creaves Console. Leave empty to keep current key.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Batch Size</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="Settings.WebhookBatchSize" value="<%= settings.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Number of events to send per request (default: 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Max Events Per Minute</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="Settings.WebhookMaxPerMin" value="<%= settings.WebhookMaxPerMin %>" min="1" max="6000">
+  <small class="form-text text-muted">Rate limit for event delivery (default: 60).</small>
+</div>

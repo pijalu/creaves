@@ -1,0 +1,31 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "project": {
+    "name": "Creaves",
+    "description": "Animal care management application",
+    "skills": [
+      "chrome-devtools-testing"
+    ]
+  },
+  "skills": {
+    "chrome-devtools-testing": {
+      "path": "~/.config/opencode/skills/chrome-devtools-testing.md",
+      "description": "End-to-end testing procedures using Chrome DevTools MCP with authentication"
+    }
+  },
+  "testing": {
+    "required": true,
+    "description": "All changes MUST be tested using Chrome DevTools MCP with authenticated sessions before marking complete",
+    "checklist": [
+      "Server starts without errors (buffalo dev)",
+      "Database seeded with admin user (buffalo task db:seed)",
+      "Authentication works (login as admin/admin)",
+      "All modified pages load without template errors",
+      "Forms submit correctly with validation working",
+      "Navigation works between related pages",
+      "Feature flags/configurations persist after save",
+      "No 500/404 errors for valid requests",
+      "Admin menu links visible and functional"
+    ]
+  }
+}

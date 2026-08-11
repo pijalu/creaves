@@ -50,6 +50,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createEntryCause(c); err != nil {
 			return err
 		}
+		if err := createConfig(c); err != nil {
+			return err
+		}
 		return nil
 	})
 

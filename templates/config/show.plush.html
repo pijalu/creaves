@@ -1,0 +1,73 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Config: <%= config.Name %></h3>
+</div>
+
+<table class="table table-hover table-bordered">
+  <tbody>
+    <tr>
+      <td>Instance ID</td>
+      <td><%= config.InstanceID %></td>
+    </tr>
+    <tr>
+      <td>Name</td>
+      <td><%= config.Name %></td>
+    </tr>
+    <tr>
+      <td>Description</td>
+      <td><%= config.Description %></td>
+    </tr>
+    <tr>
+      <td>Active</td>
+      <td><%= bool2html(config.Active) %></td>
+    </tr>
+    <tr class="table-info">
+      <td colspan="2"><strong>Event Stream</strong></td>
+    </tr>
+    <tr>
+      <td>
+        <i class="fa fa-exchange-alt"></i> Event Stream
+        <br/><small class="text-muted">Enable event stream for multi-instance consolidation</small>
+      </td>
+      <td><%= bool2html(settings.EnableEventStream) %></td>
+    </tr>
+    <tr class="table-info">
+      <td colspan="2"><strong>Webhook Configuration</strong></td>
+    </tr>
+    <tr>
+      <td>
+        <i class="fa fa-globe"></i> Webhook Enabled
+        <br/><small class="text-muted">Push events to Creaves Console</small>
+      </td>
+      <td><%= bool2html(settings.WebhookEnabled) %></td>
+    </tr>
+    <tr>
+      <td>Webhook URL</td>
+      <td><code><%= settings.WebhookURL %></code></td>
+    </tr>
+    <tr>
+      <td>API Key</td>
+      <td><code><%= if (settings.WebhookAPIKey != "") { %>••••••••<% } else { %><em>Not set</em><% } %></code></td>
+    </tr>
+    <tr>
+      <td>Batch Size</td>
+      <td><%= settings.WebhookBatchSize %></td>
+    </tr>
+    <tr>
+      <td>Max Events Per Minute</td>
+      <td><%= settings.WebhookMaxPerMin %></td>
+    </tr>
+    <tr>
+      <td>Created At</td>
+      <td><%= config.CreatedAt.Format("2006-01-02 15:04:05") %></td>
+    </tr>
+    <tr>
+      <td>Updated At</td>
+      <td><%= config.UpdatedAt.Format("2006-01-02 15:04:05") %></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="float-right">
+  <%= linkTo(editConfigPath({ config_id: config.ID }), {class: "btn btn-warning", body: "Edit"}) %>
+  <%= linkTo("/config", {class: "btn btn-info", body: "Back"}) %>
+</div>

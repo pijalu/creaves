@@ -584,6 +584,11 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		}
 
 		animals = append(animals, *animal)
+
+		// Publish animal_discovered event
+		if err := PublishAnimalDiscoveredEvent(tx, animal, GetCurrentUser(c)); err != nil {
+			c.Logger().Warnf("Failed to publish animal_discovered event: %v", err)
+		}
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -672,6 +677,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	// save original cage
 	originalCage := animal.Cage
 	originalFeeding := animal.Feeding
+	originalOuttakeID := animal.OuttakeID
 
 	// Bind Animal to the html form elements
 	if err := c.Bind(animal); err != nil {
@@ -819,6 +825,24 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Publish status change event if outtake was added/removed
+	if originalOuttakeID.Valid != animal.OuttakeID.Valid {
+		var previousStatus, currentStatus string
+		if originalOuttakeID.Valid {
+			previousStatus = "released"
+		} else {
+			previousStatus = "in_care"
+		}
+		if animal.OuttakeID.Valid {
+			currentStatus = "released"
+		} else {
+			currentStatus = "in_care"
+		}
+		if err := PublishAnimalStatusChangedEvent(tx, animal, previousStatus, currentStatus, GetCurrentUser(c)); err != nil {
+			c.Logger().Warnf("Failed to publish animal_status_changed event: %v", err)
+		}
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.updated.success"))
@@ -869,6 +893,11 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 
 	if err := tx.Eager().Create(animal.Outtake); err != nil {
 		return err
+	}
+
+	// Publish animal_died event for destroyed animals
+	if err := PublishAnimalDiedEvent(tx, animal, GetCurrentUser(c)); err != nil {
+		c.Logger().Warnf("Failed to publish animal_died event: %v", err)
 	}
 
 	/*animal.OuttakeID = nulls.NewUUID(animal.Outtake.ID)

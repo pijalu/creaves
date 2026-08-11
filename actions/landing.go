@@ -52,6 +52,13 @@ func LandingIndex(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	// Load config if not already loaded
+	if CurrentConfig == nil {
+		if _, err := LoadConfig(tx); err != nil {
+			return fmt.Errorf("failed to load config: %v", err)
+		}
+	}
+
 	// Load all animals with outtake_id is null (validated to ensure correct count)
 	animals := models.Animals{}
 	if err := tx.Where("outtake_id is null").Order("ID desc").All(&animals); err != nil {

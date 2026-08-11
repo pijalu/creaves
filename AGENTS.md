@@ -144,162 +144,60 @@ Critical for multi-user deployment on limited hardware.
 - **No connection pool tuning**: `models/models.go` uses default Pop connection settings
 - **Eager() overuse**: Many handlers use `tx.Eager()` which can generate unexpected queries
 
-### Performance Todos
+### Implementation Tracking
 
-```
-TODO-PERF-001: Cache reference data (animaltypes, caretypes, zones, etc.)
-  ├── Blocks: TODO-PERF-002 (user caching can use same cache infrastructure)
-  ├── Location: actions/typehelper.go
-  └── Impact: HIGH - Every form render hits DB 5-6 times
+See [TODO.md](./TODO.md) for complete list of pending and completed TODOs with implementation status.
 
-TODO-PERF-002: Cache current user in session/middleware
-  ├── Depends: TODO-PERF-001 (same cache pattern)
-  ├── Location: actions/users.go:SetCurrentUser
-  └── Impact: HIGH - DB hit on every authenticated request
+**Quick Status:**
+- ✅ **Phase 1: Foundation** - Event stream table, schema design, instance identifiers - COMPLETED
+- ✅ **Phase 2: Event Production** - Event producer hooks in discoveries/animals/outtakes - COMPLETED
+- 🔄 **Phase 3: Consolidation** - Event processor, consolidated view - IN PROGRESS
+- ⏳ **Phase 4: Performance** - Caching, pagination, connection pooling - PENDING
 
-TODO-PERF-003: Add pagination to LandingIndex
-  ├── Location: actions/landing.go
-  └── Impact: HIGH - Loads ALL in-care animals unconditionally
+## Testing Requirements
 
-TODO-PERF-004: Migrate remaining EnrichAnimals calls to EnrichAnimalsOptimized
-  ├── Location: actions/registertable.go, actions/registersnapshot.go
-  └── Impact: MEDIUM - N+1 queries on register pages
+**MANDATORY END-TO-END TESTING:** All changes to templates, actions, models, routes, or database schema MUST be tested using Chrome DevTools MCP with authenticated sessions.
 
-TODO-PERF-005: Add connection pool configuration
-  ├── Location: models/models.go
-  └── Impact: MEDIUM - Default pool may not suit multi-user load
+### Required Testing Checklist
 
-TODO-PERF-006: Add HTTP cache headers for static assets
-  ├── Location: actions/app.go (ServeFiles)
-  └── Impact: LOW - Reduces asset re-download
+Before marking any task as complete, verify:
 
-TODO-PERF-007: Review tx.Eager() usage for N+1 elimination
-  ├── Location: Multiple resource files (animals.go, discoveries.go, etc.)
-  └── Impact: MEDIUM - Pop Eager can generate unexpected queries
+- [ ] **Server starts** without errors (`buffalo dev`)
+- [ ] **Database seeded** with admin user (`buffalo task db:seed`)
+- [ ] **Authentication works** (login as admin/admin)
+- [ ] **All modified pages load** without template errors
+- [ ] **Forms submit correctly** with validation working
+- [ ] **Navigation works** between related pages
+- [ ] **Feature flags/configurations** persist after save
+- [ ] **No 500/404 errors** for valid requests
+- [ ] **Admin menu links** visible and functional
 
-TODO-PERF-008: Add request timing/logging middleware
-  ├── Depends: None (new feature)
-  └── Impact: LOW - Helps identify slow endpoints in production
+### Chrome DevTools MCP Testing
 
-TODO-FUNC-001: Create event stream table for multi-instance consolidation
-  ├── Depends: None (new feature)
-  ├── Location: New migration + models/event_stream.go
-  └── Impact: HIGH - Foundation for all consolidation features
+Use the Chrome DevTools MCP skill for standardized testing:
 
-TODO-FUNC-002: Implement event producer for animal lifecycle changes
-  ├── Depends: TODO-FUNC-001
-  ├── Location: actions/animals.go, actions/discoveries.go, actions/outtakes.go
-  └── Impact: HIGH - Generates events on discovery, status change, outtake
-
-TODO-FUNC-003: Build event processor for consolidated DB view
-  ├── Depends: TODO-FUNC-001, TODO-FUNC-002
-  ├── Location: New grift/task: grifts/consolidation.go
-  └── Impact: HIGH - Creates unified view across all instances
-
-TODO-FUNC-004: Design self-contained event document schema
-  ├── Depends: TODO-FUNC-001
-  ├── Location: models/event_stream.go (schema design)
-  └── Impact: MEDIUM - JSON document with: discovery location, initial status, current status, timestamps
-
-TODO-FUNC-005: Add instance identifier to all events
-  ├── Depends: TODO-FUNC-001
-  ├── Location: models/event_stream.go + config
-  └── Impact: MEDIUM - Distinguishes events from different centers
+```bash
+# Load the skill (automatically available)
+# Located at: ~/.config/opencode/skills/chrome-devtools-testing.md
 ```
 
-## Implementation Plan
+**Quick Test Flow:**
+1. Start server: `buffalo dev > /tmp/buffalo.log 2>&1 &`
+2. Navigate to: `http://127.0.0.1:3000/auth/new`
+3. Login with: admin/admin
+4. Test all modified features
+5. Verify no console errors or 500s
 
-### Phase 1: Foundation (Weeks 1-2)
-**Goal**: Establish event infrastructure, deployable and testable in isolation.
+**See full testing procedures in:** `~/.config/opencode/skills/chrome-devtools-testing.md`
 
-1. **TODO-FUNC-004**: Design event document schema
-   - JSON structure: `{instance_id, animal_id, event_type, timestamp, payload: {discovery_location, initial_status, current_status, ...}}`
-   - Versioning strategy for schema evolution
-   - Validation rules
+### Chrome DevTools MCP Guidelines
 
-2. **TODO-FUNC-001**: Create event stream table
-   - Migration: `event_streams` table (id, instance_id, animal_id, event_type, payload JSON, created_at, processed_at)
-   - Model: `models/event_stream.go`
-   - Indexes: `(instance_id, animal_id, created_at)` for querying
+**Avoid screenshots/pixel validation unless explicitly requested by the user.** Use page snapshots (`take_snapshot`), console output, and HTTP responses for verification instead. Screenshots should only be used when:
+- The user explicitly asks for visual verification
+- Debugging layout/rendering issues
+- Demonstrating UI changes to the user
 
-3. **TODO-FUNC-005**: Add instance identifier
-   - Config: `INSTANCE_ID` env var
-   - Default to hostname or UUID if not set
-   - Add to all event payloads
-
-**Deliverable**: Events can be written to DB, schema validated, instance IDs tracked.
-**Testing**: Unit tests for model validation, migration rollback.
-
-### Phase 2: Event Production (Weeks 3-4)
-**Goal**: Generate events on all animal lifecycle changes.
-
-4. **TODO-FUNC-002**: Implement event producer
-   - Hook into `actions/discoveries.go`: Create `animal_discovered` event on new discovery
-   - Hook into `actions/animals.go`: Create `animal_status_changed` event on status update
-   - Hook into `actions/outtakes.go`: Create `animal_released`/`animal_died` event on outtake
-   - Producer function: `PublishEvent(tx, eventType, animal, payload)` — writes to `event_streams` within same DB transaction
-
-**Deliverable**: All animal lifecycle changes emit events atomically with the business transaction.
-**Testing**: Integration tests verifying events created on discovery/status change/outtake.
-
-### Phase 3: Consolidation (Weeks 5-6)
-**Goal**: Process events into consolidated view.
-
-5. **TODO-FUNC-003**: Build event processor
-   - Grift/task: `buffalo task consolidation:process`
-   - Reads unprocessed events (`processed_at IS NULL`) ordered by `created_at`
-   - Idempotent upsert into `consolidated_animals` table: `(instance_id, animal_id, discovery_location, current_status, last_updated)`
-   - Marks events as processed
-   - Supports reprocessing (clear `processed_at` to rebuild)
-
-**Deliverable**: Runnable task produces consolidated DB view from event stream.
-**Testing**: Test with multiple instances' event dumps; verify deduplication and status merging.
-
-### Phase 4: Performance Hardening (Weeks 7-8)
-**Goal**: Optimize for limited hardware, multi-user load.
-
-6. **TODO-PERF-001**: Cache reference data
-   - In-memory cache with 5-min TTL for `animaltypes`, `caretypes`, `zones`
-   - Invalidate on admin changes
-
-7. **TODO-PERF-002**: Cache current user
-   - Store serialized user in session cookie (signed)
-   - Fallback to DB if cache miss or role changed
-
-8. **TODO-PERF-003**: Add pagination to LandingIndex
-   - Default 50 animals per page
-   - Preserve existing "all" view for admins via query param
-
-9. **TODO-PERF-005**: Connection pool tuning
-   - Max open: 25, max idle: 10, max lifetime: 5m
-   - Configurable via env vars
-
-**Deliverable**: App runs efficiently on resource-constrained hardware.
-**Testing**: Load test with 50 concurrent users; verify DB connection count < 25.
-
-### Phase 5: Polish & Monitoring (Week 9)
-**Goal**: Production readiness.
-
-10. **TODO-PERF-008**: Request timing middleware
-    - Log slow requests (>500ms) with endpoint and DB query count
-
-11. **TODO-PERF-006**: HTTP cache headers for static assets
-    - `Cache-Control: public, max-age=31536000` for hashed assets
-
-12. **TODO-PERF-004**: Migrate EnrichAnimals to EnrichAnimalsOptimized
-    - Update `registertable.go`, `registersnapshot.go`
-
-13. **TODO-PERF-007**: Review Eager() usage
-    - Replace with explicit preloading where N+1 detected
-
-**Deliverable**: Production deployment with monitoring and optimized queries.
-**Testing**: Full regression test suite passes; performance benchmarks meet targets.
-
-### Rollback Strategy
-- Each phase is independent and can be deployed separately
-- Event table is additive — no changes to existing tables
-- Feature flags: `ENABLE_EVENT_STREAM`, `ENABLE_CONSOLIDATION` env vars
-- Database migrations are backward-compatible (new tables only until Phase 4)
+This preserves context and reduces token usage.
 
 ## Common Gotchas
 - `buffalo dev` handles both Go rebuilds and asset compilation — don't run `npm run dev` separately unless debugging webpack
@@ -307,3 +205,4 @@ TODO-FUNC-005: Add instance identifier to all events
 - Database must exist before migrations; Pop does not auto-create the DB
 - The `db:seed` task is idempotent-ish but will fail if run before migrations
 - Test docker-compose mounts `test/database.yml` (points to `db` host, not `localhost`)
+- **Always test forms with checkboxes** — they require manual parameter binding to avoid `strconv.ParseUint` errors

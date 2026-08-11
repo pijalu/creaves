@@ -1,4 +1,85 @@
 <h1>Maintenance</h1>
+
+<%= if (flash["info"]) { %>
+<div class="alert alert-info" role="alert">
+  <%= flash["info"] %>
+</div>
+<% } %>
+
+<%= if (flash["success"]) { %>
+<div class="alert alert-success" role="alert">
+  <%= flash["success"] %>
+</div>
+<% } %>
+
+<%= if (flash["danger"]) { %>
+<div class="alert alert-danger" role="alert">
+  <%= flash["danger"] %>
+</div>
+<% } %>
+
+<h2>Event Stream Management</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Event Stream Status</h5>
+    <p class="card-text">
+      <strong>Enabled:</strong> <%= eventStreamEnabled %><br>
+      <strong>Total Events:</strong> <%= totalEvents %><br>
+      <strong>Unprocessed Events:</strong> <%= unprocessedEvents %><br>
+      <strong>Processed Events:</strong> <%= processedEvents %>
+    </p>
+    
+    <div class="btn-group" role="group">
+      <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
+        <button type="submit" class="btn btn-primary" data-confirm="This will create event stream snapshot for all animals. Continue?">
+          Create Event Snapshot
+        </button>
+      <% } %>
+      
+      <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
+        <button type="submit" class="btn btn-warning ml-2" data-confirm="This will delete all processed events. Continue?">
+          Clean Processed Events
+        </button>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%= if (params["task"]) { %>
+<div class="card mb-4" id="task-status">
+  <div class="card-body">
+    <h5 class="card-title">Background Task Status</h5>
+    <p class="card-text" id="task-message">Loading...</p>
+  </div>
+</div>
+
+<script>
+function checkTaskStatus() {
+  fetch('/maintenance/tasks/<%= params["task"] %>')
+    .then(response => response.json())
+    .then(data => {
+      const messageEl = document.getElementById('task-message');
+      messageEl.innerHTML = `
+        <strong>Status:</strong> ${data.status}<br>
+        <strong>Type:</strong> ${data.type}<br>
+        <strong>Message:</strong> ${data.message || 'N/A'}<br>
+        <strong>Processed:</strong> ${data.processed || 0}<br>
+        <strong>Errors:</strong> ${data.errors || 0}
+      `;
+      
+      if (data.status === 'running') {
+        setTimeout(checkTaskStatus, 2000);
+      }
+    })
+    .catch(err => {
+      document.getElementById('task-message').textContent = 'Error checking status: ' + err.message;
+    });
+}
+
+checkTaskStatus();
+</script>
+<% } %>
+
 <h2>Animals year numbering</h2>
-<p>This option will regenerate the yearly numbering of all animals based on their adminssion date</p>
+<p>This option will regenerate the yearly numbering of all animals based on their admission date</p>
 <%= linkTo("maintenance/renumber", {class: "btn btn-danger", "data-confirm": "This action will renumber all animals based on their intake date - Are you sure?", body: "Regenerate animal year numbering"}) %>

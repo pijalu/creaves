@@ -100,6 +100,8 @@ func App() *buffalo.App {
 
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
+		app.Resource("/config", ConfigsResource{})
+		app.Resource("/event_streams", EventStreamsResource{})
 
 		app.Resource("/logentries", LogentriesResource{})
 		app.Resource("/discoverers", DiscoverersResource{})
@@ -156,6 +158,9 @@ func App() *buffalo.App {
 		maintenance := app.Group("/maintenance")
 		maintenance.GET("/", MaintenanceIndex)
 		maintenance.GET("/renumber", MaintenanceRenumber)
+		maintenance.POST("/snapshot", MaintenanceSnapshot)
+		maintenance.POST("/cleanup", MaintenanceCleanup)
+		maintenance.GET("/tasks/{task_id}", MaintenanceTaskStatus)
 
 		app.Resource("/species", SpeciesResource{})
 		app.GET("/export/csv", ExportCsv)

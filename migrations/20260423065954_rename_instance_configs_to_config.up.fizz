@@ -1,0 +1,3 @@
+rename_table("instance_configs", "config")
+
+add_column("config", "settings", "json", {null: true})

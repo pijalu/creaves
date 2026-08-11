@@ -1,0 +1,13 @@
+create_table("event_streams") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("instance_id", "string", {})
+	t.Column("animal_id", "integer", {})
+	t.Column("event_type", "string", {})
+	t.Column("payload", "json", {null: true})
+	t.Column("processed_at", "timestamp", {null: true})
+	t.Timestamps()
+}
+
+add_index("event_streams", ["instance_id", "animal_id", "created_at"], {})
+add_index("event_streams", ["processed_at"], {})
+add_index("event_streams", ["event_type"], {})

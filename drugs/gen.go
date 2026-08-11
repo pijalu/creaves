@@ -162,5 +162,7 @@ func main() {
 		}
 	}
 
-	fmt.Print(footer)
+	fmt.Printf("%s", footer)
 }
+
+

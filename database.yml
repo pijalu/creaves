@@ -5,7 +5,7 @@ development:
 
 test:
   dialect: "mysql"
-  url: "mysql://creaves:creaves@(localhost:3306)/creaves?parseTime=true&multiStatements=true&readTimeout=3s"
+  url: "mysql://creaves:creaves@(localhost:3306)/creaves_test?parseTime=true&multiStatements=true&readTimeout=3s"
 
 production:
   dialect: "mysql"

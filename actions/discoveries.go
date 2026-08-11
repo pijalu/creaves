@@ -124,6 +124,19 @@ func (v DiscoveriesResource) Create(c buffalo.Context) error {
 		return err
 	}
 
+	// Publish event if discovery was created successfully
+	if !verrs.HasAny() {
+		// Try to find associated animal
+		animal := &models.Animal{}
+		if err := tx.Where("discovery_id = ?", discovery.ID).First(animal); err == nil {
+			// Enrich animal for event payload
+			animal.Discovery = *discovery
+			if err := PublishAnimalDiscoveredEvent(tx, animal, GetCurrentUser(c)); err != nil {
+				c.Logger().Warnf("Failed to publish animal_discovered event: %v", err)
+			}
+		}
+	}
+
 	c.Logger().Debugf("LaMerde: %v", verrs)
 
 	if verrs.HasAny() {

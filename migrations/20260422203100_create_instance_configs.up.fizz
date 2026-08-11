@@ -1,0 +1,10 @@
+create_table("instance_configs") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("instance_id", "string", {})
+	t.Column("name", "string", {})
+	t.Column("description", "text", {null: true})
+	t.Column("active", "bool", {default: true})
+	t.Timestamps()
+}
+
+add_index("instance_configs", ["instance_id"], {unique: true})

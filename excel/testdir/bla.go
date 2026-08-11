@@ -9,7 +9,7 @@ func convertToExcelNotation(line, col int) string {
 
 	for col > 0 {
 		mod := (col - 1) % 26
-		result = string('A'+mod) + result
+		result = string(rune('A'+mod)) + result
 		col = (col - 1) / 26
 	}
 

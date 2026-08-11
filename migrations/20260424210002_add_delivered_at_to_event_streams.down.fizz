@@ -1,0 +1,2 @@
+remove_index("event_streams", ["delivered_at"])
+remove_column("event_streams", "delivered_at")

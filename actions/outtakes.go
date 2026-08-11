@@ -211,6 +211,20 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 			outtake.Date).Exec(); err != nil {
 			return err
 		}
+
+		// Publish event based on outtake type
+		if err := tx.Find(&outtake.Type, outtake.TypeID); err == nil {
+			animal.Outtake = outtake
+			if outtake.Type.Error {
+				if err := PublishAnimalDiedEvent(tx, animal, GetCurrentUser(c)); err != nil {
+					c.Logger().Warnf("Failed to publish animal_died event: %v", err)
+				}
+			} else {
+				if err := PublishAnimalReleasedEvent(tx, animal, GetCurrentUser(c)); err != nil {
+					c.Logger().Warnf("Failed to publish animal_released event: %v", err)
+				}
+			}
+		}
 	}
 
 	if verrs.HasAny() {
