@@ -6,6 +6,7 @@
     
         <script>
         $('input[name="Discovery.PostalCode"]').autoComplete({
+            delay: 250,
             minChars: 1,
             source: function(term, response){
                 $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
@@ -13,6 +14,7 @@
         });
 
         $('input[name="Discovery.City"]').autoComplete({
+            delay: 250,
             minChars: 0,
             cache: 0,
             source: function(term, response){
@@ -27,6 +29,7 @@
     <%= f.InputTag("Location", {bootstrap:{form-group-class:"form-group col-md-12"}}) %>
     <script>
         $('input[name="Location"]').autoComplete({
+            delay: 250,
             minChars: 1,
             source: function(term, response){
                 $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });

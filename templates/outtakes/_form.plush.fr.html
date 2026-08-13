@@ -32,6 +32,7 @@
 <%= f.InputTag("Location", {label: "Lieu"}) %>
 <script>
 $('input[name="Location"]').autoComplete({
+    delay: 250,
     minChars: 1,
     source: function(term, response){
         $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });

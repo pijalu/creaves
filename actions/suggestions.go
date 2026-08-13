@@ -20,13 +20,12 @@ func suggest(c buffalo.Context, table string, field string) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT DISTINCT " + field + " FROM " + table
-
+	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" WHERE "+field+" like ?", "%"+q+"%")
+		query = tx.RawQuery(qroot+" WHERE "+field+" like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot)
+		query = tx.RawQuery(qroot + " ORDER BY 1 LIMIT 25")
 	}
 
 	if err := query.All(&s); err != nil {
@@ -55,13 +54,12 @@ func SuggestionsOuttakeLocation(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := `SELECT CONCAT(postal_code,"_",locality) FROM localities`
-
+	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ?`, "%"+q+"%")
+		query = tx.RawQuery(qroot+` WHERE CONCAT(postal_code,"_",locality) like ? ORDER BY 1 LIMIT 25`, "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot)
+		query = tx.RawQuery(qroot + ` ORDER BY 1 LIMIT 25`)
 	}
 
 	s := []string{}
@@ -104,12 +102,13 @@ func SuggestionsLocality(c buffalo.Context) error {
 		return fmt.Errorf("unexpected request for %s", ret)
 	}
 
+	s := []string{}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := fmt.Sprintf(`SELECT distinct %s FROM localities WHERE 1=1`, field)
 	args := []interface{}{}
 
@@ -126,9 +125,8 @@ func SuggestionsLocality(c buffalo.Context) error {
 	}
 	qroot += " ORDER BY 1 LIMIT 10"
 	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
-	query = tx.RawQuery(qroot, args...)
+	query := tx.RawQuery(qroot, args...)
 
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -144,12 +142,13 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 
 	ret := c.Param("r") // return
 
+	s := []string{}
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	var field string
 
 	switch ret {
@@ -184,10 +183,10 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 		args = append(args, "%"+a+"%")
 	}
 
+	qroot += " ORDER BY 1 LIMIT 25"
 	c.Logger().Debugf("Query: %s - params: %v", qroot, args)
-	query = tx.RawQuery(qroot, args...)
+	query := tx.RawQuery(qroot, args...)
 
-	s := []string{}
 	if err := query.All(&s); err != nil {
 		return err
 	}
@@ -204,13 +203,12 @@ func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL "
-
+	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" and name like ?", "%"+q+"%")
+		query = tx.RawQuery(qroot+" and name like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot)
+		query = tx.RawQuery(qroot + " ORDER BY 1 LIMIT 25")
 	}
 
 	s := []string{}
@@ -241,9 +239,9 @@ func SuggestionsTreatmentDrug(c buffalo.Context) error {
 		  AND s.animaltype_id = ?`
 
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND d.Name like ?", at, "%"+q+"%")
+		query = tx.RawQuery(qroot+" AND d.Name like ? ORDER BY 1 LIMIT 25", at, "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot, at)
+		query = tx.RawQuery(qroot+" ORDER BY 1 LIMIT 25", at)
 	}
 
 	s := []string{}
@@ -324,13 +322,12 @@ func SuggestionsAnimalInCare(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT Year, YearNumber FROM animals WHERE outtake_id IS null "
-
+	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND YearNumber like ?", "%"+q+"%")
+		query = tx.RawQuery(qroot+" AND YearNumber like ? ORDER BY Year, YearNumber LIMIT 25", "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot)
+		query = tx.RawQuery(qroot + " ORDER BY Year, YearNumber LIMIT 25")
 	}
 
 	if err := query.All(&results); err != nil {
@@ -355,13 +352,12 @@ func SuggestionsCageWithAnimalInCare(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	var query *pop.Query
 	qroot := "SELECT DISTINCT Cage FROM animals WHERE outtake_id IS null and Cage is not null"
-
+	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" AND Cage like ?", "%"+q+"%")
+		query = tx.RawQuery(qroot+" AND Cage like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
 	} else {
-		query = tx.RawQuery(qroot)
+		query = tx.RawQuery(qroot + " ORDER BY 1 LIMIT 25")
 	}
 
 	s := []string{}

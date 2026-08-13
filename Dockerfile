@@ -9,10 +9,9 @@ RUN npm install -g yarn
 RUN mkdir -p /src/creaves
 WORKDIR /src/creaves
 
-# this will cache the npm install step, unless package.json changes
-ADD package.json .
-RUN npm install
-RUN yarn install
+# this will cache the yarn install step, unless package.json or yarn.lock changes
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -47,4 +46,3 @@ EXPOSE 3000
 # Uncomment to run the migrations before running the binary:
 # CMD /bin/app migrate; /bin/app
 CMD /bin/quickstart.prod.sh
-

@@ -124,6 +124,7 @@
                 <div id="nativeGroupHint"></div>
                 <script>
                 $('input[name="Species"]').autoComplete({
+                    delay: 250,
                     minChars: 1,
                     source: function(term, response){
                         $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
@@ -170,6 +171,7 @@
                     
                         <script>
                         $('input[name="Discovery.PostalCode"]').autoComplete({
+                            delay: 250,
                             minChars: 0,
                             cache: 0,
                             source: function(term, response){
@@ -181,6 +183,7 @@
                         });
 
                         $('input[name="Discovery.City"]').autoComplete({
+                            delay: 250,
                             minChars: 0,
                             cache: 0,
                             source: function(term, response){
@@ -195,6 +198,7 @@
                     <%= f.InputTag("Discovery.Location", {label:"Adresse, lieu précis", placeholder:"Adresse, lieu précis", bootstrap:{form-group-class:"form-group col-md-12"}}) %>
                     <script>
                     $('input[name="Discovery.Location"]').autoComplete({
+                        delay: 250,
                         minChars: 1,
                         source: function(term, response){
                             $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
@@ -288,6 +292,7 @@
 
                     <script>
                         $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
+                            delay: 250,
                             cache: 0,
                             minChars: 1,
                             source: function(term, response){
@@ -302,6 +307,7 @@
                         });
 
                         $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
+                            delay: 250,
                             cache: 0,
                             minChars: 1,
                             source: function(term, response){
@@ -316,6 +322,7 @@
                         });
 
                         $('input[name="Discovery.Discoverer.Address"]').autoComplete({
+                            delay: 250,
                             cache: 0,
                             minChars: 1,
                             source: function(term, response){
@@ -336,6 +343,7 @@
                     <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Pays"}) %>
                     <script>
                         $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
+                            delay: 250,
                                 minChars: 0,
                                 cache: 0,
                                 source: function(term, response){
@@ -347,6 +355,7 @@
                         });
 
                         $('input[name="Discovery.Discoverer.City"]').autoComplete({
+                            delay: 250,
                             minChars: 0,
                             cache: 0,
                             source: function(term, response){
@@ -356,6 +365,7 @@
                         });
 
                         $('input[name="Discovery.Discoverer.Country"]').autoComplete({
+                            delay: 250,
                             minChars: 1,
                             source: function(term, response){
                                 $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
