@@ -56,9 +56,7 @@ func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, p
 	}
 
 	// Start webhook worker if webhook is enabled and not already running
-	if IsWebhookEnabled() && !IsWebhookWorkerRunning() {
-		StartWebhookWorker()
-	}
+	EnsureWebhookWorkerRunning()
 
 	return nil
 }

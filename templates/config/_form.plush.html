@@ -18,7 +18,16 @@
 
 <hr/>
 <h5>Webhook Configuration</h5>
-<p class="text-muted">Configure webhook to push events to Creaves Console.</p>
+<p class="text-muted">Push events to a Creaves Console instance.</p>
+
+<div class="alert alert-info">
+  <strong>Setup:</strong>
+  <ol class="mb-0">
+    <li>In the <em>Creaves Console</em> (receiver), go to <strong>Admin → Webhook API Keys → Create Key</strong> and copy the generated key.</li>
+    <li>Enable the webhook here, paste the key, and set the Console's <strong>Webhook URL</strong> (e.g. <code>https://console.example.com/webhook/events</code>).</li>
+    <li>Save — the delivery worker starts automatically.</li>
+  </ol>
+</div>
 
 <div class="form-group form-check">
   <input type="hidden" name="Settings.WebhookEnabled" value="false" />
@@ -37,8 +46,8 @@
 
 <div class="form-group">
   <label for="webhook_api_key">API Key</label>
-  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="Enter API key from console">
-  <small class="form-text text-muted">API key generated in Creaves Console. Leave empty to keep current key.</small>
+  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="Enter API key (leave blank to keep current)">
+  <small class="form-text text-muted">API key generated in Creaves Console. Not shown here for security — leave blank when editing to keep the current key.</small>
 </div>
 
 <div class="form-group">

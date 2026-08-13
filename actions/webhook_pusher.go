@@ -5,6 +5,7 @@ import (
 	"creaves/models"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"sync"
 	"time"
@@ -106,13 +107,20 @@ func StartWebhookWorker() {
 		return // Already running
 	}
 
-	webhookTicker = time.NewTicker(5 * time.Second)
-	stopChan = make(chan bool)
+	ticker := time.NewTicker(5 * time.Second)
+	stop := make(chan bool)
+	// Publish for StopWebhookWorker / IsWebhookWorkerRunning coordination.
+	webhookTicker = ticker
+	stopChan = stop
 
 	go func() {
+		// Reference the LOCAL ticker and stop channel so that
+		// StopWebhookWorker nil-ing the package globals cannot race with a
+		// delivery already in flight (previously this read the global
+		// webhookTicker directly and could nil-deref on shutdown).
 		for {
 			select {
-			case <-webhookTicker.C:
+			case <-ticker.C:
 				if !IsWebhookEnabled() {
 					continue
 				}
@@ -125,7 +133,7 @@ func StartWebhookWorker() {
 				if err := deliverBatch(); err != nil {
 					fmt.Printf("Webhook delivery failed: %v\n", err)
 				}
-			case <-stopChan:
+			case <-stop:
 				return
 			}
 		}
@@ -269,18 +277,56 @@ func deliverBatch() error {
 		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
 
-	// Mark events as delivered
-	now := time.Now()
-	for i := range *events {
-		event := &(*events)[i]
-		event.DeliveredAt = &now
-		if err := models.DB.Update(event); err != nil {
-			fmt.Printf("Failed to mark event %s as delivered: %v\n", event.ID, err)
+	// Determine which events the receiver actually accepted. On partial
+	// failure the receiver returns the IDs it processed (processed_ids);
+	// events absent from that list are left undelivered (delivered_at IS
+	// NULL) so they are retried on the next tick instead of being silently
+	// dropped.
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read webhook response: %w", err)
+	}
+
+	var result struct {
+		ProcessedIDs []string `json:"processed_ids"`
+	}
+	_ = json.Unmarshal(bodyBytes, &result)
+
+	accepted := make(map[string]bool, len(*events))
+	if len(result.ProcessedIDs) > 0 {
+		for _, id := range result.ProcessedIDs {
+			accepted[id] = true
+		}
+	} else {
+		// Backward compatibility: a receiver that does not report
+		// processed_ids is assumed to have accepted every event on 200 OK.
+		for _, event := range *events {
+			accepted[event.ID.String()] = true
 		}
 	}
 
+	// Mark accepted events as delivered; leave the rest for retry.
+	now := time.Now()
+	delivered := 0
+	for i := range *events {
+		event := &(*events)[i]
+		if !accepted[event.ID.String()] {
+			continue
+		}
+		event.DeliveredAt = &now
+		if err := models.DB.Update(event); err != nil {
+			fmt.Printf("Failed to mark event %s as delivered: %v\n", event.ID, err)
+			continue
+		}
+		delivered++
+	}
+
 	webhookPusher.circuitBreaker.RecordSuccess()
-	fmt.Printf("Delivered %d events to webhook\n", len(*events))
+	if delivered < len(*events) {
+		fmt.Printf("Delivered %d/%d events to webhook; %d will be retried\n", delivered, len(*events), len(*events)-delivered)
+	} else {
+		fmt.Printf("Delivered %d events to webhook\n", delivered)
+	}
 
 	return nil
 }
@@ -308,4 +354,26 @@ func RegisterWebhookShutdown(app *buffalo.App) {
 			StopWebhookWorker()
 		}
 	})
+}
+
+// EnsureWebhookWorkerRunning starts the webhook worker if the webhook is
+// enabled and it is not already running. It is safe to call repeatedly.
+func EnsureWebhookWorkerRunning() {
+	if IsWebhookEnabled() && !IsWebhookWorkerRunning() {
+		StartWebhookWorker()
+	}
+}
+
+// InitWebhookAtBoot loads the configuration from the database and starts the
+// webhook delivery worker when forwarding is enabled. It must be called at
+// application startup, once the database connection (models.DB) is available,
+// so that events queued before a restart are still delivered. A failure to
+// load the configuration is logged but never fatal: the worker remains stopped
+// and may be started lazily later (e.g. when the next event is published).
+func InitWebhookAtBoot() {
+	if _, err := LoadConfig(models.DB); err != nil {
+		fmt.Printf("Webhook: failed to load config at boot: %v\n", err)
+		return
+	}
+	EnsureWebhookWorkerRunning()
 }

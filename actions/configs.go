@@ -328,6 +328,14 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 		WebhookBatchSize:  batchSize,
 		WebhookMaxPerMin:  maxPerMin,
 	}
+	// The API key field is intentionally NOT pre-filled in the form (to avoid
+	// exposing the secret in the HTML). If the admin left it blank, preserve
+	// the previously stored key rather than wiping it.
+	if settings.WebhookAPIKey == "" {
+		if existing, err := config.GetSettings(); err == nil {
+			settings.WebhookAPIKey = existing.WebhookAPIKey
+		}
+	}
 	if err := config.SetSettings(settings); err != nil {
 		return errors.WithStack(err)
 	}
@@ -353,6 +361,9 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	if CurrentConfig != nil && CurrentConfig.ID == config.ID {
 		CurrentConfig = config
 	}
+
+	// If webhook forwarding was just enabled, start the delivery worker now.
+	EnsureWebhookWorkerRunning()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Flash().Add("success", "Config updated successfully")

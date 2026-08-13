@@ -14,10 +14,15 @@ import (
 // application that is. :)
 func main() {
 	app := actions.App()
-	
+
 	// Register webhook graceful shutdown
 	actions.RegisterWebhookShutdown(app)
-	
+
+	// Load config and start the webhook delivery worker at boot so that
+	// events queued before a restart (or while the app was down) are still
+	// forwarded once the webhook is configured.
+	actions.InitWebhookAtBoot()
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

@@ -247,3 +247,129 @@ func TestPublishAnimalDiedEventPayload(t *testing.T) {
 
 // Helper to avoid unused import
 var _ = pop.Connection{}
+
+// TestBuildEventPayload_Comprehensive exercises every optional branch in
+// buildEventPayload (discovery, discoverer, intake, outtake, nulls fields) to
+// maximise coverage of the event payload builder.
+func TestBuildEventPayload_Comprehensive(t *testing.T) {
+	animal := &models.Animal{
+		ID:         99,
+		Year:       2024,
+		YearNumber: 7,
+		Species:    "Red Fox",
+		Gender:     nulls.NewString("Male"),
+		Cage:       nulls.NewString("Cage A"),
+		Zone:       nulls.NewString("Zone 1"),
+		Ring:       nulls.NewString("RING-001"),
+		Animaltype: models.Animaltype{ID: uuid.Must(uuid.NewV4()), Name: "Mammal"},
+		Animalage:  models.Animalage{ID: uuid.Must(uuid.NewV4()), Name: "Adult"},
+		Discovery: models.Discovery{
+			ID:           uuid.Must(uuid.NewV4()),
+			Location:     nulls.NewString("Forest"),
+			PostalCode:   nulls.NewString("1000"),
+			City:         nulls.NewString("Brussels"),
+			Date:         time.Now(),
+			EntryCauseID: "cause-1",
+			EntryCause:   models.EntryCause{ID: "cause-1"},
+			Reason:       nulls.NewString("Injured"),
+			Note:         nulls.NewString("Found near road"),
+			ReturnHabitat: true,
+			InGarden:      true,
+			Discoverer: models.Discoverer{
+				ID:          uuid.Must(uuid.NewV4()),
+				Firstname:   nulls.NewString("Jane"),
+				Lastname:    nulls.NewString("Doe"),
+				Address:     nulls.NewString("1 Main St"),
+				City:        nulls.NewString("Brussels"),
+				PostalCode:  nulls.NewString("1000"),
+				Country:     nulls.NewString("BE"),
+				Email:       nulls.NewString("jane@example.com"),
+				Phone:       nulls.NewString("0123456789"),
+				Note:        nulls.NewString("Caller"),
+			},
+		},
+		Intake: models.Intake{
+			ID:           uuid.Must(uuid.NewV4()),
+			Date:         time.Now(),
+			General:      nulls.NewString("Weak"),
+			Wounds:       nulls.NewString("Leg"),
+			Parasites:    nulls.NewString("Ticks"),
+			Remarks:      nulls.NewString("Needs care"),
+			HasWounds:    true,
+			HasParasites: true,
+		},
+		Outtake: &models.Outtake{
+			ID:       uuid.Must(uuid.NewV4()),
+			Date:     time.Now(),
+			Location: nulls.NewString("Forest Reserve"),
+			Note:     nulls.NewString("Released"),
+			Type:     models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Released to Wild"},
+		},
+	}
+
+	p := buildEventPayload(animal)
+
+	// Animal
+	assertEq(t, "animal species", "Red Fox", p.Animal.Species)
+	assertEq(t, "animal gender", "Male", p.Animal.Gender)
+	assertEq(t, "animal cage", "Cage A", p.Animal.Cage)
+	assertEq(t, "animal zone", "Zone 1", p.Animal.Zone)
+	assertEq(t, "animal ring", "RING-001", p.Animal.Ring)
+	assertEq(t, "animal type", "Mammal", p.Animal.AnimalType)
+	assertEq(t, "animal age", "Adult", p.Animal.AnimalAge)
+
+	// Discovery
+	assertEq(t, "discovery location", "Forest", p.Discovery.Location)
+	assertEq(t, "discovery postal", "1000", p.Discovery.PostalCode)
+	assertEq(t, "discovery city", "Brussels", p.Discovery.City)
+	assertEq(t, "discovery entry cause id", "cause-1", p.Discovery.EntryCauseID)
+	assertEq(t, "discovery reason", "Injured", p.Discovery.Reason)
+	assertEq(t, "discovery note", "Found near road", p.Discovery.Note)
+	if !p.Discovery.ReturnHabitat {
+		t.Error("expected ReturnHabitat true")
+	}
+	if !p.Discovery.InGarden {
+		t.Error("expected InGarden true")
+	}
+
+	// Discoverer
+	assertEq(t, "discoverer firstname", "Jane", p.Discovery.DiscovererFirstname)
+	assertEq(t, "discoverer lastname", "Doe", p.Discovery.DiscovererLastname)
+	assertEq(t, "discoverer address", "1 Main St", p.Discovery.DiscovererAddress)
+	assertEq(t, "discoverer city", "Brussels", p.Discovery.DiscovererCity)
+	assertEq(t, "discoverer postal", "1000", p.Discovery.DiscovererPostalCode)
+	assertEq(t, "discoverer country", "BE", p.Discovery.DiscovererCountry)
+	assertEq(t, "discoverer email", "jane@example.com", p.Discovery.DiscovererEmail)
+	assertEq(t, "discoverer phone", "0123456789", p.Discovery.DiscovererPhone)
+	assertEq(t, "discoverer note", "Caller", p.Discovery.DiscovererNote)
+
+	// Intake
+	assertEq(t, "intake general", "Weak", p.Intake.General)
+	assertEq(t, "intake wounds", "Leg", p.Intake.Wounds)
+	assertEq(t, "intake parasites", "Ticks", p.Intake.Parasites)
+	assertEq(t, "intake remarks", "Needs care", p.Intake.Remarks)
+	if !p.Intake.HasWounds {
+		t.Error("expected HasWounds true")
+	}
+	if !p.Intake.HasParasites {
+		t.Error("expected HasParasites true")
+	}
+
+	// Outtake
+	assertEq(t, "outtake type", "Released to Wild", p.Outtake.Type)
+	if p.Outtake.TypeID == "" {
+		t.Error("expected non-empty outtake TypeID")
+	}
+	assertEq(t, "outtake location", "Forest Reserve", p.Outtake.Location)
+	assertEq(t, "outtake note", "Released", p.Outtake.Note)
+	if p.Outtake.Date == "" {
+		t.Error("expected outtake date")
+	}
+}
+
+func assertEq(t *testing.T, label, want, got string) {
+	t.Helper()
+	if want != got {
+		t.Errorf("%s: want %q, got %q", label, want, got)
+	}
+}
