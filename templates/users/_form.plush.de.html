@@ -1,0 +1,6 @@
+<%= f.InputTag("Login") %>
+<%= f.InputTag("Password", {label:"Passwort", type: "password"}) %>
+<%= f.InputTag("PasswordConfirmation", {label:"Passwortbestätigung", type: "password"}) %>
+<%= if (current_user.Admin) { %>
+  <%= partial("users/aform.plush.de.html") %>
+<% } %>

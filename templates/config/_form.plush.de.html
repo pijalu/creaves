@@ -1,0 +1,63 @@
+<%= f.InputTag("InstanceID", {label: "Instanz-ID"}) %>
+<%= f.InputTag("Name", {label: "Name"}) %>
+<%= f.TextArea("Description", {label: "Beschreibung", rows: 3}) %>
+<%= f.CheckboxTag("Active", {label: "Aktiv", unchecked: false}) %>
+
+<hr/>
+<h5>Ereignisstrom</h5>
+<p class="text-muted">Ereignisstrom für die Multi-Instanz-Konsolidierung konfigurieren.</p>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.EnableEventStream" value="false" />
+  <input type="checkbox" class="form-check-input" id="enable_event_stream" name="Settings.EnableEventStream" value="true" <%= if (settings.EnableEventStream) { %>checked<% } %>>
+  <label class="form-check-label" for="enable_event_stream">
+    <strong>Ereignisstrom aktivieren</strong>
+  </label>
+  <small class="form-text text-muted">Wenn aktiviert, werden Tierlebenszyklus-Ereignisse (Entdeckung, Statusänderungen, Ausgänge) für die instanzübergreifende Berichterstattung und Konsolidierung aufgezeichnet.</small>
+</div>
+
+<hr/>
+<h5>Webhook-Konfiguration</h5>
+<p class="text-muted">Ereignisse an eine Creaves-Console-Instanz senden.</p>
+
+<div class="alert alert-info">
+  <strong>Einrichtung:</strong>
+  <ol class="mb-0">
+    <li>In der <em>Creaves Console</em> (Empfänger) zu <strong>Admin → Webhook-API-Schlüssel → Schlüssel erstellen</strong> gehen und den generierten Schlüssel kopieren.</li>
+    <li>Den Webhook hier aktivieren, den Schlüssel einfügen und die <strong>Webhook-URL</strong> der Console festlegen (z. B. <code>https://console.example.com/webhook/events</code>).</li>
+    <li>Speichern — der Zustellungs-Worker startet automatisch.</li>
+  </ol>
+</div>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.WebhookEnabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="webhook_enabled" name="Settings.WebhookEnabled" value="true" <%= if (settings.WebhookEnabled) { %>checked<% } %>>
+  <label class="form-check-label" for="webhook_enabled">
+    <strong>Webhook aktivieren</strong>
+  </label>
+  <small class="form-text text-muted">Wenn aktiviert, werden Ereignisse an die konfigurierte Webhook-URL gesendet.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">Webhook-URL</label>
+  <input type="url" class="form-control" id="webhook_url" name="Settings.WebhookURL" value="<%= settings.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">Die URL des Webhook-Endpunkts der Creaves Console.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">API-Schlüssel</label>
+  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="API-Schlüssel eingeben (leer lassen, um den aktuellen beizubehalten)">
+  <small class="form-text text-muted">API-Schlüssel, der in der Creaves Console erstellt wurde. Aus Sicherheitsgründen nicht angezeigt — beim Bearbeiten leer lassen, um den aktuellen Schlüssel beizubehalten.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Batchgröße</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="Settings.WebhookBatchSize" value="<%= settings.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Anzahl der Ereignisse pro Anfrage (Standard: 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Maximale Ereignisse pro Minute</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="Settings.WebhookMaxPerMin" value="<%= settings.WebhookMaxPerMin %>" min="1" max="6000">
+  <small class="form-text text-muted">Ratenlimit für die Ereignis-Zustellung (Standard: 60).</small>
+</div>

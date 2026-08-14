@@ -1,0 +1,41 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Logboekvermeldingen</h3>
+  <div class="float-right">
+    <%= linkTo(newLogentriesPath(), {class: "btn btn-primary"}) { %>
+      Nieuw logboekitem aanmaken
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Aangemaakt op</th>
+    <th>Bijgewerkt op</th>
+    <th>Gebruiker</th>
+    <th>Beschrijving</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (logentry) in logentries { %>
+      <tr>
+        <td class="align-middle"><%= logentry.CreatedAtFormated() %></td>
+        <td class="align-middle"><%= logentry.UpdatedAtFormated() %></td>
+        <td class="align-middle"><%= logentry.User.Login %></td>
+        <td class="align-middle" width="100%"><%= logentry.Description %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (current_user.Admin || current_user.ID.String() == logentry.UserID.String()) {%>
+              <%= linkTo(editLogentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+              <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

@@ -5,6 +5,6 @@
 - id: "travel.destroyed.success"
   translation: "Travel was successfully destroyed."
 - id: "travel.animal.not.found"
-  translation: "animal with id {{.animalID}} does not exists"
+  translation: "animal with id {{.animalID}} does not exist"
 - id: "travels.animal.not.found"
-  translation: "animal with id {{.animalID}} does not exists"
+  translation: "animal with id {{.animalID}} does not exist"

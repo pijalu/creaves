@@ -1,9 +1,9 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Detais de l'entrée du journal de bord</h3>
+  <h3 class="d-inline-block">Détails de l'entrée du journal de bord</h3>
 
   <div class="float-right">
     <%= linkTo(logentriesPath(), {class: "btn btn-info"}) { %>
-      Retour à tous les entrée du journal de bord
+      Retour à toutes les entrées du journal de bord
     <% } %>
     <%= if (current_user.Admin || current_user.ID.String() == logentry.UserID.String()) {%>
       <%= linkTo(editLogentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>

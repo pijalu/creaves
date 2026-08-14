@@ -1,5 +1,5 @@
 - id: welcome_greeting
-  translation: "Bienvenue au Creaves"
+  translation: "Bienvenue dans Creaves"
   
 - id: "users.language-changed"
   translation: "Langue changée en {{.Lang}}"
@@ -11,7 +11,7 @@
   translation: "Login / mot de passe invalide"
 
 - id: "users.logout"
-  translation: "Vous avez été déconnecté!"
+  translation: "Vous avez été déconnecté !"
 - id: "translations.section.title"
   translation: "Traductions"
 - id: "translations.section.note"

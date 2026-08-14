@@ -5,6 +5,6 @@
 - id: "care.destroyed.success"
   translation: "Care was successfully destroyed."
 - id: "care.animal.not.found"
-  translation: "animal with id {{.animalID}} does not exists"
+  translation: "animal with id {{.animalID}} does not exist"
 - id: "care.animal.outtake.already.exist"
   translation: "animal with id {{.animalID}} is out"

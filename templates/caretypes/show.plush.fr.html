@@ -1,9 +1,9 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Détail de type de suivis</h3>
+  <h3 class="d-inline-block">Détail du type de suivi</h3>
 
   <div class="float-right">
     <%= linkTo(caretypesPath(), {class: "btn btn-info"}) { %>
-      Retour à tous types de suivis
+      Retour à tous les types de suivi
     <% } %>
     <%= linkTo(editCaretypePath({ caretype_id: caretype.ID }), {class: "btn btn-warning", title:"Éditer", body: "<i class='fa fa-edit'></i>"}) %>
     <%= if (current_user.Admin) {%>

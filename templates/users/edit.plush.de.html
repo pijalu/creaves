@@ -1,0 +1,19 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Benutzer bearbeiten</h3>
+</div>
+
+<%= formFor(user, {action: userPath({ user_id: user.ID }), method: "PUT"}) { %>
+ 
+  <%= partial("users/form.plush.de.html") %>
+  <button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
+  <%= if (params["self"]=="true") {%>
+  <%= linkTo(rootPath(), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <% } else {%>
+  <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <% } %>
+<% } %>

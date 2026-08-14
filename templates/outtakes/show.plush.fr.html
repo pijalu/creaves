@@ -12,7 +12,7 @@
 
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Détails de la sortie de l'animal <%= outtake.Animal.ID %></h3>
-  <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
+  <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Arrivé le <%= outtake.Animal.Intake.DateFormated() %></p>
 </div>
 
 <ul class="list-group mb-2 ">

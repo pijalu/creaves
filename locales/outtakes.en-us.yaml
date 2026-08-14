@@ -5,6 +5,6 @@
 - id: "outtake.destroyed.success"
   translation: "Outtake was successfully destroyed."
 - id: "outtake.animal.not.found"
-  translation: "animal with id {{.animalID}} does not exists"
+  translation: "animal with id {{.animalID}} does not exist"
 - id: "outtake.animal.outtake.already.exist"
-  translation: "animal with id {{.animalID}} has already an outtake"
+  translation: "animal with id {{.animalID}} already has an outtake"

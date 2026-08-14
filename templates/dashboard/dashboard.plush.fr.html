@@ -4,7 +4,7 @@
   <thead class="thead-light">
     <th>Date</th>
     <th>Animal</th>
-    <th>Poid</th>
+    <th>Poids</th>
     <th>Note</th>
     <th><i class="fa fa-soap" aria-hidden="true"></i></th>
     <th>Type</th>
@@ -53,7 +53,7 @@
     <th>Zone</th>
     <th>Cage</th>
     <th>Espèce</th>
-    <th>Age</th>
+    <th>Âge</th>
     <th>Courbe de poids</th>
   </thead>
   <tbody>
@@ -317,13 +317,13 @@
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Entrées au journal de bord les dernieres 24h</h3>
+<h3 class="d-inline-block">Entrées au journal de bord les dernières 24h</h3>
 <%= if (len(lastLogentries)>0) {%>
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>CreatedAt</th>
-    <th>UpdatedAt</th>
-    <th>User</th>
+    <th>Créé à</th>
+    <th>Mis à jour à</th>
+    <th>Utilisateur</th>
     <th>Description</th>
     <th>&nbsp;</th>
   </thead>
@@ -355,7 +355,7 @@
 <table class="table table-sm">
 <thead>
     <th>Type</th>
-    <th>Count</th>
+    <th>Nombre</th>
   </thead>
   <tbody>
   <%= for (ac) in animalCountPerType { %>

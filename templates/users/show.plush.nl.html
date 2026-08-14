@@ -1,0 +1,42 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Gebruikersdetails</h3>
+
+  <div class="float-right">
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(usersPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle gebruikers
+    <% } %>
+    <%} %>
+    <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Login</label>
+    <p class="d-inline-block"><%= user.Login %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Admin</label>
+    <p class="d-inline-block"><%= user.Admin %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Goedgekeurd</label>
+    <p class="d-inline-block"><%= user.Approved %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Gedeeld</label>
+    <p class="d-inline-block"><%= user.Shared %></p>
+  </li>
+
+</ul>

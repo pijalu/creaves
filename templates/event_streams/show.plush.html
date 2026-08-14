@@ -1,40 +1,40 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Event Stream Record</h3>
+  <h3 class="d-inline-block"><%= t("event-streams.show.title") %></h3>
 </div>
 
 <div class="row">
   <div class="col-md-6">
-    <h5>Event Information</h5>
+    <h5><%= t("event-streams.show.event-information") %></h5>
     <table class="table table-hover table-bordered">
       <tbody>
         <tr>
-          <td><strong>ID</strong></td>
+          <td><strong><%= t("event-streams.show.id") %></strong></td>
           <td><code><%= eventStream.ID %></code></td>
         </tr>
         <tr>
-          <td><strong>Instance ID</strong></td>
+          <td><strong><%= t("event-streams.show.instance-id") %></strong></td>
           <td><%= eventStream.InstanceID %></td>
         </tr>
         <tr>
-          <td><strong>Animal ID</strong></td>
+          <td><strong><%= t("event-streams.show.animal-id") %></strong></td>
           <td><%= eventStream.AnimalID %></td>
         </tr>
         <tr>
-          <td><strong>Event Type</strong></td>
+          <td><strong><%= t("event-streams.show.event-type") %></strong></td>
           <td><span class="badge badge-info"><%= eventStream.EventType %></span></td>
         </tr>
         <tr>
-          <td><strong>Processed</strong></td>
+          <td><strong><%= t("event-streams.show.processed") %></strong></td>
           <td>
             <%= if (eventStream.ProcessedAt) { %>
-              <span class="badge badge-success">Yes</span> - <%= eventStream.ProcessedAt.Format("2006-01-02 15:04:05") %>
+              <span class="badge badge-success"><%= t("event-streams.yes") %></span> - <%= eventStream.ProcessedAt.Format("2006-01-02 15:04:05") %>
             <% } else { %>
-              <span class="badge badge-warning">No</span>
+              <span class="badge badge-warning"><%= t("event-streams.no") %></span>
             <% } %>
           </td>
         </tr>
         <tr>
-          <td><strong>Created At</strong></td>
+          <td><strong><%= t("event-streams.show.created-at") %></strong></td>
           <td><%= eventStream.CreatedAt.Format("2006-01-02 15:04:05") %></td>
         </tr>
       </tbody>
@@ -42,28 +42,28 @@
   </div>
   
   <div class="col-md-6">
-    <h5>Audit Trail</h5>
+    <h5><%= t("event-streams.show.audit-trail") %></h5>
     <%= if (payload.UserID != "") { %>
       <table class="table table-hover table-bordered">
         <tbody>
           <tr>
-            <td><strong>User ID</strong></td>
+            <td><strong><%= t("event-streams.show.user-id") %></strong></td>
             <td><code><%= payload.UserID %></code></td>
           </tr>
           <tr>
-            <td><strong>User Login</strong></td>
+            <td><strong><%= t("event-streams.show.user-login") %></strong></td>
             <td><%= payload.UserLogin %></td>
           </tr>
           <tr>
-            <td><strong>Timestamp</strong></td>
+            <td><strong><%= t("event-streams.show.timestamp") %></strong></td>
             <td><%= payload.Timestamp %></td>
           </tr>
         </tbody>
       </table>
     <% } else { %>
       <div class="alert alert-info">
-        <i class="fa fa-info-circle"></i> No user information available for this event.
-        <br/><small>This may be a system-generated or batch-processed event.</small>
+        <i class="fa fa-info-circle"></i> <%= t("event-streams.show.no-user-info") %>
+        <br/><small><%= t("event-streams.show.no-user-info-hint") %></small>
       </div>
     <% } %>
   </div>
@@ -73,7 +73,7 @@
 
 <div class="row">
   <div class="col-12">
-    <h5>Event Payload</h5>
+    <h5><%= t("event-streams.show.event-payload") %></h5>
     <div class="json-viewer-container">
       <pre class="json-viewer"><code id="event-payload"><%= payloadJSON %></code></pre>
     </div>
@@ -81,7 +81,7 @@
 </div>
 
 <div class="float-right mt-3">
-  <%= linkTo(eventStreamsPath(), {class: "btn btn-info", body: "Back to Event Stream"}) %>
+  <%= linkTo(eventStreamsPath(), {class: "btn btn-info", body: t("event-streams.show.back")}) %>
 </div>
 
 <script>

@@ -3,4 +3,4 @@
 - id: "logentry.updated.success"
   translation: "L'entrée du journal de bord a été mise à jour avec succès."
 - id: "logentry.destroyed.success"
-  translation: "l'entrée du journal de board a été détruite avec succès."
+  translation: "L'entrée du journal de bord a été détruite avec succès."

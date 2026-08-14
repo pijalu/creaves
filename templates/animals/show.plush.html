@@ -67,7 +67,7 @@
         <p class="d-inline-block"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Indentification</label>
+        <label class="small d-block">Identification</label>
         <p class="d-inline-block"><%= animal.Ring %></p>
       </li>
       <li class="list-group-item pb-1">
@@ -118,7 +118,7 @@
         </li>
 
         <li class="list-group-item pb-1">
-          <label class="small d-block">found in discoverer garden</label>
+          <label class="small d-block">found in the discoverer's garden</label>
           <p class="d-inline-block"><%= bool2html(animal.Discovery.InGarden) %></p>
         </li>
 
@@ -227,7 +227,7 @@
       </li>
     </ul>
     <%= if (animal.ForceFeed) {%>
-      <div class="p-3 mb-2 bg-danger text-white">Force Feed !</div>
+      <div class="p-3 mb-2 bg-danger text-white">Force feed!</div>
     <% } %>
 
     <%= if (animal.FeedingPeriod != 0) {%>

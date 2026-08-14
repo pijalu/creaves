@@ -1,0 +1,9 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuwe configuratie</h3>
+</div>
+
+<%= formFor(config, {action: "/config", method: "POST"}) { %>
+  <%= partial("config/form.plush.nl.html") %>
+  <button class="btn btn-success" role="submit">Aanmaken</button>
+  <%= linkTo("/config", {class: "btn btn-warning", body: "Annuleren"}) %>
+<% } %>

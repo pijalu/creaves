@@ -1,5 +1,5 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Edit Config: <%= config.Name %></h3>
+  <h3 class="d-inline-block">Edit Config <%= config.Name %></h3>
 </div>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>

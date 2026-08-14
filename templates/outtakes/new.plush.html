@@ -13,7 +13,7 @@
     <div class="col-sm-10">
       <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123" 
         pattern="^[0-9]+(\/[0-9]{2})?$" 
-        title="number should be in the format 123 or 123/22 (with 22 the 2 last digit of the year)"
+        title="number should be in the format 123 or 123/22 (with 22 the last 2 digits of the year)"
       required>
       <script>
         $('input[name="animal_year_number"]').autoComplete({
@@ -43,7 +43,7 @@ $( document ).ready(function(){
   <%= formFor(outtake, {action: outtakesPath(), method: "POST"}) { %>
   <input type="hidden" name="animal_id" value="<%= animal.ID %>" />
   <div class="form-group">
-    <label>Indentification</label>
+    <label>Identification</label>
     <input 
       <%= if (animal.Animaltype.HasRing) {%> 
       required="required" 

@@ -1,0 +1,63 @@
+<%= f.InputTag("InstanceID", {label: "Instantie-ID"}) %>
+<%= f.InputTag("Name", {label: "Naam"}) %>
+<%= f.TextArea("Description", {label: "Beschrijving", rows: 3}) %>
+<%= f.CheckboxTag("Active", {label: "Actief", unchecked: false}) %>
+
+<hr/>
+<h5>Gebeurtenisstroom</h5>
+<p class="text-muted">Configureer de gebeurtenisstroom voor consolidatie over meerdere instanties.</p>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.EnableEventStream" value="false" />
+  <input type="checkbox" class="form-check-input" id="enable_event_stream" name="Settings.EnableEventStream" value="true" <%= if (settings.EnableEventStream) { %>checked<% } %>>
+  <label class="form-check-label" for="enable_event_stream">
+    <strong>Gebeurtenisstroom inschakelen</strong>
+  </label>
+  <small class="form-text text-muted">Wanneer ingeschakeld, worden levenscyclusgebeurtenissen van dieren (ontdekking, statuswijzigingen, uitgangen) vastgelegd voor rapportage en consolidatie over instanties heen.</small>
+</div>
+
+<hr/>
+<h5>Webhook-configuratie</h5>
+<p class="text-muted">Verstuur gebeurtenissen naar een Creaves Console-instantie.</p>
+
+<div class="alert alert-info">
+  <strong>Instelling:</strong>
+  <ol class="mb-0">
+    <li>Ga in de <em>Creaves Console</em> (ontvanger) naar <strong>Admin → Webhook-API-sleutels → Sleutel aanmaken</strong> en kopieer de gegenereerde sleutel.</li>
+    <li>Schakel de webhook hier in, plak de sleutel en stel de <strong>Webhook-URL</strong> van de Console in (bijv. <code>https://console.example.com/webhook/events</code>).</li>
+    <li>Opslaan — de bezorgingsworker start automatisch.</li>
+  </ol>
+</div>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Settings.WebhookEnabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="webhook_enabled" name="Settings.WebhookEnabled" value="true" <%= if (settings.WebhookEnabled) { %>checked<% } %>>
+  <label class="form-check-label" for="webhook_enabled">
+    <strong>Webhook inschakelen</strong>
+  </label>
+  <small class="form-text text-muted">Wanneer ingeschakeld, worden gebeurtenissen naar de geconfigureerde webhook-URL gestuurd.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">Webhook-URL</label>
+  <input type="url" class="form-control" id="webhook_url" name="Settings.WebhookURL" value="<%= settings.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">De URL van het webhook-eindpunt van de Creaves Console.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">API-sleutel</label>
+  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="API-sleutel invoeren (leeg laten om de huidige te behouden)">
+  <small class="form-text text-muted">API-sleutel gegenereerd in Creaves Console. Om veiligheidsredenen niet hier weergegeven — laat bij bewerken leeg om de huidige sleutel te behouden.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Batchgrootte</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="Settings.WebhookBatchSize" value="<%= settings.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Aantal gebeurtenissen per verzoek (standaard: 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Maximale gebeurtenissen per minuut</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="Settings.WebhookMaxPerMin" value="<%= settings.WebhookMaxPerMin %>" min="1" max="6000">
+  <small class="form-text text-muted">Snelheidslimiet voor gebeurtenisbezorging (standaard: 60).</small>
+</div>

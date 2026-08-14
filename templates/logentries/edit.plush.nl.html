@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Logboekitem bewerken</h3>
+</div>
+
+<%= formFor(logentry, {action: logentryPath({ logentry_id: logentry.ID }), method: "PUT"}) { %>
+  <%= partial("logentries/form.plush.nl.html") %>
+  <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>
