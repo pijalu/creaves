@@ -107,6 +107,10 @@ func (v SpeciesResource) New(c buffalo.Context) error {
 
 	c.Set("species", &models.Species{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "species", "", []string{"creaves_species"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("species/new.plush.html"))
 }
 
@@ -155,6 +159,10 @@ func (v SpeciesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "species.created.success"))
@@ -190,6 +198,10 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("species", species)
+	if err := setTranslationValues(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("species/edit.plush.html"))
 }
 
@@ -242,6 +254,10 @@ func (v SpeciesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
