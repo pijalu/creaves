@@ -1,0 +1,6 @@
+- id: "traveltype.created.success"
+  translation: "Traveltype was successfully created."
+- id: "traveltype.updated.success"
+  translation: "Traveltype was successfully updated."
+- id: "traveltype.destroyed.success"
+  translation: "Traveltype was successfully destroyed."

@@ -1,0 +1,6 @@
+- id: "logentry.created.success"
+  translation: "Logentry was successfully created."
+- id: "logentry.updated.success"
+  translation: "Logentry was successfully updated."
+- id: "logentry.destroyed.success"
+  translation: "Logentry was successfully destroyed."

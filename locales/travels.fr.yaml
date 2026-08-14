@@ -6,3 +6,5 @@
   translation: "Le trajet a été détruit avec succès."
 - id: "travel.animal.not.found"
   translation: "animal avec l'id {{.animalID}} n'existe pas"
+- id: "travels.animal.not.found"
+  translation: "animal with id {{.animalID}} does not exists"

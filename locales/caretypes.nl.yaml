@@ -1,0 +1,6 @@
+- id: "caretype.created.success"
+  translation: "Caretype was successfully created."
+- id: "caretype.updated.success"
+  translation: "Caretype was successfully updated."
+- id: "caretype.destroyed.success"
+  translation: "Caretype was successfully destroyed."

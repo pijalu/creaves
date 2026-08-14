@@ -1,0 +1,6 @@
+- id: "outtaketype.created.success"
+  translation: "Outtaketype was successfully created."
+- id: "outtaketype.updated.success"
+  translation: "Outtaketype was successfully updated."
+- id: "outtaketype.destroyed.success"
+  translation: "Outtaketype was successfully destroyed."

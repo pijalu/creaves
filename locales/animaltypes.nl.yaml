@@ -1,0 +1,6 @@
+- id: "animaltype.created.success"
+  translation: "Animaltype was successfully created."
+- id: "animaltype.updated.success"
+  translation: "Animaltype was successfully updated."
+- id: "animaltype.destroyed.success"
+  translation: "Animaltype was successfully destroyed."

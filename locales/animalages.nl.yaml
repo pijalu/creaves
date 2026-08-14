@@ -1,0 +1,6 @@
+- id: "animalage.created.success"
+  translation: "Animalage was successfully created."
+- id: "animalage.updated.success"
+  translation: "Animalage was successfully updated."
+- id: "animalage.destroyed.success"
+  translation: "Animalage was successfully destroyed."
