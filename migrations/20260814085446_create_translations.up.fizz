@@ -1,0 +1,11 @@
+create_table("translations") {
+	t.Column("id", "string", {"primary": true, "size": 36})
+	t.Column("table_name", "string", {"size": 64})
+	t.Column("record_id", "string", {"size": 36})
+	t.Column("field", "string", {"size": 64})
+	t.Column("locale", "string", {"size": 8})
+	t.Column("value", "text", {})
+	t.Timestamps()
+}
+add_index("translations", ["table_name", "record_id", "field", "locale"], {"unique": true})
+add_index("translations", ["table_name", "record_id", "locale"], {})
