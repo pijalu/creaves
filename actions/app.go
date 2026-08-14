@@ -71,6 +71,9 @@ func App() *buffalo.App {
 		// Setup and use translations:
 		app.Use(translations())
 
+		// tname/tdesc template helpers (localized entity names)
+		app.Use(tnameMiddleware())
+
 		app.GET("/paths", PathHandler)
 		app.GET("/", LandingIndex)
 
