@@ -94,6 +94,13 @@ func (v EntryCausesResource) Show(c buffalo.Context) error {
 func (v EntryCausesResource) New(c buffalo.Context) error {
 	c.Set("entryCause", &models.EntryCause{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "entry_causes", "", []string{"cause", "detail", "nature", "indication"}); err != nil {
+		return err
+	}
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "entry_causes", "", []string{"cause", "detail", "nature", "indication"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("entry_causes/new.plush.html"))
 }
 
@@ -137,6 +144,10 @@ func (v EntryCausesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "entry_causes", entryCause.ID, []string{"cause", "detail", "nature", "indication"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "entryCause.created.success"))
@@ -167,6 +178,9 @@ func (v EntryCausesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("entryCause", entryCause)
+	if err := setTranslationValues(c, tx, "entry_causes", entryCause.ID, []string{"cause", "detail", "nature", "indication"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("entry_causes/edit.plush.html"))
 }
 
@@ -211,6 +225,10 @@ func (v EntryCausesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "entry_causes", entryCause.ID, []string{"cause", "detail", "nature", "indication"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

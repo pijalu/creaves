@@ -93,6 +93,13 @@ func (v CaretypesResource) Show(c buffalo.Context) error {
 func (v CaretypesResource) New(c buffalo.Context) error {
 	c.Set("caretype", &models.Caretype{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "caretypes", "", []string{"name", "description"}); err != nil {
+		return err
+	}
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "caretypes", "", []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/caretypes/new.plush.html"))
 }
 
@@ -136,6 +143,10 @@ func (v CaretypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "caretypes", caretype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "caretype.created.success"))
@@ -166,6 +177,10 @@ func (v CaretypesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("caretype", caretype)
+	if err := setTranslationValues(c, tx, "caretypes", caretype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/caretypes/edit.plush.html"))
 }
 
@@ -210,6 +225,10 @@ func (v CaretypesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "caretypes", caretype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

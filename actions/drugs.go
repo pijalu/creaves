@@ -209,6 +209,9 @@ func (v DrugsResource) New(c buffalo.Context) error {
 	}
 
 	c.Set("drug", drug)
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "drugs", "", []string{"name", "description"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("/drugs/new.plush.html"))
 }
 
@@ -249,6 +252,10 @@ func (v DrugsResource) Create(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, c.Value("tx").(*pop.Connection), "drugs", drug.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -294,6 +301,10 @@ func (v DrugsResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("drug", drug)
+	if err := setTranslationValues(c, tx, "drugs", drug.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/drugs/edit.plush.html"))
 }
 
@@ -360,6 +371,10 @@ func (v DrugsResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, c.Value("tx").(*pop.Connection), "drugs", drug.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

@@ -94,6 +94,13 @@ func (v NativeStatusesResource) Show(c buffalo.Context) error {
 func (v NativeStatusesResource) New(c buffalo.Context) error {
 	c.Set("nativeStatus", &models.NativeStatus{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "native_statuses", "", []string{"status", "indication", "precision"}); err != nil {
+		return err
+	}
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "native_statuses", "", []string{"status", "indication", "precision"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("native_statuses/new.plush.html"))
 }
 
@@ -137,6 +144,10 @@ func (v NativeStatusesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "native_statuses", nativeStatus.ID, []string{"status", "indication", "precision"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "nativeStatus.created.success"))
@@ -167,6 +178,9 @@ func (v NativeStatusesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("nativeStatus", nativeStatus)
+	if err := setTranslationValues(c, tx, "native_statuses", nativeStatus.ID, []string{"status", "indication", "precision"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("native_statuses/edit.plush.html"))
 }
 
@@ -211,6 +225,10 @@ func (v NativeStatusesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "native_statuses", nativeStatus.ID, []string{"status", "indication", "precision"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

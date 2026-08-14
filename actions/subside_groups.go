@@ -94,6 +94,13 @@ func (v SubsideGroupsResource) Show(c buffalo.Context) error {
 func (v SubsideGroupsResource) New(c buffalo.Context) error {
 	c.Set("subsideGroup", &models.SubsideGroup{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "subside_groups", "", []string{"group"}); err != nil {
+		return err
+	}
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "subside_groups", "", []string{"group"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("subside_groups/new.plush.html"))
 }
 
@@ -137,6 +144,10 @@ func (v SubsideGroupsResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "subside_groups", subsideGroup.ID, []string{"group"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "subsideGroup.created.success"))
@@ -167,6 +178,9 @@ func (v SubsideGroupsResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("subsideGroup", subsideGroup)
+	if err := setTranslationValues(c, tx, "subside_groups", subsideGroup.ID, []string{"group"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("subside_groups/edit.plush.html"))
 }
 
@@ -211,6 +225,10 @@ func (v SubsideGroupsResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "subside_groups", subsideGroup.ID, []string{"group"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

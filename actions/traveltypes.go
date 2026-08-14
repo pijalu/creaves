@@ -98,6 +98,10 @@ func (v TraveltypesResource) New(c buffalo.Context) error {
 
 	c.Set("traveltype", &models.Traveltype{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "traveltypes", "", []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/traveltypes/new.plush.html"))
 }
 
@@ -146,6 +150,10 @@ func (v TraveltypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "traveltypes", traveltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "traveltype.created.success"))
@@ -181,6 +189,10 @@ func (v TraveltypesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("traveltype", traveltype)
+	if err := setTranslationValues(c, tx, "traveltypes", traveltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/traveltypes/edit.plush.html"))
 }
 
@@ -230,6 +242,10 @@ func (v TraveltypesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "traveltypes", traveltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

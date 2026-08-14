@@ -2,4 +2,5 @@
 <%= f.SelectTag("Type", {label:"Type", options: {"interne au centre": "internal", "externe au centre": "external"} } ) %>
 
 <%= f.CheckboxTag("Default", {label:"Défaut", unchecked: false}) %>
+<%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Sauvegarder</button>

@@ -108,6 +108,10 @@ func (v OuttaketypesResource) New(c buffalo.Context) error {
 
 	c.Set("outtaketype", &models.Outtaketype{})
 
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "outtaketypes", "", []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/outtaketypes/new.plush.html"))
 }
 
@@ -156,6 +160,10 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "outtaketype.created.success"))
@@ -191,6 +199,10 @@ func (v OuttaketypesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("outtaketype", outtaketype)
+	if err := setTranslationValues(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return c.Render(http.StatusOK, r.HTML("/outtaketypes/edit.plush.html"))
 }
 
@@ -244,6 +256,10 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
