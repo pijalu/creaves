@@ -14,3 +14,7 @@
 - id: "users.logout"
   translation: "You have been logged out!"
 
+- id: "translations.section.title"
+  translation: "Translations"
+- id: "translations.section.note"
+  translation: "French is the base value above; these fields override it per language."

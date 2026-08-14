@@ -1,0 +1,14 @@
+<%= if (trRows) { %>
+<div class="card mt-3 mb-3">
+  <div class="card-header"><%= t("translations.section.title") %></div>
+  <div class="card-body">
+    <%= for (row) in trRows { %>
+      <div class="form-group">
+        <label><%= row.Field %> (<%= row.Locale %>)</label>
+        <input class="form-control" type="text" name="<%= row.Name %>" value="<%= row.Value %>" />
+      </div>
+    <% } %>
+    <small class="text-muted"><%= t("translations.section.note") %></small>
+  </div>
+</div>
+<% } %>

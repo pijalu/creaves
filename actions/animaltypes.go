@@ -104,6 +104,9 @@ func (v AnimaltypesResource) New(c buffalo.Context) error {
 		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
 	}
 	c.Set("animaltype", &models.Animaltype{})
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "animaltypes", "", []string{"name", "description"}); err != nil {
+		return err
+	}
 
 	return c.Render(http.StatusOK, r.HTML("/animaltypes/new.plush.html"))
 }
@@ -152,6 +155,10 @@ func (v AnimaltypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	if err := saveTranslations(c, tx, "animaltypes", animaltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animaltype.created.success"))
@@ -186,6 +193,9 @@ func (v AnimaltypesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("animaltype", animaltype)
+	if err := setTranslationValues(c, tx, "animaltypes", animaltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("/animaltypes/edit.plush.html"))
 }
 
@@ -238,6 +248,10 @@ func (v AnimaltypesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	if err := saveTranslations(c, tx, "animaltypes", animaltype.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

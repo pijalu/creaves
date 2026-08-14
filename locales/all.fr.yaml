@@ -12,3 +12,7 @@
 
 - id: "users.logout"
   translation: "Vous avez été déconnecté!"
+- id: "translations.section.title"
+  translation: "Traductions"
+- id: "translations.section.note"
+  translation: "Le français est la valeur de base ci-dessus ; ces champs la surchargent par langue."
