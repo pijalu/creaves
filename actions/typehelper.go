@@ -41,15 +41,51 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 	return ts, nil
 }
 
-func animalTypesToSelectables(ts *models.Animaltypes) form.Selectables {
+// currentLang normalizes the UI language cookie. Empty/"fr" mean base
+// (canonical French) — no translation lookup needed.
+func currentLang(c buffalo.Context) string {
+	lang := ""
+	if cookie, err := c.Request().Cookie("lang"); err == nil {
+		lang = cookie.Value
+	}
+	switch lang {
+	case "", "fr", "fr-FR":
+		return ""
+	case "en", "en-US":
+		return "en-US"
+	default:
+		return lang
+	}
+}
+
+// translateIDs returns a map id->translated label for the given table/field
+// when lang is non-base; nil map (and zero queries) otherwise.
+func translateIDs(tx *pop.Connection, table, field, lang string, ids []string) map[string]string {
+	if lang == "" || len(ids) == 0 {
+		return nil
+	}
+	tr, err := models.LoadTranslations(tx, table, field, lang, ids)
+	if err != nil {
+		return nil
+	}
+	return tr
+}
+
+func animalTypesToSelectables(ts *models.Animaltypes, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
 	removeEmpty := false
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "animaltypes", "name", lang, ids)
 
 	res = append(res, &selType{label: "", value: ""})
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Name,
+			label: models.ResolveName(lang, ts.Name, tr, ts.ID.String()),
 			value: ts.ID,
 		})
 		removeEmpty = removeEmpty || ts.Default
@@ -140,12 +176,18 @@ func outtakeTypes(c buffalo.Context) (*models.Outtaketypes, error) {
 	return ts, nil
 }
 
-func outtakeTypesToSelectables(ts *models.Outtaketypes) form.Selectables {
+func outtakeTypesToSelectables(ts *models.Outtaketypes, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "outtaketypes", "name", lang, ids)
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Name,
+			label: models.ResolveName(lang, ts.Name, tr, ts.ID.String()),
 			value: ts.ID,
 		})
 	}
@@ -166,12 +208,18 @@ func caretypes(c buffalo.Context) (*models.Caretypes, error) {
 	return ts, nil
 }
 
-func caretypesToSelectables(ts *models.Caretypes) form.Selectables {
+func caretypesToSelectables(ts *models.Caretypes, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "caretypes", "name", lang, ids)
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Name,
+			label: models.ResolveName(lang, ts.Name, tr, ts.ID.String()),
 			value: ts.ID,
 		})
 	}
@@ -219,12 +267,18 @@ func animalages(c buffalo.Context) (*models.Animalages, error) {
 	return ts, nil
 }
 
-func animalagesToSelectables(ts *models.Animalages) form.Selectables {
+func animalagesToSelectables(ts *models.Animalages, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "animalages", "name", lang, ids)
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Name,
+			label: models.ResolveName(lang, ts.Name, tr, ts.ID.String()),
 			value: ts.ID,
 		})
 	}

@@ -611,19 +611,19 @@ func setupContext(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectAnimalTypes", animalTypesToSelectables(at))
+	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	aa, err := animalages(c)
 	if err != nil {
 		return err
 	}
-	c.Set("selectAnimalages", animalagesToSelectables(aa))
+	c.Set("selectAnimalages", animalagesToSelectables(aa, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	ot, err := outtakeTypes(c)
 	if err != nil {
 		return err
 	}
-	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	c.Set("selectFeedingPeriod", selectFeedingPeriod())
 

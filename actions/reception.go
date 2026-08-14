@@ -7,6 +7,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
+	"github.com/gobuffalo/pop/v6"
 )
 
 // ReceptionNew default implementation.
@@ -17,13 +18,13 @@ func ReceptionNew(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectAnimalTypes", animalTypesToSelectables(at))
+	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	aa, err := animalages(c)
 	if err != nil {
 		return err
 	}
-	c.Set("selectAnimalages", animalagesToSelectables(aa))
+	c.Set("selectAnimalages", animalagesToSelectables(aa, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	z, err := zones(c)
 	if err != nil {

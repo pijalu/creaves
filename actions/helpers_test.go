@@ -409,7 +409,7 @@ func TestAnimalTypesToSelectables_NoDefault(t *testing.T) {
 		{ID: id1, Name: "Bird"},
 		{ID: id2, Name: "Mammal"},
 	}
-	res := animalTypesToSelectables(ts)
+	res := animalTypesToSelectables(ts, "", nil)
 	// No default => blank entry kept as first element.
 	if len(res) != 3 {
 		t.Fatalf("expected 3 selectables (blank + 2), got %d", len(res))
@@ -433,7 +433,7 @@ func TestAnimalTypesToSelectables_WithDefault(t *testing.T) {
 		{ID: id1, Name: "Bird"},
 		{ID: id2, Name: "Mammal", Default: true},
 	}
-	res := animalTypesToSelectables(ts)
+	res := animalTypesToSelectables(ts, "", nil)
 	// Default present => blank entry removed.
 	if len(res) != 2 {
 		t.Fatalf("expected 2 selectables (blank removed), got %d", len(res))
@@ -447,7 +447,7 @@ func TestAnimalTypesToSelectables_WithDefault(t *testing.T) {
 
 func TestAnimalTypesToSelectables_Empty(t *testing.T) {
 	t.Parallel()
-	res := animalTypesToSelectables(&models.Animaltypes{})
+	res := animalTypesToSelectables(&models.Animaltypes{}, "", nil)
 	if len(res) != 1 {
 		t.Fatalf("expected 1 (blank only), got %d", len(res))
 	}
@@ -480,7 +480,7 @@ func TestOuttakeTypesToSelectables(t *testing.T) {
 		{ID: id1, Name: "Release"},
 		{ID: id2, Name: "Death"},
 	}
-	res := outtakeTypesToSelectables(ots)
+	res := outtakeTypesToSelectables(ots, "", nil)
 	if len(res) != 2 { // no blank for outtake types
 		t.Fatalf("expected 2 selectables, got %d", len(res))
 	}
@@ -495,7 +495,7 @@ func TestCaretypesToSelectables(t *testing.T) {
 	cts := &models.Caretypes{
 		{ID: id1, Name: "Feeding"},
 	}
-	res := caretypesToSelectables(cts)
+	res := caretypesToSelectables(cts, "", nil)
 	if len(res) != 1 {
 		t.Fatalf("expected 1 selectable, got %d", len(res))
 	}
@@ -525,7 +525,7 @@ func TestAnimalagesToSelectables(t *testing.T) {
 	aas := &models.Animalages{
 		{ID: id1, Name: "Adult"},
 	}
-	res := animalagesToSelectables(aas)
+	res := animalagesToSelectables(aas, "", nil)
 	if len(res) != 1 {
 		t.Fatalf("expected 1 selectable, got %d", len(res))
 	}

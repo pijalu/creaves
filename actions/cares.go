@@ -211,7 +211,7 @@ func (v CaresResource) New(c buffalo.Context) error {
 			break
 		}
 	}
-	c.Set("selectCaretype", caretypesToSelectables(ct))
+	c.Set("selectCaretype", caretypesToSelectables(ct, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	if len(animalYearNumber) > 0 {
 		// Get the DB connection from the context
@@ -381,7 +381,7 @@ func (v CaresResource) Edit(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectCaretype", caretypesToSelectables(ct))
+	c.Set("selectCaretype", caretypesToSelectables(ct, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	// Allocate an empty Care
 	care := &models.Care{}
@@ -409,7 +409,7 @@ func (v CaresResource) Update(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectCaretype", caretypesToSelectables(ct))
+	c.Set("selectCaretype", caretypesToSelectables(ct, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	// Allocate an empty Care
 	care := &models.Care{}

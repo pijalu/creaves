@@ -106,7 +106,7 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	animalYearNumber := c.Param("animal_year_number")
 	if len(animalYearNumber) > 0 {
@@ -287,7 +287,7 @@ func (v OuttakesResource) Edit(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot))
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(ot, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	return c.Render(http.StatusOK, r.HTML("/outtakes/edit.plush.html"))
 }
