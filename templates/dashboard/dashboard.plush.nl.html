@@ -1,0 +1,372 @@
+<h3 class="d-inline-block">Dieren in alarm</h3>
+<%= if (len(openCares)>0) {%>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Datum</th>
+    <th>Dier</th>
+    <th>Gewicht</th>
+    <th>Notitie</th>
+    <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+    <th>Type</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (care) in openCares { %>
+      <tr class="
+      <%= if (care.Type.Warning) {%>
+        table-danger
+      <% } else if (care.Type.ResetWarning) { %>
+        table-success
+      <% }%>
+      ">
+        <td class="align-middle"><%= care.DateFormated() %></td>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/#nav-care"><%= care.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= care.Weight %></td>
+        <td class="align-middle"><%= care.Note %></td>
+        <td class="align-middle">
+          <%= if (care.Clean.Value()==true) { %>
+            <i class="fa fa-check" aria-hidden="true"></i>
+          <% } %>
+        </td>
+        <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo("/animals/"+care.AnimalID.String()+"#nav-care", {class: "btn btn-info", title: "Dier bekijken", body:"<i class='fa fa-eye'></i>"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<%} else {%>
+<p>Geen</p>
+<%}%>
+<br/>
+
+
+<h3 class="d-inline-block">Dieren met gewichtsverlies</h3>
+<%= if (len(animalsWithWeightLoss)>0) {%>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th>Dier</th>
+    <th>Zone</th>
+    <th>Kooi</th>
+    <th>Soort</th>
+    <th>Leeftijd</th>
+    <th>Gewichten</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animalsWithWeightLoss { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= animal.Zone %></td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
+        <td class="align-middle"><p><%= animal.Weights %></p></td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+  <%} else {%>
+<p>Geen</p>
+<%}%>
+<br/>
+
+
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+<% } %>
+
+<% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+ <% } %>
+
+ <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+ <%}%>
+
+<h3 class="d-inline-block">Dieren met behandeling vandaag</h3>
+<%= if (len(animalsToTreat)>0) {%>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th>Nummer</th>
+    <th>Kooi</th>
+    <th>Soort</th>
+    <th>Behandelingen</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animalsToTreat { %>
+      <%= if (animal.OuttakeID.Value() != nil) { %>
+      <tr class="outtaken">
+      <% } else { %>
+      <tr>
+      <% } %>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-treatment"><%=animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle">
+        <ul class="list-group list-group-flush">
+              <%= for (t) in animal.Treatments {%>
+                <%= if (t.Timedonebitmap != t.Timebitmap) {%>
+                <li class="list-group-item">
+                  <div class="container">
+                    <div class="row">
+                      <div class="col-sm">
+                        <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
+                          <%= if (t.Remarks.Value() != "") {%>
+                          <p><em><%= t.Remarks %></em></p>
+                        <%}%>
+                      </div>
+                      <div class="col-sm">
+                        <% 
+                          let morning = t.ScheduleStatusMorning() 
+                          let noon = t.ScheduleStatusNoon() 
+                          let evening = t.ScheduleStatusEvening()
+                        %>
+                        <p class="d-inline-block">
+                          <%= if (!morning.Valid) { %>   
+                            <button type="button" class="btn btn-light disabled" title="'s Ochtends niet vereist">                       
+                              <i class="fas fa-minus" ></i>
+                            </button>
+                          <% } else if (morning.Bool) {%>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                              <%= contentOf("morningSVG") %>
+                            </button>
+                          <% } else { %>
+                              <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                              <%= contentOf("morningSVG") %>
+                            </button>
+                          <% }%>
+                          
+                          &nbsp;
+
+                          <%= if (!noon.Valid) { %>
+                            <button type="button" class="btn btn-light disabled" title="'s Middags niet vereist">     
+                              <i class="fas fa-minus"></i>
+                            </button>
+                          <% } else if (noon.Bool) {%>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                              <%= contentOf("noonSVG") %>
+                            </button>
+                          <% } else { %>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                              <%= contentOf("noonSVG") %>
+                            </button>
+                          <% }%>
+
+                          &nbsp;
+                          <%= if (!evening.Valid) { %>
+                            <button type="button" class="btn btn-light disabled">
+                              <i class="fas fa-minus" ></i>
+                            </button>
+                          <% } else if (evening.Bool) {%>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                              <%= contentOf("eveningSVG") %>
+                            </button>
+                          <% } else { %>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                              <%= contentOf("eveningSVG") %>
+                            </button>
+                          <% }%>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+                <%}%>
+              <%}%>
+            </ul>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<script>
+    const xhrUrl = "<%= treatmentschedulePath() %>";
+    const re = /shed-btn_(.*)_(.*)/;
+    $(".btn-schedule").each(function(){
+      var tk=function(key) {
+        switch(key) {
+         case "morning": return 1; 
+         case "noon": return 2;
+         case "evening": return 4;
+        }
+      };
+
+      const matches=$(this).attr("id").match(re);
+      const key=tk(matches[1]);
+      const rid=matches[2];
+      const payload=JSON.stringify({"treatment_id":rid, "key": key});
+      const elm=$(this);
+
+      elm.on("click", function(){
+        elm.prop('disabled', true);
+
+        elm.addClass("btn-light")
+        elm.removeClass("btn-success btn-warning btn-danger")
+        
+        $.ajax({
+          type: 'PUT',
+          url: xhrUrl,
+          contentType: 'application/json',
+          data: payload
+        }).done(function(data){
+          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
+          if ((data.key & key) === key) {
+            elm.addClass("btn-success");
+          } else {
+            if (elm.attr("past")==="true") {
+              elm.addClass("btn-danger");
+            } else {
+              elm.addClass("btn-warning");
+            }
+          }
+        }).fail(function(data){
+          alert("Status kon niet worden bijgewerkt");
+          console.log("Request failure:", data)
+        }).always(function(){
+          elm.removeClass("btn-light");
+          elm.prop('disabled', false);
+        });
+        
+        console.log("Clicked on button: Change key "+key+" for "+rid);  
+      });
+    });
+  </script>
+  <%} else {%>
+<p>Geen</p>
+<%}%>
+<br/>
+
+<h3 class="d-inline-block">Dieren om gedwongen te voeden</h3>
+<%= if (len(animalsToForceFeed)>0) {%>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th>Nummer</th>
+    <th>Kooi</th>
+    <th>Soort</th>
+    <th>Voeding</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animalsToForceFeed { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= animal.Cage %></td>
+        <td class="align-middle">
+          <%
+            let gender = "×"
+            if (animal.Gender.Value()=="M") {
+              gender = "♂"
+            } else if (animal.Gender.Value() == "F") {
+              gender = "♀"
+            }
+          %>
+          <%= animal.Species %> (<%= gender %>)
+        </td>
+        <td class="align-middle"><p><%= animal.Feeding %></p></td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+  <%} else {%>
+<p>Geen</p>
+<%}%>
+<br/>
+
+<h3 class="d-inline-block">Logboek laatste 24 uur</h3>
+<%= if (len(lastLogentries)>0) {%>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Aangemaakt</th>
+    <th>Bijgewerkt</th>
+    <th>Gebruiker</th>
+    <th>Beschrijving</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (logentry) in lastLogentries { %>
+      <tr>
+        <td class="align-middle"><%= logentry.CreatedAt.Format("02/01/06 15:04:05") %></td>
+        <td class="align-middle"><%= logentry.UpdatedAt.Format("02/01/06 15:04:05") %></td>
+        <td class="align-middle"><%= logentry.User.Login %></td>
+        <td class="align-middle" width="100%"><%= logentry.Description %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<%} else {%>
+<p>Geen</p>
+<%}%>
+
+<br/>
+<h3>Statistieken</h3>
+<h4 class="d-inline-block">Dieren in zorg</h4>
+<table class="table table-sm">
+<thead>
+    <th>Type</th>
+    <th>Aantal</th>
+  </thead>
+  <tbody>
+  <%= for (ac) in animalCountPerType { %>
+    <tr>
+        <td class="align-middle"><%= ac.Name %></td>
+        <td class="align-middle"><%= ac.Count %></td>
+    </tr>
+  <%}%>
+    <tr class="table-info">
+        <td class="align-middle">TOTAAL</td>
+        <td class="align-middle"><%= totalAnimalCount %></td>
+    </tr>
+  <%}%>
+  </tbody>
+</table>
+
+  

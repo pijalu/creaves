@@ -1,0 +1,85 @@
+<h1>Onderhoud</h1>
+
+<%= if (flash["info"]) { %>
+<div class="alert alert-info" role="alert">
+  <%= flash["info"] %>
+</div>
+<% } %>
+
+<%= if (flash["success"]) { %>
+<div class="alert alert-success" role="alert">
+  <%= flash["success"] %>
+</div>
+<% } %>
+
+<%= if (flash["danger"]) { %>
+<div class="alert alert-danger" role="alert">
+  <%= flash["danger"] %>
+</div>
+<% } %>
+
+<h2>Gebeurtenisstroombeheer</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Status gebeurtenisstroom</h5>
+    <p class="card-text">
+      <strong>Ingeschakeld:</strong> <%= eventStreamEnabled %><br>
+      <strong>Totaal aantal gebeurtenissen:</strong> <%= totalEvents %><br>
+      <strong>Onverwerkte gebeurtenissen:</strong> <%= unprocessedEvents %><br>
+      <strong>Verwerkte gebeurtenissen:</strong> <%= processedEvents %>
+    </p>
+    
+    <div class="btn-group" role="group">
+      <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
+        <button type="submit" class="btn btn-primary" data-confirm="Hiermee wordt een gebeurtenisstroommomentopname voor alle dieren gemaakt. Doorgaan?">
+          Gebeurtenismomentopname maken
+        </button>
+      <% } %>
+      
+      <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
+        <button type="submit" class="btn btn-warning ml-2" data-confirm="Hiermee worden alle verwerkte gebeurtenissen verwijderd. Doorgaan?">
+          Verwerkte gebeurtenissen opschonen
+        </button>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%= if (params["task"]) { %>
+<div class="card mb-4" id="task-status">
+  <div class="card-body">
+    <h5 class="card-title">Status achtergrondtaak</h5>
+    <p class="card-text" id="task-message">Laden...</p>
+  </div>
+</div>
+
+<script>
+function checkTaskStatus() {
+  fetch('/maintenance/tasks/<%= params["task"] %>')
+    .then(response => response.json())
+    .then(data => {
+      const messageEl = document.getElementById('task-message');
+      messageEl.innerHTML = `
+        <strong>Status:</strong> ${data.status}<br>
+        <strong>Type:</strong> ${data.type}<br>
+        <strong>Bericht:</strong> ${data.message || 'N/A'}<br>
+        <strong>Verwerkt:</strong> ${data.processed || 0}<br>
+        <strong>Fouten:</strong> ${data.errors || 0}
+      `;
+      
+      if (data.status === 'running') {
+        setTimeout(checkTaskStatus, 2000);
+      }
+    })
+    .catch(err => {
+      document.getElementById('task-message').textContent = 'Fout bij het controleren van de status: ' + err.message;
+    });
+}
+
+checkTaskStatus();
+</script>
+<% } %>
+
+<h2>Jaarnummering van dieren</h2>
+<p>Deze optie herberekent de jaarlijkse nummering van alle dieren op basis van hun opnamedatum</p>
+<%= linkTo("maintenance/renumber", {class: "btn btn-danger", "data-confirm": "Deze actie hernummer alle dieren op basis van hun opnamedatum - Weet u het zeker?", body: "Jaarnummering van dieren opnieuw genereren"}) %>

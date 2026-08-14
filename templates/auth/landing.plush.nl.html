@@ -1,0 +1,21 @@
+<style>
+  .auth-center{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+  .sign-in-btn{
+    margin-right: 10px;
+  }
+</style>
+
+<div class="auth-center">
+  <%= if (current_user) { %>
+    <h1><%= current_user.Login %></h1>
+    <%= linkTo(authPath(), {data-method: "DELETE"}){ %>Uitloggen<% } %>
+  <% } else { %>
+    <%= linkTo(newAuthPath()){ %>Inloggen<% } %>
+    <%= linkTo(newUsersPath()){ %>Registreren<% } %>
+  <% } %>
+</div>

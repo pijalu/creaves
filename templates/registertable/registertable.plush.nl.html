@@ -1,0 +1,74 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Register</h3>
+</div>
+
+<form>
+    <div class="form-group row">
+      <label for="year" class="col-2 col-form-label">Jaar</label>
+      <div class="col-1O">
+        <select id="year" name="year" class="form-control" onchange="this.form.submit()">
+          <%= for (y) in years { %>
+            <option
+            <%= if (y.Selected) {%>
+              selected
+            <% } %>
+            ><%=y.Year%></option>
+          <% } %>
+        </select>
+      </div>
+    </div>
+</form>
+
+<div class="text-right">
+  <a href="/registertable/ExportCSV?year=<%= selectedYear %>" target="_new" title="Exporteren"/><i class="fas fa-cloud-download-alt"></i></a>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Nummer</th>
+    <th>Type</th>
+    <th>Soort</th>
+    <th>Identificatie</th>
+    <th>Opnamedatum</th>
+    <th>Vindplaats</th>
+    <th>Leeftijd</th>
+    <th>Reden</th>
+    <th>Uitgangsdatum</th>
+    <th>Reden</th>
+    <th>Locatie</th>
+  </thead>
+  <tbody>
+    <%= for (animal) in animals { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%= animal.YearNumber %></a>
+        </td>
+        <td class="align-middle"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></td>
+        <td class="align-middle"> <%= tspecies(animal.Species) %></td>
+        <td class="align-middle"><%= animal.Ring %></td> 
+        <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
+        <td class="align-middle"><%= animal.Discovery.Location %></td>
+        <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
+        <td class="align-middle"><%= animal.Discovery.Reason %></td>
+        <td class="align-middle">
+          <%= if (animal.Outtake) { %>
+            <%= animal.Outtake.DateFormated() %>
+          <% } %>
+        </td>
+        <td class="align-middle">
+          <%= if (animal.Outtake) { %>
+            <%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %>
+          <% } %>
+        </td>
+        <td class="align-middle">
+          <%= if (animal.Outtake) { %>
+            <%= animal.Outtake.Location %>
+          <% } %>
+        </td>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

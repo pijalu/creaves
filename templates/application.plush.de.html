@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Creaves</title>
+    <%= stylesheetTag("application.css") %>
+    <meta name="csrf-param" content="authenticity_token" />
+    <meta name="csrf-token" content="<%= authenticity_token %>" />
+    <link rel="icon" href="<%= assetPath("images/favicon.ico") %>">
+    
+    <!-- App -->
+    <%= javascriptTag("application.js") %>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <%= if (current_user) {%>
+    <a class="navbar-brand" href="<%= rootPath() %>">
+    <% } else {%>
+    <a class="navbar-brand" href="<%= newAuthPath() %>">
+    <%}%>
+      <img style="height:32px;" alt="Creaves-App" src="<%= assetPath("images/creaves-app-small.png") %>">
+    </a>
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav mr-auto">
+        <%= if (current_user) {%>
+        <%= if (current_user.Admin) {%>
+        <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          Verwaltung
+        </a>
+        <div class="dropdown-menu" aria-labelledby="adminDropdown">
+          <a class="dropdown-item" href="<%= drugsPath() %>">Medikamente</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="<%= animalagesPath() %>">Tieralter</a>
+          <a class="dropdown-item" href="<%= animaltypesPath() %>">Tierarten</a>
+          <a class="dropdown-item" href="<%= outtaketypesPath() %>">Abgabetypen</a>
+          <a class="dropdown-item" href="<%= caretypesPath() %>">Pflegetypen</a>
+          <a class="dropdown-item" href="<%= traveltypesPath() %>">Reisetypen</a>
+          <a class="dropdown-item" href="<%= localitiesPath() %>">Ortschaften</a>
+          <a class="dropdown-item" href="<%= zonesPath() %>">Zonen</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="<%= pathsPath() %>">Alle Routen</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="<%= usersPath() %>">Benutzer</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="/maintenance">Wartung</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="/config">Konfiguration</a>
+          <div class="dropdown-divider"></div>
+          <a class="dropdown-item" href="/event_streams">Ereignisstrom</a>
+        </div>
+        </li>
+        <% } %>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Berichte
+          </a>
+          <div class="dropdown-menu" aria-labelledby="reportDropdown">
+            <a class="dropdown-item" href="<%= registertablePath() %>">Register</a>
+            <a class="dropdown-item" href="<%= registersnapshotPath() %>">Schnappschuss</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="<%= exportCsvPath() %>">CSV-Exporte</a>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item" href="<%= exportExcelPath() %>">Excel-Exporte</a>
+          </div>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= dashboardPath() %>">Übersicht</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= feedingPath() %>">Fütterung</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= logentriesPath() %>">Protokoll</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= animalsPath() %>">Tiere</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newReceptionPath() %>">Aufnahme</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newCaresPath() %>">Pflege</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newVeterinaryvisitsPath() %>">Tierarzt</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newTreatmentsPath() %>">Behandlung</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="<%= newOuttakesPath() %>">Abgabe</a>
+        </li>
+      <%}%>
+      </ul>
+      <ul class="navbar-nav">
+            <%= if (current_user) {%>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                  <%= current_user.Login %>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                  <%= if (!current_user.Shared) {%>
+                  <a class="dropdown-item" href="<%= travelsPath() %>">Reisen</a>
+                  <div class="dropdown-divider"></div>
+                  <% } %>
+                  <%= langLinks(request.URL.RequestURI(), "dropdown-item") %>
+                  <%= if (!current_user.Shared) {%>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Bearbeiten</a>
+                  <div class="dropdown-divider"></div>
+                  <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>">Abmelden</a>
+                  <% } %>
+                </div>
+              </li>
+            <% } else {%>
+            <%= langLinks(newAuthPath(), "nav-link") %>
+            <li class="nav-item">
+                <a href="<%= newAuthPath() %>" class="nav-link">Anmelden</a>
+            </li>
+            <li class="nav-item">
+                <a href="<%= newRegistrationPath() %>" class="nav-link">Registrieren</a>
+            </li>
+            <% } %>
+      </ul>
+    </div>
+  </nav>
+
+    <div class="container">
+      <%= partial("flash.html") %>
+      <%= yield %>
+    </div>
+  </body>
+</html>
