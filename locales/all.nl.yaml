@@ -1,20 +1,15 @@
 # For more information on using i18n see: https://github.com/nicksnyder/go-i18n
-- id: welcome_greeting
-  translation: "Welcome to Creaves"
-  
+- id: "welcome_greeting"
+  translation: "Welkom bij Creaves"
 - id: "users.language-changed"
-  translation: "language changed to {{.Lang}}"
-
+  translation: "Taal gewijzigd naar {{.Lang}}"
 - id: "users.unauthorized"
-  translation: "You must be authorized to see that page"
-
+  translation: "U moet aangemeld zijn om deze pagina te bekijken"
 - id: "users.invalid"
-  translation: "invalid login/password"
-
+  translation: "Ongeldige gebruikersnaam/wachtwoord"
 - id: "users.logout"
-  translation: "You have been logged out!"
-
+  translation: "U bent afgemeld!"
 - id: "translations.section.title"
-  translation: "Translations"
+  translation: "Vertalingen"
 - id: "translations.section.note"
-  translation: "French is the base value above; these fields override it per language."
+  translation: "Frans is de basiswaarde hierboven; deze velden overschrijven die per taal."
