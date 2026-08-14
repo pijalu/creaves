@@ -1,0 +1,42 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Zonedetails</h3>
+
+  <div class="float-end">
+    <%= linkTo(zonesPath(), {class: "btn btn-info"}) { %>
+      Zurück zu allen Zonen
+    <% } %>
+    <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Zone</label>
+    <p class="d-inline-block"><%= tname("zones", zone.ID, zone.Zone) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Typ</label>
+    <p class="d-inline-block">
+        <%= if (zone.Type == "external") { %>
+          extern zum Zentrum
+        <% } else { %>
+          intern zum Zentrum
+        <% } %>
+    </p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Standard</label>
+    <p class="d-inline-block"><%= bool2html(zone.Default) %></p>
+  </li>
+
+
+</ul>

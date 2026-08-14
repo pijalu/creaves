@@ -1,0 +1,22 @@
+<%= f.InputTag("Name", {label:"Name"}) %>
+<%= f.TextAreaTag("Description", {rows: 10, label:"Beschreibung"}) %>
+<%= partial("translations/fields.html") %>
+<%= f.CheckboxTag("Default", {label:"Standard"}) %>
+<%= f.CheckboxTag("HasRing", {label:"Identifiziert"}) %>
+
+<%= f.InputTag("DefaultSpecies", {label:"Standard-Art"}) %>
+<script>
+    $('input[name="DefaultSpecies"]').autoComplete({
+        minChars: 1,
+        source: function(term, response){
+            $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+        }
+    });
+</script>
+
+<button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

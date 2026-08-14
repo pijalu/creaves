@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuwe zone</h3>
+</div>
+
+<%= formFor(zone, {action: zonesPath(), method: "POST"}) { %>
+  <%= partial("zones/form.plush.nl.html") %>
+  <%= linkTo(zonesPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

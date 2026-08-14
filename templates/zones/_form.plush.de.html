@@ -1,0 +1,6 @@
+<%= f.InputTag("Zone", {label:"Zone"}) %>
+<%= f.SelectTag("Type", {label:"Typ", options: {"intern zum Zentrum": "internal", "extern zum Zentrum": "external"} } ) %>
+
+<%= f.CheckboxTag("Default", {label:"Standard", unchecked: false}) %>
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Speichern</button>

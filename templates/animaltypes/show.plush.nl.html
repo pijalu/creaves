@@ -1,0 +1,46 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Diersoortdetails</h3>
+
+  <div class="float-right">
+    <%= linkTo(animaltypesPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle diersoorten
+    <% } %>
+    <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Naam</label>
+    <p class="d-inline-block"><%= tname("animaltypes", animaltype.ID, animaltype.Name) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Omschrijving</label>
+    <p class="d-inline-block"><%= tdesc("animaltypes", animaltype.ID, animaltype.Description) %></p>
+  </li>
+
+  
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Standaard</label>
+    <p class="d-inline-block"><%= bool2html(animaltype.Default) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Geïdentificeerd</label>
+    <p class="d-inline-block"><%= bool2html(animaltype.HasRing) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Standaard diersoort</label>
+    <p class="d-inline-block"><%= animaltype.DefaultSpecies %></p>
+  </li>
+
+</ul>

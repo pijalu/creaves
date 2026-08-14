@@ -1,0 +1,37 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Dierleeftijden</h3>
+  <div class="float-right">
+    <%= linkTo(newAnimalagesPath(), {class: "btn btn-primary"}) { %>
+      Nieuwe leeftijd aanmaken
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Naam</th>
+    <th>Omschrijving</th>
+    <th>Standaard</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (animalage) in animalages { %>
+      <tr>
+        <td class="align-middle"><%= tname("animalages", animalage.ID, animalage.Name) %></td>
+        <td class="align-middle"><%= tdesc("animalages", animalage.ID, animalage.Description) %></td>
+        <td class="align-middle"><%= bool2html(animalage.Default) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editAnimalagePath({ animalage_id: animalage.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

@@ -1,0 +1,41 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Diersoorten</h3>
+  <div class="float-right">
+    <%= linkTo(newAnimaltypesPath(), {class: "btn btn-primary"}) { %>
+      Nieuwe diersoort aanmaken
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Naam</th>
+    <th>Omschrijving</th>
+    <th>Standaard</th>
+    <th>Geïdentificeerd</th>
+    <th>Standaard diersoort</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (animaltype) in animaltypes { %>
+      <tr>
+        <td class="align-middle"><%= tname("animaltypes", animaltype.ID, animaltype.Name) %></td>
+        <td class="align-middle"><%= tdesc("animaltypes", animaltype.ID, animaltype.Description) %></td>
+        <td class="align-middle"><%= bool2html(animaltype.Default) %></td>
+        <td class="align-middle"><%= bool2html(animaltype.HasRing) %></td>
+        <td class="align-middle"><%= animaltype.DefaultSpecies %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

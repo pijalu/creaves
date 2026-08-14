@@ -1,0 +1,6 @@
+<%= f.InputTag("Zone", {label:"Zone"}) %>
+<%= f.SelectTag("Type", {label:"Type", options: {"intern aan het centrum": "internal", "extern aan het centrum": "external"} } ) %>
+
+<%= f.CheckboxTag("Default", {label:"Standaard", unchecked: false}) %>
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Opslaan</button>

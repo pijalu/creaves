@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Zone bearbeiten</h3>
+</div>
+
+<%= formFor(zone, {action: zonePath({ zone_id: zone.ID }), method: "PUT"}) { %>
+  <%= partial("zones/form.plush.de.html") %>
+  <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>

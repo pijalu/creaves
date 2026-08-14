@@ -1,0 +1,40 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Arten</h3>
+  <div class="float-end">
+    <%= linkTo(newSpeciesPath(), {class: "btn btn-primary"}) { %>
+      Neue Art erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Art</th><th>Klasse</th><th>Ordnung</th><th>Familie</th><th>Wild</th><th>Creaves-Art</th><th>Creaves-Gruppe</th><th>Zuschuss</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (species) in species { %>
+      <tr>
+        <td class="align-middle"><%= species.Species %></td>
+        <td class="align-middle"><%= species.Class %></td>
+        <td class="align-middle"><%= species.Order %></td>
+        <td class="align-middle"><%= species.Family %></td>
+        <td class="align-middle"><%= bool2html(species.Game) %></td>
+        <td class="align-middle"><%= tname("species", species.ID, species.CreavesSpecies) %></td>
+        <td class="align-middle"><%= species.AgwGroup %></td>
+        <td class="align-middle"><%= species.SubsideGroup %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

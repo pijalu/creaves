@@ -1,0 +1,67 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Soortdetails</h3>
+
+  <div class="float-end">
+    <%= linkTo("/species", {class: "btn btn-info"}) { %>
+      Terug naar alle soorten
+    <% } %>
+    <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Soort</label>
+    <p class="d-inline-block"><%= species.Species %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Klasse</label>
+    <p class="d-inline-block"><%= species.Class %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Orde</label>
+    <p class="d-inline-block"><%= species.Order %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Familie</label>
+    <p class="d-inline-block"><%= species.Family %></p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Wild</label>
+    <p class="d-inline-block"><%= bool2html(species.Game) %></p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Creaves-soort</label>
+    <p class="d-inline-block"><%= tname("species", species.ID, species.CreavesSpecies) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Creaves-groep</label>
+    <p class="d-inline-block"><%= species.AgwGroup %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Subsidie</label>
+    <p class="d-inline-block"><%= species.SubsideGroup %></p>
+  </li>
+
+
+</ul>
