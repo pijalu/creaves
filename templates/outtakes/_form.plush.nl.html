@@ -1,0 +1,58 @@
+<label>Datum</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= outtake.DateFormated() %>"
+    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+</script>
+
+<label>Type</label>
+<div class="input-group md-12">
+    <%= for (ot) in selectOuttaketype {%>
+        <div class="form-check-inline">
+            <label class="form-check-label">
+                <input type="radio" class="form-check-input" name="TypeID" value="<%= ot.SelectValue() %>" required 
+                <%= if ( outtake.IsSelected(ot.SelectValue()) ) { %>
+                    <%= "checked" %>
+                <% } %>
+                >
+                <%= ot.SelectLabel() %>
+            </label>
+        </div>
+    <%}%>
+</div>
+
+<%= f.InputTag("Location") %>
+<script>
+$('input[name="Location"]').autoComplete({
+    delay: 250,
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });
+    }
+});
+</script>
+
+<a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+Notes
+</a>
+<div class="collapse" id="OuttakeNote">
+    <div class="card card-body">
+        <textarea class="form-control col-md-12" id="Outtake.Note" name="Outtake.Note" rows="10"><%= outtake.Note %></textarea>
+    </div>
+</div>
+<br/>
+<br/>
+<button class="btn btn-success" role="submit">Opslaan</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

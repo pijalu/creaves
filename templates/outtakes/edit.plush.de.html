@@ -1,0 +1,9 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"> Abgabe des Tieres <%= outtake.Animal.ID %> bearbeiten</h3>
+  <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Angekommen: <%= outtake.Animal.Intake.DateFormated() %></p>
+</div>
+
+<%= formFor(outtake, {action: outtakePath({ outtake_id: outtake.ID }), method: "PUT"}) { %>
+  <%= partial("outtakes/form.html") %>
+  <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>

@@ -1,0 +1,19 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Zorg voor dier <%= care.Animal.YearNumber %> bewerken</h3>
+</div>
+
+<%= if (params["back"]) { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID, back:params["back"]}), method: "PUT"}) { %>
+    <%= partial("cares/form.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID, back:params["back"] }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+    <% }%>
+  <% } %>
+<% } else { %>
+  <%= formFor(care, {action: carePath({ care_id: care.ID }), method: "PUT"}) { %>
+    <%= partial("cares/form.html") %>
+    <%= if (current_user.Admin) {%>
+      <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+    <% }%>
+  <% } %>
+<% }%>

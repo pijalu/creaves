@@ -1,0 +1,41 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Pflegetypen</h3>
+  <div class="float-right">
+    <%= linkTo(newCaretypesPath(), {class: "btn btn-primary"}) { %>
+      Neuen Pflegetyp erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Name</th>
+    <th>Standard</th>
+    <th>Warnung</th>
+    <th>Warnung zurücksetzen</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (caretype) in caretypes { %>
+      <tr>
+        <td class="align-middle"><%= tname("caretypes", caretype.ID, caretype.Name) %></td>
+        <td class="align-middle"><%= bool2html(caretype.Def) %></td>
+        <td class="align-middle"><%= bool2html(caretype.Warning) %></td>
+        <td class="align-middle"><%= bool2html(caretype.ResetWarning) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editCaretypePath({ caretype_id: caretype.ID }), {class: "btn btn-warning", title:"Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(caretypePath({ caretype_id: caretype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title:"Destroy", body: "<i class='fa fa-trash'></i>",  style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

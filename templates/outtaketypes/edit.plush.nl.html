@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Uitgangstype bewerken</h3>
+</div>
+
+<%= formFor(outtaketype, {action: outtaketypePath({ outtaketype_id: outtaketype.ID }), method: "PUT"}) { %>
+  <%= partial("outtaketypes/form.html") %>
+  <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

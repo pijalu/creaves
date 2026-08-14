@@ -1,0 +1,43 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Abgaben</h3>
+  <div class="float-right">
+    <%= linkTo(newOuttakesPath(), {class: "btn btn-primary"}) { %>
+      Neue Abgabe erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Tier-ID</th>
+    <th>Datum</th>
+    <th>Typ</th>
+    <th>Ort</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (outtake) in outtakes { %>
+      <tr>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= outtake.Animal.ID %>/#nav-outtake"><%= outtake.Animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= outtake.DateFormated() %></td>
+        <td class="align-middle"><%= tname("outtaketypes", outtake.Type.ID, outtake.Type.Name) %>
+        <td class="align-middle"><%= outtake.Location %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% }%>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

@@ -1,0 +1,94 @@
+<%= if (!params["cage"] && !params["animal_year_number"]) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(caresPath(), {class: "btn btn-info"}) { %>
+          Alle zorgen bekijken
+    <% } %>
+    </div>
+  </div>
+
+  <h4>Dier selecteren voor zorg</h4>
+  <%= formFor(care, {action: newCaresPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animal_year_number" class="col-sm-2 col-form-label">Diernummer</label>
+    <div class="col-sm-10">
+      <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123" 
+        pattern="^[0-9]+(\/[0-9]{2})?$" 
+        title="number should be in the format 123 or 123/22 (with 22 the 2 last digit of the year)"
+      required>
+      <script>
+        $('input[name="animal_year_number"]').autoComplete({
+            minChars: 0,
+            source: function(term, response){
+                $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+            }
+        });
+      </script>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Volgende</button>
+      <script type="text/javascript">
+      $( document ).ready(function(){
+          window.submitfix();
+      })
+      </script>
+  </div>
+  <% } %>
+
+  <h4>Kooi selecteren voor zorg</h4>
+  <%= formFor(care, {action: newCaresPath(), method: "GET"}) { %>
+  <div class="form-group row">
+    <label for="animal_year_number" class="col-sm-2 col-form-label">Kooi</label>
+    <div class="col-sm-10">
+      <input name="cage" type="text" class="form-control" id="cage" placeholder=""
+          required>
+      <script>
+        $('input[name="cage"]').autoComplete({
+            minChars: 0,
+            source: function(term, response){
+                $.getJSON('/suggestions/CageWithAnimalInCare', { q: term }, function(data){ response(data); });
+            }
+        });
+      </script>
+    </div>
+  </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Volgende</button>
+      <script type="text/javascript">
+      $( document ).ready(function(){
+          window.submitfix();
+      })
+      </script>
+  </div>
+  <% } %>
+
+<% } else { %>
+  <% 
+    let cage = ""
+    if (params["cage"]) {
+      cage = params["cage"]
+    }
+  %>
+
+  <!-- Form select-->
+  <div class="py-4 mb-2">
+    <%= if (params["cage"]) { %>
+      <h3 class="d-inline-block">Nieuwe zorg voor kooi <i><%= cage %></i></h3>
+    <% } else { %>
+      <h3 class="d-inline-block">Nieuwe zorg voor dier <%= care.Animal.YearNumberFormatted() %></h3>
+    <% } %>
+  </div>
+
+  <%= if (params["back"]) { %>
+    <%= formFor(care, {action: caresPath({back:params["back"],cage:cage}), method: "POST"}) { %>
+      <%= partial("cares/form.html") %>
+      <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+    <% } %>
+  <% } else {%>
+    <%= formFor(care, {action: caresPath({cage:cage}), method: "POST"}) { %>
+      <%= partial("cares/form.html") %>
+      <%= linkTo(caresPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+    <% }%>
+  <% } %>
+<% } %>

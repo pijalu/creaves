@@ -1,0 +1,57 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Pflegen</h3>
+  <div class="float-right">
+    <%= linkTo(newCaresPath(), {class: "btn btn-primary"}) { %>
+      Neue Pflege erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Datum</th>
+    <th>Tier</th>
+    <th>Gewicht</th>
+    <th>Notiz</th>
+    <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+    <th>Typ</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (care) in cares { %>
+      <tr class="
+      <%= if (care.Type.Warning) {%>
+        table-danger
+      <% } else if (care.Type.ResetWarning) { %>
+        table-success
+      <% }%>
+      ">
+        <td class="align-middle"><%= care.DateFormated() %></td>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/#nav-care"><%= care.Animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= care.Weight %></td>
+        <td class="align-middle"><%= care.Note %></td>
+        <td class="align-middle">
+          <%= if (care.Clean.Value()==true) { %>
+            <i class="fa fa-check" aria-hidden="true"></i>
+          <% } %>
+        </td>
+        <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editCarePath({ care_id: care.ID }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= if (current_user.Admin) {%>
+            <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

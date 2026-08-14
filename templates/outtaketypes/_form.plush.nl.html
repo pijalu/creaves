@@ -1,0 +1,18 @@
+<%= f.InputTag("Name") %>
+<%= f.TextAreaTag("Description", {rows: 10}) %>
+
+<%= f.SelectTag("Rating", {label:"Type", options: {"Negatief": "-1", "Neutraal": "0", "Positief": "1"} } ) %>
+
+<%= f.CheckboxTag("Default", {unchecked: false} ) %>
+<%= f.CheckboxTag("Dead", {label:"Dood", unchecked: false}) %>
+<%= f.CheckboxTag("Error", {label:"Fout", unchecked: false}) %>
+
+<%= f.TextAreaTag("DiscovererNews", {label:"Nieuwtje voor vinder", rows: 10}) %>
+
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Opslaan</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

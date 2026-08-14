@@ -1,0 +1,46 @@
+<div class="py-4 mb-2">
+  <div class="float-right">
+    <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle uitgangen
+    <% } %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(outtakePath({ outtake_id: outtake.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"> Uitgangdetails van dier <%= outtake.Animal.ID %></h3>
+  <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Aangekomen: <%= outtake.Animal.Intake.DateFormated() %></p>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Datum</label>
+    <p class="d-inline-block"><%= outtake.DateFormated() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Type</label>
+    <p class="d-inline-block"><%= tname("outtaketypes", outtake.Type.ID, outtake.Type.Name) %></p>
+  </li>
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Locatie</label>
+    <p class="d-inline-block"><%= outtake.Location %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Notitie</label>
+    <p class="d-inline-block"><%= outtake.Note %></p>
+  </li>
+
+
+</ul>

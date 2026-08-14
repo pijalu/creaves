@@ -1,0 +1,18 @@
+<%= f.InputTag("Name") %>
+<%= f.TextAreaTag("Description", {rows: 10}) %>
+
+<%= f.SelectTag("Rating", {label:"Typ", options: {"Negativ": "-1", "Neutral": "0", "Positiv": "1"} } ) %>
+
+<%= f.CheckboxTag("Default", {unchecked: false} ) %>
+<%= f.CheckboxTag("Dead", {label:"Tot", unchecked: false}) %>
+<%= f.CheckboxTag("Error", {label:"Fehler", unchecked: false}) %>
+
+<%= f.TextAreaTag("DiscovererNews", {label:"Nachricht für Finder", rows: 10}) %>
+
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
