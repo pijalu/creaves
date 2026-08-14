@@ -142,7 +142,7 @@
               <% } %>
             </td>
             <% } else { %>
-              <td class="align-middle"><%= animal.Animaltype.Name %></td>  
+              <td class="align-middle"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></td>  
             <% } %>
             <td class="align-middle"><%= animal.Cage %></td>
             <td class="align-middle">
@@ -156,7 +156,7 @@
             %>
             <%= animal.Species %> (<%= gender %>)
             </td>
-            <td class="align-middle"><%= animal.Animalage.Name %></td>
+            <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
             <td class="align-middle"><%= animal.Ring %></td>
             <td class="align-middle">
               <% 

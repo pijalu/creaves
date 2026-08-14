@@ -11,7 +11,7 @@
 </div>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"> Outtake details of animal <%= outtake.Animal.ID %></h3>
-  <p><%= outtake.Animal.Species %> (<%= outtake.Animal.Animaltype.Name %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
+  <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
 </div>
 
 

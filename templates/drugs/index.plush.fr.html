@@ -16,8 +16,8 @@
   <tbody>
     <%= for (drug) in drugs { %>
       <tr>
-        <td class="align-middle"><%= drug.Name %></td>
-        <td class="align-middle"><%= drug.Description %></td>
+        <td class="align-middle"><%= tname("drugs", drug.ID, drug.Name) %></td>
+        <td class="align-middle"><%= tdesc("drugs", drug.ID, drug.Description) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>

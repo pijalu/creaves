@@ -86,7 +86,7 @@
         <td class="align-middle"><%= animal.Intake.DateFormated() %></td>
         <td class="align-middle"><%= animal.Zone %></td>
         <td class="align-middle"><%= animal.Cage %></td>
-        <td class="align-middle"><%= animal.Animaltype.Name %></td>
+        <td class="align-middle"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></td>
         <td class="align-middle">
           <%
             let gender = "×"
@@ -98,7 +98,7 @@
           %>
           <%= animal.Species %> (<%= gender %>)
         </td>
-        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><%= animal.Ring %></td>
         <td class="align-middle">
           <% 

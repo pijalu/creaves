@@ -19,14 +19,14 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Nom</label>
-    <p class="d-inline-block"><%= caretype.Name %></p>
+    <p class="d-inline-block"><%= tname("caretypes", caretype.ID, caretype.Name) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Description</label>
-    <p class="d-inline-block"><%= caretype.Description %></p>
+    <p class="d-inline-block"><%= tdesc("caretypes", caretype.ID, caretype.Description) %></p>
   </li>
 
 

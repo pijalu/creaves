@@ -17,14 +17,14 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Name</label>
-    <p class="d-inline-block"><%= traveltype.Name %></p>
+    <p class="d-inline-block"><%= tname("traveltypes", traveltype.ID, traveltype.Name) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Description</label>
-    <p class="d-inline-block"><%= traveltype.Description %></p>
+    <p class="d-inline-block"><%= tdesc("traveltypes", traveltype.ID, traveltype.Description) %></p>
   </li>
 
 

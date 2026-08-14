@@ -3,7 +3,7 @@
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Sorti)</em></h4>
   <% } %>
-  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= animal.Animaltype.Name %>) - <%= animal.Animalage.Name %></h5>
+  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
 
 
   <div class="float-right">
@@ -38,7 +38,7 @@
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
         <label class="small d-block">Type</label>
-        <p class="d-inline-block"><%= animal.Animaltype.Name %></p>
+        <p class="d-inline-block"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Espèce</label>
@@ -67,7 +67,7 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Age</label>
-        <p class="d-inline-block"><%= animal.Animalage.Name %></p>
+        <p class="d-inline-block"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Identification</label>
@@ -578,7 +578,7 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Type</label>
-        <p class="d-inline-block"><%= animal.Outtake.Type.Name %></p>
+        <p class="d-inline-block"><%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Lieu</label>

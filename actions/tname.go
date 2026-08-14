@@ -2,6 +2,7 @@ package actions
 
 import (
 	"creaves/models"
+	"fmt"
 	"sync"
 
 	"github.com/gobuffalo/buffalo"
@@ -22,11 +23,11 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 			// cache key: table + "\x00" + field
 			cache := map[string]map[string]string{}
 
-			c.Set("tname", func(table string, id interface{}, base string) string {
-				return tnameResolve(c, lang, "name", table, id, base, cache, &mu)
+			c.Set("tname", func(table string, id interface{}, base interface{}) string {
+				return tnameResolve(c, lang, "name", table, id, baseString(base), cache, &mu)
 			})
-			c.Set("tdesc", func(table string, id interface{}, base string) string {
-				return tnameResolve(c, lang, "description", table, id, base, cache, &mu)
+			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
+				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
 			})
 			return next(c)
 		}
@@ -75,4 +76,17 @@ func tnameResolve(c buffalo.Context, lang, field, table string, id interface{}, 
 	}
 
 	return models.ResolveName(lang, base, tr, idStrVal)
+}
+
+// baseString coerces common plush/base value types to string (nulls.String,
+// string, fmt.Stringer).
+func baseString(v interface{}) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case interface{ String() string }:
+		return t.String()
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }

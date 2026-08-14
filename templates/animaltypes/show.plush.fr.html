@@ -17,14 +17,14 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Nom</label>
-    <p class="d-inline-block"><%= animaltype.Name %></p>
+    <p class="d-inline-block"><%= tname("animaltypes", animaltype.ID, animaltype.Name) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Description</label>
-    <p class="d-inline-block"><%= animaltype.Description %></p>
+    <p class="d-inline-block"><%= tdesc("animaltypes", animaltype.ID, animaltype.Description) %></p>
   </li>
 
   

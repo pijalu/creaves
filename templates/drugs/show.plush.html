@@ -17,14 +17,14 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Name</label>
-    <p class="d-inline-block"><%= drug.Name %></p>
+    <p class="d-inline-block"><%= tname("drugs", drug.ID, drug.Name) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Description</label>
-    <p class="d-inline-block"><%= drug.Description %></p>
+    <p class="d-inline-block"><%= tdesc("drugs", drug.ID, drug.Description) %></p>
   </li>
 
 
@@ -40,7 +40,7 @@
             active = "active" 
         }
     %>
-    <a class="nav-item nav-link <%= active %>" id="nav-<%= d.AnimaltypeID %>-tab" data-toggle="tab" href="#nav-<%= d.AnimaltypeID %>" role="tab" aria-controls="nav-<%= d.AnimaltypeID %>" aria-selected="true"><%=d.Animaltype.Name %></a>
+    <a class="nav-item nav-link <%= active %>" id="nav-<%= d.AnimaltypeID %>-tab" data-toggle="tab" href="#nav-<%= d.AnimaltypeID %>" role="tab" aria-controls="nav-<%= d.AnimaltypeID %>" aria-selected="true"><%= tname("animaltypes", d.Animaltype.ID, d.Animaltype.Name) %></a>
 <% } %>
 </div>
 </nav>

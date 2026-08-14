@@ -42,9 +42,9 @@ $( document ).ready(function(){
     <li class="list-group-item pb-1">
       <label class="small d-block">Espèce</label>
       <%= if (treatmentTemplate.Animal.Species) {%>
-        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> (<%= treatmentTemplate.Animal.Animaltype.Name %>)</p>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> (<%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %>)</p>
       <% } else {%>
-        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> <%= treatmentTemplate.Animal.Animaltype.Name %></p>
+        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> <%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %></p>
       <% }%>
     </li>
     <li class="list-group-item pb-1">

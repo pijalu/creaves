@@ -17,8 +17,8 @@
   <tbody>
     <%= for (animalage) in animalages { %>
       <tr>
-        <td class="align-middle"><%= animalage.Name %></td>
-        <td class="align-middle"><%= animalage.Description %></td>
+        <td class="align-middle"><%= tname("animalages", animalage.ID, animalage.Name) %></td>
+        <td class="align-middle"><%= tdesc("animalages", animalage.ID, animalage.Description) %></td>
         <td class="align-middle"><%= bool2html(animalage.Default) %></td>
         <td>
           <div class="float-right">

@@ -19,8 +19,8 @@
   <tbody>
     <%= for (animaltype) in animaltypes { %>
       <tr>
-        <td class="align-middle"><%= animaltype.Name %></td>
-        <td class="align-middle"><%= animaltype.Description %></td>
+        <td class="align-middle"><%= tname("animaltypes", animaltype.ID, animaltype.Name) %></td>
+        <td class="align-middle"><%= tdesc("animaltypes", animaltype.ID, animaltype.Description) %></td>
         <td class="align-middle"><%= bool2html(animaltype.Default) %></td>
         <td class="align-middle"><%= bool2html(animaltype.HasRing) %></td>
         <td class="align-middle"><%= animaltype.DefaultSpecies %></td>

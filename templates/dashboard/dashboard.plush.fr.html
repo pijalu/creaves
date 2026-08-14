@@ -75,7 +75,7 @@
           %>
           <%= animal.Species %> (<%= gender %>)
         </td>
-        <td class="align-middle"><%= animal.Animalage.Name %></td>
+        <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
       </tr>
     <% } %>

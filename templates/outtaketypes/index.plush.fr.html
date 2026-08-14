@@ -20,8 +20,8 @@
   <tbody>
     <%= for (outtaketype) in outtaketypes { %>
       <tr>
-        <td class="align-middle"><%= outtaketype.Name %></td>
-        <td class="align-middle"><%= outtaketype.Description %></td>
+        <td class="align-middle"><%= tname("outtaketypes", outtaketype.ID, outtaketype.Name) %></td>
+        <td class="align-middle"><%= tdesc("outtaketypes", outtaketype.ID, outtaketype.Description) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Default) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Dead) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Error) %></td>

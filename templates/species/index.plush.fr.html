@@ -20,9 +20,9 @@
         <td class="align-middle"><%= species.Order %></td>
         <td class="align-middle"><%= species.Family %></td>
         <td class="align-middle"><%= bool2html(species.Game) %></td>
-        <td class="align-middle"><%= species.CreavesSpecies %></td>
-        <td class="align-middle"><%= species.CreavesGroup %></td>
-        <td class="align-middle"><%= species.Subside %></td>
+        <td class="align-middle"><%= tname("species", species.ID, species.CreavesSpecies) %></td>
+        <td class="align-middle"><%= species.AgwGroup %></td>
+        <td class="align-middle"><%= species.SubsideGroup %></td>
         <td>
           <div class="float-end">
             <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-info", title: "voir", body:"<i class='fa fa-eye'></i>"}) %>
