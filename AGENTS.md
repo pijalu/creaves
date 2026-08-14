@@ -45,9 +45,21 @@ buffalo pop migrate up
 
 # Seed reference data (required for app to function)
 buffalo task db:seed
+
+# Seed only the 7 startup reference tables from the embedded production dump
+buffalo task db:seed:startup
 ```
 
 **Note**: `db:seed` is **not optional** — it creates admin user, animal types, species, drugs, care types, zones, etc.
+
+`db:seed` first loads embedded production reference data from `grifts/creaves-startup.sql.gz`
+(7 tables: `animalages, animaltypes, caretypes, outtaketypes, drugs, species, dosages`),
+skipping any table that already contains rows (idempotent per table). The standalone
+`buffalo task db:seed:startup` runs only this step.
+
+**Warning**: the dump INSERTs have no column names — they rely on column order matching
+`migrations/schema.sql`. Adding a NOT NULL column without a default to any of these 7
+tables requires regenerating the dump.
 
 ## Development Commands
 
