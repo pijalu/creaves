@@ -10,6 +10,7 @@ import (
 	"creaves/utils"
 
 	"github.com/gobuffalo/grift/grift"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/pkg/errors"
 )
@@ -30,6 +31,19 @@ var startupModels = map[string]interface{}{
 	"drugs":        &models.Drug{},
 	"species":      &models.Species{},
 	"dosages":      &models.Dosage{},
+}
+
+// startupTranslatableFields maps each startup table to the columns mirrored
+// into the translations table (locale fr). The base column keeps the
+// canonical French value; translations make the value addressable per locale.
+var startupTranslatableFields = map[string][]string{
+	"animalages":   {"name", "description"},
+	"animaltypes":  {"name", "description"},
+	"caretypes":    {"name", "description"},
+	"outtaketypes": {"name", "description"},
+	"drugs":        {"name", "description"},
+	"dosages":      {"description"},
+	"species":      {"creaves_species"},
 }
 
 // seedStartup loads the embedded production reference data (French) into the
@@ -84,8 +98,61 @@ func seedStartup(c *grift.Context) error {
 			}
 			fmt.Printf("%s: seeded %d statements\n", table, len(stmts[table]))
 		}
+
+		// Backfill fr translations from the just-present base rows. Runs
+		// whether the base rows came from the dump or pre-existed, and is
+		// idempotent per (table, locale) group.
+		for _, table := range startupTables {
+			fields, ok := startupTranslatableFields[table]
+			if !ok {
+				continue
+			}
+			if err := seedFrTranslations(tx, table, fields); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
+}
+
+// seedFrTranslations mirrors base columns of table into the translations
+// table under locale fr. Skipped entirely when rows already exist for that
+// (table, fr) group.
+func seedFrTranslations(tx *pop.Connection, table string, fields []string) error {
+	cnt, err := tx.Q().Where("table_name = ? AND locale = ?", table, "fr").Count(&models.Translation{})
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	if cnt > 0 {
+		fmt.Printf("translations %s[fr]: %d rows, skipping\n", table, cnt)
+		return nil
+	}
+
+	n := 0
+	for _, field := range fields {
+		var rows []trRow
+		if err := tx.Store.Select(&rows, "SELECT id, "+field+" AS value FROM "+table); err != nil {
+			return errors.WithStack(err)
+		}
+		for _, row := range rows {
+			if !row.Value.Valid || row.Value.String == "" {
+				continue
+			}
+			if err := models.SaveTranslation(tx, table, row.ID, field, "fr", row.Value.String); err != nil {
+				return errors.WithStack(err)
+			}
+			n++
+		}
+	}
+	fmt.Printf("translations %s[fr]: seeded %d rows\n", table, n)
+	return nil
+}
+
+// trRow is one (id, value) pair scanned from a startup table for fr
+// translation backfill.
+type trRow struct {
+	ID    string       `db:"id"`
+	Value nulls.String `db:"value"`
 }
 
 var _ = grift.Namespace("db", func() {
