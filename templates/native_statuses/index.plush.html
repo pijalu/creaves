@@ -15,7 +15,7 @@
   <tbody>
     <%= for (nativeStatus) in nativeStatuses { %>
       <tr>
-        <td class="align-middle"><%= nativeStatus.ID %></td><td class="align-middle"><%= nativeStatus.Status %></td><td class="align-middle"><%= nativeStatus.Indication %></td><td class="align-middle"><%= nativeStatus.Freeable %></td><td class="align-middle"><%= nativeStatus.Precision %></td>
+        <td class="align-middle"><%= nativeStatus.ID %></td><td class="align-middle"><%= tname("native_statuses", nativeStatus.ID, nativeStatus.Status) %></td><td class="align-middle"><%= nativeStatus.Indication %></td><td class="align-middle"><%= nativeStatus.Freeable %></td><td class="align-middle"><%= nativeStatus.Precision %></td>
         <td>
           <div class="float-end">
             <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-info", body: "View"}) %>

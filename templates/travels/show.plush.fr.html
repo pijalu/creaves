@@ -32,7 +32,7 @@
   <li class="list-group-item pb-1">
     <label class="small d-block">Type</label>
     <p class="d-inline-block">
-      <%= travel.Traveltype.Name %>
+      <%= tname("traveltypes", travel.Traveltype.ID, travel.Traveltype.Name) %>
       <%= if ( travel.TypeDetails.Value() != "" ) {%>
             : <%= travel.TypeDetails %>
       <% } %>

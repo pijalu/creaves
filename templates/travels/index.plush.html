@@ -21,7 +21,7 @@
         <td class="align-middle"><%= travel.Animal.YearNumberFormatted() %></td>
         <td class="align-middle"><%= travel.User.Login %></td>
         <td class="align-middle">
-          <%= travel.Traveltype.Name %>
+          <%= tname("traveltypes", travel.Traveltype.ID, travel.Traveltype.Name) %>
           <%= if ( travel.TypeDetails.Value() != "" ) {%>
             : <%= travel.TypeDetails %>
           <% } %>

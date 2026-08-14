@@ -15,7 +15,7 @@
   <tbody>
     <%= for (zone) in zones { %>
       <tr>
-        <td class="align-middle"><%= zone.Zone %></td>
+        <td class="align-middle"><%= tname("zones", zone.ID, zone.Zone) %></td>
         <td class="align-middle">
           <%= if (zone.Type == "external") { %>
             externe au centre

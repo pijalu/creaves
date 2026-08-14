@@ -12,7 +12,11 @@ import (
 // tnameDefaultField maps a table to its translatable display field when it
 // differs from "name" (species translates its creaves_species column).
 var tnameDefaultField = map[string]string{
-	"species": "creaves_species",
+	"species":         "creaves_species",
+	"zones":           "zone",
+	"native_statuses": "status",
+	"subside_groups":  "group",
+	"entry_causes":    "cause",
 }
 
 // tnameMiddleware registers the `tname` template helper on each request.

@@ -15,7 +15,7 @@
   <tbody>
     <%= for (entryCause) in entryCauses { %>
       <tr>
-        <td class="align-middle"><%= entryCause.ID %></td><td class="align-middle"><%= entryCause.Cause %></td><td class="align-middle"><%= entryCause.Detail %></td><td class="align-middle"><%= entryCause.Nature %></td><td class="align-middle"><%= entryCause.Indication %></td>
+        <td class="align-middle"><%= entryCause.ID %></td><td class="align-middle"><%= tname("entry_causes", entryCause.ID, entryCause.Cause) %></td><td class="align-middle"><%= entryCause.Detail %></td><td class="align-middle"><%= entryCause.Nature %></td><td class="align-middle"><%= entryCause.Indication %></td>
         <td>
           <div class="float-end">
             <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", body: "View"}) %>
