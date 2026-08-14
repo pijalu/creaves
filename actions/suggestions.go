@@ -36,8 +36,36 @@ func suggest(c buffalo.Context, table string, field string) error {
 }
 
 // SuggestionsAnimalSpecies default implementation.
+// When a non-base UI language is active, also matches against translated
+// common names, but always returns the canonical (French) creaves_species
+// value so stored data and the webhook contract stay stable.
 func SuggestionsAnimalSpecies(c buffalo.Context) error {
-	return suggest(c, "species", "creaves_species")
+	lang := currentLang(c)
+	if lang == "" {
+		return suggest(c, "species", "creaves_species")
+	}
+
+	q := c.Param("q")
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var s []string
+	if len(q) > 0 {
+		if err := tx.RawQuery(
+			"SELECT DISTINCT s.creaves_species FROM species s "+
+				"LEFT JOIN translations t ON t.table_name = 'species' AND t.field = 'creaves_species' AND t.locale = ? AND t.record_id = s.id "+
+				"WHERE s.creaves_species LIKE ? OR t.value LIKE ? ORDER BY 1 LIMIT 25",
+			lang, "%"+q+"%", "%"+q+"%").All(&s); err != nil {
+			return err
+		}
+	} else {
+		if err := tx.RawQuery("SELECT DISTINCT creaves_species FROM species ORDER BY 1 LIMIT 25").All(&s); err != nil {
+			return err
+		}
+	}
+	return c.Render(200, r.JSON(s))
 }
 
 // SuggestionsDiscoveryLocation default implementation.
