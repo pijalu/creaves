@@ -151,6 +151,67 @@ CREATE TABLE `caretypes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `config`
+--
+
+DROP TABLE IF EXISTS `config`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `config` (
+  `id` char(36) NOT NULL,
+  `instance_id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `settings` json DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `instance_configs_instance_id_idx` (`instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `consolidated_animals`
+--
+
+DROP TABLE IF EXISTS `consolidated_animals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `consolidated_animals` (
+  `id` char(36) NOT NULL,
+  `instance_id` varchar(255) NOT NULL,
+  `animal_id` int NOT NULL,
+  `year` int NOT NULL,
+  `year_number` int NOT NULL,
+  `species` varchar(255) DEFAULT NULL,
+  `animal_type` varchar(255) DEFAULT NULL,
+  `animal_age` varchar(255) DEFAULT NULL,
+  `discovery_location` varchar(255) DEFAULT NULL,
+  `discovery_date` datetime DEFAULT NULL,
+  `current_status` varchar(255) NOT NULL,
+  `intake_date` datetime DEFAULT NULL,
+  `intake_general` varchar(255) DEFAULT NULL,
+  `intake_wounds` varchar(255) DEFAULT NULL,
+  `intake_parasites` varchar(255) DEFAULT NULL,
+  `intake_remarks` varchar(255) DEFAULT NULL,
+  `outtake_date` datetime DEFAULT NULL,
+  `outtake_type` varchar(255) DEFAULT NULL,
+  `outtake_location` varchar(255) DEFAULT NULL,
+  `last_event_at` datetime NOT NULL,
+  `event_count` int NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `consolidated_animals_instance_id_animal_id_idx` (`instance_id`,`animal_id`),
+  KEY `consolidated_animals_instance_id_idx` (`instance_id`),
+  KEY `consolidated_animals_current_status_idx` (`current_status`),
+  KEY `consolidated_animals_species_idx` (`species`),
+  KEY `consolidated_animals_discovery_date_idx` (`discovery_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `discoverers`
 --
 
@@ -262,6 +323,31 @@ CREATE TABLE `entry_causes` (
   `updated_at` datetime NOT NULL,
   `sort_order` int NOT NULL,
   PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `event_streams`
+--
+
+DROP TABLE IF EXISTS `event_streams`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `event_streams` (
+  `id` char(36) NOT NULL,
+  `instance_id` varchar(255) NOT NULL,
+  `animal_id` int NOT NULL,
+  `event_type` varchar(255) NOT NULL,
+  `payload` json DEFAULT NULL,
+  `processed_at` datetime DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `delivered_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `event_streams_instance_id_animal_id_created_at_idx` (`instance_id`,`animal_id`,`created_at`),
+  KEY `event_streams_processed_at_idx` (`processed_at`),
+  KEY `event_streams_event_type_idx` (`event_type`),
+  KEY `event_streams_delivered_at_idx` (`delivered_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -598,4 +684,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-11  8:21:53
+-- Dump completed on 2026-08-14 10:49:15

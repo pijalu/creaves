@@ -1,7 +1,9 @@
-package locales
+package utils
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -14,10 +16,10 @@ type translationEntry struct {
 	Translation string `yaml:"translation"`
 }
 
-// loadIDs parses a single locale file and returns its translation ids.
-func loadIDs(t *testing.T, path string) map[string]bool {
+// loadLocaleIDs parses a single locale file and returns its translation ids.
+func loadLocaleIDs(t *testing.T, path string) map[string]bool {
 	t.Helper()
-	data, err := files.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("read %s: %v", path, err)
 	}
@@ -43,9 +45,10 @@ func loadIDs(t *testing.T, path string) map[string]bool {
 func TestLocaleKeyParity(t *testing.T) {
 	locales := []string{"en-us", "fr", "de", "nl"}
 
+	localesDir := filepath.Join("..", "locales")
 	domains := map[string]map[string]map[string]bool{} // domain -> locale -> ids
 
-	dir, err := files.ReadDir(".")
+	dir, err := os.ReadDir(localesDir)
 	if err != nil {
 		t.Fatalf("read locales dir: %v", err)
 	}
@@ -63,7 +66,7 @@ func TestLocaleKeyParity(t *testing.T) {
 		if domains[domain] == nil {
 			domains[domain] = map[string]map[string]bool{}
 		}
-		domains[domain][locale] = loadIDs(t, name)
+		domains[domain][locale] = loadLocaleIDs(t, filepath.Join(localesDir, name))
 	}
 
 	if len(domains) == 0 {

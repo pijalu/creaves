@@ -120,6 +120,8 @@
                 <div class="dropdown-divider"></div>
                 <% } %>
                 <a class="dropdown-item" href="<%= langPath({ lang: "en" }) %>">En Anglais</a>
+                <a class="dropdown-item" href="<%= langPath({ lang: "de" }) %>">En Allemand</a>
+                <a class="dropdown-item" href="<%= langPath({ lang: "nl" }) %>">En Néerlandais</a>
                 <%= if (!current_user.Shared) {%>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Éditer</a>
