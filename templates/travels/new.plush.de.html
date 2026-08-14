@@ -1,0 +1,40 @@
+<%= if (travel.AnimalID.Value() == 0 ) { %>
+  <h4>Wählen Sie das mit der Reise verknüpfte Tier aus</h4>
+  <%= formFor(travel, {action: newTravelsPath(), method: "GET"}) { %>
+    <div class="form-group row">
+      <label for="animal_year_number" class="col-sm-2 col-form-label">Tiernummer</label>
+      <div class="col-sm-10">
+        <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123"
+          pattern="^[0-9]+(\/[0-9]{2})?$"
+          title="Die Nummer muss im Format 123 oder 123/22 sein (22 = die letzten zwei Ziffern des Jahres)"
+        required>
+        <script>
+          $('input[name="animal_year_number"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+              }
+          });
+        </script>
+      </div>
+    </div>
+  <div class="form-group row">
+    <button class="btn btn-success" role="submit">Weiter</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
+  </div>
+  <% } %>
+<% } else { %>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Neue Reise für Tier <%= travel.Animal.YearNumberFormatted() %></h3>
+</div>
+
+<%= formFor(travel, {action: travelsPath(), method: "POST"}) { %>
+  <%= partial("travels/form.plush.de.html") %>
+  <%= linkTo(travelsPath(), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>
+
+<% } %>

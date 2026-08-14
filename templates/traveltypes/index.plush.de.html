@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Reisetypen</h3>
+  <div class="float-right">
+    <%= linkTo(newTraveltypesPath(), {class: "btn btn-primary"}) { %>
+      Neuen Reisetyp erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Name</th><th>Standard</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (traveltype) in traveltypes { %>
+      <tr>
+        <td class="align-middle"><%= tname("traveltypes", traveltype.ID, traveltype.Name) %></td><td class="align-middle"><%= bool2html(traveltype.Def) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

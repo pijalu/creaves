@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Reis bewerken</h3>
+</div>
+
+<%= formFor(travel, {action: travelPath({ travel_id: travel.ID }), method: "PUT"}) { %>
+  <%= partial("travels/form.plush.nl.html") %>
+  <%= linkTo(travelPath({ travel_id: travel.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

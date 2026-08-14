@@ -1,0 +1,87 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Details van de plaats</h3>
+
+  <div class="float-end">
+    <%= linkTo(localitiesPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle plaatsen
+    <% } %>
+    <%= linkTo(editLocalityPath({ locality_id: locality.ID }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(localityPath({ locality_id: locality.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= locality.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Land</label>
+    <p class="d-inline-block"><%= locality.Country %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Regio</label>
+    <p class="d-inline-block"><%= locality.Region %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Provincie</label>
+    <p class="d-inline-block"><%= locality.Province %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Gemeente</label>
+    <p class="d-inline-block"><%= locality.Municipality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Deelgemeente</label>
+    <p class="d-inline-block"><%= locality.SubMunicipality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Postcode</label>
+    <p class="d-inline-block"><%= locality.PostalCode %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Plaats</label>
+    <p class="d-inline-block"><%= locality.Locality %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Zonering</label>
+    <p class="d-inline-block"><%= locality.Zoning %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Richting</label>
+    <p class="d-inline-block"><%= locality.Direction %></p>
+  </li>
+
+
+</ul>

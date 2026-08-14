@@ -1,0 +1,38 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Reisetypdetails</h3>
+
+  <div class="float-right">
+    <%= linkTo(traveltypesPath(), {class: "btn btn-info"}) { %>
+      Zurück zu allen Reisetypen
+    <% } %>
+    <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Name</label>
+    <p class="d-inline-block"><%= tname("traveltypes", traveltype.ID, traveltype.Name) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Beschreibung</label>
+    <p class="d-inline-block"><%= tdesc("traveltypes", traveltype.ID, traveltype.Description) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Standard</label>
+    <p class="d-inline-block"><%= bool2html(traveltype.Def) %></p>
+  </li>
+
+
+</ul>

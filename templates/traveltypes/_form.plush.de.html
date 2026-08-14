@@ -1,0 +1,10 @@
+<%= f.InputTag("Name", {label:"Name"}) %>
+<%= f.TextAreaTag("Description", {rows: 10, label:"Beschreibung"}) %>
+<%= f.CheckboxTag("Def", {label:"Standard", unchecked: false}) %>
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

@@ -1,0 +1,7 @@
+<%= f.InputTag("ID") %>
+<%= f.InputTag("Status", {label:"Status"}) %>
+<%= f.InputTag("Indication", {label:"Indicatie"}) %>
+<%= f.CheckboxTag("Freeable", {label:"Vrijlaatbaar", unchecked: false}) %>
+<%= f.InputTag("Precision", {label:"Precisie"}) %>
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Opslaan</button>

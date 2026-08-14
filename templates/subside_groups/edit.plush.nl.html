@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Subsidiegroep bewerken</h3>
+</div>
+
+<%= formFor(subsideGroup, {action: subsideGroupPath({ subside_group_id: subsideGroup.ID }), method: "PUT"}) { %>
+  <%= partial("subside_groups/form.plush.nl.html") %>
+  <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

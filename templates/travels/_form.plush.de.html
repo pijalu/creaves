@@ -1,0 +1,43 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+
+<label>Datum</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="Date" name="Date" required="required" type="text" value="<%= travel.DateFormated() %>"
+    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $('#Date').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+</script>
+
+<%= if (current_user.Admin) {%>
+<%= 
+    f.SelectTag("UserID", {
+    label: "Benutzer",
+    options: selectUsers, 
+    required:"required"}) 
+%>
+<% } else { %>
+    <%= f.InputTag("UserID", {type:"hidden"})%>
+<% }%>
+
+<%= 
+    f.SelectTag("TraveltypeID", {
+    label: "Typ",
+    options: selectTraveltype, 
+    required:"required"}) 
+%>
+<%= f.InputTag("TypeDetails", {label:"Typdetails"}) %>
+
+<%= f.InputTag("Distance", {type:"number", label:"Distanz"}) %>
+<%= f.TextAreaTag("Details", {rows: 10, label:"Details"}) %>
+<button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

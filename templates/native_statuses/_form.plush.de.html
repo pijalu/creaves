@@ -1,0 +1,7 @@
+<%= f.InputTag("ID") %>
+<%= f.InputTag("Status", {label:"Status"}) %>
+<%= f.InputTag("Indication", {label:"Indikation"}) %>
+<%= f.CheckboxTag("Freeable", {label:"Freilassbar", unchecked: false}) %>
+<%= f.InputTag("Precision", {label:"Präzision"}) %>
+<%= partial("translations/fields.html") %>
+<button class="btn btn-success" role="submit">Speichern</button>

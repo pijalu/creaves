@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Zuschussgruppen</h3>
+  <div class="float-end">
+    <%= linkTo(newSubsideGroupsPath(), {class: "btn btn-primary"}) { %>
+      Neue Zuschussgruppe erstellen
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID</th><th>Gruppe</th><th>Größe</th><th>Betrag</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (subsideGroup) in subsideGroups { %>
+      <tr>
+        <td class="align-middle"><%= subsideGroup.ID %></td><td class="align-middle"><%= tname("subside_groups", subsideGroup.ID, subsideGroup.Group) %></td><td class="align-middle"><%= subsideGroup.Size %></td><td class="align-middle"><%= subsideGroup.Amount %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-info", body: "Ansehen"}) %>
+            <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Bearbeiten"}) %>
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", body: "Löschen"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

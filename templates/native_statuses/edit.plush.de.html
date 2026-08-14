@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Einheimischen Status bearbeiten</h3>
+</div>
+
+<%= formFor(nativeStatus, {action: nativeStatusPath({ native_status_id: nativeStatus.ID }), method: "PUT"}) { %>
+  <%= partial("native_statuses/form.plush.de.html") %>
+  <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>

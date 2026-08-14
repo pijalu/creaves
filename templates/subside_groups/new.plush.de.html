@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Neue Zuschussgruppe</h3>
+</div>
+
+<%= formFor(subsideGroup, {action: subsideGroupsPath(), method: "POST"}) { %>
+  <%= partial("subside_groups/form.plush.de.html") %>
+  <%= linkTo(subsideGroupsPath(), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>

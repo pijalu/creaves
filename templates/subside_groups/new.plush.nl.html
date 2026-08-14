@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuwe subsidiegroep</h3>
+</div>
+
+<%= formFor(subsideGroup, {action: subsideGroupsPath(), method: "POST"}) { %>
+  <%= partial("subside_groups/form.plush.nl.html") %>
+  <%= linkTo(subsideGroupsPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

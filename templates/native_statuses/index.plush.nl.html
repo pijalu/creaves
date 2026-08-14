@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Inheemse statussen</h3>
+  <div class="float-end">
+    <%= linkTo(newNativeStatusesPath(), {class: "btn btn-primary"}) { %>
+      Nieuwe inheemse status aanmaken
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID</th><th>Status</th><th>Indicatie</th><th>Vrijlaatbaar</th><th>Precisie</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (nativeStatus) in nativeStatuses { %>
+      <tr>
+        <td class="align-middle"><%= nativeStatus.ID %></td><td class="align-middle"><%= tname("native_statuses", nativeStatus.ID, nativeStatus.Status) %></td><td class="align-middle"><%= nativeStatus.Indication %></td><td class="align-middle"><%= nativeStatus.Freeable %></td><td class="align-middle"><%= nativeStatus.Precision %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-info", body: "Bekijken"}) %>
+            <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", body: "Bewerken"}) %>
+            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", body: "Verwijderen"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

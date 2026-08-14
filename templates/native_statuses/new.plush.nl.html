@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuwe inheemse status</h3>
+</div>
+
+<%= formFor(nativeStatus, {action: nativeStatusesPath(), method: "POST"}) { %>
+  <%= partial("native_statuses/form.plush.nl.html") %>
+  <%= linkTo(nativeStatusesPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>

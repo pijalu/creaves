@@ -1,0 +1,45 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Details van de subsidiegroep</h3>
+
+  <div class="float-end">
+    <%= linkTo(subsideGroupsPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle subsidiegroepen
+    <% } %>
+    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Bewerken"}) %>
+    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", body: "Verwijderen"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= subsideGroup.ID %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Groep</label>
+    <p class="d-inline-block"><%= tname("subside_groups", subsideGroup.ID, subsideGroup.Group) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Grootte</label>
+    <p class="d-inline-block"><%= subsideGroup.Size %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Bedrag</label>
+    <p class="d-inline-block"><%= subsideGroup.Amount %></p>
+  </li>
+
+
+</ul>
