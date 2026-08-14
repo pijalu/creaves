@@ -5,6 +5,9 @@ import "github.com/gobuffalo/grift/grift"
 var _ = grift.Namespace("db", func() {
 	grift.Desc("seed", "Seeds a database")
 	grift.Add("seed", func(c *grift.Context) error {
+		if err := seedStartup(c); err != nil {
+			return err
+		}
 		if err := createAdmin(c); err != nil {
 			return err
 		}
