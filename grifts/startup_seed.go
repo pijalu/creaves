@@ -3,8 +3,9 @@ package grifts
 import (
 	"bytes"
 	"compress/gzip"
-	_ "embed"
+	"embed"
 	"fmt"
+	"regexp"
 
 	"creaves/models"
 	"creaves/utils"
@@ -17,6 +18,12 @@ import (
 
 //go:embed creaves-startup.sql.gz
 var startupSQLGz []byte
+
+//go:embed translations_*.sql
+var translationSQLFS embed.FS
+
+// translationFileLocaleRe extracts the locale from translations_<locale>.sql.
+var translationFileLocaleRe = regexp.MustCompile(`^translations_([a-z]{2})\.sql$`)
 
 // startupTables are seeded in this order (dump statement order may differ).
 var startupTables = []string{"animalages", "animaltypes", "caretypes", "outtaketypes", "drugs", "species", "dosages"}
@@ -111,8 +118,54 @@ func seedStartup(c *grift.Context) error {
 				return err
 			}
 		}
+
+		// Apply any shipped translations_<lang>.sql files (G11 pipeline).
+		if err := applyTranslationFiles(tx); err != nil {
+			return err
+		}
 		return nil
 	})
+}
+
+// applyTranslationFiles executes embedded translations_<lang>.sql files.
+// Each file is skipped wholesale when any row for its locale already exists.
+func applyTranslationFiles(tx *pop.Connection) error {
+	entries, err := translationSQLFS.ReadDir(".")
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	for _, e := range entries {
+		m := translationFileLocaleRe.FindStringSubmatch(e.Name())
+		if m == nil {
+			continue
+		}
+		locale := m[1]
+		cnt, err := tx.Q().Where("locale = ?", locale).Count(&models.Translation{})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if cnt > 0 {
+			fmt.Printf("translations[%s]: %d rows present, skipping %s\n", locale, cnt, e.Name())
+			continue
+		}
+		data, err := translationSQLFS.ReadFile(e.Name())
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		_, stmts, err := utils.ExtractInsertStatements(bytes.NewReader(data))
+		if err != nil {
+			return errors.Wrapf(err, "parsing %s", e.Name())
+		}
+		n := 0
+		for _, stmt := range stmts["translations"] {
+			if err := tx.RawQuery(stmt).Exec(); err != nil {
+				return errors.Wrapf(err, "applying %s", e.Name())
+			}
+			n++
+		}
+		fmt.Printf("translations[%s]: applied %d rows from %s\n", locale, n, e.Name())
+	}
+	return nil
 }
 
 // seedFrTranslations mirrors base columns of table into the translations

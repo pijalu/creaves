@@ -1,0 +1,2 @@
+-- Placeholder so //go:embed translations_*.sql always matches.
+-- Real deliveries ship as grifts/translations_de.sql / translations_nl.sql.

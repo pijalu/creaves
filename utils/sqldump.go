@@ -8,9 +8,11 @@ import (
 	"strings"
 )
 
-// insertStartRe matches the beginning of an INSERT statement for a given table,
-// e.g. "INSERT INTO `animaltypes` VALUES (...".
-var insertStartRe = regexp.MustCompile("^INSERT INTO `([^`]+)` VALUES")
+// insertStartRe matches the beginning of an INSERT statement for a given
+// table, with or without backticks and with or without a column list, e.g.
+// "INSERT INTO `animaltypes` VALUES (..." or
+// "INSERT INTO translations (id, ...) VALUES (...".
+var insertStartRe = regexp.MustCompile("^INSERT INTO `?([a-zA-Z0-9_]+)`?(\\s*\\([^)]*\\))? VALUES")
 
 // maxDumpLineSize allows very long INSERT lines (16MB) found in mysqldump output.
 const maxDumpLineSize = 16 * 1024 * 1024
