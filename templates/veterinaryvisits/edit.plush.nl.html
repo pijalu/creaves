@@ -1,0 +1,15 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Dierenartsbezoek voor dier <%= veterinaryvisit.Animal.YearNumber %> bewerken</h3>
+</div>
+
+<%= if (params["back"]) {%>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID, back: params["back"] }), method: "PUT"}) { %>
+    <%= partial("veterinaryvisits/form.plush.nl.html") %>
+    <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+  <% } %>
+<% } else { %>
+  <%= formFor(veterinaryvisit, {action: veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), method: "PUT"}) { %>
+    <%= partial("veterinaryvisits/form.plush.nl.html") %>
+    <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+  <% } %>
+<% } %>

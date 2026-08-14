@@ -1,0 +1,185 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+<div class="">
+  <h4 class="d-inline-block">Tier <%= treatment.Animal.YearNumber %></h4>
+  <ul class="list-group mb-2 ">
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Art</label>
+      <%= if (treatment.Animal.Species) {%>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> (<%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %>)</p>
+      <% } else {%>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> <%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %></p>
+      <% }%>
+    </li>
+    <li class="list-group-item pb-1">
+      <label class="small d-block">Gewicht in Gramm</label>
+      <% let w = treatment.Animal.LastWeight() %>
+      <%= if (w.Valid) { %>
+        <p class="d-inline-block"><%= w %></p>
+      <% } else {%>
+        <p class="d-inline-block">unbekannt</p>
+      <% }%>
+    </li>
+  </ul>
+</div>
+
+<script>
+  const animalTypeID = "<%= treatment.Animal.AnimaltypeID %>";
+  <%= if (w.Valid) { %>
+  const weight = <%= w %>;
+  <% } else {%>
+  const weight = undefined;
+  <% } %>
+</script>
+
+
+<label>Datum</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="date" name="Date" required="required" type="text" value="<%= treatment.DateFormated() %>"
+    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31))">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#date').flatpickr({
+                dateFormat:'Y/m/d'
+    });
+</script>
+
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+  <% } %>
+
+  <% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+  <%}%>
+
+<!-- Bitmap: <%= treatment.Timebitmap %> -->
+<div class="form-group">
+    <label><b>Erforderlicher Zeitplan:</b></label>
+    <br/>
+    <div class ="container-fluid">
+    <div class ="row">
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredMorning" name="ScheduleRequiredMorning" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredMorning()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredMorning">
+            <%= contentOf("morningSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredNoon" name="ScheduleRequiredNoon" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredNoon()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredNoon">
+            <%= contentOf("noonSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleRequiredEvening" name="ScheduleRequiredEvening" type="checkbox" value="true" 
+            <%= if (treatment.ScheduleRequiredEvening()) { %>checked<% } %> hidden/> 
+            <label for="ScheduleRequiredEvening">
+            <%= contentOf("eveningSVG") %>
+            </label>
+        </div>
+    </div>
+  </diV>
+</div>
+
+<!-- timedoneBitmap: <%= treatment.Timedonebitmap %> -->
+<% 
+    let morning = treatment.ScheduleStatusMorning() 
+    let noon = treatment.ScheduleStatusNoon() 
+    let evening = treatment.ScheduleStatusEvening()
+%>
+<div class="form-group">
+    <label><b>Zeitplan zu erledigen/erledigt:</b></label>
+    <br/>
+    <div class ="container-fluid">
+     <div class ="row">
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusMorning" name="ScheduleStatusMorning" type="checkbox" value="true" 
+            <%= if (morning.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusMorning">
+            <%= contentOf("morningSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusNoon" name="ScheduleStatusNoon" type="checkbox" value="true" 
+            <%= if (noon.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusNoon">
+            <%= contentOf("noonSVG") %>
+            </label>
+        </div>
+        <div>&nbsp;</div>
+        <div class="ck-button">
+            <input class="" id="ScheduleStatusEvening" name="ScheduleStatusEvening" type="checkbox" value="true" 
+            <%= if (evening.Bool) { %>checked<% } %> hidden/> 
+            <label for="ScheduleStatusEvening">
+            <%= contentOf("eveningSVG") %>
+            </label>
+        </div>
+    </div>
+  </div>
+</div>
+
+<%= f.InputTag("Drug", {label:"Medikament"}) %>
+<script>
+    $('input[name="Drug"]').autoComplete({
+        delay: 250,
+        cache:0,
+        minChars: 0,
+        source: function(term, response){
+            $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
+        }
+    });
+</script>
+<%= f.InputTag("Dosage", {label:"Dosierung"}) %>
+<script>
+    $('input[name="Dosage"]').autoComplete({
+        delay: 250,
+        cache: 0,
+        minChars: 0,
+        source: function(term, response){
+            $.getJSON('/suggestions/treatment_drug_dosage', { q: $('input[name="Drug"]')[0].value, at: animalTypeID, w: weight }, function(data){ response(data); });
+        }
+    });
+</script>
+<%= f.TextAreaTag("Remarks", {label:"Bemerkungen", rows: 10}) %>
+
+
+<button class="btn btn-success" role="submit">Speichern</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
+
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

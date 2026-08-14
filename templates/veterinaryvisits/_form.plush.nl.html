@@ -1,0 +1,28 @@
+<%= f.InputTag("AnimalID", {type:"hidden"})%>
+
+<label>Datum</label>
+<div class="input-group md-12">
+    <input class=" form-control" id="vvDate" name="Veterinaryvisit.Date" required="required" type="text" value="<%= veterinaryvisit.DateFormated() %>"
+    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+    <div class="input-group-append">
+        <div class="input-group-text">
+            <i class="fa fa-calendar" aria-hidden="true"></i>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    $('#vvDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+</script>
+
+<%= f.SelectTag("UserID", {
+    label: "Gebruiker",
+    options: selectUsers, 
+    required:"required"}) %>
+<%= f.InputTag("Veterinary", {label:"Dierenarts"})%>
+<%= f.TextAreaTag("Diagnostic", {label:"Diagnose", rows: 10}) %>
+<button class="btn btn-success" role="submit">Opslaan</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

@@ -1,0 +1,15 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Behandlung bearbeiten</h3>
+</div>
+
+<%= if (params["back"]) {%>
+  <%= formFor(treatment, {action: treatmentPath({ treatment_id: treatment.ID, back: params["back"] }), method: "PUT"}) { %>
+    <%= partial("treatments/form.plush.de.html") %>
+    <%= linkTo(params["back"], {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <% } %>
+<% } else { %>
+  <%= formFor(treatment, {action: treatmentPath({ treatment_id: treatment.ID }), method: "PUT"}) { %>
+    <%= partial("treatments/form.plush.de.html") %>
+    <%= linkTo(treatmentPath({ treatment_id: treatment.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <% } %>
+<% } %>

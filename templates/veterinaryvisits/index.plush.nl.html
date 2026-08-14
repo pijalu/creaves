@@ -1,0 +1,43 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Dierenartsbezoeken</h3>
+  <div class="float-right">
+    <%= linkTo(newVeterinaryvisitsPath(), {class: "btn btn-primary"}) { %>
+      Nieuw dierenartsbezoek aanmaken
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Datum</th>
+    <th>Dierenarts</th>
+    <th>Gebruiker</th>
+    <th>Dier-ID</th>
+    <th>Diagnose</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (veterinaryvisit) in veterinaryvisits { %>
+      <tr>
+        <td class="align-middle"><%= veterinaryvisit.DateFormated() %></td>
+        <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
+        <td class="align-middle"><%= veterinaryvisit.User.Login %></td>
+        <td class="align-middle">
+          <a class="btn btn-primary" href="/animals/<%= veterinaryvisit.AnimalID %>/#nav-vet"><%= veterinaryvisit.Animal.YearNumberFormatted() %></a>
+        </td>
+        <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-info", title: "Bekijken", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>
