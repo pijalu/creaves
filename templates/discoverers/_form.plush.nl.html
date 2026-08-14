@@ -1,0 +1,30 @@
+<%= f.InputTag("Firstname") %>
+<%= f.InputTag("Lastname") %>
+<%= f.InputTag("Address") %>
+<%= f.InputTag("City") %>
+<%= f.InputTag("Country") %>
+<script>
+$('input[name="City"]').autoComplete({
+    delay: 250,
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/discoverer_city', { q: term }, function(data){ response(data); });
+    }
+});
+$('input[name="Country"]').autoComplete({
+    delay: 250,
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+    }
+});
+</script>
+<%= f.InputTag("Login") %>
+<%= f.InputTag("Phone") %>
+<%= f.TextAreaTag("Note", {rows: 10}) %>
+<button class="btn btn-success" role="submit">Opslaan</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

@@ -1,0 +1,899 @@
+<div class="d-flex justify-content-end">
+<button class="btn btn-success" role="submit">Opslaan</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>
+<%= linkTo(animalPath({animal_id: animal.ID }), {id:"edit-cancel", class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+</div>
+
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">Algemeen</a>
+    <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Vondst</a>
+    <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Opname</a>
+    <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Zorg</a>
+    <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Dierenarts</a>
+    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Behandeling</a>
+    <%= if (animal.OuttakeID.Value() != nil ) {%>
+      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Uitgang</a>
+    <% } %>
+  </div>
+</nav>
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.SelectTag("AnimaltypeID", {
+                    label: "Type",
+                    options: selectAnimalTypes, 
+                    required:"required"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.InputTag("Species", {label:"Soort", required: "required"})%>
+                <script>
+                $('input[name="Species"]').autoComplete({
+                    delay: 250,
+                    minChars: 1,
+                    source: function(term, response){
+                        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+                    }
+                });
+                </script>
+                <div id="speciesHint"></div>
+                <script type="text/javascript">
+                function setSpeciesHint() {
+                  var term = $("#animal-Species").val();
+                  $( "#speciesHint").html("").removeClass("alert alert-primary alert-danger");
+                  $.getJSON('/hint/speciesDetails', { q: term }, function(data){
+                    if (data.length === 1) {
+                      let indication=`<strong>${data[0].status}</strong> - <b>${data[0].freeable ? "vrijlaatbaar":"niet vrijlaatbaar"}</b> - ${data[0].indication} 
+                      <br/> <i>${data[0].game ? "wild":"geen wild"} - ${data[0].huntable ? "bejaagbaar":"niet bejaagbaar"}</i>`;
+                      $( "#speciesHint").html(indication).addClass("alert alert-primary");
+                    } else {
+                      $( "#speciesHint").html("Onbekende soort!").addClass("alert alert-danger");
+                    }
+                  });
+                }
+                $( document ).ready(function(){
+                  setSpeciesHint();
+                });
+                $( "#animal-Species" ).on( "change", function() {
+                  setSpeciesHint();
+                });
+                </script>
+          </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.SelectTag("AnimalageID", {
+                    label: "Age",
+                    options: selectAnimalages, 
+                    required:"required"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+                <%= f.InputTag("Ring", {label:"Identification"}) %>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+                <div class="form-group">
+                  <label>Geslacht</label>
+                  <select class="form-control" id="animal-Gender" name="Gender">
+                    <option value="" <%= if (animal.Gender.Value() == "") {%> selected <%}%> >Onbekend</option>
+                    <option value="M" <%= if (animal.Gender && animal.Gender.Value() == "M") {%> selected <%}%> >Mannelijk</option>
+                    <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Vrouwelijk</option>
+                  </select>
+                </div>
+          </div>
+      </div>
+      <div class="form-row">
+          <div class="form-group col-md-6">
+                <%= f.InputTag("Cage") %>
+          </div>
+          <div class="form-group col-md-6">
+            <%= f.SelectTag("Zone", {
+              label: "Zone",
+              options: selectZone, 
+              required:"required"}) %>
+          </div>
+      </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">
+    <div class="container p-3 my-3 border">
+      <div class="form-row">  
+          <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postcode"}) %>
+          <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Stad"}) %>
+      
+          <script>
+          $('input[name="Discovery.PostalCode"]').autoComplete({
+              delay: 250,
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+              }
+          });
+
+          $('input[name="Discovery.City"]').autoComplete({
+              delay: 250,
+              minChars: 0,
+              cache: 0,
+              source: function(term, response){
+                  var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                  $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+              }
+          });
+          </script>
+      </div>
+
+      <div class="form-row">
+        <div class="form-check text-center col-md-12">
+            <%= f.CheckboxTag("Discovery.InGarden", { unchecked: false, label: "Gevonden in de tuin van de vinder", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+
+            <script>
+            $( 'input[name="Discovery.InGarden"]' ).on( "change", function() {
+                if ($( 'input[name="Discovery.InGarden"]' ).is(":checked")) {
+                    console.log("test:", $('input[name="Discovery.Discoverer.PostalCode"]').val() === "", $('input[name="Discovery.Discoverer.City"]').val() === "")
+
+                    if ($('input[name="Discovery.Discoverer.PostalCode"]').val() === ""
+                        && $('input[name="Discovery.Discoverer.City"]').val() === "") {
+                            var cp = $('input[name="Discovery.PostalCode"]').val();
+                            var city = $('input[name="Discovery.City"]').val();
+
+                            $('input[name="Discovery.Discoverer.PostalCode"]').val(cp);
+                            $('input[name="Discovery.Discoverer.City"]').val(city);
+                        }
+                } else {
+                    console.log("found in garden is now false");
+                }
+            } );
+            </script>
+        </div>
+      </div>
+
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Location", {label:"Locatiedetails", bootstrap:{form-group-class:"form-group col-md-12"} }) %>
+      <script>
+      $('input[name="Discovery.Location"]').autoComplete({
+          delay: 250,
+          minChars: 1,
+          source: function(term, response){
+              $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+          }
+      });
+      </script>
+      </div>
+
+      <div class="form-row">
+      <div class="form-group col-md-12">
+          <label>Date</label>
+          <div class="input-group md-12">
+              <input class=" form-control" id="discodate" name="Discovery.Date" required="required" type="text" value="<%= animal.Discovery.DateFormated() %>"
+              pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+              <div class="input-group-append">
+                  <div class="input-group-text">
+                      <i class="fa fa-calendar" aria-hidden="true"></i>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <script type="text/javascript">
+          $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+      </script>
+      </div>
+  </div>
+
+  <div class="container p-3 my-3 border">
+      <h4>Details</h4> 
+      <div class="form-row">
+          <%= f.CheckboxTag("Discovery.ReturnHabitat", { unchecked: false, label: "Terugkeer naar leefgebied", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+      </div>
+
+      <%= f.SelectTag("Discovery.EntryCauseID", {
+        label: "Entry Cause",
+        options: selectEntryCause,
+        required:"required"}) %>
+      <script type="text/javascript">
+          $('select[name="Discovery.EntryCauseID"]').select2({
+              width: '100%' // need to override the changed default
+          });
+      </script>
+
+      <%= f.TextAreaTag("Discovery.Reason", {label:"Reden", rows: 5, class:"col-md-12"}) %>
+      <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+      Notes
+      </a>
+      <div class="collapse" id="DiscoveryNote">
+          <div class="card card-body">
+              <textarea class="form-control col-md-12" id="animal-Discovery.Note" name="Discovery.Note" rows="10"><%= animal.Discovery.Note %></textarea>
+          </div>
+      </div>
+
+
+
+
+  </div>
+
+  <div class="container p-3 my-3 border">
+      <h4>Vinder</h4>
+  
+      <div class="form-row">  
+      <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Voornaam"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Achternaam"}) %>
+      </div>
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Adres"}) %>
+      </div>
+
+      <script>
+          $('input[name="Discovery.Discoverer.Firstname"]').autoComplete({
+              delay: 250,
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "firstname", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.Lastname"]').autoComplete({
+              delay: 250,
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "lastname", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.Address"]').autoComplete({
+              delay: 250,
+              cache: 0,
+              minChars: 1,
+              source: function(term, response){
+                  var firstname = $('input[name="Discovery.Discoverer.Firstname"]').val();
+                  var lastname = $('input[name="Discovery.Discoverer.Lastname"]').val();
+                  var address = $('input[name="Discovery.Discoverer.Address"]').val();
+
+                  $.getJSON('/suggestions/discoverer', { r: "address", f: firstname, l:lastname, a: address }, function(data){ 
+                      response(data); 
+                  });
+              }
+          });
+      </script>
+
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.PostalCode", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Postcode"}) %>
+      <%= f.InputTag("Discovery.Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Stad"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-4"}, label:"Land"}) %>
+      <script>
+          $('input[name="Discovery.Discoverer.PostalCode"]').autoComplete({
+              delay: 250,
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.City"]').autoComplete({
+              delay: 250,
+              minChars: 0,
+              cache: 0,
+              source: function(term, response){
+                  var postalCode = $('input[name="Discovery.Discoverer.PostalCode"]').val();
+                  $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+              }
+          });
+
+          $('input[name="Discovery.Discoverer.Country"]').autoComplete({
+              delay: 250,
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/discoverer_country', { q: term }, function(data){ response(data); });
+              }
+          });
+      </script>
+
+      </div>
+      <div class="form-row">
+      <%= f.InputTag("Discovery.Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Email"}) %>
+      <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Telefoon"}) %>
+      </div>
+
+      <div class="form-row">
+          <%= f.InputTag("Discovery.Discoverer.Donation", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Donatie"}) %>
+      </div>
+
+      <div class="form-row">
+          <%= f.CheckboxTag("Discovery.Discoverer.ReturnRequest", { unchecked: false, label: "Teruggave gevraagd", bootstrap:{form-group-class:"form-group col-md-12 form-check text-center"} }) %>
+          <script>
+              $('input[name="Discovery.Discoverer.ReturnRequest"]').on( "change", function() {
+                  console.log("Status changed");
+                  if ($('input[name="Discovery.Discoverer.ReturnRequest"]').is(":checked")) {
+                      console.log("ReturnRequest is true");
+                      $('input[name="Discovery.ReturnHabitat"]' ).prop( "checked", true );
+                  } else {
+                      console.log("ReturnRequest is false");
+                  }
+              });
+          </script>
+      </div>
+    </div>  
+  </div>
+  
+   <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <div class="container p-3 my-3 border">
+
+                <label>Date</label>
+                <div class="input-group md-12">
+                    <input class=" form-control" id="intakedate" name="Intake.Date" required="required" type="text" value="<%= animal.Intake.DateFormated() %>"
+                    pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <i class="fa fa-calendar" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                </div>
+                <script type="text/javascript">
+                    $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+                </script>
+
+                <%= f.TextAreaTag("Intake.General", {label:"Algemene toestand", rows: 5}) %>
+
+                <div class="col-md-12 form-row">
+                    <%= f.CheckboxTag("Intake.HasWounds", {label:"Wonden", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+                    <%= f.CheckboxTag("Intake.HasParasites", {label:"Parasieten", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
+                </div>
+
+                <script>
+                    $('input[name="Intake.HasWounds"]').on( "change", function() {
+                        if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                            $("#Wounds").collapse("show");
+                        } else {
+                            $("#Wounds").collapse("hide");
+                        }
+                    });
+
+                    $('input[name="Intake.HasParasites"]').on( "change", function() {
+                        if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                            $("#Parasites").collapse("show");
+                        } else {
+                            $("#Parasites").collapse("hide");
+                        }
+                    });
+
+                    $( document ).ready(function(){
+                      if ($('input[name="Intake.HasWounds"]').is(":checked")) {
+                        $("#Wounds").collapse("show");
+                      }
+                      if ($('input[name="Intake.HasParasites"]').is(":checked")) {
+                        $("#Parasites").collapse("show");
+                      }
+                    });
+                </script>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Wounds" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Wonden
+                </a>
+                <div class="collapse" id="Wounds">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Wounds" name="Intake.Wounds" rows="5"><%= animal.Intake.Wounds %></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" data-toggle="collapse" href="#Parasites" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Parasieten
+                </a>
+                <div class="collapse" id="Parasites">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Parasites" rows="5"><%= animal.Intake.Parasites %></textarea>
+                    </div>
+                </div>
+
+                <a class="btn btn-primary" name="Intake.RemarksBtn" data-toggle="collapse" href="#Remarks" role="button" aria-expanded="false" aria-controls="collapseExample">
+                    Opmerkingen
+                </a>
+                <div class="collapse" id="Remarks">
+                    <div class="card card-body">
+                        <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="5"><%= animal.Intake.Remarks%></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
+    <div class="container p-3 my-3 border">
+      <%= f.TextAreaTag("Feeding", {label:"Voeding", rows: 2, class:"col-md-12"}) %>
+      <%= f.CheckboxTag("ForceFeed", {label:"Gedwongen voeding", unchecked: false}) %>
+
+      <br/>
+
+      <div class="form-row">
+          <script>
+            function calculatePeriodRepetitions() {
+              const startTime = document.getElementById('AnimalFeedingStartTime').value;
+              const endTime = document.getElementById('AnimalFeedingEndTime').value;
+              const periodLengthHM = document.getElementById('AnimalFeedingPeriodHourMinute').value;
+              const [plHour, plMinute] = periodLengthHM.split(":").map(Number);
+              const periodLength = plHour * 60 + plMinute;
+
+              // if we don't have feeding plan
+              if (periodLength === 0) {
+                document.getElementById('mealCount').innerHTML = 0;
+                return;
+              }
+
+              // Convert startTime and endTime to minutes from midnight
+              const [startHour, startMinute] = startTime.split(":").map(Number);
+              const [endHour, endMinute] = endTime.split(":").map(Number);
+              
+              const startTotalMinutes = startHour * 60 + startMinute;
+              const endTotalMinutes = endHour * 60 + endMinute;
+              
+              // Calculate the difference in minutes between startTime and endTime
+              let timeDifference = endTotalMinutes - startTotalMinutes;
+
+              // Handle cases where the endTime is on the next day
+              if (timeDifference < 0) {
+                  timeDifference += 24 * 60; // Add 24 hours worth of minutes
+              }
+
+              // Calculate how many times the period fits into the timeDifference
+              const periodCount = 1 + Math.floor(timeDifference / periodLength);
+
+              document.getElementById('mealCount').innerHTML = periodCount;
+            }
+            // run once at load
+            document.addEventListener('DOMContentLoaded', function() {
+              calculatePeriodRepetitions();
+
+              document.getElementById('AnimalFeedingStartTime').addEventListener("change", calculatePeriodRepetitions);
+              document.getElementById('AnimalFeedingEndTime').addEventListener("change", calculatePeriodRepetitions);
+              document.getElementById('AnimalFeedingPeriodHourMinute').addEventListener("change", calculatePeriodRepetitions);
+            }, false);
+        </script>
+
+        <div class="input-group col-md-2">
+          <input class="form-control" id="AnimalFeedingStartTime" name="AnimalFeedingStartTime" type="text" value="<%= animal.FeedingStartFmt() %>"
+          pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+          <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+          </div>
+          <script type="text/javascript">
+            $('#AnimalFeedingStartTime').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+          </script>
+        </div>
+
+        <div class="input-group col-md-2">
+          <input class="form-control" id="AnimalFeedingEndTime" name="AnimalFeedingEndTime" type="text" value="<%= animal.FeedingEndFmt() %>"
+          pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+          <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+          </div>
+          <script type="text/javascript">
+            $('#AnimalFeedingEndTime').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+          </script>
+        </div>
+
+        <div class="input-group col-md-4">
+            <label>Elke</label>
+            <input class="form-control" id="AnimalFeedingPeriodHourMinute" name="AnimalFeedingPeriodHourMinute" type="text" value="<%= animal.FeedingPeriodHourMinute() %>"
+            pattern="(0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+            <div class="input-group-append">
+              <div class="input-group-text">
+                  <i class="fa fa-calendar" aria-hidden="true"></i>
+              </div>
+            </div>
+            <script type="text/javascript">
+              $('#AnimalFeedingPeriodHourMinute').flatpickr({noCalendar:true, time_24hr:true, enableTime: true, dateFormat:'H:i'});
+            </script>
+            <label>
+              &nbsp; <i>(<span id="mealCount">0</span> maaltijd(en))</i>
+            </label>
+        </div>
+      </div>
+    </div>
+    
+
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-primary"}) { %>
+          Nieuwe zorg aanmaken
+        <% } %>
+      </div>
+    </div>
+    <br/>
+    <table class="table table-hover table-bordered"
+      data-pagination="true"
+      data-toggle="table"
+      data-search="true"
+      data-show-columns="false"
+      data-locale="en-US"
+      data-page-size="50"
+    >
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Gewicht</th>
+        <th>Note</th>
+        <th><i class="fa fa-soap" aria-hidden="true"></i></th>
+        <th>Type</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (care) in animal.Cares { %>
+          <tr class="
+            <%= if (care.Type.Warning) {%>
+              table-danger
+            <% } else if (care.Type.ResetWarning) { %>
+              table-success
+            <% }%>
+            ">
+            <td class="align-middle"><%= care.DateFormated() %></td>
+            <td class="align-middle"><%= care.Weight %></td>
+            <td class="align-middle"><%= care.Note %></td>
+            <td class="align-middle">
+              <%= if (care.Clean.Value()==true) { %>
+                <i class="fa fa-check" aria-hidden="true"></i>
+              <% } %>
+            </td>
+            <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
+            <td>
+              <div class="float-right">
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "Bekijken", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <% }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-vet" role="tabpanel" aria-labelledby="nav-vet-tab">
+    <div class="py-4 mb-2">
+      <h3 class="d-inline-block">Dierenartsbezoeken</h3>
+      <div class="float-right">
+        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-primary"}) { %>
+          Nieuw dierenartsbezoek aanmaken
+        <% } %>
+      </div>
+    </div>
+
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th>Date</th>
+        <th>Dierenarts</th>
+        <th>Gebruiker</th>
+        <th>Diagnose</th>
+        <th>&nbsp;</th>
+      </thead>
+      <tbody>
+        <%= for (veterinaryvisit) in animal.VetVisits{ %>
+          <tr>
+            <td class="align-middle"><%= veterinaryvisit.DateFormated() %></td>
+            <td class="align-middle"><%= veterinaryvisit.Veterinary %></td>
+            <td class="align-middle"><%= veterinaryvisit.User.Login %></td>
+            <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
+            <td>
+              <div class="float-right">
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-info", title: "Bekijken", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= if (current_user.Admin) {%>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%  }%>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
+    <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
+    <div class="py-4 mb-2">
+      <div class="float-right">
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
+          Nieuwe behandeling toevoegen
+        <% } %>
+      </div>
+    </div>
+    </br>
+    <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
+    <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
+    <div id="accordion">
+      <% let ct_id=1 %>
+      <%= for (dateKey) in orderedTMKey {%>
+      <% let treatments = treatmentsMap[dateKey] %>
+      <div class="card <%= if (dateKey.Future) { %>greyout<% }%>">
+        <div class="card-header <%= if (dateKey.Current) {%>alert-info<%}%>" id="heading<%= ct_id %>">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <%= dateKey.DateFmt %>
+            </button>
+          </h5>
+        </div>
+        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <%= for (t) in treatments {%>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
+                        <%= if (t.Remarks.Value() != "") {%>
+                        <p><em><%= t.Remarks %></em></p>
+                      <%}%>
+                    </div>
+                    <div class="col-sm">
+                      <% 
+                        let morning = t.ScheduleStatusMorning() 
+                        let noon = t.ScheduleStatusNoon() 
+                        let evening = t.ScheduleStatusEvening()
+                      %>
+                      <p class="d-inline-block">
+                        <%= if (!morning.Valid) { %>   
+                          <button type="button" class="btn btn-light disabled" title="'s Ochtends niet vereist">                       
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (morning.Bool) {%>
+                          <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% } else { %>
+                          
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </button>
+                        <% }%>
+                        
+                        &nbsp;
+
+                        <%= if (!noon.Valid) { %>
+                          <button type="button" class="btn btn-light disabled" title="'s Middags niet vereist">     
+                            <i class="fas fa-minus"></i>
+                          </button>
+                        <% } else if (noon.Bool) {%>
+                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </button>
+                        <% }%>
+
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <button type="button" class="btn btn-light disabled">
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (evening.Bool) {%>
+                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                          <% } else { %>
+                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </button>
+                        <% }%>
+                      </p>
+                    </div>
+                    <div class="col-sm">
+                      <div class="float-right">
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "Bekijken", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <%}%>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <% let ct_id = ct_id + 1 %>
+      <%}%>
+    </div>
+  </div>
+  <script>
+    const xhrUrl = "<%= treatmentschedulePath() %>";
+    const re = /shed-btn_(.*)_(.*)/;
+    $(".btn-schedule").each(function(){
+      var tk=function(key) {
+        switch(key) {
+         case "morning": return 1; 
+         case "noon": return 2;
+         case "evening": return 4;
+        }
+      };
+
+      const matches=$(this).attr("id").match(re);
+      const key=tk(matches[1]);
+      const rid=matches[2];
+      const payload=JSON.stringify({"treatment_id":rid, "key": key});
+      const elm=$(this);
+
+      elm.on("click", function(){
+        elm.prop('disabled', true);
+
+        elm.addClass("btn-light")
+        elm.removeClass("btn-success btn-warning btn-danger")
+        
+        $.ajax({
+          type: 'PUT',
+          url: xhrUrl,
+          contentType: 'application/json',
+          data: payload
+        }).done(function(data){
+          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
+          if ((data.key & key) === key) {
+            elm.addClass("btn-success");
+          } else {
+            if (elm.attr("past")==="true") {
+              elm.addClass("btn-danger");
+            } else {
+              elm.addClass("btn-warning");
+            }
+          }
+        }).fail(function(data){
+          alert("Failed to update status");
+          console.log("Request failure:", data)
+        }).always(function(){
+          elm.removeClass("btn-light");
+          elm.prop('disabled', false);
+        });
+        
+        console.log("Clicked on button: Change key "+key+" for "+rid);  
+      });
+    });
+  </script>
+
+  <%= if (animal.OuttakeID.Value() != nil) {%>
+  <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= if (current_user.Admin) {%>
+              <div class="float-right">
+                <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Uitgang verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+              </div>
+            <% } %>
+            <label>Date</label>
+            <div class="input-group md-12">
+                <input class=" form-control" id="outtakeDate" name="Outtake.Date" required="required" type="text" value="<%= animal.Outtake.DateFormated() %>"
+                pattern="(?:19|20)[0-9]{2}/(?:(?:0[1-9]|1[0-2])/(?:0[1-9]|1[0-9]|2[0-9])|(?:(?!02)(?:0[1-9]|1[0-2])/(?:30))|(?:(?:0[13578]|1[02])/31)) (0[0-9]|1[0-9]|2[0-3])(:[0-5][0-9])">
+                <div class="input-group-append">
+                    <div class="input-group-text">
+                        <i class="fa fa-calendar" aria-hidden="true"></i>
+                    </div>
+                </div>
+            </div>
+            <script type="text/javascript">
+                $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+            </script>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.SelectTag("Outtake.TypeID", {
+                label: "Type",
+                options: selectOuttaketype, 
+                required:"required"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+            <%= f.InputTag("Outtake.Location", {label:"Locatie"}) %>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group col-md-12">
+        <a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+        Notes
+        </a>
+        <div class="collapse" id="OuttakeNote">
+            <div class="card card-body">
+                <textarea class="form-control col-md-12" id="Outtake.Note" name="Outtake.Note" rows="10"><%= animal.Outtake.Note %></textarea>
+            </div>
+        </div>
+    </div>
+    <br/>
+  </div>
+  <% } %>
+</div>
+<input id="backUrl" name="BackUrl" type="hidden" value="<%= animalPath({animal_id: animal.ID }) %>"/>
+
+<script>
+var viewPath="<%= animalPath({animal_id: animal.ID }) %>";
+
+$(".nav-tabs").find("a").first().click();
+
+var url = document.URL;
+var hash = url.substring(url.indexOf('#'));
+
+if (url.indexOf('#') > 0) {
+  $("#edit-cancel").attr("href", viewPath+hash);
+  $("#backUrl").attr("value",viewPath+hash);
+}
+
+$(".nav-tabs").find("a").each(function(key, val) {
+  if (hash == $(val).attr('href')) {
+    $(val).click();
+  }
+  $(val).click(function(ky, vl) {
+    console.log($(this).attr('href'));
+    location.hash = $(this).attr('href');
+    $("#edit-cancel").attr("href", viewPath+location.hash);
+    $("#backUrl").attr("value", viewPath+location.hash);
+  });
+});
+</script>

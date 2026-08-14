@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Neue Fundmeldung</h3>
+</div>
+
+<%= formFor(discovery, {action: discoveriesPath(), method: "POST", class:"form-horizontal"}) { %>
+  <%= partial("discoveries/form.html") %>
+  <%= linkTo(discoveriesPath(), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+<% } %>

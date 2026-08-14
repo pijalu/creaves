@@ -1,0 +1,75 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Vinderdetails</h3>
+
+  <div class="float-right">
+    <%= linkTo(discoverersPath(), {class: "btn btn-info"}) { %>
+      Terug naar alle vinders
+    <% } %>
+    <%= linkTo(editDiscovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= if (current_user.Admin) {%>
+    <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <% } %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Voornaam</label>
+    <p class="d-inline-block"><%= discoverer.Firstname %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Achternaam</label>
+    <p class="d-inline-block"><%= discoverer.Lastname %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Adres</label>
+    <p class="d-inline-block"><%= discoverer.Address %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Stad</label>
+    <p class="d-inline-block"><%= discoverer.City %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Land</label>
+    <p class="d-inline-block"><%= discoverer.Country %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Login</label>
+    <p class="d-inline-block"><%= Discoverer.Email %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Telefoon</label>
+    <p class="d-inline-block"><%= discoverer.Phone %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Notitie</label>
+    <p class="d-inline-block"><%= discoverer.Note %></p>
+  </li>
+
+
+</ul>

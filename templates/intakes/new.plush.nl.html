@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuwe opname</h3>
+</div>
+
+<%= formFor(intake, {action: intakesPath(), method: "POST"}) { %>
+  <%= partial("intakes/form.html") %>
+  <%= linkTo(intakesPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>
