@@ -121,9 +121,7 @@
                   <a class="dropdown-item" href="<%= travelsPath() %>">Travels</a>
                   <div class="dropdown-divider"></div>
                   <% } %>
-                  <a class="dropdown-item" href="<%= langPath({ lang: "fr"}) %>">In French</a>
-                  <a class="dropdown-item" href="<%= langPath({ lang: "de"}) %>">Auf Deutsch</a>
-                  <a class="dropdown-item" href="<%= langPath({ lang: "nl"}) %>">In het Nederlands</a>
+                  <%= langLinks(request.URL.RequestURI(), "dropdown-item") %>
                   <%= if (!current_user.Shared) {%>
                   <div class="dropdown-divider"></div>
                   <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Edit</a>
@@ -133,9 +131,7 @@
                 </div>
               </li>
             <% } else {%>
-            <li class="nav-item">
-              <a class="nav-link" href="<%= langPath({ lang: "fr-FR", url:newAuthPath() }) %>">Français</a>
-            </li>
+            <%= langLinks(newAuthPath(), "nav-link") %>
             <li class="nav-item">
                 <a href="<%= newAuthPath() %>" class="nav-link">Login</a>
             </li>
