@@ -9,6 +9,12 @@ import (
 	"github.com/gobuffalo/pop/v6"
 )
 
+// tnameDefaultField maps a table to its translatable display field when it
+// differs from "name" (species translates its creaves_species column).
+var tnameDefaultField = map[string]string{
+	"species": "creaves_species",
+}
+
 // tnameMiddleware registers the `tname` template helper on each request.
 // Usage in plush: <%= tname("animaltypes", x.ID, x.Name) %> — renders the
 // translated name for the current UI language, falling back to the base
@@ -24,14 +30,126 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 			cache := map[string]map[string]string{}
 
 			c.Set("tname", func(table string, id interface{}, base interface{}) string {
-				return tnameResolve(c, lang, "name", table, id, baseString(base), cache, &mu)
+				field := "name"
+				if f, ok := tnameDefaultField[table]; ok {
+					field = f
+				}
+				return tnameResolve(c, lang, field, table, id, baseString(base), cache, &mu)
 			})
 			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
 			})
+			// tdrug resolves a canonical (base) drug name — as stored in
+			// free-text fields like treatments.drug — to its localized name
+			// for the current UI language. Falls back to the canonical value.
+			var drugMap map[string]string
+			var drugLoaded bool
+			c.Set("tdrug", func(base interface{}) string {
+				b := baseString(base)
+				if lang == "" || lang == "fr" || b == "" {
+					return b
+				}
+				mu.Lock()
+				loaded := drugLoaded
+				mu.Unlock()
+				if !loaded {
+					drugMap = loadDrugNameMap(c, lang)
+					mu.Lock()
+					drugLoaded = true
+					mu.Unlock()
+				}
+				mu.Lock()
+				v, ok := drugMap[b]
+				mu.Unlock()
+				if ok {
+					return v
+				}
+				return b
+			})
+			// tspecies resolves a canonical (base) species common name — as
+			// stored in free-text fields like animals.species — to its localized
+			// name for the current UI language. Falls back to the canonical value.
+			var speciesMap map[string]string
+			var speciesLoaded bool
+			c.Set("tspecies", func(base interface{}) string {
+				b := baseString(base)
+				if lang == "" || lang == "fr" || b == "" {
+					return b
+				}
+				mu.Lock()
+				loaded := speciesLoaded
+				mu.Unlock()
+				if !loaded {
+					speciesMap = loadSpeciesNameMap(c, lang)
+					mu.Lock()
+					speciesLoaded = true
+					mu.Unlock()
+				}
+				mu.Lock()
+				v, ok := speciesMap[b]
+				mu.Unlock()
+				if ok {
+					return v
+				}
+				return b
+			})
 			return next(c)
 		}
 	}
+}
+
+// loadDrugNameMap builds canonical drug name -> localized name for lang.
+// Returns nil when unavailable (no tx / query error).
+func loadDrugNameMap(c buffalo.Context, lang string) map[string]string {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil
+	}
+	drugs := models.Drugs{}
+	if err := tx.All(&drugs); err != nil {
+		return nil
+	}
+	var rows []models.Translation
+	tr := map[string]string{}
+	if err := tx.Where("table_name = ? AND field = ? AND locale = ?", "drugs", "name", lang).All(&rows); err == nil {
+		for _, r := range rows {
+			tr[r.RecordID] = r.Value
+		}
+	}
+	m := map[string]string{}
+	for _, d := range drugs {
+		if v, ok2 := tr[d.ID.String()]; ok2 && v != "" {
+			m[d.Name] = v
+		}
+	}
+	return m
+}
+
+// loadSpeciesNameMap builds canonical creaves_species name -> localized name
+// for lang. Returns nil when unavailable (no tx / query error).
+func loadSpeciesNameMap(c buffalo.Context, lang string) map[string]string {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil
+	}
+	species := []models.Species{}
+	if err := tx.All(&species); err != nil {
+		return nil
+	}
+	var rows []models.Translation
+	tr := map[string]string{}
+	if err := tx.Where("table_name = ? AND field = ? AND locale = ?", "species", "creaves_species", lang).All(&rows); err == nil {
+		for _, r := range rows {
+			tr[r.RecordID] = r.Value
+		}
+	}
+	m := map[string]string{}
+	for _, s := range species {
+		if v, ok2 := tr[s.ID]; ok2 && v != "" {
+			m[s.CreavesSpecies] = v
+		}
+	}
+	return m
 }
 
 // tnameResolve resolves a localized value with a per-request lazy cache.

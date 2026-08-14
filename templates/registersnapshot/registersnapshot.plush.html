@@ -43,7 +43,7 @@
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>"><%= animal.YearNumber %></a>
         </td>
         <td class="align-middle"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></td>
-        <td class="align-middle"> <%= animal.Species %></td>
+        <td class="align-middle"> <%= tspecies(animal.Species) %></td>
         <td class="align-middle"><%= animal.Ring %></td> 
         <td class="align-middle"><%= animal.Zone %></td> 
         <td class="align-middle"><%= animal.Cage %></td> 

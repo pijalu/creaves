@@ -5,9 +5,9 @@
     <li class="list-group-item pb-1">
       <label class="small d-block">Species</label>
       <%= if (treatment.Animal.Species) {%>
-        <p class="d-inline-block"><%= treatment.Animal.Species %> (<%= treatment.Animal.Animaltype.Name %>)</p>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> (<%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %>)</p>
       <% } else {%>
-        <p class="d-inline-block"><%= treatment.Animal.Species %> <%= treatment.Animal.Animaltype.Name %></p>
+        <p class="d-inline-block"><%= treatment.Animal.Species %> <%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %></p>
       <% }%>
     </li>
     <li class="list-group-item pb-1">

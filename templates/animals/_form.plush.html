@@ -562,7 +562,7 @@ $( document ).ready(function(){
                 <i class="fa fa-check" aria-hidden="true"></i>
               <% } %>
             </td>
-            <td class="align-middle"><%= care.Type.Name %></td>
+            <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
             <td>
               <div class="float-right">
                 <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
@@ -675,7 +675,7 @@ $( document ).ready(function(){
                 <div class="container">
                   <div class="row">
                     <div class="col-sm">
-                      <%= t.Drug %> (<%= t.Dosage %>)
+                      <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
                         <%= if (t.Remarks.Value() != "") {%>
                         <p><em><%= t.Remarks %></em></p>
                       <%}%>

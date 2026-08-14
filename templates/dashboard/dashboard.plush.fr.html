@@ -30,7 +30,7 @@
             <i class="fa fa-check" aria-hidden="true"></i>
           <% } %>
         </td>
-        <td class="align-middle"><%= care.Type.Name %></td>
+        <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
         <td>
           <div class="float-right">
             <%= linkTo("/animals/"+care.AnimalID.String()+"#nav-care", {class: "btn btn-info", title: "Voir animal", body:"<i class='fa fa-eye'></i>"}) %>
@@ -153,7 +153,7 @@
                   <div class="container">
                     <div class="row">
                       <div class="col-sm">
-                        <%= t.Drug %> (<%= t.Dosage %>)
+                        <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
                           <%= if (t.Remarks.Value() != "") {%>
                           <p><em><%= t.Remarks %></em></p>
                         <%}%>

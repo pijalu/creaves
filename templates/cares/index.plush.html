@@ -37,7 +37,7 @@
             <i class="fa fa-check" aria-hidden="true"></i>
           <% } %>
         </td>
-        <td class="align-middle"><%= care.Type.Name %></td>
+        <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(carePath({ care_id: care.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

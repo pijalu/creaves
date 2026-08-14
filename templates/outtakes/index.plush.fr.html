@@ -20,7 +20,7 @@
           <a class="btn btn-primary" href="/animals/<%= outtake.Animal.ID %>/#nav-outtake"><%= outtake.Animal.YearNumberFormatted() %></a>
         </td>
         <td class="align-middle"><%= outtake.DateFormated() %></td>
-        <td class="align-middle"><%= outtake.Type.Name %>
+        <td class="align-middle"><%= tname("outtaketypes", outtake.Type.ID, outtake.Type.Name) %>
         <td class="align-middle"><%= outtake.Location %></td>
         <td>
           <div class="float-right">

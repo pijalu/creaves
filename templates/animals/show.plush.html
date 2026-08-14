@@ -3,7 +3,7 @@
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Outtaken)</em></h4>
   <% } %>
-  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= animal.Species %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
+  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
 
   <div class="float-right">
     <%= linkTo("/#"+ animal.Animaltype.Name, {class: "btn btn-info"}) { %>
@@ -41,11 +41,11 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Species</label>
-        <p id="animal-Species" class="d-inline-block"><%= animal.Species %></p>
+        <p id="animal-Species" data-canonical="<%= animal.Species %>" class="d-inline-block"><%= tspecies(animal.Species) %></p>
         <div id="speciesHint"></div>
         <script type="text/javascript">
         function setSpeciesHint() {
-          var term = $("#animal-Species").text();
+          var term = $("#animal-Species").data("canonical") || $("#animal-Species").text();
           $( "#speciesHint").html("").removeClass("alert alert-primary alert-danger");
           $.getJSON('/hint/speciesDetails', { q: term }, function(data){
             if (data.length === 1) {
@@ -305,7 +305,7 @@
                 <i class="fa fa-check" aria-hidden="true"></i>
               <% } %>
             </td>
-            <td class="align-middle"><%= care.Type.Name %></td>
+            <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
             <td>
               <div class="float-right">
                 <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
@@ -425,7 +425,7 @@
                 <div class="container">
                   <div class="row">
                     <div class="col-sm">
-                      <%= t.Drug %> (<%= t.Dosage %>)
+                      <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
                         <%= if (t.Remarks.Value() != "") {%>
                         <p><em><%= t.Remarks %></em></p>
                       <%}%>
