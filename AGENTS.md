@@ -218,6 +218,8 @@ Creaves (this app)                    Creaves Console
 
 Each event is sent as JSON with this shape (the `payload` field contains the full structured data):
 
+**Canonical values**: payload display values (`species`, `animal_type`, `animal_age`, outtake `type`, etc.) are always the **canonical base-locale (French) reference names** stored in the base table columns — regardless of the UI language active on the producing instance. The multilingual UI (translations table, `tname` helpers) never alters payload content. A future `translations` map in the payload is possible but out of scope.
+
 ```json
 {
   "events": [
