@@ -12,7 +12,7 @@ from pathlib import Path
 
 LOCALES = ("en-US", "nl", "de")
 VALUE_RE = re.compile(
-    r"VALUES \'[^']*\',\'([^']*)\',\'([^']*)\',\'([^']*)\',\'([^']*)\',\'((?:\\\\.|[^'])*)\'(,NOW\(\),NOW\(\);)"
+    r"VALUES \('[^']*','([^']*)','([^']*)','([^']*)','([^']*)','((?:\\.|''|[^'\\])*)',NOW\(\),NOW\(\)\);"
 )
 
 def sql_escape(value):
@@ -35,7 +35,8 @@ def update_file(path, values, check):
     seen = set()
 
     def replace(match):
-        prefix, table, record_id, field, locale, current, suffix = match.groups()
+        nonlocal changed
+        table, record_id, field, locale, current = match.groups()
         key = (table, record_id, field, locale)
         seen.add(key)
         wanted = values.get(key)
@@ -45,7 +46,7 @@ def update_file(path, values, check):
         if escaped == current:
             return match.group(0)
         changed += 1
-        return prefix + "'" + escaped + "'" + suffix
+        return match.group(0).replace("'" + current + "'", "'" + escaped + "'", 1)
 
     updated = VALUE_RE.sub(replace, original)
     if not check and updated != original:
