@@ -100,6 +100,23 @@ func TestTranslationArtifactsCoverStartupInventory(t *testing.T) {
 	}
 }
 
+func TestTargetArtifactsContainLocalizedValues(t *testing.T) {
+	want := map[string]string{
+		"translations_en-US.sql": "baby",
+		"translations_de.sql":    "Baby",
+		"translations_nl.sql":    "baby",
+	}
+	for name, value := range want {
+		data, err := translationSQLFS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(data), "'"+value+"'") {
+			t.Errorf("%s lacks localized representative value %q", name, value)
+		}
+	}
+}
+
 func TestTranslationArtifactPrimaryKeysAreUniqueAcrossLocales(t *testing.T) {
 	seen := map[string]string{}
 	for _, name := range []string{"translations_en-US.sql", "translations_fr.sql", "translations_de.sql", "translations_nl.sql"} {
