@@ -3,9 +3,11 @@ package grifts
 import (
 	"bytes"
 	"compress/gzip"
+	"database/sql"
 	"embed"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"creaves/models"
 	"creaves/utils"
@@ -23,7 +25,7 @@ var startupSQLGz []byte
 var translationSQLFS embed.FS
 
 // translationFileLocaleRe extracts the locale from translations_<locale>.sql.
-var translationFileLocaleRe = regexp.MustCompile(`^translations_([a-z]{2})\.sql$`)
+var translationFileLocaleRe = regexp.MustCompile(`^translations_([a-z]{2}(?:-[A-Z]{2})?)\.sql$`)
 
 // startupTables are seeded in this order (dump statement order may differ).
 var startupTables = []string{"animalages", "animaltypes", "caretypes", "outtaketypes", "drugs", "species", "dosages"}
@@ -45,12 +47,12 @@ var startupModels = map[string]interface{}{
 // canonical French value; translations make the value addressable per locale.
 var startupTranslatableFields = map[string][]string{
 	"animalages":   {"name", "description"},
-	"animaltypes":  {"name", "description"},
+	"animaltypes":  {"name", "description", "default_species"},
 	"caretypes":    {"name", "description"},
-	"outtaketypes": {"name", "description"},
+	"outtaketypes": {"name", "description", "discoverer_news"},
 	"drugs":        {"name", "description"},
-	"dosages":      {"description"},
-	"species":      {"creaves_species"},
+	"dosages":      {"description", "dosage_per_grams_unit"},
+	"species":      {"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"},
 }
 
 // seedStartup loads the embedded production reference data (French) into the
@@ -128,7 +130,7 @@ func seedStartup(c *grift.Context) error {
 }
 
 // applyTranslationFiles executes embedded translations_<lang>.sql files.
-// Each file is skipped wholesale when any row for its locale already exists.
+// Existing translation keys are preserved; missing rows are added on every run.
 func applyTranslationFiles(tx *pop.Connection) error {
 	entries, err := translationSQLFS.ReadDir(".")
 	if err != nil {
@@ -140,14 +142,7 @@ func applyTranslationFiles(tx *pop.Connection) error {
 			continue
 		}
 		locale := m[1]
-		cnt, err := tx.Q().Where("locale = ?", locale).Count(&models.Translation{})
-		if err != nil {
-			return errors.WithStack(err)
-		}
-		if cnt > 0 {
-			fmt.Printf("translations[%s]: %d rows present, skipping %s\n", locale, cnt, e.Name())
-			continue
-		}
+
 		data, err := translationSQLFS.ReadFile(e.Name())
 		if err != nil {
 			return errors.WithStack(err)
@@ -158,6 +153,7 @@ func applyTranslationFiles(tx *pop.Connection) error {
 		}
 		n := 0
 		for _, stmt := range stmts["translations"] {
+			stmt = strings.TrimSuffix(strings.TrimSpace(stmt), ";") + " ON DUPLICATE KEY UPDATE value = value;"
 			if err := tx.RawQuery(stmt).Exec(); err != nil {
 				return errors.Wrapf(err, "applying %s", e.Name())
 			}
@@ -172,15 +168,6 @@ func applyTranslationFiles(tx *pop.Connection) error {
 // table under locale fr. Skipped entirely when rows already exist for that
 // (table, fr) group.
 func seedFrTranslations(tx *pop.Connection, table string, fields []string) error {
-	cnt, err := tx.Q().Where("table_name = ? AND locale = ?", table, "fr").Count(&models.Translation{})
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	if cnt > 0 {
-		fmt.Printf("translations %s[fr]: %d rows, skipping\n", table, cnt)
-		return nil
-	}
-
 	n := 0
 	for _, field := range fields {
 		var rows []trRow
@@ -191,7 +178,15 @@ func seedFrTranslations(tx *pop.Connection, table string, fields []string) error
 			if !row.Value.Valid || row.Value.String == "" {
 				continue
 			}
-			if err := models.SaveTranslation(tx, table, row.ID, field, "fr", row.Value.String); err != nil {
+			var existing models.Translation
+			err := tx.Where("table_name = ? AND record_id = ? AND field = ? AND locale = ?", table, row.ID, field, "fr").First(&existing)
+			if err == nil {
+				continue
+			}
+			if !errors.Is(err, sql.ErrNoRows) {
+				return errors.WithStack(err)
+			}
+			if err := tx.Create(&models.Translation{TableName: table, RecordID: row.ID, Field: field, Locale: "fr", Value: row.Value.String}); err != nil {
 				return errors.WithStack(err)
 			}
 			n++

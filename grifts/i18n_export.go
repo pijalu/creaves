@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var langArgRe = regexp.MustCompile(`^--lang=(de|nl)$`)
+var langArgRe = regexp.MustCompile(`^--lang=(en-US|de|nl)$`)
 
 // exportTranslations writes translations_<lang>.sql with one commented
 // INSERT per (table, record, field) present in the fr translations, ready
@@ -26,7 +26,7 @@ func exportTranslations(c *grift.Context) error {
 		}
 	}
 	if lang == "" {
-		return errors.New("usage: buffalo task i18n:export:translations --lang=de|nl")
+		return errors.New("usage: buffalo task i18n:export:translations --lang=en-US|de|nl")
 	}
 
 	var b strings.Builder
@@ -61,7 +61,7 @@ func exportTranslations(c *grift.Context) error {
 			}
 			id := uuid.Must(uuid.NewV4()).String()
 			base := strings.ReplaceAll(fr.Value, "'", "''")
-			base = strings.ReplaceAll(base, "\n", " ")
+
 			fmt.Fprintf(&b, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', '%s', '', NOW(), NOW()); -- base: %s\n",
 				id, table, fr.RecordID, fr.Field, lang, base)
 			total++
@@ -78,7 +78,7 @@ func exportTranslations(c *grift.Context) error {
 }
 
 var _ = grift.Namespace("i18n", func() {
-	grift.Desc("export:translations", "Writes translations_<lang>.sql skeleton (--lang=de|nl)")
+	grift.Desc("export:translations", "Writes translations_<lang>.sql skeleton (--lang=en-US|de|nl)")
 	grift.Add("export:translations", func(c *grift.Context) error {
 		return exportTranslations(c)
 	})
