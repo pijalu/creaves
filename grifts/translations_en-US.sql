@@ -3010,7 +3010,7 @@ INSERT INTO translations (id, table_name, record_id, field, locale, value, creat
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('266790c4-5305-5382-8e9d-ea05e6a26c55','species','SP355','species','en-US','Pica pica',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('cb5d9193-6992-524c-ba5d-57250cc9b6c0','species','SP355','class','en-US','Aves',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('74432556-8d7b-5464-abf5-0e5cccd3c3b9','species','SP355','family','en-US','Corvidés',NOW(),NOW());
-INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('5e6153b1-54e0-545a-8e22-825a7f5294ac','species','SP355','creaves_species','en-US','Pie bavarde',NOW(),NOW());
+INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('5e6153b1-54e0-545a-8e22-825a7f5294ac','species','SP355','creaves_species','en-US','Eurasian magpie',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('697938c4-c1f0-57ac-aeb7-ea339a19471b','species','SP355','subside_group','en-US','SG2',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('493dc10c-78f5-567a-a20d-72ef95f5c05a','species','SP355','order','en-US','Passériformes',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('7d142af3-f085-527a-9859-6f80d50fc694','species','SP355','agw_group','en-US','Corvidé',NOW(),NOW());
