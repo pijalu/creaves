@@ -74,7 +74,7 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
+          <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
@@ -143,7 +143,7 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
+          <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle">
         <ul class="list-group list-group-flush">
@@ -304,7 +304,7 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
+          <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle"><p><%= animal.Feeding %></p></td>
       </tr>

@@ -41,10 +41,10 @@ $( document ).ready(function(){
   <ul class="list-group mb-2 ">
     <li class="list-group-item pb-1">
       <label class="small d-block">Species</label>
-      <%= if (treatmentTemplate.Animal.Species) {%>
-        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> (<%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %>)</p>
+        <%= if (treatmentTemplate.Animal.Species) {%>
+        <p class="d-inline-block"><%= tspecies(treatmentTemplate.Animal.Species) %> (<%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %>)</p>
       <% } else {%>
-        <p class="d-inline-block"><%= treatmentTemplate.Animal.Species %> <%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %></p>
+        <p class="d-inline-block"><%= tspecies(treatmentTemplate.Animal.Species) %> <%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %></p>
       <% }%>
     </li>
     <li class="list-group-item pb-1">

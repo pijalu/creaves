@@ -85,9 +85,9 @@
   <li class="nav-item">
     <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true">
       <%= if (params["v"] != "type" && zoneMap[at.Name] == "external") {%>
-        <i><%= at.Name %></i>
+        <i><%= if (params["v"] != "type") { %><%= tbase("zones", "zone", at.Name) %><% } else { %><%= tbase("animaltypes", "name", at.Name) %><% } %></i>
       <% } else { %>
-        <%= at.Name %>
+        <%= if (params["v"] != "type") { %><%= tbase("zones", "zone", at.Name) %><% } else { %><%= tbase("animaltypes", "name", at.Name) %><% } %>
       <% } %>
     </a>
   </li>
@@ -136,9 +136,9 @@
             <%= if (params["v"] == "type") { %>
             <td class="align-middle">
               <%= if (params["v"] == "type" && zoneMap[ animal.Zone.String ] == "external") {%>
-                <i><%= animal.Zone %></i>
+                <i><%= tbase("zones", "zone", animal.Zone) %></i>
               <% } else { %>
-                <%= animal.Zone %>
+                <%= tbase("zones", "zone", animal.Zone) %>
               <% } %>
             </td>
             <% } else { %>

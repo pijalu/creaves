@@ -37,7 +37,7 @@ $( document ).ready(function(){
 <% } else { %>
   <div class="py-4 mb-2">
   <h3 class="d-inline-block"> Outtake of animal <%= animal.YearNumberFormatted() %></h3>
-  <p><%= animal.Species %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - Arrived: <%= animal.Intake.DateFormated() %></p>
+  <p><%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - Arrived: <%= animal.Intake.DateFormated() %></p>
   </div>
   
   <%= formFor(outtake, {action: outtakesPath(), method: "POST"}) { %>
@@ -54,4 +54,3 @@ $( document ).ready(function(){
   <%= linkTo(outtakesPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
 <% } %>
 <% } %>
-

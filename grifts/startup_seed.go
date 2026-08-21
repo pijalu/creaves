@@ -144,7 +144,8 @@ func seedStartup(c *grift.Context) error {
 
 // applyTranslationFiles executes embedded translations_<lang>.sql files.
 // A locale whose row count already matches its artifact is skipped. Partial
-// locales are filled with insert-only statements; existing values are preserved.
+// locales are filled from shipped artifacts; existing values are updated so
+// corrected translations reach databases seeded previously.
 func applyTranslationFiles(tx *pop.Connection) error {
 	entries, err := translationSQLFS.ReadDir(".")
 	if err != nil {
@@ -166,17 +167,9 @@ func applyTranslationFiles(tx *pop.Connection) error {
 			return errors.Wrapf(err, "parsing %s", e.Name())
 		}
 		statements := stmts["translations"]
-		existing, err := tx.Q().Where("locale = ?", locale).Count(&models.Translation{})
-		if err != nil {
-			return errors.Wrapf(err, "counting translations[%s]", locale)
-		}
-		if existing == len(statements) {
-			fmt.Printf("translations[%s]: %d rows, skipping %s\n", locale, existing, e.Name())
-			continue
-		}
 		n := 0
 		for _, stmt := range statements {
-			stmt = strings.TrimSuffix(strings.TrimSpace(stmt), ";") + " ON DUPLICATE KEY UPDATE value = value;"
+			stmt = strings.TrimSuffix(strings.TrimSpace(stmt), ";") + " ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at);"
 			if err := tx.RawQuery(stmt).Exec(); err != nil {
 				return errors.Wrapf(err, "applying %s", e.Name())
 			}

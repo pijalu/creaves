@@ -40,8 +40,35 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 				}
 				return tnameResolve(c, lang, field, table, id, baseString(base), cache, &mu)
 			})
+			c.Set("tfield", func(table, field string, id interface{}, base interface{}) string {
+				return tnameResolve(c, lang, field, table, id, baseString(base), cache, &mu)
+			})
 			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
+			})
+			// tbase resolves canonical reference values (used by grouped views whose
+			// keys are display strings rather than source record IDs). The map is
+			// loaded once per table/field/language for this request.
+			baseCache := map[string]map[string]string{}
+			c.Set("tbase", func(table, field string, base interface{}) string {
+				b := baseString(base)
+				if lang == "" || b == "" {
+					return b
+				}
+				key := table + "\\x00" + field + "\\x00" + lang
+				mu.Lock()
+				m, loaded := baseCache[key]
+				mu.Unlock()
+				if !loaded {
+					m = loadBaseTranslationMap(c, table, field, lang)
+					mu.Lock()
+					baseCache[key] = m
+					mu.Unlock()
+				}
+				if v := m[b]; v != "" {
+					return v
+				}
+				return b
 			})
 			// tdrug resolves a canonical (base) drug name — as stored in
 			// free-text fields like treatments.drug — to its localized name
@@ -66,6 +93,9 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 				v, ok := drugMap[b]
 				mu.Unlock()
 				if ok {
+					return v
+				}
+				if v := tnameResolveByBase(c, lang, "name", "drugs", b); v != "" {
 					return v
 				}
 				return b
@@ -93,6 +123,9 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 				v, ok := speciesMap[b]
 				mu.Unlock()
 				if ok {
+					return v
+				}
+				if v := tnameResolveByBase(c, lang, "creaves_species", "species", b); v != "" {
 					return v
 				}
 				return b
@@ -156,7 +189,79 @@ func loadSpeciesNameMap(c buffalo.Context, lang string) map[string]string {
 	return m
 }
 
-// tnameResolve resolves a localized value with a per-request lazy cache.
+// translationBaseFields lists reference tables whose canonical display field can
+// safely be used as a fallback when imported startup IDs differ from database IDs.
+var translationBaseFields = map[string]string{
+	"animalages":   "name",
+	"animaltypes":  "name",
+	"caretypes":    "name",
+	"drugs":        "name",
+	"outtaketypes": "name",
+	"species":      "creaves_species",
+}
+
+// loadBaseTranslationMap loads translated values keyed by canonical French value.
+// Base values are stable identifiers for reference data and avoid per-row queries.
+func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[string]string {
+	out := map[string]string{}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return out
+	}
+	var rows []struct {
+		Base  string `db:"base"`
+		Value string `db:"value"`
+	}
+	// Table and field are selected only from the fixed reference mappings below.
+	allowed := map[string]bool{"animaltypes": true, "animalages": true, "caretypes": true, "outtaketypes": true, "species": true, "zones": true, "native_statuses": true, "subside_groups": true, "entry_causes": true}
+	if !allowed[table] {
+		return out
+	}
+	baseField, ok := translationBaseFields[table]
+	if table == "zones" {
+		baseField = "zone"
+	}
+	if table == "native_statuses" {
+		baseField = "status"
+	}
+	if table == "subside_groups" {
+		baseField = "group"
+	}
+	if table == "entry_causes" {
+		baseField = "cause"
+	}
+	if baseField == "" || field != baseField {
+		return out
+	}
+	q := fmt.Sprintf("SELECT fr.value AS base, tr.value AS value FROM translations fr JOIN translations tr ON tr.table_name = fr.table_name AND tr.record_id = fr.record_id AND tr.field = fr.field AND tr.locale = ? WHERE fr.table_name = ? AND fr.field = ? AND fr.locale = 'fr' AND tr.value <> ''")
+	if err := tx.RawQuery(q, lang, table, field).All(&rows); err != nil {
+		return out
+	}
+	for _, row := range rows {
+		out[row.Base] = row.Value
+	}
+	return out
+}
+
+func tnameResolveByBase(c buffalo.Context, lang, field, table, base string) string {
+	baseField, ok := translationBaseFields[table]
+	if !ok || baseField != field || base == "" {
+		return ""
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return ""
+	}
+	var row struct {
+		Value string `db:"value"`
+	}
+	q := fmt.Sprintf("SELECT tr.value FROM translations tr JOIN translations fr ON fr.table_name = tr.table_name AND fr.record_id = tr.record_id AND fr.field = tr.field AND fr.locale = 'fr' JOIN %s src ON src.%s = fr.value WHERE tr.table_name = ? AND tr.field = ? AND tr.locale = ? AND src.%s = ? AND tr.value <> fr.value LIMIT 1", table, baseField, baseField)
+	if err := tx.RawQuery(q, table, field, lang, base).First(&row); err != nil {
+		return ""
+	}
+	return row.Value
+}
+
 func tnameResolve(c buffalo.Context, lang, field, table string, id interface{}, base string, cache map[string]map[string]string, mu *sync.Mutex) string {
 	if lang == "" {
 		return base
@@ -197,7 +302,13 @@ func tnameResolve(c buffalo.Context, lang, field, table string, id interface{}, 
 		mu.Unlock()
 	}
 
-	return models.ResolveName(lang, base, tr, idStrVal)
+	if value := models.ResolveName(lang, base, tr, idStrVal); value != base {
+		return value
+	}
+	if value := tnameResolveByBase(c, lang, field, table, base); value != "" {
+		return value
+	}
+	return base
 }
 
 // baseString coerces common plush/base value types to string (nulls.String,

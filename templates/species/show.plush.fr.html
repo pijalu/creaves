@@ -17,7 +17,12 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Espèces</label>
-    <p class="d-inline-block"><%= species.Species %></p>
+    <p class="d-inline-block"><%= tfield("species", "species", species.ID, species.Species) %></p>
+    <p class="d-inline-block"><%= tfield("species", "class", species.ID, species.Class) %></p>
+    <p class="d-inline-block"><%= tfield("species", "order", species.ID, species.Order) %></p>
+    <p class="d-inline-block"><%= tfield("species", "family", species.ID, species.Family) %></p>
+    <p class="d-inline-block"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></p>
+    <p class="d-inline-block"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></p>
   </li>
 
 

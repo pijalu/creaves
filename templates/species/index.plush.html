@@ -15,7 +15,7 @@
   <tbody>
     <%= for (species) in species { %>
       <tr>
-        <td class="align-middle"><%= species.Species %></td>
+        <td class="align-middle"><%= tfield("species", "species", species.ID, species.Species) %></td>
         <td class="align-middle"><%= species.Class %></td>
         <td class="align-middle"><%= species.Order %></td>
         <td class="align-middle"><%= species.Family %></td>

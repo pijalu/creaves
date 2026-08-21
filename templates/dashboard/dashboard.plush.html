@@ -63,7 +63,7 @@
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
         </td>
-        <td class="align-middle"><%= animal.Zone %></td>
+        <td class="align-middle"><%= tbase("zones", "zone", animal.Zone) %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle">
           <%
@@ -74,8 +74,8 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
-        </td>
+        <%= tspecies(animal.Species) %> (<%= gender %>)
+      </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
       </tr>
@@ -143,7 +143,7 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
+          <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle">
         <ul class="list-group list-group-flush">
@@ -304,7 +304,7 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
+          <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle"><p><%= animal.Feeding %></p></td>
       </tr>

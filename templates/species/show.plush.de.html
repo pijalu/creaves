@@ -17,24 +17,24 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Art</label>
-    <p class="d-inline-block"><%= species.Species %></p>
+    <p class="d-inline-block"><%= tfield("species", "species", species.ID, species.Species) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Klasse</label>
-    <p class="d-inline-block"><%= species.Class %></p>
+    <p class="d-inline-block"><%= tfield("species", "class", species.ID, species.Class) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Ordnung</label>
-    <p class="d-inline-block"><%= species.Order %></p>
+    <p class="d-inline-block"><%= tfield("species", "order", species.ID, species.Order) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Familie</label>
-    <p class="d-inline-block"><%= species.Family %></p>
+    <p class="d-inline-block"><%= tfield("species", "family", species.ID, species.Family) %></p>
   </li>
 
 
@@ -46,21 +46,21 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Creaves-Art</label>
-    <p class="d-inline-block"><%= tname("species", species.ID, species.CreavesSpecies) %></p>
+    <p class="d-inline-block"><%= tfield("species", "creaves_species", species.ID, species.CreavesSpecies) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Creaves-Gruppe</label>
-    <p class="d-inline-block"><%= species.AgwGroup %></p>
+    <p class="d-inline-block"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Zuschuss</label>
-    <p class="d-inline-block"><%= species.SubsideGroup %></p>
+    <p class="d-inline-block"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></p>
   </li>
 
 

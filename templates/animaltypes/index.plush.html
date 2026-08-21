@@ -23,7 +23,7 @@
         <td class="align-middle"><%= tdesc("animaltypes", animaltype.ID, animaltype.Description) %></td>
         <td class="align-middle"><%= bool2html(animaltype.Default) %></td>
         <td class="align-middle"><%= bool2html(animaltype.HasRing) %></td>
-        <td class="align-middle"><%= animaltype.DefaultSpecies %></td>
+        <td class="align-middle"><%= tspecies(animaltype.DefaultSpecies) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
