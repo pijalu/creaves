@@ -100,6 +100,32 @@ func TestTranslationArtifactsCoverStartupInventory(t *testing.T) {
 	}
 }
 
+func TestTranslationArtifactPrimaryKeysAreUniqueAcrossLocales(t *testing.T) {
+	seen := map[string]string{}
+	for _, name := range []string{"translations_en-US.sql", "translations_fr.sql", "translations_de.sql", "translations_nl.sql"} {
+		data, err := translationSQLFS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, statements, err := utils.ExtractInsertStatements(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, statement := range statements["translations"] {
+			rows, err := utils.ParseInsertRows(statement, []string{"id", "table_name", "record_id", "field", "locale", "value", "created_at", "updated_at"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, row := range rows {
+				if previous, ok := seen[row["id"]]; ok {
+					t.Errorf("translation primary key %s reused by %s and %s", row["id"], previous, name)
+				}
+				seen[row["id"]] = name
+			}
+		}
+	}
+}
+
 func TestTranslationFileLocaleRegex(t *testing.T) {
 	for _, name := range []string{"translations_en-US.sql", "translations_fr.sql", "translations_de.sql", "translations_nl.sql"} {
 		if !translationFileLocaleRe.MatchString(name) {

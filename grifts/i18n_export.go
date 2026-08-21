@@ -59,7 +59,9 @@ func exportTranslations(c *grift.Context) error {
 			if have[fr.RecordID+"/"+fr.Field] {
 				continue
 			}
-			id := uuid.Must(uuid.NewV4()).String()
+			// Include locale in deterministic key so each locale gets a distinct
+			// primary key while rerunning generation remains reproducible.
+			id := uuid.NewV5(uuid.NamespaceOID, lang+"\x00"+table+"\x00"+fr.RecordID+"\x00"+fr.Field).String()
 			base := strings.ReplaceAll(fr.Value, "'", "''")
 
 			fmt.Fprintf(&b, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('%s', '%s', '%s', '%s', '%s', '', NOW(), NOW()); -- base: %s\n",

@@ -28,7 +28,7 @@ See the [Event Forwarding to Creaves Console](#event-forwarding-to-creaves-conso
 - **Database**: MySQL/MariaDB via [Pop v6](https://github.com/gobuffalo/pop) (ORM/migrations)
 - **Frontend assets**: Webpack 5 + Sass + Babel + Bootstrap 4.6 + jQuery + Select2 + Flatpickr
 - **Templating**: Plush (`.plush.html`)
-- **I18n**: `locales/*.yaml` (fr + en-US)
+- **I18n**: `locales/*.yaml` (fr, en-US, de, nl) plus startup reference translations in `grifts/translations_*.sql`
 
 ## Prerequisites
 - Go 1.18+
@@ -56,6 +56,8 @@ buffalo task db:seed:startup
 (7 tables: `animalages, animaltypes, caretypes, outtaketypes, drugs, species, dosages`),
 skipping any table that already contains rows (idempotent per table). The standalone
 `buffalo task db:seed:startup` runs only this step.
+
+**Startup translations**: after base rows are loaded, `db:seed:startup` backfills French keys and applies embedded `grifts/translations_{fr,en-US,de,nl}.sql` artifacts. Inserts are unique-key idempotent and preserve existing values. The artifact inventory covers 4,686 non-empty startup values per locale; see `I18N_STARTUP_TRANSLATION_PLAN.md` for regeneration and review workflow.
 
 **Warning**: the dump INSERTs have no column names — they rely on column order matching
 `migrations/schema.sql`. Adding a NOT NULL column without a default to any of these 7

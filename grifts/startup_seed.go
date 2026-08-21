@@ -184,7 +184,7 @@ func seedFrTranslations(tx *pop.Connection, table string, fields []string) error
 	n := 0
 	for _, field := range fields {
 		var rows []trRow
-		if err := tx.Store.Select(&rows, "SELECT id, "+field+" AS value FROM "+table); err != nil {
+		if err := tx.Store.Select(&rows, "SELECT `id`, `"+field+"` AS `value` FROM `"+table+"`"); err != nil {
 			return errors.WithStack(err)
 		}
 		for _, row := range rows {
