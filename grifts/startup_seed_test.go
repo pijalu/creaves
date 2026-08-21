@@ -1,48 +1,107 @@
 package grifts
 
 import (
-	"bufio"
+	"bytes"
+	"compress/gzip"
+	"creaves/utils"
 	"strings"
 	"testing"
 )
 
 func TestStartupTranslationInventory(t *testing.T) {
-	want := map[string]int{
-		"animalages": 2, "animaltypes": 3, "caretypes": 2,
-		"outtaketypes": 3, "drugs": 2, "dosages": 2, "species": 8,
-	}
-	for table, count := range want {
-		if got := len(startupTranslatableFields[table]); got != count {
-			t.Fatalf("%s inventory fields = %d, want %d", table, got, count)
+	for table, fields := range startupTranslatableFields {
+		seen := map[string]bool{}
+		for _, col := range startupTableColumns[table] {
+			seen[col] = true
+		}
+		for _, field := range fields {
+			if !seen[field] {
+				t.Errorf("%s.%s missing from column inventory", table, field)
+			}
 		}
 	}
 }
 
-func TestTranslationArtifactsCoverAuditedWorkload(t *testing.T) {
-	const want = 4686
-	for _, name := range []string{"translations_en-US.sql", "translations_de.sql", "translations_nl.sql"} {
-		data, err := translationSQLFS.ReadFile(name)
-		if err != nil {
-			t.Fatalf("read %s: %v", name, err)
-		}
-		count := 0
-		s := bufio.NewScanner(strings.NewReader(string(data)))
-		for s.Scan() {
-			if strings.HasPrefix(s.Text(), "INSERT INTO translations") {
-				count++
+func startupTranslationKeys(t *testing.T) map[string]bool {
+	t.Helper()
+	gz, err := gzip.NewReader(bytes.NewReader(startupSQLGz))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer gz.Close()
+	_, statements, err := utils.ExtractInsertStatements(gz)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keys := map[string]bool{}
+	for table, fields := range startupTranslatableFields {
+		for _, statement := range statements[table] {
+			rows, err := utils.ParseInsertRows(statement, startupTableColumns[table])
+			if err != nil {
+				t.Fatalf("parse %s: %v", table, err)
+			}
+			for _, row := range rows {
+				id := row["id"]
+				if table == "species" {
+					id = row["ID"]
+				}
+				for _, field := range fields {
+					if value := row[field]; value != "" && value != "NULL" {
+						keys[table+"\x00"+id+"\x00"+field] = true
+					}
+				}
 			}
 		}
-		if err := s.Err(); err != nil {
-			t.Fatalf("scan %s: %v", name, err)
+	}
+	return keys
+}
+
+func TestTranslationArtifactsCoverStartupInventory(t *testing.T) {
+	want := startupTranslationKeys(t)
+	columns := []string{"id", "table_name", "record_id", "field", "locale", "value", "created_at", "updated_at"}
+	for _, name := range []string{"translations_en-US.sql", "translations_fr.sql", "translations_de.sql", "translations_nl.sql"} {
+		data, err := translationSQLFS.ReadFile(name)
+		if err != nil {
+			t.Fatal(err)
 		}
-		if count != want {
-			t.Errorf("%s rows = %d, want %d", name, count, want)
+		_, statements, err := utils.ExtractInsertStatements(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		locale := strings.TrimSuffix(strings.TrimPrefix(name, "translations_"), ".sql")
+		got := map[string]bool{}
+		for _, statement := range statements["translations"] {
+			rows, err := utils.ParseInsertRows(statement, columns)
+			if err != nil {
+				t.Fatalf("parse %s: %v", name, err)
+			}
+			for _, row := range rows {
+				if row["locale"] != locale {
+					t.Errorf("%s locale %s, want %s", name, row["locale"], locale)
+				}
+				if row["value"] == "" || row["value"] == "NULL" {
+					t.Errorf("%s empty value", name)
+				}
+				key := row["table_name"] + "\x00" + row["record_id"] + "\x00" + row["field"]
+				if !want[key] {
+					t.Errorf("%s unexpected key %s", name, key)
+				}
+				got[key] = true
+			}
+		}
+		if len(got) != len(want) {
+			t.Errorf("%s rows %d, want %d", name, len(got), len(want))
+		}
+		for key := range want {
+			if !got[key] {
+				t.Errorf("%s missing key %s", name, key)
+			}
 		}
 	}
 }
 
 func TestTranslationFileLocaleRegex(t *testing.T) {
-	for _, name := range []string{"translations_en-US.sql", "translations_de.sql", "translations_nl.sql"} {
+	for _, name := range []string{"translations_en-US.sql", "translations_fr.sql", "translations_de.sql", "translations_nl.sql"} {
 		if !translationFileLocaleRe.MatchString(name) {
 			t.Errorf("locale filename not accepted: %s", name)
 		}

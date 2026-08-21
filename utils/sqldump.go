@@ -70,6 +70,7 @@ func parseValueTuples(s string) ([][]string, error) {
 			}
 			var b strings.Builder
 			quoted := false
+			parenDepth := 0
 			if i < len(s) && s[i] == '\'' {
 				quoted = true
 				i++
@@ -104,7 +105,15 @@ func parseValueTuples(s string) ([][]string, error) {
 					i++
 					continue
 				}
-				if c == ',' || c == ')' {
+				if c == '(' {
+					parenDepth++
+				} else if c == ')' {
+					if parenDepth == 0 {
+						break
+					}
+					parenDepth--
+				}
+				if c == ',' && parenDepth == 0 {
 					break
 				}
 				b.WriteByte(c)

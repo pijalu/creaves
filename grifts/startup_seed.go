@@ -55,6 +55,19 @@ var startupTranslatableFields = map[string][]string{
 	"species":      {"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"},
 }
 
+// startupTableColumns records dump/schema order for INSERT statements without
+// column lists. Keep this beside startupTranslatableFields: parser and
+// inventory tests therefore share one authoritative startup definition.
+var startupTableColumns = map[string][]string{
+	"animalages":   {"id", "name", "description", "def", "created_at", "updated_at"},
+	"animaltypes":  {"id", "name", "description", "def", "created_at", "updated_at", "has_ring", "default_species"},
+	"caretypes":    {"id", "name", "description", "def", "warning", "reset_warning", "created_at", "updated_at", "type"},
+	"outtaketypes": {"id", "name", "description", "def", "created_at", "updated_at", "dead", "rating", "discoverer_news", "error"},
+	"drugs":        {"id", "name", "description", "created_at", "updated_at"},
+	"dosages":      {"id", "animaltype_id", "drug_id", "enabled", "description", "dosage_per_grams", "dosage_per_grams_unit", "created_at", "updated_at"},
+	"species":      {"ID", "species", "class", "family", "creaves_species", "subside_group", "created_at", "updated_at", "order", "game", "agw_group", "native_status", "huntable"},
+}
+
 // seedStartup loads the embedded production reference data (French) into the
 // 7 startup tables. It is idempotent per table: a table that already holds
 // rows is skipped. All inserts run in a single transaction.
