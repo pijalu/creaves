@@ -5,6 +5,27 @@ import (
 	"testing"
 )
 
+func TestParseInsertRowsMapsColumnsAndPreservesText(t *testing.T) {
+	stmt := "INSERT INTO `x` VALUES ('id','a;b','line1\\nline2','it\\'s ok'),(NULL,'','two\\r\\nlines','x') ;"
+	rows, err := ParseInsertRows(stmt, []string{"id", "name", "description", "note"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || rows[0]["id"] != "id" || rows[0]["description"] != "line1\nline2" || rows[0]["note"] != "it's ok" {
+		t.Fatalf("unexpected first row: %#v", rows)
+	}
+	if rows[1]["id"] != "NULL" || rows[1]["name"] != "" || rows[1]["description"] != "two\r\nlines" {
+		t.Fatalf("unexpected second row: %#v", rows[1])
+	}
+}
+
+func TestParseInsertRowsRejectsColumnMismatch(t *testing.T) {
+	_, err := ParseInsertRows("INSERT INTO x VALUES (1,2);", []string{"id"})
+	if err == nil || !strings.Contains(err.Error(), "want 1 columns") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestExtractInsertStatements_SkipsDDLAndComments(t *testing.T) {
 	dump := `-- MySQL dump 10.13
 --
