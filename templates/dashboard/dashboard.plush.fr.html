@@ -360,7 +360,7 @@
   <tbody>
   <%= for (ac) in animalCountPerType { %>
     <tr>
-        <td class="align-middle"><%= ac.Name %></td>
+        <td class="align-middle"><%= tname("animaltypes", ac.ID, ac.Name) %></td>
         <td class="align-middle"><%= ac.Count %></td>
     </tr>
   <%}%>
@@ -371,5 +371,3 @@
   <%}%>
   </tbody>
 </table>
-
-  

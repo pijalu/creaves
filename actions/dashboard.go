@@ -9,6 +9,7 @@ import (
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
+	"github.com/gofrs/uuid"
 )
 
 // SQL_CARES_IN_WARNING lists all cares in warning
@@ -51,7 +52,7 @@ ORDER BY
 
 // SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE returns the count of animal in care per type
 const SQL_ANIMAL_COUNT_IN_CARE_PER_TYPE = `
-select at.name as 'Name', count(1) as 'Count'
+select at.id as 'ID', at.name as 'Name', count(1) as 'Count'
 from animaltypes at, animals a
  WHERE a.outtake_id is NULL
    and a.animaltype_id = at.id
@@ -134,8 +135,9 @@ func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
 }
 
 type listAnimalCountPerTypeReply struct {
-	Name  string `db:"Name"`
-	Count int    `db:"Count"`
+	ID    uuid.UUID `db:"ID"`
+	Name  string    `db:"Name"`
+	Count int       `db:"Count"`
 }
 
 func listAnimalCountPerType(c buffalo.Context) ([]listAnimalCountPerTypeReply, error) {
