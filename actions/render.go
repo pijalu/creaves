@@ -86,7 +86,7 @@ func init() {
 				if s {
 					return "✓"
 				} else {
-					return "🞩"
+					return "×"
 				}
 			},
 			"dbgDump": func(s any) string {
