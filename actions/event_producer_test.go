@@ -10,6 +10,69 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+func TestBuildEventPayload_IncludesAllLocales(t *testing.T) {
+	animalTypeID := uuid.Must(uuid.NewV4())
+	animal := &models.Animal{ID: 501, Species: "SP-T51", Animaltype: models.Animaltype{ID: animalTypeID, Name: "Mammifère"}}
+	for _, tr := range []struct{ table, id, field, locale, value string }{
+		{"species", animal.Species, "creaves_species", "en-US", "Hedgehog"},
+		{"species", animal.Species, "creaves_species", "de", "Igel"},
+		{"species", animal.Species, "creaves_species", "nl", "Egel"},
+		{"animaltypes", animalTypeID.String(), "name", "en-US", "Mammal"},
+	} {
+		if err := models.SaveTranslation(models.DB, tr.table, tr.id, tr.field, tr.locale, tr.value); err != nil {
+			t.Fatalf("save translation: %v", err)
+		}
+	}
+	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?)", animal.Species, animalTypeID.String()).Exec()
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	if len(payload.Translations) != len(models.SupportedLocales) {
+		t.Fatalf("locales = %v, want %v", payload.Translations, models.SupportedLocales)
+	}
+	if payload.Translations["fr"]["species"] != "SP-T51" {
+		t.Fatalf("fr species = %q", payload.Translations["fr"]["species"])
+	}
+	if payload.Translations["de"]["species"] != "Igel" {
+		t.Fatalf("de species = %q", payload.Translations["de"]["species"])
+	}
+	if _, ok := payload.Translations["de"]["animal_type"]; ok {
+		t.Fatal("de animal_type present despite missing translation")
+	}
+}
+
+func TestBuildEventPayload_NoTranslationsStillCanonical(t *testing.T) {
+	animal := &models.Animal{ID: 502, Species: "SP-T51-empty"}
+	models.DB.RawQuery("DELETE FROM translations WHERE record_id = ?", animal.Species).Exec()
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	if len(payload.Translations) != 0 {
+		t.Fatalf("translations = %v, want empty", payload.Translations)
+	}
+	if payload.Animal.Species != animal.Species {
+		t.Fatalf("species = %q, want %q", payload.Animal.Species, animal.Species)
+	}
+}
+
+func TestBuildEventPayload_OuttakeAndZoneAndEntryCauseTranslated(t *testing.T) {
+	outtakeTypeID, zoneID := uuid.Must(uuid.NewV4()), uuid.Must(uuid.NewV4())
+	entryCauseID := "cause-t51"
+	animal := &models.Animal{ID: 503, Species: "SP-T51-out", Zone: nulls.NewString(zoneID.String()), Discovery: models.Discovery{ID: uuid.Must(uuid.NewV4()), EntryCauseID: entryCauseID, EntryCause: models.EntryCause{ID: entryCauseID, Cause: "Accident", Detail: "Accident"}}, Outtake: &models.Outtake{Type: models.Outtaketype{ID: outtakeTypeID, Name: "Relâché"}}}
+	for _, tr := range []struct{ table, id, field, locale, value string }{{"outtaketypes", outtakeTypeID.String(), "name", "de", "Freilassung"}, {"zones", zoneID.String(), "zone", "de", "Quarantäne"}, {"entry_causes", entryCauseID, "cause", "de", "Unfall"}} {
+		if err := models.SaveTranslation(models.DB, tr.table, tr.id, tr.field, tr.locale, tr.value); err != nil {
+			t.Fatalf("save translation: %v", err)
+		}
+	}
+	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?, ?)", outtakeTypeID.String(), zoneID.String(), entryCauseID).Exec()
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	if payload.Translations["de"]["outtake_type"] != "Freilassung" {
+		t.Fatalf("outtake_type = %q", payload.Translations["de"]["outtake_type"])
+	}
+	if payload.Translations["de"]["zone"] != "Quarantäne" {
+		t.Fatalf("zone = %q", payload.Translations["de"]["zone"])
+	}
+	if payload.Translations["de"]["entry_cause"] != "Unfall" {
+		t.Fatalf("entry_cause = %q", payload.Translations["de"]["entry_cause"])
+	}
+}
+
 func TestBuildEventPayload(t *testing.T) {
 	animal := &models.Animal{
 		ID:         1,
@@ -264,28 +327,28 @@ func TestBuildEventPayload_Comprehensive(t *testing.T) {
 		Animaltype: models.Animaltype{ID: uuid.Must(uuid.NewV4()), Name: "Mammal"},
 		Animalage:  models.Animalage{ID: uuid.Must(uuid.NewV4()), Name: "Adult"},
 		Discovery: models.Discovery{
-			ID:           uuid.Must(uuid.NewV4()),
-			Location:     nulls.NewString("Forest"),
-			PostalCode:   nulls.NewString("1000"),
-			City:         nulls.NewString("Brussels"),
-			Date:         time.Now(),
-			EntryCauseID: "cause-1",
-			EntryCause:   models.EntryCause{ID: "cause-1"},
-			Reason:       nulls.NewString("Injured"),
-			Note:         nulls.NewString("Found near road"),
+			ID:            uuid.Must(uuid.NewV4()),
+			Location:      nulls.NewString("Forest"),
+			PostalCode:    nulls.NewString("1000"),
+			City:          nulls.NewString("Brussels"),
+			Date:          time.Now(),
+			EntryCauseID:  "cause-1",
+			EntryCause:    models.EntryCause{ID: "cause-1"},
+			Reason:        nulls.NewString("Injured"),
+			Note:          nulls.NewString("Found near road"),
 			ReturnHabitat: true,
 			InGarden:      true,
 			Discoverer: models.Discoverer{
-				ID:          uuid.Must(uuid.NewV4()),
-				Firstname:   nulls.NewString("Jane"),
-				Lastname:    nulls.NewString("Doe"),
-				Address:     nulls.NewString("1 Main St"),
-				City:        nulls.NewString("Brussels"),
-				PostalCode:  nulls.NewString("1000"),
-				Country:     nulls.NewString("BE"),
-				Email:       nulls.NewString("jane@example.com"),
-				Phone:       nulls.NewString("0123456789"),
-				Note:        nulls.NewString("Caller"),
+				ID:         uuid.Must(uuid.NewV4()),
+				Firstname:  nulls.NewString("Jane"),
+				Lastname:   nulls.NewString("Doe"),
+				Address:    nulls.NewString("1 Main St"),
+				City:       nulls.NewString("Brussels"),
+				PostalCode: nulls.NewString("1000"),
+				Country:    nulls.NewString("BE"),
+				Email:      nulls.NewString("jane@example.com"),
+				Phone:      nulls.NewString("0123456789"),
+				Note:       nulls.NewString("Caller"),
 			},
 		},
 		Intake: models.Intake{

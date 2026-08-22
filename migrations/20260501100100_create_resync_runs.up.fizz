@@ -1,0 +1,14 @@
+create_table("resync_runs") {
+ t.Column("id", "uuid", {primary: true})
+ t.Column("instance_id", "string", {})
+ t.Column("status", "string", {})
+ t.Column("started_at", "timestamp", {})
+ t.Column("finished_at", "timestamp", {null: true})
+ t.Column("total_animals", "integer", {default: 0})
+ t.Column("animals_processed", "integer", {default: 0})
+ t.Column("events_created", "integer", {default: 0})
+ t.Column("events_skipped_unchanged", "integer", {default: 0})
+ t.Column("errors", "text", {null: true})
+ t.Timestamps()
+}
+add_index("resync_runs", ["instance_id", "status"], {})

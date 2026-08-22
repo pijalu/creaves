@@ -69,6 +69,8 @@ func createPusherTables() {
 			payload TEXT,
 			processed_at TIMESTAMP,
 			delivered_at TIMESTAMP,
+			content_hash TEXT,
+			resync_run_id TEXT,
 			created_at TIMESTAMP NOT NULL,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
@@ -373,6 +375,35 @@ func TestDeliverBatch_ConnectionErrorRecordsFailure(t *testing.T) {
 	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures)
 }
 
+func TestDeliverBatch_EnvelopeHasInstanceAndVersion(t *testing.T) {
+	resetPusherState()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	CurrentConfig.Description = "Wildlife care centre"
+	seedUndeliveredEvent(t, 9)
+
+	require.NoError(t, deliverBatch())
+	require.Len(t, rr.requests, 1)
+
+	var wire struct {
+		ContractVersion int `json:"contract_version"`
+		Instance        struct {
+			ID          string `json:"id"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		} `json:"instance"`
+	}
+	require.NoError(t, json.Unmarshal(rr.requests[0].body, &wire))
+	assert.Equal(t, 2, wire.ContractVersion)
+	assert.Equal(t, "test-instance", wire.Instance.ID)
+	assert.Equal(t, "Test", wire.Instance.Name)
+	assert.Equal(t, "Wildlife care centre", wire.Instance.Description)
+}
+
 func TestDeliverBatch_PayloadShape(t *testing.T) {
 	resetPusherState()
 
@@ -598,6 +629,7 @@ func TestRegisterWebhookShutdown_StopsOnAppStop(t *testing.T) {
 	}
 	assert.False(t, IsWebhookWorkerRunning(), "worker should stop on EvtAppStop")
 }
+
 // TestStartWebhookWorker_TickerDeliversEvents verifies the background ticker
 // goroutine inside StartWebhookWorker: when the worker is running with an
 // enabled webhook config, a real test receiver, and pending undelivered

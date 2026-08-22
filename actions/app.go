@@ -73,13 +73,16 @@ func App() *buffalo.App {
 
 		// tname/tdesc template helpers (localized entity names)
 		app.Use(tnameMiddleware())
-
 		app.GET("/paths", PathHandler)
 		app.GET("/", LandingIndex)
 
 		//AuthMiddlewares
 		app.Use(SetCurrentUser)
 		app.Use(Authorize)
+		app.GET("/webhook_resync", WebhookResyncIndex)
+		app.POST("/webhook_resync/start", WebhookResyncStart)
+		app.POST("/webhook_resync/cancel", WebhookResyncCancel)
+		app.GET("/webhook_resync/status.json", WebhookResyncStatus)
 
 		//Routes for Auth
 		auth := app.Group("/auth")

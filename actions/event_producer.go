@@ -26,7 +26,7 @@ func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, p
 
 	// Build payload if not provided
 	if payload == nil {
-		payload = buildEventPayload(animal)
+		payload = buildEventPayloadWithTranslations(tx, animal)
 	}
 
 	// Set timestamp
@@ -63,6 +63,11 @@ func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, p
 
 // buildEventPayload creates a comprehensive EventPayload from an animal record
 func buildEventPayload(animal *models.Animal) *models.EventPayload {
+	return buildEventPayloadWithTranslations(nil, animal)
+}
+
+// buildEventPayloadWithTranslations builds canonical payload and optionally enriches translations.
+func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal) *models.EventPayload {
 	payload := &models.EventPayload{
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
@@ -207,6 +212,9 @@ func buildEventPayload(animal *models.Animal) *models.EventPayload {
 		}
 	}
 
+	if tx != nil {
+		payload.Translations = loadPayloadTranslations(tx, animal, payload)
+	}
 	return payload
 }
 

@@ -1,5 +1,9 @@
 # TODO - Implementation Tracking
 
+## Sync v2 rollout status
+
+Sync v2 producer envelope, state identity primitives, resync lifecycle, and admin status endpoints validated through T7.3; deployment-specific manual checks are documented in the console Sync v2 plan.
+
 This document tracks all pending TODOs and their implementation status. Items are organized by category and marked as ✅ COMPLETED or ⏳ PENDING.
 
 ## Event Stream Implementation (Phase 1-3)

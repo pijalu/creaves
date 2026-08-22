@@ -1,0 +1,33 @@
+<h1>Webhook resync</h1>
+<p>Resync sends current animal state to the configured console. It is safe to repeat and skips unchanged animals.</p>
+<div id="resync-status" class="mb-3">Loading…</div>
+<div id="resync-actions">
+  <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
+    <button type="submit" class="btn btn-primary">Start resync</button>
+  <% } %>
+</div>
+<script>
+(function () {
+  var status = document.getElementById('resync-status');
+  var actions = document.getElementById('resync-actions');
+  function poll() {
+    fetch('/webhook_resync/status.json').then(function (response) { return response.json(); }).then(function (run) {
+      if (run.status === 'none') {
+        status.textContent = 'No resync is running.';
+        return;
+      }
+      var total = run.total_animals || 0;
+      var processed = run.animals_processed || 0;
+      status.innerHTML = '<strong>Status:</strong> ' + run.status + '<br>' +
+        '<strong>Progress:</strong> ' + processed + ' / ' + total + '<br>' +
+        '<strong>Created:</strong> ' + (run.events_created || 0) +
+        ' <strong>Skipped unchanged:</strong> ' + (run.events_skipped_unchanged || 0);
+      if (run.status === 'running') {
+        actions.innerHTML = '<form method="post" action="/webhook_resync/cancel"><input type="hidden" name="authenticity_token" value="<%= authenticity_token %>"><button type="submit" class="btn btn-warning">Cancel resync</button></form>';
+        setTimeout(poll, 2000);
+      }
+    });
+  }
+  poll();
+}());
+</script>

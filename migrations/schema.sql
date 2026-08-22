@@ -327,6 +327,31 @@ CREATE TABLE `entry_causes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `resync_runs`
+--
+
+DROP TABLE IF EXISTS `resync_runs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `resync_runs` (
+  `id` char(36) NOT NULL,
+  `instance_id` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL,
+  `started_at` datetime NOT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `total_animals` int NOT NULL DEFAULT '0',
+  `animals_processed` int NOT NULL DEFAULT '0',
+  `events_created` int NOT NULL DEFAULT '0',
+  `events_skipped_unchanged` int NOT NULL DEFAULT '0',
+  `errors` text DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `resync_runs_instance_id_status_idx` (`instance_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `event_streams`
 --
 
@@ -343,11 +368,14 @@ CREATE TABLE `event_streams` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   `delivered_at` datetime DEFAULT NULL,
+  `content_hash` varchar(255) DEFAULT NULL,
+  `resync_run_id` char(36) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `event_streams_instance_id_animal_id_created_at_idx` (`instance_id`,`animal_id`,`created_at`),
   KEY `event_streams_processed_at_idx` (`processed_at`),
   KEY `event_streams_event_type_idx` (`event_type`),
-  KEY `event_streams_delivered_at_idx` (`delivered_at`)
+  KEY `event_streams_delivered_at_idx` (`delivered_at`),
+  KEY `event_streams_event_type_content_hash_idx` (`event_type`,`content_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

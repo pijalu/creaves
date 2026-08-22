@@ -20,7 +20,8 @@ const (
 	// EventTypeAnimalReleased is emitted when an animal is released
 	EventTypeAnimalReleased EventType = "animal_released"
 	// EventTypeAnimalDied is emitted when an animal dies
-	EventTypeAnimalDied EventType = "animal_died"
+	EventTypeAnimalDied  EventType = "animal_died"
+	EventTypeAnimalState EventType = "animal_state"
 )
 
 // EventStream represents an event in the event stream for multi-instance consolidation
@@ -32,6 +33,8 @@ type EventStream struct {
 	Payload     json.RawMessage `json:"payload" db:"payload"`
 	ProcessedAt *time.Time      `json:"processed_at" db:"processed_at"`
 	DeliveredAt *time.Time      `json:"delivered_at" db:"delivered_at"`
+	ContentHash *string         `json:"content_hash" db:"content_hash"`
+	ResyncRunID *uuid.UUID      `json:"resync_run_id" db:"resync_run_id"`
 	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
 }
@@ -64,15 +67,15 @@ type DiscoveryPayload struct {
 	ReturnHabitat bool   `json:"return_habitat,omitempty"`
 	InGarden      bool   `json:"in_garden,omitempty"`
 	// Discoverer information
-	DiscovererFirstname string `json:"discoverer_firstname,omitempty"`
-	DiscovererLastname  string `json:"discoverer_lastname,omitempty"`
-	DiscovererAddress   string `json:"discoverer_address,omitempty"`
-	DiscovererCity      string `json:"discoverer_city,omitempty"`
+	DiscovererFirstname  string `json:"discoverer_firstname,omitempty"`
+	DiscovererLastname   string `json:"discoverer_lastname,omitempty"`
+	DiscovererAddress    string `json:"discoverer_address,omitempty"`
+	DiscovererCity       string `json:"discoverer_city,omitempty"`
 	DiscovererPostalCode string `json:"discoverer_postal_code,omitempty"`
-	DiscovererCountry   string `json:"discoverer_country,omitempty"`
-	DiscovererEmail     string `json:"discoverer_email,omitempty"`
-	DiscovererPhone     string `json:"discoverer_phone,omitempty"`
-	DiscovererNote      string `json:"discoverer_note,omitempty"`
+	DiscovererCountry    string `json:"discoverer_country,omitempty"`
+	DiscovererEmail      string `json:"discoverer_email,omitempty"`
+	DiscovererPhone      string `json:"discoverer_phone,omitempty"`
+	DiscovererNote       string `json:"discoverer_note,omitempty"`
 }
 
 // IntakePayload represents the complete intake information in an event
@@ -123,6 +126,9 @@ type EventPayload struct {
 
 	// Common fields
 	Timestamp string `json:"timestamp"`
+
+	Translations map[string]map[string]string `json:"translations,omitempty"`
+	StateHash    string                       `json:"state_hash,omitempty"`
 }
 
 // String returns the JSON representation of the event

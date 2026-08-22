@@ -248,7 +248,9 @@ func deliverBatch() error {
 	}
 
 	payload := map[string]interface{}{
-		"events": payloadEvents,
+		"contract_version": 2,
+		"instance":         map[string]string{"id": config.InstanceID, "name": config.Name, "description": config.Description},
+		"events":           payloadEvents,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -374,6 +376,9 @@ func InitWebhookAtBoot() {
 	if _, err := LoadConfig(models.DB); err != nil {
 		fmt.Printf("Webhook: failed to load config at boot: %v\n", err)
 		return
+	}
+	if err := RecoverInterruptedRuns(models.DB); err != nil {
+		fmt.Printf("Webhook: failed to recover resync runs: %v\n", err)
 	}
 	EnsureWebhookWorkerRunning()
 }

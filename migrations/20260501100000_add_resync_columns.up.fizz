@@ -1,0 +1,3 @@
+add_column("event_streams", "content_hash", "string", {null: true})
+add_column("event_streams", "resync_run_id", "uuid", {null: true})
+add_index("event_streams", ["event_type", "content_hash"], {})
