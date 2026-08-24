@@ -31,21 +31,21 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Detail</label>
-    <p class="d-inline-block"><%= entryCause.Detail %></p>
+    <p class="d-inline-block"><%= tfield("entry_causes", "detail", entryCause.ID, entryCause.Detail) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Nature</label>
-    <p class="d-inline-block"><%= entryCause.Nature %></p>
+    <p class="d-inline-block"><%= tfield("entry_causes", "nature", entryCause.ID, entryCause.Nature) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Indication</label>
-    <p class="d-inline-block"><%= entryCause.Indication %></p>
+    <p class="d-inline-block"><%= tfield("entry_causes", "indication", entryCause.ID, entryCause.Indication) %></p>
   </li>
 
 

@@ -108,7 +108,7 @@ func (v OuttaketypesResource) New(c buffalo.Context) error {
 
 	c.Set("outtaketype", &models.Outtaketype{})
 
-	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "outtaketypes", "", []string{"name", "description"}); err != nil {
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "outtaketypes", "", []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
 
@@ -199,7 +199,7 @@ func (v OuttaketypesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("outtaketype", outtaketype)
-	if err := setTranslationValues(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+	if err := setTranslationValues(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
 
@@ -258,7 +258,7 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description"}); err != nil {
+	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
 

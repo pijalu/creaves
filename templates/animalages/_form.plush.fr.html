@@ -2,7 +2,7 @@
 <%= f.TextAreaTag("Description", {rows: 10}) %>
 <%= f.CheckboxTag("Default", {label:"Défaut", unchecked: false}) %>
 <%= partial("translations/fields.html") %>
-<button class="btn btn-success" role="submit">Sauvegarder</button>
+<button class="btn btn-success" type="submit">Sauvegarder</button>
 <script type="text/javascript">
 $( document ).ready(function(){
     window.submitfix();

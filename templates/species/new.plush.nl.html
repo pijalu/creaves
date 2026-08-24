@@ -2,7 +2,7 @@
   <h3 class="d-inline-block">Nieuwe soort</h3>
 </div>
 
-<%= formFor(species, {action: speciesPath(), method: "POST"}) { %>
+<%= formFor(species, {action: "/species/", method: "POST"}) { %>
   <%= partial("species/form.plush.nl.html") %>
-  <%= linkTo(speciesPath(), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+  <%= linkTo("/species/", {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
 <% } %>

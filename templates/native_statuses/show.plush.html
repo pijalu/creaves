@@ -29,7 +29,7 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Indication</label>
-    <p class="d-inline-block"><%= nativeStatus.Indication %></p>
+    <p class="d-inline-block"><%= tfield("native_statuses", "indication", nativeStatus.ID, nativeStatus.Indication) %></p>
   </li>
 
 
@@ -43,7 +43,7 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Precision</label>
-    <p class="d-inline-block"><%= nativeStatus.Precision %></p>
+    <p class="d-inline-block"><%= tfield("native_statuses", "precision", nativeStatus.ID, nativeStatus.Precision) %></p>
   </li>
 
 

@@ -16,13 +16,13 @@
     <%= for (species) in species { %>
       <tr>
         <td class="align-middle"><%= tfield("species", "species", species.ID, species.Species) %></td>
-        <td class="align-middle"><%= species.Class %></td>
-        <td class="align-middle"><%= species.Order %></td>
-        <td class="align-middle"><%= species.Family %></td>
+        <td class="align-middle"><%= tfield("species", "class", species.ID, species.Class) %></td>
+        <td class="align-middle"><%= tfield("species", "order", species.ID, species.Order) %></td>
+        <td class="align-middle"><%= tfield("species", "family", species.ID, species.Family) %></td>
         <td class="align-middle"><%= bool2html(species.Game) %></td>
         <td class="align-middle"><%= tname("species", species.ID, species.CreavesSpecies) %></td>
-        <td class="align-middle"><%= species.AgwGroup %></td>
-        <td class="align-middle"><%= species.SubsideGroup %></td>
+        <td class="align-middle"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></td>
+        <td class="align-middle"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></td>
         <td>
           <div class="float-end">
             <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>

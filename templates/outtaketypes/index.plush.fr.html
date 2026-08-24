@@ -11,6 +11,7 @@
   <thead class="thead-light">
     <th>Nom</th>
     <th>description</th>
+    <th>News pour le découvreur</th>
     <th>Défaut</th>
     <th>Cadavre</th>
     <th>Erreur</th>
@@ -22,6 +23,7 @@
       <tr>
         <td class="align-middle"><%= tname("outtaketypes", outtaketype.ID, outtaketype.Name) %></td>
         <td class="align-middle"><%= tdesc("outtaketypes", outtaketype.ID, outtaketype.Description) %></td>
+        <td class="align-middle"><%= tfield("outtaketypes", "discoverer_news", outtaketype.ID, outtaketype.DiscovererNews) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Default) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Dead) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Error) %></td>

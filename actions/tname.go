@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gobuffalo/nulls"
+
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 )
@@ -245,6 +247,9 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 
 func tnameResolveByBase(c buffalo.Context, lang, field, table, base string) string {
 	baseField, ok := translationBaseFields[table]
+	if table == "outtaketypes" && field == "discoverer_news" {
+		baseField, ok = "discoverer_news", true
+	}
 	if !ok || baseField != field || base == "" {
 		return ""
 	}
@@ -256,7 +261,29 @@ func tnameResolveByBase(c buffalo.Context, lang, field, table, base string) stri
 		Value string `db:"value"`
 	}
 	q := fmt.Sprintf("SELECT tr.value FROM translations tr JOIN translations fr ON fr.table_name = tr.table_name AND fr.record_id = tr.record_id AND fr.field = tr.field AND fr.locale = 'fr' JOIN %s src ON src.%s = fr.value WHERE tr.table_name = ? AND tr.field = ? AND tr.locale = ? AND src.%s = ? AND tr.value <> fr.value LIMIT 1", table, baseField, baseField)
+	if table == "outtaketypes" && field == "discoverer_news" {
+		q = "SELECT tr.value FROM translations tr JOIN translations n ON n.table_name = 'outtaketypes' AND n.record_id = tr.record_id AND n.field = 'name' AND n.locale = 'fr' JOIN outtaketypes src ON src.name = n.value WHERE tr.table_name = 'outtaketypes' AND tr.field = ? AND tr.locale = ? AND src.name = ? AND tr.value <> '' LIMIT 1"
+		if err := tx.RawQuery(q, field, lang, base).First(&row); err != nil {
+			return ""
+		}
+		return row.Value
+	}
 	if err := tx.RawQuery(q, table, field, lang, base).First(&row); err != nil {
+		return ""
+	}
+	return row.Value
+}
+
+func outtakeDiscovererNewsByName(c buffalo.Context, lang, id string) string {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return ""
+	}
+	var row struct {
+		Value string `db:"value"`
+	}
+	q := "SELECT tr.value FROM translations tr JOIN translations n ON n.table_name = 'outtaketypes' AND n.record_id = tr.record_id AND n.field = 'name' AND n.locale = 'fr' JOIN outtaketypes src ON src.name = n.value WHERE src.id = ? AND tr.table_name = 'outtaketypes' AND tr.field = 'discoverer_news' AND tr.locale = ? AND tr.value <> '' LIMIT 1"
+	if err := tx.RawQuery(q, id, lang).First(&row); err != nil {
 		return ""
 	}
 	return row.Value
@@ -305,6 +332,11 @@ func tnameResolve(c buffalo.Context, lang, field, table string, id interface{}, 
 	if value := models.ResolveName(lang, base, tr, idStrVal); value != base {
 		return value
 	}
+	if table == "outtaketypes" && field == "discoverer_news" {
+		if value := outtakeDiscovererNewsByName(c, lang, idStrVal); value != "" {
+			return value
+		}
+	}
 	if value := tnameResolveByBase(c, lang, field, table, base); value != "" {
 		return value
 	}
@@ -317,6 +349,11 @@ func baseString(v interface{}) string {
 	switch t := v.(type) {
 	case string:
 		return t
+	case nulls.String:
+		if !t.Valid {
+			return ""
+		}
+		return t.String
 	case interface{ String() string }:
 		return t.String()
 	default:

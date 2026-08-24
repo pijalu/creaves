@@ -107,7 +107,7 @@ func (v SpeciesResource) New(c buffalo.Context) error {
 
 	c.Set("species", &models.Species{})
 
-	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "species", "", []string{"creaves_species"}); err != nil {
+	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "species", "", []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}
 
@@ -159,7 +159,7 @@ func (v SpeciesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	if err := saveTranslations(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+	if err := saveTranslations(c, tx, "species", species.ID, []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("species", species)
-	if err := setTranslationValues(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+	if err := setTranslationValues(c, tx, "species", species.ID, []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}
 
@@ -256,7 +256,7 @@ func (v SpeciesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	if err := saveTranslations(c, tx, "species", species.ID, []string{"creaves_species"}); err != nil {
+	if err := saveTranslations(c, tx, "species", species.ID, []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}
 

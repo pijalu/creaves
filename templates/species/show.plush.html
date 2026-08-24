@@ -24,17 +24,17 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Class</label>
-    <p class="d-inline-block"><%= species.Class %></p>
+    <p class="d-inline-block"><%= tfield("species", "class", species.ID, species.Class) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Order</label>
-    <p class="d-inline-block"><%= species.Order %></p>
+    <p class="d-inline-block"><%= tfield("species", "order", species.ID, species.Order) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Family</label>
-    <p class="d-inline-block"><%= species.Family %></p>
+    <p class="d-inline-block"><%= tfield("species", "family", species.ID, species.Family) %></p>
   </li>
 
 
@@ -53,14 +53,14 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">CreavesGroup</label>
-    <p class="d-inline-block"><%= species.AgwGroup %></p>
+    <p class="d-inline-block"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></p>
   </li>
 
 
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Subside</label>
-    <p class="d-inline-block"><%= species.SubsideGroup %></p>
+    <p class="d-inline-block"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></p>
   </li>
 
 
