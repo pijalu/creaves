@@ -108,6 +108,7 @@ func App() *buffalo.App {
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
 		app.Resource("/event_streams", EventStreamsResource{})
+		app.Resource("/translations", TranslationsResource{})
 
 		app.Resource("/logentries", LogentriesResource{})
 		app.Resource("/discoverers", DiscoverersResource{})

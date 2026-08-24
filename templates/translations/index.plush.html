@@ -1,0 +1,8 @@
+<div class="py-4 mb-2"><h3 class="d-inline-block">Translations</h3></div>
+<form method="GET" action="/translations" class="form-inline mb-3">
+  <input class="form-control mr-2" type="search" name="q" value="<%= translationSearch %>" placeholder="Search French or translation">
+  <button class="btn btn-primary" type="submit">Search</button>
+</form>
+<table class="table table-hover table-bordered"><thead><tr><th>Table</th><th>Field</th><th>French/base</th><th>Locale</th><th>Translation</th><th></th></tr></thead><tbody>
+<%= for (row) in translations { %><tr><td><%= row.TableName %></td><td><%= row.Field %></td><td><%= row.BaseValue %></td><td><%= row.Locale %></td><td><%= row.Value %></td><td><a href="/translations/<%= row.ID %>">View</a> <a href="/translations/<%= row.ID %>/edit">Edit</a> <a href="/translations/<%= row.ID %>" data-method="DELETE" data-confirm="Are you sure?">Delete</a></td></tr><% } %>
+</tbody></table>
