@@ -3,6 +3,7 @@ module creaves
 go 1.18
 
 require (
+	github.com/fatih/color v1.13.0
 	github.com/gobuffalo/buffalo v0.18.9
 	github.com/gobuffalo/buffalo-pop/v3 v3.0.6
 	github.com/gobuffalo/envy v1.10.2
@@ -13,6 +14,7 @@ require (
 	github.com/gobuffalo/mw-i18n/v2 v2.0.2
 	github.com/gobuffalo/mw-paramlogger v1.0.0
 	github.com/gobuffalo/nulls v0.4.2
+	github.com/gobuffalo/plush/v4 v4.1.16
 	github.com/gobuffalo/pop/v6 v6.1.0
 	github.com/gobuffalo/tags v2.1.7+incompatible
 	github.com/gobuffalo/validate/v3 v3.3.3
@@ -32,7 +34,6 @@ require (
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/fatih/color v1.13.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
@@ -43,7 +44,6 @@ require (
 	github.com/gobuffalo/helpers v0.6.7 // indirect
 	github.com/gobuffalo/logger v1.0.7 // indirect
 	github.com/gobuffalo/meta v0.3.2 // indirect
-	github.com/gobuffalo/plush/v4 v4.1.16 // indirect
 	github.com/gobuffalo/refresh v1.13.1 // indirect
 	github.com/gobuffalo/tags/v3 v3.1.4 // indirect
 	github.com/gobuffalo/validate v2.0.4+incompatible // indirect

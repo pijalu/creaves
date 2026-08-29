@@ -61,6 +61,36 @@ func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, p
 	return nil
 }
 
+// eagerEventAssociations is the explicit association list needed for a full
+// event payload. An explicit Eager list loads ONLY the listed paths, so nested
+// associations must be spelled out (Pop v6 behavior).
+var eagerEventAssociations = []string{
+	"Animalage",
+	"Animaltype",
+	"Intake",
+	"Discovery",
+	"Discovery.EntryCause",
+	"Discovery.Discoverer",
+	"Outtake",
+	"Outtake.Type",
+}
+
+// reloadAnimalForEvent re-reads the animal with all associations required for a
+// complete payload (v2 fields: animal_age, animal_type, outtake.type,
+// entry_cause, translations). Publishing right after a create/update otherwise
+// sends partial data because associations are not loaded on the in-memory
+// struct.
+func reloadAnimalForEvent(tx *pop.Connection, animal *models.Animal) (*models.Animal, error) {
+	if tx == nil {
+		return animal, nil
+	}
+	full := &models.Animal{}
+	if err := tx.Eager(eagerEventAssociations...).Find(full, animal.ID); err != nil {
+		return animal, err
+	}
+	return full, nil
+}
+
 // buildEventPayload creates a comprehensive EventPayload from an animal record
 func buildEventPayload(animal *models.Animal) *models.EventPayload {
 	return buildEventPayloadWithTranslations(nil, animal)
@@ -236,7 +266,11 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 
 // PublishAnimalDiscoveredEvent creates an animal_discovered event
 func PublishAnimalDiscoveredEvent(tx *pop.Connection, animal *models.Animal, user *models.User) error {
-	payload := buildEventPayload(animal)
+	full, err := reloadAnimalForEvent(tx, animal)
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animal.ID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
 	payload.InitialStatus = "in_care"
 	payload.CurrentStatus = "in_care"
 	return PublishEvent(tx, string(models.EventTypeAnimalDiscovered), animal, payload, user)
@@ -244,7 +278,11 @@ func PublishAnimalDiscoveredEvent(tx *pop.Connection, animal *models.Animal, use
 
 // PublishAnimalStatusChangedEvent creates an animal_status_changed event
 func PublishAnimalStatusChangedEvent(tx *pop.Connection, animal *models.Animal, previousStatus, currentStatus string, user *models.User) error {
-	payload := buildEventPayload(animal)
+	full, err := reloadAnimalForEvent(tx, animal)
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animal.ID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
 	payload.PreviousStatus = previousStatus
 	payload.CurrentStatus = currentStatus
 	return PublishEvent(tx, string(models.EventTypeAnimalStatusChanged), animal, payload, user)
@@ -252,14 +290,22 @@ func PublishAnimalStatusChangedEvent(tx *pop.Connection, animal *models.Animal, 
 
 // PublishAnimalReleasedEvent creates an animal_released event
 func PublishAnimalReleasedEvent(tx *pop.Connection, animal *models.Animal, user *models.User) error {
-	payload := buildEventPayload(animal)
+	full, err := reloadAnimalForEvent(tx, animal)
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animal.ID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
 	payload.CurrentStatus = "released"
 	return PublishEvent(tx, string(models.EventTypeAnimalReleased), animal, payload, user)
 }
 
 // PublishAnimalDiedEvent creates an animal_died event
 func PublishAnimalDiedEvent(tx *pop.Connection, animal *models.Animal, user *models.User) error {
-	payload := buildEventPayload(animal)
+	full, err := reloadAnimalForEvent(tx, animal)
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animal.ID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
 	payload.CurrentStatus = "died"
 	return PublishEvent(tx, string(models.EventTypeAnimalDied), animal, payload, user)
 }

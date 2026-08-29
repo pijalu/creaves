@@ -2,6 +2,16 @@
 development:
   dialect: "mysql"
   url: "mysql://creaves:creaves@(localhost:3306)/creaves?parseTime=true&multiStatements=true&readTimeout=3s"
+  # Cap the dev pool: pop defaults to Pool=0 (unlimited open) + IdlePool=2,
+  # so every concurrency burst (resync goroutine + webhook pusher + UI)
+  # permanently pins connections until MySQL's 8h wait_timeout fires, and
+  # repeated e2e runs exhaust max_connections (Error 1040).
+  # NB: pop v6 ConnectionDetails has no yaml tags, so only lowercased Go
+  # field names are parsed (snake_case keys would be silently ignored).
+  pool: 25
+  idlepool: 5
+  connmaxlifetime: 10m
+  connmaxidletime: 1m
 
 test:
   dialect: "mysql"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -37,14 +38,35 @@ func StartResync(tx *pop.Connection, instanceID string, total int) (*models.Resy
 	}
 	now := time.Now()
 	run := &models.ResyncRun{ID: uuid.Must(uuid.NewV4()), InstanceID: instanceID, Status: "running", StartedAt: now, TotalAnimals: total}
-	if err := tx.Create(run); err != nil {
+	// The worker goroutine below reads this row back through models.DB on a
+	// DIFFERENT connection. Creating it on the caller's tx would race the
+	// request transaction's commit (the goroutine's Find can execute before
+	// the row is visible -> "no rows" -> worker exits and the run stays
+	// 'running' forever). Persist on models.DB (autocommit) so the row is
+	// committed before the goroutine is launched.
+	createTx := models.DB
+	if createTx == nil {
+		createTx = tx
+	}
+	if err := createTx.Create(run); err != nil {
 		return nil, err
 	}
+	// The worker shares models.DB like any other code path. NOTE: with
+	// pop v6.1.0 + pop.Debug (development), every Create/Update leaked one
+	// pooled connection via the SQL logger (logger.go store.Transaction()
+	// without close) — resync loops then wedged the app (pool deadlock) or
+	// exhausted MySQL (Error 1040). Worked around by the SetTxLogger
+	// override in models/models.go (fixed upstream in pop v6.1.2); dev
+	// pool limits in database.yml guard against any future burst.
 	workerTx := models.DB
 	if workerTx == nil {
 		workerTx = tx
 	}
-	go func() { _ = RunResync(context.Background(), workerTx, run.ID) }()
+	go func() {
+		if err := RunResync(context.Background(), workerTx, run.ID); err != nil {
+			log.Printf("resync run %s failed: %v", run.ID, err)
+		}
+	}()
 	return run, nil
 }
 
@@ -52,10 +74,26 @@ func StartResync(tx *pop.Connection, instanceID string, total int) (*models.Resy
 func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID) error {
 	run := &models.ResyncRun{}
 	if err := tx.Find(run, runID); err != nil {
+		// Never leave a run stranded in 'running': mark it failed
+		// best-effort (the row may be invisible only to this connection).
+		_ = tx.RawQuery(
+			"UPDATE resync_runs SET status = 'failed', finished_at = ?, errors = ? WHERE id = ? AND status = 'running'",
+			time.Now(), fmt.Sprintf("worker start: %v", err), runID,
+		).Exec()
 		return err
 	}
 	animals := &models.Animals{}
-	if err := tx.Eager().All(animals); err != nil {
+	// Eager() alone loads only direct associations; the payload builder also
+	// needs nested ones (Outtake.Type, Discovery.EntryCause, ...) or the
+	// emitted state events would miss outtake type/rating and entry-cause
+	// fields (they were silently NULL on the console side).
+	// NB: Eager with an explicit list loads ONLY those associations, so every
+	// association the payload builder reads must be listed.
+	if err := tx.Eager(
+		"Animalage", "Animaltype", "Intake",
+		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
+		"Outtake", "Outtake.Type",
+	).All(animals); err != nil {
 		return finishResync(tx, run, err)
 	}
 	for i := range *animals {
