@@ -432,17 +432,29 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 	// Default values are "page=1" and "per_page=20".
 	q := tx.PaginateFromParams(c.Params())
 
+	// Search filters (AND-combined); shortcuts above take precedence.
+	sp := animalSearchParamsFrom(c)
+	var err error
+	if q, err = applyAnimalSearchFilters(q, sp); err != nil {
+		return err
+	}
+
 	// Retrieve all Animals from the DB
 	if err := q.Order("ID desc").All(animals); err != nil {
 		return err
 	}
 
 	// Preload required for "list"
-	if _, err := EnrichAnimals(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
 		return err
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
+		// Filter panel option lists + sticky values
+		if err := setupAnimalSearchContext(c, sp); err != nil {
+			return err
+		}
+
 		// Add the paginator to the context so it can be used in the template.
 		c.Set("pagination", q.Paginator)
 

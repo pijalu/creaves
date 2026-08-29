@@ -103,6 +103,18 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 		payload.Animal.AnimalAge = animal.Animalage.Name
 	}
 
+	// Species taxonomy from the species table (canonical French values).
+	// Joined on species.creaves_species = animals.species; unknown species → fields stay empty.
+	if tx != nil && animal.Species != "" {
+		species := &models.Species{}
+		if err := tx.Where("creaves_species = ?", animal.Species).First(species); err == nil {
+			payload.Animal.SpeciesClass = species.Class
+			payload.Animal.SpeciesAGWGroup = species.AgwGroup
+			payload.Animal.SpeciesSubsideGroup = species.SubsideGroup
+			payload.Animal.SpeciesNativeStatus = species.NativeStatus
+		}
+	}
+
 	// Build discovery details
 	if animal.Discovery.ID != uuid.Nil {
 		payload.Discovery = models.DiscoveryPayload{
@@ -126,6 +138,8 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 		if animal.Discovery.EntryCauseID != "" {
 			payload.Discovery.EntryCauseID = animal.Discovery.EntryCauseID
 			payload.Discovery.EntryCause = animal.Discovery.EntryCause.Fmt(false)
+			payload.Discovery.EntryCauseDetail = animal.Discovery.EntryCause.Detail
+			payload.Discovery.EntryCauseNature = animal.Discovery.EntryCause.Nature
 		}
 		if animal.Discovery.Reason.Valid {
 			payload.Discovery.Reason = animal.Discovery.Reason.String
@@ -203,6 +217,8 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 		if animal.Outtake.Type.ID != uuid.Nil {
 			payload.Outtake.Type = animal.Outtake.Type.Name
 			payload.Outtake.TypeID = animal.Outtake.Type.ID.String()
+			payload.Outtake.Rating = animal.Outtake.Type.Rating
+			payload.Outtake.Dead = animal.Outtake.Type.Dead
 		}
 		if animal.Outtake.Location.Valid {
 			payload.Outtake.Location = animal.Outtake.Location.String

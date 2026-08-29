@@ -162,6 +162,9 @@ func App() *buffalo.App {
 		app.GET("/registersnapshot", RegistersnapshotIndex)
 		app.GET("/registersnapshot/ExportCSV", RegistersnapshotIndexCSV)
 
+		app.GET("/reports/annual", ReportsAnnualIndex)
+		app.GET("/reports/annual/export.csv", ReportsAnnualExportCSV)
+
 		maintenance := app.Group("/maintenance")
 		maintenance.GET("/", MaintenanceIndex)
 		maintenance.GET("/renumber", MaintenanceRenumber)

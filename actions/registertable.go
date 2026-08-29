@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"creaves/localrender"
 	"creaves/models"
 	"fmt"
 	"net/http"
@@ -63,13 +62,36 @@ func RegistertableIndexCSV(c buffalo.Context) error {
 		return err
 	}
 
-	// Preload required for "list"
-	if _, err := EnrichAnimals(animals, c); err != nil {
-		return err
+	header := []string{
+		"Numero", "Type", "Species", "identification", "Entry Date",
+		"Discovery Location", "Age", "Reason", "Outtake date", "Outtake Reason", "Location",
+	}
+	rows := make([][]string, 0, len(*animals))
+	for _, a := range *animals {
+		outtakeDate := ""
+		outtakeType := ""
+		outtakeLocation := ""
+		if a.Outtake != nil {
+			outtakeDate = a.Outtake.DateFormated()
+			outtakeType = a.Outtake.Type.Name
+			outtakeLocation = a.Outtake.Location.String
+		}
+		rows = append(rows, []string{
+			fmt.Sprintf("%d", a.YearNumber),
+			a.Animaltype.Name,
+			a.Species,
+			a.Ring.String,
+			a.Intake.DateFormated(),
+			a.Discovery.Location.String,
+			a.Animalage.Name,
+			a.Discovery.Reason.String,
+			outtakeDate,
+			outtakeType,
+			outtakeLocation,
+		})
 	}
 
-	c.Set("animals", animals)
-	return c.Render(http.StatusOK, localrender.Csv(r, "registertable/registertable.plush.csv"))
+	return writeCSV(c, fmt.Sprintf("registertable-%s.csv", y), header, rows)
 }
 
 // RegistertableIndex default implementation.

@@ -51,6 +51,13 @@ type AnimalPayload struct {
 	Ring       string `json:"ring,omitempty"`
 	AnimalType string `json:"animal_type,omitempty"`
 	AnimalAge  string `json:"animal_age,omitempty"`
+
+	// Species taxonomy (canonical French values from the species table,
+	// joined on species.creaves_species = animals.species; empty when unknown)
+	SpeciesClass        string `json:"species_class,omitempty"`
+	SpeciesAGWGroup     string `json:"species_agw_group,omitempty"`
+	SpeciesSubsideGroup string `json:"species_subside_group,omitempty"`
+	SpeciesNativeStatus string `json:"species_native_status,omitempty"`
 }
 
 // DiscoveryPayload represents the complete discovery information in an event
@@ -60,8 +67,10 @@ type DiscoveryPayload struct {
 	PostalCode    string `json:"postal_code,omitempty"`
 	City          string `json:"city,omitempty"`
 	Date          string `json:"date,omitempty"`
-	EntryCauseID  string `json:"entry_cause_id,omitempty"`
-	EntryCause    string `json:"entry_cause,omitempty"`
+	EntryCauseID     string `json:"entry_cause_id,omitempty"`
+	EntryCause       string `json:"entry_cause,omitempty"`
+	EntryCauseDetail string `json:"entry_cause_detail,omitempty"`
+	EntryCauseNature string `json:"entry_cause_nature,omitempty"`
 	Reason        string `json:"reason,omitempty"`
 	Note          string `json:"note,omitempty"`
 	ReturnHabitat bool   `json:"return_habitat,omitempty"`
@@ -98,6 +107,9 @@ type OuttakePayload struct {
 	TypeID   string `json:"type_id,omitempty"`
 	Location string `json:"location,omitempty"`
 	Note     string `json:"note,omitempty"`
+	// Rating and Dead come from the outtake type definition
+	Rating int  `json:"rating,omitempty"`
+	Dead   bool `json:"dead,omitempty"`
 }
 
 // EventPayload represents the complete structured event payload with all entities

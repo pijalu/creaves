@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"creaves/localrender"
 	"creaves/models"
 	"fmt"
 	"net/http"
@@ -57,8 +56,27 @@ func RegistersnapshotIndexCSV(c buffalo.Context) error {
 		return err
 	}
 
-	c.Set("animals", animals)
-	return c.Render(http.StatusOK, localrender.Csv(r, "registersnapshot/registersnapshot.plush.csv"))
+	header := []string{
+		"Numero", "Type", "Species", "identification", "Zone", "Cage",
+		"Entry Date", "Discovery Location", "Age", "Reason",
+	}
+	rows := make([][]string, 0, len(*animals))
+	for _, a := range *animals {
+		rows = append(rows, []string{
+			fmt.Sprintf("%d", a.YearNumber),
+			a.Animaltype.Name,
+			a.Species,
+			a.Ring.String,
+			a.Zone.String,
+			a.Cage.String,
+			a.Intake.DateFormated(),
+			a.Discovery.Location.String,
+			a.Animalage.Name,
+			a.Discovery.Reason.String,
+		})
+	}
+
+	return writeCSV(c, fmt.Sprintf("registersnapshot-%s.csv", snapshotDate), header, rows)
 }
 
 // RegistersnapshotIndex default implementation.

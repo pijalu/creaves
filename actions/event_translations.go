@@ -19,6 +19,12 @@ func loadPayloadTranslations(tx *pop.Connection, animal *models.Animal, payload 
 		{name: "zone", table: "zones", dbField: "zone", id: payload.Animal.Zone, base: payload.Animal.Zone},
 		{name: "outtake_type", table: "outtaketypes", dbField: "name", id: payload.Outtake.TypeID, base: payload.Outtake.Type},
 		{name: "entry_cause", table: "entry_causes", dbField: "cause", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCause},
+		{name: "entry_cause_detail", table: "entry_causes", dbField: "detail", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCauseDetail},
+		{name: "entry_cause_nature", table: "entry_causes", dbField: "nature", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCauseNature},
+		{name: "species_class", table: "species", dbField: "class", id: animal.Species, base: payload.Animal.SpeciesClass},
+		{name: "species_agw_group", table: "species", dbField: "agw_group", id: animal.Species, base: payload.Animal.SpeciesAGWGroup},
+		{name: "species_subside_group", table: "species", dbField: "subside_group", id: animal.Species, base: payload.Animal.SpeciesSubsideGroup},
+		{name: "species_native_status", table: "species", dbField: "native_status", id: animal.Species, base: payload.Animal.SpeciesNativeStatus},
 	}
 	result := map[string]map[string]string{}
 	any := false

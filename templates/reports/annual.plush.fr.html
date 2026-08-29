@@ -1,0 +1,55 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("reports.annual.title") %></h3>
+</div>
+
+<form>
+    <div class="form-group row">
+      <label for="year" class="col-2 col-form-label"><%= t("reports.annual.year") %></label>
+      <div class="col-1O">
+        <select id="year" name="year" class="form-control" onchange="this.form.submit()">
+          <%= for (y) in years { %>
+            <option
+            <%= if (y.Selected) {%>
+              selected
+            <% } %>
+            ><%=y.Year%></option>
+          <% } %>
+        </select>
+      </div>
+    </div>
+</form>
+
+<div class="text-right">
+  <a href="/reports/annual/export.csv?year=<%= selectedYear %>" target="_new" title="Export CSV"/><i class="fas fa-cloud-download-alt"></i></a>
+</div>
+
+<%= for (section) in sections { %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong><%= t("reports.annual.section." + section.ID) %></strong>
+    </div>
+    <div class="card-body p-0">
+      <table class="table table-hover table-bordered mb-0">
+        <thead class="thead-light">
+          <th><%= t("reports.annual.category") %></th>
+          <th class="text-right" style="width: 120px;"><%= t("reports.annual.count") %></th>
+          <th class="text-right" style="width: 120px;"><%= t("reports.annual.percent") %></th>
+        </thead>
+        <tbody>
+          <%= for (row) in section.Rows { %>
+            <tr>
+              <td class="align-middle"><%= row.Category %></td>
+              <td class="align-middle text-right"><%= row.Count %></td>
+              <td class="align-middle text-right"><%= row.Percent %>%</td>
+            </tr>
+          <% } %>
+          <tr class="table-secondary font-weight-bold">
+            <td class="align-middle"><%= t("reports.annual.total") %></td>
+            <td class="align-middle text-right"><%= section.Total %></td>
+            <td class="align-middle text-right">100.0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

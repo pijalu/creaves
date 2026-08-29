@@ -111,7 +111,7 @@ func RunQuery(c buffalo.Context, query string) error {
 		}
 		for i, str := range rowString {
 			if str == nil {
-				rowStringNull[i] = "null"
+				rowStringNull[i] = ""
 			} else {
 				rowStringNull[i] = *str
 			}

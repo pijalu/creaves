@@ -33,6 +33,103 @@
 </form>
 </div>
 
+<div class="container p-3 my-3 border">
+  <a data-toggle="collapse" href="#animalSearchPanel" role="button" aria-expanded="<%= if (searchActive) { %>true<% } else { %>false<% } %>" aria-controls="animalSearchPanel">
+    <i class="fas fa-filter"></i> Suchfilter
+  </a>
+  <div class="collapse<%= if (searchActive) { %> show<% } %>" id="animalSearchPanel">
+    <form method="GET" action="/animals" id="animal_search_filters" class="mt-3">
+      <div class="form-row">
+        <div class="form-group col-md-2">
+          <label for="sf_year">Jahr</label>
+          <select class="form-control" id="sf_year" name="year">
+            <%= for (opt) in searchYears { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_animaltype">Typ</label>
+          <select class="form-control" id="sf_animaltype" name="animaltype_id">
+            <%= for (opt) in searchAnimalTypes { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_species">Art</label>
+          <input type="text" class="form-control" id="sf_species" name="species" value="<%= search.Species %>">
+          <script>
+            $('input[id="sf_species"]').autoComplete({
+                minChars: 1,
+                source: function(term, response){
+                    $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+                }
+            });
+          </script>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_entry_cause">Einlieferungsgrund</label>
+          <select class="form-control" id="sf_entry_cause" name="entry_cause_id">
+            <%= for (opt) in searchEntryCauses { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_animalage">Alter</label>
+          <select class="form-control" id="sf_animalage" name="animalage_id">
+            <%= for (opt) in searchAnimalages { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_ring">Ring</label>
+          <input type="text" class="form-control" id="sf_ring" name="ring" value="<%= search.Ring %>">
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_outtaketype">Entlassungsgrund</label>
+          <select class="form-control" id="sf_outtaketype" name="outtaketype_id">
+            <%= for (opt) in searchOuttakeTypes { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="col">
+          <button type="submit" class="btn btn-primary">Suchen</button>
+          <a href="/animals" class="btn btn-outline-secondary">Zurücksetzen</a>
+          <button type="submit" class="btn btn-success float-right" formaction="/animals/search/export.csv">
+            <i class="fas fa-file-csv"></i> CSV exportieren
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 <% contentFor("eveningSVG") { %>
     <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
     <g fill="none" stroke="currentColor">

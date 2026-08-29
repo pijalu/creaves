@@ -1,7 +1,9 @@
 package actions
 
 import (
+	"bytes"
 	"creaves/models"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -434,5 +436,114 @@ func assertEq(t *testing.T, label, want, got string) {
 	t.Helper()
 	if want != got {
 		t.Errorf("%s: want %q, got %q", label, want, got)
+	}
+}
+
+func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
+	spID := uuid.Must(uuid.NewV4()).String()
+	sp := &models.Species{ID: spID, Species: "Erinaceus europaeus", CreavesSpecies: "SP-T51-taxo", Class: "Mammalia", Order: "Eulipotyphla", Family: "Erinaceidae", AgwGroup: "AGW-T51", SubsideGroup: "SUB-T51", NativeStatus: "Indigène"}
+	if err := models.DB.Create(sp); err != nil {
+		t.Fatalf("create species: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM species WHERE ID = ?", spID).Exec()
+
+	// Seed one translation so the translations map is materialized, then verify
+	// canonical French base values land in the fr bucket.
+	if err := models.SaveTranslation(models.DB, "species", "SP-T51-taxo", "class", "de", "Säugetiere"); err != nil {
+		t.Fatalf("save translation: %v", err)
+	}
+	if err := models.SaveTranslation(models.DB, "entry_causes", "cause-t51-taxo", "detail", "de", "Fahrzeugkollision"); err != nil {
+		t.Fatalf("save translation: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?)", "SP-T51-taxo", "cause-t51-taxo").Exec()
+
+	entryCauseID := "cause-t51-taxo"
+	animal := &models.Animal{
+		ID:      504,
+		Species: "SP-T51-taxo",
+		Discovery: models.Discovery{
+			ID:           uuid.Must(uuid.NewV4()),
+			EntryCauseID: entryCauseID,
+			EntryCause:   models.EntryCause{ID: entryCauseID, Cause: "Accident", Detail: "Collision véhicule", Nature: "Traumatique"},
+		},
+		Outtake: &models.Outtake{Type: models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Relâché", Rating: 1, Dead: false}},
+	}
+
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	if payload.Animal.SpeciesClass != "Mammalia" {
+		t.Errorf("species_class = %q, want Mammalia", payload.Animal.SpeciesClass)
+	}
+	if payload.Animal.SpeciesAGWGroup != "AGW-T51" {
+		t.Errorf("species_agw_group = %q", payload.Animal.SpeciesAGWGroup)
+	}
+	if payload.Animal.SpeciesSubsideGroup != "SUB-T51" {
+		t.Errorf("species_subside_group = %q", payload.Animal.SpeciesSubsideGroup)
+	}
+	if payload.Animal.SpeciesNativeStatus != "Indigène" {
+		t.Errorf("species_native_status = %q", payload.Animal.SpeciesNativeStatus)
+	}
+	if payload.Discovery.EntryCauseDetail != "Collision véhicule" {
+		t.Errorf("entry_cause_detail = %q", payload.Discovery.EntryCauseDetail)
+	}
+	if payload.Discovery.EntryCauseNature != "Traumatique" {
+		t.Errorf("entry_cause_nature = %q", payload.Discovery.EntryCauseNature)
+	}
+	if payload.Outtake.Rating != 1 {
+		t.Errorf("outtake rating = %d, want 1", payload.Outtake.Rating)
+	}
+	if payload.Outtake.Dead {
+		t.Error("outtake dead = true, want false")
+	}
+	// Canonical French values land in the fr translations bucket.
+	if payload.Translations["fr"]["species_class"] != "Mammalia" {
+		t.Errorf("fr species_class = %q", payload.Translations["fr"]["species_class"])
+	}
+	if payload.Translations["fr"]["entry_cause_detail"] != "Collision véhicule" {
+		t.Errorf("fr entry_cause_detail = %q", payload.Translations["fr"]["entry_cause_detail"])
+	}
+	if payload.Translations["de"]["species_class"] != "Säugetiere" {
+		t.Errorf("de species_class = %q", payload.Translations["de"]["species_class"])
+	}
+	if payload.Translations["de"]["entry_cause_detail"] != "Fahrzeugkollision" {
+		t.Errorf("de entry_cause_detail = %q", payload.Translations["de"]["entry_cause_detail"])
+	}
+}
+
+func TestBuildEventPayload_UnknownSpeciesTolerated(t *testing.T) {
+	models.DB.RawQuery("DELETE FROM species WHERE creaves_species = ?", "SP-T51-unknown").Exec()
+	animal := &models.Animal{ID: 505, Species: "SP-T51-unknown"}
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	if payload.Animal.SpeciesClass != "" || payload.Animal.SpeciesAGWGroup != "" || payload.Animal.SpeciesSubsideGroup != "" || payload.Animal.SpeciesNativeStatus != "" {
+		t.Errorf("taxonomy fields = %+v, want all empty for unknown species", payload.Animal)
+	}
+}
+
+func TestEventPayload_OmitemptyBackwardsCompat(t *testing.T) {
+	// Old payload (without the new fields) must unmarshal into the new structs.
+	oldJSON := []byte(`{"animal":{"id":1,"species":"Hérisson"},"discovery":{"entry_cause":"Accident"},"outtake":{"type":"Relâché"},"timestamp":"2024-01-15T10:30:00Z"}`)
+	var payload models.EventPayload
+	if err := json.Unmarshal(oldJSON, &payload); err != nil {
+		t.Fatalf("unmarshal old payload: %v", err)
+	}
+	if payload.Animal.SpeciesClass != "" || payload.Discovery.EntryCauseDetail != "" || payload.Outtake.Rating != 0 || payload.Outtake.Dead {
+		t.Errorf("new fields = %+v / %+v / %+v, want zero values", payload.Animal, payload.Discovery, payload.Outtake)
+	}
+
+	// New payload with empty new fields must omit them (old console ignores unknown keys anyway,
+	// but absence keeps old consumers byte-compatible).
+	fresh := models.EventPayload{
+		Animal:    models.AnimalPayload{ID: 1, Species: "Hérisson"},
+		Discovery: models.DiscoveryPayload{EntryCause: "Accident"},
+		Outtake:   models.OuttakePayload{Type: "Relâché"},
+		Timestamp: "2024-01-15T10:30:00Z",
+	}
+	encoded, err := json.Marshal(fresh)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	for _, absent := range []string{"species_class", "species_agw_group", "species_subside_group", "species_native_status", "entry_cause_detail", "entry_cause_nature", "rating", "dead"} {
+		if bytes.Contains(encoded, []byte(absent)) {
+			t.Errorf("marshalled payload %s contains %q, want omitted", encoded, absent)
+		}
 	}
 }
