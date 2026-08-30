@@ -37,8 +37,9 @@ func suggest(c buffalo.Context, table string, field string) error {
 
 // SuggestionsAnimalSpecies default implementation.
 // When a non-base UI language is active, also matches against translated
-// common names, but always returns the canonical (French) creaves_species
-// value so stored data and the webhook contract stay stable.
+// common names and returns the localized label for display. Submitted values
+// are normalized back to the canonical (French) creaves_species value by
+// resolveReferenceInput before storage (webhook contract stays stable).
 func SuggestionsAnimalSpecies(c buffalo.Context) error {
 	lang := currentLang(c)
 	if lang == "" {
@@ -65,7 +66,7 @@ func SuggestionsAnimalSpecies(c buffalo.Context) error {
 			return err
 		}
 	}
-	return c.Render(200, r.JSON(s))
+	return c.Render(200, r.JSON(localizeSuggestions(c, "species", "creaves_species", s)))
 }
 
 // SuggestionsDiscoveryLocation default implementation.
@@ -223,18 +224,27 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 }
 
 // SuggestionsAnimalTypeDefaultSpecies default implementation.
+// Suggests species names from animaltypes.default_species; when a non-base UI
+// language is active, matches translated species names and returns localized
+// labels.
 func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 	q := c.Param("q")
+	lang := currentLang(c)
 
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL "
+	qroot := "SELECT distinct default_species FROM animaltypes WHERE default_species is NOT NULL AND default_species <> '' "
 	var query *pop.Query
 	if len(q) > 0 {
-		query = tx.RawQuery(qroot+" and name like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
+		if lang != "" {
+			// Match the localized species label too (translations on species.creaves_species)
+			query = tx.RawQuery(qroot+" AND (default_species like ? OR default_species IN (SELECT fr.value FROM species s JOIN translations fr ON fr.table_name = 'species' AND fr.record_id = s.id AND fr.field = 'creaves_species' AND fr.locale = 'fr' JOIN translations tr ON tr.table_name = fr.table_name AND tr.record_id = fr.record_id AND tr.field = fr.field AND tr.locale = ? WHERE s.creaves_species = fr.value AND tr.value LIKE ?)) ORDER BY 1 LIMIT 25", "%"+q+"%", lang, "%"+q+"%")
+		} else {
+			query = tx.RawQuery(qroot+" AND default_species like ? ORDER BY 1 LIMIT 25", "%"+q+"%")
+		}
 	} else {
 		query = tx.RawQuery(qroot + " ORDER BY 1 LIMIT 25")
 	}
@@ -244,14 +254,17 @@ func SuggestionsAnimalTypeDefaultSpecies(c buffalo.Context) error {
 		return err
 	}
 
-	return c.Render(200, r.JSON(s))
+	return c.Render(200, r.JSON(localizeSuggestions(c, "species", "creaves_species", s)))
 }
 
 // SuggestionsTreatmentDrug default implementation.
+// When a non-base UI language is active, matches translated drug names and
+// returns localized labels (canonical storage handled by resolveReferenceInput).
 func SuggestionsTreatmentDrug(c buffalo.Context) error {
 	q := c.Param("q")
 	at := c.Param("at")
 	//w := c.Param("w")
+	lang := currentLang(c)
 
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -266,7 +279,9 @@ func SuggestionsTreatmentDrug(c buffalo.Context) error {
 		WHERE d.ID = s.drug_id 
 		  AND s.animaltype_id = ?`
 
-	if len(q) > 0 {
+	if len(q) > 0 && lang != "" {
+		query = tx.RawQuery(qroot+" AND (d.Name like ? OR d.Name IN (SELECT fr.value FROM translations fr WHERE fr.table_name = 'drugs' AND fr.field = 'name' AND fr.locale = 'fr' AND EXISTS (SELECT 1 FROM translations tr WHERE tr.table_name = 'drugs' AND tr.record_id = fr.record_id AND tr.field = 'name' AND tr.locale = ? AND tr.value LIKE ?))) ORDER BY 1 LIMIT 25", at, "%"+q+"%", lang, "%"+q+"%")
+	} else if len(q) > 0 {
 		query = tx.RawQuery(qroot+" AND d.Name like ? ORDER BY 1 LIMIT 25", at, "%"+q+"%")
 	} else {
 		query = tx.RawQuery(qroot+" ORDER BY 1 LIMIT 25", at)
@@ -277,7 +292,7 @@ func SuggestionsTreatmentDrug(c buffalo.Context) error {
 		return err
 	}
 
-	return c.Render(200, r.JSON(s))
+	return c.Render(200, r.JSON(localizeSuggestions(c, "drugs", "name", s)))
 }
 
 // SuggestionsTreatmentDrug default implementation.

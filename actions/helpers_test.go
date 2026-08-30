@@ -459,7 +459,7 @@ func TestZonesToSelectables(t *testing.T) {
 		{Zone: "Aviary", Type: "bird"},
 		{Zone: "Tank", Type: "fish"},
 	}
-	res := zonesToSelectables(zs)
+	res := zonesToSelectables(zs, "", nil)
 	if len(res) != 3 { // blank + 2
 		t.Fatalf("expected 3 selectables, got %d", len(res))
 	}
@@ -510,7 +510,7 @@ func TestTraveltypesToSelectables(t *testing.T) {
 	tts := &models.Traveltypes{
 		{ID: id1, Name: "Transport"},
 	}
-	res := traveltypesToSelectables(tts)
+	res := traveltypesToSelectables(tts, "", nil)
 	if len(res) != 1 {
 		t.Fatalf("expected 1 selectable, got %d", len(res))
 	}
@@ -637,8 +637,8 @@ func TestEntryCausesToSelectables(t *testing.T) {
 		{ID: id2, Cause: "Injury", Detail: "Broken wing"},
 	}
 
-	// With blank
-	res := entryCausesToSelectables(ecs, true)
+	// With blank — base lang, no tx (canonical French fallback path).
+	res := entryCausesToSelectables(ecs, true, "", nil)
 	if len(res) != 3 { // blank + 2
 		t.Fatalf("expected 3 selectables with blank, got %d", len(res))
 	}
@@ -654,7 +654,7 @@ func TestEntryCausesToSelectables(t *testing.T) {
 	}
 
 	// Without blank
-	res2 := entryCausesToSelectables(ecs, false)
+	res2 := entryCausesToSelectables(ecs, false, "", nil)
 	if len(res2) != 2 {
 		t.Fatalf("expected 2 selectables without blank, got %d", len(res2))
 	}
@@ -665,6 +665,84 @@ func TestEntryCausesToSelectables(t *testing.T) {
 	// Cause != Detail -> "ID - Cause ⇨ Detail"
 	if res2[1].SelectLabel() != "ec2 - Injury ⇨ Broken wing" {
 		t.Errorf("entry 1 label = %q, want 'ec2 - Injury ⇨ Broken wing'", res2[1].SelectLabel())
+	}
+}
+
+func TestEntryCauseLabel_Translated(t *testing.T) {
+	t.Parallel()
+	ec := models.EntryCause{ID: "ec9", Cause: "Blessure", Detail: "Aile cassée"}
+
+	// No translation maps -> canonical French.
+	if got := entryCauseLabel(ec, "en-US", nil, nil); got != "ec9 - Blessure ⇨ Aile cassée" {
+		t.Errorf("untranslated label = %q", got)
+	}
+
+	// Translated cause and detail keep the "ID - cause ⇨ detail" format.
+	causeTr := map[string]string{"ec9": "Injury"}
+	detailTr := map[string]string{"ec9": "Broken wing"}
+	if got := entryCauseLabel(ec, "en-US", causeTr, detailTr); got != "ec9 - Injury ⇨ Broken wing" {
+		t.Errorf("translated label = %q, want 'ec9 - Injury ⇨ Broken wing'", got)
+	}
+
+	// Detail translation missing -> canonical detail, translated cause.
+	if got := entryCauseLabel(ec, "en-US", causeTr, nil); got != "ec9 - Injury ⇨ Aile cassée" {
+		t.Errorf("partial label = %q", got)
+	}
+
+	// Cause == detail (both translated to same) -> "ID - cause" only.
+	same := models.EntryCause{ID: "ec1", Cause: "Indéterminé", Detail: "Indéterminé"}
+	if got := entryCauseLabel(same, "en-US", map[string]string{"ec1": "Unknown"}, map[string]string{"ec1": "Unknown"}); got != "ec1 - Unknown" {
+		t.Errorf("equal cause/detail label = %q, want 'ec1 - Unknown'", got)
+	}
+
+	// Base lang (fr) ignores maps.
+	if got := entryCauseLabel(ec, "", causeTr, detailTr); got != "ec9 - Blessure ⇨ Aile cassée" {
+		t.Errorf("base-lang label = %q", got)
+	}
+}
+
+func TestHintLocalizeSpeciesHints(t *testing.T) {
+	t.Parallel()
+
+	// Base lang: no-op even with maps present.
+	rows := []speciesHint{
+		{ID: "ns1", Status: "Espèce protégée", Indication: "Ne pas toucher"},
+	}
+	localizeSpeciesHints("", map[string]string{"ns1": "Protected"}, nil, nil, rows)
+	if rows[0].Status != "Espèce protégée" || rows[0].Indication != "Ne pas toucher" {
+		t.Errorf("base lang rows modified: %+v", rows[0])
+	}
+
+	// Translated status/indication; precision untouched when invalid.
+	rows = []speciesHint{
+		{ID: "ns1", Status: "Espèce protégée", Indication: "Ne pas toucher", Precision: nulls.NewString("Précision FR")},
+		{ID: "ns2", Status: "Sans statut", Indication: "Canonique", Precision: nulls.String{}},
+	}
+	statusTr := map[string]string{"ns1": "Protected species"}
+	indicationTr := map[string]string{"ns1": "Do not touch", "ns2": "Translated without row"}
+	precisionTr := map[string]string{"ns1": "Precision EN"}
+	localizeSpeciesHints("de", statusTr, indicationTr, precisionTr, rows)
+
+	if rows[0].Status != "Protected species" {
+		t.Errorf("status = %q, want 'Protected species'", rows[0].Status)
+	}
+	if rows[0].Indication != "Do not touch" {
+		t.Errorf("indication = %q, want 'Do not touch'", rows[0].Indication)
+	}
+	if rows[0].Precision.String != "Precision EN" {
+		t.Errorf("precision = %q, want 'Precision EN'", rows[0].Precision.String)
+	}
+	// ns2 has no status translation -> canonical fallback; indication
+	// translated even though its status is not.
+	if rows[1].Status != "Sans statut" {
+		t.Errorf("fallback status = %q, want 'Sans statut'", rows[1].Status)
+	}
+	if rows[1].Indication != "Translated without row" {
+		t.Errorf("fallback indication = %q", rows[1].Indication)
+	}
+	// Invalid precision stays invalid/empty.
+	if rows[1].Precision.Valid {
+		t.Errorf("invalid precision mutated: %+v", rows[1].Precision)
 	}
 }
 

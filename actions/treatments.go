@@ -222,6 +222,8 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	if err := c.Bind(treatmentTemplate); err != nil {
 		return err
 	}
+	// Normalize possibly-localized drug input back to canonical (Option A)
+	treatmentTemplate.Drug = resolveReferenceInput(c, "drugs", treatmentTemplate.Drug)
 	treatmentTemplate.Animal = &models.Animal{}
 	if err := tx.Find(treatmentTemplate.Animal, treatmentTemplate.AnimalID); err != nil {
 		c.Logger().Errorf("Animal id %d not found for %v", treatmentTemplate.AnimalID, treatmentTemplate)
@@ -347,6 +349,8 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(treatment); err != nil {
 		return err
 	}
+	// Normalize possibly-localized drug input back to canonical (Option A)
+	treatment.Drug = resolveReferenceInput(c, "drugs", treatment.Drug)
 
 	// Decode schedule
 	ts := &treatmentSchedule{}

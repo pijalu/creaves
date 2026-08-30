@@ -30,13 +30,13 @@ func ReceptionNew(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectZone", zonesToSelectables(z))
+	c.Set("selectZone", zonesToSelectables(z, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	ec, err := entryCauses(c)
 	if err != nil {
 		return err
 	}
-	c.Set("selectEntryCause", entryCausesToSelectables(ec, true))
+	c.Set("selectEntryCause", entryCausesToSelectables(ec, true, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	a := &models.Animal{}
 

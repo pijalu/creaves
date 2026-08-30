@@ -140,15 +140,21 @@ func zonesMap(c buffalo.Context) (map[string]string, error) {
 	return ret, nil
 }
 
-func zonesToSelectables(ts *models.Zones) form.Selectables {
+func zonesToSelectables(ts *models.Zones, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
 	//removeEmpty := false
 
 	res = append(res, &selType{label: "", value: ""})
 
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "zones", "zone", lang, ids)
+
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Zone,
+			label: models.ResolveName(lang, ts.Zone, tr, ts.ID.String()),
 			value: ts.Zone,
 		})
 		//removeEmpty = removeEmpty || ts.Default
@@ -240,12 +246,18 @@ func traveltypes(c buffalo.Context) (*models.Traveltypes, error) {
 	return ts, nil
 }
 
-func traveltypesToSelectables(ts *models.Traveltypes) form.Selectables {
+func traveltypesToSelectables(ts *models.Traveltypes, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID.String())
+	}
+	tr := translateIDs(tx, "traveltypes", "name", lang, ids)
 
 	for _, ts := range *ts {
 		res = append(res, &selType{
-			label: ts.Name,
+			label: models.ResolveName(lang, ts.Name, tr, ts.ID.String()),
 			value: ts.ID,
 		})
 	}
@@ -375,17 +387,33 @@ func entryCauses(c buffalo.Context) (*models.EntryCauses, error) {
 	return ts, nil
 }
 
-func entryCausesToSelectables(ts *models.EntryCauses, withBlank bool) form.Selectables {
+func entryCausesToSelectables(ts *models.EntryCauses, withBlank bool, lang string, tx *pop.Connection) form.Selectables {
 	res := []form.Selectable{}
 	if withBlank {
 		res = append(res, &selType{label: " ", value: ""})
 	}
 
-	for _, ts := range *ts {
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID)
+	}
+	causeTr := translateIDs(tx, "entry_causes", "cause", lang, ids)
+	detailTr := translateIDs(tx, "entry_causes", "detail", lang, ids)
+
+	for _, t := range *ts {
 		res = append(res, &selType{
-			label: ts.Fmt(true),
-			value: ts.ID,
+			label: entryCauseLabel(t, lang, causeTr, detailTr),
+			value: t.ID,
 		})
 	}
 	return res
+}
+
+// entryCauseLabel renders one entry cause as "ID - cause ⇨ detail" (the
+// EntryCause.Fmt format), translating cause and detail when a translation is
+// available for lang; canonical French values are the fallback.
+func entryCauseLabel(t models.EntryCause, lang string, causeTr, detailTr map[string]string) string {
+	cause := models.ResolveName(lang, t.Cause, causeTr, t.ID)
+	detail := models.ResolveName(lang, t.Detail, detailTr, t.ID)
+	return models.EntryCause{ID: t.ID, Cause: cause, Detail: detail}.Fmt(true)
 }

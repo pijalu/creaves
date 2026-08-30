@@ -45,7 +45,7 @@ func (p animalSearchParams) Any() bool {
 // Subquery style is used for related-table filters (entry cause, outtake
 // type) to avoid JOIN + DISTINCT row duplication. Outtakes whose type is
 // flagged as an error are excluded from the outtaketype filter.
-func applyAnimalSearchFilters(q *pop.Query, p animalSearchParams) (*pop.Query, error) {
+func applyAnimalSearchFilters(tx *pop.Connection, lang string, q *pop.Query, p animalSearchParams) (*pop.Query, error) {
 	if p.Year != "" {
 		y, err := strconv.Atoi(p.Year)
 		if err != nil {
@@ -57,7 +57,7 @@ func applyAnimalSearchFilters(q *pop.Query, p animalSearchParams) (*pop.Query, e
 		q = q.Where("animals.animaltype_id = ?", p.AnimaltypeID)
 	}
 	if p.Species != "" {
-		q = q.Where("animals.species = ?", p.Species)
+		q = q.Where("animals.species = ?", resolveReferenceInputTx(tx, lang, "species", p.Species))
 	}
 	if p.EntryCauseID != "" {
 		q = q.Where("animals.discovery_id IN (SELECT id FROM discoveries WHERE entry_cause_id = ?)", p.EntryCauseID)
@@ -152,11 +152,17 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
+	ecIDs := make([]string, 0, len(*ec))
+	for _, t := range *ec {
+		ecIDs = append(ecIDs, t.ID)
+	}
+	ecCauseTr := translateIDs(tx, "entry_causes", "cause", lang, ecIDs)
+	ecDetailTr := translateIDs(tx, "entry_causes", "detail", lang, ecIDs)
 	ecOpts := make([]searchOption, 0, len(*ec)+1)
 	for _, t := range *ec {
 		ecOpts = append(ecOpts, searchOption{
 			Value:    t.ID,
-			Label:    t.Fmt(true),
+			Label:    entryCauseLabel(t, lang, ecCauseTr, ecDetailTr),
 			Selected: t.ID == p.EntryCauseID,
 		})
 	}
@@ -269,7 +275,7 @@ func AnimalSearchExportCSV(c buffalo.Context) error {
 
 	q := tx.Q()
 	var err error
-	if q, err = applyAnimalSearchFilters(q, p); err != nil {
+	if q, err = applyAnimalSearchFilters(tx, currentLang(c), q, p); err != nil {
 		return err
 	}
 

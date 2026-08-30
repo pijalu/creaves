@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 )
@@ -125,6 +126,10 @@ func (v AnimaltypesResource) Create(c buffalo.Context) error {
 	if err := c.Bind(animaltype); err != nil {
 		return err
 	}
+	// Normalize possibly-localized default-species input back to canonical (Option A)
+	if animaltype.DefaultSpecies.Valid && animaltype.DefaultSpecies.String != "" {
+		animaltype.DefaultSpecies = nulls.NewString(resolveReferenceInput(c, "species", animaltype.DefaultSpecies.String))
+	}
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -226,6 +231,10 @@ func (v AnimaltypesResource) Update(c buffalo.Context) error {
 	// Bind Animaltype to the html form elements
 	if err := c.Bind(animaltype); err != nil {
 		return err
+	}
+	// Normalize possibly-localized default-species input back to canonical (Option A)
+	if animaltype.DefaultSpecies.Valid && animaltype.DefaultSpecies.String != "" {
+		animaltype.DefaultSpecies = nulls.NewString(resolveReferenceInput(c, "species", animaltype.DefaultSpecies.String))
 	}
 
 	verrs, err := tx.ValidateAndUpdate(animaltype)

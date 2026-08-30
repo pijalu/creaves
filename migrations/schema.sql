@@ -72,7 +72,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9923 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10076 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -327,31 +327,6 @@ CREATE TABLE `entry_causes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `resync_runs`
---
-
-DROP TABLE IF EXISTS `resync_runs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `resync_runs` (
-  `id` char(36) NOT NULL,
-  `instance_id` varchar(255) NOT NULL,
-  `status` varchar(255) NOT NULL,
-  `started_at` datetime NOT NULL,
-  `finished_at` datetime DEFAULT NULL,
-  `total_animals` int NOT NULL DEFAULT '0',
-  `animals_processed` int NOT NULL DEFAULT '0',
-  `events_created` int NOT NULL DEFAULT '0',
-  `events_skipped_unchanged` int NOT NULL DEFAULT '0',
-  `errors` text DEFAULT NULL,
-  `created_at` datetime NOT NULL,
-  `updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `resync_runs_instance_id_status_idx` (`instance_id`,`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
 -- Table structure for table `event_streams`
 --
 
@@ -507,6 +482,31 @@ CREATE TABLE `outtaketypes` (
   `error` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `outtaketypes_name_idx` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `resync_runs`
+--
+
+DROP TABLE IF EXISTS `resync_runs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `resync_runs` (
+  `id` char(36) NOT NULL,
+  `instance_id` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL,
+  `started_at` datetime NOT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `total_animals` int NOT NULL DEFAULT '0',
+  `animals_processed` int NOT NULL DEFAULT '0',
+  `events_created` int NOT NULL DEFAULT '0',
+  `events_skipped_unchanged` int NOT NULL DEFAULT '0',
+  `errors` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `resync_runs_instance_id_status_idx` (`instance_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -734,4 +734,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-14 11:17:57
+-- Dump completed on 2026-08-30 12:41:22

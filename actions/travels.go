@@ -119,7 +119,7 @@ func (v TravelsResource) New(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectTraveltype", traveltypesToSelectables(tt))
+	c.Set("selectTraveltype", traveltypesToSelectables(tt, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	// set default travel type
 	for _, t := range *tt {
@@ -251,7 +251,7 @@ func (v TravelsResource) Edit(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectTraveltype", traveltypesToSelectables(tt))
+	c.Set("selectTraveltype", traveltypesToSelectables(tt, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)

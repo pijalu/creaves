@@ -204,7 +204,7 @@ func runSearch(t *testing.T, tx *pop.Connection, f *animalSearchFixtures, p anim
 	if p.Species == "" {
 		q = q.Where("animals.species LIKE ?", "Testsp %"+f.marker)
 	}
-	q, err := applyAnimalSearchFilters(q, p)
+	q, err := applyAnimalSearchFilters(tx, "", q, p)
 	if err != nil {
 		t.Fatalf("applyAnimalSearchFilters: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestAnimalSearchFiltersANDCombined(t *testing.T) {
 func TestAnimalSearchInvalidYear(t *testing.T) {
 	tx := searchTestDB(t)
 	q := tx.Q()
-	if _, err := applyAnimalSearchFilters(q, animalSearchParams{Year: "abc"}); err == nil {
+	if _, err := applyAnimalSearchFilters(tx, "", q, animalSearchParams{Year: "abc"}); err == nil {
 		t.Fatalf("expected error for invalid year filter")
 	}
 }

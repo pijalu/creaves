@@ -435,7 +435,7 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 	// Search filters (AND-combined); shortcuts above take precedence.
 	sp := animalSearchParamsFrom(c)
 	var err error
-	if q, err = applyAnimalSearchFilters(q, sp); err != nil {
+	if q, err = applyAnimalSearchFilters(tx, currentLang(c), q, sp); err != nil {
 		return err
 	}
 
@@ -546,6 +546,8 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		if err := c.Bind(animal); err != nil {
 			return err
 		}
+		// Normalize possibly-localized species input back to canonical (Option A)
+		animal.Species = resolveReferenceInput(c, "species", animal.Species)
 		// Set discovery date
 		animal.IntakeDate = animal.Intake.Date
 
@@ -643,13 +645,13 @@ func setupContext(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	c.Set("selectZone", zonesToSelectables(z))
+	c.Set("selectZone", zonesToSelectables(z, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	ec, err := entryCauses(c)
 	if err != nil {
 		return err
 	}
-	c.Set("selectEntryCause", entryCausesToSelectables(ec, false))
+	c.Set("selectEntryCause", entryCausesToSelectables(ec, false, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	return nil
 }
@@ -695,6 +697,8 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(animal); err != nil {
 		return err
 	}
+	// Normalize possibly-localized species input back to canonical (Option A)
+	animal.Species = resolveReferenceInput(c, "species", animal.Species)
 
 	// Decode Feeding times
 	feedingTimes := struct {
