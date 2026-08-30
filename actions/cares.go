@@ -321,12 +321,18 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			if verrs.HasAny() {
 				break
 			}
+			// Audit log: care creation for this animal (best effort)
+			auditAnimalChange(c, tx, a.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
 	} else {
 		// Validate the data from the html form
 		verrs, err = tx.ValidateAndCreate(care)
 		if err != nil {
 			return err
+		}
+		if !verrs.HasAny() {
+			// Audit log: care creation (best effort)
+			auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
 	}
 
@@ -418,6 +424,9 @@ func (v CaresResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldCare := *care
+
 	// Bind Care to the html form elements
 	if err := c.Bind(care); err != nil {
 		return err
@@ -444,6 +453,9 @@ func (v CaresResource) Update(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
 	}
+
+	// Audit log: care update (best effort)
+	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionUpdate, auditCareProjection(oldCare), auditCareProjection(*care))
 
 	// Invalidate the weight loss cache if a weight was added/updated
 	if care.Weight.Valid && len(care.Weight.String) > 0 {
@@ -490,6 +502,9 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(care); err != nil {
 		return err
 	}
+
+	// Audit log: care deletion (best effort)
+	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionDelete, auditCareProjection(*care), nil)
 
 	// Invalidate the weight loss cache if a weight was removed
 	if care.Weight.Valid && len(care.Weight.String) > 0 {

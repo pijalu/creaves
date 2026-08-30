@@ -184,6 +184,8 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		// cannot link animal
 		return c.Render(http.StatusNotFound, r.HTML("/outtakes/new.plush.html"))
 	}
+	// Audit snapshot before mutating the animal (ring, outtake link).
+	oldAnimal := *animal
 	// save ring if needed
 	animalRing := c.Param(("animal_ring"))
 	if animalRing != animal.Ring.String {
@@ -201,6 +203,13 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 	}
 	// Update animal if outtake is saved
 	if !verrs.HasAny() {
+		// Treatments scheduled after the outtake date are deleted: audit
+		// them before the raw delete removes the records.
+		deletedTreatments := models.Treatments{}
+		if err := tx.Where("animal_id = ? and date >= ?", animalID, outtake.Date).All(&deletedTreatments); err != nil {
+			return err
+		}
+
 		animal.OuttakeID = nulls.NewUUID(outtake.ID)
 		animal.Outtake = outtake
 		if err := tx.Update(animal); err != nil {
@@ -210,6 +219,13 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 			animalID,
 			outtake.Date).Exec(); err != nil {
 			return err
+		}
+
+		// Audit log: outtake creation + animal link/ring update (best effort)
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, auditEntityID(outtake.ID), models.AuditActionCreate, nil, auditOuttakeProjection(*outtake))
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(oldAnimal), auditAnimalProjection(*animal))
+		for i := range deletedTreatments {
+			auditAnimalChange(c, tx, animal.ID, models.AuditEntityTreatment, auditEntityID(deletedTreatments[i].ID), models.AuditActionDelete, auditTreatmentProjection(deletedTreatments[i]), nil)
 		}
 
 		// Publish event based on outtake type
@@ -313,6 +329,9 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldOuttake := *outtake
+
 	// Bind Outtake to the html form elements
 	if err := c.Bind(outtake); err != nil {
 		return err
@@ -338,6 +357,13 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	// Audit log: outtake update (best effort). Outtake has no animal_id
+	// column: resolve the concerned animal explicitly.
+	auditedAnimal := &models.Animal{}
+	if err := tx.Where("outtake_id = ?", outtake.ID).First(auditedAnimal); err == nil && auditedAnimal.ID != 0 {
+		auditAnimalChange(c, tx, auditedAnimal.ID, models.AuditEntityOuttake, auditEntityID(outtake.ID), models.AuditActionUpdate, auditOuttakeProjection(oldOuttake), auditOuttakeProjection(*outtake))
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -381,6 +407,9 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 		return err
 	}
 
+	// Audit snapshots before unlinking/destroying.
+	oldAnimal := *animal
+
 	animal.OuttakeID = nulls.UUID{}
 	if err := tx.Update(animal); err != nil {
 		return err
@@ -390,6 +419,10 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(outtake); err != nil {
 		return err
 	}
+
+	// Audit log: outtake deletion + animal unlink (best effort)
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, auditEntityID(outtake.ID), models.AuditActionDelete, auditOuttakeProjection(*outtake), nil)
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(oldAnimal), auditAnimalProjection(*animal))
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

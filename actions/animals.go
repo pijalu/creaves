@@ -481,6 +481,22 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
 
+		// Audit tab data: admin only, server-side pagination over the
+		// animal_audits records of this animal.
+		if user := GetCurrentUser(c); user != nil && user.Admin {
+			if tx, ok := c.Value("tx").(*pop.Connection); ok {
+				audits := &models.AnimalAudits{}
+				q := tx.Where("animal_id = ?", animal.ID).
+					PaginateFromParams(c.Params()).
+					Order("created_at desc, id desc")
+				if err := q.All(audits); err != nil {
+					return err
+				}
+				c.Set("audits", audits)
+				c.Set("pagination", q.Paginator)
+			}
+		}
+
 		return c.Render(http.StatusOK, r.HTML("/animals/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animal))
@@ -599,6 +615,14 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 
 		animals = append(animals, *animal)
 
+		// Audit log: animal creation (best effort)
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionCreate, nil, auditAnimalProjection(*animal))
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityDiscovery, animal.DiscoveryID.String(), models.AuditActionCreate, nil, auditDiscoveryProjection(animal.Discovery))
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityDiscoverer, animal.Discovery.DiscovererID.String(), models.AuditActionCreate, nil, animal.Discovery.Discoverer)
+		if animal.IntakeID != uuid.Nil {
+			auditAnimalChange(c, tx, animal.ID, models.AuditEntityIntake, animal.IntakeID.String(), models.AuditActionCreate, nil, animal.Intake)
+		}
+
 		// Publish animal_discovered event
 		if err := PublishAnimalDiscoveredEvent(tx, animal, GetCurrentUser(c)); err != nil {
 			c.Logger().Warnf("Failed to publish animal_discovered event: %v", err)
@@ -687,6 +711,19 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Audit snapshots taken before binding mutates the loaded records.
+	// Shallow copies: association structs are value types; the Outtake
+	// pointer is copied explicitly.
+	oldAnimal := *animal
+	oldDiscovery := animal.Discovery
+	oldIntake := animal.Intake
+	var oldOuttake *models.Outtake
+	if animal.Outtake != nil {
+		oc := *animal.Outtake
+		oldOuttake = &oc
+	}
+	oldDiscoverer := animal.Discovery.Discoverer
 
 	// save original cage
 	originalCage := animal.Cage
@@ -789,6 +826,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		if err != nil {
 			return err
 		}
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 	}
 
 	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
@@ -822,6 +860,7 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		if err != nil {
 			return err
 		}
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 	}
 
 	if verrs.HasAny() {
@@ -839,6 +878,20 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	// Audit log: record what changed (best effort). Entries without any
+	// detectable change are skipped inside the helper.
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(oldAnimal), auditAnimalProjection(*animal))
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityDiscoverer, animal.Discovery.DiscovererID.String(), models.AuditActionUpdate, oldDiscoverer, animal.Discovery.Discoverer)
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityDiscovery, animal.DiscoveryID.String(), models.AuditActionUpdate, auditDiscoveryProjection(oldDiscovery), auditDiscoveryProjection(animal.Discovery))
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityIntake, animal.IntakeID.String(), models.AuditActionUpdate, oldIntake, animal.Intake)
+	if oldOuttake != nil && animal.Outtake != nil {
+		outtakeID := ""
+		if animal.OuttakeID.Valid {
+			outtakeID = animal.OuttakeID.UUID.String()
+		}
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, outtakeID, models.AuditActionUpdate, auditOuttakeProjection(*oldOuttake), auditOuttakeProjection(*animal.Outtake))
 	}
 
 	// Publish status change event if outtake was added/removed
@@ -900,6 +953,9 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshots before attaching the error outtake.
+	animalBefore := *animal
+
 	animal.Outtake = &models.Outtake{
 		Animal: *animal,
 		Date:   models.NowOffset(),
@@ -910,6 +966,10 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Eager().Create(animal.Outtake); err != nil {
 		return err
 	}
+
+	// Audit log: destroy = error outtake creation + animal status update
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, animal.Outtake.ID.String(), models.AuditActionCreate, nil, auditOuttakeProjection(*animal.Outtake))
+	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(animalBefore), auditAnimalProjection(*animal))
 
 	// Publish animal_died event for destroyed animals
 	if err := PublishAnimalDiedEvent(tx, animal, GetCurrentUser(c)); err != nil {

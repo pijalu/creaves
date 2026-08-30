@@ -185,6 +185,9 @@ func (v IntakesResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldIntake := *intake
+
 	// Bind Intake to the html form elements
 	if err := c.Bind(intake); err != nil {
 		return err
@@ -210,6 +213,11 @@ func (v IntakesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	// Audit log: intake update (best effort); only when linked to an animal
+	if animalID := auditAnimalIDByIntake(tx, intake.ID); animalID != 0 {
+		auditAnimalChange(c, tx, animalID, models.AuditEntityIntake, auditEntityID(intake.ID), models.AuditActionUpdate, oldIntake, *intake)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -249,6 +257,11 @@ func (v IntakesResource) Destroy(c buffalo.Context) error {
 
 	if err := tx.Destroy(intake); err != nil {
 		return err
+	}
+
+	// Audit log: intake deletion (best effort); only when linked to an animal
+	if animalID := auditAnimalIDByIntake(tx, intake.ID); animalID != 0 {
+		auditAnimalChange(c, tx, animalID, models.AuditEntityIntake, auditEntityID(intake.ID), models.AuditActionDelete, *intake, nil)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

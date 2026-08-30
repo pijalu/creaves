@@ -1,0 +1,12 @@
+create_table("animal_audits") {
+ t.Column("id", "uuid", {primary: true})
+ t.Column("animal_id", "integer", {})
+ t.Column("user_id", "uuid", {null: true})
+ t.Column("user_name", "string", {})
+ t.Column("entity", "string", {})
+ t.Column("entity_id", "string", {null: true})
+ t.Column("action", "string", {})
+ t.Column("changes", "text", {null: true})
+ t.Timestamps()
+}
+add_index("animal_audits", ["animal_id"], {})

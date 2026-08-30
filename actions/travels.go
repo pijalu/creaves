@@ -223,6 +223,9 @@ func (v TravelsResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Audit log: travel creation (best effort)
+	auditAnimalChange(c, tx, travel.AnimalID, models.AuditEntityTravel, auditEntityID(travel.ID), models.AuditActionCreate, nil, auditTravelProjection(*travel))
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "travel.created.success"))
@@ -291,6 +294,9 @@ func (v TravelsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldTravel := *travel
+
 	// Bind Travel to the html form elements
 	if err := c.Bind(travel); err != nil {
 		return err
@@ -322,6 +328,9 @@ func (v TravelsResource) Update(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
 	}
+
+	// Audit log: travel update (best effort)
+	auditAnimalChange(c, tx, travel.AnimalID, models.AuditEntityTravel, auditEntityID(travel.ID), models.AuditActionUpdate, auditTravelProjection(oldTravel), auditTravelProjection(*travel))
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
@@ -361,6 +370,9 @@ func (v TravelsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(travel); err != nil {
 		return err
 	}
+
+	// Audit log: travel deletion (best effort)
+	auditAnimalChange(c, tx, travel.AnimalID, models.AuditEntityTravel, auditEntityID(travel.ID), models.AuditActionDelete, auditTravelProjection(*travel), nil)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

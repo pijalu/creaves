@@ -210,6 +210,9 @@ func (v VeterinaryvisitsResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Audit log: veterinary visit creation (best effort)
+	auditAnimalChange(c, tx, veterinaryvisit.AnimalID, models.AuditEntityVeterinaryVisit, auditEntityID(veterinaryvisit.ID), models.AuditActionCreate, nil, auditVeterinaryvisitProjection(*veterinaryvisit))
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.created.success"))
@@ -266,6 +269,9 @@ func (v VeterinaryvisitsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldVeterinaryvisit := *veterinaryvisit
+
 	// Bind Veterinaryvisit to the html form elements
 	if err := c.Bind(veterinaryvisit); err != nil {
 		return err
@@ -292,6 +298,9 @@ func (v VeterinaryvisitsResource) Update(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
 	}
+
+	// Audit log: veterinary visit update (best effort)
+	auditAnimalChange(c, tx, veterinaryvisit.AnimalID, models.AuditEntityVeterinaryVisit, auditEntityID(veterinaryvisit.ID), models.AuditActionUpdate, auditVeterinaryvisitProjection(oldVeterinaryvisit), auditVeterinaryvisitProjection(*veterinaryvisit))
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
@@ -334,6 +343,9 @@ func (v VeterinaryvisitsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(veterinaryvisit); err != nil {
 		return err
 	}
+
+	// Audit log: veterinary visit deletion (best effort)
+	auditAnimalChange(c, tx, veterinaryvisit.AnimalID, models.AuditEntityVeterinaryVisit, auditEntityID(veterinaryvisit.ID), models.AuditActionDelete, auditVeterinaryvisitProjection(*veterinaryvisit), nil)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

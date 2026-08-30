@@ -71,11 +71,17 @@ func TreatmentUpdateSchedule(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before the schedule status flip.
+	oldTreatment := *treatment
+
 	treatment.Timedonebitmap ^= updateRequest.Key
 
 	if err := tx.Update(treatment); err != nil {
 		return c.Error(http.StatusUnprocessableEntity, err)
 	}
+
+	// Audit log: treatment schedule status change (best effort)
+	auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionUpdate, auditTreatmentProjection(oldTreatment), auditTreatmentProjection(*treatment))
 
 	updateRequest.Key = treatment.Timedonebitmap
 	return c.Render(200, r.JSON(updateRequest))
@@ -269,6 +275,8 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 		if verrs.HasAny() {
 			break
 		}
+		// Audit log: treatment creation (best effort)
+		auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionCreate, nil, auditTreatmentProjection(*treatment))
 	}
 
 	if verrs.HasAny() {
@@ -345,6 +353,9 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshot before binding mutates the record.
+	oldTreatment := *treatment
+
 	// Bind Treatment to the html form elements
 	if err := c.Bind(treatment); err != nil {
 		return err
@@ -392,6 +403,9 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Audit log: treatment update (best effort)
+	auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionUpdate, auditTreatmentProjection(oldTreatment), auditTreatmentProjection(*treatment))
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "treatment.updated.success"))
@@ -428,6 +442,9 @@ func (v TreatmentsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(treatment); err != nil {
 		return err
 	}
+
+	// Audit log: treatment deletion (best effort)
+	auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionDelete, auditTreatmentProjection(*treatment), nil)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

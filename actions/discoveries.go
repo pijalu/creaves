@@ -205,6 +205,10 @@ func (v DiscoveriesResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Audit snapshots before binding mutates the records.
+	oldDiscovery := *discovery
+	oldDiscoverer := discovery.Discoverer
+
 	// Bind Discovery to the html form elements
 	if err := c.Bind(discovery); err != nil {
 		return err
@@ -230,6 +234,13 @@ func (v DiscoveriesResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	// Audit log: discovery + discoverer update (best effort); only when
+	// linked to an animal
+	if animalID := auditAnimalIDByDiscovery(tx, discovery.ID); animalID != 0 {
+		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscovery, auditEntityID(discovery.ID), models.AuditActionUpdate, auditDiscoveryProjection(oldDiscovery), auditDiscoveryProjection(*discovery))
+		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscoverer, auditEntityID(discovery.DiscovererID), models.AuditActionUpdate, oldDiscoverer, discovery.Discoverer)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -284,6 +295,13 @@ func (v DiscoveriesResource) Destroy(c buffalo.Context) error {
 
 	if err := tx.Destroy(discovery); err != nil {
 		return err
+	}
+
+	// Audit log: discovery deletion (best effort); only when linked to an
+	// animal
+	if animalID := auditAnimalIDByDiscovery(tx, discovery.ID); animalID != 0 {
+		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscovery, auditEntityID(discovery.ID), models.AuditActionDelete, auditDiscoveryProjection(*discovery), nil)
+		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscoverer, auditEntityID(discovery.DiscovererID), models.AuditActionDelete, discovery.Discoverer, nil)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
