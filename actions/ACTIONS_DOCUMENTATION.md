@@ -19,6 +19,8 @@
 | GET | `/registration/new` | UsersNew | Registration form |
 | POST | `/registration/` | UsersCreate | Registration submission |
 | GET | `/reception/new` | ReceptionNew | Reception form |
+| GET | `/guest/` | GuestNew | Public guest status form (no auth) |
+| POST | `/guest/` | GuestCreate | Guest status lookup (phone-verified, no auth) |
 | GET | `/landing/index` | LandingIndex | Landing page (explicit) |
 | GET | `/dashboard` | DashboardIndex | Dashboard view |
 | GET | `/registertable` | RegistertableIndex | Register table |
@@ -328,6 +330,38 @@
 
 ---
 
+## Audit Logging
+
+### animal_audit.go
+**File**: `actions/animal_audit.go`
+
+Best-effort audit trail for every animal-related mutation. Handlers call
+`auditAnimalChange(c, tx, animalID, entity, entityID, action, oldRec, newRec)`
+after a successful persistence operation; a JSON-based diff (`models.ComputeChanges`)
+produces the human readable change summary stored in `animal_audits`.
+
+**Covered handlers** (create / update / delete):
+- `animals.go` — animal create/update/destroy (incl. auto-created cage-move
+  and feeding cares, error outtake on destroy)
+- `cares.go` — cares (incl. cage mode multi-animal creation)
+- `treatments.go` — treatments (incl. `TreatmentUpdateSchedule` status flips
+  and post-outtake purge of scheduled treatments)
+- `veterinaryvisits.go`, `travels.go`
+- `intakes.go`, `outtakes.go`, `discoveries.go` (animal resolved via
+  `animals.intake_id` / `animals.outtake_id` / `animals.discovery_id`;
+  entries skipped when unlinked)
+
+**Display**: admin-only "Audit" tab on the animal show page
+(`templates/animals/show.plush.html` + localized variants), server-side
+pagination via `PaginateFromParams` (`?page=` / `?per_page=`), newest first.
+
+**Guarantees**:
+- Logging failures never abort the business operation (logged via `c.Logger()`).
+- Updates without a detectable diff are not recorded.
+- `user_name` is denormalized so entries stay readable after user deletion.
+
+---
+
 ## Reference Data
 
 All reference data resources follow standard Buffalo CRUD patterns:
@@ -402,6 +436,60 @@ All reference data resources follow standard Buffalo CRUD patterns:
 
 **Key Functions**:
 - `listAnimalWithCleanCage(c)` - SQL query for recent clean cages
+
+---
+
+### guest.go
+**File**: `actions/guest.go`
+
+**Handlers**:
+| Method | Route | Handler | Description |
+|--------|-------|---------|-------------|
+| GET | `/guest/` | GuestNew | Public form: animal number + discoverer phone |
+| POST | `/guest/` | GuestCreate | Verification + succinct status view |
+
+Public (unauthenticated) status page for animal discoverers. Routes are declared in an
+`/guest` group with `Middleware.Remove(Authorize)` (same pattern as `/registration`).
+
+**Business Logic**:
+- Lookup by animal number `"123"` or `"123/24"` (same grammar as the animals list;
+  latest animal wins when the year is omitted).
+- Phone verification via `guestPhoneMatches`: digits-only comparison with a suffix
+  match (>= `guestPhoneMinSuffix` digits, both directions) plus a last-9-digits
+  comparison for national vs international notation (`0612345678` <-> `+33612345678`).
+- Mismatch (or unknown animal/number) re-renders the form with a generic error —
+  no information is disclosed about whether the animal number exists.
+- Per-IP in-memory rate limiting: `guestRateMax` attempts per `guestRateWindow`
+  (30 / 15 min); excess returns HTTP 429. Single-instance only (resets on restart).
+
+**Guest view content** (`guestView`):
+- Always: animal number, species (localized via `tspecies`), arrival date
+  (intake date, fallback discovery date).
+- Animal still in care (`outtake_id IS NULL`): care-intensity status from
+  `decideGuestCareStatus`:
+  - *critical*: force-fed, next planned feeding overdue (feeding code 0, i.e. more
+    than half a period late), or a planned treatment slot for today whose cutoff
+    passed unmarked (slot cutoffs: morning 12:00, noon 17:00, evening 23:59 —
+    `guestSlotMissed`);
+  - *intensive*: at least one treatment planned today;
+  - *care*: otherwise.
+  Also shows the next planned feeding time.
+- Animal has left: outtake date plus the "News for Discoverer" text
+  (`outtaketypes.discoverer_news`) of the outtake type, falling back to nothing
+  when unset.
+
+**Multilingual**: template variants `templates/guest/new.plush.{,fr,de,nl}.html` and
+`templates/guest/show.plush.{,fr,de,nl}.html`, selected by request language.
+
+**Key Functions**:
+- `guestFindAnimal(tx, number)` - year-number lookup, `(nil, nil)` when unknown
+- `guestPhoneMatches(stored, given)` - phone verification
+- `guestCareInfo(tx, animal, now)` - care status + next feeding
+- `guestRateAllow(key, now)` - sliding-window rate limiter
+- `buildGuestView(tx, animal, now)` - view assembly
+
+**Tests**: `actions/guest_test.go` (pure logic + DB integration, skipped when the
+test database is unavailable).
 
 ---
 

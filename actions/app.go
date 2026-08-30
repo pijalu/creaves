@@ -104,10 +104,17 @@ func App() *buffalo.App {
 		registrations.POST("/", UsersCreate)
 		registrations.Middleware.Remove(Authorize)
 
+		// Public guest status view (phone-verified, see actions/guest.go)
+		guest := app.Group("/guest")
+		guest.GET("/", GuestNew)
+		guest.POST("/", GuestCreate)
+		guest.Middleware.Remove(Authorize)
+
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
 		app.Resource("/event_streams", EventStreamsResource{})
+		app.DELETE("/event_streams", EventStreamsResource{}.ClearAll)
 		app.Resource("/translations", TranslationsResource{})
 
 		app.Resource("/logentries", LogentriesResource{})
@@ -166,6 +173,7 @@ func App() *buffalo.App {
 		app.GET("/reports/annual/export.csv", ReportsAnnualExportCSV)
 
 		app.GET("/animals/search/export.csv", AnimalSearchExportCSV)
+		app.GET("/animals/{animal_id}/qr.png", AnimalQR)
 
 		maintenance := app.Group("/maintenance")
 		maintenance.GET("/", MaintenanceIndex)

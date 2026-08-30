@@ -66,7 +66,7 @@
           <div class="dropdown-menu" aria-labelledby="reportDropdown">
             <a class="dropdown-item" href="<%= registertablePath() %>">Registratie</a>
             <a class="dropdown-item" href="<%= registersnapshotPath() %>">Momentopname</a>
-            <a class="dropdown-item" href="/reports/annual">Statistieken (nieuw)</a>
+            <a class="dropdown-item" href="/reports/annual"><%= t("nav.reports_annual") %></a>
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="<%= exportCsvPath() %>">CSV-export</a>
             <div class="dropdown-divider"></div>
@@ -88,6 +88,10 @@
 
         <li class="nav-item">
           <a class="nav-link" href="<%= animalsPath() %>">Dieren</a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/guest/">Gastpagina</a>
         </li>
 
         <li class="nav-item">

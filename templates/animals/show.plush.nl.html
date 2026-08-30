@@ -9,6 +9,9 @@
     <%= linkTo("/#"+ animal.Animaltype.Name, {class: "btn btn-info"}) { %>
       Terug naar dieren in zorg
     <% } %>
+    <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#guestQRModal" title="Gast-QR-code">
+      <i class="fa fa-qrcode"></i>
+    </button>
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {id: "editButton", class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
     <%}%>
@@ -29,6 +32,10 @@
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
       <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Uitgang</a>
+    <% } %>
+
+    <%= if (current_user.Admin) {%>
+      <a class="nav-item nav-link" id="nav-audit-tab" data-toggle="tab" href="#nav-audit" role="tab" aria-controls="nav-audit" aria-selected="false">Audit</a>
     <% } %>
   </div>
 </nav>
@@ -589,6 +596,41 @@
   </div>
   <% } %>
 
+  <%= if (current_user.Admin) {%>
+  <div class="tab-pane fade" id="nav-audit" role="tabpanel" aria-labelledby="nav-audit-tab">
+    <table class="table table-hover table-bordered"
+      data-toggle="table"
+      data-search="true"
+      data-show-columns="false"
+      data-locale="nl-NL"
+      data-pagination="false"
+    >
+      <thead class="thead-light">
+        <th>Datum / Tijd</th>
+        <th>Gebruiker</th>
+        <th>Entiteit</th>
+        <th>Actie</th>
+        <th>Wijzigingen</th>
+      </thead>
+      <tbody>
+        <%= if (audits) { %>
+          <%= for (audit) in audits { %>
+            <tr>
+              <td class="align-middle text-nowrap"><%= audit.CreatedAtFormated() %></td>
+              <td class="align-middle"><%= audit.UserName %></td>
+              <td class="align-middle"><%= audit.Entity %></td>
+              <td class="align-middle"><%= audit.Action %></td>
+              <td class="align-middle" style="word-break: break-word;"><%= audit.Changes %></td>
+            </tr>
+          <% } %>
+        <% } %>
+      </tbody>
+    </table>
+    <%= if (pagination) { %>
+      <%= paginator(pagination) %>
+    <% } %>
+  </div>
+  <% } %>
 
 </div>
 <script>
@@ -611,4 +653,24 @@ $(".nav-tabs").find("a").each(function(key, val) {
     $("#editButton").attr("href", editPath+location.hash);
   });
 });
+
+// Audit tab: keep the audit tab active across paginator navigation (?page=N)
+if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
+  $("#nav-audit-tab").click();
+}
 </script>
+
+<div class="modal fade" id="guestQRModal" tabindex="-1" role="dialog" aria-labelledby="guestQRModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="guestQRModalLabel">Gaststatuspagina</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Scan deze QR-code om de gaststatuspagina voor dier <%= animal.YearNumberFormatted() %> te openen.</p>
+        <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR-code" width="256" height="256" />
+      </div>
+    </div>
+  </div>
+</div>

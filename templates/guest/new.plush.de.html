@@ -1,0 +1,42 @@
+<div class="container p-3 my-3 border">
+
+  <h3>Tierstatus</h3>
+
+  <p class="text-muted">
+    Geben Sie die Tiernummer und die Telefonnummer ein, die Sie bei der Abgabe angegeben haben.
+    Der Status wird nur angezeigt, wenn die Telefonnummer zu unseren Angaben passt.
+  </p>
+
+  <%= if (guestError) { %>
+    <div class="alert alert-danger">
+      Keine übereinstimmende Kombination aus Tier- und Telefonnummer gefunden.
+      Bitte prüfen Sie die Tiernummer und die bei der Abgabe angegebene Telefonnummer.
+    </div>
+  <% } %>
+
+  <%= if (guestRateLimited) { %>
+    <div class="alert alert-warning">
+      Zu viele Versuche. Bitte versuchen Sie es später erneut.
+    </div>
+  <% } %>
+
+  <form method="post" action="/guest/">
+    <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>" />
+    <div class="form-group">
+      <label for="animal_number">Tiernummer</label>
+      <input name="animal_number" id="animal_number" type="text" class="form-control"
+             placeholder="123 oder 123/24"
+             pattern="^[0-9]+(/[0-9]{2})?$"
+             title="Nummer im Format 123 oder 123/24"
+             required value="<%= animalNumber %>" />
+    </div>
+    <div class="form-group">
+      <label for="phone">Ihre Telefonnummer</label>
+      <input name="phone" id="phone" type="tel" class="form-control"
+             placeholder="06 12 34 56 78"
+             required />
+    </div>
+    <button type="submit" class="btn btn-primary">Status anzeigen</button>
+  </form>
+
+</div>

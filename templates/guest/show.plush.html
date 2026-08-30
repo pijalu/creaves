@@ -1,0 +1,33 @@
+<div class="container p-3 my-3 border">
+
+  <h3>Animal status — <%= guest.AnimalNumber %></h3>
+
+  <ul class="list-group my-3">
+    <li class="list-group-item"><strong>Species:</strong> <%= tspecies(guest.Species) %></li>
+    <li class="list-group-item"><strong>Arrival at the center:</strong> <%= guest.ArrivalDate %></li>
+    <li class="list-group-item">
+      <strong>Status:</strong>
+      <%= if (guest.Present) { %>
+        the animal is still in the center —
+        <%= if (guest.CareStatus == "critical") { %>
+          <span class="badge badge-danger">In critical care</span>
+        <% } else if (guest.CareStatus == "intensive") { %>
+          <span class="badge badge-warning">In intensive care</span>
+        <% } else { %>
+          <span class="badge badge-success">In care</span>
+        <% } %>
+        <%= if (guest.NextFeeding != "") { %>
+          <div class="text-muted">Next feeding: <%= guest.NextFeeding %></div>
+        <% } %>
+      <% } else { %>
+        the animal has left the center on <%= guest.OuttakeDate %>.
+        <%= if (guest.OuttakeNews != "") { %>
+          <div class="mt-2"><%= guest.OuttakeNews %></div>
+        <% } %>
+      <% } %>
+    </li>
+  </ul>
+
+  <a class="btn btn-secondary" href="/guest/">New query</a>
+
+</div>

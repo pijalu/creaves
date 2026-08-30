@@ -1,0 +1,33 @@
+<div class="container p-3 my-3 border">
+
+  <h3>Dierenstatus — <%= guest.AnimalNumber %></h3>
+
+  <ul class="list-group my-3">
+    <li class="list-group-item"><strong>Soort:</strong> <%= tspecies(guest.Species) %></li>
+    <li class="list-group-item"><strong>Aankomst in het centrum:</strong> <%= guest.ArrivalDate %></li>
+    <li class="list-group-item">
+      <strong>Status:</strong>
+      <%= if (guest.Present) { %>
+        het dier is nog steeds in het centrum —
+        <%= if (guest.CareStatus == "critical") { %>
+          <span class="badge badge-danger">In kritieke zorg</span>
+        <% } else if (guest.CareStatus == "intensive") { %>
+          <span class="badge badge-warning">In intensieve zorg</span>
+        <% } else { %>
+          <span class="badge badge-success">In zorg</span>
+        <% } %>
+        <%= if (guest.NextFeeding != "") { %>
+          <div class="text-muted">Volgende voeding: <%= guest.NextFeeding %></div>
+        <% } %>
+      <% } else { %>
+        het dier heeft het centrum verlaten op <%= guest.OuttakeDate %>.
+        <%= if (guest.OuttakeNews != "") { %>
+          <div class="mt-2"><%= guest.OuttakeNews %></div>
+        <% } %>
+      <% } %>
+    </li>
+  </ul>
+
+  <a class="btn btn-secondary" href="/guest/">Nieuwe opvraag</a>
+
+</div>
