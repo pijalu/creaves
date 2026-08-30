@@ -54,3 +54,8 @@
   translation: "Charge utile de l'événement"
 - id: "event-streams.show.back"
   translation: "Retour au flux d'événements"
+
+- id: "event-streams.clearall"
+  translation: "Tout supprimer"
+- id: "event-streams.clearall-confirm"
+  translation: "Supprimer TOUS les événements ? Cette action est irréversible."

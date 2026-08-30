@@ -15,8 +15,14 @@ import (
 	"github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 )
+
+// startupRowNamespace is the fixed uuid v5 namespace used to derive a stable
+// replacement id when a dump row's id is taken by a row with a DIFFERENT
+// canonical name (see syncStartupTable).
+var startupRowNamespace = uuid.Must(uuid.FromString("6ba7b812-9dad-11d1-80b4-00c04fd430c8"))
 
 //go:embed creaves-startup.sql.gz
 var startupSQLGz []byte
@@ -68,9 +74,45 @@ var startupTableColumns = map[string][]string{
 	"species":      {"ID", "species", "class", "family", "creaves_species", "subside_group", "created_at", "updated_at", "order", "game", "agw_group", "native_status", "huntable"},
 }
 
-// seedStartup loads the embedded production reference data (French) into the
-// 7 startup tables. It is idempotent per table: a table that already holds
-// rows is skipped. All inserts run in a single transaction.
+// rowID returns the primary-key value of a parsed dump row. The dump uses
+// lowercase `id` everywhere except `species`, whose PK column is `ID`.
+func rowID(row map[string]string) string {
+	for k, v := range row {
+		if strings.EqualFold(k, "id") {
+			return v
+		}
+	}
+	return ""
+}
+
+// startupFKColumns lists child tables whose dump rows carry foreign keys into
+// other startup tables. When such a row is inserted, the FK values must be
+// re-keyed through the id mapping built from the parent tables' sync: a
+// name-matched parent keeps its EXISTING database id, so dump ids appearing
+// in child rows must be translated or the INSERT violates the FK constraint.
+var startupFKColumns = map[string][]string{
+	"dosages": {"animaltype_id", "drug_id"},
+}
+
+// startupNameField lists startup tables whose rows are matched between the
+// embedded dump and an existing database by normalized canonical name (display
+// name column). Tables not listed here are matched by primary key only.
+// Production databases are pre-seeded with reference rows whose ids may drift
+// from the dump; matching by name lets the seed attach shipped translations to
+// the EXISTING rows instead of duplicating them.
+var startupNameField = map[string]string{
+	"animalages":   "name",
+	"animaltypes":  "name",
+	"caretypes":    "name",
+	"outtaketypes": "name",
+	"drugs":        "name",
+}
+
+// seedStartup syncs the embedded production reference data (French) into the
+// 7 startup tables. It is add-only: rows that already exist are preserved
+// (production databases must never be rewritten), rows whose id or canonical
+// name matches stay untouched, and only genuinely new items are inserted.
+// All writes run in a single transaction.
 func seedStartup(c *grift.Context) error {
 	gz, err := gzip.NewReader(bytes.NewReader(startupSQLGz))
 	if err != nil {
@@ -99,6 +141,13 @@ func seedStartup(c *grift.Context) error {
 	}
 
 	return models.DB.Transaction(func(tx *pop.Connection) error {
+		// table -> dump record id -> target record id (identity when the dump
+		// row exists under its own id; the existing row id on a name match).
+		mapping := map[string]map[string]string{}
+		// fkMap accumulates every table's dump-id -> target-id mapping; it is
+		// passed to later syncStartupTable calls so child-table inserts can
+		// re-key their FK columns (dosages reference drugs + animaltypes).
+		fkMap := map[string]string{}
 		for _, table := range ordered {
 			model, ok := startupModels[table]
 			if !ok {
@@ -109,21 +158,32 @@ func seedStartup(c *grift.Context) error {
 			if err != nil {
 				return errors.WithStack(err)
 			}
-			if cnt > 0 {
-				fmt.Printf("%s: %d rows, skipping\n", table, cnt)
+			if _, known := startupTableColumns[table]; !known {
+				// Unknown extra table: legacy behavior — seed only when empty.
+				if cnt > 0 {
+					fmt.Printf("%s: %d rows, skipping\n", table, cnt)
+					continue
+				}
+				for _, stmt := range stmts[table] {
+					if err := tx.RawQuery(stmt).Exec(); err != nil {
+						return errors.WithStack(errors.Wrapf(err, "seeding %s", table))
+					}
+				}
+				fmt.Printf("%s: seeded %d statements\n", table, len(stmts[table]))
 				continue
 			}
-			for _, stmt := range stmts[table] {
-				if err := tx.RawQuery(stmt).Exec(); err != nil {
-					return errors.WithStack(errors.Wrapf(err, "seeding %s", table))
-				}
+			m, err := syncStartupTable(tx, table, stmts[table], fkMap)
+			if err != nil {
+				return errors.WithStack(errors.Wrapf(err, "syncing %s", table))
 			}
-			fmt.Printf("%s: seeded %d statements\n", table, len(stmts[table]))
+			mapping[table] = m
+			for dumpID, target := range m {
+				fkMap[dumpID] = target
+			}
 		}
 
-		// Backfill fr translations from the just-present base rows. Runs
-		// whether the base rows came from the dump or pre-existed, and is
-		// idempotent per (table, locale) group.
+		// Backfill fr translations from the base rows (existing + newly
+		// inserted). Idempotent per (table, record, field).
 		for _, table := range startupTables {
 			fields, ok := startupTranslatableFields[table]
 			if !ok {
@@ -134,29 +194,294 @@ func seedStartup(c *grift.Context) error {
 			}
 		}
 
-		// Apply any shipped translations_<lang>.sql files (G11 pipeline).
-		if err := applyTranslationFiles(tx); err != nil {
+		// Apply any shipped translations_<lang>.sql files (G11 pipeline),
+		// re-keying artifact rows through the name-match mapping.
+		if err := applyTranslationFiles(tx, mapping); err != nil {
 			return err
 		}
 		return nil
 	})
 }
 
-// applyTranslationFiles executes embedded translations_<lang>.sql files.
-// A locale whose row count already matches its artifact is skipped. Partial
-// locales are filled from shipped artifacts; existing values are updated so
-// corrected translations reach databases seeded previously.
-func applyTranslationFiles(tx *pop.Connection) error {
+// syncStartupTable aligns one startup table with the embedded dump without
+// modifying or deleting any existing row. For each dump row:
+//   - the id already exists      -> keep the DB row (identity mapping)
+//   - the name matches (normalized; exact first, then a unique prefix match)
+//     an existing row            -> keep the DB row and map the dump id onto
+//     it, so shipped translations attach to the existing record (no duplicate)
+//   - otherwise                  -> genuinely new item: INSERT the dump row
+//
+// Returns the mapping dump record id -> target record id.
+func syncStartupTable(tx *pop.Connection, table string, statements []string, fkMapping map[string]string) (map[string]string, error) {
+	columns := startupTableColumns[table]
+	nameField := startupNameField[table]
+
+	// Existing rows for name matching: id -> canonical name.
+	existingNames := map[string]string{}
+	if nameField != "" {
+		var rows []trRow
+		if err := tx.Store.Select(&rows, "SELECT `id`, `"+nameField+"` AS `value` FROM `"+table+"`"); err != nil {
+			return nil, errors.WithStack(err)
+		}
+		for _, row := range rows {
+			if row.Value.Valid {
+				existingNames[row.ID] = row.Value.String
+			}
+		}
+	}
+
+	tuples, err := splitRawTuples(statements)
+	if err != nil {
+		return nil, err
+	}
+
+	usedTargets := map[string]bool{} // record ids already claimed by a dump row
+	normIndex := map[string]string{} // normalized name -> existing id
+	for id, raw := range existingNames {
+		n := normKey(raw)
+		if n != "" {
+			normIndex[n] = id
+		}
+	}
+
+	mapping := map[string]string{}
+	inserted, kept, matched := 0, 0, 0
+	for i, stmt := range statements {
+		parsed, err := utils.ParseInsertRows(stmt, columns)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if len(parsed) != len(tuples[i]) {
+			return nil, fmt.Errorf("%s: parsed %d rows but split %d raw tuples", table, len(parsed), len(tuples[i]))
+		}
+		for j, row := range parsed {
+			id := rowID(row)
+			if id == "" {
+				return nil, fmt.Errorf("%s: dump tuple %d has empty id", table, j)
+			}
+			raw := tuples[i][j]
+			cnt, err := tx.Where("id = ?", id).Count(startupModels[table])
+			if err != nil {
+				return nil, errors.WithStack(err)
+			}
+			if cnt > 0 {
+				// Id exists. When the table has a canonical name, decide by
+				// name: identical (normalized) name -> keep the existing row
+				// (identity mapping); different name -> the dump id is taken
+				// by a DIFFERENT concept in this database, so the dump row is
+				// a genuinely new item and must be inserted under a fresh,
+				// deterministic id (never reuse or rewrite the existing row).
+				if nameField != "" && !strings.EqualFold(normKey(existingNames[id]), normKey(row[nameField])) {
+					// The dump name may still exist under ANOTHER id (the
+					// unique name index would reject a duplicate insert):
+					// attach to it before considering the dump row new.
+					if id2 := matchRefName(normIndex, usedTargets, normKey(row[nameField])); id2 != "" {
+						mapping[id] = id2
+						usedTargets[id2] = true
+						matched++
+						continue
+					}
+					newID := uuid.NewV5(startupRowNamespace, table+"|"+strings.TrimSpace(row[nameField])).String()
+					if !usedTargets[newID] {
+						raw = strings.Replace(raw, "'"+id+"'", "'"+newID+"'", 1)
+						if err := tx.RawQuery("INSERT INTO `" + table + "` VALUES " + raw).Exec(); err != nil {
+							return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s (renamed %s)", table, newID, id))
+						}
+						existingNames[newID] = row[nameField]
+						if n := normKey(row[nameField]); n != "" {
+							normIndex[n] = newID
+						}
+						usedTargets[newID] = true
+						mapping[id] = newID
+						inserted++
+						continue
+					}
+					// Same dump name already inserted under newID: point this
+					// row's translations at that target instead.
+					mapping[id] = newID
+					matched++
+					continue
+				}
+				mapping[id] = id
+				usedTargets[id] = true
+				kept++
+				continue
+			}
+			if nameField != "" {
+				if id2 := matchRefName(normIndex, usedTargets, normKey(row[nameField])); id2 != "" {
+					mapping[id] = id2
+					usedTargets[id2] = true
+					matched++
+					continue
+				}
+			}
+			// Re-key FK columns through the PARENT tables' id mapping
+			// (quoted exact match inside the raw tuple; ids are
+			// self-delimiting quoted tokens, so this cannot hit a
+			// substring of another value).
+			for _, fk := range startupFKColumns[table] {
+				if target, ok := fkMapping[row[fk]]; ok && target != row[fk] {
+					raw = strings.Replace(raw, "'"+row[fk]+"'", "'"+target+"'", 1)
+				}
+			}
+			if err := tx.RawQuery("INSERT INTO `" + table + "` VALUES " + raw).Exec(); err != nil {
+				return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s", table, id))
+			}
+			if nameField != "" {
+				existingNames[id] = row[nameField]
+				if n := normKey(row[nameField]); n != "" {
+					normIndex[n] = id
+				}
+			}
+			usedTargets[id] = true
+			mapping[id] = id
+			inserted++
+		}
+	}
+	fmt.Printf("%s: %d kept, %d name-matched, %d inserted\n", table, kept, matched, inserted)
+	return mapping, nil
+}
+
+// matchRefName finds an existing record id whose normalized name matches norm.
+// Exact normalized equality wins; otherwise a unique prefix match (both sides
+// at least 5 chars) absorbs accent/spelling drift between dump generations
+// (e.g. "Relacher" vs "Relaché", "Transferer" vs "Transféré"). Ambiguous or
+// too-weak matches return "" so the dump row is treated as a new item.
+func matchRefName(normIndex map[string]string, used map[string]bool, norm string) string {
+	if norm == "" {
+		return ""
+	}
+	if id, ok := normIndex[norm]; ok && !used[id] {
+		return id
+	}
+	candidates := []string{}
+	for n, id := range normIndex {
+		if used[id] || len(n) < 5 || len(norm) < 5 {
+			continue
+		}
+		if strings.HasPrefix(n, norm) || strings.HasPrefix(norm, n) {
+			candidates = append(candidates, id)
+		}
+	}
+	if len(candidates) == 1 {
+		return candidates[0]
+	}
+	return ""
+}
+
+// normKey normalizes a canonical name for matching: lowercase, accents
+// folded, punctuation/quote variants treated as separators, whitespace
+// collapsed.
+func normKey(s string) string {
+	s = strings.ToLower(s)
+	s = accentReplacer.Replace(s)
+	return strings.Join(strings.Fields(s), " ")
+}
+
+var accentReplacer = strings.NewReplacer(
+	"à", "a", "á", "a", "â", "a", "ä", "a", "ã", "a", "å", "a",
+	"é", "e", "è", "e", "ê", "e", "ë", "e", "í", "i", "ì", "i", "î", "i", "ï", "i",
+	"ó", "o", "ò", "o", "ô", "o", "ö", "o", "õ", "o",
+	"ú", "u", "ù", "u", "û", "u", "ü", "u",
+	"ý", "y", "ÿ", "y", "ç", "c", "ñ", "n",
+	"œ", "oe", "æ", "ae", "ß", "ss",
+	"'", " ", "’", " ", "`", " ", "´", " ",
+	"-", " ", "_", " ", ".", " ", ",", " ", "/", " ", "(", " ", ")", " ",
+	":", " ", ";", " ", "“", " ", "”", " ", "«", " ", "»", " ",
+)
+
+// splitRawTuples splits INSERT ... VALUES statements into raw "(...)" tuple
+// strings, preserving the original SQL text (quote-aware, top-level parens)
+// so dump rows can be re-inserted verbatim.
+func splitRawTuples(statements []string) ([][]string, error) {
+	out := make([][]string, 0, len(statements))
+	for _, statement := range statements {
+		up := strings.ToUpper(statement)
+		v := strings.Index(up, " VALUES")
+		if v < 0 {
+			return nil, fmt.Errorf("INSERT has no VALUES clause")
+		}
+		body := strings.TrimSpace(strings.TrimSuffix(statement[v+len(" VALUES"):], ";"))
+		var tuples []string
+		depth, start := 0, -1
+		inQuote := false
+		for i := 0; i < len(body); i++ {
+			c := body[i]
+			if inQuote {
+				if c == '\\' {
+					i++
+					continue
+				}
+				if c == '\'' {
+					inQuote = false
+				}
+				continue
+			}
+			switch c {
+			case '\'':
+				inQuote = true
+			case '(':
+				if depth == 0 {
+					start = i
+				}
+				depth++
+			case ')':
+				depth--
+				if depth == 0 {
+					tuples = append(tuples, body[start:i+1])
+					start = -1
+				}
+			}
+		}
+		if inQuote || depth != 0 {
+			return nil, fmt.Errorf("unbalanced INSERT tuples")
+		}
+		out = append(out, tuples)
+	}
+	return out, nil
+}
+
+// applyTranslationFiles applies embedded translations_<lang>.sql files,
+// re-keying each artifact row's record_id through mapping (dump id -> existing
+// row id, identity when the dump row exists under its own id). French rows are
+// skipped — they are derived from the base columns by seedFrTranslations.
+// Semantics per artifact row, keyed by (table, record, field, locale):
+//   - absent            -> INSERT (missing translation)
+//   - present under the artifact's primary key id -> UPDATE value (corrected
+//     translations reach databases seeded previously)
+//   - present under a different id -> left untouched (administrator edits are
+//     preserved)
+func applyTranslationFiles(tx *pop.Connection, mapping map[string]map[string]string) error {
 	entries, err := translationSQLFS.ReadDir(".")
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	// Existing translations for the startup tables: key -> (pk id, value).
+	type trKey struct{ table, record, field, locale string }
+	type trState struct {
+		id, value string
+	}
+	existing := map[trKey]trState{}
+	var rows []models.Translation
+	if err := tx.Where("table_name IN (?)", startupTables).All(&rows); err != nil {
+		return errors.WithStack(err)
+	}
+	for _, r := range rows {
+		existing[trKey{r.TableName, r.RecordID, r.Field, r.Locale}] = trState{id: r.ID.String(), value: r.Value}
+	}
+
+	inserts := [][]interface{}{} // args for chunked batch INSERT
+	updated := 0
 	for _, e := range entries {
 		m := translationFileLocaleRe.FindStringSubmatch(e.Name())
 		if m == nil {
 			continue
 		}
 		locale := m[1]
+		if locale == "fr" {
+			continue // derived from base columns by seedFrTranslations
+		}
 
 		data, err := translationSQLFS.ReadFile(e.Name())
 		if err != nil {
@@ -166,25 +491,68 @@ func applyTranslationFiles(tx *pop.Connection) error {
 		if err != nil {
 			return errors.Wrapf(err, "parsing %s", e.Name())
 		}
-		statements := stmts["translations"]
-		n := 0
-		for _, stmt := range statements {
-			stmt = strings.TrimSuffix(strings.TrimSpace(stmt), ";") + " ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = VALUES(updated_at);"
-			if err := tx.RawQuery(stmt).Exec(); err != nil {
-				return errors.Wrapf(err, "applying %s", e.Name())
+		columns := []string{"id", "table_name", "record_id", "field", "locale", "value", "created_at", "updated_at"}
+		for _, stmt := range stmts["translations"] {
+			parsed, err := utils.ParseInsertRows(stmt, columns)
+			if err != nil {
+				return errors.Wrapf(err, "parsing %s", e.Name())
 			}
-			n++
+			for _, row := range parsed {
+				table := row["table_name"]
+				record := row["record_id"]
+				if tmap, ok := mapping[table]; ok {
+					if target, ok2 := tmap[record]; ok2 {
+						record = target
+					}
+				}
+				k := trKey{table, record, row["field"], row["locale"]}
+				pk := row["id"]
+				value := row["value"]
+				if prev, ok := existing[k]; ok {
+					if prev.id == pk && prev.value != value {
+						if err := tx.RawQuery("UPDATE translations SET value = ?, updated_at = NOW() WHERE id = ?", value, pk).Exec(); err != nil {
+							return errors.Wrapf(err, "updating %s", e.Name())
+						}
+						updated++
+					}
+					continue
+				}
+				existing[k] = trState{id: pk, value: value}
+				inserts = append(inserts, []interface{}{pk, table, record, row["field"], row["locale"], value})
+			}
 		}
-		fmt.Printf("translations[%s]: applied %d rows from %s\n", locale, n, e.Name())
+		fmt.Printf("translations[%s]: applied from %s\n", locale, e.Name())
 	}
+
+	for start := 0; start < len(inserts); start += 100 {
+		end := start + 100
+		if end > len(inserts) {
+			end = len(inserts)
+		}
+		args := []interface{}{}
+		clause := ""
+		for _, ins := range inserts[start:end] {
+			clause += "(?,?,?,?,?,?,NOW(),NOW()),"
+			args = append(args, ins...)
+		}
+		clause = strings.TrimSuffix(clause, ",")
+		q := "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES " +
+			clause + " ON DUPLICATE KEY UPDATE record_id = VALUES(record_id), value = VALUES(value), updated_at = NOW()"
+		if err := tx.RawQuery(q, args...).Exec(); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	fmt.Printf("translations: inserted %d, updated %d\n", len(inserts), updated)
 	return nil
 }
 
 // seedFrTranslations mirrors base columns of table into the translations
-// table under locale fr. Skipped entirely when rows already exist for that
-// (table, fr) group.
+// table under locale fr. Missing rows are inserted; rows whose value drifted
+// from the base column (e.g. corrupted escaping in earlier artifacts) are
+// corrected — fr is a generated mirror of the canonical column, not
+// administrator-managed content.
 func seedFrTranslations(tx *pop.Connection, table string, fields []string) error {
-	n := 0
+	n, fixed := 0, 0
 	for _, field := range fields {
 		var rows []trRow
 		if err := tx.Store.Select(&rows, "SELECT `id`, `"+field+"` AS `value` FROM `"+table+"`"); err != nil {
@@ -197,6 +565,13 @@ func seedFrTranslations(tx *pop.Connection, table string, fields []string) error
 			var existing models.Translation
 			err := tx.Where("table_name = ? AND record_id = ? AND field = ? AND locale = ?", table, row.ID, field, "fr").First(&existing)
 			if err == nil {
+				if existing.Value != row.Value.String {
+					existing.Value = row.Value.String
+					if err := tx.Update(&existing); err != nil {
+						return errors.WithStack(err)
+					}
+					fixed++
+				}
 				continue
 			}
 			if !errors.Is(err, sql.ErrNoRows) {
@@ -208,7 +583,7 @@ func seedFrTranslations(tx *pop.Connection, table string, fields []string) error
 			n++
 		}
 	}
-	fmt.Printf("translations %s[fr]: seeded %d rows\n", table, n)
+	fmt.Printf("translations %s[fr]: seeded %d rows, corrected %d\n", table, n, fixed)
 	return nil
 }
 

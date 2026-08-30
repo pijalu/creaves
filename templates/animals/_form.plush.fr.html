@@ -559,8 +559,8 @@ $( document ).ready(function(){
             <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
                 <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
@@ -599,8 +599,8 @@ $( document ).ready(function(){
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
                 <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <%  }%>
@@ -742,8 +742,8 @@ $( document ).ready(function(){
                     </div>
                     <div class="col-sm">
                       <div class="float-right">
-                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
                         <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                       </div>
                     </div>

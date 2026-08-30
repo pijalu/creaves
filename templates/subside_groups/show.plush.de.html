@@ -5,8 +5,8 @@
     <%= linkTo(subsideGroupsPath(), {class: "btn btn-info"}) { %>
       Zurück zu allen Zuschussgruppen
     <% } %>
-    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Bearbeiten"}) %>
-    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", body: "Löschen"}) %>
+    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

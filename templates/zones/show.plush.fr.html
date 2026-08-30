@@ -5,8 +5,8 @@
     <%= linkTo(zonesPath(), {class: "btn btn-info"}) { %>
       Retour à toutes les zones
     <% } %>
-    <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-    <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Etes-vous sûr?", body: "Détruire"}) %>
+    <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Etes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

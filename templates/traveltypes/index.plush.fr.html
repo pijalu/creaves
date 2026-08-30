@@ -19,9 +19,9 @@
         <td class="align-middle"><%= tname("traveltypes", traveltype.ID, traveltype.Name) %></td><td class="align-middle"><%= bool2html(traveltype.Def) %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-info", body: "Voir"}) %>
-            <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", body: "Éditer"}) %>
-            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", body: "Détruire"}) %>
+            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

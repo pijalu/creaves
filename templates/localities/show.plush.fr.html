@@ -6,7 +6,7 @@
       Retour à toutes les localités
     <% } %>
     <%= linkTo(editLocalityPath({ locality_id: locality.ID }), {class: "btn btn-warning", title: "Modifier", body:"<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(localityPath({ locality_id: locality.ID }), {class: "btn btn-danger", "data-method": "SUPPRIMER", "data-confirm": "Etes-vous sûr?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo(localityPath({ locality_id: locality.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

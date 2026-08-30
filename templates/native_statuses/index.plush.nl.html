@@ -18,9 +18,9 @@
         <td class="align-middle"><%= nativeStatus.ID %></td><td class="align-middle"><%= tname("native_statuses", nativeStatus.ID, nativeStatus.Status) %></td><td class="align-middle"><%= nativeStatus.Indication %></td><td class="align-middle"><%= nativeStatus.Freeable %></td><td class="align-middle"><%= nativeStatus.Precision %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-info", body: "Bekijken"}) %>
-            <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", body: "Bewerken"}) %>
-            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", body: "Verwijderen"}) %>
+            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

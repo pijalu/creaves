@@ -93,12 +93,19 @@ func blankSearchOption(opts []searchOption, selected string) []searchOption {
 // entry causes, outtake types) into the context for the filter panel, with
 // the current filter values pre-selected (sticky).
 func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
+	// Request-scoped translation helpers (registered by tnameMiddleware).
+	// They resolve by record id first and fall back to matching the canonical
+	// base value, so options stay localized even when record ids drifted
+	// between reference-data generations. Nil-safe fallbacks keep the
+	// canonical French value when the middleware is absent (tests).
+	tname, _ := c.Value("tname").(func(string, interface{}, interface{}) string)
+	tfield, _ := c.Value("tfield").(func(string, string, interface{}, interface{}) string)
+	if tname == nil {
+		tname = func(_ string, _ interface{}, base interface{}) string { return baseString(base) }
 	}
-
-	lang := currentLang(c)
+	if tfield == nil {
+		tfield = func(_ string, _ string, _ interface{}, base interface{}) string { return baseString(base) }
+	}
 
 	years, err := listRegisterYears(c)
 	if err != nil {
@@ -114,16 +121,11 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
-	atIDs := make([]string, 0, len(*at))
-	for _, t := range *at {
-		atIDs = append(atIDs, t.ID.String())
-	}
-	atTr := translateIDs(tx, "animaltypes", "name", lang, atIDs)
 	atOpts := make([]searchOption, 0, len(*at)+1)
 	for _, t := range *at {
 		atOpts = append(atOpts, searchOption{
 			Value:    t.ID.String(),
-			Label:    models.ResolveName(lang, t.Name, atTr, t.ID.String()),
+			Label:    tname("animaltypes", t.ID.String(), t.Name),
 			Selected: t.ID.String() == p.AnimaltypeID,
 		})
 	}
@@ -133,16 +135,11 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
-	aaIDs := make([]string, 0, len(*aa))
-	for _, t := range *aa {
-		aaIDs = append(aaIDs, t.ID.String())
-	}
-	aaTr := translateIDs(tx, "animalages", "name", lang, aaIDs)
 	aaOpts := make([]searchOption, 0, len(*aa)+1)
 	for _, t := range *aa {
 		aaOpts = append(aaOpts, searchOption{
 			Value:    t.ID.String(),
-			Label:    models.ResolveName(lang, t.Name, aaTr, t.ID.String()),
+			Label:    tname("animalages", t.ID.String(), t.Name),
 			Selected: t.ID.String() == p.AnimalageID,
 		})
 	}
@@ -152,17 +149,13 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
-	ecIDs := make([]string, 0, len(*ec))
-	for _, t := range *ec {
-		ecIDs = append(ecIDs, t.ID)
-	}
-	ecCauseTr := translateIDs(tx, "entry_causes", "cause", lang, ecIDs)
-	ecDetailTr := translateIDs(tx, "entry_causes", "detail", lang, ecIDs)
 	ecOpts := make([]searchOption, 0, len(*ec)+1)
 	for _, t := range *ec {
+		cause := tfield("entry_causes", "cause", t.ID, t.Cause)
+		detail := tfield("entry_causes", "detail", t.ID, t.Detail)
 		ecOpts = append(ecOpts, searchOption{
 			Value:    t.ID,
-			Label:    entryCauseLabel(t, lang, ecCauseTr, ecDetailTr),
+			Label:    models.EntryCause{ID: t.ID, Cause: cause, Detail: detail}.Fmt(true),
 			Selected: t.ID == p.EntryCauseID,
 		})
 	}
@@ -172,16 +165,11 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
-	otIDs := make([]string, 0, len(*ot))
-	for _, t := range *ot {
-		otIDs = append(otIDs, t.ID.String())
-	}
-	otTr := translateIDs(tx, "outtaketypes", "name", lang, otIDs)
 	otOpts := make([]searchOption, 0, len(*ot)+1)
 	for _, t := range *ot {
 		otOpts = append(otOpts, searchOption{
 			Value:    t.ID.String(),
-			Label:    models.ResolveName(lang, t.Name, otTr, t.ID.String()),
+			Label:    tname("outtaketypes", t.ID.String(), t.Name),
 			Selected: t.ID.String() == p.OuttaketypeID,
 		})
 	}
@@ -197,9 +185,13 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 // resolved via the request-scoped tname/tspecies helpers (localized).
 func animalCSVRow(c buffalo.Context, a models.Animal, entryCauses map[string]models.EntryCause) []string {
 	tname, _ := c.Value("tname").(func(string, interface{}, interface{}) string)
+	tfield, _ := c.Value("tfield").(func(string, string, interface{}, interface{}) string)
 	tspecies, _ := c.Value("tspecies").(func(interface{}) string)
 	if tname == nil {
 		tname = func(_ string, _ interface{}, base interface{}) string { return baseString(base) }
+	}
+	if tfield == nil {
+		tfield = func(_ string, _ string, _ interface{}, base interface{}) string { return baseString(base) }
 	}
 	if tspecies == nil {
 		tspecies = func(base interface{}) string { return baseString(base) }
@@ -214,7 +206,7 @@ func animalCSVRow(c buffalo.Context, a models.Animal, entryCauses map[string]mod
 	entryCauseDetail := ""
 	if ec, ok := entryCauses[a.Discovery.EntryCauseID]; ok {
 		entryCause = tname("entry_causes", ec.ID, ec.Cause)
-		entryCauseDetail = ec.Detail
+		entryCauseDetail = tfield("entry_causes", "detail", ec.ID, ec.Detail)
 	}
 
 	exitDate := ""

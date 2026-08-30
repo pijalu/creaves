@@ -132,6 +132,14 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 // get "no rows", and exit silently — leaving the run stranded in 'running'
 // forever (observed in e2e: run stuck at animals_processed=0, no error).
 func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
+	// Stale runs from a previous crashed execution would make StartResync
+	// fail with "resync already running"; stale events keep the dev DB polluted.
+	if err := models.DB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
+		t.Fatalf("purge stale runs: %v", err)
+	}
+	if err := models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
+		t.Fatalf("purge stale events: %v", err)
+	}
 	saved := CurrentConfig
 	CurrentConfig = &models.Config{InstanceID: "rsync-commit-test"}
 	if err := CurrentConfig.SetSettings(models.ConfigSettings{WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable"}); err != nil {
@@ -140,6 +148,9 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 	t.Cleanup(func() {
 		CurrentConfig = saved
 		if err := models.DB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
+			t.Logf("cleanup: %v", err)
+		}
+		if err := models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
 			t.Logf("cleanup: %v", err)
 		}
 	})
@@ -163,20 +174,50 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 		t.Fatalf("StartResync: %v", err)
 	}
 
-	// The worker goroutine was launched: wait for it to finish so the run
-	// does not linger in 'running' (it cancels quickly — the pusher target
-	// is unreachable and there is nothing to do, but the row must leave the
-	// 'running' state one way or another).
+	// The worker goroutine was launched. The dev/test DB holds the full
+	// production dataset (10k+ animals), so waiting for FULL completion
+	// takes minutes — instead verify what this regression test is about:
+	//   1. the run row was committed before StartResync returned (the
+	//      worker reads it through a different connection — covered by the
+	//      in-transaction check above and by progress appearing at all),
+	//   2. the worker is alive and persisting progress through the row
+	//      (animals_processed > 0 — RunResync updates the row per animal),
+	// then cancel and make sure the row leaves 'running' (no stranded run).
 	deadline := time.Now().Add(30 * time.Second)
+	progressed := false
 	for time.Now().Before(deadline) {
 		run := &models.ResyncRun{}
 		if err := models.DB.Find(run, runID); err != nil {
 			t.Fatalf("run row vanished: %v", err)
 		}
 		if run.Status != "running" {
+			t.Fatalf("run left 'running' without progress: status=%s", run.Status)
+		}
+		if run.AnimalsProcessed > 0 || run.EventsCreated > 0 {
+			progressed = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !progressed {
+		t.Fatalf("worker made no progress within 30s: run still 'running' at animals_processed=0")
+	}
+
+	// Ask the worker to stop: RunResync re-reads the row each animal and
+	// returns as soon as status is 'cancelled'.
+	if err := models.DB.RawQuery("UPDATE resync_runs SET status = 'cancelled' WHERE id = ?", runID).Exec(); err != nil {
+		t.Fatalf("cancel run: %v", err)
+	}
+	deadline = time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		run := &models.ResyncRun{}
+		if err := models.DB.Find(run, runID); err != nil {
+			t.Fatalf("run row vanished after cancel: %v", err)
+		}
+		if run.Status != "running" {
 			return
 		}
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
-	t.Errorf("worker never finished: run still 'running' after 30s")
+	t.Errorf("worker ignored cancellation: run still 'running' after 30s")
 }

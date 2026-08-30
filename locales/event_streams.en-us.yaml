@@ -54,3 +54,8 @@
   translation: "Event Payload"
 - id: "event-streams.show.back"
   translation: "Back to Event Stream"
+
+- id: "event-streams.clearall"
+  translation: "Clear All"
+- id: "event-streams.clearall-confirm"
+  translation: "Delete ALL events? This cannot be undone."

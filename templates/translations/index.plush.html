@@ -4,5 +4,5 @@
   <button class="btn btn-primary" type="submit">Search</button>
 </form>
 <table class="table table-hover table-bordered"><thead><tr><th>Table</th><th>Field</th><th>French/base</th><th>Locale</th><th>Translation</th><th></th></tr></thead><tbody>
-<%= for (row) in translations { %><tr><td><%= row.TableName %></td><td><%= row.Field %></td><td><%= row.BaseValue %></td><td><%= row.Locale %></td><td><%= row.Value %></td><td><a href="/translations/<%= row.ID %>">View</a> <a href="/translations/<%= row.ID %>/edit">Edit</a> <a href="/translations/<%= row.ID %>" data-method="DELETE" data-confirm="Are you sure?">Delete</a></td></tr><% } %>
+<%= for (row) in translations { %><tr><td><%= row.TableName %></td><td><%= row.Field %></td><td><%= row.BaseValue %></td><td><%= row.Locale %></td><td><%= row.Value %></td><td><div class="float-right"><%= linkTo(translationPath({ translation_id: row.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %> <%= linkTo(editTranslationPath({ translation_id: row.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %> <%= linkTo(translationPath({ translation_id: row.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Delete", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %></div></td></tr><% } %>
 </tbody></table>

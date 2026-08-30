@@ -26,9 +26,9 @@
         <td class="align-middle"><%= bool2html(zone.Default) %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-            <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Etes-vous sûr?", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

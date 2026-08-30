@@ -18,9 +18,9 @@
         <td class="align-middle"><%= subsideGroup.ID %></td><td class="align-middle"><%= tname("subside_groups", subsideGroup.ID, subsideGroup.Group) %></td><td class="align-middle"><%= subsideGroup.Size %></td><td class="align-middle"><%= subsideGroup.Amount %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-info", body: "View"}) %>
-            <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

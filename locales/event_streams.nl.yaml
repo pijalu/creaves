@@ -54,3 +54,8 @@
   translation: "Gebeurtenispayload"
 - id: "event-streams.show.back"
   translation: "Terug naar gebeurtenisstroom"
+
+- id: "event-streams.clearall"
+  translation: "Alles verwijderen"
+- id: "event-streams.clearall-confirm"
+  translation: "ALLE gebeurtenissen verwijderen? Dit kan niet ongedaan gemaakt worden."

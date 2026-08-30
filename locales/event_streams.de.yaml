@@ -54,3 +54,8 @@
   translation: "Ereignis-Payload"
 - id: "event-streams.show.back"
   translation: "Zurück zum Ereignisstrom"
+
+- id: "event-streams.clearall"
+  translation: "Alle löschen"
+- id: "event-streams.clearall-confirm"
+  translation: "ALLE Ereignisse löschen? Dies kann nicht rückgängig gemacht werden."

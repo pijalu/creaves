@@ -5,7 +5,7 @@
     <%= linkTo("/species", {class: "btn btn-info"}) { %>
       Retour à toutes les espèces
     <% } %>
-    <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
     <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Etes-vous sûr?", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>

@@ -5,8 +5,8 @@
     <%= linkTo(subsideGroupsPath(), {class: "btn btn-info"}) { %>
       Terug naar alle subsidiegroepen
     <% } %>
-    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", body: "Bewerken"}) %>
-    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", body: "Verwijderen"}) %>
+    <%= linkTo(editSubsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(subsideGroupPath({ subside_group_id: subsideGroup.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

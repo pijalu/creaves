@@ -29,6 +29,8 @@
 - [User & Auth Models](#user--auth-models)
   - [User](#user)
   - [LogEntry](#logentry)
+- [Audit Models](#audit-models)
+  - [AnimalAudit](#animalaudit)
 - [Utility Files](#utility-files)
   - [models.go](#modelsgo)
   - [constants.go](#constantsgo)
@@ -865,6 +867,62 @@ Audit log entries for system activity.
 #### Validation Rules
 
 - `Validate`: Description must be present
+
+---
+
+## Audit Models
+
+### AnimalAudit
+
+**File:** `models/animal_audit.go`
+**Table:** `animal_audits`
+
+Auditable change log for every mutation of an animal or one of its
+sub-entities (cares, treatments, veterinary visits, travels, intake,
+outtake, discovery, discoverer). Written by the handlers via
+`actions/animal_audit.go`; displayed in the admin-only "Audit" tab of the
+animal show page with server-side pagination.
+
+#### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid.UUID | Primary key |
+| AnimalID | int | Animal concerned by the change |
+| UserID | nulls.UUID | Author (nullable for system changes) |
+| UserName | string | Denormalized login (survives user deletion) |
+| Entity | string | One of the `AuditEntity*` constants |
+| EntityID | string | Primary key of the changed record |
+| Action | string | `create` / `update` / `delete` |
+| Changes | string | Human readable diff (`field: old -> new; ...`) |
+| CreatedAt / UpdatedAt | time.Time | Timestamps |
+
+#### Key Constants
+
+- `AuditEntityAnimal / Care / Treatment / VeterinaryVisit / Travel / Intake / Outtake / Discovery / Discoverer`
+- `AuditActionCreate / Update / Delete`
+
+#### Key Functions
+
+- `ComputeChanges(oldRec, newRec any) string` - JSON-based diff of two
+  model snapshots; ignores `created_at`/`updated_at`; renders `<null>`,
+  `<empty>`, `<none>` and `<deleted>` markers; empty result for identical
+  snapshots.
+- `LogAnimalAudit(tx, user, animalID, entity, entityID, action, changes) error` -
+  Persists one entry; `user` may be nil ("system").
+
+#### Validation Rules
+
+- `Validate`: AnimalID non-zero, UserName/Entity/Action must be present
+
+#### Conventions
+
+- Updates with an empty diff are not logged (see `auditSkipEmptyUpdate`).
+- Association structs are zeroed before diffing ("projections") so nested
+  entities are audited as their own entries.
+- Intake/Outtake/Discovery have no `animal_id` column; the concerned animal
+  is resolved through `animals.intake_id` / `animals.outtake_id` /
+  `animals.discovery_id` (`auditAnimalIDBy*` helpers).
 
 ---
 

@@ -18,9 +18,9 @@
         <td class="align-middle"><%= entryCause.ID %></td><td class="align-middle"><%= tname("entry_causes", entryCause.ID, entryCause.Cause) %></td><td class="align-middle"><%= tfield("entry_causes", "detail", entryCause.ID, entryCause.Detail) %></td><td class="align-middle"><%= tfield("entry_causes", "nature", entryCause.ID, entryCause.Nature) %></td><td class="align-middle"><%= tfield("entry_causes", "indication", entryCause.ID, entryCause.Indication) %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", body: "View"}) %>
-            <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

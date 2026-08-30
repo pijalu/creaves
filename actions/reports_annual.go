@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -191,6 +192,131 @@ func annualStatQueries() []annualStatQuery {
 	}
 }
 
+// annualCategorySources maps a statistics section to the reference table and
+// column its category values come from. Only fixed, hard-coded table/field
+// names are allowed through the localizer.
+var annualCategorySources = map[string]struct{ table, field string }{
+	"species":            {"species", "creaves_species"},
+	"class":              {"species", "class"},
+	"agw_group":          {"species", "agw_group"},
+	"subsidies_group":    {"subside_groups", "group"},
+	"native_status":      {"native_statuses", "status"},
+	"entry_age":          {"animalages", "name"},
+	"outtake_type":       {"outtaketypes", "name"},
+	"entry_cause":        {"entry_causes", "cause"},
+	"entry_cause_nature": {"entry_causes", "nature"},
+}
+
+// loadAnnualRefTranslations returns canonical base value -> localized value
+// for one (table, field, lang), joining translations by record id. Table and
+// field must come from the fixed annualCategorySources map. Returns an empty
+// map on any error (categories stay canonical).
+func loadAnnualRefTranslations(tx *pop.Connection, table, field, lang string) map[string]string {
+	out := map[string]string{}
+	var rows []struct {
+		Base  string `db:"base"`
+		Value string `db:"value"`
+	}
+	q := "SELECT src.`" + field + "` AS base, tr.value AS value" +
+		" FROM `" + table + "` src" +
+		" JOIN translations tr ON tr.table_name = ? AND tr.record_id = src.id AND tr.field = ? AND tr.locale = ? AND tr.value <> ''" +
+		" WHERE src.`" + field + "` IS NOT NULL AND src.`" + field + "` <> ''"
+	if err := tx.RawQuery(q, table, field, lang).All(&rows); err != nil {
+		return out
+	}
+	for _, r := range rows {
+		out[r.Base] = r.Value
+	}
+	return out
+}
+
+// localizeAnnualSections rewrites category display values of the annual
+// statistics tables into the request language. Reference-derived categories
+// (species, groups, ages, outtake types, entry causes) are translated through
+// the translations table; fixed SQL literals (Unknown/Dead/Neutral/Alive/
+// Released) through the reports locale files; entry_cause_detail composite
+// values are localized part by part. Canonical values are kept as fallback so
+// the report never loses rows.
+func localizeAnnualSections(c buffalo.Context, sections []annualStatSection) {
+	lang := currentLang(c)
+	if lang == "" {
+		return
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return
+	}
+
+	refMaps := map[string]map[string]string{}
+	ref := func(table, field string) map[string]string {
+		k := table + "\x00" + field
+		if m, ok := refMaps[k]; ok {
+			return m
+		}
+		m := loadAnnualRefTranslations(tx, table, field, lang)
+		refMaps[k] = m
+		return m
+	}
+	literals := map[string]string{}
+	lit := func(value, key string) string {
+		if v, ok := literals[value]; ok {
+			return v
+		}
+		v := key
+		if T != nil {
+			v = T.Translate(c, key)
+		}
+		literals[value] = v
+		return v
+	}
+
+	for si := range sections {
+		sec := &sections[si]
+		for ri := range sec.Rows {
+			cat := sec.Rows[ri].Category
+			switch {
+			case cat == "Unknown":
+				sec.Rows[ri].Category = lit(cat, "reports.annual.unknown")
+			case sec.ID == "outtake_rating":
+				switch cat {
+				case "Dead":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.rating.dead")
+				case "Neutral":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.rating.neutral")
+				case "Alive":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.rating.alive")
+				}
+			case sec.ID == "outtake_dead_released":
+				switch cat {
+				case "Dead":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.rating.dead")
+				case "Released":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.outtake.released")
+				}
+			case sec.ID == "entry_cause_detail":
+				// Value is CONCAT_WS(' / ', nature, cause, detail) — localize
+				// each non-empty part, trying nature, then cause, then detail.
+				parts := strings.Split(cat, " / ")
+				for i, part := range parts {
+					for _, field := range []string{"nature", "cause", "detail"} {
+						if v := ref("entry_causes", field)[part]; v != "" {
+							parts[i] = v
+							break
+						}
+					}
+				}
+				sec.Rows[ri].Category = strings.Join(parts, " / ")
+			default:
+				if src, ok := annualCategorySources[sec.ID]; ok {
+					if v := ref(src.table, src.field)[cat]; v != "" {
+						sec.Rows[ri].Category = v
+					}
+				}
+			}
+		}
+	}
+}
+
 // annualStatPercent formats count as a percentage of total with 1 decimal.
 func annualStatPercent(count, total int) string {
 	if total == 0 {
@@ -278,6 +404,7 @@ func ReportsAnnualIndex(c buffalo.Context) error {
 			return err
 		}
 	}
+	localizeAnnualSections(c, sections)
 	c.Set("sections", sections)
 
 	return c.Render(http.StatusOK, r.HTML("reports/annual.plush.html"))
@@ -303,6 +430,7 @@ func ReportsAnnualExportCSV(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	localizeAnnualSections(c, sections)
 
 	header := []string{
 		T.Translate(c, "reports.annual.csv.year"),

@@ -18,9 +18,9 @@
         <td class="align-middle"><%= entryCause.ID %></td><td class="align-middle"><%= tname("entry_causes", entryCause.ID, entryCause.Cause) %></td><td class="align-middle"><%= entryCause.Detail %></td><td class="align-middle"><%= entryCause.Nature %></td><td class="align-middle"><%= entryCause.Indication %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", body: "Ansehen"}) %>
-            <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", body: "Bearbeiten"}) %>
-            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", body: "Löschen"}) %>
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editEntryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>
