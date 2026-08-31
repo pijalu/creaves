@@ -11,7 +11,12 @@ package actions
 //     (see guestPhoneMatches). On mismatch (or unknown animal) the form is
 //     re-rendered with a generic error — no information is disclosed about
 //     whether the animal number exists.
-//  3. On success a succinct view is rendered:
+//  3. Direct link (QR code on the animal page): GET /guest with number +
+//     token + lang opens the status view immediately — the token is a salted
+//     hash of the recorded discoverer phone (guestPhoneToken), so the phone
+//     number itself never appears in the URL. lang selects the page language
+//     before rendering; the QR code is generated in the current UI language.
+//  4. On success a succinct view is rendered:
 //     - arrival (intake) date and species;
 //     - if the animal is still in the center: a care-intensity status
 //       ("In critical care" / "In intensive care" / "In care") derived from
@@ -22,13 +27,17 @@ package actions
 // Multilingual: template variants guest/new.plush.{,fr,de,nl}.html and
 // guest/show.plush.{,fr,de,nl}.html are selected by the request language
 // (same mechanism as the landing page). Species names are localized with the
-// request-scoped tspecies helper.
+// request-scoped tspecies helper. Guest pages use the minimal guest.plush.html
+// layout: the only menu is the language selector.
 //
 // Abuse protection: a per-instance in-memory rate limiter caps the number of
 // verification attempts per client IP (guestRateMax within guestRateWindow).
 
 import (
+	cryptosha256 "crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -130,6 +139,31 @@ func lastDigits(s string, n int) string {
 		return s
 	}
 	return s[len(s)-n:]
+}
+
+// ---------------------------------------------------------------------------
+// Phone token (salted hash for the direct QR-code link)
+// ---------------------------------------------------------------------------
+
+// guestPhoneToken returns a hex-encoded SHA-256 hash of the phone number,
+// salted with the animal number. The token is embedded in the URL encoded in
+// the QR code on the animal page, so that scanning the code opens the guest
+// status view directly (no form, no phone entry) while the raw phone number
+// never appears in the URL. Knowing the animal number alone is not enough to
+// forge a token — the discoverer's phone number is required.
+func guestPhoneToken(animalNumber, phone string) string {
+	sum := cryptosha256.Sum256([]byte("creaves-guest:" +
+		guestNormalizePhone(animalNumber) + ":" + guestNormalizePhone(phone)))
+	return hex.EncodeToString(sum[:])
+}
+
+// guestTokenMatches compares the given token with the expected one in
+// constant time. Empty tokens never match.
+func guestTokenMatches(expected, given string) bool {
+	if expected == "" || given == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(given)) == 1
 }
 
 // ---------------------------------------------------------------------------
@@ -359,19 +393,130 @@ func buildGuestView(tx *pop.Connection, a *models.Animal, now time.Time) (*guest
 // Handlers
 // ---------------------------------------------------------------------------
 
+// guestLayout is the minimal layout used for the public guest pages: it shows
+// only the language selector — no application menu.
+const guestLayout = "guest.plush.html"
+
+// guestRenderNew renders the guest form with the minimal guest layout.
+func guestRenderNew(c buffalo.Context, status int) error {
+	return c.Render(status, r.HTML("guest/new.plush.html", guestLayout))
+}
+
+// guestRenderShow renders the guest status view with the minimal guest layout.
+func guestRenderShow(c buffalo.Context) error {
+	return c.Render(http.StatusOK, r.HTML("guest/show.plush.html", guestLayout))
+}
+
+// guestLangTarget returns the current request URI without the lang parameter,
+// so language switches on guest pages do not re-apply the previous language.
+func guestLangTarget(c buffalo.Context) string {
+	u := *c.Request().URL
+	q := u.Query()
+	q.Del("lang")
+	u.RawQuery = q.Encode()
+	return u.RequestURI()
+}
+
+// applyGuestLang applies the lang query parameter (from the QR code URL):
+// it validates the code, persists it in the lang cookie and refreshes the
+// request language so the localized template variants are selected.
+func applyGuestLang(c buffalo.Context, lang string) {
+	lang = strings.TrimSpace(lang)
+	if lang == "" {
+		return
+	}
+	for _, l := range uiLanguages {
+		if l.code != lang {
+			continue
+		}
+		cookie := http.Cookie{
+			Name:   "lang",
+			Value:  lang,
+			MaxAge: int((time.Hour * 24 * 265).Seconds()),
+			Path:   "/",
+		}
+		http.SetCookie(c.Response(), &cookie)
+		T.Refresh(c, lang)
+		return
+	}
+}
+
+// guestStoredPhone loads the discoverer phone recorded for the animal.
+// Returns "" when the discovery has no discoverer or no phone number.
+func guestStoredPhone(tx *pop.Connection, a *models.Animal) (string, error) {
+	d := models.Discovery{}
+	if err := tx.Eager("Discoverer").Find(&d, a.DiscoveryID); err != nil {
+		return "", err
+	}
+	if !d.Discoverer.Phone.Valid {
+		return "", nil
+	}
+	return d.Discoverer.Phone.String, nil
+}
+
 // GuestNew renders the public guest lookup form. GET /guest
+//
+// Direct link (QR code on the animal page): with number, token (salted hash
+// of the discoverer phone) and lang the status view is rendered immediately,
+// without any further interaction. lang is applied before rendering so the
+// scanned code opens the page in the encoded language.
 func GuestNew(c buffalo.Context) error {
-	c.Set("guestError", false)
-	c.Set("guestRateLimited", false)
-	// Optional ?number= prefill (used by the QR code on the animal page).
-	// Rendered through <%= %> so it is HTML-escaped by plush.
-	number := c.Request().URL.Query().Get("number")
-	number = strings.TrimSpace(number)
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	c.Set("guestLangTarget", guestLangTarget(c))
+	applyGuestLang(c, c.Param("lang"))
+
+	number := strings.TrimSpace(c.Param("number"))
+	number = strings.TrimSpace(strings.ReplaceAll(number, " ", ""))
 	if len(number) > 20 {
 		number = number[:20]
 	}
 	c.Set("animalNumber", number)
-	return c.Render(http.StatusOK, r.HTML("guest/new.plush.html"))
+
+	// Direct link: animal number + phone token. On any failure the plain
+	// form is shown — no information is disclosed about the reason.
+	token := strings.TrimSpace(c.Param("token"))
+	if number != "" && token != "" {
+		// Rate limit direct lookups like form submissions.
+		ip := c.Request().RemoteAddr
+		if xff := c.Request().Header.Get("X-Forwarded-For"); xff != "" {
+			ip = strings.TrimSpace(strings.Split(xff, ",")[0])
+		}
+		if !guestRateAllow(ip, time.Now()) {
+			c.Logger().Warn("guest: rate limit reached for", ip)
+			c.Set("guestError", false)
+			c.Set("guestRateLimited", true)
+			return guestRenderNew(c, http.StatusTooManyRequests)
+		}
+
+		a, err := guestFindAnimal(tx, number)
+		if err != nil {
+			return err
+		}
+		if a != nil {
+			stored, err := guestStoredPhone(tx, a)
+			if err != nil {
+				return err
+			}
+			expected := guestPhoneToken(a.YearNumberFormatted(), stored)
+			if guestTokenMatches(expected, token) {
+				view, err := buildGuestView(tx, a, time.Now())
+				if err != nil {
+					return err
+				}
+				c.Set("guest", view)
+				return guestRenderShow(c)
+			}
+		}
+	}
+
+	c.Set("guest", nil)
+	c.Set("guestError", false)
+	c.Set("guestRateLimited", false)
+	return guestRenderNew(c, http.StatusOK)
 }
 
 // GuestCreate verifies the animal number + phone number combination and
@@ -381,6 +526,8 @@ func GuestCreate(c buffalo.Context) error {
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
+
+	c.Set("guestLangTarget", guestLangTarget(c))
 
 	// Rate limit per client IP (behind a proxy the first X-Forwarded-For entry wins)
 	ip := c.Request().RemoteAddr
@@ -403,11 +550,11 @@ func GuestCreate(c buffalo.Context) error {
 			return err
 		}
 		if a != nil {
-			d := models.Discovery{}
-			if err := tx.Eager("Discoverer").Find(&d, a.DiscoveryID); err != nil {
+			stored, err := guestStoredPhone(tx, a)
+			if err != nil {
 				return err
 			}
-			if d.Discoverer.Phone.Valid && guestPhoneMatches(d.Discoverer.Phone.String, phone) {
+			if stored != "" && guestPhoneMatches(stored, phone) {
 				view, err = buildGuestView(tx, a, time.Now())
 				if err != nil {
 					return err
@@ -420,7 +567,7 @@ func GuestCreate(c buffalo.Context) error {
 		c.Set("guest", view)
 		c.Set("guestError", false)
 		c.Set("guestRateLimited", false)
-		return c.Render(http.StatusOK, r.HTML("guest/show.plush.html"))
+		return guestRenderShow(c)
 	}
 
 	c.Set("guest", nil)
@@ -431,17 +578,27 @@ func GuestCreate(c buffalo.Context) error {
 	if rateLimited {
 		status = http.StatusTooManyRequests
 	}
-	return c.Render(status, r.HTML("guest/new.plush.html"))
+	return guestRenderNew(c, status)
 }
 
 // ---------------------------------------------------------------------------
-// QR code (link from the animal page to the guest status form)
+// QR code (link from the animal page to the guest status view)
 // ---------------------------------------------------------------------------
 
-// guestStatusURL builds the public URL of the guest form pre-filled with the
-// given animal number. The QR code shown on the animal page points here.
-func guestStatusURL(scheme, host, number string) string {
-	return fmt.Sprintf("%s://%s/guest/?number=%s", scheme, host, url.QueryEscape(number))
+// guestStatusURL builds the public URL of the guest status view. With a
+// non-empty token the URL opens the status view directly (QR code on the
+// animal page); with an empty token it falls back to the plain form link.
+// The language is encoded in the URL so the scanned page opens in the
+// language the QR code was generated in.
+func guestStatusURL(scheme, host, number, token, lang string) string {
+	u := fmt.Sprintf("%s://%s/guest/?number=%s", scheme, host, url.QueryEscape(number))
+	if token != "" {
+		u += "&token=" + url.QueryEscape(token)
+	}
+	if lang != "" {
+		u += "&lang=" + url.QueryEscape(lang)
+	}
+	return u
 }
 
 // guestScheme guesses the public scheme of the request, honouring the
@@ -456,8 +613,21 @@ func guestScheme(req *http.Request) string {
 	return "http"
 }
 
-// AnimalQR renders a QR code (PNG) that points to the guest status form
-// pre-filled with this animal's number. GET /animals/{animal_id}/qr.png
+// guestRequestLang returns the current UI language of the request (lang
+// cookie), defaulting to French — the canonical base language.
+func guestRequestLang(c buffalo.Context) string {
+	cookie, err := c.Request().Cookie("lang")
+	if err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+	return "fr"
+}
+
+// AnimalQR renders a QR code (PNG) that opens the guest status view for this
+// animal directly: the URL carries a salted hash (token) of the discoverer
+// phone instead of the phone number itself, plus the current UI language.
+// Without a recorded phone number the QR code falls back to the plain form
+// link. GET /animals/{animal_id}/qr.png
 func AnimalQR(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -467,7 +637,18 @@ func AnimalQR(c buffalo.Context) error {
 	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
 		return err
 	}
-	u := guestStatusURL(guestScheme(c.Request()), c.Request().Host, animal.YearNumberFormatted())
+	number := animal.YearNumberFormatted()
+
+	phone, err := guestStoredPhone(tx, animal)
+	if err != nil {
+		return err
+	}
+	token := ""
+	if phone != "" {
+		token = guestPhoneToken(number, phone)
+	}
+
+	u := guestStatusURL(guestScheme(c.Request()), c.Request().Host, number, token, guestRequestLang(c))
 	qr, err := qrcode.New(u, qrcode.Medium)
 	if err != nil {
 		return err

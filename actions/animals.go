@@ -481,6 +481,10 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
 
+		// Full (host-aware) guest form URL shown under the QR code in the
+		// show view: same scheme+host as the page itself.
+		c.Set("guestFormURL", guestStatusURL(guestScheme(c.Request()), c.Request().Host, animal.YearNumberFormatted(), "", ""))
+
 		// Audit tab data: admin only, server-side pagination over the
 		// animal_audits records of this animal.
 		if user := GetCurrentUser(c); user != nil && user.Admin {

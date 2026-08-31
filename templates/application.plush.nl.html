@@ -91,27 +91,19 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="/guest/">Gastpagina</a>
+          <a class="nav-link" href="<%= newReceptionPath() %>" title="Ontvangst"><i class="fa fa-plus-circle"></i><span class="d-none d-xl-inline ml-1">Ontvangst</span></a>
         </li>
 
-        <li class="nav-item">
-          <a class="nav-link" href="<%= newReceptionPath() %>">Ontvangst</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="<%= newCaresPath() %>">Zorg</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="<%= newVeterinaryvisitsPath() %>">Dierenarts</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="<%= newTreatmentsPath() %>">Behandeling</a>
-        </li>
-
-        <li class="nav-item">
-          <a class="nav-link" href="<%= newOuttakesPath() %>">Uitgang</a>
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            Nieuw
+          </a>
+          <div class="dropdown-menu" aria-labelledby="newEntryDropdown">
+            <a class="dropdown-item" href="<%= newCaresPath() %>">Zorg</a>
+            <a class="dropdown-item" href="<%= newVeterinaryvisitsPath() %>">Dierenarts</a>
+            <a class="dropdown-item" href="<%= newTreatmentsPath() %>">Behandeling</a>
+            <a class="dropdown-item" href="<%= newOuttakesPath() %>">Uitgang</a>
+          </div>
         </li>
       <%}%>
       </ul>

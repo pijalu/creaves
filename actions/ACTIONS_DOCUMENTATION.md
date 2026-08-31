@@ -19,7 +19,7 @@
 | GET | `/registration/new` | UsersNew | Registration form |
 | POST | `/registration/` | UsersCreate | Registration submission |
 | GET | `/reception/new` | ReceptionNew | Reception form |
-| GET | `/guest/` | GuestNew | Public guest status form (no auth) |
+| GET | `/guest/` | GuestNew | Public guest status form / direct QR link (no auth) |
 | POST | `/guest/` | GuestCreate | Guest status lookup (phone-verified, no auth) |
 | GET | `/landing/index` | LandingIndex | Landing page (explicit) |
 | GET | `/dashboard` | DashboardIndex | Dashboard view |
@@ -445,11 +445,26 @@ All reference data resources follow standard Buffalo CRUD patterns:
 **Handlers**:
 | Method | Route | Handler | Description |
 |--------|-------|---------|-------------|
-| GET | `/guest/` | GuestNew | Public form: animal number + discoverer phone |
+| GET | `/guest/` | GuestNew | Public form: animal number + discoverer phone; direct QR link with `number` + `token` + `lang` |
 | POST | `/guest/` | GuestCreate | Verification + succinct status view |
 
 Public (unauthenticated) status page for animal discoverers. Routes are declared in an
 `/guest` group with `Middleware.Remove(Authorize)` (same pattern as `/registration`).
+Guest pages render inside the minimal `guest.plush.html` layout: the only menu is the
+language selector.
+
+**Direct link (QR code)**: the QR code on the animal page encodes
+`<scheme>://<host>/guest/?number=<num>&token=<token>&lang=<lang>`. Scheme and host are
+taken from the incoming request (`Request.Host`, `X-Forwarded-Proto` honoured), so the
+QR always points at the same host/protocol the staff page was loaded from. The token is
+`guestPhoneToken` — a SHA-256 hash of the normalized discoverer phone, salted with the
+animal number — so the raw phone never appears in the URL and scanning the code opens
+the status view directly (no form). `lang` is applied before rendering (cookie +
+`T.Refresh`) so the page opens in the language the QR was generated with (current UI
+language, default French).
+A failed token/number falls back to the plain form without disclosing the reason; the
+plain form link (full URL, same request-derived scheme/host — `guestFormURL` set by
+`AnimalsResource.Show`) is displayed under the QR code in the modal.
 
 **Business Logic**:
 - Lookup by animal number `"123"` or `"123/24"` (same grammar as the animals list;

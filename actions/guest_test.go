@@ -3,6 +3,7 @@ package actions
 import (
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,6 +17,30 @@ import (
 // ---------------------------------------------------------------------------
 // guest.go: phone normalization + matching (pure functions)
 // ---------------------------------------------------------------------------
+
+// TestGuestQRRequestURL pins the QR/general URL composition: scheme and host
+// must come from the incoming request (incl. X-Forwarded-Proto), so the QR
+// code always points at the same host the staff page was loaded from.
+func TestGuestQRRequestURL(t *testing.T) {
+	r := httptest.NewRequest("GET", "/animals/33/qr.png", nil)
+	r.Host = "creaves.example.org"
+	r.Header.Set("X-Forwarded-Proto", "https")
+
+	got := guestStatusURL(guestScheme(r), r.Host, "33/21", "abc123", "fr")
+	want := "https://creaves.example.org/guest/?number=33%2F21&token=abc123&lang=fr"
+	if got != want {
+		t.Fatalf("guestStatusURL = %q, want %q", got, want)
+	}
+
+	// Same request without forwarded proto and behind TLS-less dev server.
+	r2 := httptest.NewRequest("GET", "/animals/33/qr.png", nil)
+	r2.Host = "192.168.1.10:3000"
+	got2 := guestStatusURL(guestScheme(r2), r2.Host, "33/21", "", "")
+	want2 := "http://192.168.1.10:3000/guest/?number=33%2F21"
+	if got2 != want2 {
+		t.Fatalf("guestStatusURL = %q, want %q", got2, want2)
+	}
+}
 
 func TestGuestNormalizePhone(t *testing.T) {
 	t.Parallel()
@@ -304,16 +329,94 @@ func TestGuestLookupAndVerify(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGuestStatusURL(t *testing.T) {
-	got := guestStatusURL("https", "creaves.example.org", "1766/26")
-	want := "https://creaves.example.org/guest/?number=1766%2F26"
+	got := guestStatusURL("https", "creaves.example.org", "1766/26",
+		"abcd1234", "fr")
+	want := "https://creaves.example.org/guest/?number=1766%2F26&token=abcd1234&lang=fr"
 	if got != want {
 		t.Errorf("guestStatusURL = %q, want %q", got, want)
 	}
 
-	got = guestStatusURL("http", "localhost:3000", "123")
+	got = guestStatusURL("http", "localhost:3000", "123", "", "")
 	want = "http://localhost:3000/guest/?number=123"
 	if got != want {
 		t.Errorf("guestStatusURL plain = %q, want %q", got, want)
+	}
+}
+
+func TestGuestPhoneToken(t *testing.T) {
+	tok := guestPhoneToken("1766/26", "06 12 34 56 78")
+	if len(tok) != 64 {
+		t.Errorf("guestPhoneToken length = %d, want 64 (hex sha256)", len(tok))
+	}
+	// deterministic
+	if again := guestPhoneToken("1766/26", "06 12 34 56 78"); again != tok {
+		t.Errorf("guestPhoneToken not deterministic: %q != %q", again, tok)
+	}
+	// equivalent phone spellings may hash differently — the token is always
+	// generated from the stored phone and compared to itself, so only
+	// determinism matters, not cross-spelling equivalence.
+	if eq := guestPhoneToken("1766/26", "0612345678"); eq != tok {
+		t.Logf("note: spaced vs compact spelling hash differently (%q)", eq)
+	}
+	// different animal number (salt) => different token
+	if diff := guestPhoneToken("1767/26", "06 12 34 56 78"); diff == tok {
+		t.Error("guestPhoneToken ignores the animal number salt")
+	}
+	// different phone => different token
+	if diff := guestPhoneToken("1766/26", "06 12 34 56 79"); diff == tok {
+		t.Error("guestPhoneToken ignores the phone number")
+	}
+	// raw phone never appears in the token
+	if strings.Contains(tok, "0612345678") {
+		t.Error("guestPhoneToken leaks the raw phone number")
+	}
+}
+
+func TestGuestTokenMatches(t *testing.T) {
+	tok := guestPhoneToken("1766/26", "0612345678")
+	if !guestTokenMatches(tok, tok) {
+		t.Error("guestTokenMatches should accept the identical token")
+	}
+	if guestTokenMatches(tok, guestPhoneToken("1766/26", "0699999999")) {
+		t.Error("guestTokenMatches accepted a wrong token")
+	}
+	if guestTokenMatches(tok, "") || guestTokenMatches("", tok) || guestTokenMatches("", "") {
+		t.Error("guestTokenMatches must reject empty tokens")
+	}
+}
+
+// TestGuestStoredPhoneToken exercises the AnimalQR direct-link logic against
+// DB fixtures: the stored discoverer phone must produce the token accepted by
+// the direct guest link.
+func TestGuestStoredPhoneToken(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createGuestFixtures(t, tx)
+	a := &models.Animal{}
+	if err := tx.Find(a, f.animalID); err != nil {
+		t.Fatalf("load fixture animal: %v", err)
+	}
+
+	stored, err := guestStoredPhone(tx, a)
+	if err != nil {
+		t.Fatalf("guestStoredPhone: %v", err)
+	}
+	if stored == "" {
+		t.Fatal("fixture discoverer phone should be set")
+	}
+
+	number := a.YearNumberFormatted()
+	token := guestPhoneToken(number, stored)
+	if !guestTokenMatches(token, token) {
+		t.Fatal("roundtrip token mismatch")
+	}
+	if guestTokenMatches(token, guestPhoneToken(number, "wrong-phone")) {
+		t.Error("token from wrong phone must not match")
+	}
+
+	// URL built by AnimalQR must open the view directly (token + lang)
+	u := guestStatusURL("https", "creaves.example.org", number, token, "fr")
+	if !strings.Contains(u, "token="+token) || !strings.Contains(u, "lang=fr") {
+		t.Errorf("guestStatusURL missing token/lang: %q", u)
 	}
 }
 

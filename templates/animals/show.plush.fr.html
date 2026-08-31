@@ -673,6 +673,9 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       <div class="modal-body text-center">
         <p>Scannez ce QR code pour ouvrir la page de statut de l'animal <%= animal.YearNumberFormatted() %>.</p>
         <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR code" width="256" height="256" />
+        <hr class="my-3" />
+        <p class="small text-muted mb-1">Lien général (saisie manuelle du numéro et du numéro de téléphone) :</p>
+        <a href="<%= guestFormURL %>"><%= guestFormURL %></a>
       </div>
     </div>
   </div>
