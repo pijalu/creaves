@@ -32,77 +32,77 @@
         <%= if (current_user) {%>
         <%= if (current_user.Admin) {%>
         <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          Verwaltung
-        </a>
+        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Verwaltung">
+                  <i class="fas fa-cog"></i><span class="d-none d-xl-inline ml-1">Verwaltung</span>
+                </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
-          <a class="dropdown-item" href="<%= drugsPath() %>">Medikamente</a>
+          <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medikamente</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= animalagesPath() %>">Tieralter</a>
-          <a class="dropdown-item" href="<%= animaltypesPath() %>">Tierarten</a>
-          <a class="dropdown-item" href="<%= outtaketypesPath() %>">Abgabetypen</a>
-          <a class="dropdown-item" href="<%= caretypesPath() %>">Pflegetypen</a>
-          <a class="dropdown-item" href="<%= traveltypesPath() %>">Reisetypen</a>
-          <a class="dropdown-item" href="<%= localitiesPath() %>">Ortschaften</a>
-          <a class="dropdown-item" href="<%= zonesPath() %>">Zonen</a>
+          <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Tieralter</a>
+          <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Tierarten</a>
+          <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Abgabetypen</a>
+          <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Pflegetypen</a>
+          <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reisetypen</a>
+          <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Ortschaften</a>
+          <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zonen</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= pathsPath() %>">Alle Routen</a>
+          <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> Alle Routen</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= usersPath() %>">Benutzer</a>
+          <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Benutzer</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/maintenance">Wartung</a>
+          <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Wartung</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/config">Konfiguration</a>
+          <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Konfiguration</a>
           <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/event_streams">Ereignisstrom</a>
+          <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Ereignisstrom</a>
         </div>
         </li>
         <% } %>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Berichte
-          </a>
+          <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Berichte">
+                      <i class="fas fa-chart-bar"></i><span class="d-none d-xl-inline ml-1">Berichte</span>
+                    </a>
           <div class="dropdown-menu" aria-labelledby="reportDropdown">
-            <a class="dropdown-item" href="<%= registertablePath() %>">Register</a>
-            <a class="dropdown-item" href="<%= registersnapshotPath() %>">Schnappschuss</a>
-            <a class="dropdown-item" href="/reports/annual"><%= t("nav.reports_annual") %></a>
+            <a class="dropdown-item" href="<%= registertablePath() %>"><i class="fas fa-table"></i> Register</a>
+            <a class="dropdown-item" href="<%= registersnapshotPath() %>"><i class="fas fa-camera"></i> Schnappschuss</a>
+            <a class="dropdown-item" href="/reports/annual"><i class="fas fa-calendar-alt"></i> <%= t("nav.reports_annual") %></a>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="<%= exportCsvPath() %>">CSV-Exporte</a>
+            <a class="dropdown-item" href="<%= exportCsvPath() %>"><i class="fas fa-file-csv"></i> CSV-Exporte</a>
             <div class="dropdown-divider"></div>
-            <a class="dropdown-item" href="<%= exportExcelPath() %>">Excel-Exporte</a>
+            <a class="dropdown-item" href="<%= exportExcelPath() %>"><i class="fas fa-file-excel"></i> Excel-Exporte</a>
           </div>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= dashboardPath() %>">Übersicht</a>
+          <a class="nav-link" href="<%= dashboardPath() %>" title="Übersicht"><i class="fas fa-tachometer-alt"></i><span class="d-none d-xl-inline ml-1">Übersicht</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= feedingPath() %>">Fütterung</a>
+          <a class="nav-link" href="<%= feedingPath() %>" title="Fütterung"><i class="fas fa-utensils"></i><span class="d-none d-xl-inline ml-1">Fütterung</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= logentriesPath() %>">Protokoll</a>
+          <a class="nav-link" href="<%= logentriesPath() %>" title="Protokoll"><i class="fas fa-clipboard-list"></i><span class="d-none d-xl-inline ml-1">Protokoll</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= animalsPath() %>">Tiere</a>
+          <a class="nav-link" href="<%= animalsPath() %>" title="Tiere"><i class="fas fa-paw"></i><span class="d-none d-xl-inline ml-1">Tiere</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= newReceptionPath() %>" title="Aufnahme"><i class="fa fa-plus-circle"></i><span class="d-none d-xl-inline ml-1">Aufnahme</span></a>
+          <a class="nav-link" href="<%= newReceptionPath() %>" title="Aufnahme"><i class="fas fa-plus-circle"></i><span class="d-none d-xl-inline ml-1">Aufnahme</span></a>
         </li>
 
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            Neu
-          </a>
+          <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Neu">
+                      <i class="fas fa-plus"></i><span class="d-none d-xl-inline ml-1">Neu</span>
+                    </a>
           <div class="dropdown-menu" aria-labelledby="newEntryDropdown">
-            <a class="dropdown-item" href="<%= newCaresPath() %>">Pflege</a>
-            <a class="dropdown-item" href="<%= newVeterinaryvisitsPath() %>">Tierarzt</a>
-            <a class="dropdown-item" href="<%= newTreatmentsPath() %>">Behandlung</a>
-            <a class="dropdown-item" href="<%= newOuttakesPath() %>">Abgabe</a>
+            <a class="dropdown-item" href="<%= newCaresPath() %>"><i class="fas fa-hand-holding-heart"></i> Pflege</a>
+            <a class="dropdown-item" href="<%= newVeterinaryvisitsPath() %>"><i class="fas fa-stethoscope"></i> Tierarzt</a>
+            <a class="dropdown-item" href="<%= newTreatmentsPath() %>"><i class="fas fa-syringe"></i> Behandlung</a>
+            <a class="dropdown-item" href="<%= newOuttakesPath() %>"><i class="fas fa-sign-out-alt"></i> Abgabe</a>
           </div>
         </li>
       <%}%>
@@ -111,29 +111,29 @@
             <%= if (current_user) {%>
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                  <%= current_user.Login %>
-                </a>
+                                  <i class="fas fa-user"></i><span class="d-none d-xl-inline ml-1"><%= current_user.Login %></span>
+                                </a>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                   <%= if (!current_user.Shared) {%>
-                  <a class="dropdown-item" href="<%= travelsPath() %>">Reisen</a>
+                  <a class="dropdown-item" href="<%= travelsPath() %>"><i class="fas fa-suitcase"></i> Reisen</a>
                   <div class="dropdown-divider"></div>
                   <% } %>
                   <%= langLinks(request.URL.RequestURI(), "dropdown-item") %>
                   <%= if (!current_user.Shared) {%>
                   <div class="dropdown-divider"></div>
-                  <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>">Bearbeiten</a>
+                  <a class="dropdown-item" href="<%= editUserPath({ user_id: current_user.ID, self: true}) %>"><i class="fas fa-user-edit"></i> Bearbeiten</a>
                   <div class="dropdown-divider"></div>
-                  <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>">Abmelden</a>
+                  <a data-method="DELETE" class="dropdown-item" href="<%=authPath() %>"><i class="fas fa-sign-out-alt"></i> Abmelden</a>
                   <% } %>
                 </div>
               </li>
             <% } else {%>
             <%= langLinks(newAuthPath(), "nav-link") %>
             <li class="nav-item">
-                <a href="<%= newAuthPath() %>" class="nav-link">Anmelden</a>
+                <a href="<%= newAuthPath() %>" class="nav-link" title="Anmelden"><i class="fas fa-sign-in-alt"></i><span class="d-none d-xl-inline ml-1">Anmelden</span></a>
             </li>
             <li class="nav-item">
-                <a href="<%= newRegistrationPath() %>" class="nav-link">Registrieren</a>
+                <a href="<%= newRegistrationPath() %>" class="nav-link" title="Registrieren"><i class="fas fa-user-plus"></i><span class="d-none d-xl-inline ml-1">Registrieren</span></a>
             </li>
             <% } %>
       </ul>
