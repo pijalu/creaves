@@ -48,6 +48,11 @@ func setupReportsAnnualFixtures(t *testing.T) {
 	t.Helper()
 	now := "NOW()"
 
+	// Pre-clean residue from a previous crashed run (t.Cleanup only fires on
+	// graceful exits; a killed test process would otherwise leave rows that
+	// make these fixed-id INSERTs fail with duplicate-key errors).
+	teardownReportsAnnualFixtures(t)
+
 	raftExec(t, "INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('11111111-1111-1111-1111-1111111111a1', 'RAFT Young', 0, "+now+", "+now+")")
 	raftExec(t, "INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('11111111-1111-1111-1111-1111111111a2', 'RAFT Adult', 0, "+now+", "+now+")")
 	raftExec(t, "INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES ('22222222-2222-2222-2222-2222222222a1', 'RAFT Type', 0, "+now+", "+now+")")
