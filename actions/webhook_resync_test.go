@@ -17,7 +17,11 @@ import (
 // go out with empty outtake.type and entry_cause — the console then stored
 // NULLs and annual-report buckets silently lost the data.
 
-func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
+// seedResyncNestedFixture inserts animal 985049 with its full association
+// chain and registers cleanup (pre-clean first so a Fatalf mid-setup cannot
+// leave residue from a previous failed run behind).
+func seedResyncNestedFixture(t *testing.T) {
+	t.Helper()
 	now := "NOW()"
 
 	exec := func(q string, args ...interface{}) {
@@ -27,38 +31,7 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 		}
 	}
 
-	// Pre-clean residue from a previous failed run (t.Cleanup is registered
-	// after the inserts, so a Fatalf mid-setup would leave rows behind).
-	for _, q := range []string{
-		"DELETE FROM event_streams WHERE animal_id = 985049",
-		"DELETE FROM resync_runs WHERE instance_id = 'rsync-resync-test'",
-		"DELETE FROM animals WHERE id = 985049",
-		"DELETE FROM outtakes WHERE id = '77777777-0000-0000-0000-0000000000f0'",
-		"DELETE FROM discoveries WHERE id = '66666666-0000-0000-0000-0000000000f0'",
-		"DELETE FROM intakes WHERE id = '55555555-0000-0000-0000-0000000000f0'",
-		"DELETE FROM discoverers WHERE id = 'dddddddd-4444-4444-4444-4444444444f1'",
-		"DELETE FROM entry_causes WHERE id = 'RSYNC_EC1'",
-		"DELETE FROM outtaketypes WHERE id = 'cccccccc-3333-3333-3333-3333333333f1'",
-		"DELETE FROM animaltypes WHERE id = 'bbbbbbbb-2222-2222-2222-2222222222f1'",
-		"DELETE FROM animalages WHERE id = 'aaaaaaaa-1111-1111-1111-1111111111f1'",
-	} {
-		if err := models.DB.RawQuery(q).Exec(); err != nil {
-			t.Logf("pre-clean failed: %v (%s)", err, q)
-		}
-	}
-
-	exec("INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('aaaaaaaa-1111-1111-1111-1111111111f1', 'RSYNC Young', 0, " + now + ", " + now + ")")
-	exec("INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES ('bbbbbbbb-2222-2222-2222-2222222222f1', 'RSYNC Type', 0, " + now + ", " + now + ")")
-	exec("INSERT INTO outtaketypes (id, name, `def`, created_at, updated_at, dead, rating, error) VALUES ('cccccccc-3333-3333-3333-3333333333f1', 'RSYNC_REL', 0, " + now + ", " + now + ", 0, 1, 0)")
-	exec("INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES ('RSYNC_EC1', 'RSYNC_C1', 'RSYNC_D1', 'RSYNC_N1', 'x', " + now + ", " + now + ", 1)")
-	exec("INSERT INTO discoverers (id, created_at, updated_at) VALUES ('dddddddd-4444-4444-4444-4444444444f1', " + now + ", " + now + ")")
-
-	exec("INSERT INTO intakes (id, date, created_at, updated_at) VALUES ('55555555-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', " + now + ", " + now + ")")
-	exec("INSERT INTO discoveries (id, date, discoverer_id, entry_cause_id, created_at, updated_at) VALUES ('66666666-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', 'dddddddd-4444-4444-4444-4444444444f1', 'RSYNC_EC1', " + now + ", " + now + ")")
-	exec("INSERT INTO outtakes (id, date, outtaketype_id, created_at, updated_at) VALUES ('77777777-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', 'cccccccc-3333-3333-3333-3333333333f1', " + now + ", " + now + ")")
-	exec("INSERT INTO animals (id, species, animalage_id, animaltype_id, discovery_id, intake_id, outtake_id, created_at, updated_at, year, yearNumber, IntakeDate) VALUES (985049, 'RSYNC_Hedgehog', 'aaaaaaaa-1111-1111-1111-1111111111f1', 'bbbbbbbb-2222-2222-2222-2222222222f1', '66666666-0000-0000-0000-0000000000f0', '55555555-0000-0000-0000-0000000000f0', '77777777-0000-0000-0000-0000000000f0', " + now + ", " + now + ", 1998, 50, '1998-06-01 10:00:00')")
-
-	t.Cleanup(func() {
+	cleanup := func(label string) {
 		for _, q := range []string{
 			"DELETE FROM event_streams WHERE animal_id = 985049",
 			"DELETE FROM resync_runs WHERE instance_id = 'rsync-resync-test'",
@@ -73,10 +46,28 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 			"DELETE FROM animalages WHERE id = 'aaaaaaaa-1111-1111-1111-1111111111f1'",
 		} {
 			if err := models.DB.RawQuery(q).Exec(); err != nil {
-				t.Logf("teardown failed: %v (%s)", err, q)
+				t.Logf("%s failed: %v (%s)", label, err, q)
 			}
 		}
-	})
+	}
+	cleanup("pre-clean")
+
+	exec("INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('aaaaaaaa-1111-1111-1111-1111111111f1', 'RSYNC Young', 0, " + now + ", " + now + ")")
+	exec("INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES ('bbbbbbbb-2222-2222-2222-2222222222f1', 'RSYNC Type', 0, " + now + ", " + now + ")")
+	exec("INSERT INTO outtaketypes (id, name, `def`, created_at, updated_at, dead, rating, error) VALUES ('cccccccc-3333-3333-3333-3333333333f1', 'RSYNC_REL', 0, " + now + ", " + now + ", 0, 1, 0)")
+	exec("INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES ('RSYNC_EC1', 'RSYNC_C1', 'RSYNC_D1', 'RSYNC_N1', 'x', " + now + ", " + now + ", 1)")
+	exec("INSERT INTO discoverers (id, created_at, updated_at) VALUES ('dddddddd-4444-4444-4444-4444444444f1', " + now + ", " + now + ")")
+
+	exec("INSERT INTO intakes (id, date, created_at, updated_at) VALUES ('55555555-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', " + now + ", " + now + ")")
+	exec("INSERT INTO discoveries (id, date, discoverer_id, entry_cause_id, created_at, updated_at) VALUES ('66666666-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', 'dddddddd-4444-4444-4444-4444444444f1', 'RSYNC_EC1', " + now + ", " + now + ")")
+	exec("INSERT INTO outtakes (id, date, outtaketype_id, created_at, updated_at) VALUES ('77777777-0000-0000-0000-0000000000f0', '1998-06-01 10:00:00', 'cccccccc-3333-3333-3333-3333333333f1', " + now + ", " + now + ")")
+	exec("INSERT INTO animals (id, species, animalage_id, animaltype_id, discovery_id, intake_id, outtake_id, created_at, updated_at, year, yearNumber, IntakeDate) VALUES (985049, 'RSYNC_Hedgehog', 'aaaaaaaa-1111-1111-1111-1111111111f1', 'bbbbbbbb-2222-2222-2222-2222222222f1', '66666666-0000-0000-0000-0000000000f0', '55555555-0000-0000-0000-0000000000f0', '77777777-0000-0000-0000-0000000000f0', " + now + ", " + now + ", 1998, 50, '1998-06-01 10:00:00')")
+
+	t.Cleanup(func() { cleanup("teardown") })
+}
+
+func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
+	seedResyncNestedFixture(t)
 
 	run := &models.ResyncRun{
 		ID:           uuid.Must(uuid.NewV4()),
@@ -124,6 +115,63 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 	}
 }
 
+// purgeResyncCommitTestData wipes rows of the 'rsync-commit-test' instance
+// (setup pre-clean + t.Cleanup registration).
+func purgeResyncCommitTestData(t *testing.T) {
+	t.Helper()
+	purge := func(label string) {
+		if err := models.DB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
+			t.Logf("%s resync_runs: %v", label, err)
+		}
+		if err := models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
+			t.Logf("%s event_streams: %v", label, err)
+		}
+	}
+	// Stale runs from a previous crashed execution would make StartResync
+	// fail with "resync already running"; stale events pollute the dev DB.
+	purge("purge stale")
+	t.Cleanup(func() { purge("cleanup") })
+}
+
+// waitForResyncProgress polls the run row until the worker has persisted
+// progress (processed/created > 0) and fails the test if it never does.
+func waitForResyncProgress(t *testing.T, runID uuid.UUID) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		run := &models.ResyncRun{}
+		if err := models.DB.Find(run, runID); err != nil {
+			t.Fatalf("run row vanished: %v", err)
+		}
+		if run.Status != "running" {
+			t.Fatalf("run left 'running' without progress: status=%s", run.Status)
+		}
+		if run.AnimalsProcessed > 0 || run.EventsCreated > 0 {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("worker made no progress within 30s: run still 'running' at animals_processed=0")
+}
+
+// waitForResyncCancel polls the run row until it leaves 'running' after the
+// status was flipped to 'cancelled'.
+func waitForResyncCancel(t *testing.T, runID uuid.UUID) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	for time.Now().Before(deadline) {
+		run := &models.ResyncRun{}
+		if err := models.DB.Find(run, runID); err != nil {
+			t.Fatalf("run row vanished after cancel: %v", err)
+		}
+		if run.Status != "running" {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Errorf("worker ignored cancellation: run still 'running' after 30s")
+}
+
 // Regression test: StartResync must leave the run row COMMITTED before
 // returning. The handler passes the request transaction, whose commit only
 // happens after the handler returns — but the background worker reads the
@@ -132,28 +180,13 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 // get "no rows", and exit silently — leaving the run stranded in 'running'
 // forever (observed in e2e: run stuck at animals_processed=0, no error).
 func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
-	// Stale runs from a previous crashed execution would make StartResync
-	// fail with "resync already running"; stale events keep the dev DB polluted.
-	if err := models.DB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
-		t.Fatalf("purge stale runs: %v", err)
-	}
-	if err := models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
-		t.Fatalf("purge stale events: %v", err)
-	}
+	purgeResyncCommitTestData(t)
 	saved := CurrentConfig
 	CurrentConfig = &models.Config{InstanceID: "rsync-commit-test"}
 	if err := CurrentConfig.SetSettings(models.ConfigSettings{WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable"}); err != nil {
 		t.Fatalf("SetSettings: %v", err)
 	}
-	t.Cleanup(func() {
-		CurrentConfig = saved
-		if err := models.DB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
-			t.Logf("cleanup: %v", err)
-		}
-		if err := models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = 'rsync-commit-test'").Exec(); err != nil {
-			t.Logf("cleanup: %v", err)
-		}
-	})
+	t.Cleanup(func() { CurrentConfig = saved })
 
 	var runID uuid.UUID
 	err := models.DB.Transaction(func(tx *pop.Connection) error {
@@ -183,43 +216,14 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 	//   2. the worker is alive and persisting progress through the row
 	//      (animals_processed > 0 — RunResync updates the row per animal),
 	// then cancel and make sure the row leaves 'running' (no stranded run).
-	deadline := time.Now().Add(30 * time.Second)
-	progressed := false
-	for time.Now().Before(deadline) {
-		run := &models.ResyncRun{}
-		if err := models.DB.Find(run, runID); err != nil {
-			t.Fatalf("run row vanished: %v", err)
-		}
-		if run.Status != "running" {
-			t.Fatalf("run left 'running' without progress: status=%s", run.Status)
-		}
-		if run.AnimalsProcessed > 0 || run.EventsCreated > 0 {
-			progressed = true
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	if !progressed {
-		t.Fatalf("worker made no progress within 30s: run still 'running' at animals_processed=0")
-	}
+	waitForResyncProgress(t, runID)
 
 	// Ask the worker to stop: RunResync re-reads the row each animal and
 	// returns as soon as status is 'cancelled'.
 	if err := models.DB.RawQuery("UPDATE resync_runs SET status = 'cancelled' WHERE id = ?", runID).Exec(); err != nil {
 		t.Fatalf("cancel run: %v", err)
 	}
-	deadline = time.Now().Add(30 * time.Second)
-	for time.Now().Before(deadline) {
-		run := &models.ResyncRun{}
-		if err := models.DB.Find(run, runID); err != nil {
-			t.Fatalf("run row vanished after cancel: %v", err)
-		}
-		if run.Status != "running" {
-			return
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-	t.Errorf("worker ignored cancellation: run still 'running' after 30s")
+	waitForResyncCancel(t, runID)
 }
 
 // Regression test for the cleanup→resync rebuild flow: a normal resync skips
@@ -227,7 +231,10 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 // but WRONG after the console purged the instance — nothing would be
 // re-sent. Force mode must re-queue the existing deterministic events
 // (delivered_at reset) so the webhook worker delivers them again.
-func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
+// seedResyncForceFixture inserts one complete animal (age/type/intake/
+// discovery/outtake chain) under the fixed id 985050 and registers cleanup.
+func seedResyncForceFixture(t *testing.T) {
+	t.Helper()
 	now := "NOW()"
 	exec := func(q string, args ...interface{}) {
 		t.Helper()
@@ -265,27 +272,33 @@ func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
 	exec("INSERT INTO outtakes (id, date, outtaketype_id, created_at, updated_at) VALUES ('77777777-0000-0000-0000-0000000000f1', '1999-06-01 10:00:00', 'cccccccc-3333-3333-3333-3333333333f2', " + now + ", " + now + ")")
 	exec("INSERT INTO animals (id, species, animalage_id, animaltype_id, discovery_id, intake_id, outtake_id, created_at, updated_at, year, yearNumber, IntakeDate) VALUES (985050, 'RSYNC_Hedgehog', 'aaaaaaaa-1111-1111-1111-1111111111f2', 'bbbbbbbb-2222-2222-2222-2222222222f2', '66666666-0000-0000-0000-0000000000f1', '55555555-0000-0000-0000-0000000000f1', '77777777-0000-0000-0000-0000000000f1', " + now + ", " + now + ", 1999, 51, '1999-06-01 10:00:00')")
 	t.Cleanup(clean)
+}
 
-	newRun := func() *models.ResyncRun {
-		run := &models.ResyncRun{
-			ID: uuid.Must(uuid.NewV4()), InstanceID: "rsync-resync-test",
-			Status: "running", StartedAt: time.Now(), TotalAnimals: 1,
-		}
-		if err := models.DB.Create(run); err != nil {
-			t.Fatalf("create run: %v", err)
-		}
-		return run
+// runAndReloadResync starts a fresh run for the fixture instance, executes
+// it and re-reads the row (RunResync mutates its own copy).
+func runAndReloadResync(t *testing.T, force bool) *models.ResyncRun {
+	t.Helper()
+	run := &models.ResyncRun{
+		ID: uuid.Must(uuid.NewV4()), InstanceID: "rsync-resync-test",
+		Status: "running", StartedAt: time.Now(), TotalAnimals: 1,
 	}
+	if err := models.DB.Create(run); err != nil {
+		t.Fatalf("create run: %v", err)
+	}
+	if err := RunResync(context.Background(), models.DB, run.ID, force); err != nil {
+		t.Fatalf("RunResync (force=%v): %v", force, err)
+	}
+	if err := models.DB.Find(run, run.ID); err != nil {
+		t.Fatalf("reload run: %v", err)
+	}
+	return run
+}
+
+func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
+	seedResyncForceFixture(t)
 
 	// 1st run (normal): the state event is created, still undelivered.
-	run1 := newRun()
-	if err := RunResync(context.Background(), models.DB, run1.ID, false); err != nil {
-		t.Fatalf("RunResync 1: %v", err)
-	}
-	// RunResync mutates its own copy of the row: reload before asserting.
-	if err := models.DB.Find(run1, run1.ID); err != nil {
-		t.Fatalf("reload run1: %v", err)
-	}
+	run1 := runAndReloadResync(t, false)
 	ev := &models.EventStream{}
 	if err := models.DB.Where("animal_id = ? AND instance_id = ?", 985050, "rsync-resync-test").First(ev); err != nil {
 		t.Fatalf("no event emitted: %v", err)
@@ -300,13 +313,7 @@ func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
 	}
 
 	// 2nd run (normal): skipped unchanged, delivered_at untouched.
-	run2 := newRun()
-	if err := RunResync(context.Background(), models.DB, run2.ID, false); err != nil {
-		t.Fatalf("RunResync 2: %v", err)
-	}
-	if err := models.DB.Find(run2, run2.ID); err != nil {
-		t.Fatalf("reload run2: %v", err)
-	}
+	run2 := runAndReloadResync(t, false)
 	if run2.EventsCreated != 0 {
 		t.Fatalf("run2 (normal) must not create or re-queue: created=%d skipped=%d", run2.EventsCreated, run2.EventsSkippedUnchanged)
 	}
@@ -319,13 +326,7 @@ func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
 	}
 
 	// 3rd run (force): the delivered event is re-queued for delivery.
-	run3 := newRun()
-	if err := RunResync(context.Background(), models.DB, run3.ID, true); err != nil {
-		t.Fatalf("RunResync 3: %v", err)
-	}
-	if err := models.DB.Find(run3, run3.ID); err != nil {
-		t.Fatalf("reload run3: %v", err)
-	}
+	run3 := runAndReloadResync(t, true)
 	if run3.EventsSkippedUnchanged != 0 {
 		t.Fatalf("run3 (force) must not skip: created=%d skipped=%d", run3.EventsCreated, run3.EventsSkippedUnchanged)
 	}

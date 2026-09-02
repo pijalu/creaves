@@ -79,6 +79,43 @@ func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (
 // With force=true, already-known (instance, animal, hash) events are re-queued
 // (delivered_at reset to NULL) so the webhook worker delivers them again;
 // the console rebuilds from them. Without force they are counted as skipped.
+// resyncAbortCheck re-reads the run row and reports whether the loop must
+// stop: either the context was cancelled or the run was cancelled by the
+// user (status flips to 'cancelled' from the web UI).
+func resyncAbortCheck(ctx context.Context, tx *pop.Connection, run *models.ResyncRun) (stop bool, err error) {
+	if err := ctx.Err(); err != nil {
+		run.Cancel(time.Now())
+		_ = tx.Update(run)
+		return true, err
+	}
+	if err := tx.Where("id = ?", run.ID).First(run); err != nil {
+		return true, err
+	}
+	if run.Status == "cancelled" {
+		return true, nil
+	}
+	return false, nil
+}
+
+// processResyncAnimal builds and enqueues the state event for one animal,
+// incrementing the processed counter and persisting the run.
+func processResyncAnimal(tx *pop.Connection, run *models.ResyncRun, force bool, animal *models.Animal) error {
+	payload := buildEventPayloadWithTranslations(tx, animal)
+	if payload == nil {
+		appendResyncError(run, animal.ID, "failed to build payload")
+	} else {
+		payload.CurrentStatus = "in_care"
+		if animal.Outtake != nil {
+			payload.CurrentStatus = "released"
+		}
+		if err := enqueueResyncStateEvent(tx, run, force, animal.ID, *payload); err != nil {
+			return err
+		}
+	}
+	run.AnimalsProcessed++
+	return tx.Update(run)
+}
+
 func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force bool) error {
 	run := &models.ResyncRun{}
 	if err := tx.Find(run, runID); err != nil {
@@ -105,33 +142,15 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		return finishResync(tx, run, err)
 	}
 	for i := range *animals {
-		if err := ctx.Err(); err != nil {
-			run.Cancel(time.Now())
-			_ = tx.Update(run)
+		stop, err := resyncAbortCheck(ctx, tx, run)
+		if err != nil {
 			return err
 		}
-		if err := tx.Where("id = ?", run.ID).First(run); err != nil {
-			return err
-		}
-		if run.Status == "cancelled" {
+		if stop {
 			return nil
 		}
-		animal := &(*animals)[i]
-		payload := buildEventPayloadWithTranslations(tx, animal)
-		if payload == nil {
-			appendResyncError(run, animal.ID, "failed to build payload")
-		} else {
-			payload.CurrentStatus = "in_care"
-			if animal.Outtake != nil {
-				payload.CurrentStatus = "released"
-			}
-			if err := enqueueResyncStateEvent(tx, run, force, animal.ID, *payload); err != nil {
-				return finishResync(tx, run, err)
-			}
-		}
-		run.AnimalsProcessed++
-		if err := tx.Update(run); err != nil {
-			return err
+		if err := processResyncAnimal(tx, run, force, &(*animals)[i]); err != nil {
+			return finishResync(tx, run, err)
 		}
 	}
 	run.Complete(time.Now())
