@@ -16,7 +16,12 @@ import (
 var resyncStartMu sync.Mutex
 
 // StartResync creates one run and schedules its work on a background goroutine.
-func StartResync(tx *pop.Connection, instanceID string, total int) (*models.ResyncRun, error) {
+// With force=true, state events that already exist (same instance/animal/
+// content hash) are re-queued for delivery instead of being skipped: this is
+// the "full rebuild" path used after the console side purged the instance
+// (cleanup). Re-delivered events keep their deterministic UUIDs, so the
+// console upsert/dedup keeps the operation idempotent.
+func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (*models.ResyncRun, error) {
 	resyncStartMu.Lock()
 	defer resyncStartMu.Unlock()
 	if !IsWebhookEnabled() {
@@ -63,7 +68,7 @@ func StartResync(tx *pop.Connection, instanceID string, total int) (*models.Resy
 		workerTx = tx
 	}
 	go func() {
-		if err := RunResync(context.Background(), workerTx, run.ID); err != nil {
+		if err := RunResync(context.Background(), workerTx, run.ID, force); err != nil {
 			log.Printf("resync run %s failed: %v", run.ID, err)
 		}
 	}()
@@ -71,7 +76,10 @@ func StartResync(tx *pop.Connection, instanceID string, total int) (*models.Resy
 }
 
 // RunResync enqueues deterministic full-state events and persists progress after each animal.
-func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID) error {
+// With force=true, already-known (instance, animal, hash) events are re-queued
+// (delivered_at reset to NULL) so the webhook worker delivers them again;
+// the console rebuilds from them. Without force they are counted as skipped.
+func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force bool) error {
 	run := &models.ResyncRun{}
 	if err := tx.Find(run, runID); err != nil {
 		// Never leave a run stranded in 'running': mark it failed
@@ -117,24 +125,8 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID) error {
 			if animal.Outtake != nil {
 				payload.CurrentStatus = "released"
 			}
-			hash := StateContentHashPayload(run.InstanceID, *payload)
-			var existing models.EventStream
-			exists, err := tx.Where("instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?", run.InstanceID, animal.ID, string(models.EventTypeAnimalState), hash).Exists(&existing)
-			if err != nil {
+			if err := enqueueResyncStateEvent(tx, run, force, animal.ID, *payload); err != nil {
 				return finishResync(tx, run, err)
-			}
-			if exists {
-				run.EventsSkippedUnchanged++
-			} else {
-				id := StateEventUUID(run.InstanceID, animal.ID, hash)
-				event := &models.EventStream{ID: id, InstanceID: run.InstanceID, AnimalID: animal.ID, EventType: string(models.EventTypeAnimalState), ContentHash: &hash, ResyncRunID: &run.ID}
-				if err := event.SetPayload(*payload); err != nil {
-					appendResyncError(run, animal.ID, err.Error())
-				} else if err := tx.Create(event); err != nil {
-					return finishResync(tx, run, err)
-				} else {
-					run.EventsCreated++
-				}
 			}
 		}
 		run.AnimalsProcessed++
@@ -158,6 +150,47 @@ func appendResyncError(run *models.ResyncRun, animalID int, message string) {
 	errors = append(errors, map[string]interface{}{"animal_id": animalID, "error": message})
 	data, _ := json.Marshal(errors)
 	run.Errors = string(data)
+}
+
+// enqueueResyncStateEvent creates (or, in force mode, re-queues) the
+// deterministic full-state event for one animal.
+//   - Unknown (instance, animal, hash): create the event.
+//   - Known, force=false: counted as skipped unchanged.
+//   - Known, force=true: re-queue by resetting delivered_at so the webhook
+//     worker delivers it again; the deterministic UUID keeps the console
+//     side idempotent.
+func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, force bool, animalID int, payload models.EventPayload) error {
+	hash := StateContentHashPayload(run.InstanceID, payload)
+	var existing models.EventStream
+	exists, err := tx.Where("instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?", run.InstanceID, animalID, string(models.EventTypeAnimalState), hash).Exists(&existing)
+	if err != nil {
+		return err
+	}
+	if exists && !force {
+		run.EventsSkippedUnchanged++
+		return nil
+	}
+	if exists {
+		if err := tx.RawQuery(
+			"UPDATE event_streams SET delivered_at = NULL WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
+			run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
+		).Exec(); err != nil {
+			return err
+		}
+		run.EventsCreated++
+		return nil
+	}
+	id := StateEventUUID(run.InstanceID, animalID, hash)
+	event := &models.EventStream{ID: id, InstanceID: run.InstanceID, AnimalID: animalID, EventType: string(models.EventTypeAnimalState), ContentHash: &hash, ResyncRunID: &run.ID}
+	if err := event.SetPayload(payload); err != nil {
+		appendResyncError(run, animalID, err.Error())
+		return nil
+	}
+	if err := tx.Create(event); err != nil {
+		return err
+	}
+	run.EventsCreated++
+	return nil
 }
 
 func finishResync(tx *pop.Connection, run *models.ResyncRun, err error) error {

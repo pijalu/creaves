@@ -3,6 +3,7 @@ package actions
 import (
 	"creaves/models"
 	"fmt"
+	"strings"
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"net/http"
@@ -23,7 +24,8 @@ func WebhookResyncStart(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 	instanceID := GetInstanceID()
-	if _, err := StartResync(tx, instanceID, 0); err != nil {
+	force := strings.TrimSpace(c.Request().FormValue("force")) != ""
+	if _, err := StartResync(tx, instanceID, 0, force); err != nil {
 		return c.Error(http.StatusConflict, err)
 	}
 	return c.Redirect(http.StatusSeeOther, "/webhook_resync")
