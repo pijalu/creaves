@@ -36,5 +36,10 @@ require('select2/dist/js/i18n/nl.js');
 //require('bootstrap-table/dist/extensions/filter-control/bootstrap-table-filter-control.js');
 
 $(() => {
-    
+    // Close autocomplete suggestion lists on page scroll: they are absolutely
+    // positioned and would otherwise float over the sticky navbar once the
+    // input scrolls underneath it.
+    $(window).on('scroll', () => {
+        $('.autocomplete-suggestions').hide();
+    });
 });

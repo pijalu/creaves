@@ -9,15 +9,15 @@
 <div class="container p-3 my-3 border">
 <form id="goto_animal" action="<%=animalsPath()%>">
   <div class="form-row">
-    <div class="col-5">
+    <div class="col-4">
       <%= if (params["v"] == "type") { %>
         <a href="?v=zone"><span class="badge badge-info">Zone</span></a>
       <% } else { %>
         <a href="?v=type"><span class="badge badge-info">Type</span></a>
       <% } %>
     </div>
-    <div class="col-2">
-      <label for="goto_animalNumber" class="col-sm-2 col-form-label">Animal&nbsp;number</label>
+    <div class="col-auto">
+          <label for="goto_animalNumber" class="col-form-label text-sm-right">Animal&nbsp;number</label>
     </div>
     <div class="col-4">
       <input name="animal_year_number" type="text" class="form-control" id="animal_year_number" placeholder="123" 

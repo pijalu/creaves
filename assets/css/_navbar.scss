@@ -1,0 +1,12 @@
+// Compact navbar hamburger toggle.
+// Menu entries are now icon-only (labels hidden below xl), so the default
+// Bootstrap toggle (1.5em icon, .75rem side padding) looks oversized.
+.navbar-toggler {
+  padding: .25rem .5rem;
+  font-size: 1rem;
+
+  .navbar-toggler-icon {
+    width: 1.25em;
+    height: 1.25em;
+  }
+}
