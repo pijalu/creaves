@@ -24,6 +24,8 @@
   translation: "API-Schlüssel"
 - id: "config.show.api-key-not-set"
   translation: "Nicht festgelegt"
+- id: "config.show.api-key-prefix-hint"
+  translation: "Der Schlüssel wird angezeigt, damit Sie ihn in die Creaves Console kopieren oder abgleichen können. In der Konsole werden Schlüssel anhand der ersten Zeichen nach „creaves_“ identifiziert (z. B. creaves_ab12cd34…)."
 - id: "config.show.batch-size"
   translation: "Batchgröße"
 - id: "config.show.max-events-per-minute"

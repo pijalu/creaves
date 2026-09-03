@@ -46,8 +46,8 @@
 
 <div class="form-group">
   <label for="webhook_api_key">API Key</label>
-  <input type="password" class="form-control" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="Enter API key (leave blank to keep current)">
-  <small class="form-text text-muted">API key generated in Creaves Console. Not shown here for security — leave blank when editing to keep the current key.</small>
+  <input type="text" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="Enter API key (leave blank to keep current)" autocomplete="off">
+  <small class="form-text text-muted">API key generated in Creaves Console. Shown so you can copy or validate it — clear the field when editing to keep the current key.</small>
 </div>
 
 <div class="form-group">

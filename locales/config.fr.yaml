@@ -24,6 +24,8 @@
   translation: "Clé API"
 - id: "config.show.api-key-not-set"
   translation: "Non définie"
+- id: "config.show.api-key-prefix-hint"
+  translation: "La clé est visible pour permettre de la copier dans la Console Creaves ou de la valider. Dans la console, les clés sont identifiées par les premiers caractères après « creaves_ » (ex. creaves_ab12cd34…)."
 - id: "config.show.batch-size"
   translation: "Taille du lot"
 - id: "config.show.max-events-per-minute"
