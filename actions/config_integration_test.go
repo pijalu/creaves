@@ -130,9 +130,11 @@ func TestInitWebhookAtBoot(t *testing.T) {
 	StopWebhookWorker()
 }
 
-// TestInitWebhookAtBoot_NoopWhenDisabled proves boot does not start the worker
-// when webhook forwarding is off.
-func TestInitWebhookAtBoot_NoopWhenDisabled(t *testing.T) {
+// TestInitWebhookAtBoot_StartsWhenDisabled proves boot starts the worker even
+// when webhook forwarding is off: the worker also runs the hourly event
+// purge, so it must run regardless; delivery stays gated per-tick by
+// IsWebhookEnabled().
+func TestInitWebhookAtBoot_StartsWhenDisabled(t *testing.T) {
 	resetPusherState()
 	StopWebhookWorker()
 
@@ -152,7 +154,9 @@ func TestInitWebhookAtBoot_NoopWhenDisabled(t *testing.T) {
 	CurrentConfig = nil
 
 	InitWebhookAtBoot()
-	assert.False(t, IsWebhookWorkerRunning(), "worker must not start when disabled")
+	assert.True(t, IsWebhookWorkerRunning(), "worker should start at boot even when disabled (purge duty)")
+
+	StopWebhookWorker()
 }
 
 // TestTriggerWebhookDelivery proves the trigger attempts a delivery when enabled.

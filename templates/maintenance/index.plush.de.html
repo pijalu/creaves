@@ -25,9 +25,10 @@
     <p class="card-text">
       <strong>Aktiviert:</strong> <%= eventStreamEnabled %><br>
       <strong>Gesamtzahl Ereignisse:</strong> <%= totalEvents %><br>
-      <strong>Unverarbeitete Ereignisse:</strong> <%= unprocessedEvents %><br>
-      <strong>Verarbeitete Ereignisse:</strong> <%= processedEvents %>
+      <strong>Nicht zugestellte Ereignisse:</strong> <%= undeliveredEvents %><br>
+      <strong>Zugestellte Ereignisse:</strong> <%= deliveredEvents %>
     </p>
+    <p class="text-muted"><small>Ereignisse werden per Webhook an die Konsole zugestellt. Die Zustellung wird automatisch wiederholt, bis sie erfolgreich ist. Zugestellte Ereignisse werden nach 1 Tag automatisch gelöscht, nicht zugestellte nach 7 Tagen.</small></p>
     
     <div class="btn-group" role="group">
       <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
@@ -37,8 +38,14 @@
       <% } %>
       
       <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
-        <button type="submit" class="btn btn-warning ml-2" data-confirm="Dadurch werden alle verarbeiteten Ereignisse gelöscht. Fortfahren?">
-          Verarbeitete Ereignisse bereinigen
+        <button type="submit" class="btn btn-warning ml-2" data-confirm="Dadurch werden alle zugestellten Ereignisse gelöscht. Fortfahren?">
+          Zugestellte Ereignisse bereinigen
+        </button>
+      <% } %>
+
+      <%= form({action: "/maintenance/delete-all-events", method: "POST"}) { %>
+        <button type="submit" class="btn btn-danger ml-2" data-confirm="Dadurch werden ALLE Ereignisse gelöscht, einschließlich der noch nicht zugestellten. Fortfahren?">
+          Alle Ereignisse löschen
         </button>
       <% } %>
     </div>

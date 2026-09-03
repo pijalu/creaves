@@ -88,6 +88,16 @@ var (
 	pusherMu      sync.Mutex
 )
 
+// Event retention policy: delivered events are kept for 1 day,
+// undelivered events for 7 days. Older rows are purged automatically
+// by the webhook worker so the event_streams table does not grow
+// unbounded.
+const (
+	deliveredEventRetention   = 24 * time.Hour
+	undeliveredEventRetention = 7 * 24 * time.Hour
+	eventPurgeInterval        = time.Hour
+)
+
 // init initializes the webhook pusher
 func init() {
 	webhookPusher = &WebhookPusher{
@@ -113,33 +123,58 @@ func StartWebhookWorker() {
 	webhookTicker = ticker
 	stopChan = stop
 
-	go func() {
-		// Reference the LOCAL ticker and stop channel so that
-		// StopWebhookWorker nil-ing the package globals cannot race with a
-		// delivery already in flight (previously this read the global
-		// webhookTicker directly and could nil-deref on shutdown).
-		for {
-			select {
-			case <-ticker.C:
-				if !IsWebhookEnabled() {
-					continue
-				}
-				if webhookPusher.circuitBreaker.IsOpen() {
-					continue
-				}
-				if !webhookPusher.allowDelivery() {
-					continue
-				}
-				if err := deliverBatch(); err != nil {
-					fmt.Printf("Webhook delivery failed: %v\n", err)
-				}
-			case <-stop:
-				return
-			}
-		}
-	}()
+	go webhookWorkerLoop(ticker, stop)
 
 	fmt.Println("Webhook worker started")
+}
+
+// webhookWorkerLoop runs the worker's tick loop until the stop channel
+// fires. It references the LOCAL ticker and stop channel so that
+// StopWebhookWorker nil-ing the package globals cannot race with a delivery
+// already in flight (previously this read the global webhookTicker directly
+// and could nil-deref on shutdown).
+func webhookWorkerLoop(ticker *time.Ticker, stop chan bool) {
+	lastPurge := time.Time{} // zero value: purge runs on first tick
+	for {
+		select {
+		case <-ticker.C:
+			lastPurge = purgeExpiredEvents(lastPurge)
+			deliverPendingBatch()
+		case <-stop:
+			return
+		}
+	}
+}
+
+// purgeExpiredEvents purges expired events once per interval, even when the
+// webhook is disabled, so the event_streams table cannot grow unbounded. It
+// returns the timestamp of the last successful purge.
+func purgeExpiredEvents(lastPurge time.Time) time.Time {
+	if time.Since(lastPurge) < eventPurgeInterval {
+		return lastPurge
+	}
+	if err := purgeOldEvents(); err != nil {
+		fmt.Printf("Event purge failed: %v\n", err)
+		return lastPurge
+	}
+	return time.Now()
+}
+
+// deliverPendingBatch delivers one batch of pending events if delivery is
+// currently allowed (webhook enabled, circuit closed, rate limit not hit).
+func deliverPendingBatch() {
+	if !IsWebhookEnabled() {
+		return
+	}
+	if webhookPusher.circuitBreaker.IsOpen() {
+		return
+	}
+	if !webhookPusher.allowDelivery() {
+		return
+	}
+	if err := deliverBatch(); err != nil {
+		fmt.Printf("Webhook delivery failed: %v\n", err)
+	}
 }
 
 // StopWebhookWorker stops the background webhook delivery worker
@@ -197,6 +232,30 @@ func (wp *WebhookPusher) allowDelivery() bool {
 	}
 
 	return true
+}
+
+// purgeOldEvents deletes events that have outlived the retention
+// policy: delivered events older than deliveredEventRetention and
+// undelivered events older than undeliveredEventRetention.
+func purgeOldEvents() error {
+	deliveredCutoff := time.Now().Add(-deliveredEventRetention)
+	undeliveredCutoff := time.Now().Add(-undeliveredEventRetention)
+
+	if err := models.DB.RawQuery(
+		"DELETE FROM event_streams WHERE delivered_at IS NOT NULL AND delivered_at < ?",
+		deliveredCutoff,
+	).Exec(); err != nil {
+		return fmt.Errorf("failed to purge delivered events: %w", err)
+	}
+
+	if err := models.DB.RawQuery(
+		"DELETE FROM event_streams WHERE delivered_at IS NULL AND created_at < ?",
+		undeliveredCutoff,
+	).Exec(); err != nil {
+		return fmt.Errorf("failed to purge undelivered events: %w", err)
+	}
+
+	return nil
 }
 
 // deliverBatch queries undelivered events and sends them to the webhook
@@ -358,20 +417,24 @@ func RegisterWebhookShutdown(app *buffalo.App) {
 	})
 }
 
-// EnsureWebhookWorkerRunning starts the webhook worker if the webhook is
-// enabled and it is not already running. It is safe to call repeatedly.
+// EnsureWebhookWorkerRunning starts the webhook worker if it is not
+// already running. The worker is started unconditionally (even when webhook
+// forwarding is disabled) because it also runs the hourly event purge;
+// delivery itself remains gated per-tick by IsWebhookEnabled(). It is safe
+// to call repeatedly.
 func EnsureWebhookWorkerRunning() {
-	if IsWebhookEnabled() && !IsWebhookWorkerRunning() {
+	if !IsWebhookWorkerRunning() {
 		StartWebhookWorker()
 	}
 }
 
 // InitWebhookAtBoot loads the configuration from the database and starts the
-// webhook delivery worker when forwarding is enabled. It must be called at
-// application startup, once the database connection (models.DB) is available,
-// so that events queued before a restart are still delivered. A failure to
-// load the configuration is logged but never fatal: the worker remains stopped
-// and may be started lazily later (e.g. when the next event is published).
+// background webhook worker (delivery + hourly event purge). It must be called
+// at application startup, once the database connection (models.DB) is
+// available, so that events queued before a restart are still delivered and
+// expired events are purged. A failure to load the configuration is logged
+// but never fatal: the worker remains stopped and may be started lazily
+// later (e.g. when the next event is published).
 func InitWebhookAtBoot() {
 	if _, err := LoadConfig(models.DB); err != nil {
 		fmt.Printf("Webhook: failed to load config at boot: %v\n", err)

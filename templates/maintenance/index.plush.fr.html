@@ -1,4 +1,92 @@
 <h1>Maintenance</h1>
+
+<%= if (flash["info"]) { %>
+<div class="alert alert-info" role="alert">
+  <%= flash["info"] %>
+</div>
+<% } %>
+
+<%= if (flash["success"]) { %>
+<div class="alert alert-success" role="alert">
+  <%= flash["success"] %>
+</div>
+<% } %>
+
+<%= if (flash["danger"]) { %>
+<div class="alert alert-danger" role="alert">
+  <%= flash["danger"] %>
+</div>
+<% } %>
+
+<h2>Gestion du flux d'événements</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Statut du flux d'événements</h5>
+  <p class="card-text">
+    <strong>Activé :</strong> <%= eventStreamEnabled %><br>
+    <strong>Total des événements :</strong> <%= totalEvents %><br>
+    <strong>Événements non livrés :</strong> <%= undeliveredEvents %><br>
+    <strong>Événements livrés :</strong> <%= deliveredEvents %>
+  </p>
+  <p class="text-muted"><small>Les événements sont livrés à la Console Creaves via webhook. « Non livré » signifie que la console n'a pas encore confirmé la réception.</small></p>
+    
+  <div class="btn-group" role="group">
+    <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
+      <button type="submit" class="btn btn-primary" data-confirm="Ceci créera un instantané du flux d'événements pour tous les animaux. Continuer ?">
+        Créer un instantané des événements
+      </button>
+    <% } %>
+      
+    <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
+      <button type="submit" class="btn btn-warning ml-2" data-confirm="Ceci supprimera tous les événements livrés. Continuer ?">
+        Nettoyer les événements livrés
+      </button>
+    <% } %>
+
+    <%= form({action: "/maintenance/delete-all-events", method: "POST"}) { %>
+      <button type="submit" class="btn btn-danger ml-2" data-confirm="Ceci supprimera définitivement TOUS les événements (livrés et non livrés). Cette action est irréversible. Continuer ?">
+        Supprimer tous les événements
+      </button>
+    <% } %>
+  </div>
+  </div>
+</div>
+
+<%= if (params["task"]) { %>
+<div class="card mb-4" id="task-status">
+  <div class="card-body">
+    <h5 class="card-title">Statut de la tâche en arrière-plan</h5>
+    <p class="card-text" id="task-message">Chargement...</p>
+  </div>
+</div>
+
+<script>
+function checkTaskStatus() {
+  fetch('/maintenance/tasks/<%= params["task"] %>')
+    .then(response => response.json())
+    .then(data => {
+      const messageEl = document.getElementById('task-message');
+      messageEl.innerHTML = `
+        <strong>Statut :</strong> ${data.status}<br>
+        <strong>Type :</strong> ${data.type}<br>
+        <strong>Message :</strong> ${data.message || 'N/A'}<br>
+        <strong>Traités :</strong> ${data.processed || 0}<br>
+        <strong>Erreurs :</strong> ${data.errors || 0}
+      `;
+      
+      if (data.status === 'running') {
+        setTimeout(checkTaskStatus, 2000);
+      }
+    })
+    .catch(err => {
+      document.getElementById('task-message').textContent = 'Erreur lors de la vérification du statut : ' + err.message;
+    });
+}
+
+checkTaskStatus();
+</script>
+<% } %>
+
 <h2>Numérotation des animaux par année</h2>
 <p>Cette option régénérera la numérotation annuelle de tous les animaux en fonction de la date d'admission</p>
 <%= linkTo("maintenance/renumber", {class: "btn btn-danger", "data-confirm": "Cette action renumérotera tous les animaux en fonction de leurs date d'admission - êtes-vous sûr?", body: "Régénérer la numérotation annuelle des animaux"}) %>

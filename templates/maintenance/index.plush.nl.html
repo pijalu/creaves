@@ -25,9 +25,10 @@
     <p class="card-text">
       <strong>Ingeschakeld:</strong> <%= eventStreamEnabled %><br>
       <strong>Totaal aantal gebeurtenissen:</strong> <%= totalEvents %><br>
-      <strong>Onverwerkte gebeurtenissen:</strong> <%= unprocessedEvents %><br>
-      <strong>Verwerkte gebeurtenissen:</strong> <%= processedEvents %>
+      <strong>Niet-afgeleverde gebeurtenissen:</strong> <%= undeliveredEvents %><br>
+      <strong>Afgeleverde gebeurtenissen:</strong> <%= deliveredEvents %>
     </p>
+    <p class="text-muted"><small>Gebeurtenissen worden via webhook naar de console gestuurd. Aflevering wordt automatisch opnieuw geprobeerd tot deze slaagt. Afgeleverde gebeurtenissen worden na 1 dag automatisch verwijderd, niet-afgeleverde na 7 dagen.</small></p>
     
     <div class="btn-group" role="group">
       <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
@@ -37,8 +38,14 @@
       <% } %>
       
       <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
-        <button type="submit" class="btn btn-warning ml-2" data-confirm="Hiermee worden alle verwerkte gebeurtenissen verwijderd. Doorgaan?">
-          Verwerkte gebeurtenissen opschonen
+        <button type="submit" class="btn btn-warning ml-2" data-confirm="Hiermee worden alle afgeleverde gebeurtenissen verwijderd. Doorgaan?">
+          Afgeleverde gebeurtenissen opschonen
+        </button>
+      <% } %>
+
+      <%= form({action: "/maintenance/delete-all-events", method: "POST"}) { %>
+        <button type="submit" class="btn btn-danger ml-2" data-confirm="Hiermee worden ALLE gebeurtenissen verwijderd, inclusief de nog niet afgeleverde. Doorgaan?">
+          Alle gebeurtenissen verwijderen
         </button>
       <% } %>
     </div>

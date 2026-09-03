@@ -180,6 +180,7 @@ func App() *buffalo.App {
 		maintenance.GET("/renumber", MaintenanceRenumber)
 		maintenance.POST("/snapshot", MaintenanceSnapshot)
 		maintenance.POST("/cleanup", MaintenanceCleanup)
+		maintenance.POST("/delete-all-events", MaintenanceDeleteAllEvents)
 		maintenance.GET("/tasks/{task_id}", MaintenanceTaskStatus)
 
 		app.Resource("/species", SpeciesResource{})

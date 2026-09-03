@@ -25,20 +25,27 @@
     <p class="card-text">
       <strong>Enabled:</strong> <%= eventStreamEnabled %><br>
       <strong>Total Events:</strong> <%= totalEvents %><br>
-      <strong>Unprocessed Events:</strong> <%= unprocessedEvents %><br>
-      <strong>Processed Events:</strong> <%= processedEvents %>
+      <strong>Undelivered Events:</strong> <%= undeliveredEvents %><br>
+      <strong>Delivered Events:</strong> <%= deliveredEvents %>
     </p>
-    
+    <p class="text-muted"><small>Events are delivered to the Creaves Console via webhook. "Undelivered" means the console has not yet confirmed receipt.</small></p>
+      
     <div class="btn-group" role="group">
       <%= form({action: "/maintenance/snapshot", method: "POST"}) { %>
         <button type="submit" class="btn btn-primary" data-confirm="This will create event stream snapshot for all animals. Continue?">
           Create Event Snapshot
         </button>
       <% } %>
-      
+        
       <%= form({action: "/maintenance/cleanup", method: "POST"}) { %>
-        <button type="submit" class="btn btn-warning ml-2" data-confirm="This will delete all processed events. Continue?">
-          Clean Processed Events
+        <button type="submit" class="btn btn-warning ml-2" data-confirm="This will delete all delivered events. Continue?">
+          Clean Delivered Events
+        </button>
+      <% } %>
+
+      <%= form({action: "/maintenance/delete-all-events", method: "POST"}) { %>
+        <button type="submit" class="btn btn-danger ml-2" data-confirm="This will permanently delete ALL events (delivered and undelivered). This cannot be undone. Continue?">
+          Delete All Events
         </button>
       <% } %>
     </div>

@@ -537,9 +537,11 @@ func TestEnsureWebhookWorkerRunning_StartsWhenEnabled(t *testing.T) {
 	assert.False(t, IsWebhookWorkerRunning())
 }
 
-// TestEnsureWebhookWorkerRunning_NoopWhenDisabled verifies the worker is NOT
-// started when webhook forwarding is disabled.
-func TestEnsureWebhookWorkerRunning_NoopWhenDisabled(t *testing.T) {
+// TestEnsureWebhookWorkerRunning_StartsWhenDisabled verifies the worker IS
+// started even when webhook forwarding is disabled: the worker also performs
+// the hourly event purge, so it must run regardless. Delivery itself remains
+// gated per-tick by IsWebhookEnabled().
+func TestEnsureWebhookWorkerRunning_StartsWhenDisabled(t *testing.T) {
 	resetPusherState()
 	StopWebhookWorker()
 	require.False(t, IsWebhookWorkerRunning())
@@ -560,7 +562,9 @@ func TestEnsureWebhookWorkerRunning_NoopWhenDisabled(t *testing.T) {
 	CurrentConfig = cfg
 
 	EnsureWebhookWorkerRunning()
-	assert.False(t, IsWebhookWorkerRunning(), "worker must not start when webhook is disabled")
+	assert.True(t, IsWebhookWorkerRunning(), "worker must start even when webhook is disabled (purge duty)")
+
+	StopWebhookWorker()
 }
 
 // newEmptyDB creates a fresh in-memory SQLite connection with NO tables, so
@@ -661,4 +665,66 @@ func TestStartWebhookWorker_TickerDeliversEvents(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	assert.Greater(t, rr.totalEvents(), 0, "ticker should have delivered the pending event")
+}
+
+// ---------------------------------------------------------------------------
+// purgeOldEvents tests (event retention: 1 day delivered / 7 days undelivered)
+// ---------------------------------------------------------------------------
+
+// seedEventAt inserts an event with explicit created_at / delivered_at
+// timestamps so retention boundaries can be tested deterministically.
+func seedEventAt(t *testing.T, animalID int, createdAt time.Time, deliveredAt *time.Time) uuid.UUID {
+	t.Helper()
+	id := uuid.Must(uuid.NewV4())
+	var delivered interface{}
+	if deliveredAt != nil {
+		delivered = *deliveredAt
+	}
+	require.NoError(t, pusherTestDB.RawQuery(
+		`INSERT INTO event_streams (id, instance_id, animal_id, event_type, payload, delivered_at, created_at)
+		 VALUES (?, 'test-instance', ?, 'animal_discovered', '{}', ?, ?)`,
+		id.String(), animalID, delivered, createdAt,
+	).Exec())
+	return id
+}
+
+func eventExists(t *testing.T, id uuid.UUID) bool {
+	t.Helper()
+	var count int
+	require.NoError(t, pusherTestDB.RawQuery(
+		"SELECT COUNT(*) FROM event_streams WHERE id = ?", id.String(),
+	).First(&count))
+	return count == 1
+}
+
+// TestPurgeOldEvents verifies the retention policy: delivered events older
+// than 1 day and undelivered events older than 7 days are deleted, while
+// everything newer is kept.
+func TestPurgeOldEvents(t *testing.T) {
+	resetPusherState()
+	seedPusherConfig(t, "http://unused.example")
+
+	now := time.Now()
+	recentDelivered := now.Add(-2 * time.Hour)
+	oldDelivered := now.Add(-25 * time.Hour)
+	recentUndelivered := now.Add(-3 * 24 * time.Hour) // 3 days: kept
+	oldUndelivered := now.Add(-8 * 24 * time.Hour)    // 8 days: purged
+
+	keepDelivered := seedEventAt(t, 1, now.Add(-26*time.Hour), &recentDelivered)
+	purgeDelivered := seedEventAt(t, 2, now.Add(-26*time.Hour), &oldDelivered)
+	keepUndelivered := seedEventAt(t, 3, recentUndelivered, nil)
+	purgeUndelivered := seedEventAt(t, 4, oldUndelivered, nil)
+
+	require.NoError(t, purgeOldEvents())
+
+	assert.True(t, eventExists(t, keepDelivered), "recently delivered event must be kept")
+	assert.False(t, eventExists(t, purgeDelivered), "event delivered >1 day ago must be purged")
+	assert.True(t, eventExists(t, keepUndelivered), "undelivered event <7 days old must be kept")
+	assert.False(t, eventExists(t, purgeUndelivered), "undelivered event >7 days old must be purged")
+}
+
+// TestPurgeOldEvents_EmptyTable verifies purge is a no-op on an empty table.
+func TestPurgeOldEvents_EmptyTable(t *testing.T) {
+	resetPusherState()
+	require.NoError(t, purgeOldEvents())
 }

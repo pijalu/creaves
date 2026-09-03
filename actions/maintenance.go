@@ -147,7 +147,7 @@ func runSnapshotTask(task *SnapshotTaskStatus) {
 	task.CompletedAt = time.Now()
 }
 
-// runCleanupTask removes processed events from the event stream
+// runCleanupTask removes delivered events from the event stream
 func runCleanupTask(task *SnapshotTaskStatus) {
 	task.Status = "running"
 
@@ -156,7 +156,7 @@ func runCleanupTask(task *SnapshotTaskStatus) {
 
 	// Count events to be deleted
 	var count int
-	if err := tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE processed_at IS NOT NULL").First(&count); err != nil {
+	if err := tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE delivered_at IS NOT NULL").First(&count); err != nil {
 		task.Status = "failed"
 		task.Message = fmt.Sprintf("Failed to count events: %v", err)
 		task.CompletedAt = time.Now()
@@ -165,13 +165,13 @@ func runCleanupTask(task *SnapshotTaskStatus) {
 
 	if count == 0 {
 		task.Status = "completed"
-		task.Message = "No processed events to clean up"
+		task.Message = "No delivered events to clean up"
 		task.CompletedAt = time.Now()
 		return
 	}
 
-	// Delete processed events
-	if err := tx.RawQuery("DELETE FROM event_streams WHERE processed_at IS NOT NULL").Exec(); err != nil {
+	// Delete delivered events
+	if err := tx.RawQuery("DELETE FROM event_streams WHERE delivered_at IS NOT NULL").Exec(); err != nil {
 		task.Status = "failed"
 		task.Message = fmt.Sprintf("Failed to delete events: %v", err)
 		task.CompletedAt = time.Now()
@@ -180,7 +180,7 @@ func runCleanupTask(task *SnapshotTaskStatus) {
 
 	task.Status = "completed"
 	task.Processed = count
-	task.Message = fmt.Sprintf("Cleaned up %d processed events", count)
+	task.Message = fmt.Sprintf("Cleaned up %d delivered events", count)
 	task.CompletedAt = time.Now()
 }
 
@@ -233,15 +233,15 @@ func MaintenanceIndex(c buffalo.Context) error {
 	var totalEvents int
 	tx.RawQuery("SELECT COUNT(*) FROM event_streams").First(&totalEvents)
 
-	var unprocessedEvents int
-	tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE processed_at IS NULL").First(&unprocessedEvents)
+	var undeliveredEvents int
+	tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE delivered_at IS NULL").First(&undeliveredEvents)
 
-	var processedEvents int
-	tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE processed_at IS NOT NULL").First(&processedEvents)
+	var deliveredEvents int
+	tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE delivered_at IS NOT NULL").First(&deliveredEvents)
 
 	c.Set("totalEvents", totalEvents)
-	c.Set("unprocessedEvents", unprocessedEvents)
-	c.Set("processedEvents", processedEvents)
+	c.Set("undeliveredEvents", undeliveredEvents)
+	c.Set("deliveredEvents", deliveredEvents)
 	c.Set("eventStreamEnabled", IsEventStreamEnabled())
 
 	return c.Render(http.StatusOK, r.HTML("maintenance/index.plush.html"))
@@ -301,7 +301,7 @@ func MaintenanceSnapshot(c buffalo.Context) error {
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/maintenance?task=%s", taskID))
 }
 
-// MaintenanceCleanup triggers cleanup of processed events
+// MaintenanceCleanup triggers cleanup of delivered events
 func MaintenanceCleanup(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
@@ -312,6 +312,30 @@ func MaintenanceCleanup(c buffalo.Context) error {
 
 	c.Flash().Add("info", "Event cleanup started in background. Check status below.")
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/maintenance?task=%s", taskID))
+}
+
+// MaintenanceDeleteAllEvents deletes ALL events from the event stream
+func MaintenanceDeleteAllEvents(c buffalo.Context) error {
+	cu := GetCurrentUser(c)
+	if !cu.Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	var count int
+	tx.RawQuery("SELECT COUNT(*) FROM event_streams").First(&count)
+
+	if err := tx.RawQuery("DELETE FROM event_streams").Exec(); err != nil {
+		c.Flash().Add("danger", fmt.Sprintf("Failed to delete events: %v", err))
+		return c.Redirect(http.StatusSeeOther, "/maintenance")
+	}
+
+	c.Flash().Add("success", fmt.Sprintf("Deleted all %d events from the event stream", count))
+	return c.Redirect(http.StatusSeeOther, "/maintenance")
 }
 
 // MaintenanceTaskStatus returns the status of a background task
