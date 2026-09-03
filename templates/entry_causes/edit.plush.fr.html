@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier la cause d’entrée</h3>
+</div>
+
+<%= formFor(entryCause, {action: entryCausePath({ entry_cause_id: entryCause.ID }), method: "PUT"}) { %>
+  <%= partial("entry_causes/form.plush.fr.html") %>
+  <%= linkTo(entryCausePath({ entry_cause_id: entryCause.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>

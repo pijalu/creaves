@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Creaves</title>
+    <%= stylesheetTag("application.css") %>
+    <meta name="csrf-param" content="authenticity_token" />
+    <meta name="csrf-token" content="<%= authenticity_token %>" />
+    <link rel="icon" href="<%= assetPath("images/favicon.ico") %>">
+    <%= javascriptTag("application.js") %>
+  </head>
+  <body>
+
+    <!-- Minimal layout for the public guest status view: the only menu is
+         the language selection (see actions/guest.go). -->
+    <nav class="navbar navbar-expand navbar-light bg-light">
+    <!-- No link on the brand: the guest view must not point back into the app. -->
+      <span class="navbar-brand mb-0">
+        <img style="height:24px;" alt="Creaves-App" src="<%= assetPath("images/creaves-app-small.png") %>">
+      </span>
+      <ul class="navbar-nav ml-auto">
+        <%= langLinks(guestLangTarget, "nav-link") %>
+      </ul>
+    </nav>
+
+    <div class="container">
+      <%= partial("flash.html") %>
+      <%= yield %>
+    </div>
+  </body>
+</html>

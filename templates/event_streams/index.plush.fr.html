@@ -1,0 +1,40 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("event-streams.index.title") %></h3>
+  <div class="float-right">
+    <%= linkTo("/event_streams", {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("event-streams.clearall-confirm"), title: t("event-streams.clearall"), body: "<i class='fa fa-trash'></i> " + t("event-streams.clearall")}) %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th><%= t("event-streams.index.id") %></th>
+    <th><%= t("event-streams.index.instance-id") %></th>
+    <th><%= t("event-streams.index.animal-id") %></th>
+    <th><%= t("event-streams.index.event-type") %></th>
+    <th><%= t("event-streams.index.processed") %></th>
+    <th><%= t("event-streams.index.created-at") %></th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (event) in eventStreams { %>
+      <tr>
+        <td class="align-middle"><%= event.ID %></td>
+        <td class="align-middle"><%= event.InstanceID %></td>
+        <td class="align-middle"><%= event.AnimalID %></td>
+        <td class="align-middle"><span class="badge badge-info"><%= event.EventType %></span></td>
+        <td class="align-middle"><%= if (event.ProcessedAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
+        <td class="align-middle"><%= event.CreatedAt.Format("2006-01-02 15:04:05") %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo(eventStreamPath({ event_stream_id: event.ID }), {class: "btn btn-info", title: t("event-streams.view"), body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(eventStreamPath({ event_stream_id: event.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("event-streams.confirm"), title: t("event-streams.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

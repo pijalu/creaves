@@ -1,0 +1,9 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier la configuration : <%= config.Name %></h3>
+</div>
+
+<%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
+  <%= partial("config/form.plush.fr.html") %>
+  <button class="btn btn-success" role="submit">Enregistrer</button>
+  <%= linkTo("/config/" + config.ID, {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>

@@ -1,0 +1,38 @@
+<h1>Webhook-hersynchronisatie</h1>
+<p>Hersynchronisatie stuurt de huidige dierenstatus naar de geconfigureerde console. Het kan veilig worden herhaald en slaat ongewijzigde dieren over.</p>
+<div id="resync-status" class="mb-3">Laden…</div>
+<div id="resync-actions">
+  <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true">
+      <label class="form-check-label" for="force-resync">Volledige herbouw forceren</label>
+      <small class="form-text text-muted">Stuurt elk dier opnieuw, zelfs als het ongewijzigd is — te gebruiken nadat een opschoning aan de consolezijde de gegevens van deze instantie heeft verwijderd. Veilig: gebeurtenissen behouden hun ID’s en de console bouwt idempotent opnieuw op.</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Hersynchronisatie starten</button>
+  <% } %>
+</div>
+<script>
+(function () {
+  var status = document.getElementById('resync-status');
+  var actions = document.getElementById('resync-actions');
+  function poll() {
+    fetch('/webhook_resync/status.json').then(function (response) { return response.json(); }).then(function (run) {
+      if (run.status === 'none') {
+        status.textContent = 'Geen hersynchronisatie actief.';
+        return;
+      }
+      var total = run.total_animals || 0;
+      var processed = run.animals_processed || 0;
+      status.innerHTML = '<strong>Status:</strong> ' + run.status + '<br>' +
+        '<strong>Voortgang:</strong> ' + processed + ' / ' + total + '<br>' +
+        '<strong>Aangemaakt:</strong> ' + (run.events_created || 0) +
+        ' <strong>Ongewijzigd overgeslagen:</strong> ' + (run.events_skipped_unchanged || 0);
+      if (run.status === 'running') {
+        actions.innerHTML = '<form method="post" action="/webhook_resync/cancel"><input type="hidden" name="authenticity_token" value="<%= authenticity_token %>"><button type="submit" class="btn btn-warning">Hersynchronisatie annuleren</button></form>';
+        setTimeout(poll, 2000);
+      }
+    });
+  }
+  poll();
+}());
+</script>

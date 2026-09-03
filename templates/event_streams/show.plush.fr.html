@@ -1,0 +1,166 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("event-streams.show.title") %></h3>
+</div>
+
+<div class="row">
+  <div class="col-md-6">
+    <h5><%= t("event-streams.show.event-information") %></h5>
+    <table class="table table-hover table-bordered">
+      <tbody>
+        <tr>
+          <td><strong><%= t("event-streams.show.id") %></strong></td>
+          <td><code><%= eventStream.ID %></code></td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.instance-id") %></strong></td>
+          <td><%= eventStream.InstanceID %></td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.animal-id") %></strong></td>
+          <td><%= eventStream.AnimalID %></td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.event-type") %></strong></td>
+          <td><span class="badge badge-info"><%= eventStream.EventType %></span></td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.processed") %></strong></td>
+          <td>
+            <%= if (eventStream.ProcessedAt) { %>
+              <span class="badge badge-success"><%= t("event-streams.yes") %></span> - <%= eventStream.ProcessedAt.Format("2006-01-02 15:04:05") %>
+            <% } else { %>
+              <span class="badge badge-warning"><%= t("event-streams.no") %></span>
+            <% } %>
+          </td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.created-at") %></strong></td>
+          <td><%= eventStream.CreatedAt.Format("2006-01-02 15:04:05") %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="col-md-6">
+    <h5><%= t("event-streams.show.audit-trail") %></h5>
+    <%= if (payload.UserID != "") { %>
+      <table class="table table-hover table-bordered">
+        <tbody>
+          <tr>
+            <td><strong><%= t("event-streams.show.user-id") %></strong></td>
+            <td><code><%= payload.UserID %></code></td>
+          </tr>
+          <tr>
+            <td><strong><%= t("event-streams.show.user-login") %></strong></td>
+            <td><%= payload.UserLogin %></td>
+          </tr>
+          <tr>
+            <td><strong><%= t("event-streams.show.timestamp") %></strong></td>
+            <td><%= payload.Timestamp %></td>
+          </tr>
+        </tbody>
+      </table>
+    <% } else { %>
+      <div class="alert alert-info">
+        <i class="fa fa-info-circle"></i> <%= t("event-streams.show.no-user-info") %>
+        <br/><small><%= t("event-streams.show.no-user-info-hint") %></small>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<hr/>
+
+<div class="row">
+  <div class="col-12">
+    <h5><%= t("event-streams.show.event-payload") %></h5>
+    <div class="json-viewer-container">
+      <pre class="json-viewer"><code id="event-payload"><%= payloadJSON %></code></pre>
+    </div>
+  </div>
+</div>
+
+<div class="float-right mt-3">
+  <%= linkTo(eventStreamsPath(), {class: "btn btn-info", body: t("event-streams.show.back")}) %>
+</div>
+
+<script>
+  // JSON Syntax Highlighting
+  function syntaxHighlight(json) {
+    if (typeof json !== 'string') {
+      json = JSON.stringify(json, undefined, 2);
+    }
+    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+      var cls = 'json-number';
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'json-key';
+        } else {
+          cls = 'json-string';
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'json-boolean';
+      } else if (/null/.test(match)) {
+        cls = 'json-null';
+      }
+      return '<span class="' + cls + '">' + match + '</span>';
+    });
+  }
+
+  // Apply syntax highlighting when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    var payloadElement = document.getElementById('event-payload');
+    if (payloadElement) {
+      try {
+        var jsonData = JSON.parse(payloadElement.textContent);
+        payloadElement.innerHTML = syntaxHighlight(jsonData);
+      } catch (e) {
+        console.log('Could not parse JSON for syntax highlighting:', e);
+        // If parsing fails, just format it nicely
+        payloadElement.textContent = JSON.stringify(JSON.parse(payloadElement.textContent), null, 2);
+      }
+    }
+  });
+</script>
+
+<style>
+  .json-viewer-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 10px;
+  }
+  
+  .json-viewer {
+    background: transparent;
+    border: none;
+    margin: 0;
+    padding: 0;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  .json-key { 
+    color: #d73a49; 
+    font-weight: bold; 
+  }
+  .json-string { 
+    color: #032f62; 
+  }
+  .json-number { 
+    color: #005cc5; 
+  }
+  .json-boolean { 
+    color: #005cc5; 
+    font-weight: bold; 
+  }
+  .json-null { 
+    color: #6f42c1; 
+    font-weight: bold; 
+  }
+</style>

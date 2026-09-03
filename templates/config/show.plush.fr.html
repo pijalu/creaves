@@ -1,0 +1,85 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("config.show.title", {name: config.Name}) %></h3>
+</div>
+
+<table class="table table-hover table-bordered">
+  <tbody>
+    <tr>
+      <td><%= t("config.show.instance-id") %></td>
+      <td><%= config.InstanceID %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.name") %></td>
+      <td><%= config.Name %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.description") %></td>
+      <td><%= config.Description %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.active") %></td>
+      <td><%= bool2html(config.Active) %></td>
+    </tr>
+    <tr class="table-info">
+      <td colspan="2"><strong><%= t("config.show.event-stream") %></strong></td>
+    </tr>
+    <tr>
+      <td>
+        <i class="fa fa-exchange-alt"></i> <%= t("config.show.event-stream") %>
+        <br/><small class="text-muted"><%= t("config.show.event-stream-hint") %></small>
+      </td>
+      <td><%= bool2html(settings.EnableEventStream) %></td>
+    </tr>
+    <tr class="table-info">
+      <td colspan="2"><strong><%= t("config.show.webhook-configuration") %></strong></td>
+    </tr>
+    <tr>
+      <td>
+        <i class="fa fa-globe"></i> <%= t("config.show.webhook-enabled") %>
+        <br/><small class="text-muted"><%= t("config.show.webhook-enabled-hint") %></small>
+      </td>
+      <td><%= bool2html(settings.WebhookEnabled) %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.webhook-url") %></td>
+      <td><code><%= settings.WebhookURL %></code></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.api-key") %></td>
+      <td>
+        <%= if (settings.WebhookAPIKey != "") { %>
+          <div class="input-group input-group-sm" style="max-width: 480px;">
+            <input type="text" readonly class="form-control font-monospace" id="webhook-api-key-display" value="<%= settings.WebhookAPIKey %>" onclick="this.select();">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('webhook-api-key-display').value); this.blur();"><i class="fas fa-copy"></i></button>
+            </div>
+          </div>
+          <small class="form-text text-muted"><%= t("config.show.api-key-prefix-hint") %></small>
+        <% } else { %>
+          <em><%= t("config.show.api-key-not-set") %></em>
+        <% } %>
+      </td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.batch-size") %></td>
+      <td><%= settings.WebhookBatchSize %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.max-events-per-minute") %></td>
+      <td><%= settings.WebhookMaxPerMin %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.created-at") %></td>
+      <td><%= config.CreatedAt.Format("2006-01-02 15:04:05") %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.updated-at") %></td>
+      <td><%= config.UpdatedAt.Format("2006-01-02 15:04:05") %></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="float-right">
+  <%= linkTo(editConfigPath({ config_id: config.ID }), {class: "btn btn-warning", body: t("config.show.edit")}) %>
+  <%= linkTo("/config", {class: "btn btn-info", body: t("config.show.back")}) %>
+</div>

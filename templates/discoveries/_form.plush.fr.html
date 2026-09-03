@@ -1,0 +1,86 @@
+<div class="container p-3 my-3 border">
+    <h4>Général</h4>  
+    <div class="form-row">  
+        <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Code postal"}) %>
+        <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
+    
+        <script>
+        $('input[name="Discovery.PostalCode"]').autoComplete({
+            delay: 250,
+            minChars: 1,
+            source: function(term, response){
+                $.getJSON('/suggestions/postal_code', { q: term }, function(data){ response(data); });
+            }
+        });
+
+        $('input[name="Discovery.City"]').autoComplete({
+            delay: 250,
+            minChars: 0,
+            cache: 0,
+            source: function(term, response){
+                var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
+            }
+        });
+        </script>
+    </div>
+
+    <div class="form-row">
+    <%= f.InputTag("Location", {bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+    <script>
+        $('input[name="Location"]').autoComplete({
+            delay: 250,
+            minChars: 1,
+            source: function(term, response){
+                $.getJSON('/suggestions/discovery_location', { q: term }, function(data){ response(data); });
+            }
+        });
+    </script>
+    </div>
+    <div class="form-row">
+    <div class="form-group col-md-12">
+    <label>Date</label>
+    <%= f.DateTimeTag("Date", {class:"form-control", format:"2006/01/02 15:04"}) %>
+    </div>
+    <script type="text/javascript">
+    $('#discovery-Date').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+    </script>
+    </div>
+</div>
+<div class="container p-3 my-3 border">
+    <h4>Découvreur</h4>
+  
+    <div class="form-row">  
+    <%= f.InputTag("Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Prénom"}) %>
+    <%= f.InputTag("Discoverer.Lastname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Nom"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.Address", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Adresse"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Ville"}) %>
+    <%= f.InputTag("Discoverer.Country", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Pays"}) %>
+    </div>
+    <div class="form-row">
+    <%= f.InputTag("Discoverer.Email", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Login"}) %>
+    <%= f.InputTag("Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
+    </div>
+</div>
+<div class="container p-3 my-3 border">
+    <h4>Détails</h4> 
+    <%= f.TextAreaTag("Reason", {rows: 10, class:"col-md-12"}) %>
+    <a class="btn btn-primary" data-toggle="collapse" href="#DiscoveryNote" role="button" aria-expanded="false" aria-controls="collapseExample">
+    Notes
+    </a>
+    <div class="collapse" id="DiscoveryNote">
+        <div class="card card-body">
+            <textarea class="form-control col-md-12" id="discovery-Note" name="Note" rows="10"></textarea>
+        </div>
+    </div>
+</div>
+<button class="btn btn-success" role="submit">Enregistrer</button>
+<script type="text/javascript">
+$( document ).ready(function(){
+    window.submitfix();
+})
+</script>

@@ -1,0 +1,39 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Configuration</h3>
+  <div class="float-right">
+    <%= linkTo(newConfigPath(), {class: "btn btn-primary"}) { %>
+      Créer une nouvelle configuration
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID d’instance</th>
+    <th>Nom</th>
+    <th>Description</th>
+    <th>Actif</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (config) in configs { %>
+      <tr>
+        <td class="align-middle"><%= config.InstanceID %></td>
+        <td class="align-middle"><%= config.Name %></td>
+        <td class="align-middle"><%= config.Description %></td>
+        <td class="align-middle"><%= bool2html(config.Active) %></td>
+        <td>
+          <div class="float-right">
+            <%= linkTo("/config/" + config.ID, {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editConfigPath({ config_id: config.ID }), {class: "btn btn-warning", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo("/config/" + config.ID, {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?", title: "Supprimer", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

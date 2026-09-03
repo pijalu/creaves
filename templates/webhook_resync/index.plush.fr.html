@@ -1,0 +1,38 @@
+<h1>Resynchronisation webhook</h1>
+<p>La resynchronisation envoie l’état actuel des animaux vers la console configurée. Elle peut être répétée sans risque et ignore les animaux inchangés.</p>
+<div id="resync-status" class="mb-3">Chargement…</div>
+<div id="resync-actions">
+  <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true">
+      <label class="form-check-label" for="force-resync">Forcer la reconstruction complète</label>
+      <small class="form-text text-muted">Renvoie chaque animal même s’il est inchangé — à utiliser après qu’un nettoyage côté console a supprimé les données de cette instance. Sans risque : les événements conservent leurs identifiants et la console reconstruit de façon idempotente.</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Démarrer la resynchronisation</button>
+  <% } %>
+</div>
+<script>
+(function () {
+  var status = document.getElementById('resync-status');
+  var actions = document.getElementById('resync-actions');
+  function poll() {
+    fetch('/webhook_resync/status.json').then(function (response) { return response.json(); }).then(function (run) {
+      if (run.status === 'none') {
+        status.textContent = 'Aucune resynchronisation en cours.';
+        return;
+      }
+      var total = run.total_animals || 0;
+      var processed = run.animals_processed || 0;
+      status.innerHTML = '<strong>Statut :</strong> ' + run.status + '<br>' +
+        '<strong>Progression :</strong> ' + processed + ' / ' + total + '<br>' +
+        '<strong>Créés :</strong> ' + (run.events_created || 0) +
+        ' <strong>Inchangés ignorés :</strong> ' + (run.events_skipped_unchanged || 0);
+      if (run.status === 'running') {
+        actions.innerHTML = '<form method="post" action="/webhook_resync/cancel"><input type="hidden" name="authenticity_token" value="<%= authenticity_token %>"><button type="submit" class="btn btn-warning">Annuler la resynchronisation</button></form>';
+        setTimeout(poll, 2000);
+      }
+    });
+  }
+  poll();
+}());
+</script>

@@ -1,16 +1,16 @@
 <div class="container p-3 my-3 border">
 
-  <h3>Statut de l'animal</h3>
+  <h3>Statut de l’animal</h3>
 
   <p class="text-muted">
-    Introduisez le numéro de l'animal et le numéro de téléphone communiqué lors du dépôt.
-    Le statut n'est affiché que si le numéro de téléphone correspond à nos données.
+    Introduisez le numéro de l’animal et le numéro de téléphone communiqué lors du dépôt.
+    Le statut n’est affiché que si le numéro de téléphone correspond à nos données.
   </p>
 
   <%= if (guestError) { %>
     <div class="alert alert-danger">
-      Aucune combinaison numéro d'animal / numéro de téléphone trouvée.
-      Vérifiez le numéro d'animal et le numéro de téléphone communiqué lors du dépôt.
+      Aucune combinaison numéro d’animal / numéro de téléphone trouvée.
+      Vérifiez le numéro d’animal et le numéro de téléphone communiqué lors du dépôt.
     </div>
   <% } %>
 
@@ -23,7 +23,7 @@
   <form method="post" action="/guest/">
     <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>" />
     <div class="form-group">
-      <label for="animal_number">Numéro de l'animal</label>
+      <label for="animal_number">Numéro de l’animal</label>
       <input name="animal_number" id="animal_number" type="text" class="form-control"
              placeholder="123 ou 123/24"
              pattern="^[0-9]+(/[0-9]{2})?$"

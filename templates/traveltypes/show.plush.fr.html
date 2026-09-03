@@ -1,12 +1,12 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Traveltype Details</h3>
+  <h3 class="d-inline-block">Détails du type de déplacement</h3>
 
   <div class="float-right">
     <%= linkTo(traveltypesPath(), {class: "btn btn-info"}) { %>
-      Back to all Traveltypes
+      Retour à tous les types de déplacement
     <% } %>
-    <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", body: "Edit"}) %>
-    <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", body: "Destroy"}) %>
+    <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", title: "Modifier", body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
@@ -16,7 +16,7 @@
 
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Name</label>
+    <label class="small d-block">Nom</label>
     <p class="d-inline-block"><%= tname("traveltypes", traveltype.ID, traveltype.Name) %></p>
   </li>
 
@@ -30,7 +30,7 @@
 
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Def</label>
+    <label class="small d-block">Défaut</label>
     <p class="d-inline-block"><%= bool2html(traveltype.Def) %></p>
   </li>
 

@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier le découvreur</h3>
+</div>
+
+<%= formFor(discoverer, {action: discovererPath({ discoverer_id: discoverer.ID }), method: "PUT"}) { %>
+  <%= partial("discoverers/form.plush.fr.html") %>
+  <%= linkTo(discovererPath({ discoverer_id: discoverer.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>
