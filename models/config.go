@@ -72,6 +72,23 @@ func (c *Config) SetSettings(settings ConfigSettings) error {
 	return nil
 }
 
+// MarshalJSON redacts the webhook API key from the settings blob so the
+// shared secret is never exposed through JSON API responses.
+func (c Config) MarshalJSON() ([]byte, error) {
+	type alias Config // avoid infinite recursion
+	out := alias(c)
+	if len(out.Settings) > 0 {
+		settings, err := c.GetSettings()
+		if err == nil && settings.WebhookAPIKey != "" {
+			settings.WebhookAPIKey = ""
+			if data, err := json.Marshal(settings); err == nil {
+				out.Settings = json.RawMessage(data)
+			}
+		}
+	}
+	return json.Marshal(out)
+}
+
 // String returns the JSON representation
 func (c Config) String() string {
 	jc, _ := json.Marshal(c)
