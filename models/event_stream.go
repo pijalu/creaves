@@ -107,9 +107,11 @@ type OuttakePayload struct {
 	TypeID   string `json:"type_id,omitempty"`
 	Location string `json:"location,omitempty"`
 	Note     string `json:"note,omitempty"`
-	// Rating and Dead come from the outtake type definition
-	Rating int  `json:"rating,omitempty"`
-	Dead   bool `json:"dead,omitempty"`
+	// Rating and Dead come from the outtake type definition. They are always
+	// serialized (no omitempty): a neutral rating (0) or dead=false is a real
+	// outcome the console must store, not an absent value.
+	Rating int  `json:"rating"`
+	Dead   bool `json:"dead"`
 }
 
 // EventPayload represents the complete structured event payload with all entities

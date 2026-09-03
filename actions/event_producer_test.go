@@ -530,7 +530,9 @@ func TestEventPayload_OmitemptyBackwardsCompat(t *testing.T) {
 	}
 
 	// New payload with empty new fields must omit them (old console ignores unknown keys anyway,
-	// but absence keeps old consumers byte-compatible).
+	// but absence keeps old consumers byte-compatible). Exception: outtake
+	// rating and dead are ALWAYS serialized — an explicit neutral rating (0)
+	// or dead=false is a real outcome the console must store.
 	fresh := models.EventPayload{
 		Animal:    models.AnimalPayload{ID: 1, Species: "Hérisson"},
 		Discovery: models.DiscoveryPayload{EntryCause: "Accident"},
@@ -541,9 +543,15 @@ func TestEventPayload_OmitemptyBackwardsCompat(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal: %v", err)
 	}
-	for _, absent := range []string{"species_class", "species_agw_group", "species_subside_group", "species_native_status", "entry_cause_detail", "entry_cause_nature", "rating", "dead"} {
+	for _, absent := range []string{"species_class", "species_agw_group", "species_subside_group", "species_native_status", "entry_cause_detail", "entry_cause_nature"} {
 		if bytes.Contains(encoded, []byte(absent)) {
 			t.Errorf("marshalled payload %s contains %q, want omitted", encoded, absent)
+		}
+	}
+	// rating and dead must be present even at zero value.
+	for _, present := range []string{`"rating":0`, `"dead":false`} {
+		if !bytes.Contains(encoded, []byte(present)) {
+			t.Errorf("marshalled payload %s misses %q, want always serialized", encoded, present)
 		}
 	}
 }
