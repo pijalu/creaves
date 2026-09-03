@@ -103,6 +103,33 @@ type ConfigsResource struct {
 	buffalo.Resource
 }
 
+// parseWebhookLimits parses and clamps the webhook delivery limits from form
+// parameters into their documented ranges (batch 1-100, rate 1-10000), so an
+// invalid value can never reach the delivery worker (SQL LIMIT, request size).
+func parseWebhookLimits(c buffalo.Context) (batchSize, maxPerMin int) {
+	batchSize = 1
+	maxPerMin = 60
+	if bs := c.Param("Settings.WebhookBatchSize"); bs != "" {
+		fmt.Sscanf(bs, "%d", &batchSize)
+	}
+	if mpm := c.Param("Settings.WebhookMaxPerMin"); mpm != "" {
+		fmt.Sscanf(mpm, "%d", &maxPerMin)
+	}
+	if batchSize < 1 {
+		batchSize = 1
+	}
+	if batchSize > 100 {
+		batchSize = 100
+	}
+	if maxPerMin < 1 {
+		maxPerMin = 1
+	}
+	if maxPerMin > 10000 {
+		maxPerMin = 10000
+	}
+	return batchSize, maxPerMin
+}
+
 // requireAdmin checks if the current user is an admin
 func requireAdmin(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
@@ -213,14 +240,7 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 	config.Active = c.Param("Active") == "true"
 
 	// Build settings from form
-	batchSize := 1
-	maxPerMin := 60
-	if bs := c.Param("Settings.WebhookBatchSize"); bs != "" {
-		fmt.Sscanf(bs, "%d", &batchSize)
-	}
-	if mpm := c.Param("Settings.WebhookMaxPerMin"); mpm != "" {
-		fmt.Sscanf(mpm, "%d", &maxPerMin)
-	}
+	batchSize, maxPerMin := parseWebhookLimits(c)
 
 	settings := models.ConfigSettings{
 		EnableEventStream: c.Param("Settings.EnableEventStream") == "true",
@@ -311,14 +331,7 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	config.Active = c.Param("Active") == "true"
 
 	// Build settings from form
-	batchSize := 1
-	maxPerMin := 60
-	if bs := c.Param("Settings.WebhookBatchSize"); bs != "" {
-		fmt.Sscanf(bs, "%d", &batchSize)
-	}
-	if mpm := c.Param("Settings.WebhookMaxPerMin"); mpm != "" {
-		fmt.Sscanf(mpm, "%d", &maxPerMin)
-	}
+	batchSize, maxPerMin := parseWebhookLimits(c)
 
 	settings := models.ConfigSettings{
 		EnableEventStream: c.Param("Settings.EnableEventStream") == "true",
