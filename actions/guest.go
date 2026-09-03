@@ -40,8 +40,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -68,6 +70,35 @@ var (
 	guestRateMu   sync.Mutex
 	guestRateHits = map[string][]time.Time{}
 )
+
+// guestClientIP returns the client IP used for rate limiting. The
+// X-Forwarded-For header is only honoured when the direct peer is listed in
+// the TRUSTED_PROXIES environment variable (comma-separated IPs); otherwise
+// the header is attacker-controlled and must be ignored, so RemoteAddr wins.
+func guestClientIP(req *http.Request) string {
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		host = req.RemoteAddr
+	}
+	trusted := os.Getenv("TRUSTED_PROXIES")
+	if trusted == "" {
+		return host
+	}
+	peerTrusted := false
+	for _, p := range strings.Split(trusted, ",") {
+		if strings.TrimSpace(p) == host {
+			peerTrusted = true
+			break
+		}
+	}
+	if !peerTrusted {
+		return host
+	}
+	if xff := req.Header.Get("X-Forwarded-For"); xff != "" {
+		return strings.TrimSpace(strings.Split(xff, ",")[0])
+	}
+	return host
+}
 
 // guestRateAllow records an attempt and reports whether the client may proceed.
 func guestRateAllow(key string, now time.Time) bool {
@@ -481,10 +512,7 @@ func GuestNew(c buffalo.Context) error {
 	token := strings.TrimSpace(c.Param("token"))
 	if number != "" && token != "" {
 		// Rate limit direct lookups like form submissions.
-		ip := c.Request().RemoteAddr
-		if xff := c.Request().Header.Get("X-Forwarded-For"); xff != "" {
-			ip = strings.TrimSpace(strings.Split(xff, ",")[0])
-		}
+		ip := guestClientIP(c.Request())
 		if !guestRateAllow(ip, time.Now()) {
 			c.Logger().Warn("guest: rate limit reached for", ip)
 			c.Set("guestError", false)
@@ -529,11 +557,8 @@ func GuestCreate(c buffalo.Context) error {
 
 	c.Set("guestLangTarget", guestLangTarget(c))
 
-	// Rate limit per client IP (behind a proxy the first X-Forwarded-For entry wins)
-	ip := c.Request().RemoteAddr
-	if xff := c.Request().Header.Get("X-Forwarded-For"); xff != "" {
-		ip = strings.TrimSpace(strings.Split(xff, ",")[0])
-	}
+	// Rate limit per client IP (X-Forwarded-For only honored from trusted proxies)
+	ip := guestClientIP(c.Request())
 	rateLimited := false
 	if !guestRateAllow(ip, time.Now()) {
 		c.Logger().Warn("guest: rate limit reached for", ip)
