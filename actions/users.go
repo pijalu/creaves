@@ -25,6 +25,16 @@ func UsersCreate(c buffalo.Context) error {
 		return errors.WithStack(err)
 	}
 
+	// Prevent mass-assignment privilege escalation: privileged flags may only
+	// be granted by an already-authenticated admin. A crafted registration
+	// POST must never be able to set admin/approved/shared directly.
+	cu := GetCurrentUser(c)
+	if cu == nil || !cu.Admin {
+		u.Admin = false
+		u.Approved = false
+		u.Shared = false
+	}
+
 	tx := c.Value("tx").(*pop.Connection)
 	verrs, err := u.Create(tx)
 	if err != nil {
@@ -37,7 +47,6 @@ func UsersCreate(c buffalo.Context) error {
 		return c.Render(200, r.HTML("users/new.plush.html"))
 	}
 
-	cu := GetCurrentUser(c)
 	if cu == nil {
 		c.Flash().Add("success", "You account is created and will need to be approved!")
 		return c.Redirect(302, "/auth/new")
