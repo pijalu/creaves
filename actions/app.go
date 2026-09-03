@@ -1,7 +1,6 @@
 package actions
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gobuffalo/buffalo"
@@ -148,9 +147,6 @@ func App() *buffalo.App {
 		app.GET("/suggestions/locality", SuggestionsLocality)
 		app.GET("/suggestions/discoverer", SuggestionsDiscoverer)
 
-		app.GET("/crash", func(c buffalo.Context) error {
-			return fmt.Errorf("Crash me !")
-		})
 		app.Resource("/traveltypes", TraveltypesResource{})
 		app.Resource("/travels", TravelsResource{})
 
