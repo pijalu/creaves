@@ -7,4 +7,4 @@
 - id: "care.animal.not.found"
   translation: "Dier met ID {{.animalID}} bestaat niet"
 - id: "care.animal.outtake.already.exist"
-  translation: "Dier met ID {{.animalID}} is al vrijgelaten"
+  translation: "Dier met ID {{.animalID}} heeft al een afloop"

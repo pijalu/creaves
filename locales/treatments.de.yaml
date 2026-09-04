@@ -9,4 +9,4 @@
 - id: "treatment.animal.invalid.date"
   translation: "Ungültige Behandlungsdaten"
 - id: "treatment.animal.outtake.already.exist"
-  translation: "Tier mit ID {{.animalID}} ist bereits entlassen"
+  translation: "Tier mit ID {{.animalID}} hat bereits einen Ausgang"

@@ -2,11 +2,11 @@
   <div class="py-4 mb-2">
     <div class="float-right">
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
-          Alle uitgangen bekijken
+          Alle aflopen bekijken
     <% } %>
     </div>
   </div>
-  <h4>Dier selecteren voor uitgang</h4>
+  <h4>Dier selecteren voor afloop</h4>
   <%= formFor(outtake, {action: newOuttakesPath(), method: "GET"}) { %>
   <div class="form-group row">
     <label for="animal_year_number" class="col-sm-2 col-form-label">Diernummer</label>
@@ -36,7 +36,7 @@ $( document ).ready(function(){
   <% } %>
 <% } else { %>
   <div class="py-4 mb-2">
-  <h3 class="d-inline-block"> Uitgang van dier <%= animal.YearNumberFormatted() %></h3>
+  <h3 class="d-inline-block"> Afloop van dier <%= animal.YearNumberFormatted() %></h3>
   <p><%= animal.Species %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - Aangekomen: <%= animal.Intake.DateFormated() %></p>
   </div>
   

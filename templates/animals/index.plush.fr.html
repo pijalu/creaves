@@ -105,7 +105,7 @@
           <input type="text" class="form-control" id="sf_ring" name="ring" value="<%= search.Ring %>">
         </div>
         <div class="form-group col-md-2">
-          <label for="sf_outtaketype">Motif de sortie</label>
+          <label for="sf_outtaketype">Motif d'issue</label>
           <select class="form-control" id="sf_outtaketype" name="outtaketype_id">
             <%= for (opt) in searchOuttakeTypes { %>
               <%= if (opt.Selected) { %>
@@ -158,14 +158,14 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Numéro</th>
-    <th>Date d'admission</th>
-    <th>Zone</th>
-    <th>Cage</th>
-    <th>Type</th>
-    <th>Espèce</th>
-    <th>Âge</th>
-    <th>Identification</th>
+    <th><a class="text-body" href="<%= sortLink("number") %>">Numéro <%= sortIcon("number") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("intake_date") %>">Date d'admission <%= sortIcon("intake_date") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("zone") %>">Zone <%= sortIcon("zone") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("cage") %>">Cage <%= sortIcon("cage") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("type") %>">Type <%= sortIcon("type") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("species") %>">Espèce <%= sortIcon("species") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("age") %>">Âge <%= sortIcon("age") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("identification") %>">Identification <%= sortIcon("identification") %></a></th>
     <th>Traitements</th>
     <th title="Gavage">Ga</th>
     <th>&nbsp;</th>

@@ -439,8 +439,9 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		return err
 	}
 
-	// Retrieve all Animals from the DB
-	if err := q.Order("ID desc").All(animals); err != nil {
+	// Retrieve all Animals from the DB (sort param via whitelist, default ID desc)
+	q = applyAnimalSort(q, c)
+	if err := q.All(animals); err != nil {
 		return err
 	}
 

@@ -7,4 +7,4 @@
 - id: "veterinaryvisit.animal.not.found"
   translation: "Tier mit ID {{.animalID}} existiert nicht"
 - id: "veterinaryvisit.animal.outtake.already.exist"
-  translation: "Tier mit ID {{.animalID}} ist bereits entlassen"
+  translation: "Tier mit ID {{.animalID}} hat bereits einen Ausgang"

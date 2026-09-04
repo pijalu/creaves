@@ -3,14 +3,14 @@
   <h3>Tierstatus</h3>
 
   <p class="text-muted">
-    Geben Sie die Tiernummer und die Telefonnummer ein, die Sie bei der Abgabe angegeben haben.
+    Geben Sie die Tiernummer und die Telefonnummer ein, die Sie beim Ausgang angegeben haben.
     Der Status wird nur angezeigt, wenn die Telefonnummer zu unseren Angaben passt.
   </p>
 
   <%= if (guestError) { %>
     <div class="alert alert-danger">
       Keine übereinstimmende Kombination aus Tier- und Telefonnummer gefunden.
-      Bitte prüfen Sie die Tiernummer und die bei der Abgabe angegebene Telefonnummer.
+      Bitte prüfen Sie die Tiernummer und die beim Ausgang angegebene Telefonnummer.
     </div>
   <% } %>
 

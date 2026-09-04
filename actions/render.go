@@ -82,6 +82,8 @@ func init() {
 		// Add template helpers here:
 		Helpers: render.Helpers{
 			"langLinks": langLinks,
+			"sortLink":  sortLink,
+			"sortIcon":  sortIcon,
 			"bool2html": func(s bool) string {
 				if s {
 					return "✓"

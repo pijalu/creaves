@@ -158,14 +158,14 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Number</th>
-    <th>Intake date</th>
-    <th>Zone</th>
-    <th>Cage</th>
-    <th>Type</th>
-    <th>Species</th>
-    <th>Age</th>
-    <th>Identification</th>
+    <th><a class="text-body" href="<%= sortLink("number") %>">Number <%= sortIcon("number") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("intake_date") %>">Intake date <%= sortIcon("intake_date") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("zone") %>">Zone <%= sortIcon("zone") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("cage") %>">Cage <%= sortIcon("cage") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("type") %>">Type <%= sortIcon("type") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("species") %>">Species <%= sortIcon("species") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("age") %>">Age <%= sortIcon("age") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("identification") %>">Identification <%= sortIcon("identification") %></a></th>
     <th>Treatments</th>
     <th title="Force Feed">FF</th>
     <th>&nbsp;</th>

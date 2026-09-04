@@ -17,7 +17,7 @@ $( document ).ready(function(){
     <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Tierarzt</a>
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Behandlung</a>
     <%= if (animal.OuttakeID.Value() != nil ) {%>
-      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Abgabe</a>
+      <a class="nav-item nav-link" id="nav-release-tab" data-toggle="tab" href="#nav-release" role="tab" aria-controls="nav-Release" aria-selected="false">Ausgang</a>
     <% } %>
   </div>
 </nav>
@@ -824,7 +824,7 @@ $( document ).ready(function(){
         <div class="form-group col-md-12">
             <%= if (current_user.Admin) {%>
               <div class="float-right">
-                <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Abgabe löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Ausgang löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
               </div>
             <% } %>
             <label>Datum</label>

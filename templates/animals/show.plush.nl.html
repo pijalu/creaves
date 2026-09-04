@@ -31,7 +31,7 @@
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Behandeling</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
-      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Uitgang</a>
+      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Afloop</a>
     <% } %>
 
     <%= if (current_user.Admin) {%>
@@ -574,7 +574,7 @@
       <li class="list-group-item pb-1">
         <%= if (current_user.Admin) {%>
           <div class="float-right">
-            <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Uitgang verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Afloop verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         <% } %>
         <label class="small d-block">Date</label>
@@ -583,6 +583,7 @@
       <li class="list-group-item pb-1">
         <label class="small d-block">Type</label>
         <p class="d-inline-block"><%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %></p>
+        <span class="badge ml-2 <%= if (animal.Outtake.Type.Rating < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating < 0) { %>Negatief<% } else if (animal.Outtake.Type.Rating > 0) { %>Positief<% } else { %>Neutraal<% } %></span>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Locatie</label>

@@ -1,7 +1,7 @@
 <%= f.InputTag("Name") %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
 
-<%= f.SelectTag("Rating", {label:"Type", options: {"Negative": "-1", "Neutral": "0", "Positive": "1"} } ) %>
+<%= f.SelectTag("Rating", {label:"Outcome", options: {"Negative": "-1", "Neutral": "0", "Positive": "1"} } ) %>
 
 <%= f.CheckboxTag("Default", {unchecked: false} ) %>
 <%= f.CheckboxTag("Dead", {label:"Dead", unchecked: false}) %>

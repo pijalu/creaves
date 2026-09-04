@@ -1,7 +1,7 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Animal number <%=animal.YearNumber%> (<%= animal.Year %>)</h3>
   <%= if(animal.OuttakeID.Valid){ %>
-  <h4><em>(Outtaken)</em></h4>
+  <h4><em>(Outcomes)</em></h4>
   <% } %>
   <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
 
@@ -31,7 +31,7 @@
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
-      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Outtake</a>
+      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Outcome</a>
     <% } %>
 
     <%= if (current_user.Admin) {%>
@@ -583,6 +583,7 @@
       <li class="list-group-item pb-1">
         <label class="small d-block">Type</label>
         <p class="d-inline-block"><%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %></p>
+        <span class="badge ml-2 <%= if (animal.Outtake.Type.Rating < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating < 0) { %>Negative<% } else if (animal.Outtake.Type.Rating > 0) { %>Positive<% } else { %>Neutral<% } %></span>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Location</label>

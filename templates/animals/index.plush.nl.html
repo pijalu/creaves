@@ -158,14 +158,14 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Nummer</th>
-    <th>Opnamedatum</th>
-    <th>Zone</th>
-    <th>Kooi</th>
-    <th>Type</th>
-    <th>Soort</th>
-    <th>Leeftijd</th>
-    <th>Identificatie</th>
+    <th><a class="text-body" href="<%= sortLink("number") %>">Nummer <%= sortIcon("number") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("intake_date") %>">Opnamedatum <%= sortIcon("intake_date") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("zone") %>">Zone <%= sortIcon("zone") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("cage") %>">Kooi <%= sortIcon("cage") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("type") %>">Type <%= sortIcon("type") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("species") %>">Soort <%= sortIcon("species") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("age") %>">Leeftijd <%= sortIcon("age") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("identification") %>">Identificatie <%= sortIcon("identification") %></a></th>
     <th>Behandelingen</th>
     <th title="Gedwongen voeding">GV</th>
     <th>&nbsp;</th>

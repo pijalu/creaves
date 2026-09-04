@@ -1,9 +1,9 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Détails d'un type de sortie</h3>
+  <h3 class="d-inline-block">Détails d'un type d'issue</h3>
 
   <div class="float-right">
     <%= linkTo(outtaketypesPath(), {class: "btn btn-info"}) { %>
-      Retour à tous les types de sorties
+      Retour à tous les types d'issues
     <% } %>
     <%= linkTo(editOuttaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
     <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>

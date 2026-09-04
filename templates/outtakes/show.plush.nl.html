@@ -1,7 +1,7 @@
 <div class="py-4 mb-2">
   <div class="float-right">
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
-      Terug naar alle uitgangen
+      Terug naar alle aflopen
     <% } %>
     <%= if (current_user.Admin) {%>
     <%= linkTo(editOuttakePath({ outtake_id: outtake.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
@@ -10,7 +10,7 @@
   </div>
 </div>
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block"> Uitgangdetails van dier <%= outtake.Animal.ID %></h3>
+  <h3 class="d-inline-block"> Afloopdetails van dier <%= outtake.Animal.ID %></h3>
   <p><%= outtake.Animal.Species %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Aangekomen: <%= outtake.Animal.Intake.DateFormated() %></p>
 </div>
 

@@ -2,11 +2,11 @@
   <div class="py-4 mb-2">
     <div class="float-right">
     <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
-          Alle Abgaben ansehen
+          Alle Ausgänge ansehen
     <% } %>
     </div>
   </div>
-  <h4>Tier für Abgabe auswählen</h4>
+  <h4>Tier für Ausgang auswählen</h4>
   <%= formFor(outtake, {action: newOuttakesPath(), method: "GET"}) { %>
   <div class="form-group row">
     <label for="animal_year_number" class="col-sm-2 col-form-label">Tiernummer</label>
@@ -36,7 +36,7 @@ $( document ).ready(function(){
   <% } %>
 <% } else { %>
   <div class="py-4 mb-2">
-  <h3 class="d-inline-block"> Abgabe des Tieres <%= animal.YearNumberFormatted() %></h3>
+  <h3 class="d-inline-block"> Ausgang des Tieres <%= animal.YearNumberFormatted() %></h3>
   <p><%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - Angekommen: <%= animal.Intake.DateFormated() %></p>
   </div>
   
