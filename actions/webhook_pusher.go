@@ -425,7 +425,12 @@ func deliverBatch() (int, error) {
 		// unlisted events remain pending for retry.
 		webhookPusher.circuitBreaker.RecordFailure()
 	}
-	if len(result.ProcessedIDs) == 0 && result.Processed == nil && result.Total == nil && len(result.Errors) == 0 {
+	// The documented Console response reports only processed/total counts on
+	// full success. Treat that complete response as acceptance of every event;
+	// partial responses still require explicit processed_ids.
+	fullCount := result.Processed != nil && result.Total != nil && *result.Processed == len(*events) && *result.Total == len(*events) && len(result.Errors) == 0
+	legacyEmpty := result.Processed == nil && result.Total == nil && len(result.Errors) == 0
+	if (fullCount || legacyEmpty) && len(result.ProcessedIDs) == 0 {
 		for _, event := range *events {
 			accepted[event.ID.String()] = true
 		}
