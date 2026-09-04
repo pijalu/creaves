@@ -61,6 +61,10 @@ func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (
 	if err := createTx.Create(run); err != nil {
 		return nil, err
 	}
+	// A resync creates events asynchronously; ensure delivery is available and
+	// wake it immediately rather than waiting for the fallback poll interval.
+	EnsureWebhookWorkerRunning()
+	signalWebhookWake()
 	// The worker shares models.DB like any other code path. NOTE: with
 	// pop v6.1.0 + pop.Debug (development), every Create/Update leaked one
 	// pooled connection via the SQL logger (logger.go store.Transaction()
@@ -157,6 +161,8 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		if err := processResyncAnimal(tx, run, force, &(*animals)[i]); err != nil {
 			return finishResync(tx, run, err)
 		}
+		// Keep delivery moving while large resyncs are still producing events.
+		signalWebhookWake()
 	}
 	run.Complete(time.Now())
 	if err := tx.Update(run); err != nil {

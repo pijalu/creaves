@@ -350,7 +350,10 @@ func TestDeliverBatch_ExplicitPartialResponseDoesNotDeliver(t *testing.T) {
 		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["failed"]}`))
 	}))
 	defer srv.Close()
-	CurrentConfig.WebhookURL = srv.URL
+	settings, settingsErr := CurrentConfig.GetSettings()
+	require.NoError(t, settingsErr)
+	settings.WebhookURL = srv.URL
+	require.NoError(t, CurrentConfig.SetSettings(settings))
 	_, err := deliverBatch()
 	require.Error(t, err)
 	var got models.EventStream
