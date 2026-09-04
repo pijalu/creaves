@@ -130,6 +130,30 @@ func parseWebhookLimits(c buffalo.Context) (batchSize, maxPerMin int) {
 	return batchSize, maxPerMin
 }
 
+// paramIsTrue reports whether a boolean form field was checked.
+// Checkbox fields are rendered with a hidden "false" input alongside the
+// checkbox "true" input (see templates/config/_form.plush*.html), so the
+// submitted key can carry two values. c.Param returns only the first value
+// (hidden "false" comes first in the form), which would always read as
+// unchecked. Inspecting every submitted value fixes that.
+func paramIsTrue(c buffalo.Context, key string) bool {
+	req := c.Request()
+	if req == nil {
+		return c.Param(key) == "true"
+	}
+	if req.Form != nil {
+		for _, v := range req.Form[key] {
+			if v == "true" {
+				return true
+			}
+		}
+		if _, present := req.Form[key]; present {
+			return false
+		}
+	}
+	return c.Param(key) == "true"
+}
+
 // requireAdmin checks if the current user is an admin
 func requireAdmin(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
@@ -237,14 +261,14 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 	config.Name = c.Param("Name")
 	config.Description = c.Param("Description")
 	// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
-	config.Active = c.Param("Active") == "true"
+	config.Active = paramIsTrue(c, "Active")
 
 	// Build settings from form
 	batchSize, maxPerMin := parseWebhookLimits(c)
 
 	settings := models.ConfigSettings{
-		EnableEventStream: c.Param("Settings.EnableEventStream") == "true",
-		WebhookEnabled:    c.Param("Settings.WebhookEnabled") == "true",
+		EnableEventStream: paramIsTrue(c, "Settings.EnableEventStream"),
+		WebhookEnabled:    paramIsTrue(c, "Settings.WebhookEnabled"),
 		WebhookURL:        c.Param("Settings.WebhookURL"),
 		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
 		WebhookBatchSize:  batchSize,
@@ -328,14 +352,14 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	config.Name = c.Param("Name")
 	config.Description = c.Param("Description")
 	// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
-	config.Active = c.Param("Active") == "true"
+	config.Active = paramIsTrue(c, "Active")
 
 	// Build settings from form
 	batchSize, maxPerMin := parseWebhookLimits(c)
 
 	settings := models.ConfigSettings{
-		EnableEventStream: c.Param("Settings.EnableEventStream") == "true",
-		WebhookEnabled:    c.Param("Settings.WebhookEnabled") == "true",
+		EnableEventStream: paramIsTrue(c, "Settings.EnableEventStream"),
+		WebhookEnabled:    paramIsTrue(c, "Settings.WebhookEnabled"),
 		WebhookURL:        c.Param("Settings.WebhookURL"),
 		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
 		WebhookBatchSize:  batchSize,
