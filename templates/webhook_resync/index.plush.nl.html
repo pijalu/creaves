@@ -42,6 +42,11 @@
 (function () {
   var status = document.getElementById('resync-status');
   var actions = document.getElementById('resync-actions');
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
+    });
+  }
   function poll() {
     fetch('/webhook_resync/status.json').then(function (response) { return response.json(); }).then(function (run) {
       if (run.status === 'none') {
@@ -50,10 +55,15 @@
       }
       var total = run.total_animals || 0;
       var processed = run.animals_processed || 0;
-      status.innerHTML = '<strong>Status:</strong> ' + run.status + '<br>' +
+      status.innerHTML = '<strong>Status:</strong> ' + esc(run.status) + '<br>' +
         '<strong>Voortgang:</strong> ' + processed + ' / ' + total + '<br>' +
         '<strong>Aangemaakt:</strong> ' + (run.events_created || 0) +
-        ' <strong>Ongewijzigd overgeslagen:</strong> ' + (run.events_skipped_unchanged || 0);
+        ' <strong>Ongewijzigd overgeslagen:</strong> ' + (run.events_skipped_unchanged || 0) +
+        ' <strong>Geleverd:</strong> ' + (run.events_delivered || 0) +
+        ' <strong>Mislukt:</strong> ' + (run.events_failed || 0);
+      if (run.status === 'failed') {
+        status.innerHTML += '<div class="alert alert-danger mt-2 mb-0" id="resync-failure">Niet alle gebeurtenissen bereikten de console (' + (run.events_delivered || 0) + ' geleverd, ' + (run.events_failed || 0) + ' mislukt). ' + esc(run.errors || '') + '</div>';
+      }
       if (run.status === 'running') {
         actions.innerHTML = '<form method="post" action="/webhook_resync/cancel"><input type="hidden" name="authenticity_token" value="<%= authenticity_token %>"><button type="submit" class="btn btn-warning">Hersynchronisatie annuleren</button></form>';
         setTimeout(poll, 2000);

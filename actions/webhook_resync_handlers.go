@@ -75,7 +75,10 @@ func WebhookResyncStatus(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 	run := &models.ResyncRun{}
-	if err := tx.Where("status = ?", "running").Order("started_at desc").First(run); err != nil {
+	// Latest run regardless of status: a FAILED run must stay visible on the
+	// resync page after the worker exits (bug #1 — failures used to vanish
+	// because only 'running' rows were reported).
+	if err := tx.Order("created_at desc, started_at desc").First(run); err != nil {
 		return c.Render(http.StatusOK, r.JSON(map[string]string{"status": "none"}))
 	}
 	return c.Render(http.StatusOK, r.JSON(run))

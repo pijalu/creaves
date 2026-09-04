@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	stdlog "log"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
@@ -221,6 +223,22 @@ func TestRunResyncQueryCountBounded(t *testing.T) {
 		})
 	}()
 
+	// A run may only report "completed" once every event was delivered:
+	// point webhook delivery at a stub receiver that accepts every batch
+	// (empty 200 body = legacy full acceptance in deliverBatch).
+	acceptAll := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer acceptAll.Close()
+	savedCfg := CurrentConfig
+	cfg := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: preloaderInstance, Name: "resync-n1-stub", Active: true}
+	require.NoError(t, cfg.SetSettings(models.ConfigSettings{
+		EnableEventStream: true, WebhookEnabled: true, WebhookURL: acceptAll.URL,
+		WebhookAPIKey: "k", WebhookBatchSize: 100, WebhookMaxPerMin: 10000,
+	}))
+	CurrentConfig = cfg
+	defer func() { CurrentConfig = savedCfg }()
+
 	require.NoError(t, RunResync(context.Background(), models.DB, run.ID, false))
 
 	mu.Lock()
@@ -235,11 +253,15 @@ func TestRunResyncQueryCountBounded(t *testing.T) {
 	assert.Equal(t, "completed", finished.Status)
 	assert.Equal(t, animalCount, finished.AnimalsProcessed)
 	assert.Equal(t, animalCount, finished.EventsCreated)
+	assert.Equal(t, animalCount, finished.EventsDelivered, "completed run must have delivered every created event")
+	assert.Equal(t, 0, finished.EventsFailed)
 
 	// Batched cost is a fixed budget (~10 association/animal preloads + 48
 	// translation group queries + index/checkpoints) and must not scale with
 	// the animal count. Old behaviour: ~59 SELECTs PER animal (~3540 here).
-	assert.Less(t, count, animalCount+50,
+	// The delivery-accounting loop adds a small fixed number of COUNT/EXISTS
+	// queries on top, hence the +80 headroom (bugs.md #1).
+	assert.Less(t, count, animalCount+80,
 		"resync issued %d SELECTs for %d animals — per-record SELECT N+1 is back", count, animalCount)
 	t.Logf("resync over %d animals issued %d SELECTs", animalCount, count)
 }

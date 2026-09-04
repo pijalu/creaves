@@ -18,6 +18,8 @@ type ResyncRun struct {
 	AnimalsProcessed       int        `json:"animals_processed" db:"animals_processed"`
 	EventsCreated          int        `json:"events_created" db:"events_created"`
 	EventsSkippedUnchanged int        `json:"events_skipped_unchanged" db:"events_skipped_unchanged"`
+	EventsDelivered        int        `json:"events_delivered" db:"events_delivered"`
+	EventsFailed           int        `json:"events_failed" db:"events_failed"`
 	Errors                 string     `json:"errors" db:"errors"`
 	CreatedAt              time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt              time.Time  `json:"updated_at" db:"updated_at"`

@@ -1,0 +1,2 @@
+remove_column("resync_runs", "events_delivered")
+remove_column("resync_runs", "events_failed")

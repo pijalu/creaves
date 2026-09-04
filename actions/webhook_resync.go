@@ -219,13 +219,167 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		// Keep delivery moving while large resyncs are still producing events.
 		signalWebhookWake()
 	}
-	run.Complete(time.Now())
-	if err := tx.Update(run); err != nil {
-		return err
+	// Production is only half the job: the run may only report "completed"
+	// once every created event was accepted by the console (bug #1: the old
+	// code marked the run completed right after enqueuing, so partial
+	// webhook accepts silently lost events while the run looked green).
+	return completeResyncDelivery(ctx, tx, run)
+}
+
+// resyncDeliveryPollDelay and resyncDeliveryMaxStalled bound the delivery
+// wait: after MaxStalled consecutive attempts without delivery progress the
+// run is marked failed with a per-run diagnostic instead of blocking forever.
+// Package vars so tests can tighten them.
+var (
+	resyncDeliveryPollDelay  = 100 * time.Millisecond
+	resyncDeliveryMaxStalled = 5
+)
+
+// countResyncRunEvents returns (total, delivered) for the events attributed
+// to this run (created or re-queued by it, see enqueueResyncStateEvent).
+func countResyncRunEvents(tx *pop.Connection, runID uuid.UUID) (int, int, error) {
+	row := struct {
+		Total     int `db:"total"`
+		Delivered int `db:"delivered"`
+	}{}
+	if err := tx.RawQuery(
+		"SELECT COUNT(*) AS total, "+
+			"COALESCE(SUM(CASE WHEN delivered_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS delivered "+
+			"FROM event_streams WHERE resync_run_id = ?",
+		runID,
+	).First(&row); err != nil {
+		return 0, 0, err
 	}
-	EnsureWebhookWorkerRunning()
-	signalWebhookWake()
-	return nil
+	return row.Total, row.Delivered, nil
+}
+
+// failResyncDelivery marks the run failed and appends the diagnostic to the
+// run's structured error list without discarding production errors.
+func failResyncDelivery(tx *pop.Connection, run *models.ResyncRun, diagnostic string) error {
+	now := time.Now()
+	run.Status = "failed"
+	run.FinishedAt = &now
+	appendResyncError(run, 0, diagnostic)
+	return tx.Update(run)
+}
+
+// resyncDeliveryCancelled reports whether delivery must stop (context done
+// or user cancellation) and persists the cancelled state when so.
+func resyncDeliveryCancelled(ctx context.Context, tx *pop.Connection, run *models.ResyncRun) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		run.Cancel(time.Now())
+		_ = tx.Update(run)
+		return true, nil
+	}
+	cancelled, err := tx.Where("id = ? AND status = ?", run.ID, "cancelled").Exists(&models.ResyncRun{})
+	if err != nil {
+		return false, err
+	}
+	if cancelled {
+		run.Cancel(time.Now())
+		_ = tx.Update(run)
+	}
+	return cancelled, nil
+}
+
+// resyncDeliveryPump drives one delivery attempt and re-counts the run's
+// delivered events, returning the updated stall counter (0 on progress).
+func resyncDeliveryPump(tx *pop.Connection, run *models.ResyncRun, deliveredBefore, stalled int) (int, error) {
+	// The background worker shares this duty; driving deliverBatch here keeps
+	// the run responsive instead of waiting for the 60s fallback tick.
+	// Deliveries are idempotent (console-side upsert), so overlap with the
+	// worker is harmless.
+	if _, err := deliverBatch(); err != nil {
+		log.Printf("resync run %s delivery attempt failed: %v", run.ID, err)
+	}
+	_, deliveredNow, err := countResyncRunEvents(tx, run.ID)
+	if err != nil {
+		return stalled, err
+	}
+	if deliveredNow > deliveredBefore {
+		return 0, nil
+	}
+	return stalled + 1, nil
+}
+
+// resyncDeliveryFinished records the delivered/failed counters and reports
+// whether the run is done (nothing created or everything delivered), marking
+// it completed when so.
+func resyncDeliveryFinished(tx *pop.Connection, run *models.ResyncRun, total, delivered int) (bool, error) {
+	run.EventsDelivered = delivered
+	run.EventsFailed = total - delivered
+	if total == 0 || delivered == total {
+		run.Complete(time.Now())
+		return true, tx.Update(run)
+	}
+	return false, nil
+}
+
+// completeResyncDelivery drives the webhook deliverer until every event of
+// the run is accepted by the console (run -> completed) or a bounded number
+// of stalled attempts proves delivery impossible (run -> failed with
+// diagnostics counting delivered vs failed events). Partial batch accepts
+// (e.g. 97/100) are retried automatically: rejected events stay
+// delivered_at IS NULL and the next deliverBatch picks them up again.
+func completeResyncDelivery(ctx context.Context, tx *pop.Connection, run *models.ResyncRun) error {
+	rr := &resyncDeliveryRunner{tx: tx, run: run}
+	for {
+		done, err := rr.iterate(ctx)
+		if err != nil {
+			return err
+		}
+		if done {
+			return nil
+		}
+		time.Sleep(resyncDeliveryPollDelay)
+	}
+}
+
+// resyncDeliveryRunner carries the mutable state of one run's delivery wait
+// (the stall counter) across loop iterations.
+type resyncDeliveryRunner struct {
+	tx      *pop.Connection
+	run     *models.ResyncRun
+	stalled int
+}
+
+// iterate performs one delivery-wait step (re-check cancellation, count,
+// complete, persist progress, pump one batch, enforce the stall bound).
+// done=true means the loop must stop; err is a terminal error for the caller.
+func (r *resyncDeliveryRunner) iterate(ctx context.Context) (bool, error) {
+	cancelled, err := resyncDeliveryCancelled(ctx, r.tx, r.run)
+	if err != nil {
+		return true, finishResync(r.tx, r.run, err)
+	}
+	if cancelled {
+		return true, nil
+	}
+	total, delivered, err := countResyncRunEvents(r.tx, r.run.ID)
+	if err != nil {
+		return true, finishResync(r.tx, r.run, err)
+	}
+	finished, err := resyncDeliveryFinished(r.tx, r.run, total, delivered)
+	if err != nil {
+		return true, finishResync(r.tx, r.run, err)
+	}
+	if finished {
+		return true, nil
+	}
+	// Persist the live delivered/failed counters so the status.json endpoint
+	// and the resync UI show delivery progress.
+	if err := r.tx.Update(r.run); err != nil {
+		return true, finishResync(r.tx, r.run, err)
+	}
+	r.stalled, err = resyncDeliveryPump(r.tx, r.run, delivered, r.stalled)
+	if err != nil {
+		return true, finishResync(r.tx, r.run, err)
+	}
+	if r.stalled >= resyncDeliveryMaxStalled {
+		return true, failResyncDelivery(r.tx, r.run, fmt.Sprintf(
+			"delivery incomplete: %d of %d events accepted; %d events not delivered after %d stalled attempts",
+			delivered, total, total-delivered, r.stalled))
+	}
+	return false, nil
 }
 
 func appendResyncError(run *models.ResyncRun, animalID int, message string) {
@@ -254,8 +408,11 @@ func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resy
 	}
 	if exists {
 		if err := tx.RawQuery(
-			"UPDATE event_streams SET delivered_at = NULL WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
-			run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
+			// resync_run_id is re-pointed at the current run so the
+			// delivery-accounting loop below sees the re-queued event as
+			// this run's responsibility (created/failed counting).
+			"UPDATE event_streams SET delivered_at = NULL, resync_run_id = ? WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
+			run.ID, run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
 		).Exec(); err != nil {
 			return err
 		}

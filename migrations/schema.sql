@@ -525,6 +525,8 @@ CREATE TABLE `resync_runs` (
   `animals_processed` int NOT NULL DEFAULT '0',
   `events_created` int NOT NULL DEFAULT '0',
   `events_skipped_unchanged` int NOT NULL DEFAULT '0',
+  `events_delivered` int NOT NULL DEFAULT '0',
+  `events_failed` int NOT NULL DEFAULT '0',
   `errors` text,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,

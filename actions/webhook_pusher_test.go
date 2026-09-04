@@ -89,6 +89,8 @@ func createPusherTables() {
 			animals_processed INTEGER NOT NULL DEFAULT 0,
 			events_created INTEGER NOT NULL DEFAULT 0,
 			events_skipped_unchanged INTEGER NOT NULL DEFAULT 0,
+			events_delivered INTEGER NOT NULL DEFAULT 0,
+			events_failed INTEGER NOT NULL DEFAULT 0,
 			errors TEXT,
 			created_at TIMESTAMP NOT NULL,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
