@@ -341,6 +341,23 @@ func TestDeliverBatch_Success(t *testing.T) {
 	}
 }
 
+func TestDeliverBatch_ExplicitPartialResponseDoesNotDeliver(t *testing.T) {
+	resetPusherState()
+	seedPusherConfig(t, "http://unused")
+	ev := seedUndeliveredEvent(t, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["failed"]}`))
+	}))
+	defer srv.Close()
+	CurrentConfig.WebhookURL = srv.URL
+	_, err := deliverBatch()
+	require.Error(t, err)
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.Nil(t, got.DeliveredAt)
+}
+
 func TestDeliverBatch_NoEventsNoop(t *testing.T) {
 	resetPusherState()
 

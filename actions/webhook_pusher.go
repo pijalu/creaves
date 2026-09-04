@@ -400,18 +400,32 @@ func deliverBatch() (int, error) {
 	}
 
 	var result struct {
+		Processed    *int     `json:"processed"`
+		Total        *int     `json:"total"`
 		ProcessedIDs []string `json:"processed_ids"`
+		Errors       []string `json:"errors"`
 	}
-	_ = json.Unmarshal(bodyBytes, &result)
-
-	accepted := make(map[string]bool, len(*events))
-	if len(result.ProcessedIDs) > 0 {
-		for _, id := range result.ProcessedIDs {
-			accepted[id] = true
+	if len(bytes.TrimSpace(bodyBytes)) > 0 {
+		if err := json.Unmarshal(bodyBytes, &result); err != nil {
+			return len(*events), fmt.Errorf("invalid webhook response: %w", err)
 		}
-	} else {
-		// Backward compatibility: a receiver that does not report
-		// processed_ids is assumed to have accepted every event on 200 OK.
+	}
+
+	accepted := make(map[string]bool, len(result.ProcessedIDs))
+	for _, id := range result.ProcessedIDs {
+		accepted[id] = true
+	}
+	// Legacy receivers may return an empty body. Only that unstructured 200
+	// response gets all-events compatibility; explicit errors or partial
+	// counts must never silently mark absent events as delivered.
+	partial := result.Processed != nil && result.Total != nil && *result.Processed < *result.Total
+	responseErr := len(result.Errors) > 0 || partial
+	if responseErr {
+		// Continue below so explicitly listed processed_ids are persisted;
+		// unlisted events remain pending for retry.
+		webhookPusher.circuitBreaker.RecordFailure()
+	}
+	if len(result.ProcessedIDs) == 0 && result.Processed == nil && result.Total == nil && len(result.Errors) == 0 {
 		for _, event := range *events {
 			accepted[event.ID.String()] = true
 		}
@@ -433,6 +447,9 @@ func deliverBatch() (int, error) {
 		delivered++
 	}
 
+	if responseErr {
+		return len(*events), fmt.Errorf("webhook accepted %d/%d events", delivered, len(*events))
+	}
 	webhookPusher.circuitBreaker.RecordSuccess()
 	if delivered < len(*events) {
 		fmt.Printf("Delivered %d/%d events to webhook; %d will be retried\n", delivered, len(*events), len(*events)-delivered)
