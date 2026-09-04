@@ -1,5 +1,24 @@
 <h1>Webhook resync</h1>
 <p>Resync sends current animal state to the configured console. It is safe to repeat and skips unchanged animals.</p>
+<%= if (syncStatus) { %>
+<div class="card mb-3" id="sync-visibility">
+  <div class="card-body">
+    <h5 class="card-title">Sync status (expected on this instance)</h5>
+    <p class="mb-1"><strong>Expected animals:</strong> <%= syncStatus.ExpectedTotal %> &middot; <strong>Delivered &amp; current:</strong> <%= syncStatus.StateConfirmed %> &middot; <strong>Unconfirmed:</strong> <%= syncStatus.StateUnconfirmed %> (<%= syncStatus.NeverSynced %> never synced)</p>
+    <p class="mb-2"><strong>Expected checksum:</strong> <code><%= syncStatus.ExpectedChecksum %></code><br>
+      <small class="text-muted">Compare with the event-log checksum of this instance in the console sync-management view. Equal values mean the transfer is complete.</small>
+    </p>
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Year</th><th>Total</th><th>Confirmed</th><th>Unconfirmed</th></tr></thead>
+      <tbody>
+        <%= for (y) in syncStatus.Years { %>
+        <tr><td><%= y.Year %></td><td><%= y.Total %></td><td><%= y.Confirmed %></td><td><%= y.Unconfirmed %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
 <div id="resync-status" class="mb-3">Loading…</div>
 <%= if (!webhookEnabled) { %>
 <div class="alert alert-warning" id="resync-disabled-warning">Webhook forwarding is disabled — resync cannot run until it is enabled.</div>

@@ -4,6 +4,8 @@
 package actions
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -82,6 +84,59 @@ func TestPublishEvent_LoadsConfigWhenNil(t *testing.T) {
 	assert.Equal(t, 1, countEvents(t))
 }
 
+// seedPublishAnimals inserts persisted animal chains so the publish helpers
+// can reload animals (reloadAnimalForEvent) with all associations.
+func seedPublishAnimals(t *testing.T, ids ...int) {
+	t.Helper()
+	ageID := "aaaaaaaa-1111-1111-1111-1111111111f3"
+	typeID := "bbbbbbbb-2222-2222-2222-2222222222f3"
+	discID := "dddddddd-4444-4444-4444-4444444444f3"
+	ecID := "SYNCST_EC_PUB"
+	exec := func(q string, args ...interface{}) {
+		t.Helper()
+		if err := pusherTestDB.RawQuery(q, args...).Exec(); err != nil {
+			t.Fatalf("seedPublishAnimals: %v\n%s", err, q)
+		}
+	}
+	exec("DELETE FROM animals WHERE id IN ("+placeholderList(len(ids))+")", toIfaceSlice(ids)...)
+	exec("DELETE FROM intakes WHERE id LIKE '55555557-0000-0000-0000-0000000000%'")
+	exec("DELETE FROM discoveries WHERE id LIKE '66666668-0000-0000-0000-0000000000%'")
+	exec("DELETE FROM discoverers WHERE id = ?", discID)
+	exec("DELETE FROM entry_causes WHERE id = ?", ecID)
+	exec("DELETE FROM animaltypes WHERE id = ?", typeID)
+	exec("DELETE FROM animalages WHERE id = ?", ageID)
+	exec("INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES (?, 'PUB Age', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ageID)
+	exec("INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES (?, 'PUB Type', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", typeID)
+	exec("INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES (?, 'PUB_C', 'PUB_D', 'PUB_N', 'x', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)", ecID)
+	exec("INSERT INTO discoverers (id, created_at, updated_at) VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", discID)
+	for i, id := range ids {
+		intakeID := fmt.Sprintf("55555557-0000-0000-0000-0000000000%02d", i)
+		dscrID := fmt.Sprintf("66666668-0000-0000-0000-0000000000%02d", i)
+		exec("INSERT INTO intakes (id, date, created_at, updated_at) VALUES (?, '2025-06-01 10:00:00', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", intakeID)
+		exec("INSERT INTO discoveries (id, date, discoverer_id, entry_cause_id, created_at, updated_at) VALUES (?, '2025-06-01 10:00:00', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", dscrID, discID, ecID)
+		exec("INSERT INTO animals (id, species, animalage_id, animaltype_id, discovery_id, intake_id, created_at, updated_at, year, yearNumber, IntakeDate) VALUES (?, 'PUB_Fox', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 2025, ?, '2025-06-01 10:00:00')", id, ageID, typeID, dscrID, intakeID, id)
+	}
+	t.Cleanup(func() {
+		pusherTestDB.RawQuery("DELETE FROM animals WHERE id IN ("+placeholderList(len(ids))+")", toIfaceSlice(ids)...).Exec()
+	})
+}
+
+func toIfaceSlice(ids []int) []interface{} {
+	out := make([]interface{}, len(ids))
+	for i, id := range ids {
+		out[i] = id
+	}
+	return out
+}
+
+func placeholderList(n int) string {
+	parts := make([]string, n)
+	for i := range parts {
+		parts[i] = "?"
+	}
+	return strings.Join(parts, ",")
+}
+
 // TestPublishAnimalHelpers exercises the typed publish helpers end-to-end.
 func TestPublishAnimalHelpers(t *testing.T) {
 	resetPusherState()
@@ -90,6 +145,8 @@ func TestPublishAnimalHelpers(t *testing.T) {
 	settings.EnableEventStream = true
 	require.NoError(t, CurrentConfig.SetSettings(settings))
 	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+
+	seedPublishAnimals(t, 10, 11)
 
 	require.NoError(t, PublishAnimalDiscoveredEvent(pusherTestDB, makeAnimal(10), nil))
 	require.NoError(t, PublishAnimalStatusChangedEvent(pusherTestDB, makeAnimal(10), "in_care", "under_treatment", nil))

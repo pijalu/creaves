@@ -46,7 +46,7 @@ func raftExec(t *testing.T, q string, args ...interface{}) {
 
 func setupReportsAnnualFixtures(t *testing.T) {
 	t.Helper()
-	now := "NOW()"
+	now := "CURRENT_TIMESTAMP"
 
 	// Pre-clean residue from a previous crashed run (t.Cleanup only fires on
 	// graceful exits; a killed test process would otherwise leave rows that

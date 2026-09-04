@@ -31,15 +31,15 @@ func setupRALFixtures(t *testing.T) {
 	t.Helper()
 	cleanupRAL(t)
 
-	ralExec(t, "INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES (?, 'RAL_Age', 0, NOW(), NOW())", ralAgeID)
-	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b101', 'animalages', ?, 'name', 'en-US', 'RAL_Age EN', NOW(), NOW())", ralAgeID)
+	ralExec(t, "INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES (?, 'RAL_Age', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ralAgeID)
+	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b101', 'animalages', ?, 'name', 'en-US', 'RAL_Age EN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ralAgeID)
 
-	ralExec(t, "INSERT INTO outtaketypes (id, name, `def`, created_at, updated_at, dead, rating, error) VALUES (?, 'RAL_OT', 0, NOW(), NOW(), 0, 1, 0)", ralOTID)
-	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b102', 'outtaketypes', ?, 'name', 'en-US', 'RAL_OT EN', NOW(), NOW())", ralOTID)
+	ralExec(t, "INSERT INTO outtaketypes (id, name, `def`, created_at, updated_at, dead, rating, error) VALUES (?, 'RAL_OT', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0, 1, 0)", ralOTID)
+	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b102', 'outtaketypes', ?, 'name', 'en-US', 'RAL_OT EN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ralOTID)
 
-	ralExec(t, "INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES (?, 'RAL_Cause', '', 'RAL_Nature', 'x', NOW(), NOW(), 999)", ralCauseID)
-	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b103', 'entry_causes', ?, 'cause', 'en-US', 'RAL_Cause EN', NOW(), NOW())", ralCauseID)
-	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b104', 'entry_causes', ?, 'nature', 'en-US', 'RAL_Nature EN', NOW(), NOW())", ralCauseID)
+	ralExec(t, "INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES (?, 'RAL_Cause', '', 'RAL_Nature', 'x', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 999)", ralCauseID)
+	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b103', 'entry_causes', ?, 'cause', 'en-US', 'RAL_Cause EN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ralCauseID)
+	ralExec(t, "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('00000000-0000-0000-0000-00000000b104', 'entry_causes', ?, 'nature', 'en-US', 'RAL_Nature EN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", ralCauseID)
 
 	t.Cleanup(func() {
 		cleanupRAL(t)

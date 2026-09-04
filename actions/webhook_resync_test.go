@@ -25,7 +25,7 @@ import (
 // leave residue from a previous failed run behind).
 func seedResyncNestedFixture(t *testing.T) {
 	t.Helper()
-	now := "NOW()"
+	now := "CURRENT_TIMESTAMP"
 
 	exec := func(q string, args ...interface{}) {
 		t.Helper()
@@ -246,7 +246,7 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 // discovery/outtake chain) under the fixed id 985050 and registers cleanup.
 func seedResyncForceFixture(t *testing.T) {
 	t.Helper()
-	now := "NOW()"
+	now := "CURRENT_TIMESTAMP"
 	exec := func(q string, args ...interface{}) {
 		t.Helper()
 		if err := models.DB.RawQuery(q, args...).Exec(); err != nil {

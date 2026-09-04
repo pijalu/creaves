@@ -36,6 +36,7 @@ func TestMain(m *testing.M) {
 	pusherTestDB, err = pop.NewConnection(
 		&pop.ConnectionDetails{
 			Dialect:  "sqlite",
+			Driver:   driverNameCreavesSQLite,
 			Database: "./pusher_test.db",
 		})
 	if err != nil {
@@ -51,6 +52,7 @@ func TestMain(m *testing.M) {
 	models.DB = pusherTestDB
 
 	createPusherTables()
+	createReferenceTables()
 
 	code := m.Run()
 
@@ -557,7 +559,10 @@ func TestDeliverBatch_PartialFailureMarksOnlyAccepted(t *testing.T) {
 	srv.Config.Handler = http.HandlerFunc(acc.handler)
 
 	_, err := deliverBatch()
-	require.NoError(t, err)
+	// Partial acceptance is reported as an error (circuit breaker records a
+	// failure) since commit be7bec9 — but the accepted subset must still be
+	// marked delivered and the rejected event left pending for retry.
+	require.Error(t, err)
 
 	// ev1 (rejected) stays undelivered for retry.
 	var got1 models.EventStream

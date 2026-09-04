@@ -187,6 +187,8 @@ Creaves (this app)                    Creaves Console
 | File | Purpose |
 |------|---------|
 | `actions/event_producer.go` | `PublishEvent()` + typed helpers (`PublishAnimalDiscoveredEvent`, etc.) |
+| `actions/sync_status.go` | Producer-side expected sync set: per-animal state hashes, confirmed/unconfirmed/never-synced counts, per-year breakdown, shared expected checksum (shown on `/webhook_resync`) |
+| `actions/webhook_resync.go` | Full resync runs: deterministic state events, force rebuild, progress tracking |
 | `actions/webhook_pusher.go` | Background worker: circuit breaker, rate limiting, batch delivery |
 | `actions/configs.go` | Config management: `LoadConfig()`, `IsEventStreamEnabled()`, `IsWebhookEnabled()`, `GetInstanceID()` |
 | `actions/event_streams.go` | Event stream list/show/destroy handlers (admin UI) |

@@ -1,5 +1,24 @@
 <h1>Resynchronisation webhook</h1>
 <p>La resynchronisation envoie l’état actuel des animaux vers la console configurée. Elle peut être répétée sans risque et ignore les animaux inchangés.</p>
+<%= if (syncStatus) { %>
+<div class="card mb-3" id="sync-visibility">
+  <div class="card-body">
+    <h5 class="card-title">&Eacute;tat de synchronisation (attendu sur cette instance)</h5>
+    <p class="mb-1"><strong>Animaux attendus :</strong> <%= syncStatus.ExpectedTotal %> &middot; <strong>Livr&eacute;s &agrave; jour :</strong> <%= syncStatus.StateConfirmed %> &middot; <strong>Non confirm&eacute;s :</strong> <%= syncStatus.StateUnconfirmed %> (<%= syncStatus.NeverSynced %> jamais synchronis&eacute;s)</p>
+    <p class="mb-2"><strong>Somme de contr&ocirc;le attendue :</strong> <code><%= syncStatus.ExpectedChecksum %></code><br>
+      <small class="text-muted">&Agrave; comparer avec la somme de contr&ocirc;le du journal d&rsquo;&eacute;v&eacute;nements de cette instance dans la vue de gestion de synchronisation de la console. Des valeurs &eacute;gales signifient un transfert complet.</small>
+    </p>
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Ann&eacute;e</th><th>Total</th><th>Confirm&eacute;s</th><th>Non confirm&eacute;s</th></tr></thead>
+      <tbody>
+        <%= for (y) in syncStatus.Years { %>
+        <tr><td><%= y.Year %></td><td><%= y.Total %></td><td><%= y.Confirmed %></td><td><%= y.Unconfirmed %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
 <div id="resync-status" class="mb-3">Chargement…</div>
 <%= if (!webhookEnabled) { %>
 <div class="alert alert-warning" id="resync-disabled-warning">La redirection webhook est désactivée — la resynchronisation ne peut pas démarrer avant son activation.</div>

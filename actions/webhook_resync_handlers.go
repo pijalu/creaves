@@ -3,10 +3,11 @@ package actions
 import (
 	"creaves/models"
 	"fmt"
-	"strings"
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+	"log"
 	"net/http"
+	"strings"
 )
 
 func WebhookResyncIndex(c buffalo.Context) error {
@@ -14,6 +15,19 @@ func WebhookResyncIndex(c buffalo.Context) error {
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
 	}
 	c.Set("webhookEnabled", IsWebhookEnabled())
+	// Expected-set visibility (phase 8): per-animal hashes are recomputed
+	// live, so keep this on the page render only — never in the polled
+	// status.json endpoint.
+	var syncStatus *SyncStatus
+	if tx, ok := c.Value("tx").(*pop.Connection); ok {
+		var err error
+		syncStatus, err = ComputeSyncStatus(tx, GetInstanceID())
+		if err != nil {
+			log.Printf("failed to compute sync status: %v", err)
+			syncStatus = nil
+		}
+	}
+	c.Set("syncStatus", syncStatus)
 	return c.Render(http.StatusOK, r.HTML("webhook_resync/index.plush.html"))
 }
 func WebhookResyncStart(c buffalo.Context) error {

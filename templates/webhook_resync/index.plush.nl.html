@@ -1,5 +1,24 @@
 <h1>Webhook-hersynchronisatie</h1>
 <p>Hersynchronisatie stuurt de huidige dierenstatus naar de geconfigureerde console. Het kan veilig worden herhaald en slaat ongewijzigde dieren over.</p>
+<%= if (syncStatus) { %>
+<div class="card mb-3" id="sync-visibility">
+  <div class="card-body">
+    <h5 class="card-title">Synchronisatiestatus (verwacht op deze instantie)</h5>
+    <p class="mb-1"><strong>Verwachte dieren:</strong> <%= syncStatus.ExpectedTotal %> &middot; <strong>Geleverd &amp; actueel:</strong> <%= syncStatus.StateConfirmed %> &middot; <strong>Niet bevestigd:</strong> <%= syncStatus.StateUnconfirmed %> (<%= syncStatus.NeverSynced %> nooit gesynchroniseerd)</p>
+    <p class="mb-2"><strong>Verwachte controlesom:</strong> <code><%= syncStatus.ExpectedChecksum %></code><br>
+      <small class="text-muted">Vergelijk met de gebeurtenislog-controlesom van deze instantie in het sync-beheer van de console. Gelijke waarden betekenen een volledige overdracht.</small>
+    </p>
+    <table class="table table-sm mb-0">
+      <thead><tr><th>Jaar</th><th>Totaal</th><th>Bevestigd</th><th>Niet bevestigd</th></tr></thead>
+      <tbody>
+        <%= for (y) in syncStatus.Years { %>
+        <tr><td><%= y.Year %></td><td><%= y.Total %></td><td><%= y.Confirmed %></td><td><%= y.Unconfirmed %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
 <div id="resync-status" class="mb-3">Laden…</div>
 <%= if (!webhookEnabled) { %>
 <div class="alert alert-warning" id="resync-disabled-warning">Webhook-doorsturing is uitgeschakeld — hersynchronisatie kan pas starten na inschakeling.</div>
