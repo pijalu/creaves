@@ -32,6 +32,11 @@ func (v EventStreamsResource) List(c buffalo.Context) error {
 	events := &models.EventStreams{}
 	q := tx.PaginateFromParams(c.Params())
 
+	// delivery filter: all (default) | not-delivered | delivered
+	if clause := deliveryFilterClause(c.Param("delivery")); clause != "" {
+		q = q.Where(clause)
+	}
+
 	if err := q.Order("created_at desc").All(events); err != nil {
 		return errors.WithStack(err)
 	}
@@ -39,12 +44,28 @@ func (v EventStreamsResource) List(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("pagination", q.Paginator)
 		c.Set("eventStreams", events)
+		c.Set("deliveryFilter", c.Param("delivery"))
 		return c.Render(http.StatusOK, r.HTML("event_streams/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(events))
 	}).Wants("xml", func(c buffalo.Context) error {
 		return c.Render(200, r.XML(events))
 	}).Respond(c)
+}
+
+// deliveryFilterClause maps the `delivery` query param to a SQL WHERE clause.
+// Supported values: "" / "all" (no filter), "not-delivered" (delivered_at IS
+// NULL) and "delivered" (delivered_at IS NOT NULL). Unknown values fall back
+// to no filter so a bad link cannot blank the listing.
+func deliveryFilterClause(delivery string) string {
+	switch delivery {
+	case "delivered":
+		return "delivered_at IS NOT NULL"
+	case "not-delivered":
+		return "delivered_at IS NULL"
+	default:
+		return ""
+	}
 }
 
 // Show gets the data for one EventStream. This function is mapped to

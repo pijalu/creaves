@@ -5,12 +5,31 @@
   </div>
 </div>
 
+<div class="btn-group mb-3" role="group" aria-label="Delivery filter">
+  <%= if (deliveryFilter == "delivered" || deliveryFilter == "not-delivered") { %>
+    <%= linkTo("/event_streams", {class: "btn btn-outline-secondary active", body: t("event-streams.index.filter-all")}) %>
+  <% } else { %>
+    <%= linkTo("/event_streams", {class: "btn btn-secondary active", body: t("event-streams.index.filter-all")}) %>
+  <% } %>
+  <%= if (deliveryFilter == "not-delivered") { %>
+    <%= linkTo("/event_streams?delivery=not-delivered", {class: "btn btn-warning active", body: t("event-streams.index.filter-not-delivered")}) %>
+  <% } else { %>
+    <%= linkTo("/event_streams?delivery=not-delivered", {class: "btn btn-outline-warning", body: t("event-streams.index.filter-not-delivered")}) %>
+  <% } %>
+  <%= if (deliveryFilter == "delivered") { %>
+    <%= linkTo("/event_streams?delivery=delivered", {class: "btn btn-success active", body: t("event-streams.index.filter-delivered")}) %>
+  <% } else { %>
+    <%= linkTo("/event_streams?delivery=delivered", {class: "btn btn-outline-success", body: t("event-streams.index.filter-delivered")}) %>
+  <% } %>
+</div>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th><%= t("event-streams.index.id") %></th>
     <th><%= t("event-streams.index.instance-id") %></th>
     <th><%= t("event-streams.index.animal-id") %></th>
     <th><%= t("event-streams.index.event-type") %></th>
+    <th><%= t("event-streams.index.delivered") %></th>
     <th><%= t("event-streams.index.processed") %></th>
     <th><%= t("event-streams.index.created-at") %></th>
     <th>&nbsp;</th>
@@ -22,6 +41,7 @@
         <td class="align-middle"><%= event.InstanceID %></td>
         <td class="align-middle"><%= event.AnimalID %></td>
         <td class="align-middle"><span class="badge badge-info"><%= event.EventType %></span></td>
+        <td class="align-middle"><%= if (event.DeliveredAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
         <td class="align-middle"><%= if (event.ProcessedAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
         <td class="align-middle"><%= event.CreatedAt.Format("2006-01-02 15:04:05") %></td>
         <td>
