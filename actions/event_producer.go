@@ -99,11 +99,20 @@ func reloadAnimalForEvent(tx *pop.Connection, animal *models.Animal) (*models.An
 
 // buildEventPayload creates a comprehensive EventPayload from an animal record
 func buildEventPayload(animal *models.Animal) *models.EventPayload {
-	return buildEventPayloadWithTranslations(nil, animal)
+	return buildEventPayloadInto(nil, nil, animal)
 }
 
 // buildEventPayloadWithTranslations builds canonical payload and optionally enriches translations.
 func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal) *models.EventPayload {
+	return buildEventPayloadInto(tx, nil, animal)
+}
+
+// buildEventPayloadInto is the shared payload builder. When pre is non-nil it
+// supplies species taxonomy rows and translations from a run-wide batch
+// (translationPreloader) instead of issuing per-animal queries; tx is then
+// unused for those lookups. pre != nil requires the animals to come from the
+// same set the preloader was built from.
+func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal *models.Animal) *models.EventPayload {
 	payload := &models.EventPayload{
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
@@ -142,8 +151,16 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 	// Species taxonomy from the species table (canonical French values).
 	// Joined on species.creaves_species = animals.species; unknown species → fields stay empty.
 	if tx != nil && animal.Species != "" {
-		species := &models.Species{}
-		if err := tx.Where("creaves_species = ?", animal.Species).First(species); err == nil {
+		var species *models.Species
+		if pre != nil {
+			species = pre.speciesFor(animal.Species)
+		} else {
+			species = &models.Species{}
+			if err := tx.Where("creaves_species = ?", animal.Species).First(species); err != nil {
+				species = nil
+			}
+		}
+		if species != nil {
 			payload.Animal.SpeciesClass = species.Class
 			payload.Animal.SpeciesAGWGroup = species.AgwGroup
 			payload.Animal.SpeciesSubsideGroup = species.SubsideGroup
@@ -264,7 +281,9 @@ func buildEventPayloadWithTranslations(tx *pop.Connection, animal *models.Animal
 		}
 	}
 
-	if tx != nil {
+	if pre != nil {
+		payload.Translations = loadPayloadTranslationsPreloaded(pre, animal, payload)
+	} else if tx != nil {
 		payload.Translations = loadPayloadTranslations(tx, animal, payload)
 	}
 	return payload

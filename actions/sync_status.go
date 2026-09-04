@@ -65,7 +65,10 @@ func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, erro
 	status := &SyncStatus{Years: []SyncStatusYear{}}
 
 	animals := &models.Animals{}
-	if err := tx.Eager(
+	// EagerPreload() (not Eager()) batches each association into one
+	// `id IN (...)` query; Eager issues per-record SELECTs — 8 per animal on
+	// every /webhook_resync page load.
+	if err := tx.EagerPreload(
 		"Animalage", "Animaltype", "Intake",
 		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
 		"Outtake", "Outtake.Type",
@@ -106,9 +109,13 @@ func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, erro
 
 	lines := make([]string, 0, len(*animals))
 	yearIndex := map[int]int{}
+	// Batch the reference lookups (translations + species taxonomy) once for
+	// the whole set — the per-animal queries used to flood the SQL log on
+	// every /webhook_resync page load.
+	pre := newTranslationPreloader(tx, animals)
 	for i := range *animals {
 		animal := &(*animals)[i]
-		payload := buildEventPayloadWithTranslations(tx, animal)
+		payload := buildEventPayloadInto(tx, pre, animal)
 		if payload == nil {
 			// Same handling as the resync loop: skip unusable animals in the
 			// fingerprint, they will surface as resync errors.

@@ -84,32 +84,77 @@ func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (
 	return run, nil
 }
 
-// RunResync enqueues deterministic full-state events and persists progress after each animal.
-// With force=true, already-known (instance, animal, hash) events are re-queued
-// (delivered_at reset to NULL) so the webhook worker delivers them again;
-// the console rebuilds from them. Without force they are counted as skipped.
-// resyncAbortCheck re-reads the run row and reports whether the loop must
-// stop: either the context was cancelled or the run was cancelled by the
-// user (status flips to 'cancelled' from the web UI).
-func resyncAbortCheck(ctx context.Context, tx *pop.Connection, run *models.ResyncRun) (stop bool, err error) {
+// resyncPersistEvery controls how often the resync loop persists run progress
+// and re-checks for user cancellation. Per-animal persistence used to issue an
+// UPDATE plus a run re-read SELECT per animal — log noise and avoidable
+// round-trips; 25 gives imperceptible status.json granularity at resync scale.
+const resyncPersistEvery = 25
+
+// resyncStateIndex is the run-wide set of (animal_id, content_hash) state
+// events already in event_streams for one instance. One query replaces the
+// per-animal EXISTS check; entries created by the run itself are added in
+// memory. Single-writer invariant: StartResync refuses concurrent runs for
+// the same instance, and no other code path creates animal_state events.
+type resyncStateIndex struct {
+	entries map[int]map[string]bool
+}
+
+func loadResyncStateIndex(tx *pop.Connection, instanceID string) (*resyncStateIndex, error) {
+	rows := []struct {
+		AnimalID    int    `db:"animal_id"`
+		ContentHash string `db:"content_hash"`
+	}{}
+	if err := tx.RawQuery(
+		"SELECT animal_id, content_hash FROM event_streams WHERE instance_id = ? AND event_type = ? AND content_hash IS NOT NULL",
+		instanceID, string(models.EventTypeAnimalState),
+	).All(&rows); err != nil {
+		return nil, err
+	}
+	ix := &resyncStateIndex{entries: map[int]map[string]bool{}}
+	for i := range rows {
+		ix.add(rows[i].AnimalID, rows[i].ContentHash)
+	}
+	return ix, nil
+}
+
+func (ix *resyncStateIndex) has(animalID int, hash string) bool {
+	return ix.entries[animalID][hash]
+}
+
+func (ix *resyncStateIndex) add(animalID int, hash string) {
+	if ix.entries[animalID] == nil {
+		ix.entries[animalID] = map[string]bool{}
+	}
+	ix.entries[animalID][hash] = true
+}
+
+// resyncCheckpoint persists run progress and re-checks for user cancellation
+// every resyncPersistEvery animals; context cancellation is honoured on every
+// call. stop=true means the loop must return immediately.
+func resyncCheckpoint(ctx context.Context, tx *pop.Connection, run *models.ResyncRun, processed int) (stop bool, err error) {
 	if err := ctx.Err(); err != nil {
 		run.Cancel(time.Now())
 		_ = tx.Update(run)
 		return true, err
 	}
-	if err := tx.Where("id = ?", run.ID).First(run); err != nil {
+	if processed%resyncPersistEvery != 0 {
+		return false, nil
+	}
+	if err := tx.Update(run); err != nil {
 		return true, err
 	}
-	if run.Status == "cancelled" {
-		return true, nil
+	cancelled, err := tx.Where("id = ? AND status = ?", run.ID, "cancelled").Exists(&models.ResyncRun{})
+	if err != nil {
+		return true, err
 	}
-	return false, nil
+	return cancelled, nil
 }
 
 // processResyncAnimal builds and enqueues the state event for one animal,
-// incrementing the processed counter and persisting the run.
-func processResyncAnimal(tx *pop.Connection, run *models.ResyncRun, force bool, animal *models.Animal) error {
-	payload := buildEventPayloadWithTranslations(tx, animal)
+// incrementing the processed counter. Progress persistence is the caller's
+// (resyncCheckpoint) job.
+func processResyncAnimal(tx *pop.Connection, run *models.ResyncRun, pre *translationPreloader, ix *resyncStateIndex, force bool, animal *models.Animal) error {
+	payload := buildEventPayloadInto(tx, pre, animal)
 	if payload == nil {
 		appendResyncError(run, animal.ID, "failed to build payload")
 	} else {
@@ -117,12 +162,12 @@ func processResyncAnimal(tx *pop.Connection, run *models.ResyncRun, force bool, 
 		if animal.Outtake != nil {
 			payload.CurrentStatus = "released"
 		}
-		if err := enqueueResyncStateEvent(tx, run, force, animal.ID, *payload); err != nil {
+		if err := enqueueResyncStateEvent(tx, run, ix, force, animal.ID, *payload); err != nil {
 			return err
 		}
 	}
 	run.AnimalsProcessed++
-	return tx.Update(run)
+	return nil
 }
 
 func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force bool) error {
@@ -137,28 +182,38 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		return err
 	}
 	animals := &models.Animals{}
-	// Eager() alone loads only direct associations; the payload builder also
-	// needs nested ones (Outtake.Type, Discovery.EntryCause, ...) or the
-	// emitted state events would miss outtake type/rating and entry-cause
-	// fields (they were silently NULL on the console side).
-	// NB: Eager with an explicit list loads ONLY those associations, so every
+	// The payload builder needs nested associations (Outtake.Type,
+	// Discovery.EntryCause, ...) or the emitted state events would miss
+	// outtake type/rating and entry-cause fields (they were silently NULL on
+	// the console side).
+	// NB: an explicit list loads ONLY those associations, so every
 	// association the payload builder reads must be listed.
-	if err := tx.Eager(
+	// EagerPreload() (not Eager()): Eager loads per record — 8 extra SELECTs
+	// per animal (480 per 60 animals), flooding the SQL log; EagerPreload
+	// batches each association into a single `id IN (...)` query.
+	if err := tx.EagerPreload(
 		"Animalage", "Animaltype", "Intake",
 		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
 		"Outtake", "Outtake.Type",
 	).All(animals); err != nil {
 		return finishResync(tx, run, err)
 	}
+	// Run-wide batches: reference translations/species and the existing
+	// state-event index replace per-animal SELECTs (the old N+1 flood).
+	pre := newTranslationPreloader(tx, animals)
+	ix, err := loadResyncStateIndex(tx, run.InstanceID)
+	if err != nil {
+		return finishResync(tx, run, err)
+	}
 	for i := range *animals {
-		stop, err := resyncAbortCheck(ctx, tx, run)
+		stop, err := resyncCheckpoint(ctx, tx, run, i)
 		if err != nil {
 			return err
 		}
 		if stop {
 			return nil
 		}
-		if err := processResyncAnimal(tx, run, force, &(*animals)[i]); err != nil {
+		if err := processResyncAnimal(tx, run, pre, ix, force, &(*animals)[i]); err != nil {
 			return finishResync(tx, run, err)
 		}
 		// Keep delivery moving while large resyncs are still producing events.
@@ -190,13 +245,9 @@ func appendResyncError(run *models.ResyncRun, animalID int, message string) {
 //   - Known, force=true: re-queue by resetting delivered_at so the webhook
 //     worker delivers it again; the deterministic UUID keeps the console
 //     side idempotent.
-func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, force bool, animalID int, payload models.EventPayload) error {
+func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resyncStateIndex, force bool, animalID int, payload models.EventPayload) error {
 	hash := StateContentHashPayload(run.InstanceID, payload)
-	var existing models.EventStream
-	exists, err := tx.Where("instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?", run.InstanceID, animalID, string(models.EventTypeAnimalState), hash).Exists(&existing)
-	if err != nil {
-		return err
-	}
+	exists := ix.has(animalID, hash)
 	if exists && !force {
 		run.EventsSkippedUnchanged++
 		return nil
@@ -220,6 +271,7 @@ func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, force bo
 	if err := tx.Create(event); err != nil {
 		return err
 	}
+	ix.add(animalID, hash)
 	run.EventsCreated++
 	return nil
 }
