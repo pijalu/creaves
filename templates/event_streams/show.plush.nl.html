@@ -24,7 +24,17 @@
           <td><span class="badge badge-info"><%= eventStream.EventType %></span></td>
         </tr>
         <tr>
-          <td><strong><%= t("event-streams.show.processed") %></strong></td>
+          <td><strong><%= t("event-streams.show.delivered") %></strong></td>
+          <td>
+            <%= if (eventStream.DeliveredAt) { %>
+              <span class="badge badge-success"><%= t("event-streams.yes") %></span> - <%= eventStream.DeliveredAt.Format("2006-01-02 15:04:05") %>
+            <% } else { %>
+              <span class="badge badge-warning"><%= t("event-streams.no") %></span>
+            <% } %>
+          </td>
+        </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.locally-processed") %></strong></td>
           <td>
             <%= if (eventStream.ProcessedAt) { %>
               <span class="badge badge-success"><%= t("event-streams.yes") %></span> - <%= eventStream.ProcessedAt.Format("2006-01-02 15:04:05") %>
