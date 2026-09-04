@@ -577,6 +577,41 @@ func TestDeliverBatch_PartialFailureMarksOnlyAccepted(t *testing.T) {
 	}
 }
 
+// TestDeliverBatch_PartialAcceptRecordsBreakerFailure pins the deliberate
+// circuit-breaker contract for partial acceptance: a response that accepts
+// only a subset of the batch counts as a delivery failure for the circuit
+// breaker, even though the accepted subset is persisted as delivered. A
+// receiver that degrades to accepting nothing still opens the circuit after
+// failureThreshold consecutive partial responses instead of being hammered
+// every wake.
+func TestDeliverBatch_PartialAcceptRecordsBreakerFailure(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc((&selectiveReceiver{
+		acceptIDs: map[string]bool{},
+	}).handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	seedUndeliveredEvent(t, 1)
+
+	before := webhookPusher.circuitBreaker.failures
+	_, err := deliverBatch()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "webhook accepted 0/1 events")
+	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures,
+		"partial acceptance must record a circuit-breaker failure")
+
+	// A subsequent full success resets the breaker (RecordSuccess path is
+	// only reached on non-partial responses).
+	srv.Config.Handler = http.HandlerFunc(newRecordingReceiver(http.StatusOK).handler)
+	seedUndeliveredEvent(t, 2)
+	_, err = deliverBatch()
+	require.NoError(t, err)
+	assert.Equal(t, 0, webhookPusher.circuitBreaker.failures,
+		"full success must reset the circuit breaker")
+}
+
 // TestEnsureWebhookWorkerRunning_StartsWhenEnabled proves the boot path: with
 // a config that has webhook forwarding enabled, EnsureWebhookWorkerRunning
 // starts the background worker. This is the fix for "webhook worker not
