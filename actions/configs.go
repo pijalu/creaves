@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -96,6 +97,46 @@ func IsWebhookEnabled() bool {
 		return false
 	}
 	return settings.WebhookEnabled && settings.WebhookURL != ""
+}
+
+// EnableWebhookForwarding turns webhook forwarding on for the active config
+// (confirm-to-enable path from the resync page). It requires a webhook URL
+// to already be configured — enabling delivery with no destination would
+// silently queue events forever. Persists on tx, refreshes CurrentConfig,
+// and ensures the delivery/purge worker is running.
+func EnableWebhookForwarding(tx *pop.Connection) error {
+	if CurrentConfig == nil {
+		if _, err := LoadConfig(tx); err != nil {
+			return fmt.Errorf("no active config: configure the webhook URL first")
+		}
+	}
+	settings, err := CurrentConfig.GetSettings()
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(settings.WebhookURL) == "" {
+		return fmt.Errorf("no webhook URL configured: set the console URL before enabling")
+	}
+	settings.WebhookEnabled = true
+	if err := CurrentConfig.SetSettings(settings); err != nil {
+		return err
+	}
+	// Persist on models.DB (autocommit) rather than the request tx: the
+	// buffalo pop transaction middleware rolls back the request tx after a
+	// redirect response, which would silently discard the flag flip.
+	persistTx := models.DB
+	if persistTx == nil {
+		persistTx = tx
+	}
+	verrs, err := persistTx.ValidateAndUpdate(CurrentConfig)
+	if err != nil {
+		return err
+	}
+	if verrs.HasAny() {
+		return fmt.Errorf("config validation failed: %v", verrs)
+	}
+	EnsureWebhookWorkerRunning()
+	return nil
 }
 
 // ConfigsResource is the resource for the Config model

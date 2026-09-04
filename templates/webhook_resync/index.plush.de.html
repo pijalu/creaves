@@ -1,14 +1,22 @@
 <h1>Webhook-Neusynchronisation</h1>
 <p>Die Neusynchronisation sendet den aktuellen Tierbestand an die konfigurierte Console. Sie kann gefahrlos wiederholt werden und überspringt unveränderte Tiere.</p>
 <div id="resync-status" class="mb-3">Laden…</div>
+<%= if (!webhookEnabled) { %>
+<div class="alert alert-warning" id="resync-disabled-warning">Webhook-Weiterleitung ist deaktiviert — Neusynchronisation kann erst nach Aktivierung laufen.</div>
+<% } %>
 <div id="resync-actions">
   <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
     <div class="form-check">
-      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true">
+      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true"<%= if (pendingForce) { %> checked<% } %>>
       <label class="form-check-label" for="force-resync">Vollständigen Neuaufbau erzwingen</label>
       <small class="form-text text-muted">Sendet jedes Tier erneut, auch wenn unverändert — zu verwenden, nachdem eine console-seitige Bereinigung die Daten dieser Instanz gelöscht hat. Sicher: Ereignisse behalten ihre IDs und die Console baut idempotent wieder auf.</small>
     </div>
-    <button type="submit" class="btn btn-primary">Neusynchronisation starten</button>
+    <%= if (!webhookEnabled) { %>
+      <input type="hidden" name="enable_webhook" value="true">
+      <button type="submit" class="btn btn-warning" id="enable-and-resync">Webhook-Weiterleitung aktivieren und Neusynchronisation starten</button>
+    <% } else { %>
+      <button type="submit" class="btn btn-primary">Neusynchronisation starten</button>
+    <% } %>
   <% } %>
 </div>
 <script>

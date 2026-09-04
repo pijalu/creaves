@@ -1,3 +1,6 @@
+//go:build sqlite
+// +build sqlite
+
 package actions
 
 import (
@@ -180,6 +183,14 @@ func waitForResyncCancel(t *testing.T, runID uuid.UUID) {
 // get "no rows", and exit silently — leaving the run stranded in 'running'
 // forever (observed in e2e: run stuck at animals_processed=0, no error).
 func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
+	// SQLite (file DB, single-writer) cannot run the outer test transaction
+	// and StartResync's cross-connection commit in parallel — the outer tx
+	// holds the write lock and the run-row create gets "database is locked".
+	// This is a MySQL regression test (multi-connection visibility); the
+	// sqlite suite covers the disabled-webhook/enable flow separately.
+	if models.DB != nil && models.DB.Dialect.Name() == "sqlite3" {
+		t.Skip("MySQL-only: sqlite single-writer lock blocks cross-connection commit check")
+	}
 	purgeResyncCommitTestData(t)
 	saved := CurrentConfig
 	CurrentConfig = &models.Config{InstanceID: "rsync-commit-test"}

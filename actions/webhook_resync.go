@@ -15,6 +15,11 @@ import (
 
 var resyncStartMu sync.Mutex
 
+// ErrWebhookDisabled is returned by StartResync when webhook forwarding is
+// off. Handlers must map it to a clear user-facing message (flash + 200
+// with an enable-on-confirm offer) instead of the raw buffalo error trace.
+var ErrWebhookDisabled = fmt.Errorf("webhook forwarding is disabled: enable webhook forwarding to run resync")
+
 // StartResync creates one run and schedules its work on a background goroutine.
 // With force=true, state events that already exist (same instance/animal/
 // content hash) are re-queued for delivery instead of being skipped: this is
@@ -25,7 +30,7 @@ func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (
 	resyncStartMu.Lock()
 	defer resyncStartMu.Unlock()
 	if !IsWebhookEnabled() {
-		return nil, fmt.Errorf("webhook forwarding is disabled")
+		return nil, ErrWebhookDisabled
 	}
 	active, err := tx.Where("instance_id = ? AND status = ?", instanceID, "running").Exists(&models.ResyncRun{})
 	if err != nil {

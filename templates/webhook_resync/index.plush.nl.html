@@ -1,14 +1,22 @@
 <h1>Webhook-hersynchronisatie</h1>
 <p>Hersynchronisatie stuurt de huidige dierenstatus naar de geconfigureerde console. Het kan veilig worden herhaald en slaat ongewijzigde dieren over.</p>
 <div id="resync-status" class="mb-3">Laden…</div>
+<%= if (!webhookEnabled) { %>
+<div class="alert alert-warning" id="resync-disabled-warning">Webhook-doorsturing is uitgeschakeld — hersynchronisatie kan pas starten na inschakeling.</div>
+<% } %>
 <div id="resync-actions">
   <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
     <div class="form-check">
-      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true">
+      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true"<%= if (pendingForce) { %> checked<% } %>>
       <label class="form-check-label" for="force-resync">Volledige herbouw forceren</label>
       <small class="form-text text-muted">Stuurt elk dier opnieuw, zelfs als het ongewijzigd is — te gebruiken nadat een opschoning aan de consolezijde de gegevens van deze instantie heeft verwijderd. Veilig: gebeurtenissen behouden hun ID’s en de console bouwt idempotent opnieuw op.</small>
     </div>
-    <button type="submit" class="btn btn-primary">Hersynchronisatie starten</button>
+    <%= if (!webhookEnabled) { %>
+      <input type="hidden" name="enable_webhook" value="true">
+      <button type="submit" class="btn btn-warning" id="enable-and-resync">Webhook-doorsturing inschakelen en hersynchronisatie starten</button>
+    <% } else { %>
+      <button type="submit" class="btn btn-primary">Hersynchronisatie starten</button>
+    <% } %>
   <% } %>
 </div>
 <script>

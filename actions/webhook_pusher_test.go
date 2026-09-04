@@ -77,6 +77,23 @@ func createPusherTables() {
 	`).Exec()
 
 	pusherTestDB.RawQuery(`
+		CREATE TABLE IF NOT EXISTS resync_runs (
+			id TEXT PRIMARY KEY,
+			instance_id TEXT NOT NULL,
+			status TEXT NOT NULL,
+			started_at TIMESTAMP NOT NULL,
+			finished_at TIMESTAMP,
+			total_animals INTEGER NOT NULL DEFAULT 0,
+			animals_processed INTEGER NOT NULL DEFAULT 0,
+			events_created INTEGER NOT NULL DEFAULT 0,
+			events_skipped_unchanged INTEGER NOT NULL DEFAULT 0,
+			errors TEXT,
+			created_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`).Exec()
+
+	pusherTestDB.RawQuery(`
 		CREATE TABLE IF NOT EXISTS config (
 			id TEXT PRIMARY KEY,
 			instance_id TEXT NOT NULL,
@@ -94,6 +111,7 @@ func createPusherTables() {
 // (rate limiter counters + circuit breaker) between tests.
 func resetPusherState() {
 	pusherTestDB.RawQuery("DELETE FROM event_streams").Exec()
+	pusherTestDB.RawQuery("DELETE FROM resync_runs").Exec()
 	pusherTestDB.RawQuery("DELETE FROM config").Exec()
 
 	webhookPusher.mu.Lock()

@@ -1,14 +1,22 @@
 <h1>Resynchronisation webhook</h1>
 <p>La resynchronisation envoie l’état actuel des animaux vers la console configurée. Elle peut être répétée sans risque et ignore les animaux inchangés.</p>
 <div id="resync-status" class="mb-3">Chargement…</div>
+<%= if (!webhookEnabled) { %>
+<div class="alert alert-warning" id="resync-disabled-warning">La redirection webhook est désactivée — la resynchronisation ne peut pas démarrer avant son activation.</div>
+<% } %>
 <div id="resync-actions">
   <%= form({action: "/webhook_resync/start", method: "POST"}) { %>
     <div class="form-check">
-      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true">
+      <input type="checkbox" class="form-check-input" id="force-resync" name="force" value="true"<%= if (pendingForce) { %> checked<% } %>>
       <label class="form-check-label" for="force-resync">Forcer la reconstruction complète</label>
       <small class="form-text text-muted">Renvoie chaque animal même s’il est inchangé — à utiliser après qu’un nettoyage côté console a supprimé les données de cette instance. Sans risque : les événements conservent leurs identifiants et la console reconstruit de façon idempotente.</small>
     </div>
-    <button type="submit" class="btn btn-primary">Démarrer la resynchronisation</button>
+    <%= if (!webhookEnabled) { %>
+      <input type="hidden" name="enable_webhook" value="true">
+      <button type="submit" class="btn btn-warning" id="enable-and-resync">Activer la redirection webhook et démarrer la resynchronisation</button>
+    <% } else { %>
+      <button type="submit" class="btn btn-primary">Démarrer la resynchronisation</button>
+    <% } %>
   <% } %>
 </div>
 <script>
