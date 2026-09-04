@@ -84,9 +84,16 @@ type WebhookPusher struct {
 var (
 	webhookPusher *WebhookPusher
 	webhookTicker *time.Ticker
+	webhookWakeCh chan struct{}
 	stopChan      chan bool
 	pusherMu      sync.Mutex
 )
+
+// retryPollInterval is the fallback polling cadence used to retry failed
+// deliveries and recover from circuit-breaker pauses. New events do NOT wait
+// for this tick: PublishEvent signals the worker through the wake channel for
+// near-immediate delivery.
+const retryPollInterval = 60 * time.Second
 
 // Event retention policy: delivered events are kept for 1 day,
 // undelivered events for 7 days. Older rows are purged automatically
@@ -117,32 +124,64 @@ func StartWebhookWorker() {
 		return // Already running
 	}
 
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(retryPollInterval)
 	stop := make(chan bool)
-	// Publish for StopWebhookWorker / IsWebhookWorkerRunning coordination.
+	// Buffered cap-1 wake channel: signals from PublishEvent collapse into at
+	// most one pending wake (natural debounce during bursts).
+	wake := make(chan struct{}, 1)
+	// Publish for StopWebhookWorker / IsWebhookWorkerRunning / signalWebhookWake
+	// coordination.
 	webhookTicker = ticker
+	webhookWakeCh = wake
 	stopChan = stop
 
-	go webhookWorkerLoop(ticker, stop)
+	go webhookWorkerLoop(ticker, wake, stop)
 
 	fmt.Println("Webhook worker started")
 }
 
-// webhookWorkerLoop runs the worker's tick loop until the stop channel
-// fires. It references the LOCAL ticker and stop channel so that
-// StopWebhookWorker nil-ing the package globals cannot race with a delivery
-// already in flight (previously this read the global webhookTicker directly
-// and could nil-deref on shutdown).
-func webhookWorkerLoop(ticker *time.Ticker, stop chan bool) {
+// webhookWorkerLoop is event-driven: it sleeps until PublishEvent signals a
+// wake, then drains all pending events in a batch loop. The ticker is only a
+// fallback for retrying failed deliveries and running the hourly purge. It
+// references the LOCAL ticker/wake/stop channels so that StopWebhookWorker
+// nil-ing the package globals cannot race with a delivery already in flight
+// (previously this read the global webhookTicker directly and could nil-deref
+// on shutdown).
+func webhookWorkerLoop(ticker *time.Ticker, wake chan struct{}, stop chan bool) {
 	lastPurge := time.Time{} // zero value: purge runs on first tick
 	for {
 		select {
+		case <-wake:
+			drainPendingBatches()
 		case <-ticker.C:
 			lastPurge = purgeExpiredEvents(lastPurge)
 			deliverPendingBatch()
 		case <-stop:
 			return
 		}
+	}
+}
+
+// signalWebhookWake nudges the worker to deliver now instead of waiting for
+// the fallback tick. Safe to call when the worker is stopped (no-op).
+func signalWebhookWake() {
+	pusherMu.Lock()
+	wake := webhookWakeCh
+	pusherMu.Unlock()
+	if wake == nil {
+		return
+	}
+	select {
+	case wake <- struct{}{}:
+	default: // a wake is already pending
+	}
+}
+
+// drainPendingBatches delivers batches back-to-back until no undelivered
+// events remain (or delivery becomes gated). Used on wake so a burst of
+// events drains immediately instead of one batch per tick.
+func drainPendingBatches() {
+	for deliverPendingBatch() {
 	}
 }
 
@@ -162,19 +201,28 @@ func purgeExpiredEvents(lastPurge time.Time) time.Time {
 
 // deliverPendingBatch delivers one batch of pending events if delivery is
 // currently allowed (webhook enabled, circuit closed, rate limit not hit).
-func deliverPendingBatch() {
+// It returns true only when a full batch was delivered, meaning more events
+// are likely pending and the caller should loop (see drainPendingBatches).
+func deliverPendingBatch() bool {
 	if !IsWebhookEnabled() {
-		return
+		return false
 	}
 	if webhookPusher.circuitBreaker.IsOpen() {
-		return
+		return false
 	}
 	if !webhookPusher.allowDelivery() {
-		return
+		return false
 	}
-	if err := deliverBatch(); err != nil {
+	n, err := deliverBatch()
+	if err != nil {
 		fmt.Printf("Webhook delivery failed: %v\n", err)
+		return false
 	}
+	settings, err := CurrentConfig.GetSettings()
+	if err != nil {
+		return false
+	}
+	return n >= settings.WebhookBatchSize
 }
 
 // StopWebhookWorker stops the background webhook delivery worker
@@ -186,6 +234,7 @@ func StopWebhookWorker() {
 		webhookTicker.Stop()
 		close(stopChan)
 		webhookTicker = nil
+		webhookWakeCh = nil
 		fmt.Println("Webhook worker stopped")
 	}
 }
@@ -258,16 +307,18 @@ func purgeOldEvents() error {
 	return nil
 }
 
-// deliverBatch queries undelivered events and sends them to the webhook
-func deliverBatch() error {
+// deliverBatch queries undelivered events and sends them to the webhook.
+// It returns the number of events in the queried batch (accepted or not), so
+// callers can decide whether more events are likely pending.
+func deliverBatch() (int, error) {
 	config := CurrentConfig
 	if config == nil {
-		return fmt.Errorf("no config loaded")
+		return 0, fmt.Errorf("no config loaded")
 	}
 
 	settings, err := config.GetSettings()
 	if err != nil {
-		return fmt.Errorf("failed to get settings: %w", err)
+		return 0, fmt.Errorf("failed to get settings: %w", err)
 	}
 
 	// Query undelivered events
@@ -277,11 +328,11 @@ func deliverBatch() error {
 		Limit(settings.WebhookBatchSize).
 		All(events)
 	if err != nil {
-		return fmt.Errorf("failed to query events: %w", err)
+		return 0, fmt.Errorf("failed to query events: %w", err)
 	}
 
 	if len(*events) == 0 {
-		return nil
+		return 0, nil
 	}
 
 	// Build payload
@@ -314,13 +365,13 @@ func deliverBatch() error {
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return len(*events), fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	// Send HTTP POST
 	req, err := http.NewRequest("POST", settings.WebhookURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return len(*events), fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -329,13 +380,13 @@ func deliverBatch() error {
 	resp, err := webhookPusher.client.Do(req)
 	if err != nil {
 		webhookPusher.circuitBreaker.RecordFailure()
-		return fmt.Errorf("failed to send request: %w", err)
+		return len(*events), fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		webhookPusher.circuitBreaker.RecordFailure()
-		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+		return len(*events), fmt.Errorf("webhook returned status %d", resp.StatusCode)
 	}
 
 	// Determine which events the receiver actually accepted. On partial
@@ -345,7 +396,7 @@ func deliverBatch() error {
 	// dropped.
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read webhook response: %w", err)
+		return len(*events), fmt.Errorf("failed to read webhook response: %w", err)
 	}
 
 	var result struct {
@@ -389,7 +440,7 @@ func deliverBatch() error {
 		fmt.Printf("Delivered %d events to webhook\n", delivered)
 	}
 
-	return nil
+	return len(*events), nil
 }
 
 // TriggerWebhookDelivery triggers an immediate webhook delivery attempt
@@ -403,7 +454,7 @@ func TriggerWebhookDelivery() {
 	if !webhookPusher.allowDelivery() {
 		return
 	}
-	if err := deliverBatch(); err != nil {
+	if _, err := deliverBatch(); err != nil {
 		fmt.Printf("Webhook delivery failed: %v\n", err)
 	}
 }
@@ -444,4 +495,7 @@ func InitWebhookAtBoot() {
 		fmt.Printf("Webhook: failed to recover resync runs: %v\n", err)
 	}
 	EnsureWebhookWorkerRunning()
+	// Boot sweep: pick up events left undelivered by a previous session
+	// without waiting for the first fallback tick.
+	signalWebhookWake()
 }

@@ -58,6 +58,12 @@ func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, p
 	// Start webhook worker if webhook is enabled and not already running
 	EnsureWebhookWorkerRunning()
 
+	// Wake the worker for near-immediate delivery. Note: this fires before
+	// the surrounding request transaction commits, so the worker's drain may
+	// not see this row yet; the commit completes within milliseconds and the
+	// next signal (or the 60s fallback tick) picks it up.
+	signalWebhookWake()
+
 	return nil
 }
 

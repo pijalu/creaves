@@ -158,6 +158,7 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		return err
 	}
 	EnsureWebhookWorkerRunning()
+	signalWebhookWake()
 	return nil
 }
 

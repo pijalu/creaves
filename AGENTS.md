@@ -177,7 +177,7 @@ Creaves (this app)                    Creaves Console
 │       ↓             │  HTTP POST   │       ↓              │
 │ WebhookPusher       │ ───────────► │  EventProcessor      │
 │   (background worker│  Bearer key  │   → consolidated_    │
-│    every 5s)        │              │     animals          │
+│    wake-driven)     │              │     animals          │
 │   → delivered_at    │              │                      │
 └─────────────────────┘              └──────────────────────┘
 ```
@@ -201,9 +201,12 @@ Creaves (this app)                    Creaves Console
    or dies, `PublishEvent()` creates an `event_streams` record with a UUID, the
    instance ID, animal ID, event type, and full payload.
 
-2. **Worker delivers**: The background `WebhookPusher` (started on first event, ticks
-   every 5 seconds) queries undelivered events (`delivered_at IS NULL`), batches them
-   (configurable batch size), and POSTs to the console webhook URL.
+2. **Worker delivers**: The background `WebhookPusher` is event-driven:
+   `PublishEvent()` signals a wake channel (cap-1, debounced) and the worker
+   drains pending batches immediately. A 60s fallback ticker retries failed
+   deliveries and runs the hourly purge. Undelivered events
+   (`delivered_at IS NULL`) are batched (configurable batch size) and POSTed
+   to the console webhook URL.
 
 3. **Mark delivered**: On HTTP 200 response, events are marked with `delivered_at`.
 
@@ -279,8 +282,10 @@ with `instance_id` = hostname or `INSTANCE_ID` env var.
   (state: open → half-open → closed on success).
 - **Rate limiting**: Respects `WebhookMaxPerMin`.
 - **Timeout**: 30-second HTTP client timeout.
-- **Retry**: Events remain `delivered_at IS NULL` until successfully delivered. The
-  worker retries on every tick (5s). After app restart, the worker resumes delivery.
+- **Retry**: Events remain `delivered_at IS NULL` until successfully delivered. New
+  events are delivered near-instantly via the wake channel; failed deliveries are
+  retried on the 60s fallback tick. After app restart, the worker resumes delivery
+  (boot sweep in `InitWebhookAtBoot()` signals an immediate wake).
 - **Shutdown**: `RegisterWebhookShutdown()` (called in `cmd/app/main.go`) stops the
   worker on `EvtAppStop`.
 
@@ -360,7 +365,7 @@ go test ./actions/... ./models/...
 # 1. Set WebhookURL + APIKey in Configuration
 # 2. Enable webhook
 # 3. Create/edit an animal
-# 4. Check delivered_at is set within ~5s
+# 4. Check delivered_at is set near-instantly (wake-driven; 60s fallback tick at worst)
 # 5. Check Console dashboard shows the event
 
 # Snapshot backfill test:

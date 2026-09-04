@@ -305,7 +305,8 @@ func TestDeliverBatch_Success(t *testing.T) {
 	ev := seedUndeliveredEvent(t, 1)
 	ev2 := seedUndeliveredEvent(t, 2)
 
-	require.NoError(t, deliverBatch())
+	_, err := deliverBatch()
+	require.NoError(t, err)
 
 	// Both events delivered to the receiver.
 	assert.Equal(t, 2, rr.totalEvents())
@@ -334,7 +335,8 @@ func TestDeliverBatch_NoEventsNoop(t *testing.T) {
 
 	seedPusherConfig(t, srv.URL)
 
-	require.NoError(t, deliverBatch())
+	_, err := deliverBatch()
+	require.NoError(t, err)
 	assert.False(t, called, "receiver must not be called when there are no events")
 }
 
@@ -349,7 +351,7 @@ func TestDeliverBatch_NonOKStatusRecordsFailure(t *testing.T) {
 	seedUndeliveredEvent(t, 1)
 
 	before := webhookPusher.circuitBreaker.failures
-	err := deliverBatch()
+	_, err := deliverBatch()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "500")
 
@@ -369,7 +371,7 @@ func TestDeliverBatch_ConnectionErrorRecordsFailure(t *testing.T) {
 	seedUndeliveredEvent(t, 1)
 
 	before := webhookPusher.circuitBreaker.failures
-	err := deliverBatch()
+	_, err := deliverBatch()
 	require.Error(t, err)
 
 	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures)
@@ -386,7 +388,8 @@ func TestDeliverBatch_EnvelopeHasInstanceAndVersion(t *testing.T) {
 	CurrentConfig.Description = "Wildlife care centre"
 	seedUndeliveredEvent(t, 9)
 
-	require.NoError(t, deliverBatch())
+	_, err := deliverBatch()
+	require.NoError(t, err)
 	require.Len(t, rr.requests, 1)
 
 	var wire struct {
@@ -414,7 +417,8 @@ func TestDeliverBatch_PayloadShape(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 9)
 
-	require.NoError(t, deliverBatch())
+	_, err := deliverBatch()
+	require.NoError(t, err)
 
 	require.Len(t, rr.requests, 1)
 	var wire map[string]interface{}
@@ -494,7 +498,8 @@ func TestDeliverBatch_PartialFailureMarksOnlyAccepted(t *testing.T) {
 	}}
 	srv.Config.Handler = http.HandlerFunc(acc.handler)
 
-	require.NoError(t, deliverBatch())
+	_, err := deliverBatch()
+	require.NoError(t, err)
 
 	// ev1 (rejected) stays undelivered for retry.
 	var got1 models.EventStream
@@ -634,13 +639,14 @@ func TestRegisterWebhookShutdown_StopsOnAppStop(t *testing.T) {
 	assert.False(t, IsWebhookWorkerRunning(), "worker should stop on EvtAppStop")
 }
 
-// TestStartWebhookWorker_TickerDeliversEvents verifies the background ticker
+// TestStartWebhookWorker_WakeDeliversEvents verifies the background worker
 // goroutine inside StartWebhookWorker: when the worker is running with an
 // enabled webhook config, a real test receiver, and pending undelivered
-// events, the ticker fires and delivers the batch. This covers the
-// case <-ticker.C path (IsWebhookEnabled, circuit-breaker, allowDelivery,
-// deliverBatch) which the fast start/stop tests cannot reach.
-func TestStartWebhookWorker_TickerDeliversEvents(t *testing.T) {
+// events, a wake signal delivers the batch immediately (the fallback ticker
+// now fires only every 60s). This covers the worker loop path
+// (IsWebhookEnabled, circuit-breaker, allowDelivery, deliverBatch) which the
+// fast start/stop tests cannot reach.
+func TestStartWebhookWorker_WakeDeliversEvents(t *testing.T) {
 	resetPusherState()
 	StopWebhookWorker()
 	require.False(t, IsWebhookWorkerRunning())
@@ -656,15 +662,17 @@ func TestStartWebhookWorker_TickerDeliversEvents(t *testing.T) {
 	defer StopWebhookWorker()
 	require.True(t, IsWebhookWorkerRunning())
 
-	// The ticker fires every 5s; wait long enough for at least one tick.
-	deadline := time.Now().Add(8 * time.Second)
+	signalWebhookWake()
+
+	// Delivery must happen near-immediately, far below the 60s tick.
+	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		if rr.totalEvents() > 0 {
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
-	assert.Greater(t, rr.totalEvents(), 0, "ticker should have delivered the pending event")
+	assert.Greater(t, rr.totalEvents(), 0, "wake signal should have delivered the pending event")
 }
 
 // ---------------------------------------------------------------------------
@@ -727,4 +735,147 @@ func TestPurgeOldEvents(t *testing.T) {
 func TestPurgeOldEvents_EmptyTable(t *testing.T) {
 	resetPusherState()
 	require.NoError(t, purgeOldEvents())
+}
+
+// ---------------------------------------------------------------------------
+// Wake-signal (event-driven delivery) tests
+// ---------------------------------------------------------------------------
+
+// TestSignalWebhookWake_NoWorkerIsNoop proves the signal helper is safe to
+// call when no worker is running (nil channel) and does not panic or block.
+func TestSignalWebhookWake_NoWorkerIsNoop(t *testing.T) {
+	resetPusherState()
+	StopWebhookWorker() // ensure stopped
+	signalWebhookWake()
+	signalWebhookWake()
+}
+
+// TestSignalWebhookWake_Debounce proves the cap-1 wake channel collapses a
+// burst of signals into at most one pending wake.
+func TestSignalWebhookWake_Debounce(t *testing.T) {
+	resetPusherState()
+	StopWebhookWorker()
+	require.NoError(t, func() error { StartWebhookWorker(); return nil }())
+	defer StopWebhookWorker()
+
+	// Signal a burst; channel capacity is 1 so exactly one wake is pending.
+	for i := 0; i < 5; i++ {
+		signalWebhookWake()
+	}
+
+	pusherMu.Lock()
+	wake := webhookWakeCh
+	pusherMu.Unlock()
+	require.NotNil(t, wake)
+
+	assert.Equal(t, 1, len(wake), "cap-1 channel must hold exactly one pending wake")
+
+	// Drain it for the stopped-receiver path below.
+	select {
+	case <-wake:
+	default:
+	}
+}
+
+// TestWorkerLoop_WakeDeliversImmediately proves a published event is picked
+// up by the worker via the wake signal, without waiting for the 60s fallback
+// tick.
+func TestWorkerLoop_WakeDeliversImmediately(t *testing.T) {
+	resetPusherState()
+	StopWebhookWorker()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	ev := seedUndeliveredEvent(t, 1)
+
+	StartWebhookWorker()
+	defer StopWebhookWorker()
+
+	signalWebhookWake()
+
+	// Poll briefly: delivery must happen far below the 60s fallback interval.
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		var got models.EventStream
+		require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+		if got.DeliveredAt != nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.NotNil(t, got.DeliveredAt, "wake signal must trigger near-immediate delivery")
+	assert.Equal(t, 1, rr.totalEvents())
+}
+
+// TestWorkerLoop_WakeDrainsBurst proves one wake drains a multi-batch burst:
+// 25 events with batch size 10 must be delivered in a single wake (3 batches).
+func TestWorkerLoop_WakeDrainsBurst(t *testing.T) {
+	resetPusherState()
+	StopWebhookWorker()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL) // batch size 10, max/min 100
+
+	const total = 25
+	for i := 0; i < total; i++ {
+		seedUndeliveredEvent(t, 100+i)
+	}
+
+	StartWebhookWorker()
+	defer StopWebhookWorker()
+
+	signalWebhookWake()
+
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if rr.totalEvents() >= total {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	assert.Equal(t, total, rr.totalEvents(), "one wake must drain all %d events across multiple batches", total)
+
+	var pending int
+	require.NoError(t, pusherTestDB.RawQuery("SELECT COUNT(*) FROM event_streams WHERE delivered_at IS NULL").First(&pending))
+	assert.Equal(t, 0, pending)
+}
+
+// TestDeliverPendingBatch_ReturnsTrueOnlyWhenFullBatch checks the drain-loop
+// continuation contract: true on a full batch, false on empty/partial.
+func TestDeliverPendingBatch_ReturnsTrueOnlyWhenFullBatch(t *testing.T) {
+	resetPusherState()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL) // batch size 10
+
+	// Empty: false.
+	assert.False(t, deliverPendingBatch())
+
+	// Partial (3 < 10): false after delivering.
+	for i := 0; i < 3; i++ {
+		seedUndeliveredEvent(t, 200+i)
+	}
+	assert.False(t, deliverPendingBatch())
+	assert.Equal(t, 3, rr.totalEvents())
+
+	// Full (12 > 10): first call true (delivers 10), second false (delivers 2).
+	for i := 0; i < 12; i++ {
+		seedUndeliveredEvent(t, 300+i)
+	}
+	assert.True(t, deliverPendingBatch(), "full batch must signal more pending")
+	assert.False(t, deliverPendingBatch())
+	assert.Equal(t, 3+12, rr.totalEvents())
 }
