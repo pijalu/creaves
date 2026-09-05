@@ -201,11 +201,11 @@ func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
 		t.Fatal("no authenticity_token on /config/")
 	}
 
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/config/"+active.ID.String(), nil)
-	q := req.URL.Query()
-	q.Set("_method", "DELETE")
-	q.Set("authenticity_token", string(m[1]))
-	req.URL.RawQuery = q.Encode()
+	vals := url.Values{}
+	vals.Set("_method", "DELETE")
+	vals.Set("authenticity_token", string(m[1]))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/config/"+active.ID.String(), strings.NewReader(vals.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatalf("DELETE active config: %v", err)
@@ -252,11 +252,11 @@ func TestConfigsDestroyAllowsInactiveConfig(t *testing.T) {
 		t.Fatal("no authenticity_token on /config/")
 	}
 
-	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/config/"+inactive.ID.String(), nil)
-	q := req.URL.Query()
-	q.Set("_method", "DELETE")
-	q.Set("authenticity_token", string(m[1]))
-	req.URL.RawQuery = q.Encode()
+	vals := url.Values{}
+	vals.Set("_method", "DELETE")
+	vals.Set("authenticity_token", string(m[1]))
+	req, _ := http.NewRequest(http.MethodPost, srv.URL+"/config/"+inactive.ID.String(), strings.NewReader(vals.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err = client.Do(req)
 	if err != nil {
 		t.Fatalf("DELETE inactive config: %v", err)
