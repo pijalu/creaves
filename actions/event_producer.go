@@ -149,16 +149,20 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 	if animal.Animalage.ID != uuid.Nil {
 		payload.Animal.AnimalAge = animal.Animalage.Name
 	}
-
 	// Species taxonomy from the species table (canonical French values).
 	// Joined on species.creaves_species = animals.species; unknown species → fields stay empty.
+	var species *models.Species
 	if tx != nil && animal.Species != "" {
-		var species *models.Species
 		if pre != nil {
 			species = pre.speciesFor(animal.Species)
 		} else {
 			species = &models.Species{}
-			if err := tx.Where("creaves_species = ?", animal.Species).First(species); err != nil {
+			// RawQuery instead of pop's generated SELECT: explicit column
+			// list with backtick-quoted `order` (works on MySQL and
+			// SQLite) and lowercase aliases — pop strict-maps raw query
+			// columns to db tags, and the sqlite test schema names the
+			// key column "ID".
+			if err := tx.RawQuery("SELECT ID AS id, species, creaves_species, class, `order`, family, native_status, agw_group, subside_group, game, huntable, created_at, updated_at FROM species WHERE creaves_species = ?", animal.Species).First(species); err != nil {
 				species = nil
 			}
 		}
@@ -286,7 +290,7 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 	if pre != nil {
 		payload.Translations = loadPayloadTranslationsPreloaded(pre, animal, payload)
 	} else if tx != nil {
-		payload.Translations = loadPayloadTranslations(tx, animal, payload)
+		payload.Translations = loadPayloadTranslations(tx, animal, payload, species)
 	}
 	return payload
 }

@@ -12,9 +12,18 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+// TestBuildEventPayload_IncludesAllLocales proves the builder resolves
+// species translations by species row id (not the French display name) and
+// still keys every other field by its record id.
 func TestBuildEventPayload_IncludesAllLocales(t *testing.T) {
 	animalTypeID := uuid.Must(uuid.NewV4())
 	animal := &models.Animal{ID: 501, Species: "SP-T51", Animaltype: models.Animaltype{ID: animalTypeID, Name: "Mammifère"}}
+	// Species translations are keyed by the species row id; the row must exist
+	// for the payload builder to resolve animals.species → species.ID.
+	if err := models.DB.RawQuery("INSERT INTO species (ID, species, class, family, creaves_species, subside_group, created_at, updated_at, `order`, game, agw_group, native_status, huntable) VALUES ('SP-T51', 'SP-T51 latin', 'Mammifères', 'Erinaceidae', 'SP-T51', 'SG-T51', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'Ordre', 0, 'AGW-T51', 'Indigène', 0)").Exec(); err != nil {
+		t.Fatalf("create species: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM species WHERE ID = ?", "SP-T51").Exec()
 	for _, tr := range []struct{ table, id, field, locale, value string }{
 		{"species", animal.Species, "creaves_species", "en-US", "Hedgehog"},
 		{"species", animal.Species, "creaves_species", "de", "Igel"},
@@ -38,6 +47,74 @@ func TestBuildEventPayload_IncludesAllLocales(t *testing.T) {
 	}
 	if _, ok := payload.Translations["de"]["animal_type"]; ok {
 		t.Fatal("de animal_type present despite missing translation")
+	}
+}
+
+// TestBuildEventPayload_SpeciesAndOuttakeTranslationsAllLocales pins the
+// webhook contract for the console i18n fix: every species-derived field
+// (name, class, agw_group, subside_group, native_status) plus outtake_type
+// must carry en-US/de/nl translations keyed per locale; fr falls back to the
+// canonical base values.
+func TestBuildEventPayload_SpeciesAndOuttakeTranslationsAllLocales(t *testing.T) {
+	outtakeTypeID := uuid.Must(uuid.NewV4())
+	animal := &models.Animal{ID: 506, Species: "SP-T61", Outtake: &models.Outtake{Type: models.Outtaketype{ID: outtakeTypeID, Name: "Relâché"}}}
+	if err := models.DB.RawQuery("INSERT INTO species (ID, species, class, family, creaves_species, subside_group, created_at, updated_at, `order`, game, agw_group, native_status, huntable) VALUES ('SP-T61', 'Erinaceus europaeus', 'Mammifères', 'Erinaceidae', 'SP-T61', 'SG-T61', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'Ordre', 0, 'AGW-T61', 'Indigène', 0)").Exec(); err != nil {
+		t.Fatalf("create species: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM species WHERE ID = ?", "SP-T61").Exec()
+
+	type tr struct{ table, id, field, locale, value string }
+	want := map[string]map[string]string{}
+	add := func(locale, field, value string) {
+		if want[locale] == nil {
+			want[locale] = map[string]string{}
+		}
+		want[locale][field] = value
+	}
+	var rows []tr
+	for _, tc := range []struct {
+		locale, field, en, de, nl string
+	}{
+		{"species", "creaves_species", "Hedgehog", "Igel", "Egel"},
+		{"species_class", "class", "Mammals", "Säugetiere", "Zoogdieren"},
+		{"species_agw_group", "agw_group", "Insectivores", "Insektenfresser", "Insecteneters"},
+		{"species_subside_group", "subside_group", "SG1 EN", "SG1 DE", "SG1 NL"},
+		{"species_native_status", "native_status", "Native", "Heimisch", "Inheems"},
+		{"outtake_type", "", "Released", "Freilassung", "Vrijlating"},
+	} {
+		field := tc.field
+		if field == "" {
+			field = "name"
+		}
+		table, id := "species", "SP-T61"
+		if tc.locale == "outtake_type" {
+			table, id = "outtaketypes", outtakeTypeID.String()
+		}
+		for _, loc := range []struct{ key, value string }{{"en-US", tc.en}, {"de", tc.de}, {"nl", tc.nl}} {
+			rows = append(rows, tr{table, id, field, loc.key, loc.value})
+			add(loc.key, tc.locale, loc.value)
+		}
+	}
+	for _, r := range rows {
+		if err := models.SaveTranslation(models.DB, r.table, r.id, r.field, r.locale, r.value); err != nil {
+			t.Fatalf("save translation: %v", err)
+		}
+	}
+	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?)", "SP-T61", outtakeTypeID.String()).Exec()
+
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+	for _, locale := range []string{"en-US", "de", "nl"} {
+		for _, field := range []string{"species", "species_class", "species_agw_group", "species_subside_group", "species_native_status", "outtake_type"} {
+			if got := payload.Translations[locale][field]; got != want[locale][field] {
+				t.Errorf("%s %s = %q, want %q", locale, field, got, want[locale][field])
+			}
+		}
+	}
+	if payload.Translations["fr"]["species"] != "SP-T61" {
+		t.Errorf("fr species = %q, want canonical base", payload.Translations["fr"]["species"])
+	}
+	if payload.Translations["fr"]["species_class"] != "Mammifères" {
+		t.Errorf("fr species_class = %q, want canonical base", payload.Translations["fr"]["species_class"])
 	}
 }
 
@@ -447,15 +524,15 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 	}
 	defer models.DB.RawQuery("DELETE FROM species WHERE ID = ?", spID).Exec()
 
-	// Seed one translation so the translations map is materialized, then verify
-	// canonical French base values land in the fr bucket.
-	if err := models.SaveTranslation(models.DB, "species", "SP-T51-taxo", "class", "de", "Säugetiere"); err != nil {
+	// Species translations are keyed by the species row id (spID), not by the
+	// creaves_species display name.
+	if err := models.SaveTranslation(models.DB, "species", spID, "class", "de", "Säugetiere"); err != nil {
 		t.Fatalf("save translation: %v", err)
 	}
 	if err := models.SaveTranslation(models.DB, "entry_causes", "cause-t51-taxo", "detail", "de", "Fahrzeugkollision"); err != nil {
 		t.Fatalf("save translation: %v", err)
 	}
-	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?)", "SP-T51-taxo", "cause-t51-taxo").Exec()
+	defer models.DB.RawQuery("DELETE FROM translations WHERE record_id IN (?, ?)", spID, "cause-t51-taxo").Exec()
 
 	entryCauseID := "cause-t51-taxo"
 	animal := &models.Animal{
@@ -471,31 +548,25 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 
 	payload := buildEventPayloadWithTranslations(models.DB, animal)
 
-	// Harness limitation: the species table carries a column literally named
-	// `order` (reserved in SQLite). pop does not quote identifiers on the
-	// SQLite dialect, so the lookup fails there — production MySQL is
-	// unaffected (backtick quoting). Verify the taxonomy assertions only
-	// when the lookup actually works on this engine.
-	speciesLookupOK := models.DB.Where("creaves_species = ?", "SP-T51-taxo").First(&models.Species{}) == nil
-	if speciesLookupOK {
-		if payload.Animal.SpeciesClass != "Mammalia" {
-			t.Errorf("species_class = %q, want Mammalia", payload.Animal.SpeciesClass)
-		}
-		if payload.Animal.SpeciesAGWGroup != "AGW-T51" {
-			t.Errorf("species_agw_group = %q", payload.Animal.SpeciesAGWGroup)
-		}
-		if payload.Animal.SpeciesSubsideGroup != "SUB-T51" {
-			t.Errorf("species_subside_group = %q", payload.Animal.SpeciesSubsideGroup)
-		}
-		if payload.Animal.SpeciesNativeStatus != "Indigène" {
-			t.Errorf("species_native_status = %q", payload.Animal.SpeciesNativeStatus)
-		}
-		// Canonical French values land in the fr translations bucket.
-		if payload.Translations["fr"]["species_class"] != "Mammalia" {
-			t.Errorf("fr species_class = %q", payload.Translations["fr"]["species_class"])
-		}
-	} else {
-		t.Log("species taxonomy assertions skipped: species lookup unsupported on this test engine (reserved column `order`)")
+	// Taxonomy is resolved via `SELECT * FROM species WHERE
+	// creaves_species = ?` (RawQuery) which works on every dialect, so the
+	// assertions run unconditionally (previously gated on a pop-generated
+	// lookup that fails on SQLite because of the unquoted `order` column).
+	if payload.Animal.SpeciesClass != "Mammalia" {
+		t.Errorf("species_class = %q, want Mammalia", payload.Animal.SpeciesClass)
+	}
+	if payload.Animal.SpeciesAGWGroup != "AGW-T51" {
+		t.Errorf("species_agw_group = %q", payload.Animal.SpeciesAGWGroup)
+	}
+	if payload.Animal.SpeciesSubsideGroup != "SUB-T51" {
+		t.Errorf("species_subside_group = %q", payload.Animal.SpeciesSubsideGroup)
+	}
+	if payload.Animal.SpeciesNativeStatus != "Indigène" {
+		t.Errorf("species_native_status = %q", payload.Animal.SpeciesNativeStatus)
+	}
+	// Canonical French values land in the fr translations bucket.
+	if payload.Translations["fr"]["species_class"] != "Mammalia" {
+		t.Errorf("fr species_class = %q", payload.Translations["fr"]["species_class"])
 	}
 	if payload.Discovery.EntryCauseDetail != "Collision véhicule" {
 		t.Errorf("entry_cause_detail = %q", payload.Discovery.EntryCauseDetail)

@@ -100,12 +100,12 @@ func seedPreloaderAnimal(t *testing.T, animalID int) {
 		exec(fmt.Sprintf("INSERT OR IGNORE INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('%s%02d', '%s', '%s', '%s', '%s', '%s', %s, %s)",
 			preloaderTrPrefix, seq, table, record, field, locale, value, now, now))
 	}
-	insertTranslation(1, "species", preloaderSpecies, "class", "en-US", "PRE_Mammalia EN")
-	insertTranslation(2, "species", preloaderSpecies, "agw_group", "de", "PRE_AGW DE")
+	insertTranslation(1, "species", "PRE_SP1", "class", "en-US", "PRE_Mammalia EN")
+	insertTranslation(2, "species", "PRE_SP1", "agw_group", "de", "PRE_AGW DE")
 	insertTranslation(3, "animaltypes", preloaderTypeID, "name", "de", "PRE Typ DE")
 	insertTranslation(4, "entry_causes", preloaderCauseID, "cause", "en-US", "PRE Cause EN")
 	insertTranslation(5, "outtaketypes", preloaderOutID, "name", "nl", "PRE Vrij nl")
-	insertTranslation(6, "species", preloaderSpecies, "creaves_species", "en-US", "PRE Herisson EN")
+	insertTranslation(6, "species", "PRE_SP1", "creaves_species", "en-US", "PRE Herisson EN")
 }
 
 // loadPreloaderAnimal loads animals exactly like the resync/sync-status
@@ -148,16 +148,11 @@ func TestTranslationPreloaderEquivalence(t *testing.T) {
 	// fr has no translation rows → canonical base values win (base is the
 	// creaves_species name stored on animals.species).
 	assert.Equal(t, preloaderSpecies, batched.Translations["fr"]["species"])
-	// Taxonomy from the batched species map. Harness limitation (see
-	// TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields): the species
-	// table has a column literally named `order`, which the SQLite dialect
-	// does not quote — the lookup fails there for BOTH paths equally.
-	if speciesLookupOK := models.DB.Where("creaves_species = ?", preloaderSpecies).First(&models.Species{}) == nil; speciesLookupOK {
-		assert.Equal(t, "PRE_Mammalia", batched.Animal.SpeciesClass)
-		assert.Equal(t, "PRE_Ind", batched.Animal.SpeciesNativeStatus)
-	} else {
-		t.Log("species lookup unavailable on this engine; taxonomy assertions skipped")
-	}
+	// Taxonomy from the batched species map. Both paths resolve the species
+	// row via `SELECT * FROM species WHERE creaves_species = ?` (RawQuery),
+	// which avoids pop's unquoted `order` column and works on every dialect.
+	assert.Equal(t, "PRE_Mammalia", batched.Animal.SpeciesClass)
+	assert.Equal(t, "PRE_Ind", batched.Animal.SpeciesNativeStatus)
 }
 
 // TestRunResyncQueryCountBounded is the regression test for the N+1 flood:

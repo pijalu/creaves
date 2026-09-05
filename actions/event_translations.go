@@ -13,9 +13,19 @@ type payloadTranslationField struct {
 	name, table, dbField, id, base string
 }
 
-func payloadTranslationFieldsFor(animal *models.Animal, payload *models.EventPayload) []payloadTranslationField {
+// payloadTranslationFieldsFor lists every payload field that can carry a
+// stored translation. Species-derived fields are keyed by the species row id
+// (species.ID, e.g. "SP1") — the translations table stores species rows under
+// their business key, not under the French display name kept on
+// animals.species. species may be nil (unknown species → lookups skipped,
+// fr base fallback still fills the canonical values).
+func payloadTranslationFieldsFor(animal *models.Animal, payload *models.EventPayload, species *models.Species) []payloadTranslationField {
+	speciesID := ""
+	if species != nil {
+		speciesID = species.ID
+	}
 	return []payloadTranslationField{
-		{name: "species", table: "species", dbField: "creaves_species", id: animal.Species, base: animal.Species},
+		{name: "species", table: "species", dbField: "creaves_species", id: speciesID, base: animal.Species},
 		{name: "animal_type", table: "animaltypes", dbField: "name", id: animal.Animaltype.ID.String(), base: payload.Animal.AnimalType},
 		{name: "animal_age", table: "animalages", dbField: "name", id: animal.Animalage.ID.String(), base: payload.Animal.AnimalAge},
 		{name: "zone", table: "zones", dbField: "zone", id: payload.Animal.Zone, base: payload.Animal.Zone},
@@ -23,15 +33,15 @@ func payloadTranslationFieldsFor(animal *models.Animal, payload *models.EventPay
 		{name: "entry_cause", table: "entry_causes", dbField: "cause", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCause},
 		{name: "entry_cause_detail", table: "entry_causes", dbField: "detail", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCauseDetail},
 		{name: "entry_cause_nature", table: "entry_causes", dbField: "nature", id: payload.Discovery.EntryCauseID, base: payload.Discovery.EntryCauseNature},
-		{name: "species_class", table: "species", dbField: "class", id: animal.Species, base: payload.Animal.SpeciesClass},
-		{name: "species_agw_group", table: "species", dbField: "agw_group", id: animal.Species, base: payload.Animal.SpeciesAGWGroup},
-		{name: "species_subside_group", table: "species", dbField: "subside_group", id: animal.Species, base: payload.Animal.SpeciesSubsideGroup},
-		{name: "species_native_status", table: "species", dbField: "native_status", id: animal.Species, base: payload.Animal.SpeciesNativeStatus},
+		{name: "species_class", table: "species", dbField: "class", id: speciesID, base: payload.Animal.SpeciesClass},
+		{name: "species_agw_group", table: "species", dbField: "agw_group", id: speciesID, base: payload.Animal.SpeciesAGWGroup},
+		{name: "species_subside_group", table: "species", dbField: "subside_group", id: speciesID, base: payload.Animal.SpeciesSubsideGroup},
+		{name: "species_native_status", table: "species", dbField: "native_status", id: speciesID, base: payload.Animal.SpeciesNativeStatus},
 	}
 }
 
-func loadPayloadTranslations(tx *pop.Connection, animal *models.Animal, payload *models.EventPayload) map[string]map[string]string {
-	fields := payloadTranslationFieldsFor(animal, payload)
+func loadPayloadTranslations(tx *pop.Connection, animal *models.Animal, payload *models.EventPayload, species *models.Species) map[string]map[string]string {
+	fields := payloadTranslationFieldsFor(animal, payload, species)
 	result := map[string]map[string]string{}
 	any := false
 	for _, locale := range models.SupportedLocales {
@@ -85,7 +95,30 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 		values:  map[string]map[string]map[string]string{},
 	}
 
-	// Distinct ids per (table, field) group across all animals.
+	// Species reference rows: one unfiltered query for the whole run (the
+	// reference table is small). RawQuery is deliberate: pop's generated
+	// SELECT enumerates the `order` column unquoted, which the SQLite
+	// dialect rejects; SELECT * avoids identifier quoting entirely.
+	speciesNames := map[string]bool{}
+	for i := range *animals {
+		if name := (*animals)[i].Species; name != "" {
+			speciesNames[name] = true
+		}
+	}
+	if len(speciesNames) > 0 {
+		species := []models.Species{}
+		if err := tx.RawQuery("SELECT ID AS id, species, creaves_species, class, `order`, family, native_status, agw_group, subside_group, game, huntable, created_at, updated_at FROM species").All(&species); err == nil {
+			for i := range species {
+				s := &species[i]
+				if speciesNames[s.CreavesSpecies] {
+					p.species[s.CreavesSpecies] = s
+				}
+			}
+		}
+	}
+
+	// Distinct ids per (table, field) group across all animals. Species
+	// translations are keyed by the species row id, resolved above.
 	groups := map[string]map[string]bool{}
 	add := func(table, field, id string) {
 		if id == "" || id == uuid.Nil.String() {
@@ -97,16 +130,14 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 		}
 		groups[key][id] = true
 	}
-	speciesNames := map[string]bool{}
 	for i := range *animals {
 		a := &(*animals)[i]
-		if a.Species != "" {
-			speciesNames[a.Species] = true
-			add("species", "creaves_species", a.Species)
-			add("species", "class", a.Species)
-			add("species", "agw_group", a.Species)
-			add("species", "subside_group", a.Species)
-			add("species", "native_status", a.Species)
+		if s := p.species[a.Species]; s != nil {
+			add("species", "creaves_species", s.ID)
+			add("species", "class", s.ID)
+			add("species", "agw_group", s.ID)
+			add("species", "subside_group", s.ID)
+			add("species", "native_status", s.ID)
 		}
 		add("animaltypes", "name", a.Animaltype.ID.String())
 		add("animalages", "name", a.Animalage.ID.String())
@@ -120,21 +151,6 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 			add("entry_causes", "cause", a.Discovery.EntryCauseID)
 			add("entry_causes", "detail", a.Discovery.EntryCauseID)
 			add("entry_causes", "nature", a.Discovery.EntryCauseID)
-		}
-	}
-
-	// Species reference rows: one query for the whole run.
-	if len(speciesNames) > 0 {
-		names := make([]string, 0, len(speciesNames))
-		for name := range speciesNames {
-			names = append(names, name)
-		}
-		species := []models.Species{}
-		if err := tx.Where("creaves_species IN (?)", names).All(&species); err == nil {
-			for i := range species {
-				s := &species[i]
-				p.species[s.CreavesSpecies] = s
-			}
 		}
 	}
 
@@ -178,7 +194,7 @@ func (p *translationPreloader) translation(locale, table, field, id string) stri
 // loadPayloadTranslationsPreloaded is the batched equivalent of
 // loadPayloadTranslations: identical output, zero per-animal queries.
 func loadPayloadTranslationsPreloaded(p *translationPreloader, animal *models.Animal, payload *models.EventPayload) map[string]map[string]string {
-	fields := payloadTranslationFieldsFor(animal, payload)
+	fields := payloadTranslationFieldsFor(animal, payload, p.speciesFor(animal.Species))
 	result := map[string]map[string]string{}
 	any := false
 	for _, locale := range models.SupportedLocales {
