@@ -374,6 +374,36 @@ func applyConfirmations(events *models.EventStreams, accepted map[string]bool, c
 	return acknowledged
 }
 
+// webhookEvent is the wire representation of one lifecycle event in the
+// delivery payload (contract v2).
+type webhookEvent struct {
+	ID          string          `json:"id"`
+	InstanceID  string          `json:"instance_id"`
+	AnimalID    int             `json:"animal_id"`
+	EventType   string          `json:"event_type"`
+	Payload     json.RawMessage `json:"payload"`
+	ResyncRunID string          `json:"resync_run_id,omitempty"`
+	CreatedAt   time.Time       `json:"created_at"`
+}
+
+// newWireEvent maps a stored event onto the wire. Contract v2 addition
+// (bugs.md #9): resync-delivered events carry their run id so the console
+// can attribute them in its event history. Live events omit the field.
+func newWireEvent(event models.EventStream) webhookEvent {
+	wire := webhookEvent{
+		ID:         event.ID.String(),
+		InstanceID: event.InstanceID,
+		AnimalID:   event.AnimalID,
+		EventType:  string(event.EventType),
+		Payload:    event.Payload,
+		CreatedAt:  event.CreatedAt,
+	}
+	if event.ResyncRunID != nil {
+		wire.ResyncRunID = event.ResyncRunID.String()
+	}
+	return wire
+}
+
 // deliverBatch queries undelivered events and sends them to the webhook.
 // It returns the number of events in the queried batch (accepted or not), so
 // callers can decide whether more events are likely pending.
@@ -403,33 +433,9 @@ func deliverBatch() (int, error) {
 	}
 
 	// Build payload
-	type webhookEvent struct {
-		ID          string          `json:"id"`
-		InstanceID  string          `json:"instance_id"`
-		AnimalID    int             `json:"animal_id"`
-		EventType   string          `json:"event_type"`
-		Payload     json.RawMessage `json:"payload"`
-		ResyncRunID string          `json:"resync_run_id,omitempty"`
-		CreatedAt   time.Time       `json:"created_at"`
-	}
-
 	payloadEvents := make([]webhookEvent, len(*events))
 	for i, event := range *events {
-		wireEvent := webhookEvent{
-			ID:         event.ID.String(),
-			InstanceID: event.InstanceID,
-			AnimalID:   event.AnimalID,
-			EventType:  event.EventType,
-			Payload:    event.Payload,
-			CreatedAt:  event.CreatedAt,
-		}
-		// Contract v2 addition (bugs.md #9): resync-delivered events carry
-		// their run id so the console can attribute them in its event
-		// history. Live events omit the field.
-		if event.ResyncRunID != nil {
-			wireEvent.ResyncRunID = event.ResyncRunID.String()
-		}
-		payloadEvents[i] = wireEvent
+		payloadEvents[i] = newWireEvent(event)
 	}
 
 	payload := map[string]interface{}{
