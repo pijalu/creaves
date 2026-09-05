@@ -632,6 +632,9 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		if err := PublishAnimalDiscoveredEvent(tx, animal, GetCurrentUser(c)); err != nil {
 			c.Logger().Warnf("Failed to publish animal_discovered event: %v", err)
 		}
+		// Full-state event seeds the console's state-hash chain for the new
+		// animal (deduped against any identical existing snapshot).
+		publishAnimalStateEventWarn(c, tx, animal.ID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -916,6 +919,11 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 			c.Logger().Warnf("Failed to publish animal_status_changed event: %v", err)
 		}
 	}
+
+	// Full-state event: every successful edit (cage, zone, species, intake,
+	// outtake, discovery fields, ...) is synced to the console. The
+	// content-hash dedupe turns a no-op save into no event.
+	publishAnimalStateEventWarn(c, tx, animal.ID)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message

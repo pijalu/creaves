@@ -3,8 +3,10 @@ package actions
 import (
 	"creaves/models"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 )
@@ -287,6 +289,130 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 		payload.Translations = loadPayloadTranslations(tx, animal, payload)
 	}
 	return payload
+}
+
+// PublishAnimalStateEvent creates the content-addressed full-state
+// (animal_state) event for an animal. It is published after every successful
+// animal update and after intake/outtake/discovery sub-resource changes so
+// ordinary edits (cage, zone, species, ...) reach the console — not just
+// discovered/status/died transitions.
+//
+// Identity and dedupe are shared with the resync path:
+//   - the hash is StateContentHashPayload over the same canonical builder the
+//     resync uses (volatile audit fields excluded), so an update and a resync
+//     of identical state produce the same hash;
+//   - the event UUID is StateEventUUID(instance, animal, hash), so the
+//     console's idempotent upsert collapses re-deliveries;
+//   - an event with the same (instance, animal, hash) that already exists
+//     suppresses the insert — a no-op update (same form re-saved) creates no
+//     event;
+//   - payload.state_hash carries the hash so the console can no-op
+//     consolidation when the snapshot is unchanged.
+func PublishAnimalStateEvent(tx *pop.Connection, animalID int, user *models.User) error {
+	// Ensure config is loaded
+	if CurrentConfig == nil {
+		if _, err := LoadConfig(tx); err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+	}
+
+	// Check if event stream is enabled
+	if !IsEventStreamEnabled() {
+		return nil
+	}
+
+	full, err := reloadAnimalForEvent(tx, &models.Animal{ID: animalID})
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animalID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
+	if payload == nil {
+		return fmt.Errorf("failed to build payload for animal %d", animalID)
+	}
+
+	// Derive CurrentStatus exactly like processResyncAnimal so hashes are
+	// comparable across the resync and update paths.
+	payload.CurrentStatus = "in_care"
+	if full.Outtake != nil {
+		payload.CurrentStatus = "released"
+	}
+
+	// Add user information for the audit trail (not part of the state hash).
+	if user != nil {
+		payload.UserID = user.ID.String()
+		payload.UserLogin = user.Login
+	}
+
+	instanceID := GetInstanceID()
+	hash := StateContentHashPayload(instanceID, *payload)
+	payload.StateHash = hash
+
+	// Content-hash dedupe: the console already holds this state (a no-op
+	// update re-saves identical content and creates no event).
+	exists, err := tx.Where("instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
+		instanceID, animalID, string(models.EventTypeAnimalState), hash).Exists(&models.EventStream{})
+	if err != nil {
+		return fmt.Errorf("failed to check for existing state event: %w", err)
+	}
+	if exists {
+		return nil
+	}
+
+	return createAnimalStateEvent(tx, instanceID, animalID, hash, payload)
+}
+
+// createAnimalStateEvent inserts the deterministic full-state event and wakes
+// the webhook worker. Losing an insert race against a concurrent resync
+// enqueueing the identical deterministic event is treated as "already
+// published" rather than failing the user's request.
+func createAnimalStateEvent(tx *pop.Connection, instanceID string, animalID int, hash string, payload *models.EventPayload) error {
+	event := &models.EventStream{
+		ID:          StateEventUUID(instanceID, animalID, hash),
+		InstanceID:  instanceID,
+		AnimalID:    animalID,
+		EventType:   string(models.EventTypeAnimalState),
+		ContentHash: &hash,
+	}
+	if err := event.SetPayload(*payload); err != nil {
+		return fmt.Errorf("failed to set event payload: %w", err)
+	}
+
+	if err := tx.Create(event); err != nil {
+		if isDuplicateKeyError(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to create event: %w", err)
+	}
+
+	// Start webhook worker if webhook is enabled and not already running, and
+	// wake it for near-immediate delivery (same contract as PublishEvent).
+	EnsureWebhookWorkerRunning()
+	signalWebhookWake()
+
+	return nil
+}
+
+// isDuplicateKeyError reports whether err is a storage-layer duplicate-key
+// violation (MySQL 1062 "Duplicate entry", SQLite "UNIQUE constraint").
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || strings.Contains(msg, "UNIQUE constraint failed")
+}
+
+// publishAnimalStateEventWarn publishes the update-path animal_state event,
+// treating failures as non-fatal for the user's request — the same contract
+// the other publish call sites in these actions follow. animalID 0 (no
+// linked animal) is a no-op.
+func publishAnimalStateEventWarn(c buffalo.Context, tx *pop.Connection, animalID int) {
+	if animalID == 0 {
+		return
+	}
+	if err := PublishAnimalStateEvent(tx, animalID, GetCurrentUser(c)); err != nil {
+		c.Logger().Warnf("Failed to publish animal_state event: %v", err)
+	}
 }
 
 // PublishAnimalDiscoveredEvent creates an animal_discovered event

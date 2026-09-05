@@ -134,6 +134,8 @@ func (v DiscoveriesResource) Create(c buffalo.Context) error {
 			if err := PublishAnimalDiscoveredEvent(tx, animal, GetCurrentUser(c)); err != nil {
 				c.Logger().Warnf("Failed to publish animal_discovered event: %v", err)
 			}
+			// Full-state event seeds the console's state-hash chain.
+			publishAnimalStateEventWarn(c, tx, animal.ID)
 		}
 	}
 
@@ -241,6 +243,8 @@ func (v DiscoveriesResource) Update(c buffalo.Context) error {
 	if animalID := auditAnimalIDByDiscovery(tx, discovery.ID); animalID != 0 {
 		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscovery, auditEntityID(discovery.ID), models.AuditActionUpdate, auditDiscoveryProjection(oldDiscovery), auditDiscoveryProjection(*discovery))
 		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscoverer, auditEntityID(discovery.DiscovererID), models.AuditActionUpdate, oldDiscoverer, discovery.Discoverer)
+		// Discovery fields are part of the canonical state hash.
+		publishAnimalStateEventWarn(c, tx, animalID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -302,6 +306,8 @@ func (v DiscoveriesResource) Destroy(c buffalo.Context) error {
 	if animalID := auditAnimalIDByDiscovery(tx, discovery.ID); animalID != 0 {
 		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscovery, auditEntityID(discovery.ID), models.AuditActionDelete, auditDiscoveryProjection(*discovery), nil)
 		auditAnimalChange(c, tx, animalID, models.AuditEntityDiscoverer, auditEntityID(discovery.DiscovererID), models.AuditActionDelete, discovery.Discoverer, nil)
+		// Discovery fields are part of the canonical state hash.
+		publishAnimalStateEventWarn(c, tx, animalID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

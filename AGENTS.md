@@ -199,9 +199,12 @@ Creaves (this app)                    Creaves Console
 
 ### Event Lifecycle
 
-1. **Event produced**: When an animal is discovered, has a status change, is released,
-   or dies, `PublishEvent()` creates an `event_streams` record with a UUID, the
-   instance ID, animal ID, event type, and full payload.
+1. **Event produced**: When an animal is created, updated, or has an
+   intake/outtake/discovery sub-resource change, a full-state
+   `PublishAnimalStateEvent()` runs (content-hash deduped, no event on no-op
+   saves). Lifecycle transitions additionally produce typed events via
+   `PublishEvent()`: `event_streams` records carry a UUID, the instance ID,
+   animal ID, event type, and full payload.
 
 2. **Worker delivers**: The background `WebhookPusher` is event-driven:
    `PublishEvent()` signals a wake channel (cap-1, debounced) and the worker
@@ -216,10 +219,15 @@ Creaves (this app)                    Creaves Console
 
 | Type | Trigger | Hook Location |
 |------|---------|---------------|
+| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
 | `animal_discovered` | New animal intake | `actions/discoveries.go` |
 | `animal_status_changed` | Status update | `actions/animals.go` |
 | `animal_released` | Release outtake | `actions/outtakes.go` |
 | `animal_died` | Death outtake | `actions/outtakes.go` |
+
+Care entries (feeding/treatment notes) are deliberately **not** part of the state
+hash and emit no event: the payload builder and `CanonicalStateContent` exclude
+them, and the console does not consolidate care data.
 
 ### Webhook Payload Structure
 

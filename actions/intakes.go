@@ -136,6 +136,14 @@ func (v IntakesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Full-state event when the new intake is already linked to an animal
+	// (intake fields are part of the canonical state hash).
+	if !verrs.HasAny() {
+		if animalID := auditAnimalIDByIntake(tx, intake.ID); animalID != 0 {
+			publishAnimalStateEventWarn(c, tx, animalID)
+		}
+	}
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "intake.created.success"))
@@ -218,6 +226,8 @@ func (v IntakesResource) Update(c buffalo.Context) error {
 	// Audit log: intake update (best effort); only when linked to an animal
 	if animalID := auditAnimalIDByIntake(tx, intake.ID); animalID != 0 {
 		auditAnimalChange(c, tx, animalID, models.AuditEntityIntake, auditEntityID(intake.ID), models.AuditActionUpdate, oldIntake, *intake)
+		// Intake fields are part of the canonical state hash.
+		publishAnimalStateEventWarn(c, tx, animalID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -262,6 +272,8 @@ func (v IntakesResource) Destroy(c buffalo.Context) error {
 	// Audit log: intake deletion (best effort); only when linked to an animal
 	if animalID := auditAnimalIDByIntake(tx, intake.ID); animalID != 0 {
 		auditAnimalChange(c, tx, animalID, models.AuditEntityIntake, auditEntityID(intake.ID), models.AuditActionDelete, *intake, nil)
+		// Intake fields are part of the canonical state hash.
+		publishAnimalStateEventWarn(c, tx, animalID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {

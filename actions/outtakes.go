@@ -241,6 +241,9 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 				}
 			}
 		}
+		// Full-state event: outtake fields + CurrentStatus are part of the
+		// canonical state hash.
+		publishAnimalStateEventWarn(c, tx, animal.ID)
 	}
 
 	if verrs.HasAny() {
@@ -364,6 +367,8 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 	auditedAnimal := &models.Animal{}
 	if err := tx.Where("outtake_id = ?", outtake.ID).First(auditedAnimal); err == nil && auditedAnimal.ID != 0 {
 		auditAnimalChange(c, tx, auditedAnimal.ID, models.AuditEntityOuttake, auditEntityID(outtake.ID), models.AuditActionUpdate, auditOuttakeProjection(oldOuttake), auditOuttakeProjection(*outtake))
+		// Outtake fields are part of the canonical state hash.
+		publishAnimalStateEventWarn(c, tx, auditedAnimal.ID)
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
@@ -423,6 +428,8 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 	// Audit log: outtake deletion + animal unlink (best effort)
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, auditEntityID(outtake.ID), models.AuditActionDelete, auditOuttakeProjection(*outtake), nil)
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(oldAnimal), auditAnimalProjection(*animal))
+	// Outtake removal reverts the animal to in_care; sync the new state.
+	publishAnimalStateEventWarn(c, tx, animal.ID)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

@@ -93,8 +93,10 @@ const resyncPersistEvery = 25
 // resyncStateIndex is the run-wide set of (animal_id, content_hash) state
 // events already in event_streams for one instance. One query replaces the
 // per-animal EXISTS check; entries created by the run itself are added in
-// memory. Single-writer invariant: StartResync refuses concurrent runs for
-// the same instance, and no other code path creates animal_state events.
+// memory. animal_state events are also created by the update path
+// (PublishAnimalStateEvent); both paths share the deterministic
+// (instance, animal, hash) identity, and PublishAnimalStateEvent tolerates
+// losing the insert race to a concurrent resync.
 type resyncStateIndex struct {
 	entries map[int]map[string]bool
 }
@@ -401,6 +403,10 @@ func appendResyncError(run *models.ResyncRun, animalID int, message string) {
 //     side idempotent.
 func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resyncStateIndex, force bool, animalID int, payload models.EventPayload) error {
 	hash := StateContentHashPayload(run.InstanceID, payload)
+	// The console's no-op dedupe compares payload.state_hash against the
+	// stored snapshot; without it every delivery would re-apply. Same hash as
+	// the column and as the update-path state events.
+	payload.StateHash = hash
 	exists := ix.has(animalID, hash)
 	if exists && !force {
 		run.EventsSkippedUnchanged++
