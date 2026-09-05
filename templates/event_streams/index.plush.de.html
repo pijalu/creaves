@@ -7,7 +7,7 @@
 
 <div class="btn-group mb-3" role="group" aria-label="Delivery filter">
   <%= if (deliveryFilter == "delivered" || deliveryFilter == "not-delivered") { %>
-    <%= linkTo("/event_streams", {class: "btn btn-outline-secondary active", body: t("event-streams.index.filter-all")}) %>
+    <%= linkTo("/event_streams", {class: "btn btn-outline-secondary", body: t("event-streams.index.filter-all")}) %>
   <% } else { %>
     <%= linkTo("/event_streams", {class: "btn btn-secondary active", body: t("event-streams.index.filter-all")}) %>
   <% } %>
