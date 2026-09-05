@@ -26,7 +26,9 @@
           <div class="float-right">
             <%= linkTo("/config/" + config.ID, {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(editConfigPath({ config_id: config.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= if (currentConfigID != config.ID.String()) { %>
             <%= linkTo("/config/" + config.ID, {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
           </div>
         </td>
       </tr>

@@ -226,6 +226,13 @@ func (v ConfigsResource) List(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("pagination", q.Paginator)
 		c.Set("configs", configs)
+		// Expose the active config ID so the template can hide the delete
+		// button for the configuration that cannot be deleted.
+		currentConfigID := ""
+		if CurrentConfig != nil {
+			currentConfigID = CurrentConfig.ID.String()
+		}
+		c.Set("currentConfigID", currentConfigID)
 		return c.Render(http.StatusOK, r.HTML("config/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(configs))

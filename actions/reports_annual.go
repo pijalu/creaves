@@ -7,6 +7,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/nicksnyder/go-i18n/i18n"
 )
 
 // Annual statistics report (plan §5, Creaves side).
@@ -263,8 +264,11 @@ func localizeAnnualSections(c buffalo.Context, sections []annualStatSection) {
 			return v
 		}
 		v := key
-		if T != nil {
-			v = T.Translate(c, key)
+		// T.Translate looks up the per-request translate func that the i18n
+		// middleware stores on the context; in tests the middleware never ran,
+		// so the lookup would panic. Fall back to the raw key then.
+		if tf, ok := c.Value("T").(i18n.TranslateFunc); ok {
+			v = tf(key)
 		}
 		literals[value] = v
 		return v
