@@ -64,57 +64,62 @@ type SyncStatus struct {
 func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, error) {
 	status := &SyncStatus{Years: []SyncStatusYear{}}
 
-	animals := &models.Animals{}
-	// EagerPreload() (not Eager()) batches each association into one
-	// `id IN (...)` query; Eager issues per-record SELECTs — 8 per animal on
-	// every /webhook_resync page load.
-	if err := tx.EagerPreload(
-		"Animalage", "Animaltype", "Intake",
-		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
-		"Outtake", "Outtake.Type",
-	).All(animals); err != nil {
-		return nil, fmt.Errorf("failed to load animals: %w", err)
-	}
-
 	ackedHashes, pendingHashes, err := loadAckedPendingHashes(tx, instanceID)
 	if err != nil {
 		return nil, err
 	}
 
-	pre := newTranslationPreloader(tx, animals)
-	hashLines := expectedStateHashes(tx, animals, pre, instanceID)
-	lines := make([]string, 0, len(hashLines))
-	hashByAnimal := make(map[int]string, len(hashLines))
-	for _, hl := range hashLines {
-		lines = append(lines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
-		hashByAnimal[hl.AnimalID] = hl.Hash
-	}
-	status.ExpectedTotal = len(hashLines)
-
-	yearByAnimal := make(map[int]int, len(*animals))
-	for i := range *animals {
-		yearByAnimal[(*animals)[i].ID] = (*animals)[i].Year
-	}
-
+	// Stream animals in keyset-paginated chunks (the same bounded LEFT JOIN
+	// as the resync) instead of one full-table EagerPreload: every
+	// /webhook_resync page load recomputes the expected set, so neither
+	// memory nor IN() sizes may scale with the animal count. Hashes are
+	// identical to the old path — expectedStateHashes runs the unchanged
+	// payload builder over the same association graph, just per chunk.
+	var lines []string
 	yearIndex := map[int]int{}
-	// Animals whose payload could not be built are NOT part of the expected
-	// set (same as the resync: they surface as resync errors).
-	for _, hl := range hashLines {
-		confirmed := ackedHashes[hl.AnimalID][hl.Hash]
-		if confirmed {
-			status.StateConfirmed++
-		} else {
-			status.StateUnconfirmed++
-			if !pendingHashes[hl.AnimalID][hl.Hash] {
-				status.NeverSynced++
-			}
+	afterID := 0
+	for {
+		animals, nextID, err := loadResyncAnimalChunk(tx, afterID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load animals: %w", err)
 		}
-		bumpYearBucket(status, yearIndex, yearByAnimal[hl.AnimalID], confirmed)
+		if len(*animals) == 0 {
+			break
+		}
+		afterID = nextID
+		yearByAnimal := make(map[int]int, len(*animals))
+		for i := range *animals {
+			yearByAnimal[(*animals)[i].ID] = (*animals)[i].Year
+		}
+		pre := newTranslationPreloader(tx, animals)
+		// Animals whose payload could not be built are NOT part of the
+		// expected set (same as the resync: they surface as resync errors).
+		for _, hl := range expectedStateHashes(tx, animals, pre, instanceID) {
+			lines = append(lines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
+			status.recordHash(hl, yearByAnimal[hl.AnimalID], ackedHashes, pendingHashes, yearIndex)
+		}
 	}
 
 	sort.Slice(status.Years, func(a, b int) bool { return status.Years[a].Year < status.Years[b].Year })
 	status.ExpectedChecksum = StateSetChecksum(lines)
 	return status, nil
+}
+
+// recordHash folds one expected-state hash into the totals and the per-year
+// bucket: confirmed only when the console acknowledged THIS hash; otherwise
+// unconfirmed, and never-synced when no event with the hash exists at all.
+func (status *SyncStatus) recordHash(hl stateHashLine, year int, acked, pending map[int]map[string]bool, yearIndex map[int]int) {
+	status.ExpectedTotal++
+	confirmed := acked[hl.AnimalID][hl.Hash]
+	if confirmed {
+		status.StateConfirmed++
+	} else {
+		status.StateUnconfirmed++
+		if !pending[hl.AnimalID][hl.Hash] {
+			status.NeverSynced++
+		}
+	}
+	bumpYearBucket(status, yearIndex, year, confirmed)
 }
 
 // loadAckedPendingHashes returns the acknowledged / pending state-event

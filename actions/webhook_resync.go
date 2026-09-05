@@ -47,14 +47,14 @@ type resyncAnimalRow struct {
 	CreatedAt    time.Time    `db:"a_created_at"`
 	UpdatedAt    time.Time    `db:"a_updated_at"`
 
-	AgeID        uuid.UUID    `db:"age_id"`
+	AgeID        nulls.UUID   `db:"age_id"`
 	AgeName      nulls.String `db:"age_name"`
 	AgeDesc      nulls.String `db:"age_description"`
 	AgeDefault   nulls.Bool   `db:"age_def"`
 	AgeCreatedAt nulls.Time   `db:"age_created_at"`
 	AgeUpdatedAt nulls.Time   `db:"age_updated_at"`
 
-	TypeID             uuid.UUID    `db:"type_id"`
+	TypeID             nulls.UUID   `db:"type_id"`
 	TypeName           nulls.String `db:"type_name"`
 	TypeDefault        nulls.Bool   `db:"type_def"`
 	TypeDescription    nulls.String `db:"type_description"`
@@ -63,7 +63,7 @@ type resyncAnimalRow struct {
 	TypeCreatedAt      nulls.Time   `db:"type_created_at"`
 	TypeUpdatedAt      nulls.Time   `db:"type_updated_at"`
 
-	DiscID            uuid.UUID    `db:"disc_id"`
+	DiscID            nulls.UUID   `db:"disc_id"`
 	DiscLocation      nulls.String `db:"disc_location"`
 	DiscPostalCode    nulls.String `db:"disc_postal_code"`
 	DiscCity          nulls.String `db:"disc_city"`
@@ -71,7 +71,7 @@ type resyncAnimalRow struct {
 	DiscEntryCauseID  nulls.String `db:"disc_entry_cause_id"`
 	DiscReason        nulls.String `db:"disc_reason"`
 	DiscNote          nulls.String `db:"disc_note"`
-	DiscDiscovererID  uuid.UUID    `db:"disc_discoverer_id"`
+	DiscDiscovererID  nulls.UUID   `db:"disc_discoverer_id"`
 	DiscReturnHabitat nulls.Bool   `db:"disc_return_habitat"`
 	DiscInGarden      nulls.Bool   `db:"disc_in_garden"`
 	DiscCreatedAt     nulls.Time   `db:"disc_created_at"`
@@ -86,7 +86,7 @@ type resyncAnimalRow struct {
 	EcCreatedAt  nulls.Time   `db:"ec_created_at"`
 	EcUpdatedAt  nulls.Time   `db:"ec_updated_at"`
 
-	DiscovererID            uuid.UUID    `db:"dvr_id"`
+	DiscovererID            nulls.UUID   `db:"dvr_id"`
 	DiscovererFirstname     nulls.String `db:"dvr_firstname"`
 	DiscovererLastname      nulls.String `db:"dvr_lastname"`
 	DiscovererAddress       nulls.String `db:"dvr_address"`
@@ -101,7 +101,7 @@ type resyncAnimalRow struct {
 	DiscovererCreatedAt     nulls.Time   `db:"dvr_created_at"`
 	DiscovererUpdatedAt     nulls.Time   `db:"dvr_updated_at"`
 
-	IntID           uuid.UUID    `db:"int_id"`
+	IntID           nulls.UUID   `db:"int_id"`
 	IntDate         nulls.Time   `db:"int_date"`
 	IntGeneral      nulls.String `db:"int_general"`
 	IntHasWounds    nulls.Bool   `db:"int_has_wounds"`
@@ -112,15 +112,15 @@ type resyncAnimalRow struct {
 	IntCreatedAt    nulls.Time   `db:"int_created_at"`
 	IntUpdatedAt    nulls.Time   `db:"int_updated_at"`
 
-	OutID        uuid.UUID    `db:"out_id"`
+	OutID        nulls.UUID   `db:"out_id"`
 	OutDate      nulls.Time   `db:"out_date"`
-	OutTypeID    uuid.UUID    `db:"out_type_id"`
+	OutTypeID    nulls.UUID   `db:"out_type_id"`
 	OutLocation  nulls.String `db:"out_location"`
 	OutNote      nulls.String `db:"out_note"`
 	OutCreatedAt nulls.Time   `db:"out_created_at"`
 	OutUpdatedAt nulls.Time   `db:"out_updated_at"`
 
-	OtID             uuid.UUID    `db:"ot_id"`
+	OtID             nulls.UUID   `db:"ot_id"`
 	OtName           nulls.String `db:"ot_name"`
 	OtDefault        nulls.Bool   `db:"ot_def"`
 	OtDead           nulls.Bool   `db:"ot_dead"`
@@ -237,9 +237,9 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 		CreatedAt:    r.CreatedAt,
 		UpdatedAt:    r.UpdatedAt,
 	}
-	if r.AgeID != uuid.Nil {
+	if r.AgeID.Valid {
 		a.Animalage = models.Animalage{
-			ID:          r.AgeID,
+			ID:          r.AgeID.UUID,
 			Name:        r.AgeName.String,
 			Description: r.AgeDesc,
 			Default:     r.AgeDefault.Bool,
@@ -247,9 +247,9 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 			UpdatedAt:   r.AgeUpdatedAt.Time,
 		}
 	}
-	if r.TypeID != uuid.Nil {
+	if r.TypeID.Valid {
 		a.Animaltype = models.Animaltype{
-			ID:             r.TypeID,
+			ID:             r.TypeID.UUID,
 			Name:           r.TypeName.String,
 			Default:        r.TypeDefault.Bool,
 			Description:    r.TypeDescription,
@@ -259,9 +259,9 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 			UpdatedAt:      r.TypeUpdatedAt.Time,
 		}
 	}
-	if r.DiscID != uuid.Nil {
+	if r.DiscID.Valid {
 		a.Discovery = models.Discovery{
-			ID:            r.DiscID,
+			ID:            r.DiscID.UUID,
 			Location:      r.DiscLocation,
 			PostalCode:    r.DiscPostalCode,
 			City:          r.DiscCity,
@@ -269,7 +269,7 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 			EntryCauseID:  r.DiscEntryCauseID.String,
 			Reason:        r.DiscReason,
 			Note:          r.DiscNote,
-			DiscovererID:  r.DiscDiscovererID,
+			DiscovererID:  r.DiscDiscovererID.UUID,
 			ReturnHabitat: r.DiscReturnHabitat.Bool,
 			InGarden:      r.DiscInGarden.Bool,
 			CreatedAt:     r.DiscCreatedAt.Time,
@@ -287,9 +287,9 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 				UpdatedAt:  r.EcUpdatedAt.Time,
 			}
 		}
-		if r.DiscovererID != uuid.Nil {
+		if r.DiscovererID.Valid {
 			a.Discovery.Discoverer = models.Discoverer{
-				ID:            r.DiscovererID,
+				ID:            r.DiscovererID.UUID,
 				Firstname:     r.DiscovererFirstname,
 				Lastname:      r.DiscovererLastname,
 				Address:       r.DiscovererAddress,
@@ -306,9 +306,9 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 			}
 		}
 	}
-	if r.IntID != uuid.Nil {
+	if r.IntID.Valid {
 		a.Intake = models.Intake{
-			ID:           r.IntID,
+			ID:           r.IntID.UUID,
 			Date:         r.IntDate.Time,
 			General:      r.IntGeneral,
 			HasWounds:    r.IntHasWounds.Bool,
@@ -320,19 +320,19 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 			UpdatedAt:    r.IntUpdatedAt.Time,
 		}
 	}
-	if r.OuttakeID.Valid {
+	if r.OuttakeID.Valid && r.OutID.Valid {
 		a.Outtake = &models.Outtake{
-			ID:        r.OutID,
+			ID:        r.OutID.UUID,
 			Date:      r.OutDate.Time,
-			TypeID:    r.OutTypeID,
+			TypeID:    r.OutTypeID.UUID,
 			Location:  r.OutLocation,
 			Note:      r.OutNote,
 			CreatedAt: r.OutCreatedAt.Time,
 			UpdatedAt: r.OutUpdatedAt.Time,
 		}
-		if r.OtID != uuid.Nil {
+		if r.OtID.Valid {
 			a.Outtake.Type = models.Outtaketype{
-				ID:             r.OtID,
+				ID:             r.OtID.UUID,
 				Name:           r.OtName.String,
 				Default:        r.OtDefault.Bool,
 				Dead:           r.OtDead.Bool,

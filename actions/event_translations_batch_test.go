@@ -260,3 +260,125 @@ func TestRunResyncQueryCountBounded(t *testing.T) {
 		"resync issued %d SELECTs for %d animals — per-record SELECT N+1 is back", count, animalCount)
 	t.Logf("resync over %d animals issued %d SELECTs", animalCount, count)
 }
+
+// TestComputeSyncStatusQueryCountBounded pins the same bound for the
+// /webhook_resync page load: ComputeSyncStatus recomputes the expected set
+// on every render and must stream animals in keyset-paginated chunks with a
+// per-chunk preloader — a fixed number of SELECTs per chunk, never per
+// animal, and no IN() list larger than the chunk size.
+func TestComputeSyncStatusQueryCountBounded(t *testing.T) {
+	const animalCount = 60
+	for i := 0; i < animalCount; i++ {
+		seedPreloaderAnimal(t, 987000+i)
+	}
+
+	var mu sync.Mutex
+	selectCount := 0
+	maxIN := 0
+	prevDebug := pop.Debug
+	pop.Debug = true
+	pop.SetTxLogger(func(level logging.Level, anon interface{}, s string, args ...interface{}) {
+		if level != logging.SQL {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if strings.Contains(strings.ToUpper(s), "SELECT") {
+			selectCount++
+			if n := strings.Count(s, "?"); n > maxIN {
+				maxIN = n
+			}
+		}
+	})
+	defer func() {
+		pop.Debug = prevDebug
+		pop.SetTxLogger(func(level logging.Level, anon interface{}, s string, args ...interface{}) {
+			if !pop.Debug && level <= logging.Debug {
+				return
+			}
+			if level == logging.SQL {
+				stdlog.Printf("[POP] sql - %s", s)
+				return
+			}
+			stdlog.Printf("[POP] "+s, args...)
+		})
+	}()
+
+	status, err := ComputeSyncStatus(models.DB, preloaderInstance)
+	require.NoError(t, err)
+	require.Equal(t, animalCount, status.ExpectedTotal)
+
+	mu.Lock()
+	count := selectCount
+	in := maxIN
+	mu.Unlock()
+
+	// 60 animals = 1 chunk: 1 state-event scan + 1 chunk SELECT + a fixed
+	// preloader batch. Old behaviour: one full-table EagerPreload with 8
+	// association queries whose IN() listed every animal id, then per-animal
+	// lookups. The generous headroom absorbs reference-table lookups; the
+	// point is no per-animal scaling.
+	assert.Less(t, count, animalCount+80,
+		"sync status issued %d SELECTs for %d animals — per-record SELECT N+1 is back", count, animalCount)
+	assert.Less(t, in, 2*resyncChunkSize,
+		"largest placeholder list (%d) exceeds 2× chunk size — unbounded IN() is back", in)
+	t.Logf("sync status over %d animals issued %d SELECTs, max placeholder list %d", animalCount, count, in)
+}
+
+// TestResyncChunkLoaderEquivalence proves the keyset-paginated LEFT JOIN
+// chunk loader rebuilds the exact same models.Animal graph as the old
+// EagerPreload path — with AND without an outtake (LEFT JOIN NULLs must
+// scan as zero associations, not fail). Payload hashes built from both
+// graphs must be identical, or resync/sync-status checksums would diverge
+// from the events already delivered.
+func TestResyncChunkLoaderEquivalence(t *testing.T) {
+	seedPreloaderAnimal(t, 988001)          // full association graph incl. outtake
+	seedSyncStatusFixture(t)                // 985100-985103: in_care, no outtake
+	ids := []int{988001, 985100, 985101, 985102, 985103}
+
+	chunked := map[int]*models.Animal{}
+	afterID := 0
+	for {
+		chunk, nextID, err := loadResyncAnimalChunk(models.DB, afterID)
+		require.NoError(t, err)
+		if len(*chunk) == 0 {
+			break
+		}
+		afterID = nextID
+		for i := range *chunk {
+			a := &(*chunk)[i]
+			for _, id := range ids {
+				if a.ID == id {
+					chunked[id] = a
+				}
+			}
+		}
+	}
+	require.Len(t, chunked, len(ids), "chunk loader must return every seeded animal")
+
+	for _, id := range ids {
+		reference := &models.Animal{}
+		require.NoError(t, models.DB.EagerPreload(
+			"Animalage", "Animaltype", "Intake",
+			"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
+			"Outtake", "Outtake.Type",
+		).Find(reference, id))
+
+		chunkAnimal := chunked[id]
+		// Normalize non-payload noise: pop sets no CreatedAt/UpdatedAt layout
+		// differences here, but the payload Timestamp always differs.
+		preRef := newTranslationPreloader(models.DB, &models.Animals{*reference})
+		preChunk := newTranslationPreloader(models.DB, &models.Animals{*chunkAnimal})
+		pRef := buildEventPayloadInto(models.DB, preRef, reference)
+		pChunk := buildEventPayloadInto(models.DB, preChunk, chunkAnimal)
+		require.NotNil(t, pRef, "reference payload for animal %d", id)
+		require.NotNil(t, pChunk, "chunk payload for animal %d", id)
+		pRef.Timestamp = ""
+		pChunk.Timestamp = ""
+		assert.Equal(t, pRef, pChunk, "payload diverges for animal %d (outtake=%q)", id, pRef.Outtake.Type)
+		assert.Equal(t,
+			StateContentHashPayload(preloaderInstance, *pRef),
+			StateContentHashPayload(preloaderInstance, *pChunk),
+			"content hash diverges for animal %d", id)
+	}
+}
