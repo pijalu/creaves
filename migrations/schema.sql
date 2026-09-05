@@ -95,7 +95,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=985050 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=985051 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -368,6 +368,7 @@ CREATE TABLE `event_streams` (
   `delivered_at` datetime DEFAULT NULL,
   `content_hash` varchar(255) DEFAULT NULL,
   `resync_run_id` char(36) DEFAULT NULL,
+  `acknowledged_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `event_streams_instance_id_animal_id_created_at_idx` (`instance_id`,`animal_id`,`created_at`),
   KEY `event_streams_processed_at_idx` (`processed_at`),
@@ -525,11 +526,14 @@ CREATE TABLE `resync_runs` (
   `animals_processed` int NOT NULL DEFAULT '0',
   `events_created` int NOT NULL DEFAULT '0',
   `events_skipped_unchanged` int NOT NULL DEFAULT '0',
-  `events_delivered` int NOT NULL DEFAULT '0',
-  `events_failed` int NOT NULL DEFAULT '0',
   `errors` text,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `events_delivered` int NOT NULL DEFAULT '0',
+  `events_failed` int NOT NULL DEFAULT '0',
+  `announced_expected_total` int NOT NULL DEFAULT '0',
+  `announced_expected_checksum` varchar(255) DEFAULT NULL,
+  `announced_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `resync_runs_instance_id_status_idx` (`instance_id`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -759,4 +763,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-30 17:05:03
+-- Dump completed on 2026-09-05  2:33:39

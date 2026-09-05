@@ -20,9 +20,17 @@ type ResyncRun struct {
 	EventsSkippedUnchanged int        `json:"events_skipped_unchanged" db:"events_skipped_unchanged"`
 	EventsDelivered        int        `json:"events_delivered" db:"events_delivered"`
 	EventsFailed           int        `json:"events_failed" db:"events_failed"`
-	Errors                 string     `json:"errors" db:"errors"`
-	CreatedAt              time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt              time.Time  `json:"updated_at" db:"updated_at"`
+	// Producer-announced expected sync state, computed once at run start
+	// (same live payload builder as ComputeSyncStatus) and echoed to the
+	// console in every delivery envelope of this run ("sync" block). The
+	// console stores it on the instance row and displays
+	// stored/announced(total) plus a checksum comparison against it.
+	AnnouncedExpectedTotal    int        `json:"announced_expected_total" db:"announced_expected_total"`
+	AnnouncedExpectedChecksum *string    `json:"announced_expected_checksum" db:"announced_expected_checksum"`
+	AnnouncedAt               *time.Time `json:"announced_at" db:"announced_at"`
+	Errors                    string     `json:"errors" db:"errors"`
+	CreatedAt                 time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt                 time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 func (r *ResyncRun) Validate(*pop.Connection) (*validate.Errors, error) {

@@ -92,7 +92,9 @@ func seedSyncStatusFixture(t *testing.T) {
 }
 
 // syncStatusLiveHash computes the animal's current state hash exactly the way
-// the resync producer does (same eager loading, same payload builder).
+// the resync/update producers do: same payload builder plus the shared
+// applyCurrentStatus derivation before hashing. Hashing without it would make
+// every stored content_hash mismatch (bug #4 root cause).
 func syncStatusLiveHash(t *testing.T, animalID int) string {
 	t.Helper()
 	animal := &models.Animal{}
@@ -103,6 +105,7 @@ func syncStatusLiveHash(t *testing.T, animalID int) string {
 	).Find(animal, animalID))
 	payload := buildEventPayloadWithTranslations(models.DB, animal)
 	require.NotNil(t, payload)
+	applyCurrentStatus(payload, animal)
 	return StateContentHashPayload(syncStatusInstance, *payload)
 }
 
@@ -115,25 +118,39 @@ func TestComputeSyncStatusCountsPerYearAndChecksum(t *testing.T) {
 		hashes[id] = syncStatusLiveHash(t, id)
 	}
 
-	mkEvent := func(t *testing.T, animalID int, hash string, delivered bool) {
+	mkEvent := func(t *testing.T, animalID int, hash string, acked bool) {
 		t.Helper()
 		e := &models.EventStream{
 			ID: uuid.Must(uuid.NewV4()), InstanceID: syncStatusInstance, AnimalID: animalID,
 			EventType: string(models.EventTypeAnimalState), ContentHash: &hash,
 		}
-		if delivered {
+		if acked {
 			e.DeliveredAt = &now
+			e.AcknowledgedAt = &now
 		}
 		require.NoError(t, models.DB.Create(e))
 	}
-	// A: delivered with current hash → confirmed.
+	// A: delivered AND console-acknowledged with the current hash → confirmed.
 	mkEvent(t, 985100, hashes[985100], true)
-	// B: state event exists but not yet delivered → unconfirmed (pending).
+	// B: state event created but not delivered/acknowledged → unconfirmed (pending).
 	mkEvent(t, 985101, hashes[985101], false)
 	// C: no event at all → never-synced (still part of the expected set).
-	// D: delivered but with an outdated hash → unconfirmed (stale). Its
+	// D: acknowledged but with an outdated hash → unconfirmed (stale). Its
 	// CURRENT state has never been sent, so it also counts as never-synced.
 	mkEvent(t, 985103, "0000000000000000000000000000000000000000000000000000000000000000", true)
+
+	// Delivery without acknowledgement proves nothing: a second A-like
+	// event (delivered, no ack) must NOT flip its animal to confirmed. Reuse
+	// animal B: add a delivered-but-unacknowledged event with B's current
+	// hash — B stays unconfirmed (bug #4: bare HTTP acceptance used to count
+	// as "Delivered & current").
+	bHash := hashes[985101]
+	deliveredOnly := &models.EventStream{
+		ID: uuid.Must(uuid.NewV4()), InstanceID: syncStatusInstance, AnimalID: 985101,
+		EventType: string(models.EventTypeAnimalState), ContentHash: &bHash,
+		DeliveredAt: &now,
+	}
+	require.NoError(t, models.DB.Create(deliveredOnly))
 
 	status, err := ComputeSyncStatus(models.DB, syncStatusInstance)
 	require.NoError(t, err)
@@ -160,4 +177,40 @@ func TestComputeSyncStatusCountsPerYearAndChecksum(t *testing.T) {
 	}
 	assert.Equal(t, StateSetChecksum(lines), status.ExpectedChecksum)
 	assert.True(t, len(status.ExpectedChecksum) == len("sha256:")+64)
+}
+
+// TestExpectedStateHashesMatchProducerPath pins bug #4's root cause: the
+// sync-status path must hash exactly like the resync/update producers (shared
+// applyCurrentStatus derivation). A divergent hash never matches any stored
+// content_hash, so every animal would show as unconfirmed forever.
+func TestExpectedStateHashesMatchProducerPath(t *testing.T) {
+	seedSyncStatusFixture(t)
+
+	animals := &models.Animals{}
+	require.NoError(t, models.DB.Eager(
+		"Animalage", "Animaltype", "Intake",
+		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
+		"Outtake", "Outtake.Type",
+	).All(animals))
+	pre := newTranslationPreloader(models.DB, animals)
+	lines := expectedStateHashes(models.DB, animals, pre, syncStatusInstance)
+	require.Len(t, lines, 4)
+
+	byID := map[int]string{}
+	for _, hl := range lines {
+		byID[hl.AnimalID] = hl.Hash
+	}
+	for _, id := range []int{985100, 985101, 985102, 985103} {
+		animal := &models.Animal{}
+		require.NoError(t, models.DB.Eager(
+			"Animalage", "Animaltype", "Intake",
+			"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
+			"Outtake", "Outtake.Type",
+		).Find(animal, id))
+		payload := buildEventPayloadWithTranslations(models.DB, animal)
+		require.NotNil(t, payload)
+		applyCurrentStatus(payload, animal)
+		assert.Equal(t, StateContentHashPayload(syncStatusInstance, *payload), byID[id],
+			"status-path hash must equal producer-path hash for animal %d", id)
+	}
 }

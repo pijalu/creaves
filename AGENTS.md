@@ -267,7 +267,18 @@ Content-Type: application/json
 Authorization: Bearer creaves_<api-key>
 ```
 
-The Console responds with `{"processed": N, "total": M}` on success.
+The Console responds with `{"processed": N, "total": M, "processed_ids": [...],
+"confirmed": [{"id": "...", "state_hash": "..."}]}`. The `confirmed` entries are
+console→creaves acknowledgements: per processed `animal_state` event, the state
+hash the console actually stored. This pusher marks matching events
+`acknowledged_at`, which feeds the "Delivered & current" count on
+`/webhook_resync` — bare HTTP acceptance is NOT confirmation. Resync batches
+additionally announce `{"sync": {"expected_total", "expected_checksum",
+"announced_at"}}` (this instance's expected set, computed from the run's
+preloaded animals); the console stores it and compares checksums against it on
+`/sync_management`. Force re-queues re-send the current payload (with
+`state_hash` backfilled onto legacy events); the console re-stores a changed
+payload and re-applies idempotently.
 See `../creaves-console/AGENTS.md` for the full contract spec.
 
 ### Configuration

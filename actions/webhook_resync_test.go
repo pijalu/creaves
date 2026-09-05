@@ -337,6 +337,25 @@ func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
 	}
 
 	// 3rd run (force): the delivered event is re-queued for delivery.
+	// First strip state_hash from the stored payload to simulate a legacy
+	// event created before the field existed: the force re-queue must
+	// backfill it (without state_hash the console cannot acknowledge).
+	legacy := &models.EventStream{}
+	if err := models.DB.Find(legacy, ev.ID); err != nil {
+		t.Fatalf("event vanished before force run: %v", err)
+	}
+	legPayload, err := legacy.GetPayload()
+	if err != nil {
+		t.Fatalf("parse payload: %v", err)
+	}
+	legPayload.StateHash = ""
+	if err := legacy.SetPayload(legPayload); err != nil {
+		t.Fatalf("marshal legacy payload: %v", err)
+	}
+	if err := models.DB.Update(legacy); err != nil {
+		t.Fatalf("store legacy payload: %v", err)
+	}
+
 	run3 := runAndReloadResync(t, true)
 	if run3.EventsSkippedUnchanged != 0 {
 		t.Fatalf("run3 (force) must not skip: created=%d skipped=%d", run3.EventsCreated, run3.EventsSkippedUnchanged)
@@ -350,5 +369,12 @@ func TestRunResyncForceRequeuesDeliveredEvents(t *testing.T) {
 	}
 	if requeued.DeliveredAt != nil {
 		t.Fatal("force run must re-queue (delivered_at = NULL) the existing deterministic event")
+	}
+	refreshed, err := requeued.GetPayload()
+	if err != nil {
+		t.Fatalf("parse re-queued payload: %v", err)
+	}
+	if requeued.ContentHash == nil || refreshed.StateHash == "" || refreshed.StateHash != *requeued.ContentHash {
+		t.Fatalf("force run must backfill payload.state_hash to the event content_hash: got %q want %v", refreshed.StateHash, requeued.ContentHash)
 	}
 }

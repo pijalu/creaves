@@ -307,6 +307,73 @@ func purgeOldEvents() error {
 	return nil
 }
 
+// syncAnnouncementWire is the "sync" envelope block: the producer's
+// announced expected sync state for a resync run.
+type syncAnnouncementWire struct {
+	ExpectedTotal    int        `json:"expected_total"`
+	ExpectedChecksum string     `json:"expected_checksum"`
+	AnnouncedAt      *time.Time `json:"announced_at"`
+}
+
+// attachResyncAnnouncement adds the producer announcement (checksum fix):
+// batches belonging to a resync run carry that run's announced expected
+// sync state. The console stores it on the instance row and displays
+// stored/announced(expected) with a checksum comparison — it can no longer
+// mistake "the events I received" for "everything the producer has".
+func attachResyncAnnouncement(events *models.EventStreams, payload map[string]interface{}) {
+	for i := range *events {
+		if (*events)[i].ResyncRunID == nil {
+			continue
+		}
+		run := &models.ResyncRun{}
+		if err := models.DB.Find(run, *(*events)[i].ResyncRunID); err != nil ||
+			run.AnnouncedExpectedChecksum == nil || *run.AnnouncedExpectedChecksum == "" {
+			continue
+		}
+		payload["sync"] = syncAnnouncementWire{
+			ExpectedTotal:    run.AnnouncedExpectedTotal,
+			ExpectedChecksum: *run.AnnouncedExpectedChecksum,
+			AnnouncedAt:      run.AnnouncedAt,
+		}
+		return
+	}
+}
+
+// stateConfirmation is one console acknowledgement: the echoed state hash
+// the console stored for a processed animal_state event.
+type stateConfirmation struct {
+	ID        string `json:"id"`
+	StateHash string `json:"state_hash"`
+}
+
+// applyConfirmations applies console confirmations: an acknowledgement is
+// only trusted when the echoed state hash equals the producer's content
+// hash for that event. Older consoles never send "confirmed" — those
+// deliveries keep acknowledged_at NULL and the resync page honestly reports
+// them unconfirmed instead of pretending delivery == confirmation.
+func applyConfirmations(events *models.EventStreams, accepted map[string]bool, confirmed []stateConfirmation, now time.Time) int {
+	batchByID := make(map[string]*models.EventStream, len(*events))
+	for i := range *events {
+		batchByID[(*events)[i].ID.String()] = &(*events)[i]
+	}
+	acknowledged := 0
+	for _, conf := range confirmed {
+		event, ok := batchByID[conf.ID]
+		if !ok || !accepted[conf.ID] || event.ContentHash == nil ||
+			*event.ContentHash == "" || *event.ContentHash != conf.StateHash {
+			continue
+		}
+		ack := now
+		event.AcknowledgedAt = &ack
+		if err := models.DB.Update(event); err != nil {
+			fmt.Printf("Failed to acknowledge event %s: %v\n", event.ID, err)
+			continue
+		}
+		acknowledged++
+	}
+	return acknowledged
+}
+
 // deliverBatch queries undelivered events and sends them to the webhook.
 // It returns the number of events in the queried batch (accepted or not), so
 // callers can decide whether more events are likely pending.
@@ -362,6 +429,7 @@ func deliverBatch() (int, error) {
 		"instance":         map[string]string{"id": config.InstanceID, "name": config.Name, "description": config.Description},
 		"events":           payloadEvents,
 	}
+	attachResyncAnnouncement(events, payload)
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -404,6 +472,12 @@ func deliverBatch() (int, error) {
 		Total        *int     `json:"total"`
 		ProcessedIDs []string `json:"processed_ids"`
 		Errors       []string `json:"errors"`
+		// Confirmations (checksum fix): the console echoes, per processed
+		// animal_state event, the state hash it actually stored. Only
+		// echoed events whose hash matches the producer content hash get
+		// acknowledged_at set — the "Delivered & current" confirmation on
+		// /webhook_resync is fed by these, not by bare HTTP acceptance.
+		Confirmed []stateConfirmation `json:"confirmed"`
 	}
 	if len(bytes.TrimSpace(bodyBytes)) > 0 {
 		if err := json.Unmarshal(bodyBytes, &result); err != nil {
@@ -452,14 +526,16 @@ func deliverBatch() (int, error) {
 		delivered++
 	}
 
+	acknowledged := applyConfirmations(events, accepted, result.Confirmed, now)
+
 	if responseErr {
 		return len(*events), fmt.Errorf("webhook accepted %d/%d events", delivered, len(*events))
 	}
 	webhookPusher.circuitBreaker.RecordSuccess()
 	if delivered < len(*events) {
-		fmt.Printf("Delivered %d/%d events to webhook; %d will be retried\n", delivered, len(*events), len(*events)-delivered)
+		fmt.Printf("Delivered %d/%d events to webhook (%d acknowledged); %d will be retried\n", delivered, len(*events), acknowledged, len(*events)-delivered)
 	} else {
-		fmt.Printf("Delivered %d events to webhook\n", delivered)
+		fmt.Printf("Delivered %d events to webhook (%d acknowledged)\n", delivered, acknowledged)
 	}
 
 	return len(*events), nil

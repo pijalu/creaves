@@ -332,10 +332,7 @@ func PublishAnimalStateEvent(tx *pop.Connection, animalID int, user *models.User
 
 	// Derive CurrentStatus exactly like processResyncAnimal so hashes are
 	// comparable across the resync and update paths.
-	payload.CurrentStatus = "in_care"
-	if full.Outtake != nil {
-		payload.CurrentStatus = "released"
-	}
+	applyCurrentStatus(payload, full)
 
 	// Add user information for the audit trail (not part of the state hash).
 	if user != nil {

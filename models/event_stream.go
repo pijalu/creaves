@@ -33,10 +33,15 @@ type EventStream struct {
 	Payload     json.RawMessage `json:"payload" db:"payload"`
 	ProcessedAt *time.Time      `json:"processed_at" db:"processed_at"`
 	DeliveredAt *time.Time      `json:"delivered_at" db:"delivered_at"`
-	ContentHash *string         `json:"content_hash" db:"content_hash"`
-	ResyncRunID *uuid.UUID      `json:"resync_run_id" db:"resync_run_id"`
-	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
+	// AcknowledgedAt is set when the console confirmed it PROCESSED AND
+	// STORED this event's state (echoed state hash in the webhook response).
+	// Delivery (HTTP 200) alone does not prove persistence; acknowledgements
+	// feed the "Delivered & current" count on /webhook_resync.
+	AcknowledgedAt *time.Time `json:"acknowledged_at" db:"acknowledged_at"`
+	ContentHash    *string    `json:"content_hash" db:"content_hash"`
+	ResyncRunID    *uuid.UUID `json:"resync_run_id" db:"resync_run_id"`
+	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // AnimalPayload represents the complete animal information in an event
@@ -62,19 +67,19 @@ type AnimalPayload struct {
 
 // DiscoveryPayload represents the complete discovery information in an event
 type DiscoveryPayload struct {
-	ID            string `json:"id,omitempty"`
-	Location      string `json:"location,omitempty"`
-	PostalCode    string `json:"postal_code,omitempty"`
-	City          string `json:"city,omitempty"`
-	Date          string `json:"date,omitempty"`
+	ID               string `json:"id,omitempty"`
+	Location         string `json:"location,omitempty"`
+	PostalCode       string `json:"postal_code,omitempty"`
+	City             string `json:"city,omitempty"`
+	Date             string `json:"date,omitempty"`
 	EntryCauseID     string `json:"entry_cause_id,omitempty"`
 	EntryCause       string `json:"entry_cause,omitempty"`
 	EntryCauseDetail string `json:"entry_cause_detail,omitempty"`
 	EntryCauseNature string `json:"entry_cause_nature,omitempty"`
-	Reason        string `json:"reason,omitempty"`
-	Note          string `json:"note,omitempty"`
-	ReturnHabitat bool   `json:"return_habitat,omitempty"`
-	InGarden      bool   `json:"in_garden,omitempty"`
+	Reason           string `json:"reason,omitempty"`
+	Note             string `json:"note,omitempty"`
+	ReturnHabitat    bool   `json:"return_habitat,omitempty"`
+	InGarden         bool   `json:"in_garden,omitempty"`
 	// Discoverer information
 	DiscovererFirstname  string `json:"discoverer_firstname,omitempty"`
 	DiscovererLastname   string `json:"discoverer_lastname,omitempty"`

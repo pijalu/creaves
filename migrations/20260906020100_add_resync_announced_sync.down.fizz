@@ -1,0 +1,3 @@
+remove_column("resync_runs", "announced_expected_total")
+remove_column("resync_runs", "announced_expected_checksum")
+remove_column("resync_runs", "announced_at")

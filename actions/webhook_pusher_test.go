@@ -71,6 +71,7 @@ func createPusherTables() {
 			payload TEXT,
 			processed_at TIMESTAMP,
 			delivered_at TIMESTAMP,
+			acknowledged_at TIMESTAMP,
 			content_hash TEXT,
 			resync_run_id TEXT,
 			created_at TIMESTAMP NOT NULL,
@@ -91,6 +92,9 @@ func createPusherTables() {
 			events_skipped_unchanged INTEGER NOT NULL DEFAULT 0,
 			events_delivered INTEGER NOT NULL DEFAULT 0,
 			events_failed INTEGER NOT NULL DEFAULT 0,
+			announced_expected_total INTEGER NOT NULL DEFAULT 0,
+			announced_expected_checksum TEXT,
+			announced_at TIMESTAMP,
 			errors TEXT,
 			created_at TIMESTAMP NOT NULL,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -978,4 +982,171 @@ func TestDeliverPendingBatch_ReturnsTrueOnlyWhenFullBatch(t *testing.T) {
 	assert.True(t, deliverPendingBatch(), "full batch must signal more pending")
 	assert.False(t, deliverPendingBatch())
 	assert.Equal(t, 3+12, rr.totalEvents())
+}
+
+// ---------------------------------------------------------------------------
+// Console acknowledgements + producer sync announcement (checksum fix)
+// ---------------------------------------------------------------------------
+
+// seedAckableStateEvent seeds an undelivered animal_state event with the
+// given content hash (the hash the console must echo to confirm it).
+func seedAckableStateEvent(t *testing.T, animalID int, hash string, resyncRunID *uuid.UUID) *models.EventStream {
+	t.Helper()
+	ev := &models.EventStream{
+		ID:          uuid.Must(uuid.NewV4()),
+		InstanceID:  "test-instance",
+		AnimalID:    animalID,
+		EventType:   string(models.EventTypeAnimalState),
+		Payload:     []byte(`{"animal":{"species":"Fox"},"state_hash":"` + hash + `"}`),
+		ContentHash: &hash,
+		ResyncRunID: resyncRunID,
+		CreatedAt:   time.Now(),
+	}
+	require.NoError(t, pusherTestDB.Create(ev))
+	return ev
+}
+
+// TestDeliverBatch_ConfirmedAcksMarkAcknowledged proves the ack round-trip:
+// a console response echoing processed_ids plus confirmed (id + stored state
+// hash) sets acknowledged_at on the matching events. The acknowledged count
+// feeds "Delivered & current" on /webhook_resync.
+func TestDeliverBatch_ConfirmedAcksMarkAcknowledged(t *testing.T) {
+	resetPusherState()
+
+	matching := seedAckableStateEvent(t, 71, "hash-current", nil)
+	stale := seedAckableStateEvent(t, 72, "hash-stale", nil)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var payload struct {
+			Events []struct {
+				ID string `json:"id"`
+			} `json:"events"`
+		}
+		_ = json.Unmarshal(body, &payload)
+		type confirmation struct {
+			ID        string `json:"id"`
+			StateHash string `json:"state_hash"`
+		}
+		confirmed := []confirmation{}
+		for _, e := range payload.Events {
+			// The console echoes the hash it stored: correct for the
+			// current-hash event, a stale value for the other one.
+			hash := "hash-current"
+			if e.ID == stale.ID.String() {
+				hash = "hash-outdated"
+			}
+			confirmed = append(confirmed, confirmation{ID: e.ID, StateHash: hash})
+		}
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"processed":     len(payload.Events),
+			"total":         len(payload.Events),
+			"processed_ids": []string{},
+			"confirmed":     confirmed,
+		})
+	}))
+	defer srv.Close()
+	seedPusherConfig(t, srv.URL)
+
+	_, err := deliverBatch()
+	require.NoError(t, err)
+
+	var gotMatching, gotStale models.EventStream
+	require.NoError(t, pusherTestDB.Find(&gotMatching, matching.ID))
+	require.NoError(t, pusherTestDB.Find(&gotStale, stale.ID))
+	assert.NotNil(t, gotMatching.DeliveredAt)
+	assert.NotNil(t, gotMatching.AcknowledgedAt, "echoed matching hash must acknowledge the event")
+	assert.NotNil(t, gotStale.DeliveredAt)
+	assert.Nil(t, gotStale.AcknowledgedAt, "stale echoed hash must NOT acknowledge the event")
+}
+
+// TestDeliverBatch_AttachesResyncAnnouncement proves the producer announces
+// its expected sync state (total + checksum) in envelopes that belong to a
+// resync run — the console stores this and displays stored/announced(expected).
+func TestDeliverBatch_AttachesResyncAnnouncement(t *testing.T) {
+	resetPusherState()
+
+	runID := uuid.Must(uuid.NewV4())
+	announcedAt := time.Now().UTC().Truncate(time.Second)
+	require.NoError(t, pusherTestDB.RawQuery(
+		"INSERT INTO resync_runs (id, instance_id, status, started_at, created_at, updated_at, announced_expected_total, announced_expected_checksum, announced_at, errors) VALUES (?, 'test-instance', 'running', ?, ?, ?, 42, 'sha256:announce42', ?, '')",
+		runID, time.Now(), time.Now(), time.Now(), announcedAt,
+	).Exec())
+
+	ev := seedAckableStateEvent(t, 5, "hash-r", &runID)
+
+	var mu sync.Mutex
+	var envelope map[string]json.RawMessage
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		_ = json.Unmarshal(body, &envelope)
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"processed":1,"total":1,"processed_ids":["` + ev.ID.String() + `"]}`))
+	}))
+	defer srv.Close()
+	seedPusherConfig(t, srv.URL)
+
+	_, err := deliverBatch()
+	require.NoError(t, err)
+	require.NotNil(t, envelope, "receiver must have been called")
+
+	var wire struct {
+		ContractVersion int `json:"contract_version"`
+		Sync            *struct {
+			ExpectedTotal    int        `json:"expected_total"`
+			ExpectedChecksum string     `json:"expected_checksum"`
+			AnnouncedAt      *time.Time `json:"announced_at"`
+		} `json:"sync"`
+	}
+	require.NoError(t, json.Unmarshal(mustLock(&mu, envelope), &wire))
+	assert.Equal(t, 2, wire.ContractVersion)
+	require.NotNil(t, wire.Sync, "resync batch must carry the sync announcement block")
+	assert.Equal(t, 42, wire.Sync.ExpectedTotal)
+	assert.Equal(t, "sha256:announce42", wire.Sync.ExpectedChecksum)
+	require.NotNil(t, wire.Sync.AnnouncedAt)
+	assert.True(t, wire.Sync.AnnouncedAt.Equal(announcedAt), "announced_at: %v vs %v", wire.Sync.AnnouncedAt, announcedAt)
+}
+
+// TestDeliverBatch_NoAnnouncementForRegularEvents proves regular (non-resync)
+// deliveries do not carry a sync block: the announcement is the resync run's
+// job, so the console's stored announcement only refreshes with resyncs.
+func TestDeliverBatch_NoAnnouncementForRegularEvents(t *testing.T) {
+	resetPusherState()
+
+	ev := seedAckableStateEvent(t, 6, "hash-plain", nil)
+
+	var mu sync.Mutex
+	var envelope map[string]json.RawMessage
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		mu.Lock()
+		_ = json.Unmarshal(body, &envelope)
+		mu.Unlock()
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"processed":1,"total":1,"processed_ids":["` + ev.ID.String() + `"]}`))
+	}))
+	defer srv.Close()
+	seedPusherConfig(t, srv.URL)
+
+	_, err := deliverBatch()
+	require.NoError(t, err)
+
+	require.NotNil(t, envelope)
+	_, hasSync := envelope["sync"]
+	assert.False(t, hasSync, "non-resync batches must not carry a sync block")
+}
+
+// mustLock serializes map access for the receiver goroutine in the tests
+// above (deliverBatch runs on the test goroutine, but keep it honest).
+func mustLock(mu *sync.Mutex, m map[string]json.RawMessage) []byte {
+	mu.Lock()
+	defer mu.Unlock()
+	data, err := json.Marshal(m)
+	if err != nil {
+		panic(err)
+	}
+	return data
 }

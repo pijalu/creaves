@@ -152,6 +152,19 @@ func resyncCheckpoint(ctx context.Context, tx *pop.Connection, run *models.Resyn
 	return cancelled, nil
 }
 
+// applyCurrentStatus sets payload.CurrentStatus the way every producer of a
+// full-state event must before hashing: "in_care", or "released" when the
+// animal has an outtake. The resync, the update path and the sync-status
+// computation all call this so their StateContentHashPayload hashes stay
+// comparable — a status-less hash never matches any stored content_hash and
+// every animal would show as unconfirmed forever.
+func applyCurrentStatus(payload *models.EventPayload, animal *models.Animal) {
+	payload.CurrentStatus = "in_care"
+	if animal.Outtake != nil {
+		payload.CurrentStatus = "released"
+	}
+}
+
 // processResyncAnimal builds and enqueues the state event for one animal,
 // incrementing the processed counter. Progress persistence is the caller's
 // (resyncCheckpoint) job.
@@ -160,10 +173,7 @@ func processResyncAnimal(tx *pop.Connection, run *models.ResyncRun, pre *transla
 	if payload == nil {
 		appendResyncError(run, animal.ID, "failed to build payload")
 	} else {
-		payload.CurrentStatus = "in_care"
-		if animal.Outtake != nil {
-			payload.CurrentStatus = "released"
-		}
+		applyCurrentStatus(payload, animal)
 		if err := enqueueResyncStateEvent(tx, run, ix, force, animal.ID, *payload); err != nil {
 			return err
 		}
@@ -205,6 +215,28 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 	pre := newTranslationPreloader(tx, animals)
 	ix, err := loadResyncStateIndex(tx, run.InstanceID)
 	if err != nil {
+		return finishResync(tx, run, err)
+	}
+	// Announce the expected sync state for this run (checksum bug fix):
+	// reuse the run's preloaded animals and translation preloader to
+	// compute it with ZERO extra SELECTs (the per-animal hashes are built
+	// from already-loaded associations; recomputing via ComputeSyncStatus
+	// here would double the resync's query count and break the bounded
+	// query regression test). Persist the announcement on the run row and
+	// echo it in every delivery envelope of this run ("sync" block): the
+	// console stores it and displays stored/announced totals plus a
+	// checksum comparison against it.
+	hashLines := expectedStateHashes(tx, animals, pre, run.InstanceID)
+	announceLines := make([]string, 0, len(hashLines))
+	for _, hl := range hashLines {
+		announceLines = append(announceLines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
+	}
+	now := time.Now()
+	checksum := StateSetChecksum(announceLines)
+	run.AnnouncedExpectedTotal = len(announceLines)
+	run.AnnouncedExpectedChecksum = &checksum
+	run.AnnouncedAt = &now
+	if err := tx.Update(run); err != nil {
 		return finishResync(tx, run, err)
 	}
 	for i := range *animals {
@@ -413,12 +445,24 @@ func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resy
 		return nil
 	}
 	if exists {
+		// Force re-queues may be YEARS after the event was created; the stored
+		// payload can predate the state_hash field (without it the console
+		// cannot acknowledge the delivery). Adopt the freshly built payload —
+		// same canonical state plus state_hash — so every re-queued event is
+		// acknowledgeable.
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
 		if err := tx.RawQuery(
 			// resync_run_id is re-pointed at the current run so the
 			// delivery-accounting loop below sees the re-queued event as
 			// this run's responsibility (created/failed counting).
-			"UPDATE event_streams SET delivered_at = NULL, resync_run_id = ? WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
-			run.ID, run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
+			// acknowledged_at is reset too: the previous acknowledgement
+			// belonged to the earlier delivery; the fresh confirmation
+			// must come from the console again.
+			"UPDATE event_streams SET delivered_at = NULL, acknowledged_at = NULL, payload = ?, resync_run_id = ? WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?",
+			[]byte(data), run.ID, run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
 		).Exec(); err != nil {
 			return err
 		}

@@ -42,8 +42,8 @@ type SyncStatus struct {
 	// ExpectedTotal is the number of current animals in this database —
 	// what the console should eventually hold for this instance.
 	ExpectedTotal int `json:"expected_total"`
-	// StateConfirmed counts animals whose CURRENT state hash is already on a
-	// DELIVERED animal_state event.
+	// StateConfirmed counts animals whose CURRENT state hash was ACKNOWLEDGED
+	// by the console (echoed back as stored on an animal_state event).
 	StateConfirmed int `json:"state_confirmed"`
 	// StateUnconfirmed = ExpectedTotal - StateConfirmed: animals with only a
 	// pending state event, a stale one, or none at all.
@@ -76,80 +76,124 @@ func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, erro
 		return nil, fmt.Errorf("failed to load animals: %w", err)
 	}
 
-	// Delivered/pending state events per animal: (animal_id, content_hash).
-	type stateEventRow struct {
-		AnimalID    int        `db:"animal_id"`
-		ContentHash string     `db:"content_hash"`
-		DeliveredAt *time.Time `db:"delivered_at"`
-	}
-	eventRows := []stateEventRow{}
-	if err := tx.RawQuery(
-		"SELECT animal_id, content_hash, delivered_at FROM event_streams WHERE instance_id = ? AND event_type = 'animal_state' AND content_hash IS NOT NULL",
-		instanceID,
-	).All(&eventRows); err != nil {
-		return nil, fmt.Errorf("failed to load state events: %w", err)
-	}
-	// deliveredHashes: current-hash events confirmed by delivery.
-	deliveredHashes := map[int]map[string]bool{}
-	pendingHashes := map[int]map[string]bool{}
-	for i := range eventRows {
-		row := &eventRows[i]
-		if row.DeliveredAt != nil {
-			if deliveredHashes[row.AnimalID] == nil {
-				deliveredHashes[row.AnimalID] = map[string]bool{}
-			}
-			deliveredHashes[row.AnimalID][row.ContentHash] = true
-		} else {
-			if pendingHashes[row.AnimalID] == nil {
-				pendingHashes[row.AnimalID] = map[string]bool{}
-			}
-			pendingHashes[row.AnimalID][row.ContentHash] = true
-		}
+	ackedHashes, pendingHashes, err := loadAckedPendingHashes(tx, instanceID)
+	if err != nil {
+		return nil, err
 	}
 
-	lines := make([]string, 0, len(*animals))
-	yearIndex := map[int]int{}
-	// Batch the reference lookups (translations + species taxonomy) once for
-	// the whole set — the per-animal queries used to flood the SQL log on
-	// every /webhook_resync page load.
 	pre := newTranslationPreloader(tx, animals)
-	for i := range *animals {
-		animal := &(*animals)[i]
-		payload := buildEventPayloadInto(tx, pre, animal)
-		if payload == nil {
-			// Same handling as the resync loop: skip unusable animals in the
-			// fingerprint, they will surface as resync errors.
-			continue
-		}
-		hash := StateContentHashPayload(instanceID, *payload)
-		lines = append(lines, fmt.Sprintf("%d|%s", animal.ID, hash))
-		status.ExpectedTotal++
+	hashLines := expectedStateHashes(tx, animals, pre, instanceID)
+	lines := make([]string, 0, len(hashLines))
+	hashByAnimal := make(map[int]string, len(hashLines))
+	for _, hl := range hashLines {
+		lines = append(lines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
+		hashByAnimal[hl.AnimalID] = hl.Hash
+	}
+	status.ExpectedTotal = len(hashLines)
 
-		confirmed := deliveredHashes[animal.ID][hash]
+	yearByAnimal := make(map[int]int, len(*animals))
+	for i := range *animals {
+		yearByAnimal[(*animals)[i].ID] = (*animals)[i].Year
+	}
+
+	yearIndex := map[int]int{}
+	// Animals whose payload could not be built are NOT part of the expected
+	// set (same as the resync: they surface as resync errors).
+	for _, hl := range hashLines {
+		confirmed := ackedHashes[hl.AnimalID][hl.Hash]
 		if confirmed {
 			status.StateConfirmed++
 		} else {
 			status.StateUnconfirmed++
-			if !pendingHashes[animal.ID][hash] {
+			if !pendingHashes[hl.AnimalID][hl.Hash] {
 				status.NeverSynced++
 			}
 		}
-
-		idx, ok := yearIndex[animal.Year]
-		if !ok {
-			idx = len(status.Years)
-			yearIndex[animal.Year] = idx
-			status.Years = append(status.Years, SyncStatusYear{Year: animal.Year})
-		}
-		status.Years[idx].Total++
-		if confirmed {
-			status.Years[idx].Confirmed++
-		} else {
-			status.Years[idx].Unconfirmed++
-		}
+		bumpYearBucket(status, yearIndex, yearByAnimal[hl.AnimalID], confirmed)
 	}
 
 	sort.Slice(status.Years, func(a, b int) bool { return status.Years[a].Year < status.Years[b].Year })
 	status.ExpectedChecksum = StateSetChecksum(lines)
 	return status, nil
+}
+
+// loadAckedPendingHashes returns the acknowledged / pending state-event
+// content hashes per animal: (animal_id, content_hash). An event counts as
+// confirmed only when the console echoed its state hash back (acknowledged_at
+// set) — an HTTP delivery alone does not prove the console stored the state.
+func loadAckedPendingHashes(tx *pop.Connection, instanceID string) (acked, pending map[int]map[string]bool, err error) {
+	acked = map[int]map[string]bool{}
+	pending = map[int]map[string]bool{}
+	type stateEventRow struct {
+		AnimalID       int        `db:"animal_id"`
+		ContentHash    string     `db:"content_hash"`
+		AcknowledgedAt *time.Time `db:"acknowledged_at"`
+	}
+	eventRows := []stateEventRow{}
+	if err := tx.RawQuery(
+		"SELECT animal_id, content_hash, acknowledged_at FROM event_streams WHERE instance_id = ? AND event_type = 'animal_state' AND content_hash IS NOT NULL",
+		instanceID,
+	).All(&eventRows); err != nil {
+		return nil, nil, fmt.Errorf("failed to load state events: %w", err)
+	}
+	for i := range eventRows {
+		row := &eventRows[i]
+		target := &pending
+		if row.AcknowledgedAt != nil {
+			target = &acked
+		}
+		if (*target)[row.AnimalID] == nil {
+			(*target)[row.AnimalID] = map[string]bool{}
+		}
+		(*target)[row.AnimalID][row.ContentHash] = true
+	}
+	return acked, pending, nil
+}
+
+// bumpYearBucket appends/updates the per-year Confirmed/Unconfirmed bucket.
+func bumpYearBucket(status *SyncStatus, yearIndex map[int]int, year int, confirmed bool) {
+	idx, ok := yearIndex[year]
+	if !ok {
+		idx = len(status.Years)
+		yearIndex[year] = idx
+		status.Years = append(status.Years, SyncStatusYear{Year: year})
+	}
+	status.Years[idx].Total++
+	if confirmed {
+		status.Years[idx].Confirmed++
+	} else {
+		status.Years[idx].Unconfirmed++
+	}
+}
+
+// stateHashLine is one animal's expected (current) state hash.
+type stateHashLine struct {
+	AnimalID int
+	Hash     string
+}
+
+// expectedStateHashes computes the per-animal current state hash for a set
+// of PRELOADED animals (same payload builder as the resync). It issues no
+// per-animal SELECTs — reference lookups come from the shared preloader —
+// so callers may run it inside the resync loop without breaking the
+// query-count bounds. Animals whose payload cannot be built are skipped
+// (same handling as the resync loop: they surface as resync errors).
+func expectedStateHashes(tx *pop.Connection, animals *models.Animals, pre *translationPreloader, instanceID string) []stateHashLine {
+	lines := make([]stateHashLine, 0, len(*animals))
+	for i := range *animals {
+		animal := &(*animals)[i]
+		payload := buildEventPayloadInto(tx, pre, animal)
+		if payload == nil {
+			continue
+		}
+		// Hash exactly what the resync/update paths would send: without the
+		// shared CurrentStatus derivation the computed hash never matches any
+		// stored content_hash and the whole set shows as unconfirmed.
+		applyCurrentStatus(payload, animal)
+		lines = append(lines, stateHashLine{
+			AnimalID: animal.ID,
+			Hash:     StateContentHashPayload(instanceID, *payload),
+		})
+	}
+	return lines
 }
