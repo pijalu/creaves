@@ -243,6 +243,7 @@ Each event is sent as JSON with this shape (the `payload` field contains the ful
       "instance_id": "center-strasbourg",
       "animal_id": 42,
       "event_type": "animal_discovered",
+      "resync_run_id": "550e8400-e29b-41d4-a716-446655440001",
       "payload": {
         "animal":      { "id": 42, "year": 2024, "year_number": 17, "species": "Hérisson", "gender": "M", "cage": "A12", "zone": "Quarantine", "ring": "FR-2024-017", "animal_type": "Mammifère", "animal_age": "Adulte", "species_class": "Mammalia", "species_agw_group": "...", "species_subside_group": "...", "species_native_status": "Indigène" },
         "discovery":   { "id": "...", "location": "...", "postal_code": "67000", "city": "Strasbourg", "date": "2024/01/15 10:30", "entry_cause": "...", "entry_cause_detail": "...", "entry_cause_nature": "...", "reason": "...", "note": "...", "return_habitat": false, "in_garden": true, "discoverer_firstname": "...", "discoverer_lastname": "...", "discoverer_email": "...", "discoverer_phone": "..." },
@@ -260,6 +261,8 @@ Each event is sent as JSON with this shape (the `payload` field contains the ful
   ]
 }
 ```
+
+- `resync_run_id` — **optional**, present only on events delivered as part of a resync run; live events omit the field. The console stores it and shows it in the animal detail event history Source column ("Resync <short id>").
 
 Sent with headers:
 ```
