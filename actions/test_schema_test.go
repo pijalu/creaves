@@ -10,8 +10,10 @@ package actions
 // webhook_pusher_test.go only covers the event-stream subset.
 //
 // Column definitions mirror migrations/schema.sql; MySQL-specific bits
-// (AUTO_INCREMENT, KEY/INDEX/PRIMARY KEY/CONSTRAINT clauses, ENGINE) are
-// dropped — SQLite derives its own rowids and tests insert explicit IDs.
+// (AUTO_INCREMENT, KEY/INDEX clauses, ENGINE) are dropped — but PRIMARY KEY
+// constraints on id columns are kept: without them SQLite accepts duplicate
+// reference rows, and the resync chunk loader's LEFT JOINs would multiply
+// animal rows (the production MySQL schema has these PKs).
 // WARNING: keep in sync with migrations/schema.sql when columns are added.
 func createReferenceTables() {
 	must := func(q string) {
@@ -46,7 +48,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS animalages (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "name" varchar(255) NOT NULL,
   "description" text,
   "def" tinyint(1) NOT NULL,
@@ -55,7 +57,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS animaltypes (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "name" varchar(255) NOT NULL,
   "description" text,
   "def" tinyint(1) NOT NULL DEFAULT '0',
@@ -93,7 +95,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS discoveries (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "location" varchar(255) DEFAULT NULL,
   "date" datetime NOT NULL,
   "reason" text,
@@ -109,7 +111,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS discoverers (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "firstname" varchar(255) DEFAULT NULL,
   "lastname" varchar(255) DEFAULT NULL,
   "address" varchar(255) DEFAULT NULL,
@@ -126,7 +128,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS entry_causes (
 
-  "id" varchar(255) NOT NULL,
+  "id" varchar(255) PRIMARY KEY,
   "cause" varchar(255) NOT NULL,
   "detail" varchar(255) NOT NULL,
   "nature" varchar(255) NOT NULL,
@@ -137,7 +139,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS intakes (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "date" datetime NOT NULL,
   "general" text,
   "wounds" text,
@@ -150,7 +152,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS outtakes (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "date" datetime NOT NULL,
   "outtaketype_id" char(36) NOT NULL,
   "location" varchar(255) DEFAULT NULL,
@@ -160,7 +162,7 @@ func createReferenceTables() {
 )`,
 		`CREATE TABLE IF NOT EXISTS outtaketypes (
 
-  "id" char(36) NOT NULL,
+  "id" char(36) PRIMARY KEY,
   "name" varchar(255) NOT NULL,
   "description" text,
   "def" tinyint(1) NOT NULL DEFAULT '0',

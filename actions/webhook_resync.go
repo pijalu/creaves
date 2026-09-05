@@ -9,11 +9,344 @@ import (
 	"time"
 
 	"creaves/models"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 )
 
 var resyncStartMu sync.Mutex
+
+// resyncChunkSize bounds every resync SQL statement: animals are streamed in
+// keyset-paginated chunks (id > last ORDER BY id) and each chunk's
+// associations are loaded with a bounded LEFT JOIN + IN(chunk ids) queries.
+// Loading the whole table in one EagerPreload produced single IN() clauses
+// with thousands of ids — gigantic SQL statements that MySQL parses slowly,
+// that can hit max_allowed_packet, and that buffer the entire table in
+// memory (bug: "gigantic SQL queries" on full resync start).
+const resyncChunkSize = 200
+
+// resyncAnimalRow is the flat scan target of the chunked LEFT JOIN query.
+// Column aliases below match these db tags.
+type resyncAnimalRow struct {
+	ID           int          `db:"a_id"`
+	Year         int          `db:"a_year"`
+	YearNumber   int          `db:"a_year_number"`
+	Ring         nulls.String `db:"a_ring"`
+	Species      string       `db:"a_species"`
+	Gender       nulls.String `db:"a_gender"`
+	Cage         nulls.String `db:"a_cage"`
+	Zone         nulls.String `db:"a_zone"`
+	Feeding      nulls.String `db:"a_feeding"`
+	ForceFeed    bool         `db:"a_force_feed"`
+	AnimalageID  uuid.UUID    `db:"a_animalage_id"`
+	AnimaltypeID uuid.UUID    `db:"a_animaltype_id"`
+	DiscoveryID  uuid.UUID    `db:"a_discovery_id"`
+	IntakeID     uuid.UUID    `db:"a_intake_id"`
+	OuttakeID    nulls.UUID   `db:"a_outtake_id"`
+	IntakeDate   time.Time    `db:"a_intake_date"`
+	CreatedAt    time.Time    `db:"a_created_at"`
+	UpdatedAt    time.Time    `db:"a_updated_at"`
+
+	AgeID        uuid.UUID    `db:"age_id"`
+	AgeName      nulls.String `db:"age_name"`
+	AgeDesc      nulls.String `db:"age_description"`
+	AgeDefault   nulls.Bool   `db:"age_def"`
+	AgeCreatedAt nulls.Time   `db:"age_created_at"`
+	AgeUpdatedAt nulls.Time   `db:"age_updated_at"`
+
+	TypeID             uuid.UUID    `db:"type_id"`
+	TypeName           nulls.String `db:"type_name"`
+	TypeDefault        nulls.Bool   `db:"type_def"`
+	TypeDescription    nulls.String `db:"type_description"`
+	TypeHasRing        nulls.Bool   `db:"type_has_ring"`
+	TypeDefaultSpecies nulls.String `db:"type_default_species"`
+	TypeCreatedAt      nulls.Time   `db:"type_created_at"`
+	TypeUpdatedAt      nulls.Time   `db:"type_updated_at"`
+
+	DiscID            uuid.UUID    `db:"disc_id"`
+	DiscLocation      nulls.String `db:"disc_location"`
+	DiscPostalCode    nulls.String `db:"disc_postal_code"`
+	DiscCity          nulls.String `db:"disc_city"`
+	DiscDate          nulls.Time   `db:"disc_date"`
+	DiscEntryCauseID  nulls.String `db:"disc_entry_cause_id"`
+	DiscReason        nulls.String `db:"disc_reason"`
+	DiscNote          nulls.String `db:"disc_note"`
+	DiscDiscovererID  uuid.UUID    `db:"disc_discoverer_id"`
+	DiscReturnHabitat nulls.Bool   `db:"disc_return_habitat"`
+	DiscInGarden      nulls.Bool   `db:"disc_in_garden"`
+	DiscCreatedAt     nulls.Time   `db:"disc_created_at"`
+	DiscUpdatedAt     nulls.Time   `db:"disc_updated_at"`
+
+	EcID         nulls.String `db:"ec_id"`
+	EcCause      nulls.String `db:"ec_cause"`
+	EcDetail     nulls.String `db:"ec_detail"`
+	EcNature     nulls.String `db:"ec_nature"`
+	EcIndication nulls.String `db:"ec_indication"`
+	EcSortOrder  nulls.Int    `db:"ec_sort_order"`
+	EcCreatedAt  nulls.Time   `db:"ec_created_at"`
+	EcUpdatedAt  nulls.Time   `db:"ec_updated_at"`
+
+	DiscovererID            uuid.UUID    `db:"dvr_id"`
+	DiscovererFirstname     nulls.String `db:"dvr_firstname"`
+	DiscovererLastname      nulls.String `db:"dvr_lastname"`
+	DiscovererAddress       nulls.String `db:"dvr_address"`
+	DiscovererPostalCode    nulls.String `db:"dvr_postal_code"`
+	DiscovererCity          nulls.String `db:"dvr_city"`
+	DiscovererCountry       nulls.String `db:"dvr_country"`
+	DiscovererEmail         nulls.String `db:"dvr_email"`
+	DiscovererPhone         nulls.String `db:"dvr_phone"`
+	DiscovererNote          nulls.String `db:"dvr_note"`
+	DiscovererReturnRequest nulls.Bool   `db:"dvr_return_request"`
+	DiscovererDonation      nulls.String `db:"dvr_donation"`
+	DiscovererCreatedAt     nulls.Time   `db:"dvr_created_at"`
+	DiscovererUpdatedAt     nulls.Time   `db:"dvr_updated_at"`
+
+	IntID           uuid.UUID    `db:"int_id"`
+	IntDate         nulls.Time   `db:"int_date"`
+	IntGeneral      nulls.String `db:"int_general"`
+	IntHasWounds    nulls.Bool   `db:"int_has_wounds"`
+	IntWounds       nulls.String `db:"int_wounds"`
+	IntHasParasites nulls.Bool   `db:"int_has_parasites"`
+	IntParasites    nulls.String `db:"int_parasites"`
+	IntRemarks      nulls.String `db:"int_remarks"`
+	IntCreatedAt    nulls.Time   `db:"int_created_at"`
+	IntUpdatedAt    nulls.Time   `db:"int_updated_at"`
+
+	OutID        uuid.UUID    `db:"out_id"`
+	OutDate      nulls.Time   `db:"out_date"`
+	OutTypeID    uuid.UUID    `db:"out_type_id"`
+	OutLocation  nulls.String `db:"out_location"`
+	OutNote      nulls.String `db:"out_note"`
+	OutCreatedAt nulls.Time   `db:"out_created_at"`
+	OutUpdatedAt nulls.Time   `db:"out_updated_at"`
+
+	OtID             uuid.UUID    `db:"ot_id"`
+	OtName           nulls.String `db:"ot_name"`
+	OtDefault        nulls.Bool   `db:"ot_def"`
+	OtDead           nulls.Bool   `db:"ot_dead"`
+	OtError          nulls.Bool   `db:"ot_error"`
+	OtRating         nulls.Int    `db:"ot_rating"`
+	OtDescription    nulls.String `db:"ot_description"`
+	OtDiscovererNews nulls.String `db:"ot_discoverer_news"`
+	OtCreatedAt      nulls.Time   `db:"ot_created_at"`
+	OtUpdatedAt      nulls.Time   `db:"ot_updated_at"`
+}
+
+// resyncChunkSelect is the bounded LEFT JOIN statement for one animal chunk.
+// One row per animal: every association is 1:1 (belongs_to), so the join
+// never multiplies rows. Aliases match resyncAnimalRow's db tags exactly —
+// pop strict-maps raw query columns, and animals.IntakeDate (the legacy
+// mixed-case column) is aliased to lowercase so the scan target is identical
+// on MySQL and SQLite (column names are case-insensitive in both dialects).
+const resyncChunkSelect = `SELECT
+  a.id AS a_id, a.year AS a_year, a.yearNumber AS a_year_number, a.ring AS a_ring,
+  a.species AS a_species, a.gender AS a_gender, a.cage AS a_cage, a.zone AS a_zone,
+  a.feeding AS a_feeding, a.force_feed AS a_force_feed,
+  a.animalage_id AS a_animalage_id, a.animaltype_id AS a_animaltype_id,
+  a.discovery_id AS a_discovery_id, a.intake_id AS a_intake_id, a.outtake_id AS a_outtake_id,
+  a.IntakeDate AS a_intake_date, a.created_at AS a_created_at, a.updated_at AS a_updated_at,
+  age.id AS age_id, age.name AS age_name, age.description AS age_description, age.def AS age_def,
+  age.created_at AS age_created_at, age.updated_at AS age_updated_at,
+  atype.id AS type_id, atype.name AS type_name, atype.def AS type_def, atype.description AS type_description,
+  atype.has_ring AS type_has_ring, atype.default_species AS type_default_species,
+  atype.created_at AS type_created_at, atype.updated_at AS type_updated_at,
+  d.id AS disc_id, d.location AS disc_location, d.postal_code AS disc_postal_code, d.city AS disc_city,
+  d.date AS disc_date, d.entry_cause_id AS disc_entry_cause_id, d.reason AS disc_reason, d.note AS disc_note,
+  d.discoverer_id AS disc_discoverer_id, d.return_habitat AS disc_return_habitat, d.in_garden AS disc_in_garden,
+  d.created_at AS disc_created_at, d.updated_at AS disc_updated_at,
+  ec.id AS ec_id, ec.cause AS ec_cause, ec.detail AS ec_detail, ec.nature AS ec_nature,
+  ec.indication AS ec_indication, ec.sort_order AS ec_sort_order,
+  ec.created_at AS ec_created_at, ec.updated_at AS ec_updated_at,
+  dvr.id AS dvr_id, dvr.firstname AS dvr_firstname, dvr.lastname AS dvr_lastname,
+  dvr.address AS dvr_address, dvr.postal_code AS dvr_postal_code, dvr.city AS dvr_city,
+  dvr.country AS dvr_country, dvr.email AS dvr_email, dvr.phone AS dvr_phone, dvr.note AS dvr_note,
+  dvr.return_request AS dvr_return_request, dvr.donation AS dvr_donation,
+  dvr.created_at AS dvr_created_at, dvr.updated_at AS dvr_updated_at,
+  i.id AS int_id, i.date AS int_date, i.general AS int_general, i.has_wounds AS int_has_wounds,
+  i.wounds AS int_wounds, i.has_parasites AS int_has_parasites, i.parasites AS int_parasites,
+  i.remarks AS int_remarks, i.created_at AS int_created_at, i.updated_at AS int_updated_at,
+  o.id AS out_id, o.date AS out_date, o.outtaketype_id AS out_type_id, o.location AS out_location,
+  o.note AS out_note, o.created_at AS out_created_at, o.updated_at AS out_updated_at,
+  ot.id AS ot_id, ot.name AS ot_name, ot.def AS ot_def, ot.dead AS ot_dead, ot.error AS ot_error,
+  ot.rating AS ot_rating, ot.description AS ot_description, ot.discoverer_news AS ot_discoverer_news,
+  ot.created_at AS ot_created_at, ot.updated_at AS ot_updated_at
+FROM animals a
+LEFT JOIN animalages age ON age.id = a.animalage_id
+LEFT JOIN animaltypes atype ON atype.id = a.animaltype_id
+LEFT JOIN discoveries d ON d.id = a.discovery_id
+LEFT JOIN entry_causes ec ON ec.id = d.entry_cause_id
+LEFT JOIN discoverers dvr ON dvr.id = d.discoverer_id
+LEFT JOIN intakes i ON i.id = a.intake_id
+LEFT JOIN outtakes o ON o.id = a.outtake_id
+LEFT JOIN outtaketypes ot ON ot.id = o.outtaketype_id
+WHERE a.id > ?
+ORDER BY a.id
+LIMIT ?`
+
+// countAnimals returns the total number of animals — StartResync's cheap
+// replacement for loading the whole table just to take len().
+func countAnimals(tx *pop.Connection) (int, error) {
+	row := struct {
+		Total int `db:"total"`
+	}{}
+	if err := tx.RawQuery("SELECT COUNT(*) AS total FROM animals").First(&row); err != nil {
+		return 0, err
+	}
+	return row.Total, nil
+}
+
+// loadResyncAnimalChunk returns up to resyncChunkSize animals with id >
+// afterID, fully populated (same association set as the old EagerPreload
+// list), plus the id cursor for the next chunk.
+func loadResyncAnimalChunk(tx *pop.Connection, afterID int) (*models.Animals, int, error) {
+	rows := []resyncAnimalRow{}
+	if err := tx.RawQuery(resyncChunkSelect, afterID, resyncChunkSize).All(&rows); err != nil {
+		return nil, afterID, err
+	}
+	animals := models.Animals{}
+	for i := range rows {
+		animals = append(animals, *resyncRowToAnimal(&rows[i]))
+	}
+	if len(rows) > 0 {
+		afterID = rows[len(rows)-1].ID
+	}
+	return &animals, afterID, nil
+}
+
+// resyncRowToAnimal rebuilds the models.Animal graph one LEFT JOIN row
+// represents. Zero uuid ids mean the LEFT JOIN found no row — the association
+// stays zero, exactly like an unloaded pop belongs_to.
+func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
+	a := &models.Animal{
+		ID:           r.ID,
+		Year:         r.Year,
+		YearNumber:   r.YearNumber,
+		Ring:         r.Ring,
+		Species:      r.Species,
+		Gender:       r.Gender,
+		Cage:         r.Cage,
+		Zone:         r.Zone,
+		Feeding:      r.Feeding,
+		ForceFeed:    r.ForceFeed,
+		AnimalageID:  r.AnimalageID,
+		AnimaltypeID: r.AnimaltypeID,
+		DiscoveryID:  r.DiscoveryID,
+		IntakeID:     r.IntakeID,
+		OuttakeID:    r.OuttakeID,
+		IntakeDate:   r.IntakeDate,
+		CreatedAt:    r.CreatedAt,
+		UpdatedAt:    r.UpdatedAt,
+	}
+	if r.AgeID != uuid.Nil {
+		a.Animalage = models.Animalage{
+			ID:          r.AgeID,
+			Name:        r.AgeName.String,
+			Description: r.AgeDesc,
+			Default:     r.AgeDefault.Bool,
+			CreatedAt:   r.AgeCreatedAt.Time,
+			UpdatedAt:   r.AgeUpdatedAt.Time,
+		}
+	}
+	if r.TypeID != uuid.Nil {
+		a.Animaltype = models.Animaltype{
+			ID:             r.TypeID,
+			Name:           r.TypeName.String,
+			Default:        r.TypeDefault.Bool,
+			Description:    r.TypeDescription,
+			HasRing:        r.TypeHasRing.Bool,
+			DefaultSpecies: r.TypeDefaultSpecies,
+			CreatedAt:      r.TypeCreatedAt.Time,
+			UpdatedAt:      r.TypeUpdatedAt.Time,
+		}
+	}
+	if r.DiscID != uuid.Nil {
+		a.Discovery = models.Discovery{
+			ID:            r.DiscID,
+			Location:      r.DiscLocation,
+			PostalCode:    r.DiscPostalCode,
+			City:          r.DiscCity,
+			Date:          r.DiscDate.Time,
+			EntryCauseID:  r.DiscEntryCauseID.String,
+			Reason:        r.DiscReason,
+			Note:          r.DiscNote,
+			DiscovererID:  r.DiscDiscovererID,
+			ReturnHabitat: r.DiscReturnHabitat.Bool,
+			InGarden:      r.DiscInGarden.Bool,
+			CreatedAt:     r.DiscCreatedAt.Time,
+			UpdatedAt:     r.DiscUpdatedAt.Time,
+		}
+		if r.EcID.Valid && r.EcID.String != "" {
+			a.Discovery.EntryCause = models.EntryCause{
+				ID:         r.EcID.String,
+				Cause:      r.EcCause.String,
+				Detail:     r.EcDetail.String,
+				Nature:     r.EcNature.String,
+				Indication: r.EcIndication.String,
+				SortOrder:  r.EcSortOrder.Int,
+				CreatedAt:  r.EcCreatedAt.Time,
+				UpdatedAt:  r.EcUpdatedAt.Time,
+			}
+		}
+		if r.DiscovererID != uuid.Nil {
+			a.Discovery.Discoverer = models.Discoverer{
+				ID:            r.DiscovererID,
+				Firstname:     r.DiscovererFirstname,
+				Lastname:      r.DiscovererLastname,
+				Address:       r.DiscovererAddress,
+				PostalCode:    r.DiscovererPostalCode,
+				City:          r.DiscovererCity,
+				Country:       r.DiscovererCountry,
+				Email:         r.DiscovererEmail,
+				Phone:         r.DiscovererPhone,
+				Note:          r.DiscovererNote,
+				ReturnRequest: r.DiscovererReturnRequest.Bool,
+				Donation:      r.DiscovererDonation,
+				CreatedAt:     r.DiscovererCreatedAt.Time,
+				UpdatedAt:     r.DiscovererUpdatedAt.Time,
+			}
+		}
+	}
+	if r.IntID != uuid.Nil {
+		a.Intake = models.Intake{
+			ID:           r.IntID,
+			Date:         r.IntDate.Time,
+			General:      r.IntGeneral,
+			HasWounds:    r.IntHasWounds.Bool,
+			Wounds:       r.IntWounds,
+			HasParasites: r.IntHasParasites.Bool,
+			Parasites:    r.IntParasites,
+			Remarks:      r.IntRemarks,
+			CreatedAt:    r.IntCreatedAt.Time,
+			UpdatedAt:    r.IntUpdatedAt.Time,
+		}
+	}
+	if r.OuttakeID.Valid {
+		a.Outtake = &models.Outtake{
+			ID:        r.OutID,
+			Date:      r.OutDate.Time,
+			TypeID:    r.OutTypeID,
+			Location:  r.OutLocation,
+			Note:      r.OutNote,
+			CreatedAt: r.OutCreatedAt.Time,
+			UpdatedAt: r.OutUpdatedAt.Time,
+		}
+		if r.OtID != uuid.Nil {
+			a.Outtake.Type = models.Outtaketype{
+				ID:             r.OtID,
+				Name:           r.OtName.String,
+				Default:        r.OtDefault.Bool,
+				Dead:           r.OtDead.Bool,
+				Error:          r.OtError.Bool,
+				Rating:         r.OtRating.Int,
+				Description:    r.OtDescription,
+				DiscovererNews: r.OtDiscovererNews,
+				CreatedAt:      r.OtCreatedAt.Time,
+				UpdatedAt:      r.OtUpdatedAt.Time,
+			}
+		}
+	}
+	return a
+}
 
 // ErrWebhookDisabled is returned by StartResync when webhook forwarding is
 // off. Handlers must map it to a clear user-facing message (flash + 200
@@ -39,12 +372,14 @@ func StartResync(tx *pop.Connection, instanceID string, total int, force bool) (
 	if active {
 		return nil, fmt.Errorf("resync already running")
 	}
-	animals := &models.Animals{}
 	if total == 0 {
-		if err := tx.Where("1 = 1").All(animals); err != nil {
+		// COUNT(*) only — the old code loaded the whole animals table here
+		// just to take len(), the first "gigantic query" of a full resync.
+		var err error
+		total, err = countAnimals(tx)
+		if err != nil {
 			return nil, err
 		}
-		total = len(*animals)
 	}
 	now := time.Now()
 	run := &models.ResyncRun{ID: uuid.Must(uuid.NewV4()), InstanceID: instanceID, Status: "running", StartedAt: now, TotalAnimals: total}
@@ -193,71 +528,90 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 		).Exec()
 		return err
 	}
-	animals := &models.Animals{}
-	// The payload builder needs nested associations (Outtake.Type,
-	// Discovery.EntryCause, ...) or the emitted state events would miss
-	// outtake type/rating and entry-cause fields (they were silently NULL on
-	// the console side).
-	// NB: an explicit list loads ONLY those associations, so every
-	// association the payload builder reads must be listed.
-	// EagerPreload() (not Eager()): Eager loads per record — 8 extra SELECTs
-	// per animal (480 per 60 animals), flooding the SQL log; EagerPreload
-	// batches each association into a single `id IN (...)` query.
-	if err := tx.EagerPreload(
-		"Animalage", "Animaltype", "Intake",
-		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
-		"Outtake", "Outtake.Type",
-	).All(animals); err != nil {
-		return finishResync(tx, run, err)
-	}
-	// Run-wide batches: reference translations/species and the existing
-	// state-event index replace per-animal SELECTs (the old N+1 flood).
-	pre := newTranslationPreloader(tx, animals)
+	// Stream the animals in keyset-paginated chunks. The old code ran a
+	// single EagerPreload over the WHOLE table: one SELECT per association
+	// with an IN() clause of thousands of ids (the "gigantic SQL queries"
+	// bug), plus the full table buffered in memory. Each chunk now loads its
+	// nested associations with ONE bounded LEFT JOIN (all associations are
+	// 1:1 belongs_to, so no row multiplication); the per-chunk translation
+	// preloader then issues bounded IN(chunk) queries only.
 	ix, err := loadResyncStateIndex(tx, run.InstanceID)
 	if err != nil {
 		return finishResync(tx, run, err)
 	}
-	// Announce the expected sync state for this run (checksum bug fix):
-	// reuse the run's preloaded animals and translation preloader to
-	// compute it with ZERO extra SELECTs (the per-animal hashes are built
-	// from already-loaded associations; recomputing via ComputeSyncStatus
-	// here would double the resync's query count and break the bounded
-	// query regression test). Persist the announcement on the run row and
-	// echo it in every delivery envelope of this run ("sync" block): the
-	// console stores it and displays stored/announced totals plus a
-	// checksum comparison against it.
-	hashLines := expectedStateHashes(tx, animals, pre, run.InstanceID)
-	announceLines := make([]string, 0, len(hashLines))
-	for _, hl := range hashLines {
-		announceLines = append(announceLines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
-	}
-	now := time.Now()
-	checksum := StateSetChecksum(announceLines)
-	run.AnnouncedExpectedTotal = len(announceLines)
-	run.AnnouncedExpectedChecksum = &checksum
-	run.AnnouncedAt = &now
-	if err := tx.Update(run); err != nil {
-		return finishResync(tx, run, err)
-	}
-	for i := range *animals {
-		stop, err := resyncCheckpoint(ctx, tx, run, i)
+	var hashLines []stateHashLine
+	processed := 0
+	afterID := 0
+	for {
+		done, err := processResyncChunk(ctx, tx, run, ix, force, &processed, &afterID, &hashLines)
 		if err != nil {
 			return err
 		}
-		if stop {
-			return nil
+		if done {
+			break
 		}
-		if err := processResyncAnimal(tx, run, pre, ix, force, &(*animals)[i]); err != nil {
+	}
+	// Persist the announcement once: totals/checksum cover every animal of
+	// the run.
+	if hashLines != nil {
+		announceLines := make([]string, 0, len(hashLines))
+		for _, hl := range hashLines {
+			announceLines = append(announceLines, fmt.Sprintf("%d|%s", hl.AnimalID, hl.Hash))
+		}
+		now := time.Now()
+		checksum := StateSetChecksum(announceLines)
+		run.AnnouncedExpectedTotal = len(announceLines)
+		run.AnnouncedExpectedChecksum = &checksum
+		run.AnnouncedAt = &now
+		if err := tx.Update(run); err != nil {
 			return finishResync(tx, run, err)
 		}
-		// Keep delivery moving while large resyncs are still producing events.
-		signalWebhookWake()
 	}
 	// Production is only half the job: the run may only report "completed"
 	// once every created event was accepted by the console (bug #1: the old
 	// code marked the run completed right after enqueuing, so partial
 	// webhook accepts silently lost events while the run looked green).
 	return completeResyncDelivery(ctx, tx, run)
+}
+
+// processResyncChunk handles one keyset-paginated chunk: load the animals
+// with their associations (one bounded LEFT JOIN), build the per-chunk
+// translation preloader (bounded IN(chunk) queries), accumulate the expected
+// state-hash lines for the run announcement, and enqueue the state event of
+// every animal in the chunk. done=true means the run must stop — either all
+// animals were processed or the run was cancelled; err is terminal.
+func processResyncChunk(ctx context.Context, tx *pop.Connection, run *models.ResyncRun, ix *resyncStateIndex, force bool, processed, afterID *int, hashLines *[]stateHashLine) (bool, error) {
+	animals, nextID, err := loadResyncAnimalChunk(tx, *afterID)
+	if err != nil {
+		return true, finishResync(tx, run, err)
+	}
+	if len(*animals) == 0 {
+		return true, nil
+	}
+	*afterID = nextID
+	pre := newTranslationPreloader(tx, animals)
+	// Announce the expected sync state for this run (checksum bug fix):
+	// hashes are computed per chunk from the same already-loaded
+	// associations the resync loop uses — ZERO extra SELECTs. Persisted
+	// once all chunks contributed, and echoed in every delivery envelope
+	// of this run ("sync" block).
+	*hashLines = append(*hashLines, expectedStateHashes(tx, animals, pre, run.InstanceID)...)
+	for i := range *animals {
+		stop, err := resyncCheckpoint(ctx, tx, run, *processed)
+		if err != nil {
+			return true, err
+		}
+		if stop {
+			return true, nil
+		}
+		if err := processResyncAnimal(tx, run, pre, ix, force, &(*animals)[i]); err != nil {
+			return true, finishResync(tx, run, err)
+		}
+		*processed++
+		// Keep delivery moving while large resyncs are still producing events.
+		signalWebhookWake()
+	}
+	return false, nil
 }
 
 // resyncDeliveryPollDelay and resyncDeliveryMaxStalled bound the delivery
