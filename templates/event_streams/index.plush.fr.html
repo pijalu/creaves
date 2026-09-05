@@ -30,7 +30,6 @@
     <th><%= t("event-streams.index.animal-id") %></th>
     <th><%= t("event-streams.index.event-type") %></th>
     <th><%= t("event-streams.index.delivered") %></th>
-    <th><%= t("event-streams.index.processed") %></th>
     <th><%= t("event-streams.index.created-at") %></th>
     <th>&nbsp;</th>
   </thead>
@@ -42,7 +41,6 @@
         <td class="align-middle"><%= event.AnimalID %></td>
         <td class="align-middle"><span class="badge badge-info"><%= event.EventType %></span></td>
         <td class="align-middle"><%= if (event.DeliveredAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
-        <td class="align-middle"><%= if (event.ProcessedAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
         <td class="align-middle"><%= event.CreatedAt.Format("2006-01-02 15:04:05") %></td>
         <td>
           <div class="float-right">
