@@ -404,17 +404,18 @@ func deliverBatch() (int, error) {
 
 	// Build payload
 	type webhookEvent struct {
-		ID         string          `json:"id"`
-		InstanceID string          `json:"instance_id"`
-		AnimalID   int             `json:"animal_id"`
-		EventType  string          `json:"event_type"`
-		Payload    json.RawMessage `json:"payload"`
-		CreatedAt  time.Time       `json:"created_at"`
+		ID          string          `json:"id"`
+		InstanceID  string          `json:"instance_id"`
+		AnimalID    int             `json:"animal_id"`
+		EventType   string          `json:"event_type"`
+		Payload     json.RawMessage `json:"payload"`
+		ResyncRunID string          `json:"resync_run_id,omitempty"`
+		CreatedAt   time.Time       `json:"created_at"`
 	}
 
 	payloadEvents := make([]webhookEvent, len(*events))
 	for i, event := range *events {
-		payloadEvents[i] = webhookEvent{
+		wireEvent := webhookEvent{
 			ID:         event.ID.String(),
 			InstanceID: event.InstanceID,
 			AnimalID:   event.AnimalID,
@@ -422,6 +423,13 @@ func deliverBatch() (int, error) {
 			Payload:    event.Payload,
 			CreatedAt:  event.CreatedAt,
 		}
+		// Contract v2 addition (bugs.md #9): resync-delivered events carry
+		// their run id so the console can attribute them in its event
+		// history. Live events omit the field.
+		if event.ResyncRunID != nil {
+			wireEvent.ResyncRunID = event.ResyncRunID.String()
+		}
+		payloadEvents[i] = wireEvent
 	}
 
 	payload := map[string]interface{}{

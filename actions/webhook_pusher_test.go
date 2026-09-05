@@ -503,6 +503,62 @@ func TestDeliverBatch_PayloadShape(t *testing.T) {
 	assert.Equal(t, "animal_discovered", first["event_type"])
 }
 
+// TestDeliverBatch_ResyncRunIDOnWire proves the contract v2 addition: an
+// event linked to a resync run carries resync_run_id on the wire so the
+// console can attribute it (bugs.md #9), and a live event omits the field.
+func TestDeliverBatch_ResyncRunIDOnWire(t *testing.T) {
+	resetPusherState()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	event := seedUndeliveredEvent(t, 11)
+	runID := uuid.Must(uuid.NewV4())
+	event.ResyncRunID = &runID
+	require.NoError(t, pusherTestDB.Update(event))
+
+	_, err := deliverBatch()
+	require.NoError(t, err)
+
+	require.Len(t, rr.requests, 1)
+	var wire map[string]interface{}
+	require.NoError(t, json.Unmarshal(rr.requests[0].body, &wire))
+	events, ok := wire["events"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, events, 1)
+	first := events[0].(map[string]interface{})
+	assert.Equal(t, runID.String(), first["resync_run_id"],
+		"resync-delivered event must carry resync_run_id on the wire")
+}
+
+// TestDeliverBatch_LiveEventOmitsResyncRunID proves live events do not carry
+// a resync_run_id field.
+func TestDeliverBatch_LiveEventOmitsResyncRunID(t *testing.T) {
+	resetPusherState()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	seedUndeliveredEvent(t, 12)
+
+	_, err := deliverBatch()
+	require.NoError(t, err)
+
+	require.Len(t, rr.requests, 1)
+	var wire map[string]interface{}
+	require.NoError(t, json.Unmarshal(rr.requests[0].body, &wire))
+	events, ok := wire["events"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, events, 1)
+	first := events[0].(map[string]interface{})
+	_, present := first["resync_run_id"]
+	assert.False(t, present, "live event must omit resync_run_id")
+}
+
 // selectiveReceiver is a webhook receiver that acknowledges only a subset of
 // the delivered events (by returning processed_ids for them). This mimics the
 // real console receiver on partial failure, where some events are accepted and
