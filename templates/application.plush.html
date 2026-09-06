@@ -36,27 +36,28 @@
                   <i class="fas fa-cog"></i><span class="d-none d-xl-inline ml-1">Administration</span>
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
-          <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Drugs</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
-          <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
-          <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
-          <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Care types</a>
-          <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Travel types</a>
-          <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
-          <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> All Routes</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Event Stream</a>
-                      <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Translations</a>
-          <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook resync</a>
+        <!-- Configuration Section -->
+        <h6 class="dropdown-header">Configuration</h6>
+        <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Drugs</a>
+        <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
+        <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
+        <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
+        <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Care types</a>
+        <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Travel types</a>
+        <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
+        <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
+        <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Translations</a>
+
+        <div class="dropdown-divider"></div>
+
+        <!-- System Section -->
+        <h6 class="dropdown-header">System</h6>
+        <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> All Routes</a>
+        <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
+        <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
+        <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
+        <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Event Stream</a>
+        <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook resync</a>
         </div>
         </li>
         <% } %>
