@@ -1,6 +1,7 @@
 package excel
 
 import (
+	"bytes"
 	"creaves/models"
 	"database/sql"
 	"embed"
@@ -183,11 +184,43 @@ func RunQuery(c buffalo.Context, query string) error {
 		}
 	}
 
-	if err := f.UpdateLinkedValue(); err != nil {
-		c.Logger().Debugf("Failed updated linked value: %v", err)
+	return writeExcelResponse(c, f, sqlQuery.Sheet, line, len(cols))
+}
+
+// writeExcelResponse applies the Bug 5 pivot-cache fixups to f, serializes
+// the workbook, patches the final archive (template row truncation +
+// _FilterDatabase defined name) and writes it to the response.
+func writeExcelResponse(c buffalo.Context, f *excelize.File, sheet string, lastRow, nCols int) error {
+	// Update pivot caches to reference the data range actually written and
+	// force Excel to refresh them on open (Bug 5). Without this, the cached
+	// template range/records make Excel show a "repair/recover" prompt.
+	lastCol := sheetPosition(1, nCols)
+	lastCol = strings.TrimRight(lastCol, "0123456789")
+
+	if err := updatePivotCaches(f, sheet, lastRow, lastCol); err != nil {
+		c.Logger().Debugf("warning: failed to update pivot caches: %v", err)
 	}
 
-	if cnt, err := f.WriteTo(c.Response()); err != nil {
+	// UpdateLinkedValue is intentionally not called: with pivot caches now
+	// rebuilt by Excel on open, rewriting linked values risks reintroducing
+	// stale cached content (Bug 5).
+
+	// Serialize, then patch the final archive: drop leftover template rows
+	// below the written range and update the _xlnm._FilterDatabase defined
+	// name (both live in parts excelize re-serializes on WriteTo).
+	var buf bytes.Buffer
+	if _, err := f.WriteTo(&buf); err != nil {
+		c.Logger().Debugf("Failed writing excel file: %v", err)
+		return fmt.Errorf("failed writing excel file: %s", err)
+	}
+
+	out, err := truncateSheetRowsInZip(buf.Bytes(), sheet, lastRow, lastCol)
+	if err != nil {
+		c.Logger().Debugf("warning: failed to finalize export archive: %v", err)
+		out = buf.Bytes()
+	}
+
+	if cnt, err := c.Response().Write(out); err != nil {
 		c.Logger().Debugf("Failed writing excel file: %v", err)
 		return fmt.Errorf("failed writing excel file: %s", err)
 	} else {
