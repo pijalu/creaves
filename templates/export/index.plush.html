@@ -1,0 +1,26 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Exports</h3>
+</div>
+
+<p>Select an export to view online or download as CSV.</p>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>Export</th>
+    <th>View</th>
+    <th>CSV</th>
+  </thead>
+  <tbody>
+    <%= for (q) in queries { %>
+      <tr>
+        <td class="align-middle"><%= q.Description %></td>
+        <td class="align-middle">
+          <a class="btn btn-primary btn-sm" href="/export/view?query=<%= q.Name %>" title="View <%= q.Description %> online"><i class="fas fa-table"></i> View</a>
+        </td>
+        <td class="align-middle">
+          <a class="btn btn-secondary btn-sm" href="/export/csv?query=<%= q.Name %>" title="Download <%= q.Description %> as CSV"><i class="fas fa-file-csv"></i> CSV</a>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

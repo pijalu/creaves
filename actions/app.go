@@ -181,6 +181,7 @@ func App() *buffalo.App {
 
 		app.Resource("/species", SpeciesResource{})
 		app.GET("/export/csv", ExportCsv)
+		app.GET("/export/view", ExportView)
 		app.GET("/export/excel", ExportExcel)
 
 		app.Resource("/localities", LocalitiesResource{})
