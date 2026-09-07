@@ -63,6 +63,12 @@ type AnimalPayload struct {
 	SpeciesAGWGroup     string `json:"species_agw_group,omitempty"`
 	SpeciesSubsideGroup string `json:"species_subside_group,omitempty"`
 	SpeciesNativeStatus string `json:"species_native_status,omitempty"`
+	// Family/Order/Game/Huntable complete the taxonomy (bugs.md item 3) so the
+	// console can run the species/family/order/game/huntable register exports.
+	SpeciesFamily   string `json:"species_family,omitempty"`
+	SpeciesOrder    string `json:"species_order,omitempty"`
+	SpeciesGame     bool   `json:"species_game,omitempty"`
+	SpeciesHuntable bool   `json:"species_huntable,omitempty"`
 }
 
 // DiscoveryPayload represents the complete discovery information in an event
@@ -90,6 +96,8 @@ type DiscoveryPayload struct {
 	DiscovererEmail      string `json:"discoverer_email,omitempty"`
 	DiscovererPhone      string `json:"discoverer_phone,omitempty"`
 	DiscovererNote       string `json:"discoverer_note,omitempty"`
+	// Donation amount (free-form, e.g. "10,00") for the donation register.
+	DiscovererDonation   string `json:"discoverer_donation,omitempty"`
 }
 
 // IntakePayload represents the complete intake information in an event

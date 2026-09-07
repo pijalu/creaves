@@ -171,6 +171,10 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 			payload.Animal.SpeciesAGWGroup = species.AgwGroup
 			payload.Animal.SpeciesSubsideGroup = species.SubsideGroup
 			payload.Animal.SpeciesNativeStatus = species.NativeStatus
+			payload.Animal.SpeciesFamily = species.Family
+			payload.Animal.SpeciesOrder = species.Order
+			payload.Animal.SpeciesGame = species.Game
+			payload.Animal.SpeciesHuntable = species.Huntable
 		}
 	}
 
@@ -235,6 +239,9 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 			}
 			if animal.Discovery.Discoverer.Note.Valid {
 				payload.Discovery.DiscovererNote = animal.Discovery.Discoverer.Note.String
+			}
+			if animal.Discovery.Discoverer.Donation.Valid {
+				payload.Discovery.DiscovererDonation = animal.Discovery.Discoverer.Donation.String
 			}
 		}
 	}
