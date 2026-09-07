@@ -105,6 +105,23 @@ func TestExportViewRendersHTMLTable(t *testing.T) {
 	if !strings.Contains(body, "/export/csv?query=register") {
 		t.Error("view page lacks link to CSV download")
 	}
+	// bugs.md item 5: the online view must support filter + sort of all
+	// columns.
+	if !strings.Contains(body, `id="exportFilter"`) {
+		t.Error("view page lacks the row filter input")
+	}
+	if !strings.Contains(body, "function filterExportTable()") {
+		t.Error("view page lacks the filterExportTable() function")
+	}
+	if !strings.Contains(body, "function sortExportTable(col)") {
+		t.Error("view page lacks the sortExportTable() function")
+	}
+	// Every column header must be sortable.
+	thOpen := strings.Count(body, "onclick=\"sortExportTable(")
+	thTotal := strings.Count(body, "<th>")
+	if thOpen == 0 || thOpen != thTotal {
+		t.Errorf("sortable headers = %d, total headers = %d — every column must be sortable", thOpen, thTotal)
+	}
 }
 
 // TestExportViewUnknownQuery proves an unknown query id does not crash and

@@ -8,19 +8,54 @@
   <a href="/export/csv?query=<%= query.Name %>" target="_new" title="Download as CSV"><i class="fas fa-cloud-download-alt"></i></a>
 </div>
 
-<table class="table table-hover table-bordered">
-  <thead class="thead-light">
-    <%= for (col) in cols { %>
-      <th><%= col %></th>
-    <% } %>
-  </thead>
-  <tbody>
-    <%= for (row) in rows { %>
+<div class="row mb-2">
+  <div class="col-md-4">
+    <input type="text" id="exportFilter" class="form-control" placeholder="Filter rows…" onkeyup="filterExportTable()">
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover table-bordered" id="exportTable">
+    <thead class="thead-light">
       <tr>
-        <%= for (cell) in row { %>
-          <td class="align-middle"><%= cell %></td>
+        <%= for (idx, col) in cols { %>
+          <th><a href="javascript:void(0)" onclick="sortExportTable(<%= idx %>)"><%= col %> <i class="fas fa-sort"></i></a></th>
         <% } %>
       </tr>
-    <% } %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <%= for (row) in rows { %>
+        <tr>
+          <%= for (cell) in row { %>
+            <td class="align-middle"><%= cell %></td>
+          <% } %>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function filterExportTable() {
+    var filter = document.getElementById("exportFilter").value.toLowerCase();
+    var rows = document.querySelectorAll("#exportTable tbody tr");
+    rows.forEach(function(r) {
+        r.style.display = r.textContent.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+    });
+}
+function sortExportTable(col) {
+    var table = document.getElementById("exportTable");
+    var tbody = table.tBodies[0];
+    var rows = Array.from(tbody.rows);
+    var asc = table.getAttribute("data-sort-col") != String(col) || table.getAttribute("data-sort-dir") == "desc";
+    rows.sort(function(a, b) {
+        var x = a.cells[col].textContent.trim(), y = b.cells[col].textContent.trim();
+        var nx = parseFloat(x.replace(",", ".")), ny = parseFloat(y.replace(",", "."));
+        var cmp = (!isNaN(nx) && !isNaN(ny) && x !== "" && y !== "") ? nx - ny : x.localeCompare(y, undefined, {numeric: true});
+        return asc ? cmp : -cmp;
+    });
+    rows.forEach(function(r) { tbody.appendChild(r); });
+    table.setAttribute("data-sort-col", String(col));
+    table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
+}
+</script>
