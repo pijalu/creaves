@@ -29,7 +29,8 @@
 | GET | `/registersnapshot/ExportCSV` | RegistersnapshotIndexCSV | Snapshot CSV export |
 | GET | `/maintenance/` | MaintenanceIndex | Maintenance page |
 | GET | `/maintenance/renumber` | MaintenanceRenumber | Renumber animals |
-| GET | `/export/csv` | ExportCsv | CSV export |
+| GET | `/export/csv` | ExportCsv | CSV download (redirects to `/export/view` without `?query=`) |
+| GET | `/export/view` | ExportView | Online export chooser / HTML table view |
 | GET | `/export/excel` | ExportExcel | Excel export |
 | GET | `/feeding` | FeedingIndex | Feeding schedule |
 | GET | `/feeding/close` | FeedingClose | Close feeding |
@@ -603,11 +604,13 @@ test database is unavailable).
 | Method | Route | Handler |
 |--------|-------|---------|
 | GET | `/export/csv` | ExportCsv |
+| GET | `/export/view` | ExportView |
 | GET | `/export/excel` | ExportExcel |
 
 **Business Logic**:
-- Lists available queries if no query param
-- Executes query via `export` or `excel` packages
+- `/export/csv` without a query param redirects to `/export/view`
+- `/export/csv?query=...` executes the query via the `export` package and downloads a CSV
+- `/export/view` without a query renders the chooser; with a query renders an HTML table
 
 ---
 

@@ -147,9 +147,10 @@ func TestExportCsvStillDownloads(t *testing.T) {
 	}
 }
 
-// TestReportsNavShowsExportViewAndCSV proves the Reports dropdown in the
-// layout exposes both Export > View and Export > CSV entries.
-func TestReportsNavShowsExportViewAndCSV(t *testing.T) {
+// TestReportsNavShowsExportsEntry proves the Reports dropdown in the layout
+// exposes a single "Exports" entry pointing at /export/view, and no longer
+// links the removed CSV chooser page.
+func TestReportsNavShowsExportsEntry(t *testing.T) {
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -165,10 +166,38 @@ func TestReportsNavShowsExportViewAndCSV(t *testing.T) {
 	}
 	body := string(bb)
 	if !strings.Contains(body, `href="/export/view"`) {
-		t.Error("nav lacks Export > View entry")
+		t.Error("nav lacks the Exports entry pointing at /export/view")
 	}
-	// Route helpers (exportCsvPath) render with a trailing slash.
-	if !strings.Contains(body, `href="/export/csv/"`) {
-		t.Error("nav lacks Export > CSV entry")
+	if !strings.Contains(body, `href="/export/view"><i class="fas fa-table"></i> Exports</a>`) {
+		t.Error("nav lacks the 'Exports' label")
+	}
+	if strings.Contains(body, `href="/export/csv/"`) {
+		t.Error("nav still links the removed CSV chooser page")
+	}
+	if strings.Contains(body, `dropdown-header">Export`) {
+		t.Error("nav still has an Export sub-header")
+	}
+}
+
+// TestExportCsvChooserRedirects proves bare /export/csv no longer renders
+// the CSV chooser page: it redirects to the online view chooser.
+func TestExportCsvChooserRedirects(t *testing.T) {
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	resp, err := client.Get(srv.URL + "/export/csv")
+	if err != nil {
+		t.Fatalf("GET /export/csv: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("GET /export/csv = %d, want 302", resp.StatusCode)
+	}
+	if loc := resp.Header.Get("Location"); loc != "/export/view" {
+		t.Fatalf("redirect = %q, want /export/view", loc)
 	}
 }

@@ -9,12 +9,12 @@ import (
 	"github.com/gobuffalo/buffalo"
 )
 
-// ExportCsv default implementation.
+// ExportCsv streams one configured query (export/config.yaml) as a CSV
+// download. Without a "query" param it redirects to the online view chooser.
 func ExportCsv(c buffalo.Context) error {
 	query := c.Param("query")
 	if query == "" {
-		c.Set("queries", export.GetQueries())
-		return c.Render(http.StatusOK, r.HTML("export/csv.html"))
+		return c.Redirect(http.StatusFound, "/export/view")
 	}
 
 	return export.RunQuery(c, query)
