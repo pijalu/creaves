@@ -98,13 +98,15 @@ func sheetRowCount(t *testing.T, xlsx []byte, sheet string) int {
 	return len(regexp.MustCompile(`<row\b`).FindAllString(xml, -1))
 }
 
-// checkPivotCache asserts the Bug 5 invariants on a generated export whose
-// data sheet holds `dataRows` rows including the header.
+// checkPivotCache asserts the pivot-cache invariants on a generated export
+// whose data sheet holds `totalRows` rows including the header: the cache
+// source points at the written range and refreshOnLoad is set. The
+// template's cached shared items/records are kept verbatim (recordCount
+// stays consistent with them) — Excel rebuilds the cache on open.
 func checkPivotCache(t *testing.T, xlsx []byte, sheet, lastCol string, totalRows int) {
 	t.Helper()
 
 	wantRef := fmt.Sprintf(`ref="A1:%s%d"`, lastCol, totalRows)
-	wantCount := fmt.Sprintf(`recordCount="%d"`, totalRows-1)
 
 	def := excelPart(t, xlsx, "xl/pivotCache/pivotCacheDefinition1.xml")
 	if !strings.Contains(def, wantRef) {
@@ -113,23 +115,23 @@ func checkPivotCache(t *testing.T, xlsx []byte, sheet, lastCol string, totalRows
 	if !strings.Contains(def, fmt.Sprintf(`sheet="%s"`, sheet)) {
 		t.Errorf("pivot cache definition lacks sheet=%q", sheet)
 	}
-	if !strings.Contains(def, wantCount) {
-		t.Errorf("pivot cache definition lacks %s", wantCount)
-	}
 	if !strings.Contains(def, `refreshOnLoad="1"`) {
 		t.Error("pivot cache definition lacks refreshOnLoad=\"1\"")
 	}
-	// No stale cached shared items from the template data.
-	if strings.Contains(def, "<s v=") || strings.Contains(def, "<n v=") {
-		t.Error("pivot cache definition still carries stale shared items")
+	// Template cache kept: recordCount must still match the cached records
+	// count (Excel rejects a cache whose declared size differs from the
+	// records part).
+	rc := regexp.MustCompile(`recordCount="(\d+)"`).FindStringSubmatch(def)
+	if rc == nil {
+		t.Error("pivot cache definition lost recordCount")
 	}
-
 	recs := excelPart(t, xlsx, "xl/pivotCache/pivotCacheRecords1.xml")
-	if strings.Contains(recs, "<r>") || strings.Contains(recs, "<r ") {
-		t.Error("pivot cache records still carry stale template rows")
+	cnt := regexp.MustCompile(`count="(\d+)"`).FindStringSubmatch(recs)
+	if cnt == nil {
+		t.Fatal("pivot cache records lost count attribute")
 	}
-	if !strings.Contains(recs, `count="0"`) {
-		t.Error("pivot cache records not emptied (count != 0)")
+	if rc != nil && cnt != nil && rc[1] != cnt[1] {
+		t.Errorf("recordCount=%s but records count=%s: inconsistent cache", rc[1], cnt[1])
 	}
 }
 

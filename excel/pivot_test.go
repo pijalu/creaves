@@ -51,18 +51,18 @@ func TestUpdatePivotCaches_UpdatesDefinition(t *testing.T) {
 	def := pkgString(t, f, "xl/pivotCache/pivotCacheDefinition1.xml")
 	assert.Contains(t, def, `ref="A1:AG101"`)
 	assert.Contains(t, def, `sheet="animals"`)
-	assert.Contains(t, def, `recordCount="100"`)
+	// recordCount is kept from the template: it must match the cached
+	// records (kept verbatim) so Excel finds a consistent cache.
+	assert.Contains(t, def, `recordCount="1367"`)
 	assert.Contains(t, def, `refreshOnLoad="1"`)
-	// Stale shared items are dropped so Excel rebuilds them from live data.
-	assert.NotContains(t, def, `<s v="Merle"/>`)
-	assert.NotContains(t, def, `<s v="1"/>`)
-	assert.Contains(t, def, `<sharedItems/>`)
+	// Template shared items are kept verbatim — refreshOnLoad replaces them.
+	assert.Contains(t, def, `<s v="Merle"/>`)
 	// Field structure preserved.
 	assert.Contains(t, def, `<cacheFields count="2">`)
 	assert.Contains(t, def, `cacheField name="Espèce"`)
 }
 
-func TestUpdatePivotCaches_EmptiesRecords(t *testing.T) {
+func TestUpdatePivotCaches_KeepsTemplateRecords(t *testing.T) {
 	f := newTestFile(t, map[string][]byte{
 		"xl/pivotCache/pivotCacheDefinition1.xml": []byte(testPivotCacheDefinition),
 		"xl/pivotCache/pivotCacheRecords1.xml":    []byte(testPivotCacheRecords),
@@ -70,11 +70,10 @@ func TestUpdatePivotCaches_EmptiesRecords(t *testing.T) {
 
 	require.NoError(t, updatePivotCaches(f, "animals", 50, "AG"))
 
+	// Records part is left verbatim: Excel refreshes on load (refreshOnLoad)
+	// and requires recordCount to match the cached records until then.
 	recs := pkgString(t, f, "xl/pivotCache/pivotCacheRecords1.xml")
-	assert.Contains(t, recs, `<pivotCacheRecords`)
-	assert.Contains(t, recs, `count="0"`)
-	assert.NotContains(t, recs, "<r>")
-	assert.NotContains(t, recs, `count="1367"`)
+	assert.Equal(t, testPivotCacheRecords, recs)
 }
 
 func TestUpdatePivotCaches_SetsRefreshOnLoadWhenMissing(t *testing.T) {
@@ -88,6 +87,7 @@ func TestUpdatePivotCaches_SetsRefreshOnLoadWhenMissing(t *testing.T) {
 
 	out := pkgString(t, f, "xl/pivotCache/pivotCacheDefinition1.xml")
 	assert.Contains(t, out, `refreshOnLoad="1"`)
+	// No recordCount in template → falls back to lastRow-1.
 	assert.Contains(t, out, `recordCount="9"`)
 }
 
@@ -99,7 +99,7 @@ func TestUpdatePivotCaches_HeaderOnly(t *testing.T) {
 	require.NoError(t, updatePivotCaches(f, "animals", 1, "AG"))
 
 	out := pkgString(t, f, "xl/pivotCache/pivotCacheDefinition1.xml")
-	assert.Contains(t, out, `recordCount="0"`)
+	assert.Contains(t, out, `recordCount="1367"`) // template value kept
 	assert.Contains(t, out, `ref="A1:AG1"`)
 }
 

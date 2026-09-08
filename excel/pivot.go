@@ -14,19 +14,23 @@ import (
 
 // This file keeps Excel pivot tables functional after excelize rewrites the
 // data sheet of an export template. The templates (registre.xlsx,
-// stats_communes.xlsx) ship pivot caches whose worksheetSource range,
-// recordCount, cached records and shared items all describe the template's
-// original rows. excelize v2.8.0 has no API to update existing pivot caches,
-// so we patch the parts directly through the exported f.Pkg sync.Map.
+// stats_communes.xlsx) ship pivot caches whose worksheetSource range
+// describes the template's original rows; we repoint it at the written range
+// and force a cache refresh on open so Excel rebuilds shared items/records
+// from live data. excelize v2.8.0 has no API to update existing pivot
+// caches, so we patch the parts directly through the exported f.Pkg
+// sync.Map.
+//
+// IMPORTANT: the cached sharedItems/records must be kept verbatim. Excel
+// rejects (repair prompt, "Removed Feature: PivotTable report") any cache
+// whose sharedItems/records were rewritten or emptied by a third-party
+// tool — even when the rewrite is schema-valid.
 //
 // A near-identical copy of this logic lives in creaves-console/excel (Bug 6);
 // keep both in sync when changing the XML rewrite rules.
 
 // newRefRegexp matches a worksheetSource ref such as A1:AG1368.
 var worksheetSourceRefRe = regexp.MustCompile(`(<worksheetSource\b[^>]*\bref=")[^"]*(")`)
-
-// sharedItemsRe matches a complete sharedItems element, self-closed or not.
-var sharedItemsRe = regexp.MustCompile(`<sharedItems\b[^>]*/>|<sharedItems\b[^>]*>.*?</sharedItems>`)
 
 // recordCountRe matches the recordCount attribute of pivotCacheDefinition.
 var recordCountRe = regexp.MustCompile(`\brecordCount="[^"]*"`)
@@ -37,17 +41,20 @@ var refreshOnLoadRe = regexp.MustCompile(`\brefreshOnLoad="[^"]*"`)
 // filterDatabaseRe matches the _xlnm._FilterDatabase defined name for a given
 // sheet (built per sheet in updateFilterDatabase).
 
-// updatePivotCaches rewrites every pivotCacheDefinition part in f so that it
-// points at the data range actually written (A1:lastCol+lastRow on dataSheet),
-// forces a refresh on open, drops the cached records and empties the cached
-// shared items. Excel then rebuilds the cache from live data instead of
-// reporting unreadable content.
+// updatePivotCaches rewrites every pivotCacheDefinition part in f: the
+// source range is pointed at the data actually written and refreshOnLoad
+// forces Excel to rebuild the cache from the sheet on open. The template's
+// cached sharedItems/records are kept verbatim: Excel opens the file
+// without a repair prompt as long as the cache parts are internally
+// consistent (recordCount == number of cached records), and the on-load
+// refresh replaces the stale template values with live data.
+//
+// Rebuilding the cache parts from scratch (typed sharedItems + records)
+// was tried and made Excel *more* strict — it flagged the file for repair
+// ("Removed Feature: PivotTable report"). Keeping the template cache +
+// refreshOnLoad is the combination Excel accepts.
 func updatePivotCaches(f *excelize.File, dataSheet string, lastRow int, lastCol string) error {
 	newRef := fmt.Sprintf("A1:%s%d", lastCol, lastRow)
-	recordCount := lastRow - 1 // exclude header row
-	if recordCount < 0 {
-		recordCount = 0
-	}
 
 	var updateErr error
 	f.Pkg.Range(func(k, v interface{}) bool {
@@ -63,25 +70,18 @@ func updatePivotCaches(f *excelize.File, dataSheet string, lastRow int, lastCol 
 			return true
 		}
 
-		updated := updatePivotCacheDefinition(content, dataSheet, newRef, recordCount)
-
-		// Empty the cached shared items: values came from the template rows
-		// and would otherwise be presented by Excel as stale filter entries.
-		// With refreshOnLoad="1" and empty records Excel rebuilds them from
-		// the source range, so a plain empty element is sufficient and avoids
-		// guessing per-field type attributes.
-		updated = sharedItemsRe.ReplaceAll(updated, []byte(`<sharedItems/>`))
-
-		f.Pkg.Store(path, updated)
-
-		// Replace the matching pivotCacheRecords part with an empty record set
-		// so Excel rebuilds it from the source range on open.
-		recordsPath := strings.Replace(path, "pivotCacheDefinition", "pivotCacheRecords", 1)
-		if _, exists := f.Pkg.Load(recordsPath); exists {
-			empty := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n" +
-				`<pivotCacheRecords xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" count="0"/>`)
-			f.Pkg.Store(recordsPath, empty)
+		// Keep the template recordCount (it matches the template's cached
+		// records; Excel refreshes on load anyway).
+		var updated []byte
+		if rc := recordCountRe.Find(content); rc != nil {
+			if n, err := strconv.Atoi(strings.TrimPrefix(strings.TrimSuffix(string(rc), `"`), `recordCount="`)); err == nil {
+				updated = updatePivotCacheDefinition(content, dataSheet, newRef, n)
+			}
 		}
+		if updated == nil {
+			updated = updatePivotCacheDefinition(content, dataSheet, newRef, lastRow-1)
+		}
+		f.Pkg.Store(path, updated)
 		return true
 	})
 
@@ -92,8 +92,6 @@ func updatePivotCaches(f *excelize.File, dataSheet string, lastRow int, lastCol 
 // to one pivotCacheDefinition document.
 func updatePivotCacheDefinition(content []byte, dataSheet, newRef string, recordCount int) []byte {
 	updated := content
-
-	// Point the cache at the range really written on the data sheet.
 	if worksheetSourceRefRe.Match(updated) {
 		updated = worksheetSourceRefRe.ReplaceAll(updated, []byte("${1}"+newRef+"${2}"))
 	} else if bytes.Contains(updated, []byte("<cacheSource")) {
