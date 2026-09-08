@@ -285,6 +285,7 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 			payload.Outtake.TypeID = animal.Outtake.Type.ID.String()
 			payload.Outtake.Rating = animal.Outtake.Type.Rating
 			payload.Outtake.Dead = animal.Outtake.Type.Dead
+			payload.Outtake.Error = animal.Outtake.Type.Error
 		}
 		if animal.Outtake.Location.Valid {
 			payload.Outtake.Location = animal.Outtake.Location.String

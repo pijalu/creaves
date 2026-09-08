@@ -27,7 +27,7 @@ queries:
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN species AS s ON s.creaves_species = a.species
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            Where s.subside_group IN("SG1","SG2","SG3") AND oo.error = 0 OR oo.error IS NULL
+            Where s.subside_group IN("SG1","SG2","SG3") AND (oo.error = 0 OR oo.error IS NULL)
             ORDER BY a.id desc;
   
  - name: Annexe_2B_2024
@@ -45,7 +45,7 @@ queries:
             INNER JOIN intakes AS i ON a.intake_id = i.id
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            WHERE s.subside_group IN ("SG1","SG2","SG3") AND oo.error = 0 OR oo.error IS NULL
+            WHERE s.subside_group IN ("SG1","SG2","SG3") AND (oo.error = 0 OR oo.error IS NULL)
             GROUP BY 1, 2
             ORDER BY 1 DESC;
 
@@ -77,7 +77,7 @@ queries:
             INNER JOIN species AS s ON s.creaves_species = a.species
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            Where oo.error = 0 OR oo.error IS NULL
+            Where (oo.error = 0 OR oo.error IS NULL)
             GROUP BY 1, 2
             ORDER BY 1 DESC;
   
@@ -151,7 +151,7 @@ queries:
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
            LEFT JOIN veterinaryvisits AS vv ON a.id = vv.animal_id
            LEFT JOIN travels AS t ON t.animal_id = a.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY a.id
            ORDER BY 1 DESC, 2 ASC, 3 ASC;
 
@@ -181,7 +181,7 @@ queries:
             LEFT JOIN species AS s ON s.creaves_species = a.species
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            WHERE oo.error = 0 OR oo.error IS NULL
+            WHERE (oo.error = 0 OR oo.error IS NULL)
             GROUP BY a.id
             ORDER BY 1 DESC, 2 ASC;    
             
@@ -201,7 +201,7 @@ queries:
             LEFT JOIN species AS s ON s.creaves_species = a.species
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            WHERE oo.dead = 1 AND oo.error = 0 OR oo.error IS NULL
+            WHERE oo.dead = 1 AND (oo.error = 0 OR oo.error IS NULL)
             GROUP BY a.id
             ORDER BY 1 DESC, 2 ASC;
 
@@ -278,7 +278,7 @@ queries:
            LEFT JOIN species AS s ON s.creaves_species = a.species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            ORDER BY 1 DESC, 2 ASC;
 
  - name: entry_age
@@ -291,7 +291,7 @@ queries:
            INNER JOIN animalages AS aa ON a.animalage_id = aa.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, a.animalage_id
            ORDER BY 1 DESC, 2 ASC
 
@@ -304,7 +304,7 @@ queries:
            From animals AS a
            INNER JOIN outtakes AS o ON a.outtake_id = o.id
            INNER JOIN outtaketypes AS ot ON ot.id = o.outtaketype_id
-           WHERE ot.error = 0 OR ot.error IS NULL
+           WHERE (ot.error = 0 OR ot.error IS NULL)
            GROUP BY 1, ot.name
            ORDER BY 1 DESC, 2 ASC;
 
@@ -321,7 +321,7 @@ queries:
            From animals AS a
            INNER JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, oo.rating
            ORDER BY 1 DESC, 2 ASC;
 
@@ -373,7 +373,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           Where oo.error = 0 OR oo.error IS NULL
+           Where (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.creaves_species
            ORDER BY 1 DESC, 3 DESC;
 
@@ -388,7 +388,7 @@ queries:
            INNER JOIN intakes AS i ON a.intake_id = i.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.agw_group
            ORDER BY 1 DESC, sp.agw_group ASC;
 
@@ -403,7 +403,7 @@ queries:
            INNER JOIN animaltypes AS t ON a.animaltype_id = t.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, a.animaltype_id
            ORDER BY 1 DESC, 2 ASC;
 
@@ -417,7 +417,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.family
            ORDER BY 1 DESC, sp.family ASC;
 
@@ -431,7 +431,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1,sp.order
            ORDER BY 1 DESC, sp.order ASC;
 
@@ -445,7 +445,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE oo.error = 0 OR oo.error IS NULL
+           WHERE (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.class
            ORDER BY 1 DESC, sp.class ASC;
 
@@ -459,7 +459,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE sp.game = 1 AND oo.error = 0 OR oo.error IS NULL
+           WHERE sp.game = 1 AND (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.creaves_species
            ORDER BY 1 DESC, sp.creaves_species ASC;
 
@@ -473,7 +473,7 @@ queries:
            INNER JOIN species AS sp ON a.species = creaves_species
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           WHERE sp.huntable = 1 AND oo.error = 0 OR oo.error IS NULL
+           WHERE sp.huntable = 1 AND (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, sp.creaves_species
            ORDER BY 1 DESC, sp.creaves_species ASC;
 
@@ -488,7 +488,7 @@ queries:
            INNER JOIN native_statuses AS ns ON sp.native_status = ns.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            Where oo.error = 0 OR oo.error IS NULL
+            Where (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, ns.status
            ORDER BY 1 DESC, 3 DESC;
            
@@ -505,7 +505,7 @@ queries:
            INNER JOIN entry_causes AS ec ON d.entry_cause_id = ec.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           Where oo.error = 0 OR oo.error IS NULL
+           Where (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, ec.nature, ec.cause, ec.detail
            ORDER BY 1 DESC, 5 DESC;
 
@@ -520,7 +520,7 @@ queries:
            INNER JOIN entry_causes AS ec ON d.entry_cause_id = ec.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-          Where oo.error = 0 OR oo.error IS NULL
+          Where (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, ec.cause
            ORDER BY 1 DESC, 3 DESC;
 
@@ -535,7 +535,7 @@ queries:
            INNER JOIN entry_causes AS ec ON d.entry_cause_id = ec.id
            LEFT JOIN outtakes AS o ON a.outtake_id = o.id
            LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-           Where oo.error = 0 OR oo.error IS NULL
+           Where (oo.error = 0 OR oo.error IS NULL)
            GROUP BY 1, ec.nature
            ORDER BY 1 DESC, 3 DESC;
            
@@ -570,7 +570,7 @@ queries:
            From animals AS a
             LEFT JOIN outtakes AS o ON a.outtake_id = o.id
             LEFT JOIN outtaketypes AS oo ON o.outtaketype_id = oo.id
-            Where oo.error = 0 OR oo.error IS NULL
+            Where (oo.error = 0 OR oo.error IS NULL)
             GROUP BY 1
             ORDER BY 1 DESC;
             
