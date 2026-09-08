@@ -105,22 +105,22 @@ func TestExportViewRendersHTMLTable(t *testing.T) {
 	if !strings.Contains(body, "/export/csv?query=register") {
 		t.Error("view page lacks link to CSV download")
 	}
-	// bugs.md item 5: the online view must support filter + sort of all
-	// columns.
-	if !strings.Contains(body, `id="exportFilter"`) {
-		t.Error("view page lacks the row filter input")
+	// bugs.md datatable item: sort/filter/pagination are delegated to
+	// DataTables (bundled in application.js); the hand-rolled JS is gone.
+	if !strings.Contains(body, `id="exportTable"`) {
+		t.Error("view page lacks the #exportTable element")
 	}
-	if !strings.Contains(body, "function filterExportTable()") {
-		t.Error("view page lacks the filterExportTable() function")
+	if !strings.Contains(body, `$("#exportTable").DataTable({`) {
+		t.Error("view page lacks the DataTables init")
 	}
-	if !strings.Contains(body, "function sortExportTable(col)") {
-		t.Error("view page lacks the sortExportTable() function")
+	if !strings.Contains(body, "deferRender: true") {
+		t.Error("DataTables init lacks deferRender (10k-row freeze protection)")
 	}
-	// Every column header must be sortable.
-	thOpen := strings.Count(body, "onclick=\"sortExportTable(")
-	thTotal := strings.Count(body, "<th>")
-	if thOpen == 0 || thOpen != thTotal {
-		t.Errorf("sortable headers = %d, total headers = %d — every column must be sortable", thOpen, thTotal)
+	if strings.Contains(body, "sortExportTable") || strings.Contains(body, "filterExportTable") {
+		t.Error("view page still contains the removed hand-rolled sort/filter JS")
+	}
+	if strings.Contains(body, `onclick="sortExportTable(`) {
+		t.Error("column headers still carry custom onclick sort handlers")
 	}
 }
 

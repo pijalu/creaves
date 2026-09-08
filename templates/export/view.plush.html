@@ -8,58 +8,37 @@
   <a href="/export/csv?query=<%= query.Name %>" target="_new" title="Download as CSV"><i class="fas fa-cloud-download-alt"></i></a>
 </div>
 
-<div class="row mb-2">
-  <div class="col-md-4">
-    <input type="text" id="exportFilter" class="form-control" placeholder="Filter rows…" onkeyup="filterExportTable()">
-  </div>
-</div>
-
-<div class="table-responsive">
-  <%# table-layout:fixed is required: with auto layout every row mutation
-      re-measures all cells (10k+ rows = multi-second freeze per op). %>
-  <table class="table table-hover table-bordered" id="exportTable" style="table-layout: fixed;">
-    <thead class="thead-light">
+<%# bugs.md datatable item: sort/filter/pagination are handled by DataTables
+    (bundled in application.js). DataTables keeps row data in a cache and only
+    renders the visible page, so a 10k-row export keeps ~50 <tr> in the DOM —
+    no more whole-DOM mutations on sort/filter (see
+    docs/plans/item-datatables-investigation.md). %>
+<table class="table table-hover table-bordered" id="exportTable" style="width:100%">
+  <thead class="thead-light">
+    <tr>
+      <%= for (col) in cols { %>
+        <th><%= col %></th>
+      <% } %>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for (row) in rows { %>
       <tr>
-        <%= for (idx, col) in cols { %>
-          <th><a href="javascript:void(0)" onclick="sortExportTable(<%= idx %>)"><%= col %> <i class="fas fa-sort"></i></a></th>
+        <%= for (cell) in row { %>
+          <td class="align-middle"><%= cell %></td>
         <% } %>
       </tr>
-    </thead>
-    <tbody>
-      <%= for (row) in rows { %>
-        <tr>
-          <%= for (cell) in row { %>
-            <td class="align-middle"><%= cell %></td>
-          <% } %>
-        </tr>
-      <% } %>
-    </tbody>
-  </table>
-</div>
+    <% } %>
+  </tbody>
+</table>
 
 <script>
-function filterExportTable() {
-    var filter = document.getElementById("exportFilter").value.toLowerCase();
-    var rows = document.querySelectorAll("#exportTable tbody tr");
-    rows.forEach(function(r) {
-        r.style.display = r.textContent.toLowerCase().indexOf(filter) > -1 ? "" : "none";
-    });
-}
-function sortExportTable(col) {
-    var table = document.getElementById("exportTable");
-    var tbody = table.tBodies[0];
-    var rows = Array.from(tbody.rows);
-    var asc = table.getAttribute("data-sort-col") != String(col) || table.getAttribute("data-sort-dir") == "desc";
-    rows.sort(function(a, b) {
-        var x = a.cells[col].textContent.trim(), y = b.cells[col].textContent.trim();
-        var nx = parseFloat(x.replace(",", ".")), ny = parseFloat(y.replace(",", "."));
-        var cmp = (!isNaN(nx) && !isNaN(ny) && x !== "" && y !== "") ? nx - ny : x.localeCompare(y, undefined, {numeric: true});
-        return asc ? cmp : -cmp;
-    });
-    // Single-shot replace: per-row appendChild triggers table-structure
-    // fixup per insertion (10k+ rows = multi-minute page freeze).
-    tbody.replaceChildren.apply(tbody, rows);
-    table.setAttribute("data-sort-col", String(col));
-    table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
-}
+// application.js (loaded in <head>) exposes jQuery + DataTable and sets
+// DataTable.defaults.language from the lang cookie; deferRender renders only
+// the visible page (10k+ rows stay fast).
+$("#exportTable").DataTable({
+    deferRender: true,
+    pageLength: 50,
+    lengthMenu: [25, 50, 100, 250, 500]
+});
 </script>

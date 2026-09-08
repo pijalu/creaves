@@ -8,6 +8,9 @@
 @import "jquery.auto-complete.css";
 @import "~flatpickr/dist/themes/material_blue.css";
 @import "~bootstrap-table/dist/bootstrap-table.css";
+// bugs.md datatable item: DataTables 3 Bootstrap 4 styling for the dynamic
+// export view (replaces hand-rolled sort/filter JS).
+@import "~datatables.net-bs4/css/dataTables.bootstrap4.css";
 @import "~select2/dist/css/select2.css";
 @import "select2-custom.css";
 @import "navbar";
