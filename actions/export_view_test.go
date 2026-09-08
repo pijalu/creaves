@@ -122,6 +122,36 @@ func TestExportViewRendersHTMLTable(t *testing.T) {
 	if strings.Contains(body, `onclick="sortExportTable(`) {
 		t.Error("column headers still carry custom onclick sort handlers")
 	}
+	// Per-column filters: hidden filter row (one input per column) toggled by
+	// a dedicated button; sorting stays on the title row (orderCellsTop).
+	// The toggle button sits at the top left of the table (before the table
+	// markup), and each input's placeholder is the column name.
+	for _, frag := range []string{
+		`id="toggleColumnFilters"`,
+		`tr class="column-filters" style="display:none"`,
+		// Each filter input's placeholder is the column name (rendered), not
+		// the generic word "Filter".
+		`class="form-control form-control-sm column-filter" placeholder="Espèce"`,
+		"orderCellsTop: true",
+		`.search(this.value).draw()`,
+	} {
+		if !strings.Contains(body, frag) {
+			t.Errorf("view page lacks per-column filter fragment %q", frag)
+		}
+	}
+	if strings.Contains(body, `placeholder="Filter"`) {
+		t.Error("filter inputs still use the generic 'Filter' placeholder")
+	}
+	btnIdx := strings.Index(body, `id="toggleColumnFilters"`)
+	tableIdx := strings.Index(body, `id="exportTable"`)
+	if btnIdx <= 0 || btnIdx >= tableIdx {
+		t.Error("filter toggle button must render before the table")
+	}
+	// Bug 10: the back-to-list link sits next to the export title (inside the
+	// <h3>), not in the right-hand toolbar.
+	if !strings.Contains(body, `<h3 class="d-inline-block"><a href="/export/view" title="Back to exports"`) {
+		t.Error("back-to-exports link must render inside the title")
+	}
 }
 
 // TestExportViewUnknownQuery proves an unknown query id does not crash and
