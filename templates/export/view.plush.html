@@ -15,7 +15,9 @@
 </div>
 
 <div class="table-responsive">
-  <table class="table table-hover table-bordered" id="exportTable">
+  <%# table-layout:fixed is required: with auto layout every row mutation
+      re-measures all cells (10k+ rows = multi-second freeze per op). %>
+  <table class="table table-hover table-bordered" id="exportTable" style="table-layout: fixed;">
     <thead class="thead-light">
       <tr>
         <%= for (idx, col) in cols { %>
@@ -54,7 +56,9 @@ function sortExportTable(col) {
         var cmp = (!isNaN(nx) && !isNaN(ny) && x !== "" && y !== "") ? nx - ny : x.localeCompare(y, undefined, {numeric: true});
         return asc ? cmp : -cmp;
     });
-    rows.forEach(function(r) { tbody.appendChild(r); });
+    // Single-shot replace: per-row appendChild triggers table-structure
+    // fixup per insertion (10k+ rows = multi-minute page freeze).
+    tbody.replaceChildren.apply(tbody, rows);
     table.setAttribute("data-sort-col", String(col));
     table.setAttribute("data-sort-dir", asc ? "asc" : "desc");
 }
