@@ -2,6 +2,8 @@ package actions
 
 import (
 	"creaves/models"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -328,6 +330,21 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	return a, nil
 }
 
+type animalFinder interface {
+	Find(model interface{}, id interface{}) error
+}
+
+// findOrIgnoreMissing loads one related record, tolerating dangling foreign
+// keys: a missing reference row leaves dst zero-valued instead of failing the
+// whole request with a 404. Any other DB error is returned.
+func findOrIgnoreMissing(q animalFinder, dst interface{}, id interface{}) error {
+	err := q.Find(dst, id)
+	if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return nil
+	}
+	return err
+}
+
 // EnrichAnimal load all deps of an animal record
 func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -335,17 +352,17 @@ func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	if err := tx.Find(&a.Animalage, a.AnimalageID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
+	if err := findOrIgnoreMissing(tx, &a.Animalage, a.AnimalageID); err != nil {
+		return nil, err
 	}
-	if err := tx.Find(&a.Animaltype, a.AnimaltypeID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
+	if err := findOrIgnoreMissing(tx, &a.Animaltype, a.AnimaltypeID); err != nil {
+		return nil, err
 	}
-	if err := tx.Eager().Find(&a.Discovery, a.DiscoveryID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
+	if err := findOrIgnoreMissing(tx.Eager(), &a.Discovery, a.DiscoveryID); err != nil {
+		return nil, err
 	}
-	if err := tx.Eager().Find(&a.Intake, a.IntakeID); err != nil {
-		return nil, c.Error(http.StatusNotFound, err)
+	if err := findOrIgnoreMissing(tx.Eager(), &a.Intake, a.IntakeID); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Eager().Where("animal_id = ?", a.ID).Order("date desc").All(&a.Cares); err != nil {
@@ -361,8 +378,12 @@ func EnrichAnimal(a *models.Animal, c buffalo.Context) (*models.Animal, error) {
 	if a.OuttakeID.Valid {
 		c.Logger().Debugf("Loading outtake %v", a.OuttakeID)
 		a.Outtake = &models.Outtake{}
-		if err := tx.Eager().Find(a.Outtake, a.OuttakeID); err != nil {
-			return nil, c.Error(http.StatusNotFound, err)
+		if err := findOrIgnoreMissing(tx.Eager(), a.Outtake, a.OuttakeID); err != nil {
+			return nil, err
+		}
+		// Fully reset a missing outtake so templates see no outtake at all.
+		if a.Outtake.ID == uuid.Nil {
+			a.Outtake = nil
 		}
 	}
 	return a, nil
