@@ -542,8 +542,13 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 	var hashLines []stateHashLine
 	processed := 0
 	afterID := 0
+	// ONE preloader for the whole run: ensure() is incremental, so the
+	// reference scans and translation lookups happen on the first chunk and
+	// later chunks usually add zero queries (low-end boxes: the per-chunk
+	// full species/localities scans were pure repetition).
+	pre := newTranslationPreloader()
 	for {
-		done, err := processResyncChunk(ctx, tx, run, ix, force, &processed, &afterID, &hashLines)
+		done, err := processResyncChunk(ctx, tx, run, pre, ix, force, &processed, &afterID, &hashLines)
 		if err != nil {
 			return err
 		}
@@ -575,12 +580,13 @@ func RunResync(ctx context.Context, tx *pop.Connection, runID uuid.UUID, force b
 }
 
 // processResyncChunk handles one keyset-paginated chunk: load the animals
-// with their associations (one bounded LEFT JOIN), build the per-chunk
-// translation preloader (bounded IN(chunk) queries), accumulate the expected
-// state-hash lines for the run announcement, and enqueue the state event of
-// every animal in the chunk. done=true means the run must stop — either all
-// animals were processed or the run was cancelled; err is terminal.
-func processResyncChunk(ctx context.Context, tx *pop.Connection, run *models.ResyncRun, ix *resyncStateIndex, force bool, processed, afterID *int, hashLines *[]stateHashLine) (bool, error) {
+// with their associations (one bounded LEFT JOIN), top up the run-wide
+// translation preloader (incremental — queries only newly referenced rows),
+// accumulate the expected state-hash lines for the run announcement, and
+// enqueue the state event of every animal in the chunk. done=true means the
+// run must stop — either all animals were processed or the run was
+// cancelled; err is terminal.
+func processResyncChunk(ctx context.Context, tx *pop.Connection, run *models.ResyncRun, pre *translationPreloader, ix *resyncStateIndex, force bool, processed, afterID *int, hashLines *[]stateHashLine) (bool, error) {
 	animals, nextID, err := loadResyncAnimalChunk(tx, *afterID)
 	if err != nil {
 		return true, finishResync(tx, run, err)
@@ -589,7 +595,7 @@ func processResyncChunk(ctx context.Context, tx *pop.Connection, run *models.Res
 		return true, nil
 	}
 	*afterID = nextID
-	pre := newTranslationPreloader(tx, animals)
+	pre.ensure(tx, animals)
 	// Announce the expected sync state for this run (checksum bug fix):
 	// hashes are computed per chunk from the same already-loaded
 	// associations the resync loop uses — ZERO extra SELECTs. Persisted
@@ -614,13 +620,18 @@ func processResyncChunk(ctx context.Context, tx *pop.Connection, run *models.Res
 	return false, nil
 }
 
-// resyncDeliveryPollDelay and resyncDeliveryMaxStalled bound the delivery
-// wait: after MaxStalled consecutive attempts without delivery progress the
-// run is marked failed with a per-run diagnostic instead of blocking forever.
-// Package vars so tests can tighten them.
+// resyncDeliveryPollDelay, resyncDeliveryMaxPollDelay and
+// resyncDeliveryMaxStalled bound the delivery wait: polls start at the base
+// delay and DOUBLE on every attempt without delivery progress (capped at the
+// max), resetting on progress. After MaxStalled consecutive stalled attempts
+// the run is marked failed with a per-run diagnostic instead of blocking
+// forever. The backoff keeps the SQL cost of a long delivery phase flat on
+// small machines instead of polling COUNT() ten times a second. Package
+// vars so tests can tighten them.
 var (
-	resyncDeliveryPollDelay  = 100 * time.Millisecond
-	resyncDeliveryMaxStalled = 5
+	resyncDeliveryPollDelay    = 100 * time.Millisecond
+	resyncDeliveryMaxPollDelay = 2 * time.Second
+	resyncDeliveryMaxStalled   = 5
 )
 
 // countResyncRunEvents returns (total, delivered) for the events attributed
@@ -710,7 +721,7 @@ func resyncDeliveryFinished(tx *pop.Connection, run *models.ResyncRun, total, de
 // (e.g. 97/100) are retried automatically: rejected events stay
 // delivered_at IS NULL and the next deliverBatch picks them up again.
 func completeResyncDelivery(ctx context.Context, tx *pop.Connection, run *models.ResyncRun) error {
-	rr := &resyncDeliveryRunner{tx: tx, run: run}
+	rr := &resyncDeliveryRunner{tx: tx, run: run, delay: resyncDeliveryPollDelay}
 	for {
 		done, err := rr.iterate(ctx)
 		if err != nil {
@@ -719,16 +730,22 @@ func completeResyncDelivery(ctx context.Context, tx *pop.Connection, run *models
 		if done {
 			return nil
 		}
-		time.Sleep(resyncDeliveryPollDelay)
+		delay := rr.delay
+		rr.delay *= 2
+		if rr.delay > resyncDeliveryMaxPollDelay {
+			rr.delay = resyncDeliveryMaxPollDelay
+		}
+		time.Sleep(delay)
 	}
 }
 
 // resyncDeliveryRunner carries the mutable state of one run's delivery wait
-// (the stall counter) across loop iterations.
+// (the stall counter and the current backoff delay) across loop iterations.
 type resyncDeliveryRunner struct {
 	tx      *pop.Connection
 	run     *models.ResyncRun
 	stalled int
+	delay   time.Duration
 }
 
 // iterate performs one delivery-wait step (re-check cancellation, count,
@@ -753,11 +770,14 @@ func (r *resyncDeliveryRunner) iterate(ctx context.Context) (bool, error) {
 	if finished {
 		return true, nil
 	}
-	// Persist the live delivered/failed counters so the status.json endpoint
-	// and the resync UI show delivery progress.
-	if err := r.tx.Update(r.run); err != nil {
-		return true, finishResync(r.tx, r.run, err)
+	if r.stalled == 0 {
+		// Progress happened: serve the status endpoint promptly again.
+		r.delay = resyncDeliveryPollDelay
 	}
+	// The delivered/failed counters only change when the run finishes (they
+	// are persisted by resyncDeliveryFinished/failResyncDelivery), so
+	// rewriting the row on every poll was a pure write load — up to ten
+	// UPDATEs per second for the whole delivery phase on low-end hardware.
 	r.stalled, err = resyncDeliveryPump(r.tx, r.run, delivered, r.stalled)
 	if err != nil {
 		return true, finishResync(r.tx, r.run, err)

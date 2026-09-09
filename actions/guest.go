@@ -14,7 +14,10 @@ package actions
 //  3. Direct link (QR code on the animal page): GET /guest with number +
 //     token + lang opens the status view immediately — the token is a salted
 //     hash of the recorded discoverer phone (guestPhoneToken), so the phone
-//     number itself never appears in the URL. lang selects the page language
+//     number itself never appears in the URL. Animals recorded WITHOUT a
+//     discoverer phone get a token salted with the empty phone: the QR code
+//     always opens the status view directly, never a phone-prompted form.
+//     lang selects the page language
 //     before rendering; the QR code is generated in the current UI language.
 //  4. On success a succinct view is rendered:
 //     - arrival (intake) date and species;
@@ -651,8 +654,10 @@ func guestRequestLang(c buffalo.Context) string {
 // AnimalQR renders a QR code (PNG) that opens the guest status view for this
 // animal directly: the URL carries a salted hash (token) of the discoverer
 // phone instead of the phone number itself, plus the current UI language.
-// Without a recorded phone number the QR code falls back to the plain form
-// link. GET /animals/{animal_id}/qr.png
+// The token is ALWAYS present: animals without a recorded discoverer phone
+// get a token salted with the empty phone, so the QR code never degrades to
+// a phone-prompted form — scanning must always open the status view.
+// GET /animals/{animal_id}/qr.png
 func AnimalQR(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -668,10 +673,12 @@ func AnimalQR(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	token := ""
-	if phone != "" {
-		token = guestPhoneToken(number, phone)
-	}
+	// With a stored phone the token proves knowledge of it. Without one the
+	// empty phone is the salt: GuestNew derives the SAME expected token from
+	// its own stored-phone lookup, so the link still opens directly — the
+	// phone prompt would be unpassable for such animals anyway (GuestCreate
+	// cannot match against a missing phone).
+	token := guestPhoneToken(number, phone)
 
 	u := guestStatusURL(guestScheme(c.Request()), c.Request().Host, number, token, guestRequestLang(c))
 	qr, err := qrcode.New(u, qrcode.Medium)

@@ -78,6 +78,12 @@ func loadPayloadTranslations(tx *pop.Connection, animal *models.Animal, payload 
 // species table scan. Without it, buildEventPayloadWithTranslations issued
 // up to 48 translation SELECTs + 1 species SELECT per animal — a full resync
 // of 10k animals flooded the SQL log with ~500k per-record queries.
+//
+// The preloader is INCREMENTAL across chunks of one run: ensure() only
+// queries what is not loaded yet, so chunk 2..N of a resync re-uses chunk 1's
+// reference data (species/localities full scans happen once per run, and
+// translation groups are queried only for newly seen record ids). Reference
+// data is static for the lifetime of a run, so caching cannot go stale.
 type translationPreloader struct {
 	// species maps animals.species (creaves_species) -> reference row.
 	species map[string]*models.Species
@@ -86,26 +92,49 @@ type translationPreloader struct {
 	localities map[string]*models.Locality
 	// values maps locale -> "table|field" -> record_id -> translated value.
 	values map[string]map[string]map[string]string
+	// coverage tracking for the incremental ensure(): species/locality names
+	// already covered by a full reference scan, and (table|field -> ids)
+	// translation keys already queried per locale.
+	speciesScanned    map[string]bool
+	citiesScanned     map[string]bool
+	translatedLocales map[string]map[string]map[string]bool // locale -> key -> ids queried
 }
 
-// newTranslationPreloader loads every translation and species row the given
-// animals can reference. tx must be non-nil. Query failures on individual
-// groups are ignored (missing translations fall back to base values) — the
-// same leniency as the per-animal path.
-func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *translationPreloader {
-	p := &translationPreloader{
-		species:    map[string]*models.Species{},
-		localities: map[string]*models.Locality{},
-		values:     map[string]map[string]map[string]string{},
+// newTranslationPreloader returns an EMPTY preloader; call ensure(tx, animals)
+// before first use. Chunk loops build it once and ensure() every chunk.
+func newTranslationPreloader() *translationPreloader {
+	return &translationPreloader{
+		species:           map[string]*models.Species{},
+		localities:        map[string]*models.Locality{},
+		values:            map[string]map[string]map[string]string{},
+		speciesScanned:    map[string]bool{},
+		citiesScanned:     map[string]bool{},
+		translatedLocales: map[string]map[string]map[string]bool{},
 	}
+}
 
-	// Species reference rows: one unfiltered query for the whole run (the
-	// reference table is small). RawQuery is deliberate: pop's generated
-	// SELECT enumerates the `order` column unquoted, which the SQLite
-	// dialect rejects; SELECT * avoids identifier quoting entirely.
+// newLoadedTranslationPreloader loads every translation and species row the
+// given animals can reference. tx must be non-nil. Query failures on
+// individual groups are ignored (missing translations fall back to base
+// values) — the same leniency as the per-animal path.
+func newLoadedTranslationPreloader(tx *pop.Connection, animals *models.Animals) *translationPreloader {
+	p := newTranslationPreloader()
+	p.ensure(tx, animals)
+	return p
+}
+
+// ensure loads the reference data the given animals need that is not loaded
+// yet. Safe to call repeatedly with successive chunks: everything already
+// covered is skipped, so steady-state cost per chunk is zero queries.
+func (p *translationPreloader) ensure(tx *pop.Connection, animals *models.Animals) {
+	// Species reference rows: one unfiltered query covering all names seen so
+	// far (the reference table is small). RawQuery is deliberate: pop's
+	// generated SELECT enumerates the `order` column unquoted, which the
+	// SQLite dialect rejects; SELECT * avoids identifier quoting entirely.
+	// Re-scanned only when a chunk references unknown names.
 	speciesNames := map[string]bool{}
 	for i := range *animals {
-		if name := (*animals)[i].Species; name != "" {
+		if name := (*animals)[i].Species; name != "" && !p.speciesScanned[name] {
 			speciesNames[name] = true
 		}
 	}
@@ -119,14 +148,17 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 				}
 			}
 		}
+		for name := range speciesNames {
+			p.speciesScanned[name] = true // covered by this scan (present or not)
+		}
 	}
 
-	// Locality reference rows: one unfiltered scan for the whole run (the
-	// table is small), keyed by the `locality` column the stat_communes
-	// export joins discoveries.city on.
+	// Locality reference rows: one unfiltered scan covering all cities seen
+	// so far (the table is small), keyed by the `locality` column the
+	// stat_communes export joins discoveries.city on.
 	cityNames := map[string]bool{}
 	for i := range *animals {
-		if c := (*animals)[i].Discovery.City; c.Valid && c.String != "" {
+		if c := (*animals)[i].Discovery.City; c.Valid && c.String != "" && !p.citiesScanned[c.String] {
 			cityNames[c.String] = true
 		}
 	}
@@ -140,9 +172,13 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 				}
 			}
 		}
+		for name := range cityNames {
+			p.citiesScanned[name] = true // covered by this scan (present or not)
+		}
 	}
 
-	// Distinct ids per (table, field) group across all animals. Species
+	// Distinct ids per (table, field) group across all animals — filtered
+	// down to ids not loaded yet (incremental across chunks). Species
 	// translations are keyed by the species row id, resolved above.
 	groups := map[string]map[string]bool{}
 	add := func(table, field, id string) {
@@ -179,23 +215,48 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 		}
 	}
 
-	// Translations: one query per (group, locale) for the whole run.
+	// Translations: one query per (group, locale) — restricted to ids not
+	// already loaded by a previous ensure() of the same run. Loaded values
+	// are merged into the existing maps; reference data is static during a
+	// run so already-fetched translations cannot go stale.
 	for _, locale := range models.SupportedLocales {
-		byGroup := map[string]map[string]string{}
+		if p.values[locale] == nil {
+			p.values[locale] = map[string]map[string]string{}
+		}
+		if p.translatedLocales[locale] == nil {
+			p.translatedLocales[locale] = map[string]map[string]bool{}
+		}
 		for key, ids := range groups {
 			parts := strings.SplitN(key, "|", 2)
+			seen := p.translatedLocales[locale][key]
+			if seen == nil {
+				seen = map[string]bool{}
+				p.translatedLocales[locale][key] = seen
+			}
 			idList := make([]string, 0, len(ids))
 			for id := range ids {
-				idList = append(idList, id)
+				if !seen[id] {
+					idList = append(idList, id)
+				}
+			}
+			if len(idList) == 0 {
+				continue
 			}
 			loaded, err := models.LoadTranslations(tx, parts[0], parts[1], locale, idList)
-			if err == nil {
-				byGroup[key] = loaded
+			if err != nil {
+				continue // same leniency as before: fall back to base values
+			}
+			for _, id := range idList {
+				seen[id] = true // queried: absent result means no translation exists
+			}
+			if p.values[locale][key] == nil {
+				p.values[locale][key] = map[string]string{}
+			}
+			for id, value := range loaded {
+				p.values[locale][key][id] = value
 			}
 		}
-		p.values[locale] = byGroup
 	}
-	return p
 }
 
 // speciesFor returns the species reference row for a creaves_species name, or

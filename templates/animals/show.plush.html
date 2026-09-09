@@ -671,6 +671,12 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       <div class="modal-body text-center">
         <p>Scan this QR code to open the guest status page for animal <%= animal.YearNumberFormatted() %>.</p>
         <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR code" width="256" height="256" />
+        <%= if (guestNoPhone) { %>
+        <div class="alert alert-warning small mt-2 mb-0 text-left">
+          No phone number was recorded for this animal at intake — the phone check can never succeed.
+          This QR code is the <strong>only</strong> way to open the status page. Please point this out to the finder.
+        </div>
+        <% } %>
         <hr class="my-3" />
         <p class="small text-muted mb-1">General link (manual entry of number and phone number):</p>
         <a href="<%= guestFormURL %>"><%= guestFormURL %></a>

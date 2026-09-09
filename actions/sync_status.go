@@ -78,6 +78,10 @@ func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, erro
 	var lines []string
 	yearIndex := map[int]int{}
 	afterID := 0
+	// ONE incremental preloader for the whole computation: the reference
+	// scans and translation lookups happen once, not per chunk — this path
+	// runs on page renders, so its SQL cost must stay flat.
+	pre := newTranslationPreloader()
 	for {
 		animals, nextID, err := loadResyncAnimalChunk(tx, afterID)
 		if err != nil {
@@ -91,7 +95,7 @@ func ComputeSyncStatus(tx *pop.Connection, instanceID string) (*SyncStatus, erro
 		for i := range *animals {
 			yearByAnimal[(*animals)[i].ID] = (*animals)[i].Year
 		}
-		pre := newTranslationPreloader(tx, animals)
+		pre.ensure(tx, animals)
 		// Animals whose payload could not be built are NOT part of the
 		// expected set (same as the resync: they surface as resync errors).
 		for _, hl := range expectedStateHashes(tx, animals, pre, instanceID) {

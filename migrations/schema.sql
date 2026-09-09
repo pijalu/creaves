@@ -374,7 +374,8 @@ CREATE TABLE `event_streams` (
   KEY `event_streams_processed_at_idx` (`processed_at`),
   KEY `event_streams_event_type_idx` (`event_type`),
   KEY `event_streams_delivered_at_idx` (`delivered_at`),
-  KEY `event_streams_event_type_content_hash_idx` (`event_type`,`content_hash`)
+  KEY `event_streams_event_type_content_hash_idx` (`event_type`,`content_hash`),
+  KEY `event_streams_resync_run_id_idx` (`resync_run_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

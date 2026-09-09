@@ -507,6 +507,16 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 		// show view: same scheme+host as the page itself.
 		c.Set("guestFormURL", guestStatusURL(guestScheme(c.Request()), c.Request().Host, animal.YearNumberFormatted(), "", ""))
 
+		// guestNoPhone: no discoverer phone recorded for this animal — the
+		// phone-gated guest form can never succeed, so the QR deep link is
+		// the ONLY way to open the status view. The show template surfaces
+		// this so intake staff can point it out to the finder.
+		if tx, ok := c.Value("tx").(*pop.Connection); ok {
+			if stored, err := guestStoredPhone(tx, animal); err == nil && stored == "" {
+				c.Set("guestNoPhone", true)
+			}
+		}
+
 		// Audit tab data: admin only, server-side pagination over the
 		// animal_audits records of this animal.
 		if user := GetCurrentUser(c); user != nil && user.Admin {

@@ -5,29 +5,65 @@ import (
 	"fmt"
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
-	"log"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 )
+
+// The expected-set block of the resync page (ComputeSyncStatus) scans every
+// animal + every state event of the instance. Running that synchronously
+// inside the HTTP request timed out on low-end machines (the whole render
+// blocks a pooled MySQL connection for the computation's duration). It now
+// runs in the background: the page renders INSTANTLY with the last computed
+// snapshot (nil until the first computation finishes — the template hides
+// the section then), and a refresh is kicked off at most once per
+// syncStatusMaxAge. Reference to the request transaction is never captured:
+// it dies with the response, so the refresh uses models.DB.
+const syncStatusMaxAge = 30 * time.Second
+
+var (
+	syncStatusMu        sync.Mutex
+	syncStatusCache     *SyncStatus
+	syncStatusCachedAt  time.Time
+	syncStatusComputing bool
+)
+
+// cachedSyncStatus returns the latest snapshot and starts a background
+// recompute when the cache is older than syncStatusMaxAge (single-flight).
+func cachedSyncStatus() *SyncStatus {
+	syncStatusMu.Lock()
+	cached := syncStatusCache
+	stale := time.Since(syncStatusCachedAt) > syncStatusMaxAge
+	shouldStart := stale && !syncStatusComputing && models.DB != nil
+	if shouldStart {
+		syncStatusComputing = true
+	}
+	syncStatusMu.Unlock()
+	if shouldStart {
+		go func() {
+			status, err := ComputeSyncStatus(models.DB, GetInstanceID())
+			syncStatusMu.Lock()
+			defer syncStatusMu.Unlock()
+			if err == nil {
+				syncStatusCache = status
+				syncStatusCachedAt = time.Now()
+			}
+			syncStatusComputing = false
+		}()
+	}
+	return cached
+}
 
 func WebhookResyncIndex(c buffalo.Context) error {
 	if user := GetCurrentUser(c); user == nil || !user.Admin {
 		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
 	}
 	c.Set("webhookEnabled", IsWebhookEnabled())
-	// Expected-set visibility (phase 8): per-animal hashes are recomputed
-	// live, so keep this on the page render only — never in the polled
-	// status.json endpoint.
-	var syncStatus *SyncStatus
-	if tx, ok := c.Value("tx").(*pop.Connection); ok {
-		var err error
-		syncStatus, err = ComputeSyncStatus(tx, GetInstanceID())
-		if err != nil {
-			log.Printf("failed to compute sync status: %v", err)
-			syncStatus = nil
-		}
-	}
-	c.Set("syncStatus", syncStatus)
+	// Expected-set visibility (phase 8): computed in the background — the
+	// render itself only serves the cached snapshot, so the page never
+	// blocks on the full animals/event_streams scan.
+	c.Set("syncStatus", cachedSyncStatus())
 	return c.Render(http.StatusOK, r.HTML("webhook_resync/index.plush.html"))
 }
 func WebhookResyncStart(c buffalo.Context) error {

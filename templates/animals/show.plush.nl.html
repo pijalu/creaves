@@ -671,6 +671,12 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       <div class="modal-body text-center">
         <p>Scan deze QR-code om de gaststatuspagina voor dier <%= animal.YearNumberFormatted() %> te openen.</p>
         <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR-code" width="256" height="256" />
+        <%= if (guestNoPhone) { %>
+        <div class="alert alert-warning small mt-2 mb-0 text-left">
+          Voor dit dier is bij de inname geen telefoonnummer geregistreerd &mdash; de telefooncontrole kan nooit slagen.
+          Deze QR-code is de <strong>enige</strong> manier om de statuspagina te openen. Wijst de vinder hierop.
+        </div>
+        <% } %>
         <hr class="my-3" />
         <p class="small text-muted mb-1">Algemene link (handmatige invoer van nummer en telefoonnummer):</p>
         <a href="<%= guestFormURL %>"><%= guestFormURL %></a>

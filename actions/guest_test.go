@@ -420,6 +420,39 @@ func TestGuestStoredPhoneToken(t *testing.T) {
 	}
 }
 
+// TestGuestPhonelessAnimalToken pins the QR-only access path: an animal
+// WITHOUT a recorded discoverer phone gets a QR token salted with the empty
+// phone, and GuestNew derives the SAME expected token from its own (empty)
+// stored-phone lookup — so the QR deep link opens the status view directly.
+// The empty-phone token is distinct from any phone-salted token of the same
+// animal: the phone factor still protects animals that HAVE a phone.
+func TestGuestPhonelessAnimalToken(t *testing.T) {
+	number := "1791/26"
+
+	// AnimalQR side: guestStoredPhone returned "" → empty-phone salt.
+	qrToken := guestPhoneToken(number, "")
+	// GuestNew side: expected token from the same empty lookup.
+	expected := guestPhoneToken(number, "")
+	if !guestTokenMatches(expected, qrToken) {
+		t.Fatal("phoneless token must be accepted by the direct guest link")
+	}
+
+	// Distinct from phone-salted tokens of the same animal, both directions.
+	if guestTokenMatches(qrToken, guestPhoneToken(number, "0612345678")) {
+		t.Error("phoneless token must not match a phone-salted token")
+	}
+	if guestTokenMatches(guestPhoneToken(number, "0612345678"), qrToken) {
+		t.Error("phone-salted token must not match the phoneless token")
+	}
+
+	// A wrong animal number never yields a valid phoneless token.
+	if guestTokenMatches(expected, guestPhoneToken("9999/99", "")) {
+		t.Error("phoneless token must stay animal-number salted")
+	}
+}
+
+// TestGuestScheme checks the scheme fallback order (TLS, X-Forwarded-Proto,
+// plain http).
 func TestGuestScheme(t *testing.T) {
 	if got := guestScheme(httptest.NewRequest("GET", "/x", nil)); got != "http" {
 		t.Errorf("guestScheme plain = %q, want http", got)

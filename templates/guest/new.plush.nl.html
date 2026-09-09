@@ -7,6 +7,11 @@
     De status wordt alleen getoond als het telefoonnummer bij ons bekend is.
   </p>
 
+  <p class="text-muted small">
+    Werd bij de inname geen telefoonnummer geregistreerd, dan kan de telefooncontrole niet slagen &mdash; in dat geval
+    is de statuspagina alleen te openen met de QR-code op het innamedocument.
+  </p>
+
   <%= if (guestError) { %>
     <div class="alert alert-danger">
       Geen overeenkomende combinatie van diernummer en telefoonnummer gevonden.

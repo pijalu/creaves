@@ -7,6 +7,11 @@
     The status is shown only if the phone number matches our records.
   </p>
 
+  <p class="text-muted small">
+    If no phone number was recorded at intake, the phone check cannot succeed — in that case the
+    status page can only be opened with the QR code on the intake document.
+  </p>
+
   <%= if (guestError) { %>
     <div class="alert alert-danger">
       No matching animal number and phone number found.

@@ -460,9 +460,14 @@ taken from the incoming request (`Request.Host`, `X-Forwarded-Proto` honoured), 
 QR always points at the same host/protocol the staff page was loaded from. The token is
 `guestPhoneToken` — a SHA-256 hash of the normalized discoverer phone, salted with the
 animal number — so the raw phone never appears in the URL and scanning the code opens
-the status view directly (no form). `lang` is applied before rendering (cookie +
-`T.Refresh`) so the page opens in the language the QR was generated with (current UI
-language, default French).
+the status view directly (no form). The token is ALWAYS emitted: animals recorded
+WITHOUT a discoverer phone get a token salted with the empty phone, so the QR code
+never degrades to the phone-prompted form — for such animals the phone check can
+never succeed and the QR deep link is the only way to open the status view. The
+guest form states this, and the animal show modal shows a warning (`guestNoPhone`)
+so intake staff can point it out to the finder. `lang` is applied before rendering
+(cookie + `T.Refresh`) so the page opens in the language the QR was generated with
+(current UI language, default French).
 A failed token/number falls back to the plain form without disclosing the reason; the
 plain form link (full URL, same request-derived scheme/host — `guestFormURL` set by
 `AnimalsResource.Show`) is displayed under the QR code in the modal.

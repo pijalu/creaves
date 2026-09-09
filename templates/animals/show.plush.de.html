@@ -671,6 +671,12 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       <div class="modal-body text-center">
         <p>Scannen Sie diesen QR-Code, um die Gaststatus-Seite für Tier <%= animal.YearNumberFormatted() %> zu öffnen.</p>
         <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR-Code" width="256" height="256" />
+        <%= if (guestNoPhone) { %>
+        <div class="alert alert-warning small mt-2 mb-0 text-left">
+          F&uuml;r dieses Tier wurde bei der Abgabe keine Telefonnummer erfasst &mdash; die Telefonpr&uuml;fung kann nie erfolgreich sein.
+          Dieser QR-Code ist der <strong>einzige</strong> Weg, die Statusseite zu &ouml;ffnen. Bitte weisen Sie den Finder darauf hin.
+        </div>
+        <% } %>
         <hr class="my-3" />
         <p class="small text-muted mb-1">Allgemeiner Link (manuelle Eingabe von Nummer und Telefonnummer):</p>
         <a href="<%= guestFormURL %>"><%= guestFormURL %></a>

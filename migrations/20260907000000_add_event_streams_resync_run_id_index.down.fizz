@@ -1,0 +1,1 @@
+remove_index("event_streams", ["resync_run_id"])

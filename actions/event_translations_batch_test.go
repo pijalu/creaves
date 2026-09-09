@@ -131,7 +131,7 @@ func TestTranslationPreloaderEquivalence(t *testing.T) {
 	animal := &(*animals)[0]
 
 	perAnimal := buildEventPayloadWithTranslations(models.DB, animal)
-	pre := newTranslationPreloader(models.DB, animals)
+	pre := newLoadedTranslationPreloader(models.DB, animals)
 	batched := buildEventPayloadInto(models.DB, pre, animal)
 
 	perAnimal.Timestamp = ""
@@ -153,6 +153,66 @@ func TestTranslationPreloaderEquivalence(t *testing.T) {
 	// which avoids pop's unquoted `order` column and works on every dialect.
 	assert.Equal(t, "PRE_Mammalia", batched.Animal.SpeciesClass)
 	assert.Equal(t, "PRE_Ind", batched.Animal.SpeciesNativeStatus)
+}
+
+// TestTranslationPreloaderIncremental pins the run-wide reuse: a second
+// ensure() with the SAME animals must issue ZERO queries (chunk 2..N of a
+// resync/sync-status re-use chunk 1's reference data). On a low-end box the
+// per-chunk full species/localities scans and per-chunk translation queries
+// were pure repetition.
+func TestTranslationPreloaderIncremental(t *testing.T) {
+	seedPreloaderAnimal(t, 985061)
+	animals := loadPreloaderAnimals(t, "animals.id = ?", 985061)
+	require.Equal(t, 1, len(*animals))
+
+	pre := newTranslationPreloader()
+	pre.ensure(models.DB, animals) // chunk 1: loads everything
+
+	var mu sync.Mutex
+	selectCount := 0
+	prevDebug := pop.Debug
+	pop.Debug = true
+	pop.SetTxLogger(func(level logging.Level, anon interface{}, s string, args ...interface{}) {
+		if level != logging.SQL {
+			return
+		}
+		mu.Lock()
+		defer mu.Unlock()
+		if strings.Contains(strings.ToUpper(s), "SELECT") {
+			selectCount++
+		}
+	})
+	defer func() {
+		pop.Debug = prevDebug
+		pop.SetTxLogger(func(level logging.Level, anon interface{}, s string, args ...interface{}) {
+			if !pop.Debug && level <= logging.Debug {
+				return
+			}
+			if level == logging.SQL {
+				stdlog.Printf("[POP] sql - %s", s)
+				return
+			}
+			stdlog.Printf("[POP] "+s, args...)
+		})
+	}()
+
+	pre.ensure(models.DB, animals) // chunk 2 with identical references
+	pre.ensure(models.DB, animals) // chunk 3, same
+
+	mu.Lock()
+	count := selectCount
+	mu.Unlock()
+	assert.Equal(t, 0, count, "repeated ensure() with already-covered references must issue no queries")
+
+	// Values must still resolve exactly like a freshly built preloader.
+	fresh := newLoadedTranslationPreloader(models.DB, animals)
+	animal := &(*animals)[0]
+	payload := buildEventPayloadInto(models.DB, pre, animal)
+	freshPayload := buildEventPayloadInto(models.DB, fresh, animal)
+	require.NotNil(t, payload)
+	payload.Timestamp = ""
+	freshPayload.Timestamp = ""
+	assert.Equal(t, freshPayload, payload)
 }
 
 // TestRunResyncQueryCountBounded is the regression test for the N+1 flood:
@@ -332,8 +392,8 @@ func TestComputeSyncStatusQueryCountBounded(t *testing.T) {
 // graphs must be identical, or resync/sync-status checksums would diverge
 // from the events already delivered.
 func TestResyncChunkLoaderEquivalence(t *testing.T) {
-	seedPreloaderAnimal(t, 988001)          // full association graph incl. outtake
-	seedSyncStatusFixture(t)                // 985100-985103: in_care, no outtake
+	seedPreloaderAnimal(t, 988001) // full association graph incl. outtake
+	seedSyncStatusFixture(t)       // 985100-985103: in_care, no outtake
 	ids := []int{988001, 985100, 985101, 985102, 985103}
 
 	chunked := map[int]*models.Animal{}
@@ -367,8 +427,8 @@ func TestResyncChunkLoaderEquivalence(t *testing.T) {
 		chunkAnimal := chunked[id]
 		// Normalize non-payload noise: pop sets no CreatedAt/UpdatedAt layout
 		// differences here, but the payload Timestamp always differs.
-		preRef := newTranslationPreloader(models.DB, &models.Animals{*reference})
-		preChunk := newTranslationPreloader(models.DB, &models.Animals{*chunkAnimal})
+		preRef := newLoadedTranslationPreloader(models.DB, &models.Animals{*reference})
+		preChunk := newLoadedTranslationPreloader(models.DB, &models.Animals{*chunkAnimal})
 		pRef := buildEventPayloadInto(models.DB, preRef, reference)
 		pChunk := buildEventPayloadInto(models.DB, preChunk, chunkAnimal)
 		require.NotNil(t, pRef, "reference payload for animal %d", id)
