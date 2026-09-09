@@ -23,6 +23,8 @@
   translation: "Ring"
 - id: "animal.search.outtake_type"
   translation: "Ausgangsgrund"
+- id: "animal.search.no_outtake"
+  translation: "Kein Ausgang (noch in Pflege)"
 - id: "animal.search.apply"
   translation: "Suchen"
 - id: "animal.search.reset"

@@ -319,6 +319,22 @@ func TestAnimalSearchFilterOuttaketypeExcludesErrors(t *testing.T) {
 	idsMatch(t, ids)
 }
 
+func TestAnimalSearchFilterNoOuttake(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// only animalC has no outtake
+	ids := runSearch(t, tx, f, animalSearchParams{OuttaketypeID: NoOuttakeFilterValue})
+	idsMatch(t, ids, f.animalC)
+
+	// AND-combined with year: animalC (2021) still matches, 2022 does not
+	ids = runSearch(t, tx, f, animalSearchParams{OuttaketypeID: NoOuttakeFilterValue, Year: "2021"})
+	idsMatch(t, ids, f.animalC)
+
+	ids = runSearch(t, tx, f, animalSearchParams{OuttaketypeID: NoOuttakeFilterValue, Year: "2022"})
+	idsMatch(t, ids)
+}
+
 func TestAnimalSearchFiltersANDCombined(t *testing.T) {
 	tx := searchTestDB(t)
 	f := createAnimalSearchFixtures(t, tx)

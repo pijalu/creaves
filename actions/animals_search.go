@@ -41,6 +41,10 @@ func (p animalSearchParams) Any() bool {
 		p.OuttaketypeID != ""
 }
 
+// NoOuttakeFilterValue is the special outtaketype_id filter value meaning
+// "animals without any outtake" (still in care).
+const NoOuttakeFilterValue = "none"
+
 // applyAnimalSearchFilters adds WHERE clauses for each non-empty filter.
 // Subquery style is used for related-table filters (entry cause, outtake
 // type) to avoid JOIN + DISTINCT row duplication. Outtakes whose type is
@@ -68,7 +72,9 @@ func applyAnimalSearchFilters(tx *pop.Connection, lang string, q *pop.Query, p a
 	if p.Ring != "" {
 		q = q.Where("animals.ring LIKE ?", "%"+p.Ring+"%")
 	}
-	if p.OuttaketypeID != "" {
+	if p.OuttaketypeID == NoOuttakeFilterValue {
+		q = q.Where("animals.outtake_id IS NULL")
+	} else if p.OuttaketypeID != "" {
 		q = q.Where(`animals.outtake_id IN (
 			SELECT o.id FROM outtakes o
 			JOIN outtaketypes oo ON oo.id = o.outtaketype_id
@@ -165,7 +171,12 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 	if err != nil {
 		return err
 	}
-	otOpts := make([]searchOption, 0, len(*ot)+1)
+	otOpts := make([]searchOption, 0, len(*ot)+2)
+	otOpts = append(otOpts, searchOption{
+		Value:    NoOuttakeFilterValue,
+		Label:    T.Translate(c, "animal.search.no_outtake"),
+		Selected: p.OuttaketypeID == NoOuttakeFilterValue,
+	})
 	for _, t := range *ot {
 		otOpts = append(otOpts, searchOption{
 			Value:    t.ID.String(),

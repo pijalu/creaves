@@ -22,6 +22,8 @@
   translation: "Ring"
 - id: "animal.search.outtake_type"
   translation: "Exit reason"
+- id: "animal.search.no_outtake"
+  translation: "No outtake (still in care)"
 - id: "animal.search.apply"
   translation: "Search"
 - id: "animal.search.reset"

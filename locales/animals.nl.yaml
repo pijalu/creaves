@@ -23,6 +23,8 @@
   translation: "Ring"
 - id: "animal.search.outtake_type"
   translation: "Reden van vertrek"
+- id: "animal.search.no_outtake"
+  translation: "Geen vertrek (nog in verzorging)"
 - id: "animal.search.apply"
   translation: "Zoeken"
 - id: "animal.search.reset"

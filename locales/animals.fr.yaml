@@ -22,6 +22,8 @@
   translation: "Bague"
 - id: "animal.search.outtake_type"
   translation: "Motif d'issue"
+- id: "animal.search.no_outtake"
+  translation: "Sans issue (encore en soins)"
 - id: "animal.search.apply"
   translation: "Rechercher"
 - id: "animal.search.reset"
