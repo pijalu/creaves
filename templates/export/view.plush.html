@@ -2,12 +2,28 @@
   <h3 class="d-inline-block"><a href="/export/view" title="Back to exports" class="mr-2"><i class="fas fa-arrow-left"></i></a> <%= query.Description %></h3>
 </div>
 
-<div class="text-right">
-  <a href="/export/csv?query=<%= query.Name %>" target="_new" title="Download as CSV"><i class="fas fa-cloud-download-alt"></i></a>
-</div>
+<style>
+/* Table-tools bar: sits directly above the table, aligned right,
+   wraps to the next line instead of overflowing on narrow screens. */
+.export-view-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-bottom: .5rem;
+}
+.export-view-toolbar input[type="search"] {
+  width: 12rem;
+  max-width: 100%;
+  border-radius: 2rem;
+}
+</style>
 
-<div class="mb-1">
-  <button type="button" id="toggleColumnFilters" class="btn btn-outline-secondary btn-sm" aria-pressed="false" title="Show/hide per-column filters"><i class="fas fa-filter"></i> Filters</button>
+<div class="export-view-toolbar" role="toolbar" aria-label="Table tools">
+  <button type="button" id="toggleColumnFilters" class="btn btn-outline-secondary btn-sm" aria-pressed="false" title="Show/hide per-column filters" data-toggle="tooltip" data-placement="bottom"><i class="fas fa-filter"></i></button>
+  <input type="search" id="exportGlobalSearch" class="form-control form-control-sm" placeholder="Search…" aria-label="Search all columns" title="Search all columns" data-toggle="tooltip" data-placement="bottom">
+  <a href="/export/csv?query=<%= query.Name %>" target="_new" class="btn btn-outline-secondary btn-sm" title="Download as CSV" data-toggle="tooltip" data-placement="bottom"><i class="fas fa-cloud-download-alt"></i></a>
 </div>
 
 <%# bugs.md datatable item: sort/filter/pagination are handled by DataTables
@@ -48,6 +64,9 @@ var table = $("#exportTable").DataTable({
     // Keep sorting on the title row: the second header row holds the
     // per-column filter inputs.
     orderCellsTop: true,
+    // Global search lives in the floating toolbar (#exportGlobalSearch):
+    // hide the built-in DataTables filter box (no "f" in dom).
+    dom: "lrtip",
     pageLength: 50,
     lengthMenu: [25, 50, 100, 250, 500]
 });
@@ -56,6 +75,12 @@ var table = $("#exportTable").DataTable({
 $("#exportTable thead tr.column-filters input.column-filter").on("keyup change", function () {
     table.column($(this).closest("th").index()).search(this.value).draw();
 });
+// Floating toolbar: global search across all columns.
+$("#exportGlobalSearch").on("keyup change", function () {
+    table.search(this.value).draw();
+});
+// Icon-only buttons get Bootstrap tooltips.
+$(".export-view-toolbar [data-toggle='tooltip']").tooltip();
 $("#toggleColumnFilters").on("click", function () {
     var row = $("#exportTable thead tr.column-filters");
     var show = !row.is(":visible");
