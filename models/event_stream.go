@@ -86,6 +86,15 @@ type DiscoveryPayload struct {
 	Note             string `json:"note,omitempty"`
 	ReturnHabitat    bool   `json:"return_habitat,omitempty"`
 	InGarden         bool   `json:"in_garden,omitempty"`
+	// Resolved locality reference data (localities table, joined on
+	// city = locality) for the stat_communes export hierarchy. Empty when
+	// the city is unknown to the reference table.
+	LocalityCommune      string `json:"locality_commune,omitempty"`
+	LocalityProvince     string `json:"locality_province,omitempty"`
+	LocalityRegion       string `json:"locality_region,omitempty"`
+	LocalityCountry      string `json:"locality_country,omitempty"`
+	LocalityCantonnement string `json:"locality_cantonnement,omitempty"`
+	LocalityDirection    string `json:"locality_direction,omitempty"`
 	// Discoverer information
 	DiscovererFirstname  string `json:"discoverer_firstname,omitempty"`
 	DiscovererLastname   string `json:"discoverer_lastname,omitempty"`

@@ -81,6 +81,9 @@ func loadPayloadTranslations(tx *pop.Connection, animal *models.Animal, payload 
 type translationPreloader struct {
 	// species maps animals.species (creaves_species) -> reference row.
 	species map[string]*models.Species
+	// localities maps discoveries.city -> localities reference row (same
+	// join as the stat_communes export: d.city = locality).
+	localities map[string]*models.Locality
 	// values maps locale -> "table|field" -> record_id -> translated value.
 	values map[string]map[string]map[string]string
 }
@@ -91,8 +94,9 @@ type translationPreloader struct {
 // same leniency as the per-animal path.
 func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *translationPreloader {
 	p := &translationPreloader{
-		species: map[string]*models.Species{},
-		values:  map[string]map[string]map[string]string{},
+		species:    map[string]*models.Species{},
+		localities: map[string]*models.Locality{},
+		values:     map[string]map[string]map[string]string{},
 	}
 
 	// Species reference rows: one unfiltered query for the whole run (the
@@ -112,6 +116,27 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 				s := &species[i]
 				if speciesNames[s.CreavesSpecies] {
 					p.species[s.CreavesSpecies] = s
+				}
+			}
+		}
+	}
+
+	// Locality reference rows: one unfiltered scan for the whole run (the
+	// table is small), keyed by the `locality` column the stat_communes
+	// export joins discoveries.city on.
+	cityNames := map[string]bool{}
+	for i := range *animals {
+		if c := (*animals)[i].Discovery.City; c.Valid && c.String != "" {
+			cityNames[c.String] = true
+		}
+	}
+	if len(cityNames) > 0 {
+		localities := []models.Locality{}
+		if err := tx.RawQuery("SELECT id, country, region, province, municipality, sub_municipality, postal_code, locality, zoning, direction, created_at, updated_at FROM localities").All(&localities); err == nil {
+			for i := range localities {
+				l := &localities[i]
+				if cityNames[l.Locality] {
+					p.localities[l.Locality] = l
 				}
 			}
 		}
@@ -178,6 +203,13 @@ func newTranslationPreloader(tx *pop.Connection, animals *models.Animals) *trans
 // per-animal path's failed First()).
 func (p *translationPreloader) speciesFor(creavesName string) *models.Species {
 	return p.species[creavesName]
+}
+
+// localityFor returns the localities reference row matching a discovery city
+// (join key of the stat_communes export), or nil when unknown — payload
+// locality fields stay empty, mirroring the export's LEFT JOIN.
+func (p *translationPreloader) localityFor(city string) *models.Locality {
+	return p.localities[city]
 }
 
 // translation returns the translated value for one field of one record, or ""

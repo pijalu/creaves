@@ -591,6 +591,66 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 	}
 }
 
+func TestBuildEventPayload_LocalityResolution(t *testing.T) {
+	locID := "T-LOC-bug9"
+	models.DB.RawQuery("DELETE FROM localities WHERE id = ?", locID).Exec()
+	loc := &models.Locality{
+		ID: locID, Country: "Belgique", Region: "Wallonie", Province: "BRABANT WALLON",
+		Municipality: "T-COMMUNE", Locality: "T-Ville-Bug9", PostalCode: "9999",
+		Zoning: "T-CANTONNEMENT", Direction: "T-DIRECTION",
+	}
+	if err := models.DB.Create(loc); err != nil {
+		t.Fatalf("create locality: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM localities WHERE id = ?", locID).Exec()
+
+	animal := &models.Animal{
+		ID:      506,
+		Species: "SP-T-loc",
+		Discovery: models.Discovery{
+			ID:   uuid.Must(uuid.NewV4()),
+			City: nulls.NewString("T-Ville-Bug9"),
+		},
+	}
+
+	payload := buildEventPayloadWithTranslations(models.DB, animal)
+
+	if payload.Discovery.LocalityCommune != "T-COMMUNE" {
+		t.Errorf("locality_commune = %q, want T-COMMUNE", payload.Discovery.LocalityCommune)
+	}
+	if payload.Discovery.LocalityProvince != "BRABANT WALLON" {
+		t.Errorf("locality_province = %q", payload.Discovery.LocalityProvince)
+	}
+	if payload.Discovery.LocalityRegion != "Wallonie" {
+		t.Errorf("locality_region = %q", payload.Discovery.LocalityRegion)
+	}
+	if payload.Discovery.LocalityCountry != "Belgique" {
+		t.Errorf("locality_country = %q", payload.Discovery.LocalityCountry)
+	}
+	if payload.Discovery.LocalityCantonnement != "T-CANTONNEMENT" {
+		t.Errorf("locality_cantonnement = %q", payload.Discovery.LocalityCantonnement)
+	}
+	if payload.Discovery.LocalityDirection != "T-DIRECTION" {
+		t.Errorf("locality_direction = %q", payload.Discovery.LocalityDirection)
+	}
+
+	// Unknown city → all locality fields stay empty (export LEFT JOIN → NULL).
+	unknown := &models.Animal{
+		ID:      507,
+		Species: "SP-T-loc",
+		Discovery: models.Discovery{
+			ID:   uuid.Must(uuid.NewV4()),
+			City: nulls.NewString("T-Ville-Inconnue-Bug9"),
+		},
+	}
+	p2 := buildEventPayloadWithTranslations(models.DB, unknown)
+	if p2.Discovery.LocalityCommune != "" || p2.Discovery.LocalityProvince != "" ||
+		p2.Discovery.LocalityRegion != "" || p2.Discovery.LocalityCountry != "" ||
+		p2.Discovery.LocalityCantonnement != "" || p2.Discovery.LocalityDirection != "" {
+		t.Errorf("locality fields = %+v, want all empty for unknown city", p2.Discovery)
+	}
+}
+
 func TestBuildEventPayload_UnknownSpeciesTolerated(t *testing.T) {
 	models.DB.RawQuery("DELETE FROM species WHERE creaves_species = ?", "SP-T51-unknown").Exec()
 	animal := &models.Animal{ID: 505, Species: "SP-T51-unknown"}

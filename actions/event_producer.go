@@ -194,6 +194,28 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 		}
 		if animal.Discovery.City.Valid {
 			payload.Discovery.City = animal.Discovery.City.String
+			// Resolved locality reference (same join as the stat_communes
+			// export: d.city = locality). Unknown city → fields stay empty,
+			// mirroring the export's LEFT JOIN producing NULL columns.
+			var loc *models.Locality
+			if tx != nil && animal.Discovery.City.String != "" {
+				if pre != nil {
+					loc = pre.localityFor(animal.Discovery.City.String)
+				} else {
+					l := &models.Locality{}
+					if err := tx.Where("locality = ?", animal.Discovery.City.String).First(l); err == nil {
+						loc = l
+					}
+				}
+			}
+			if loc != nil {
+				payload.Discovery.LocalityCommune = loc.Municipality
+				payload.Discovery.LocalityProvince = loc.Province
+				payload.Discovery.LocalityRegion = loc.Region
+				payload.Discovery.LocalityCountry = loc.Country
+				payload.Discovery.LocalityCantonnement = loc.Zoning
+				payload.Discovery.LocalityDirection = loc.Direction
+			}
 		}
 		if !animal.Discovery.Date.IsZero() {
 			payload.Discovery.Date = animal.Discovery.Date.Format(models.DateTimeFormat)
