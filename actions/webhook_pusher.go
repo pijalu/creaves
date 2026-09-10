@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/events"
+	"github.com/gofrs/uuid"
 )
 
 // CircuitBreaker implements a simple circuit breaker pattern
@@ -356,22 +358,56 @@ func applyConfirmations(events *models.EventStreams, accepted map[string]bool, c
 	for i := range *events {
 		batchByID[(*events)[i].ID.String()] = &(*events)[i]
 	}
-	acknowledged := 0
+	acknowledgeIDs := make([]uuid.UUID, 0, len(confirmed))
 	for _, conf := range confirmed {
 		event, ok := batchByID[conf.ID]
 		if !ok || !accepted[conf.ID] || event.ContentHash == nil ||
 			*event.ContentHash == "" || *event.ContentHash != conf.StateHash {
 			continue
 		}
-		ack := now
-		event.AcknowledgedAt = &ack
-		if err := models.DB.Update(event); err != nil {
-			fmt.Printf("Failed to acknowledge event %s: %v\n", event.ID, err)
-			continue
-		}
-		acknowledged++
+		acknowledgeIDs = append(acknowledgeIDs, event.ID)
 	}
-	return acknowledged
+	if len(acknowledgeIDs) == 0 {
+		return 0
+	}
+	if err := updateEventAcknowledgements(acknowledgeIDs, now); err != nil {
+		fmt.Printf("Failed to acknowledge %d events: %v\n", len(acknowledgeIDs), err)
+		return 0
+	}
+	for _, id := range acknowledgeIDs {
+		if event, ok := batchByID[id.String()]; ok {
+			ack := now
+			event.AcknowledgedAt = &ack
+		}
+	}
+	return len(acknowledgeIDs)
+}
+
+// updateEventAcknowledgements updates only acknowledgement bookkeeping for a
+// validated set of events. IDs are parameterized; the column names are fixed
+// in this function, not caller-controlled.
+func updateEventAcknowledgements(ids []uuid.UUID, now time.Time) error {
+	return updateEventTimestamp("acknowledged_at", ids, now)
+}
+
+// updateEventTimestamp performs one narrow bulk update instead of Pop.Update,
+// which serializes every EventStream field into an UPDATE statement.
+func updateEventTimestamp(column string, ids []uuid.UUID, now time.Time) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(ids)), ",")
+	args := make([]interface{}, 0, len(ids)+2)
+	args = append(args, now, now)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	query := fmt.Sprintf("UPDATE event_streams SET %s = ?, updated_at = ? WHERE id IN (%s)", column, placeholders)
+	return models.DB.RawQuery(query, args...).Exec()
+}
+
+func updateEventDeliveries(ids []uuid.UUID, now time.Time) error {
+	return updateEventTimestamp("delivered_at", ids, now)
 }
 
 // webhookEvent is the wire representation of one lifecycle event in the
@@ -526,18 +562,26 @@ func deliverBatch() (int, error) {
 
 	// Mark accepted events as delivered; leave the rest for retry.
 	now := time.Now()
-	delivered := 0
+	deliveredIDs := make([]uuid.UUID, 0, len(*events))
 	for i := range *events {
 		event := &(*events)[i]
-		if !accepted[event.ID.String()] {
-			continue
+		if accepted[event.ID.String()] {
+			deliveredIDs = append(deliveredIDs, event.ID)
 		}
-		event.DeliveredAt = &now
-		if err := models.DB.Update(event); err != nil {
-			fmt.Printf("Failed to mark event %s as delivered: %v\n", event.ID, err)
-			continue
+	}
+	delivered := 0
+	if err := updateEventDeliveries(deliveredIDs, now); err != nil {
+		fmt.Printf("Failed to mark %d events as delivered: %v\n", len(deliveredIDs), err)
+	} else {
+		delivered = len(deliveredIDs)
+		for _, id := range deliveredIDs {
+			for i := range *events {
+				if (*events)[i].ID == id {
+					(*events)[i].DeliveredAt = &now
+					break
+				}
+			}
 		}
-		delivered++
 	}
 
 	acknowledged := applyConfirmations(events, accepted, result.Confirmed, now)
