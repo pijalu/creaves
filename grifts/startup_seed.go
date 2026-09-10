@@ -3,7 +3,6 @@ package grifts
 import (
 	"bytes"
 	"compress/gzip"
-	"database/sql"
 	"embed"
 	"fmt"
 	"regexp"
@@ -154,11 +153,11 @@ func seedStartup(c *grift.Context) error {
 				fmt.Printf("%s: no model registered, skipping\n", table)
 				continue
 			}
-			cnt, err := tx.Q().Count(model)
-			if err != nil {
-				return errors.WithStack(err)
-			}
 			if _, known := startupTableColumns[table]; !known {
+				cnt, err := tx.Q().Count(model)
+				if err != nil {
+					return errors.WithStack(err)
+				}
 				// Unknown extra table: legacy behavior — seed only when empty.
 				if cnt > 0 {
 					fmt.Printf("%s: %d rows, skipping\n", table, cnt)
@@ -216,17 +215,23 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 	columns := startupTableColumns[table]
 	nameField := startupNameField[table]
 
-	// Existing rows for name matching: id -> canonical name.
+	// Cache existing ids and names once; per-row COUNT queries are prohibitively
+	// expensive for the large embedded dump and provide no additional state.
+	existingIDs := map[string]bool{}
 	existingNames := map[string]string{}
+	var rows []trRow
+	query := "SELECT `id`"
 	if nameField != "" {
-		var rows []trRow
-		if err := tx.Store.Select(&rows, "SELECT `id`, `"+nameField+"` AS `value` FROM `"+table+"`"); err != nil {
-			return nil, errors.WithStack(err)
-		}
-		for _, row := range rows {
-			if row.Value.Valid {
-				existingNames[row.ID] = row.Value.String
-			}
+		query += ", `" + nameField + "` AS `value`"
+	}
+	query += " FROM `" + table + "`"
+	if err := tx.Store.Select(&rows, query); err != nil {
+		return nil, errors.WithStack(err)
+	}
+	for _, row := range rows {
+		existingIDs[row.ID] = true
+		if row.Value.Valid {
+			existingNames[row.ID] = row.Value.String
 		}
 	}
 
@@ -260,11 +265,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 				return nil, fmt.Errorf("%s: dump tuple %d has empty id", table, j)
 			}
 			raw := tuples[i][j]
-			cnt, err := tx.Where("id = ?", id).Count(startupModels[table])
-			if err != nil {
-				return nil, errors.WithStack(err)
-			}
-			if cnt > 0 {
+			if existingIDs[id] {
 				// Id exists. When the table has a canonical name, decide by
 				// name: identical (normalized) name -> keep the existing row
 				// (identity mapping); different name -> the dump id is taken
@@ -288,6 +289,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 							return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s (renamed %s)", table, newID, id))
 						}
 						existingNames[newID] = row[nameField]
+						existingIDs[newID] = true
 						if n := normKey(row[nameField]); n != "" {
 							normIndex[n] = newID
 						}
@@ -329,6 +331,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 			}
 			if nameField != "" {
 				existingNames[id] = row[nameField]
+				existingIDs[id] = true
 				if n := normKey(row[nameField]); n != "" {
 					normIndex[n] = id
 				}
@@ -551,39 +554,68 @@ func applyTranslationFiles(tx *pop.Connection, mapping map[string]map[string]str
 // from the base column (e.g. corrupted escaping in earlier artifacts) are
 // corrected — fr is a generated mirror of the canonical column, not
 // administrator-managed content.
+const startupTranslationBatchSize = 100
+
 func seedFrTranslations(tx *pop.Connection, table string, fields []string) error {
-	n, fixed := 0, 0
+	// Load all existing French rows once, then reconcile in memory. This keeps
+	// idempotency and generated-value correction semantics without one lookup per
+	// source row.
+	var existingRows []models.Translation
+	if err := tx.Where("table_name = ? AND locale = ?", table, "fr").All(&existingRows); err != nil {
+		return errors.WithStack(err)
+	}
+	source := make(map[string][]trRow, len(fields))
 	for _, field := range fields {
 		var rows []trRow
 		if err := tx.Store.Select(&rows, "SELECT `id`, `"+field+"` AS `value` FROM `"+table+"`"); err != nil {
 			return errors.WithStack(err)
 		}
-		for _, row := range rows {
-			if !row.Value.Valid || row.Value.String == "" {
-				continue
-			}
-			var existing models.Translation
-			err := tx.Where("table_name = ? AND record_id = ? AND field = ? AND locale = ?", table, row.ID, field, "fr").First(&existing)
-			if err == nil {
-				if existing.Value != row.Value.String {
-					existing.Value = row.Value.String
-					if err := tx.Update(&existing); err != nil {
-						return errors.WithStack(err)
-					}
-					fixed++
-				}
-				continue
-			}
-			if !errors.Is(err, sql.ErrNoRows) {
-				return errors.WithStack(err)
-			}
-			if err := tx.Create(&models.Translation{TableName: table, RecordID: row.ID, Field: field, Locale: "fr", Value: row.Value.String}); err != nil {
-				return errors.WithStack(err)
-			}
-			n++
+		source[field] = rows
+	}
+	inserts, updates := reconcileFrTranslations(table, fields, existingRows, source)
+
+	// Batch INSERTs; unique key remains the final idempotency guard.
+	for start := 0; start < len(inserts); start += startupTranslationBatchSize {
+		end := start + startupTranslationBatchSize
+		if end > len(inserts) {
+			end = len(inserts)
+		}
+		args := make([]interface{}, 0, (end-start)*6)
+		clause := make([]string, 0, end-start)
+		for _, row := range inserts[start:end] {
+			clause = append(clause, "(?,?,?,?,?,?,NOW(),NOW())")
+			args = append(args, row.ID.String(), row.TableName, row.RecordID, row.Field, row.Locale, row.Value)
+		}
+		q := "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES " + strings.Join(clause, ",") + " ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()"
+		if err := tx.RawQuery(q, args...).Exec(); err != nil {
+			return errors.WithStack(err)
 		}
 	}
-	fmt.Printf("translations %s[fr]: seeded %d rows, corrected %d\n", table, n, fixed)
+	// Corrections intentionally update only rows identified by their existing
+	// primary key, preserving any administrator-created conflicting row.
+	for start := 0; start < len(updates); start += startupTranslationBatchSize {
+		end := start + startupTranslationBatchSize
+		if end > len(updates) {
+			end = len(updates)
+		}
+		args := make([]interface{}, 0, (end-start)*3)
+		cases := make([]string, 0, end-start)
+		placeholders := make([]string, 0, end-start)
+		ids := make([]string, 0, end-start)
+		for _, row := range updates[start:end] {
+			id := row.ID.String()
+			cases = append(cases, "WHEN ? THEN ?")
+			args = append(args, id, row.Value)
+			placeholders = append(placeholders, "?")
+			ids = append(ids, id)
+		}
+		args = append(args, idsToInterfaces(ids)...)
+		q := "UPDATE translations SET value = CASE id " + strings.Join(cases, " ") + " END, updated_at = NOW() WHERE id IN (" + strings.Join(placeholders, ",") + ")"
+		if err := tx.RawQuery(q, args...).Exec(); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	fmt.Printf("translations %s[fr]: seeded %d rows, corrected %d\n", table, len(inserts), len(updates))
 	return nil
 }
 
@@ -592,6 +624,43 @@ func seedFrTranslations(tx *pop.Connection, table string, fields []string) error
 type trRow struct {
 	ID    string       `db:"id"`
 	Value nulls.String `db:"value"`
+}
+
+// frTranslationKey identifies one generated French mirror row.
+type frTranslationKey struct{ record, field string }
+
+func reconcileFrTranslations(table string, fields []string, existingRows []models.Translation, source map[string][]trRow) (inserts, updates []models.Translation) {
+	existing := make(map[frTranslationKey]models.Translation, len(existingRows))
+	for _, row := range existingRows {
+		existing[frTranslationKey{row.RecordID, row.Field}] = row
+	}
+	for _, field := range fields {
+		for _, row := range source[field] {
+			if !row.Value.Valid || row.Value.String == "" {
+				continue
+			}
+			key := frTranslationKey{row.ID, field}
+			if current, ok := existing[key]; ok {
+				if current.Value != row.Value.String {
+					current.Value = row.Value.String
+					updates = append(updates, current)
+				}
+				continue
+			}
+			newRow := models.Translation{ID: uuid.Must(uuid.NewV4()), TableName: table, RecordID: row.ID, Field: field, Locale: "fr", Value: row.Value.String}
+			existing[key] = newRow
+			inserts = append(inserts, newRow)
+		}
+	}
+	return inserts, updates
+}
+
+func idsToInterfaces(ids []string) []interface{} {
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	return args
 }
 
 var _ = grift.Namespace("db", func() {

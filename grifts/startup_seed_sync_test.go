@@ -6,7 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"creaves/models"
 	"creaves/utils"
+
+	"github.com/gobuffalo/nulls"
 
 	"github.com/gofrs/uuid"
 )
@@ -79,6 +82,23 @@ func TestMatchRefName(t *testing.T) {
 	// Empty input -> no match.
 	if got := matchRefName(index, used, ""); got != "" {
 		t.Errorf("empty norm must not match, got %q", got)
+	}
+}
+
+func TestReconcileFrTranslationsPreservesIdempotencyAndCorrections(t *testing.T) {
+	oldID := uuid.Must(uuid.FromString("11111111-1111-1111-1111-111111111111"))
+	existing := []models.Translation{{ID: oldID, TableName: "animaltypes", RecordID: "r1", Field: "name", Locale: "fr", Value: "Ancien"}}
+	source := map[string][]trRow{"name": {{ID: "r1", Value: nulls.String{String: "Nouveau", Valid: true}}, {ID: "r2", Value: nulls.String{String: "Nouveau 2", Valid: true}}, {ID: "r3", Value: nulls.String{String: "", Valid: false}}}}
+	inserts, updates := reconcileFrTranslations("animaltypes", []string{"name"}, existing, source)
+	if len(inserts) != 1 || inserts[0].RecordID != "r2" {
+		t.Fatalf("inserts = %#v", inserts)
+	}
+	if len(updates) != 1 || updates[0].ID != oldID || updates[0].Value != "Nouveau" {
+		t.Fatalf("updates = %#v", updates)
+	}
+	inserts, updates = reconcileFrTranslations("animaltypes", []string{"name"}, append(existing, inserts...), source)
+	if len(inserts) != 0 || len(updates) != 1 {
+		t.Fatalf("second reconciliation: inserts=%d updates=%d", len(inserts), len(updates))
 	}
 }
 

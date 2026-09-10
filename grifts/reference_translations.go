@@ -301,7 +301,9 @@ func applyReferenceTranslations(c *pop.Connection) error {
 }
 
 // applyRefTableTranslations applies one table's translations; records are
-// keyed by record ID (zones resolve their UUID beforehand).
+// keyed by record ID (zones resolve their UUID beforehand). Existing canonical
+// rows and translations are loaded once per table, then missing rows are
+// inserted in bounded batches to avoid per-row startup round trips.
 func applyRefTableTranslations(c *pop.Connection, table string, records map[string]refFieldTr) error {
 	loadCanon, ok := refCanonicalLoaders[table]
 	if !ok {
@@ -363,9 +365,23 @@ func applyRefTableTranslations(c *pop.Connection, table string, records map[stri
 			}
 		}
 	}
-	for i := range missing {
-		if err := c.Create(&missing[i]); err != nil {
-			return fmt.Errorf("failed inserting translation %s/%s/%s/%s: %w", missing[i].TableName, missing[i].RecordID, missing[i].Field, missing[i].Locale, err)
+	// Insert in bounded batches: startup seeding can otherwise issue one
+	// round-trip per translation row. Existing-key checks above preserve the
+	// seed's add-only and stale-ID semantics.
+	for start := 0; start < len(missing); start += 100 {
+		end := start + 100
+		if end > len(missing) {
+			end = len(missing)
+		}
+		args := make([]interface{}, 0, (end-start)*8)
+		values := make([]string, 0, end-start)
+		for _, row := range missing[start:end] {
+			values = append(values, "(?,?,?,?,?,?,?,?)")
+			args = append(args, row.ID.String(), row.TableName, row.RecordID, row.Field, row.Locale, row.Value, row.CreatedAt, row.UpdatedAt)
+		}
+		q := "INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES " + strings.Join(values, ",")
+		if err := c.RawQuery(q, args...).Exec(); err != nil {
+			return fmt.Errorf("failed inserting translations for %s: %w", table, err)
 		}
 	}
 	if len(missing) > 0 {
