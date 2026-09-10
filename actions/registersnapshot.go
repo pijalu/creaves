@@ -52,7 +52,7 @@ func RegistersnapshotIndexCSV(c buffalo.Context) error {
 	}
 
 	// Preload required for "list"
-	if _, err := EnrichAnimals(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
 		return err
 	}
 
@@ -110,7 +110,7 @@ func RegistersnapshotIndex(c buffalo.Context) error {
 	}
 
 	// Preload required for "list"
-	if _, err := EnrichAnimals(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
 		return err
 	}
 
