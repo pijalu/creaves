@@ -47,97 +47,149 @@ func snapshotWorker() {
 	}
 }
 
-// runSnapshotTask creates events for all animals asynchronously
+// runSnapshotTask creates events for all animals asynchronously.
+//
+// Batched: the set of animals that already have events is pre-fetched once
+// (instead of one EXISTS query per animal), animals are walked in id-keyset
+// chunks without eager preloading (Publish*Event re-reads each animal with
+// the associations it needs itself — see reloadAnimalForEvent), and the
+// outtake dead/released classification is resolved with one eager batch
+// query per chunk instead of per-animal Find+Load round trips.
 func runSnapshotTask(task *SnapshotTaskStatus) {
+	const chunkSize = 500
+
 	task.Status = "running"
 
 	// Use the existing DB connection - it's safe for background goroutines
 	tx := models.DB
 
+	fail := func(msg string) {
+		task.Status = "failed"
+		task.Message = msg
+		task.CompletedAt = time.Now()
+	}
+
 	// Load config
 	if CurrentConfig == nil {
 		if _, err := LoadConfig(tx); err != nil {
-			task.Status = "failed"
-			task.Message = fmt.Sprintf("Failed to load config: %v", err)
-			task.CompletedAt = time.Now()
+			fail(fmt.Sprintf("Failed to load config: %v", err))
 			return
 		}
 	}
 
 	if !IsEventStreamEnabled() {
-		task.Status = "failed"
-		task.Message = "Event stream is disabled. Enable it in Configuration."
-		task.CompletedAt = time.Now()
+		fail("Event stream is disabled. Enable it in Configuration.")
 		return
 	}
 
-	// Get all animals
-	animals := &models.Animals{}
-	if err := tx.Eager().All(animals); err != nil {
-		task.Status = "failed"
-		task.Message = fmt.Sprintf("Failed to load animals: %v", err)
-		task.CompletedAt = time.Now()
+	// Pre-fetch every animal that already has any event for this instance:
+	// one query replaces one EXISTS query per animal.
+	hasEvent := map[int]bool{}
+	type eventAnimalRow struct {
+		AnimalID int `db:"animal_id"`
+	}
+	eventAnimals := []eventAnimalRow{}
+	if err := tx.RawQuery(
+		"SELECT DISTINCT animal_id FROM event_streams WHERE instance_id = ?", GetInstanceID(),
+	).All(&eventAnimals); err != nil {
+		fail(fmt.Sprintf("Failed to load existing event animals: %v", err))
 		return
+	}
+	for _, r := range eventAnimals {
+		hasEvent[r.AnimalID] = true
+	}
+
+	var total int
+	if err := tx.RawQuery("SELECT COUNT(*) FROM animals").First(&total); err != nil {
+		// Non-fatal: progress messages just show absolute counts.
+		total = 0
 	}
 
 	created := 0
 	skipped := 0
 	errors := 0
+	processed := 0
+	lastID := 0
 
-	for i, animal := range *animals {
-		if i%100 == 0 && i > 0 {
-			task.Processed = i
-			task.Message = fmt.Sprintf("Processing %d/%d animals...", i, len(*animals))
+	for {
+		animals := &models.Animals{}
+		if err := tx.Where("id > ?", lastID).Order("id asc").Limit(chunkSize).All(animals); err != nil {
+			fail(fmt.Sprintf("Failed to load animals: %v", err))
+			return
+		}
+		if len(*animals) == 0 {
+			break
+		}
+		lastID = (*animals)[len(*animals)-1].ID
+
+		// Batch-load the outtakes (with their types) referenced by this
+		// chunk: two queries per chunk instead of two per animal.
+		outtakeIDs := make([]uuid.UUID, 0, len(*animals))
+		for i := range *animals {
+			if (*animals)[i].OuttakeID.Valid {
+				outtakeIDs = append(outtakeIDs, (*animals)[i].OuttakeID.UUID)
+			}
+		}
+		outtakes := map[uuid.UUID]*models.Outtake{}
+		if len(outtakeIDs) > 0 {
+			var ots models.Outtakes
+			if err := tx.Eager("Type").Where("id IN (?)", outtakeIDs).All(&ots); err != nil {
+				fail(fmt.Sprintf("Failed to load outtakes: %v", err))
+				return
+			}
+			for i := range ots {
+				outtakes[ots[i].ID] = &ots[i]
+			}
 		}
 
-		// Check if events already exist
-		exists, err := tx.Where("animal_id = ? AND instance_id = ?", animal.ID, GetInstanceID()).
-			Exists(&models.EventStream{})
-		if err != nil {
-			errors++
-			continue
-		}
+		for i := range *animals {
+			animal := &(*animals)[i]
+			processed++
+			if processed%100 == 0 {
+				task.Processed = processed
+				if total > 0 {
+					task.Message = fmt.Sprintf("Processing %d/%d animals...", processed, total)
+				} else {
+					task.Message = fmt.Sprintf("Processing %d animals...", processed)
+				}
+			}
 
-		if exists {
-			skipped++
-			continue
-		}
+			if hasEvent[animal.ID] {
+				skipped++
+				continue
+			}
 
-		// Create discovery event
-		if err := PublishAnimalDiscoveredEvent(tx, &animal, nil); err != nil {
-			errors++
-			continue
-		}
-
-		// If animal has outtake, create appropriate outtake event
-		if animal.OuttakeID.Valid {
-			outtake := &models.Outtake{}
-			if err := tx.Find(outtake, animal.OuttakeID); err != nil {
+			// Create discovery event (re-reads the animal with full
+			// associations itself).
+			if err := PublishAnimalDiscoveredEvent(tx, animal, nil); err != nil {
 				errors++
 				continue
 			}
 
-			if outtake.Type.ID != uuid.Nil {
-				if err := tx.Load(outtake, "Type"); err != nil {
+			// If animal has outtake, create appropriate outtake event.
+			// Missing type behaves like the original Find/Load path: it
+			// falls through to the released classification.
+			if animal.OuttakeID.Valid {
+				outtake := outtakes[animal.OuttakeID.UUID]
+				if outtake == nil {
 					errors++
 					continue
+				}
+				if outtake.Type.Dead {
+					if err := PublishAnimalDiedEvent(tx, animal, nil); err != nil {
+						errors++
+						continue
+					}
+				} else {
+					if err := PublishAnimalReleasedEvent(tx, animal, nil); err != nil {
+						errors++
+						continue
+					}
 				}
 			}
 
-			if outtake.Type.Dead {
-				if err := PublishAnimalDiedEvent(tx, &animal, nil); err != nil {
-					errors++
-					continue
-				}
-			} else {
-				if err := PublishAnimalReleasedEvent(tx, &animal, nil); err != nil {
-					errors++
-					continue
-				}
-			}
+			created++
 		}
-
-		created++
 	}
 
 	task.Status = "completed"
