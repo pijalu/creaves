@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 )
 
 // Global cache for weight loss data
@@ -14,6 +15,13 @@ var (
 	cacheLastUpdate     time.Time
 	cacheUpdateInterval = 12 * time.Hour // Update cache every 12 hours
 )
+
+// weightAffectsLossCache reports whether a care change can alter weight-loss results.
+// Both sides matter on update: clearing a previous weight must invalidate cached data.
+func weightAffectsLossCache(oldWeight, newWeight nulls.String) bool {
+	return (oldWeight.Valid && len(oldWeight.String) > 0) ||
+		(newWeight.Valid && len(newWeight.String) > 0)
+}
 
 // Initialize the cache at startup
 func init() {

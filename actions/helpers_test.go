@@ -798,6 +798,33 @@ func TestInvalidateWeightLossCache(t *testing.T) {
 	}
 }
 
+func TestWeightAffectsLossCache(t *testing.T) {
+	empty := nulls.String{}
+	weighted := nulls.NewString("100")
+	blank := nulls.NewString("")
+
+	tests := []struct {
+		name string
+		old  nulls.String
+		new  nulls.String
+		want bool
+	}{
+		{name: "new weight", new: weighted, want: true},
+		{name: "removed weight", old: weighted, want: true},
+		{name: "replaced weight", old: weighted, new: weighted, want: true},
+		{name: "blank values", old: blank, new: blank, want: false},
+		{name: "empty values", old: empty, new: empty, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := weightAffectsLossCache(tt.old, tt.new); got != tt.want {
+				t.Fatalf("weightAffectsLossCache() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestInvalidateWeightLossCache_Idempotent(t *testing.T) {
 	// Calling invalidate on an already-zero cache should remain zero.
 	cacheMutex.Lock()

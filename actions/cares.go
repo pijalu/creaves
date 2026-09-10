@@ -353,8 +353,8 @@ func (v CaresResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	// Invalidate the weight loss cache if a weight was added/updated
-	if care.Weight.Valid && len(care.Weight.String) > 0 {
+	// Invalidate when a weighted care is created.
+	if weightAffectsLossCache(models.Care{}.Weight, care.Weight) {
 		InvalidateWeightLossCache()
 	}
 
@@ -457,8 +457,8 @@ func (v CaresResource) Update(c buffalo.Context) error {
 	// Audit log: care update (best effort)
 	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionUpdate, auditCareProjection(oldCare), auditCareProjection(*care))
 
-	// Invalidate the weight loss cache if a weight was added/updated
-	if care.Weight.Valid && len(care.Weight.String) > 0 {
+	// Invalidate when either old or new value is weighted; clearing a weight matters too.
+	if weightAffectsLossCache(oldCare.Weight, care.Weight) {
 		InvalidateWeightLossCache()
 	}
 
@@ -506,8 +506,8 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 	// Audit log: care deletion (best effort)
 	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionDelete, auditCareProjection(*care), nil)
 
-	// Invalidate the weight loss cache if a weight was removed
-	if care.Weight.Valid && len(care.Weight.String) > 0 {
+	// Invalidate when a weighted care is removed.
+	if weightAffectsLossCache(care.Weight, models.Care{}.Weight) {
 		InvalidateWeightLossCache()
 	}
 
