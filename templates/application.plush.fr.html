@@ -11,6 +11,10 @@
     
     <!-- App -->
     <%= javascriptTag("application.js") %>
+  <style>
+    /* Keep navigation labels visible when navbar collapses into hamburger menu. */
+    @media (max-width: 575.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+  </style>
   </head>
   <body>
 
@@ -33,7 +37,7 @@
         <%= if (current_user.Admin) {%>
         <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Administration">
-                  <i class="fas fa-cog"></i><span class="d-none d-xl-inline ml-1">Administration</span>
+                  <i class="fas fa-cog"></i><span class="nav-label d-none d-xl-inline ml-1">Administration</span>
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
           <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Médicaments</a>
@@ -62,7 +66,7 @@
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="reportDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Rapports">
-                      <i class="fas fa-chart-bar"></i><span class="d-none d-xl-inline ml-1">Rapports</span>
+                      <i class="fas fa-chart-bar"></i><span class="nav-label d-none d-xl-inline ml-1">Rapports</span>
                     </a>
           <div class="dropdown-menu" aria-labelledby="reportDropdown">
             <a class="dropdown-item" href="<%= registertablePath() %>"><i class="fas fa-table"></i> Registre</a>
@@ -77,29 +81,29 @@
 
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= dashboardPath() %>" title="Tableau de bord"><i class="fas fa-tachometer-alt"></i><span class="d-none d-xl-inline ml-1">Tableau de bord</span></a>
+          <a class="nav-link" href="<%= dashboardPath() %>" title="Tableau de bord"><i class="fas fa-tachometer-alt"></i><span class="nav-label d-none d-xl-inline ml-1">Tableau de bord</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= feedingPath() %>" title="Nourrissage"><i class="fas fa-utensils"></i><span class="d-none d-xl-inline ml-1">Nourrissage</span></a>
+          <a class="nav-link" href="<%= feedingPath() %>" title="Nourrissage"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Nourrissage</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= logentriesPath() %>" title="Journal de bord"><i class="fas fa-clipboard-list"></i><span class="d-none d-xl-inline ml-1">Journal de bord</span></a>
+          <a class="nav-link" href="<%= logentriesPath() %>" title="Journal de bord"><i class="fas fa-clipboard-list"></i><span class="nav-label d-none d-xl-inline ml-1">Journal de bord</span></a>
         </li>
 
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= animalsPath() %>" title="Animaux"><i class="fas fa-paw"></i><span class="d-none d-xl-inline ml-1">Animaux</span></a>
+          <a class="nav-link" href="<%= animalsPath() %>" title="Animaux"><i class="fas fa-paw"></i><span class="nav-label d-none d-xl-inline ml-1">Animaux</span></a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= newReceptionPath() %>" title="Entrée"><i class="fas fa-plus-circle"></i><span class="d-none d-xl-inline ml-1">Entrée</span></a>
+          <a class="nav-link" href="<%= newReceptionPath() %>" title="Entrée"><i class="fas fa-plus-circle"></i><span class="nav-label d-none d-xl-inline ml-1">Entrée</span></a>
         </li>
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Nouveau">
-                      <i class="fas fa-plus"></i><span class="d-none d-xl-inline ml-1">Nouveau</span>
+                      <i class="fas fa-plus"></i><span class="nav-label d-none d-xl-inline ml-1">Nouveau</span>
                     </a>
           <div class="dropdown-menu" aria-labelledby="newEntryDropdown">
             <a class="dropdown-item" href="<%= newCaresPath() %>"><i class="fas fa-hand-holding-heart"></i> Suivis</a>
@@ -114,7 +118,7 @@
             <%= if (current_user) {%>
               <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                              <i class="fas fa-user"></i><span class="d-none d-xl-inline ml-1"><%= current_user.Login %></span>
+                              <i class="fas fa-user"></i><span class="nav-label d-none d-xl-inline ml-1"><%= current_user.Login %></span>
                             </a>
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
                 <%= if (!current_user.Shared) {%>
@@ -133,10 +137,10 @@
             <% } else {%>
             <%= langLinks(newAuthPath(), "nav-link") %>
             <li class="nav-item">
-                <a href="<%= newAuthPath() %>" class="nav-link" title="Connexion"><i class="fas fa-sign-in-alt"></i><span class="d-none d-xl-inline ml-1">Connexion</span></a>
+                <a href="<%= newAuthPath() %>" class="nav-link" title="Connexion"><i class="fas fa-sign-in-alt"></i><span class="nav-label d-none d-xl-inline ml-1">Connexion</span></a>
             </li>
             <li class="nav-item">
-                <a href="<%= newRegistrationPath() %>" class="nav-link" title="S'inscrire"><i class="fas fa-user-plus"></i><span class="d-none d-xl-inline ml-1">S'inscrire</span></a>
+                <a href="<%= newRegistrationPath() %>" class="nav-link" title="S'inscrire"><i class="fas fa-user-plus"></i><span class="nav-label d-none d-xl-inline ml-1">S'inscrire</span></a>
             </li>
             <% } %>
       </ul>
