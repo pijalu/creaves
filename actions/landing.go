@@ -29,8 +29,9 @@ func listAnimalWithCleanCage(c buffalo.Context) (map[int]bool, error) {
 	}
 
 	var a []listAnimalWithCleanCageReply
-	// Retrieve all Cares from the DB
-	if err := tx.Eager().RawQuery(SQL_ANIMAL_WITH_CLEAN_CAGE).All(&a); err != nil {
+	// RawQuery returns raw rows; Eager() would be ignored here and only
+	// misleads readers (it cannot preload anything onto a raw scan).
+	if err := tx.RawQuery(SQL_ANIMAL_WITH_CLEAN_CAGE).All(&a); err != nil {
 		return nil, err
 	}
 

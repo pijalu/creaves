@@ -49,32 +49,38 @@ func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Anima
 
 	// Get all IDs to fetch in bulk
 	animalIds := make([]string, len(*a))
+	// Seen-sets dedupe the distinct relation ids below in O(1) per row;
+	// the previous containsUUID scans were O(n^2) over large listings.
+	seenTypes := map[uuid.UUID]struct{}{}
+	seenAges := map[uuid.UUID]struct{}{}
+	seenDiscoveries := map[uuid.UUID]struct{}{}
+	seenIntakes := map[uuid.UUID]struct{}{}
+	seenOuttakes := map[uuid.UUID]struct{}{}
+
 	animalTypeIds := make([]uuid.UUID, 0, len(*a))
 	animalAgeIds := make([]uuid.UUID, 0, len(*a))
 	discoveryIds := make([]uuid.UUID, 0, len(*a))
 	intakeIds := make([]uuid.UUID, 0, len(*a))
 	outtakeIds := make([]uuid.UUID, 0, len(*a))
 
+	add := func(set map[uuid.UUID]struct{}, ids []uuid.UUID, id uuid.UUID) []uuid.UUID {
+		if _, dup := set[id]; dup {
+			return ids
+		}
+		set[id] = struct{}{}
+		return append(ids, id)
+	}
+
 	for i, animal := range *a {
 		animalIds[i] = fmt.Sprintf("%d", animal.ID)
 
 		// Collect unique IDs for bulk fetching
-		if !containsUUID(animalTypeIds, animal.AnimaltypeID) {
-			animalTypeIds = append(animalTypeIds, animal.AnimaltypeID)
-		}
-		if !containsUUID(animalAgeIds, animal.AnimalageID) {
-			animalAgeIds = append(animalAgeIds, animal.AnimalageID)
-		}
-		if !containsUUID(discoveryIds, animal.DiscoveryID) {
-			discoveryIds = append(discoveryIds, animal.DiscoveryID)
-		}
-		if !containsUUID(intakeIds, animal.IntakeID) {
-			intakeIds = append(intakeIds, animal.IntakeID)
-		}
+		animalTypeIds = add(seenTypes, animalTypeIds, animal.AnimaltypeID)
+		animalAgeIds = add(seenAges, animalAgeIds, animal.AnimalageID)
+		discoveryIds = add(seenDiscoveries, discoveryIds, animal.DiscoveryID)
+		intakeIds = add(seenIntakes, intakeIds, animal.IntakeID)
 		if animal.OuttakeID.Valid {
-			if !containsUUID(outtakeIds, animal.OuttakeID.UUID) {
-				outtakeIds = append(outtakeIds, animal.OuttakeID.UUID)
-			}
+			outtakeIds = add(seenOuttakes, outtakeIds, animal.OuttakeID.UUID)
 		}
 	}
 
@@ -136,10 +142,9 @@ func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Anima
 
 		// Also fetch outtake types
 		outtakeTypeIds := make([]uuid.UUID, 0, len(ots))
+		seenOuttakeTypes := map[uuid.UUID]struct{}{}
 		for _, ot := range ots {
-			if !containsUUID(outtakeTypeIds, ot.TypeID) {
-				outtakeTypeIds = append(outtakeTypeIds, ot.TypeID)
-			}
+			outtakeTypeIds = add(seenOuttakeTypes, outtakeTypeIds, ot.TypeID)
 		}
 		if len(outtakeTypeIds) > 0 {
 			var otTypes models.Outtaketypes
@@ -160,8 +165,9 @@ func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Anima
 	treatments := make(map[int]models.Treatments)
 	if len(animalIds) > 0 {
 		var allTreatments models.Treatments
-		query := fmt.Sprintf("animal_id IN (%s)", strings.Join(animalIds, ","))
-		if err := tx.Where(query).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
+		// Parameterized placeholder expansion — string-building the list
+		// would interpolate values into SQL text.
+		if err := tx.Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
 			return nil, err
 		}
 		// Group treatments by animal ID
