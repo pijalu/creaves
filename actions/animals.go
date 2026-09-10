@@ -668,6 +668,9 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		publishAnimalStateEventWarn(c, tx, animal.ID)
 	}
 
+	// Annual statistics tables count animals: drop the per-year cache.
+	InvalidateAnnualStatsCache()
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.created.success"))
@@ -956,6 +959,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	// content-hash dedupe turns a no-op save into no event.
 	publishAnimalStateEventWarn(c, tx, animal.ID)
 
+	// Annual statistics tables count animals: drop the per-year cache.
+	InvalidateAnnualStatsCache()
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "animal.updated.success"))
@@ -1024,6 +1030,9 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	if err := tx.Eager().Update(animal); err != nil {
 		return err
 	}*/
+
+	// Annual statistics tables count animals: drop the per-year cache.
+	InvalidateAnnualStatsCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

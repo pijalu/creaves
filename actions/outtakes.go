@@ -263,6 +263,9 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	// Annual statistics tables count outtakes: drop the per-year cache.
+	InvalidateAnnualStatsCache()
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "outtake.created.success"))
@@ -371,6 +374,9 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 		publishAnimalStateEventWarn(c, tx, auditedAnimal.ID)
 	}
 
+	// Annual statistics tables count outtakes: drop the per-year cache.
+	InvalidateAnnualStatsCache()
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "outtake.updated.success"))
@@ -430,6 +436,9 @@ func (v OuttakesResource) Destroy(c buffalo.Context) error {
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(oldAnimal), auditAnimalProjection(*animal))
 	// Outtake removal reverts the animal to in_care; sync the new state.
 	publishAnimalStateEventWarn(c, tx, animal.ID)
+
+	// Annual statistics tables count outtakes: drop the per-year cache.
+	InvalidateAnnualStatsCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

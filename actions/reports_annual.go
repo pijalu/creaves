@@ -404,7 +404,7 @@ func ReportsAnnualIndex(c buffalo.Context) error {
 
 	sections := []annualStatSection{}
 	if selectedYear != "" {
-		if sections, err = runAnnualStats(tx, selectedYear); err != nil {
+		if sections, err = runAnnualStatsCached(tx, selectedYear); err != nil {
 			return err
 		}
 	}
@@ -430,7 +430,7 @@ func ReportsAnnualExportCSV(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	sections, err := runAnnualStats(tx, selectedYear)
+	sections, err := runAnnualStatsCached(tx, selectedYear)
 	if err != nil {
 		return err
 	}
