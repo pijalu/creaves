@@ -132,6 +132,11 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 				}
 				return b
 			})
+			// Per-request memo for fallback-by-base lookups (tnameResolveByBase):
+			// listing pages in non-French locales can hit the fallback JOIN once
+			// per row; memoize within the request to avoid repeated identical
+			// queries.
+			c.Set("tnameFallbackCache", &sync.Map{})
 			return next(c)
 		}
 	}
@@ -246,6 +251,25 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 }
 
 func tnameResolveByBase(c buffalo.Context, lang, field, table, base string) string {
+	// Memoize fallback lookups per request: a base-name miss fires a JOIN
+	// query, and listing pages (landing, registers) can hit this path once
+	// per rendered row in non-French locales — the same base value would
+	// otherwise query repeatedly.
+	if memo, ok := c.Value("tnameFallbackCache").(*sync.Map); ok && memo != nil {
+		key := lang + "\x00" + table + "\x00" + field + "\x00" + base
+		if v, loaded := memo.Load(key); loaded {
+			s, _ := v.(string)
+			return s
+		}
+		res := tnameResolveByBaseQuery(c, lang, field, table, base)
+		memo.Store(key, res)
+		return res
+	}
+	return tnameResolveByBaseQuery(c, lang, field, table, base)
+}
+
+// tnameResolveByBaseQuery performs the actual fallback lookup (uncached).
+func tnameResolveByBaseQuery(c buffalo.Context, lang, field, table, base string) string {
 	baseField, ok := translationBaseFields[table]
 	if table == "outtaketypes" && field == "discoverer_news" {
 		baseField, ok = "discoverer_news", true
