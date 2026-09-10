@@ -292,18 +292,54 @@ func purgeOldEvents() error {
 	deliveredCutoff := time.Now().Add(-deliveredEventRetention)
 	undeliveredCutoff := time.Now().Add(-undeliveredEventRetention)
 
-	if err := models.DB.RawQuery(
-		"DELETE FROM event_streams WHERE delivered_at IS NOT NULL AND delivered_at < ?",
-		deliveredCutoff,
-	).Exec(); err != nil {
-		return fmt.Errorf("failed to purge delivered events: %w", err)
+	// Chunked deletes: an unbounded DELETE holds row locks and builds one
+	// huge binlog transaction; batched rounds keep each step small. Each
+	// round selects one batch of row ids, then deletes them by primary
+	// key — `DELETE ... LIMIT` is not portable (SQLite builds without
+	// SQLITE_ENABLE_UPDATE_DELETE_LIMIT reject it), so the id-first form
+	// keeps MySQL/MariaDB and the sqlite test suite on the same path.
+	const purgeChunk = 1000
+
+	for {
+		var ids []uuid.UUID
+		if err := models.DB.RawQuery(
+			"SELECT id FROM event_streams WHERE delivered_at IS NOT NULL AND delivered_at < ? LIMIT ?",
+			deliveredCutoff, purgeChunk,
+		).All(&ids); err != nil {
+			return fmt.Errorf("failed to select delivered events for purge: %w", err)
+		}
+		if len(ids) == 0 {
+			break
+		}
+		if _, err := models.DB.RawQuery(
+			"DELETE FROM event_streams WHERE id IN (?)", ids,
+		).ExecWithCount(); err != nil {
+			return fmt.Errorf("failed to purge delivered events: %w", err)
+		}
+		if len(ids) < purgeChunk {
+			break
+		}
 	}
 
-	if err := models.DB.RawQuery(
-		"DELETE FROM event_streams WHERE delivered_at IS NULL AND created_at < ?",
-		undeliveredCutoff,
-	).Exec(); err != nil {
-		return fmt.Errorf("failed to purge undelivered events: %w", err)
+	for {
+		var ids []uuid.UUID
+		if err := models.DB.RawQuery(
+			"SELECT id FROM event_streams WHERE delivered_at IS NULL AND created_at < ? LIMIT ?",
+			undeliveredCutoff, purgeChunk,
+		).All(&ids); err != nil {
+			return fmt.Errorf("failed to select undelivered events for purge: %w", err)
+		}
+		if len(ids) == 0 {
+			break
+		}
+		if _, err := models.DB.RawQuery(
+			"DELETE FROM event_streams WHERE id IN (?)", ids,
+		).ExecWithCount(); err != nil {
+			return fmt.Errorf("failed to purge undelivered events: %w", err)
+		}
+		if len(ids) < purgeChunk {
+			break
+		}
 	}
 
 	return nil
