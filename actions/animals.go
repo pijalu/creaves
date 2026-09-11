@@ -37,6 +37,17 @@ type AnimalsResource struct {
 
 // EnrichAnimalsOptimized loads dependencies of animal records more efficiently using bulk queries
 func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Animals, error) {
+	return enrichAnimalsOptimized(a, c, true)
+}
+
+// EnrichAnimalsOptimizedNoTreatments is EnrichAnimalsOptimized without the
+// per-day treatments query — for listings/exports that never render
+// animal.Treatments (register table/snapshot, CSV exports).
+func EnrichAnimalsOptimizedNoTreatments(a *models.Animals, c buffalo.Context) (*models.Animals, error) {
+	return enrichAnimalsOptimized(a, c, false)
+}
+
+func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments bool) (*models.Animals, error) {
 	// If nothing to enrich, don't preload
 	if len(*a) == 0 {
 		return a, nil
@@ -158,12 +169,12 @@ func EnrichAnimalsOptimized(a *models.Animals, c buffalo.Context) (*models.Anima
 	}
 
 	// Fetch today's treatments for all animals in one query
-	now := time.Now()
-	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	tmrDt := nowDt.AddDate(0, 0, 1)
-
 	treatments := make(map[int]models.Treatments)
-	if len(animalIds) > 0 {
+	if withTreatments && len(animalIds) > 0 {
+		now := time.Now()
+		nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+		tmrDt := nowDt.AddDate(0, 0, 1)
+
 		var allTreatments models.Treatments
 		// Parameterized placeholder expansion — string-building the list
 		// would interpolate values into SQL text.

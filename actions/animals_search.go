@@ -287,7 +287,7 @@ func AnimalSearchExportCSV(c buffalo.Context) error {
 		return err
 	}
 
-	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimizedNoTreatments(animals, c); err != nil {
 		return err
 	}
 

@@ -58,7 +58,7 @@ func RegistertableIndexCSV(c buffalo.Context) error {
 	}
 
 	// Preload required for "list"
-	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimizedNoTreatments(animals, c); err != nil {
 		return err
 	}
 
@@ -132,7 +132,7 @@ func RegistertableIndex(c buffalo.Context) error {
 	}
 
 	// Preload required for "list"
-	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
+	if _, err := EnrichAnimalsOptimizedNoTreatments(animals, c); err != nil {
 		return err
 	}
 
