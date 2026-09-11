@@ -842,6 +842,52 @@ func TestInvalidateWeightLossCache_Idempotent(t *testing.T) {
 
 // refreshWeightLossCache is a no-op in the current implementation; we verify
 // it does not panic and returns without error.
+// ---------------------------------------------------------------------------
+// cache_utils.go: sameLocalDay (calendar-day comparison, pure function)
+// ---------------------------------------------------------------------------
+
+func TestSameLocalDay(t *testing.T) {
+	tests := []struct {
+		name string
+		a    time.Time
+		b    time.Time
+		want bool
+	}{
+		{
+			name: "same day, hours apart",
+			a:    time.Date(2025, 3, 10, 8, 0, 0, 0, time.Local),
+			b:    time.Date(2025, 3, 10, 22, 0, 0, 0, time.Local),
+			want: true,
+		},
+		{
+			name: "midnight boundary: previous day",
+			a:    time.Date(2025, 3, 9, 23, 59, 59, 0, time.Local),
+			b:    time.Date(2025, 3, 10, 0, 0, 0, 0, time.Local),
+			want: false,
+		},
+		{
+			name: "month boundary",
+			a:    time.Date(2025, 2, 28, 23, 0, 0, 0, time.Local),
+			b:    time.Date(2025, 3, 1, 1, 0, 0, 0, time.Local),
+			want: false,
+		},
+		{
+			name: "year boundary",
+			a:    time.Date(2024, 12, 31, 23, 0, 0, 0, time.Local),
+			b:    time.Date(2025, 1, 1, 1, 0, 0, 0, time.Local),
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sameLocalDay(tt.a, tt.b); got != tt.want {
+				t.Fatalf("sameLocalDay(%v, %v) = %v, want %v", tt.a, tt.b, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRefreshWeightLossCache_Noop(t *testing.T) {
 	refreshWeightLossCache() // must not panic
 }
