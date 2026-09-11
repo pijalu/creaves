@@ -43,7 +43,9 @@ func currentLang(c buffalo.Context) string {
 		lang = cookie.Value
 	}
 	switch lang {
-	case "", "fr", "fr-FR":
+	case "":
+		return "en-US"
+	case "fr", "fr-FR":
 		return ""
 	case "en", "en-US":
 		return "en-US"

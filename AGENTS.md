@@ -143,6 +143,8 @@ cd test && docker-compose up --build
 - Method length threshold: 100 lines (`.codeclimate.yml`)
 
 ## Important Conventions
+
+**All-language UI rule:** Any UI/template change must be reviewed and applied consistently across every supported language (`en-US`, `fr`, `de`, and `nl`). Never assume the base template is the only affected view; compare all localized variants before completing the change.
 - **Auth**: Routes under `/auth` and `/registration` skip `Authorize` middleware
 - **CSRF**: Enabled globally via `mw-csrf`
 - **DB transactions**: Every request wrapped in Pop transaction (`popmw.Transaction`)

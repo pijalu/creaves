@@ -108,15 +108,6 @@
                     });
                 } );
 
-                $( document ).ready(function(){
-                    var term = $("#animal-AnimaltypeID :selected").text();
-                    $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
-                        if ( data.length > 0 ) {
-                            $("#animal-Species").val(data[0]);
-                            $( "#animal-Species" ).removeClass("is-invalid")
-                        }
-                    });    
-                });
 
                 </script>
 
