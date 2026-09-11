@@ -40,28 +40,41 @@
                   <i class="fas fa-cog"></i><span class="nav-label d-none d-xl-inline ml-1">Administration</span>
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
-        <!-- Configuration Section -->
-        <h6 class="dropdown-header">Configuration</h6>
-        <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Drugs</a>
-        <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
-        <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
-        <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
-        <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Care types</a>
-        <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Travel types</a>
-        <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
-        <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
-        <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Translations</a>
+        <!-- Configuration sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuration</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Drugs</a>
+            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
+            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
+            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
+            <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Care types</a>
+            <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Travel types</a>
+            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
+            <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
+            <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Translations</a>
+          </div>
+        </div>
 
-        <div class="dropdown-divider"></div>
+        <!-- System sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> System</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> All Routes</a>
+            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
+            <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
+            <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
+          </div>
+        </div>
 
-        <!-- System Section -->
-        <h6 class="dropdown-header">System</h6>
-        <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> All Routes</a>
-        <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
-        <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
-        <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
-        <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Event Stream</a>
-        <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook resync</a>
+        <!-- Synchronization sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync-alt"></i> Synchronization</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Event Stream</a>
+            <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook resync</a>
+          </div>
+        </div>
         </div>
         </li>
         <% } %>

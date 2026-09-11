@@ -10,3 +10,37 @@
     height: 1.25em;
   }
 }
+
+// Admin dropdown submenus (Configuration / System / Synchronization).
+// Bootstrap 4 has no native nested dropdowns: the submenu opens to the
+// right of its parent item, toggled by the click handler in application.js.
+.dropdown-submenu {
+  position: relative;
+
+  > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -$dropdown-padding-y; // align with the parent item
+    margin-left: 0;
+  }
+
+  // Right-pointing caret instead of the default down caret.
+  > .dropdown-toggle::after {
+    transform: rotate(-90deg);
+    vertical-align: 0;
+  }
+}
+
+// In the collapsed (hamburger) navbar, flyout submenus would overflow the
+// viewport: stack them inline, indented, like Bootstrap does for top-level
+// dropdown menus.
+@media (max-width: 575.98px) {
+  .dropdown-submenu > .dropdown-menu {
+    position: static;
+    float: none;
+    margin-top: 0;
+    border: 0;
+    padding-left: 1.5rem;
+    box-shadow: none;
+  }
+}

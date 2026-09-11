@@ -76,3 +76,23 @@ $(() => {
         $('.autocomplete-suggestions').hide();
     });
 });
+
+// Admin dropdown submenus (Configuration / System / Synchronization).
+// Bootstrap 4 has no native nested dropdowns: a submenu toggle carries no
+// data-toggle="dropdown" (that would re-trigger the parent handler); its
+// .show classes are managed here instead. Click toggles the submenu and
+// closes any open sibling submenu.
+$(document).on('click', '.dropdown-submenu > .dropdown-toggle', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const $sub = $(e.currentTarget).parent('.dropdown-submenu');
+    $sub.siblings('.dropdown-submenu.show').removeClass('show')
+        .children('.dropdown-menu').removeClass('show');
+    $sub.toggleClass('show');
+    $sub.children('.dropdown-menu').toggleClass('show', $sub.hasClass('show'));
+});
+// Submenus must not stay open when their parent dropdown closes.
+$(document).on('hide.bs.dropdown', (e) => {
+    $(e.target).find('.dropdown-submenu.show').removeClass('show')
+        .children('.dropdown-menu').removeClass('show');
+});

@@ -40,27 +40,41 @@
                   <i class="fas fa-cog"></i><span class="nav-label d-none d-xl-inline ml-1">Beheer</span>
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
-          <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medicijnen</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Leeftijden</a>
-          <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
-          <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
-          <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
-          <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reistypes</a>
-          <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
-          <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> Alle routes</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Gebruikers</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Onderhoud</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuratie</a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Gebeurtenisstroom</a>
-                      <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Vertalingen</a>
-          <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook-hersynchronisatie</a>
+        <!-- Configuratie sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuratie</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medicijnen</a>
+            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Leeftijden</a>
+            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
+            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
+            <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
+            <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reistypes</a>
+            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
+            <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
+            <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Vertalingen</a>
+          </div>
+        </div>
+
+        <!-- Systeem sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> Systeem</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> Alle routes</a>
+            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Gebruikers</a>
+            <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Onderhoud</a>
+            <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuratie</a>
+          </div>
+        </div>
+
+        <!-- Synchronisatie sub-menu -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync-alt"></i> Synchronisatie</a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="/event_streams"><i class="fas fa-stream"></i> Gebeurtenisstroom</a>
+            <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook-hersynchronisatie</a>
+          </div>
+        </div>
         </div>
         </li>
         <% } %>
