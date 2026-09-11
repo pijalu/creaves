@@ -8,6 +8,7 @@ import (
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
+	"github.com/gofrs/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -59,11 +60,18 @@ func UsersCreate(c buffalo.Context) error {
 func SetCurrentUser(next buffalo.Handler) buffalo.Handler {
 	return func(c buffalo.Context) error {
 		if uid := c.Session().Get("current_user_id"); uid != nil {
-			u := &models.User{}
+			uidStr, ok := uid.(string)
+			if !ok {
+				if u, ok2 := uid.(uuid.UUID); ok2 {
+					uidStr = u.String()
+				} else {
+					uidStr = fmt.Sprintf("%v", uid)
+				}
+			}
 			tx := c.Value("tx").(*pop.Connection)
-			err := tx.Find(u, uid)
-			// user gone
-			if err != nil {
+			u, err := cachedUserByID(tx, uidStr)
+			// user gone (or lookup failed)
+			if err != nil || u == nil {
 				c.Session().Delete("current_user_id")
 				c.Session().Set("redirectURL", c.Request().URL.String())
 				return next(c)
@@ -331,6 +339,7 @@ func (v UsersResource) Update(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	InvalidateUserCache(user.ID.String())
 
 	if verrs.HasAny() {
 		return responder.Wants("html", func(c buffalo.Context) error {
@@ -392,6 +401,7 @@ func (v UsersResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(user); err != nil {
 		return err
 	}
+	InvalidateUserCache(user.ID.String())
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
