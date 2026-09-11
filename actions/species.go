@@ -80,7 +80,7 @@ func (v SpeciesResource) Show(c buffalo.Context) error {
 	species := &models.Species{}
 
 	// To find the Species the parameter species_id is used.
-	if err := tx.Find(species, c.Param("species_id")); err != nil {
+	if err := tx.Eager().Find(species, c.Param("species_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -103,6 +103,11 @@ func (v SpeciesResource) New(c buffalo.Context) error {
 	}
 
 	c.Set("species", &models.Species{})
+	at, err := animalTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), c.Value("tx").(*pop.Connection)))
 
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "species", "", []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
@@ -193,6 +198,11 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("species", species)
+	at, err := animalTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), tx))
 	if err := setTranslationValues(c, tx, "species", species.ID, []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}

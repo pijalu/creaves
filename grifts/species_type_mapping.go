@@ -52,7 +52,7 @@ func repairSpeciesAnimaltypeLinks() error {
 				continue
 			}
 			var species models.Species
-			if err := tx.RawQuery("SELECT * FROM species WHERE LOWER(TRIM(creaves_species)) = ? AND animaltype_id IS NULL LIMIT 1", normalizedMappingName(row[header["species_name"]])).First(&species); err != nil {
+			if err := tx.RawQuery("SELECT ID AS id, species, class, `order`, family, creaves_species, subside_group, agw_group, native_status, game, huntable FROM species WHERE LOWER(TRIM(creaves_species)) = ? AND animaltype_id IS NULL LIMIT 1", normalizedMappingName(row[header["species_name"]])).First(&species); err != nil {
 				return err
 			}
 			var at models.Animaltype

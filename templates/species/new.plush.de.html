@@ -3,6 +3,6 @@
 </div>
 
 <%= formFor(species, {action: "/species/", method: "POST"}) { %>
-  <%= partial("species/form.plush.de.html") %>
+  <%= partial("species/_form.plush.de.html") %>
   <%= linkTo("/species/", {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
 <% } %>
