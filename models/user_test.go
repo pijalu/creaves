@@ -20,6 +20,14 @@ func TestUsersString(t *testing.T) {
 	}
 }
 
+func TestMaintainerFlagIsDistinctFromAdmin(t *testing.T) {
+	if (User{Admin: false, Maintainer: true}).Admin {
+		t.Fatal("maintainer flag must not implicitly change Admin in the model")
+	}
+	if !(User{Admin: true, Maintainer: true}).Maintainer {
+		t.Fatal("maintainer flag should be representable on admin users")
+	}
+}
 func TestUserSetPasswordHash(t *testing.T) {
 	u := User{Password: "s3cret"}
 	err := u.SetPasswordHash()

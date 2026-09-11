@@ -31,9 +31,8 @@ type SpeciesResource struct {
 // List gets all Species. This function is mapped to the path
 // GET /species
 func (v SpeciesResource) List(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -68,9 +67,8 @@ func (v SpeciesResource) List(c buffalo.Context) error {
 // Show gets the data for one Species. This function is mapped to
 // the path GET /species/{species_id}
 func (v SpeciesResource) Show(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -100,9 +98,8 @@ func (v SpeciesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Species.
 // This function is mapped to the path GET /species/new
 func (v SpeciesResource) New(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 
 	c.Set("species", &models.Species{})
@@ -117,9 +114,8 @@ func (v SpeciesResource) New(c buffalo.Context) error {
 // Create adds a Species to the DB. This function is mapped to the
 // path POST /species
 func (v SpeciesResource) Create(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 
 	// Allocate an empty Species
@@ -179,9 +175,8 @@ func (v SpeciesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Species. This function is
 // mapped to the path GET /species/{species_id}/edit
 func (v SpeciesResource) Edit(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 
 	// Get the DB connection from the context
@@ -208,9 +203,8 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 // Update changes a Species in the DB. This function is mapped to
 // the path PUT /species/{species_id}
 func (v SpeciesResource) Update(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 
 	// Get the DB connection from the context
@@ -276,9 +270,8 @@ func (v SpeciesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Species from the DB. This function is mapped
 // to the path DELETE /species/{species_id}
 func (v SpeciesResource) Destroy(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 
 	// Get the DB connection from the context

@@ -1,0 +1,2 @@
+add_column("users", "maintainer", "bool", {"default": false})
+sql("UPDATE users SET maintainer = true WHERE admin = true")

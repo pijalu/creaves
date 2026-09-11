@@ -34,6 +34,10 @@ func UsersCreate(c buffalo.Context) error {
 		u.Admin = false
 		u.Approved = false
 		u.Shared = false
+		u.Maintainer = false
+	}
+	if cu == nil || !cu.Maintainer {
+		u.Maintainer = false
 	}
 
 	tx := c.Value("tx").(*pop.Connection)
@@ -144,6 +148,12 @@ func (v UsersResource) Create(c buffalo.Context) error {
 	// Bind user to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
+	}
+	if !cu.Maintainer {
+		user.Maintainer = false
+	}
+	if user.Maintainer {
+		user.Admin = true
 	}
 
 	// Get the DB connection from the context
@@ -313,15 +323,26 @@ func (v UsersResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// Force reset of DB
+	// Preserve the persisted maintainer flag unless actor is a maintainer.
+	wasMaintainer := user.Maintainer
 	user.Admin = false
 	user.Shared = false
+	user.Maintainer = false
 
 	// Bind User to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
 	}
-
+	if cu.ID.String() == user.ID.String() && cu.Maintainer {
+		user.Admin = true
+		user.Maintainer = true
+	}
+	if !cu.Maintainer {
+		user.Maintainer = wasMaintainer
+	}
+	if user.Maintainer {
+		user.Admin = true
+	}
 	// Keep default approval if not admin
 	if !cu.Admin {
 		user.Approved = cu.Approved
@@ -329,7 +350,6 @@ func (v UsersResource) Update(c buffalo.Context) error {
 
 	// change password
 	if len(user.Password) > 0 {
-		// Update password hash
 		if err := user.SetPasswordHash(); err != nil {
 			return err
 		}
@@ -343,13 +363,8 @@ func (v UsersResource) Update(c buffalo.Context) error {
 
 	if verrs.HasAny() {
 		return responder.Wants("html", func(c buffalo.Context) error {
-			// Make the errors available inside the html template
 			c.Set("errors", verrs)
-
-			// Render again the edit.html template that the user can
-			// correct the input.
 			c.Set("user", user)
-
 			return c.Render(http.StatusUnprocessableEntity, r.HTML("/users/edit.plush.html"))
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
@@ -359,10 +374,7 @@ func (v UsersResource) Update(c buffalo.Context) error {
 	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
-		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "user.updated.success"))
-
-		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/users/%v", user.ID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.JSON(user))

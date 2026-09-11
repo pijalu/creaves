@@ -9,10 +9,11 @@ import (
 
 func createAdmin(c *Context) error {
 	u := &models.User{
-		Login:    "admin",
-		Password: "admin",
-		Admin:    true,
-		Approved: true,
+		Login:      "admin",
+		Password:   "admin",
+		Admin:      true,
+		Maintainer: true,
+		Approved:   true,
 	}
 
 	if err := u.SetPasswordHash(); err != nil {

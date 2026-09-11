@@ -204,6 +204,15 @@ func requireAdmin(c buffalo.Context) (*models.User, error) {
 	return cu, nil
 }
 
+// requireMaintainer restricts maintainer-only administration surfaces.
+func requireMaintainer(c buffalo.Context) (*models.User, error) {
+	cu := GetCurrentUser(c)
+	if cu == nil || !cu.Admin || !cu.Maintainer {
+		return nil, c.Error(http.StatusForbidden, fmt.Errorf("Maintainer rights required for this action"))
+	}
+	return cu, nil
+}
+
 // List gets all Configs. This function is mapped to the path
 // GET /config
 func (v ConfigsResource) List(c buffalo.Context) error {
@@ -283,7 +292,7 @@ func (v ConfigsResource) New(c buffalo.Context) error {
 	// Set default settings
 	settings := models.DefaultSettings()
 	config.SetSettings(settings)
-	
+
 	c.Set("config", config)
 	c.Set("settings", settings)
 	return c.Render(http.StatusOK, r.HTML("config/new.plush.html"))

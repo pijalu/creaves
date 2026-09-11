@@ -8,7 +8,7 @@
 **Routes & Handlers**:
 | Method | Route | Handler | Description |
 |--------|-------|---------|-------------|
-| GET | `/paths` | PathHandler | Serves paths page |
+| GET | `/paths` | PathHandler | Serves paths page (maintainer only) |
 | GET | `/` | LandingIndex | Default landing page |
 | GET | `/auth/` | AuthLanding | Auth landing page |
 | GET | `/auth/new` | AuthNew | Login form |

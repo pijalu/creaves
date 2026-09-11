@@ -52,6 +52,9 @@
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reisetypen</a>
             <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Ortschaften</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zonen</a>
+            <%= if (current_user.Maintainer) { %>
+              <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Arten</a>
+            <% } %>
             <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Übersetzungen</a>
           </div>
         </div>
@@ -60,7 +63,9 @@
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> System</a>
           <div class="dropdown-menu">
+          <%= if (current_user.Maintainer) { %>
             <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> Alle Routen</a>
+          <% } %>
             <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Benutzer</a>
             <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Wartung</a>
             <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Konfiguration</a>

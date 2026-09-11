@@ -20,6 +20,7 @@ type User struct {
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 	Login        string    `json:"login" db:"login"`
 	Admin        bool      `json:"-" db:"admin"`
+	Maintainer   bool      `json:"-" db:"maintainer"`
 	Approved     bool      `json:"-" db:"approved"`
 	Shared       bool      `json:"-" db:"shared"`
 	PasswordHash string    `json:"-" db:"password_hash"`

@@ -1,3 +1,6 @@
 <%= f.CheckboxTag("Admin", {unchecked: false}) %>
+<%= if (current_user.Maintainer) { %>
+  <%= f.CheckboxTag("Maintainer", {unchecked: false}) %>
+<% } %>
 <%= f.CheckboxTag("Approved", {unchecked: false}) %>
 <%= f.CheckboxTag("Shared", {unchecked: false}) %>
