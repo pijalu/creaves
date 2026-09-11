@@ -55,6 +55,38 @@ func langLinks(target any, linkClass string, help plush.HelperContext) (template
 	return template.HTML(b.String()), nil
 }
 
+// langLinksAll renders one link per UI language, INCLUDING the current one
+// (marked with the "active" class). Used by the guest layout so the public
+// toolbar always shows every language regardless of the selected language.
+func langLinksAll(target any, linkClass string, help plush.HelperContext) (template.HTML, error) {
+	targetURL := fmt.Sprintf("%v", target)
+	cur := ""
+	if req, ok := help.Value("request").(*http.Request); ok {
+		if cookie, err := req.Cookie("lang"); err == nil {
+			cur = normalizeUILang(cookie.Value)
+		}
+	}
+	var b strings.Builder
+	for _, l := range uiLanguages {
+		code := l.code
+		norm := code
+		if code == "fr" {
+			norm = "" // base/canonical French
+		}
+		href := fmt.Sprintf("/lang/?lang=%s&url=%s", code, url.QueryEscape(targetURL))
+		active := ""
+		if norm == cur {
+			active = " active"
+		}
+		if linkClass == "nav-link" {
+			fmt.Fprintf(&b, `<li class="nav-item"><a class="nav-link%s" href="%s">%s</a></li>`, active, href, l.label)
+		} else {
+			fmt.Fprintf(&b, `<a class="dropdown-item%s" href="%s">%s</a>`, active, href, l.label)
+		}
+	}
+	return template.HTML(b.String()), nil
+}
+
 // normalizeUILang maps a lang cookie value to the comparison domain used by
 // langLinks: "" for base/canonical French, otherwise the full code.
 func normalizeUILang(lang string) string {
@@ -81,9 +113,10 @@ func init() {
 
 		// Add template helpers here:
 		Helpers: render.Helpers{
-			"langLinks": langLinks,
-			"sortLink":  sortLink,
-			"sortIcon":  sortIcon,
+			"langLinks":    langLinks,
+			"langLinksAll": langLinksAll,
+			"sortLink":     sortLink,
+			"sortIcon":     sortIcon,
 			"bool2html": func(s bool) string {
 				if s {
 					return "✓"
