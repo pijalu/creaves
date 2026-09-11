@@ -1,0 +1,3 @@
+add_column("species", "animaltype_id", "uuid", {null: true})
+add_index("species", ["animaltype_id"], {})
+sql("ALTER TABLE species ADD CONSTRAINT species_animaltype_fk FOREIGN KEY (animaltype_id) REFERENCES animaltypes (id)")

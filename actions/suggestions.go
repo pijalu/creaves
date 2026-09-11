@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -40,31 +41,56 @@ func suggest(c buffalo.Context, table string, field string) error {
 // common names and returns the localized label for display. Submitted values
 // are normalized back to the canonical (French) creaves_species value by
 // resolveReferenceInput before storage (webhook contract stays stable).
+func SuggestionsSpeciesType(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	q := resolveReferenceInput(c, "species", c.Param("q"))
+	var result struct {
+		Species        string `db:"species" json:"species"`
+		AnimaltypeID   string `db:"animaltype_id" json:"animaltype_id"`
+		AnimaltypeName string `db:"animaltype_name" json:"animaltype_name"`
+	}
+	if err := tx.RawQuery("SELECT s.creaves_species AS species, s.animaltype_id, t.name AS animaltype_name FROM species s LEFT JOIN animaltypes t ON t.id = s.animaltype_id WHERE s.creaves_species = ? LIMIT 1", q).First(&result); err != nil {
+		return c.Render(http.StatusNotFound, r.JSON(map[string]string{"error": "species not found"}))
+	}
+	return c.Render(http.StatusOK, r.JSON(result))
+}
+
 func SuggestionsAnimalSpecies(c buffalo.Context) error {
 	lang := currentLang(c)
-	if lang == "" {
-		return suggest(c, "species", "creaves_species")
-	}
-
 	q := c.Param("q")
+	animalTypeID := c.Param("animaltype_id")
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
+	where := []string{"1=1"}
+	args := []interface{}{}
+	if animalTypeID != "" {
+		where = append(where, "s.animaltype_id = ?")
+		args = append(args, animalTypeID)
+	}
+	if q != "" {
+		if lang != "" {
+			where = append(where, "(s.creaves_species LIKE ? OR t.value LIKE ?)")
+			args = append(args, "%"+q+"%", "%"+q+"%")
+		} else {
+			where = append(where, "s.creaves_species LIKE ?")
+			args = append(args, "%"+q+"%")
+		}
+	}
+	query := "SELECT DISTINCT s.creaves_species FROM species s"
+	if lang != "" {
+		query += " LEFT JOIN translations t ON t.table_name = 'species' AND t.field = 'creaves_species' AND t.locale = ? AND t.record_id = s.id"
+		args = append([]interface{}{lang}, args...)
+	}
+	query += " WHERE " + strings.Join(where, " AND ") + " ORDER BY 1 LIMIT 25"
 	var s []string
-	if len(q) > 0 {
-		if err := tx.RawQuery(
-			"SELECT DISTINCT s.creaves_species FROM species s "+
-				"LEFT JOIN translations t ON t.table_name = 'species' AND t.field = 'creaves_species' AND t.locale = ? AND t.record_id = s.id "+
-				"WHERE s.creaves_species LIKE ? OR t.value LIKE ? ORDER BY 1 LIMIT 25",
-			lang, "%"+q+"%", "%"+q+"%").All(&s); err != nil {
-			return err
-		}
-	} else {
-		if err := tx.RawQuery("SELECT DISTINCT creaves_species FROM species ORDER BY 1 LIMIT 25").All(&s); err != nil {
-			return err
-		}
+	if err := tx.RawQuery(query, args...).All(&s); err != nil {
+		return err
 	}
 	return c.Render(200, r.JSON(localizeSuggestions(c, "species", "creaves_species", s)))
 }

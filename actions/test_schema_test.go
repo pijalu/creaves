@@ -80,8 +80,9 @@ func createReferenceTables() {
   "game" tinyint(1) NOT NULL DEFAULT '0',
   "agw_group" varchar(255) NOT NULL,
   "native_status" varchar(255) NOT NULL,
-  "huntable" tinyint(1) NOT NULL DEFAULT '0'
-)`,
+  "huntable" tinyint(1) NOT NULL DEFAULT '0',
+  "animaltype_id" char(36) DEFAULT NULL
+  )`,
 		`CREATE TABLE IF NOT EXISTS translations (
 
   "id" varchar(36) NOT NULL,

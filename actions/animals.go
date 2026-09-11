@@ -519,6 +519,9 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
+		if tx, ok := c.Value("tx").(*pop.Connection); ok {
+			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
+		}
 
 		// Full (host-aware) guest form URL shown under the QR code in the
 		// show view: same scheme+host as the page itself.
@@ -617,6 +620,9 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		}
 		// Normalize possibly-localized species input back to canonical (Option A)
 		animal.Species = resolveReferenceInput(c, "species", animal.Species)
+		if err := completeAndValidateSpeciesType(tx, animal); err != nil {
+			return c.Error(http.StatusUnprocessableEntity, err)
+		}
 		// Set discovery date
 		animal.IntakeDate = animal.Intake.Date
 
@@ -795,6 +801,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	}
 	// Normalize possibly-localized species input back to canonical (Option A)
 	animal.Species = resolveReferenceInput(c, "species", animal.Species)
+	if err := completeAndValidateSpeciesType(tx, animal); err != nil {
+		return c.Error(http.StatusUnprocessableEntity, err)
+	}
 
 	// Decode Feeding times
 	feedingTimes := struct {

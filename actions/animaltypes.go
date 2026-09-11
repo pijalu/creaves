@@ -299,6 +299,18 @@ func (v AnimaltypesResource) Destroy(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	var dependent int
+	for _, table := range []string{"animals", "dosages", "species"} {
+		var count int
+		if err := tx.RawQuery("SELECT COUNT(*) FROM "+table+" WHERE animaltype_id = ?", animaltype.ID).First(&count); err != nil {
+			return err
+		}
+		dependent += count
+	}
+	if dependent > 0 {
+		return c.Error(http.StatusConflict, fmt.Errorf("animal type has %d dependent records; remap before deletion", dependent))
+	}
+
 	if err := tx.Destroy(animaltype); err != nil {
 		return err
 	}

@@ -1,1 +1,1 @@
-drop_column("users", "maintainer")
+sql("ALTER TABLE users DROP COLUMN IF EXISTS maintainer")

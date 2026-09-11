@@ -7,21 +7,24 @@ import (
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
+	"github.com/gofrs/uuid"
 )
 
 // Species is used by pop to map your species database table to your go code.
 type Species struct {
-	ID             string `json:"id" db:"id"`
-	Species        string `json:"species" db:"species"`
-	CreavesSpecies string `json:"creaves_species" db:"creaves_species"`
-	Class          string `json:"class" db:"class"`
-	Order          string `json:"order" db:"order"`
-	Family         string `json:"family" db:"family"`
-	NativeStatus   string `json:"native_status" db:"native_status"`
-	AgwGroup       string `json:"agw_group" db:"agw_group"`
-	SubsideGroup   string `json:"subside_group" db:"subside_group"`
-	Game           bool   `json:"game" db:"game"`
-	Huntable       bool   `json:"huntable" db:"huntable"`
+	ID             string     `json:"id" db:"id"`
+	Species        string     `json:"species" db:"species"`
+	CreavesSpecies string     `json:"creaves_species" db:"creaves_species"`
+	Class          string     `json:"class" db:"class"`
+	Order          string     `json:"order" db:"order"`
+	Family         string     `json:"family" db:"family"`
+	NativeStatus   string     `json:"native_status" db:"native_status"`
+	AgwGroup       string     `json:"agw_group" db:"agw_group"`
+	SubsideGroup   string     `json:"subside_group" db:"subside_group"`
+	Game           bool       `json:"game" db:"game"`
+	Huntable       bool       `json:"huntable" db:"huntable"`
+	Animaltype     Animaltype `json:"animaltype" belongs_to:"animaltype"`
+	AnimaltypeID   uuid.UUID  `json:"animaltype_id" db:"animaltype_id"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

@@ -1,0 +1,3 @@
+sql("ALTER TABLE species DROP FOREIGN KEY species_animaltype_fk")
+remove_index("species", ["animaltype_id"])
+drop_column("species", "animaltype_id")

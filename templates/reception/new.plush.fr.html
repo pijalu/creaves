@@ -113,23 +113,36 @@
 
                 <%= f.InputTag("Species", {label: "Espèce", required: "required"})%>
                 <div id="nativeGroupHint"></div>
+                                  <div id="speciesTypeHint" class="alert alert-danger d-none">Le type et l'espèce ne correspondent pas</div>
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
                     minChars: 1,
                     source: function(term, response){
-                        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+                        $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: $('#animal-AnimaltypeID').val() }, function(data){ response(data); });
                     }
                 });
 
                 $( "#animal-Species" ).on( "change", function() {
                     var term = $("#animal-Species").val();
-                    $.getJSON('/suggestions/animal_species', { q: term }, function(data){ 
+                    if (term) {
+                                              $.getJSON('/suggestions/species_type', { q: term }, function(info) {
+                                                  if (!$("#animal-AnimaltypeID").val() && info.animaltype_id) {
+                                                      $("#animal-AnimaltypeID").val(info.animaltype_id).trigger('change');
+                                                  } else if (info.animaltype_id && info.animaltype_id !== $("#animal-AnimaltypeID").val()) {
+                                                      $("#speciesTypeHint").removeClass("d-none");
+                                                  } else {
+                                                      $("#speciesTypeHint").addClass("d-none");
+                                                  }
+                                              });
+                                          }
+                                          $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: $('#animal-AnimaltypeID').val() }, function(data){
                         $( "#animal-Species" ).addClass("is-invalid")
                         $( "#nativeGroupHint").html("").removeClass("alert alert-primary")
                         for (var i=0; i < data.length ; i++ ) {
                             if (term === data[i]) {
-                                $( "#animal-Species" ).removeClass("is-invalid");
+                                                              $( "#animal-Species" ).removeClass("is-invalid");
+                                                              $("#speciesTypeHint").addClass("d-none");
                                 $.getJSON('/hint/speciesDetails', { q: term }, function(data){
                                     $( "#nativeGroupHint").html(data[0].indication).addClass("alert alert-primary")
                                 });

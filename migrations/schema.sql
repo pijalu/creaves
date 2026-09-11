@@ -575,8 +575,10 @@ CREATE TABLE `species` (
   `agw_group` varchar(255) NOT NULL,
   `native_status` varchar(255) NOT NULL,
   `huntable` tinyint(1) NOT NULL DEFAULT '0',
-  PRIMARY KEY (`ID`),
-  KEY `species_creaves_species_idx` (`creaves_species`)
+  `animaltype_id` varchar(36) DEFAULT NULL,
+ PRIMARY KEY (`ID`),
+ KEY `species_creaves_species_idx` (`creaves_species`),
+ KEY `species_animaltype_id_idx` (`animaltype_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

@@ -50,6 +50,9 @@
         <label class="small d-block">Art</label>
         <p id="animal-Species" data-canonical="<%= animal.Species %>" class="d-inline-block"><%= tspecies(animal.Species) %></p>
         <div id="speciesHint"></div>
+        <%= if (speciesTypeMismatch) { %>
+        <div class="alert alert-danger" role="alert">Typ und Art stimmen nicht überein</div>
+        <% } %>
         <script type="text/javascript">
         function setSpeciesHint() {
           var term = $("#animal-Species").data("canonical") || $("#animal-Species").text();

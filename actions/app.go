@@ -134,6 +134,8 @@ func App() *buffalo.App {
 
 		app.GET("/landing/index", LandingIndex)
 		app.GET("/suggestions/animal_species", SuggestionsAnimalSpecies)
+		app.GET("/suggestions/species_type", SuggestionsSpeciesType)
+		app.POST("/animaltypes/{animaltype_id}/remap", AnimaltypesRemap)
 		app.GET("/suggestions/discovery_location", SuggestionsDiscoveryLocation)
 		app.GET("/suggestions/outtake_location", SuggestionsOuttakeLocation)
 		app.GET("/suggestions/discoverer_city", SuggestionsDiscovererCity)

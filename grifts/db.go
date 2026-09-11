@@ -2,6 +2,11 @@ package grifts
 
 import "github.com/gobuffalo/grift/grift"
 
+var _ = grift.Namespace("species", func() {
+	grift.Desc("repair_links", "Repairs empty species animal-type links from the approved mapping")
+	grift.Add("repair_links", func(c *grift.Context) error { return repairSpeciesAnimaltypeLinks() })
+})
+
 var _ = grift.Namespace("db", func() {
 	grift.Desc("seed", "Seeds a database")
 	grift.Add("seed", func(c *grift.Context) error {
@@ -36,6 +41,9 @@ var _ = grift.Namespace("db", func() {
 			return err
 		}
 		if err := createSpecies(c); err != nil {
+			return err
+		}
+		if err := repairSpeciesAnimaltypeLinks(); err != nil {
 			return err
 		}
 		if err := createLocality(c); err != nil {

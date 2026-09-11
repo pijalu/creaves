@@ -1,0 +1,485 @@
+species_name,candidate_type,source_class,source_order,source_family,source_agw_group,decision,review_notes
+Accenteur alpin,Petits Oiseaux,Aves,Passériformes,Prunellidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Accenteur mouchet,Petits Oiseaux,Aves,Passériformes,Prunellidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Aigle botté,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Aigle criard,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Aigle de Bonelli,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Aigle pomarin,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Aigle royal,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Aigrette garzette,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Alouette calandre,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alouette calandrelle,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alouette des champs,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alouette haussecol,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alouette leucoptère,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alouette lulu,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Alyte accoucheur,"Reptiles, Amphibiens",Amphibia,Anura,Alytidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Autour des palombes,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Avocette élégante,Moyens Oiseaux,Aves,Charadriiformes,Récurvirostridés,Limicole,pending_domain_review,source description exact-name membership
+Balbuzard pêcheur,Rapaces,Aves,Accipitriformes,Pandionidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Barbastelle,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Barge rousse,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Barge à queue noire,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bec-croisé bifascié,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bec-croisé des sapins,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bec-croisé perroquet,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Belette,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Bergeronnette des ruisseaux,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bergeronnette grise,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bergeronnette printanière,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bernache cravant,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Bernache du Canada,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Bernache nonnette,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Bernache à cou roux,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Bihoreau gris,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Blaireau d'Europe,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Blongios nain,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Bondrée apivore,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Bouscarle de Cetti,Petits Oiseaux,Aves,Passériformes,Cettiidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bouvreuil pivoine,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bouvreuil ponceau,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant auréole,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant des neiges,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant des roseaux,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant fou,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant jaune,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant lapon,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant nain,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant ortolan,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant proyer,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant rustique,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant zizi,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bruant à calotte blanche,Petits Oiseaux,Aves,Passériformes,Emberizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Busard cendré,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Busard des roseaux,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Busard pâle,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Busard Saint Martin,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Buse de harris,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Buse pattue,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Buse variable,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Butor étoilé,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Bécasse des bois,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Bécasseau cocorli,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau de Bonaparte,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau de Temminck,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau falcinelle,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau maubèche,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau minute,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau sanderling,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau tacheté,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau variable,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécasseau à queue pointue,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécassine des marais,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécassine double,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Bécassine sourde,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Caille des blés,Moyens Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Caille du Japon,Moyens Oiseaux,Aves,Galliformes,Phasianidés,Domestique,pending_domain_review,source description exact-name membership
+Calopsitte,Moyens Oiseaux,Aves,Psittaciformes,Psittacidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Campagnol,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Campagnol,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Campagnol,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Campagnol agreste,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Campagnol terrestre,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Canard chipeau,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Canard colvert,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Canard de barbarie,Grands Oiseaux,Aves,Ansériformes,Anatidés,Domestique,pending_domain_review,source description exact-name membership
+Canard mandarin,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Canard pilet,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Canard semi-domestique,Grands Oiseaux,Aves,Ansériformes,Anatidés,Domestique,pending_domain_review,source description exact-name membership
+Canard siffleur,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Canard souchet,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Cassenoix moucheté,Moyens Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Castor d'Europe,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Castorimorpha,Castoridés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Cerf élaphe,Ongulés,Mammalia,Pecora,Cervidés,Ongulé,pending_domain_review,source description exact-name membership
+Chardonneret élégant,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Chat haret,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Carnivora,Félidés,Domestique,pending_domain_review,taxonomy: AGW Domestique
+Chat sylvestre,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Carnivora,Félidés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Chevalier aboyeur,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier arlequin,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier bargette,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier culblanc,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier gambette,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier guignette,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier stagnatile,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevalier sylvain,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Chevreuil,Ongulés,Mammalia,Pecora,Cervidés,Ongulé,pending_domain_review,source description exact-name membership
+Chevêche d'Athena,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Chevêchette d'Europe,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Chien viverrin,Canidés,Mammalia,Carnivora,Canidés,Mammifère taille moyenne,pending_domain_review,taxonomy: family Canidae
+Choucas des tours,Moyens Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Chouette de Tengmalm,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Chouette hulotte,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Chouette épervière,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Cigogne blanche,Grands Oiseaux,Aves,Ciconiiformes,Ciconiidés,Grand échassier,pending_domain_review,source description exact-name membership
+Cigogne noire,Grands Oiseaux,Aves,Ciconiiformes,Ciconiidés,Grand échassier,pending_domain_review,source description exact-name membership
+Cincle plongeur,Moyens Oiseaux,Aves,Passériformes,Cinclidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Circaète Jean le blanc,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Cisticole des joncs,Petits Oiseaux,Aves,Passériformes,Cisticolidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Cistude,"Reptiles, Amphibiens",Reptilia,Testudines,Emydidés,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Cochevis huppé,Moyens Oiseaux,Aves,Passériformes,Alaudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Colin de Virginie,Moyens Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Colvert hybride,Grands Oiseaux,Aves,Ansériformes,Anatidés,Domestique,pending_domain_review,source description exact-name membership
+Combattant varié,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Corbeau freux,Moyens Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Cormoran huppé,Grands Oiseaux,Aves,Suliformes,Phalacrocoracidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Corneille noire,Grands Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Coronelle lisse,"Reptiles, Amphibiens",Reptilia,Squamata,Colubridae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Coucou geai,Moyens Oiseaux,Aves,Cuculiformes,Cuculidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Coucou gris,Moyens Oiseaux,Aves,Cuculiformes,Cuculidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Couleuvre à collier,"Reptiles, Amphibiens",Reptilia,Squamata,Natricidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Coulicou à bec jaune,Moyens Oiseaux,Aves,Cuculiformes,Cuculidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Courlis cendré,Grands Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Courlis corlieu,Grands Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Courlis à bec grèle,Grands Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Crabier chevelu,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Crapaud calamite,"Reptiles, Amphibiens",Amphibia,Anura,Bufonidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Crapaud commun,"Reptiles, Amphibiens",Amphibia,Anura,Bufonidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Cygne chanteur,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Cygne de Bewick,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Cygne tuberculé,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Daim,Ongulés,Mammalia,Pecora,Cervidés,Ongulé,pending_domain_review,source description exact-name membership
+Echasse blanche,Moyens Oiseaux,Aves,Charadriiformes,Récurvirostridés,Limicole,pending_domain_review,source description exact-name membership
+Ecureuil roux,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Rodentia,Sciuridés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Effraie des clochers,Rapaces,Aves,Strigiformes,Tytonidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Eider à duvet,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Elanion blanc,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Engoulevent d'Europe,Moyens Oiseaux,Aves,Caprimulgiformes,Caprimulgidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Epervier d'Europe,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Erismature rousse,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Erismature à tête blanche,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Etourneau roselin,Moyens Oiseaux,Aves,Passériformes,Sturnidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Etourneau sansonnet,Moyens Oiseaux,Aves,Passériformes,Sturnidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Faisan de Colchide,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Faucon crécerelle,Rapaces,Aves,Falconiformes,Falconidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Faucon hobereau,Rapaces,Aves,Falconiformes,Falconidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Faucon kobez,Rapaces,Aves,Falconiformes,Falconidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Faucon pèlerin,Rapaces,Aves,Falconiformes,Falconidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Faucon émerillon,Rapaces,Aves,Falconiformes,Falconidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Fauvette babillarde,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette des jardins,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette grisette,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette mélanocéphale,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette orphée,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette passerinette,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette pitchou,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette à tête noire,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fauvette épervière,Petits Oiseaux,Aves,Passériformes,Sylviidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Fou de Bassan,Grands Oiseaux,Aves,Suliformes,Sulidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Fouine,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Foulque macroule,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Fuligule milouin,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Fuligule milouinan,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Fuligule morillon,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Fuligule nyroca,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Fuligule à bec cerclé,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Fulmar boréal,Grands Oiseaux,Aves,Procellariiformes,Procellaridés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Gallinule poule d'eau,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Ganga unibande,Grands Oiseaux,Aves,Pterocliformes,Pteroclidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Garrot à oeil d'or,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Geai des chênes,Moyens Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Genette,Mustélidés,Mammalia,Viverroidea,Viverridés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Glaréole à collier,Moyens Oiseaux,Aves,Charadriiformes,Glaréolidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gobemouche gris,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gobemouche nain,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gobemouche noir,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gobemouche à collier,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gorgebleue à miroir,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Goéland argenté,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland bourgmestre,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland brun,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland cendré,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland leucophée,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland marin,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland pontique,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Goéland à ailes blanches,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Grand Corbeau,Grands Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Grand Cormoran,Grands Oiseaux,Aves,Suliformes,Phalacrocoracidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Grand Hasmter,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Grand Labbe,Grands Oiseaux,Aves,Charadriiformes,Stercorariidés,Laridé,pending_domain_review,source description exact-name membership
+Grand Tétras,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grand-Duc d'Europe,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Grande Aigrette,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Grenouille agile,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grenouille de Lessona,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grenouille rieuse,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grenouille rousse,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grenouille taureau,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grenouille verte,"Reptiles, Amphibiens",Amphibia,Anura,Ranidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Grimperau des jardins,Petits Oiseaux,Aves,Passériformes,Certhiidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Grimpereau des bois,Petits Oiseaux,Aves,Passériformes,Certhiidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive de Nauman,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive de Sibérie,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive dorée,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive draine,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive litorne,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive mauvis,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive musicienne,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive obscure,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grive à gorge rousse,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grosbec casse-noyaux,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Grue cendrée,Grands Oiseaux,Aves,Gruiformes,Gruidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Grue royale,Grands Oiseaux,Aves,Gruiformes,Gruidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Grèbe castagneux,Moyens Oiseaux,Aves,Podicipédiformes,Podicipedidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Grèbe esclavon,Moyens Oiseaux,Aves,Podicipédiformes,Podicipedidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Grèbe huppé,Grands Oiseaux,Aves,Podicipédiformes,Podicipedidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Grèbe jougris,Grands Oiseaux,Aves,Podicipédiformes,Podicipedidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Grèbe à cou noir,Moyens Oiseaux,Aves,Podicipédiformes,Podicipedidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Guifette leucoptère,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Guifette moustac,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Guifette noire,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Guillemot de Troïl,Grands Oiseaux,Aves,Charadriiformes,Alcidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Guêpier d'Europe,Moyens Oiseaux,Aves,Coraciiformes,Méropidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Gélinotte des bois,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Harelde boréale,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Harle bièvre,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Harle huppé,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Harle piette,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Hermine,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Hibou des marais,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Hibou moyen-duc,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Hirondelle de fenêtre,Petits Oiseaux,Aves,Passériformes,Hirundinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hirondelle de rivage,Petits Oiseaux,Aves,Passériformes,Hirundinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hirondelle des rochers,Petits Oiseaux,Aves,Passériformes,Hirundinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hirondelle rousseline,Petits Oiseaux,Aves,Passériformes,Hirundinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hirondelle rustique,Petits Oiseaux,Aves,Passériformes,Hirundinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Huppe fasciée,Moyens Oiseaux,Aves,Bucérotiformes,Upudidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Huîtrier pie,Grands Oiseaux,Aves,Charadriiformes,Haematopodidés,Limicole,pending_domain_review,source description exact-name membership
+Hypolaïs ictérine,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hypolaïs polyglotte,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Hérisson,Hérissons / Insectivore,Mammalia,Eulipotyphla,Erinaceidae,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Hérisson à ventre blanc,Rongeurs,Mammalia,Érinaceomorphes,Érinacéidés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Héron cendré,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Héron garde-boeufs,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Héron pourpré,Grands Oiseaux,Aves,Pélécaniformes,Ardeidés,Grand échassier,pending_domain_review,source description exact-name membership
+Ibis falcinelle,Grands Oiseaux,Aves,Pélécaniformes,Threskiornithidés,Grand échassier,pending_domain_review,source description exact-name membership
+Jaseur boréal,Petits Oiseaux,Aves,Passériformes,Bombycillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Labbe parasite,Grands Oiseaux,Aves,Charadriiformes,Stercorariidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Labbe pomarin,Grands Oiseaux,Aves,Charadriiformes,Stercorariidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Labbe à longue queue,Grands Oiseaux,Aves,Charadriiformes,Stercorariidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Lagopède,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Lapin de Garenne,Lagomorphe,Mammalia,Lagomorpha,Léporidés,Mammifère taille moyenne,pending_domain_review,taxonomy: order Lagomorpha
+Lapin domestique,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Lagomorpha,Léporidés,Domestique,pending_domain_review,taxonomy: AGW Domestique
+Linotte mélodieuse,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Linotte à bec jaune,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Lièvre d'Europe,Lagomorphe,Mammalia,Lagomorpha,Léporidés,Mammifère taille moyenne,pending_domain_review,taxonomy: order Lagomorpha
+Locustelle fluviatile,Petits Oiseaux,Aves,Passériformes,Locustellidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Locustelle luscinoïde,Petits Oiseaux,Aves,Passériformes,Locustellidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Locustelle tachetée,Petits Oiseaux,Aves,Passériformes,Locustellidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Loir,Rongeurs,Mammalia,Rodentia,Muscardinidés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Loriot d'Europe,Moyens Oiseaux,Aves,Passériformes,Oriolidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Loup,Canidés,Mammalia,Carnivora,Canidés,Mammifère taille moyenne,pending_domain_review,taxonomy: family Canidae
+Loutre,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Lynx boréal,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Carnivora,Félidés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Lérot,Rongeurs,Mammalia,Rodentia,Muscardinidés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Lézard des murailles,"Reptiles, Amphibiens",Reptilia,Squamata,Lacertidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Lézard des souches,"Reptiles, Amphibiens",Reptilia,Squamata,Lacertidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Lézard vivipare,"Reptiles, Amphibiens",Reptilia,Squamata,Lacertidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Macareux moine,Grands Oiseaux,Aves,Charadriiformes,Alcidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Macreuse brune,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Macreuse noire,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Marouette de Baillon,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Marouette ponctuée,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Marouette poussin,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Martin-pêcheur d'Europe,Moyens Oiseaux,Aves,Coraciiformes,Alcédinidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Martinet noir,Petits Oiseaux,Aves,Apodiformes,Apodidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Martinet à ventre blanc,Petits Oiseaux,Aves,Apodiformes,Apodidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Martre des pins,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Mergule nain,Grands Oiseaux,Aves,Charadriiformes,Alcidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Merle noir,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Merle à plastron,Moyens Oiseaux,Aves,Passériformes,Turdidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Milan noir,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Milan royal,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Moineau domestique,Petits Oiseaux,Aves,Passériformes,Passeridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Moineau friquet,Petits Oiseaux,Aves,Passériformes,Passeridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Moineau soulcie,Petits Oiseaux,Aves,Passériformes,Passeridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Monticole de roche,Moyens Oiseaux,Aves,Passériformes,Turdidé,Autre oiseau,pending_domain_review,source description exact-name membership
+Mouette de Sabine,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Mouette mélanocéphale,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Mouette pygmée,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Mouette rieuse,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Mouette tridactyle,Grands Oiseaux,Aves,Charadriiformes,Laridés,Laridé,pending_domain_review,source description exact-name membership
+Mouflon x Mouton domestique,Ongulés,Mammalia,Artiodactyla,Bovidée,Ongulé,pending_domain_review,source description exact-name membership
+Mulot,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Mulot sylvestre,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Murin de Daubenton,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Musaraigne,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne bicolore,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne carrelet,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Musaraigne musette,Hérissons / Insectivore,Mammalia,Rodentia,Soricidés,Micro-mammifère,pending_domain_review,taxonomy: insectivore family
+Muscardin,Rongeurs,Mammalia,Rodentia,Muscardinidés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Mésange bleue,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Mésange boréale,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Mésange charbonnière,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Mésange huppée,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Mésange noire,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Mésange nonnette,Petits Oiseaux,Aves,Passériformes,Paridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Nette rousse,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Noctule,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Noctule commune,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Océanite culblanc,Petits Oiseaux,Aves,Procellariiformes,Hydrobatidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Océanite tempête,Petits Oiseaux,Aves,Procellariiformes,Hydrobatidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Oedicnème criard,Grands Oiseaux,Aves,Charadriiformes,Burhinidés,Limicole,pending_domain_review,source description exact-name membership
+Oie cendrée,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Oie des moissons,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Oie domestique,Grands Oiseaux,Aves,Ansériformes,Anatidés,Domestique,pending_domain_review,source description exact-name membership
+Oie rieuse,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Oie à bec court,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Oie à tête barrée,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Oisillon,Petits Oiseaux,Aves,oisillon,oisillon,Autre oiseau,pending_domain_review,source description exact-name membership
+Oreillard,Petits Oiseaux,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,source description exact-name membership
+Oreillard roux,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Orite à longue queue,Petits Oiseaux,Aves,Passériformes,Aegithalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Orvet fragile,"Reptiles, Amphibiens",Reptilia,Squamata,Anguidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Ouette d'Egypte,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Outarde barbue,Grands Oiseaux,Aves,Otidiformes,Otididés,Autre oiseau,pending_domain_review,source description exact-name membership
+Outarde canepetière,Grands Oiseaux,Aves,Otidiformes,Otididés,Autre oiseau,pending_domain_review,source description exact-name membership
+Outarde houbara,Grands Oiseaux,Aves,Otidiformes,Otididés,Autre oiseau,pending_domain_review,source description exact-name membership
+Panure à moustaches,Petits Oiseaux,Aves,Passériformes,Panuridés,Autre oiseau,pending_domain_review,source description exact-name membership
+Paon,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Perdrix grise,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Perdrix rouge,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Perruche ondulée,Moyens Oiseaux,Aves,Psittaciformes,Psittaculidée,Autre oiseau,pending_domain_review,source description exact-name membership
+Perruche à collier,Moyens Oiseaux,Aves,Psittaciformes,Psittacidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Petit-duc scops,Rapaces,Aves,Strigiformes,Strigidés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Phalarope à bec large,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Phalarope à bec étroit,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Phragmite aquatique,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Phragmite des joncs,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic cendré,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic mar,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic noir,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic vert,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic à dos blanc,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic épeiche,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pic épeichette,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pie bavarde,Grands Oiseaux,Aves,Passériformes,Corvidés,Corvidé,pending_domain_review,source description exact-name membership
+Pie-grièche grise,Petits Oiseaux,Aves,Passériformes,Laniidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pie-grièche à poitrine rose,Petits Oiseaux,Aves,Passériformes,Laniidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pie-grièche à tête rousse,Petits Oiseaux,Aves,Passériformes,Laniidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pie-grièche écorcheur,Petits Oiseaux,Aves,Passériformes,Laniidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pigeon biset féral,Petits Oiseaux,Aves,Columbiformes,Colombidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Pigeon colombin,Petits Oiseaux,Aves,Columbiformes,Colombidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Pigeon domestique,Petits Oiseaux,Aves,Columbiformes,Colombidés,Domestique,pending_domain_review,taxonomy: Aves residual operational group
+Pigeon ramier,Petits Oiseaux,Aves,Columbiformes,Colombidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Pingouin torda,Grands Oiseaux,Aves,Charadriiformes,Alcidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Pinson des arbres,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pinson du Nord,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipistrelle,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Pipistrelle,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Pipistrelle,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Pipistrelle,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Pipit de Richard,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit des arbres,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit farlouse,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit maritime,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit rousseline,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit spioncelle,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pipit à gorge rousse,Petits Oiseaux,Aves,Passériformes,Motacillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Plongeon arctique,Grands Oiseaux,Aves,Gaviiformes,Gaviidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Plongeon catmarin,Grands Oiseaux,Aves,Gaviiformes,Gaviidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Pluvier argenté,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pluvier doré,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pluvier grand gravelot,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pluvier gravelot à collier interrompu,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pluvier guignard,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pluvier petit gravelot,Moyens Oiseaux,Aves,Charadriiformes,charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Pouillot de Bonelli,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot de Pallas,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot de Schwarz,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot fitis,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot siffleur,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot véloce,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Pouillot à grands sourcils,Petits Oiseaux,Aves,Passériformes,Phylloscopidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Putois,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Pygargue à queue blanche,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Pélobate brun,"Reptiles, Amphibiens",Amphibia,Anura,Pelobatidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Ragondin,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Caviomorpha,Echimyidés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Rainette verte,"Reptiles, Amphibiens",Amphibia,Anura,Hylidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Rat brun,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Rat des moissons,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Rat musqué,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Muroidea,Cricétidés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Rat noir,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Raton laveur,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Musteloidea,Procyonidés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Remiz penduline,Petits Oiseaux,Aves,Passériformes,Rémizidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Renard roux,Canidés,Mammalia,Carnivora,Canidés,Mammifère taille moyenne,pending_domain_review,taxonomy: family Canidae
+Rhinolophe grand fer à cheval,chauves-souris,Mammalia,Chiroptera,Rhinolophidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Rhinolophe petit fer à cheval,chauves-souris,Mammalia,Chiroptera,Rhinolophidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Roitelet huppé,Petits Oiseaux,Aves,Passériformes,Régulidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Roitelet à triple bandeau,Petits Oiseaux,Aves,Passériformes,Régulidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rollier d'Europe,Moyens Oiseaux,Aves,Coraciiformes,Coraciidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Roselin cramoisi,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rossignol philomèle,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rossignol progné,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rougegorge familier,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rougequeue noir,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rougequeue à front blanc,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rousserolle effarvatte,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rousserolle isabelle,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rousserolle turdoïde,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Rousserolle verderolle,Petits Oiseaux,Aves,Passériformes,Acrocéphalidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Râle d'eau,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau d'eau,pending_domain_review,source description exact-name membership
+Râle des genêts,Moyens Oiseaux,Aves,Gruiformes,Rallidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Salamandre tachetée,"Reptiles, Amphibiens",Amphibia,Caudata,Salamandridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Sanglier,Ongulés,Mammalia,Suina,Suidés,Ongulé,pending_domain_review,source description exact-name membership
+Sarcelle d'hiver,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Sarcelle d'été,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Sarcelle à ailes bleues,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Serin cini,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Serotine bicolore,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Sittelle d'Europe,Petits Oiseaux,Aves,Passériformes,Sittidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Sizerin cabaret,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Sizerin flammé,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Sonneur à ventre jaune,"Reptiles, Amphibiens",Amphibia,Anura,Bombinatoridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Souris,Rongeurs,Mammalia,Muroidea,Muridés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Spatule blanche,Grands Oiseaux,Aves,Pélécaniformes,Threskiornithidés,Grand échassier,pending_domain_review,source description exact-name membership
+Sterne arctique,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Sterne caspienne,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Sterne caugek,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Sterne hansel,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Sterne naine,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Sterne pierregarin,Moyens Oiseaux,Aves,Passériformes,Sternidés,Laridé,pending_domain_review,source description exact-name membership
+Syrrhapte paradoxal,Grands Oiseaux,Aves,Pterocliformes,Pteroclidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Sérotine commune,chauves-souris,Mammalia,Chiroptera,Verspertilionidés,Chauve-souris,pending_domain_review,taxonomy: AGW Chauve-souris
+Tadorne de Belon,Grands Oiseaux,Aves,Ansériformes,Anatidés,Anatidé  / grèbe,pending_domain_review,source description exact-name membership
+Tamia de Sibérie,"Autres mammifères (Procyonidé, Viverridés, ...)",Mammalia,Rodentia,Sciuridés,Mammifère taille moyenne,pending_domain_review,taxonomy: Mammalia residual group
+Tarier des prés,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Tarier pâtre (torquatus),Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Tarin des aulnes,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Taupe,Rongeurs,Mammalia,Eulipotyphla,Talpidés,Micro-mammifère,pending_domain_review,taxonomy: AGW Micro-mammifère
+Tetras lyre,Grands Oiseaux,Aves,Galliformes,Phasianidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Tichodrome échelette,Petits Oiseaux,Aves,Passériformes,Tichodromidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Torcol fourmilier,Moyens Oiseaux,Aves,Piciformes,Picidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Tortue aquatique,"Reptiles, Amphibiens",Reptilia,Testudines,Emydidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Tortue d'Hermann,"Reptiles, Amphibiens",Reptilia,Testudines,Testudinidés,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Tortue de Floride,"Reptiles, Amphibiens",Reptilia,Testudines,Emydidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Tortue terrestre,"Reptiles, Amphibiens",Reptilia,Testudines,Testudinidés,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Tournepierre à collier,Moyens Oiseaux,Aves,Charadriiformes,Scolopacidés,Limicole,pending_domain_review,source description exact-name membership
+Tourterelle des bois,Petits Oiseaux,Aves,Columbiformes,Colombidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Tourterelle turque,Petits Oiseaux,Aves,Columbiformes,Colombidés,Autre oiseau,pending_domain_review,taxonomy: Aves residual operational group
+Traquet motteux,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Traquet oreillard,Petits Oiseaux,Aves,Passériformes,Muscicapidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Triton alpestre,"Reptiles, Amphibiens",Amphibia,Caudata,Salamandridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Triton crêté,"Reptiles, Amphibiens",Amphibia,Caudata,Salamandridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Triton palmé,"Reptiles, Amphibiens",Amphibia,Caudata,Salamandridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Triton ponctué,"Reptiles, Amphibiens",Amphibia,Caudata,Salamandridae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Troglodyte mignon,Petits Oiseaux,Aves,Passériformes,Troglodytidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Vanneau huppé,Moyens Oiseaux,Aves,Charadriiformes,Charadriidés,Limicole,pending_domain_review,source description exact-name membership
+Vautour fauve,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Vautour percnoptère,Rapaces,Aves,Accipitriformes,Accipitridés,Rapace,pending_domain_review,taxonomy: AGW Rapace
+Venturon montagnard,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Verdier d'Europe,Petits Oiseaux,Aves,Passériformes,Fringillidés,Autre oiseau,pending_domain_review,source description exact-name membership
+Vipère péliade,"Reptiles, Amphibiens",Reptilia,Squamata,Viperidae,Reptile,pending_domain_review,taxonomy: class/AGW amphibian or reptile
+Vison américain,Mustélidés,Mammalia,Musteloidea,Mustélidés,Mustélidé,pending_domain_review,taxonomy: AGW Mustélidé
+Xénope lisse,"Reptiles, Amphibiens",Amphibia,Anura,Pipidae,Batracien,pending_domain_review,taxonomy: class/AGW amphibian or reptile
