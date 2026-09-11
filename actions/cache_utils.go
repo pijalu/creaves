@@ -44,7 +44,7 @@ func refreshWeightLossCache() {
 // GetWeightLossData returns weight loss data, using cache if available
 func GetWeightLossData(c buffalo.Context) (*[]AnimalWithWeight, error) {
 	cacheMutex.RLock()
-	if weightLossCache != nil && time.Since(cacheLastUpdate) < cacheUpdateInterval && !cacheLastUpdate.IsZero() {
+	if weightLossCache != nil && time.Since(cacheLastUpdate) < cacheUpdateInterval && !cacheLastUpdate.IsZero() && sameLocalDay(cacheLastUpdate, time.Now()) {
 		result := *weightLossCache
 		cacheMutex.RUnlock()
 		return &result, nil
@@ -72,6 +72,15 @@ func WeightLossCachedAt() time.Time {
 	cacheMutex.RLock()
 	defer cacheMutex.RUnlock()
 	return cacheLastUpdate
+}
+
+// sameLocalDay reports whether two times fall on the same calendar day in
+// local time. The weight-loss SQL window is anchored on CURDATE(), so a
+// cache entry from yesterday is stale even inside the TTL.
+func sameLocalDay(a, b time.Time) bool {
+	ay, am, ad := a.Local().Date()
+	by, bm, bd := b.Local().Date()
+	return ay == by && am == bm && ad == bd
 }
 
 // InvalidateWeightLossCache marks the cache as stale (will be refreshed on next access)
