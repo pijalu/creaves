@@ -181,6 +181,7 @@ func DashboardIndex(c buffalo.Context) error {
 	}
 
 	c.Set("animalsWithWeightLoss", wla)
+	c.Set("animalsWithWeightLossCachedAt", WeightLossCachedAt())
 
 	oc, err := listOpenCares(c)
 	if err != nil {

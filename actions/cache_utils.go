@@ -66,6 +66,14 @@ func GetWeightLossData(c buffalo.Context) (*[]AnimalWithWeight, error) {
 	return newData, nil
 }
 
+// WeightLossCachedAt returns when the currently cached weight loss data was computed.
+// Zero time if the cache has never been populated.
+func WeightLossCachedAt() time.Time {
+	cacheMutex.RLock()
+	defer cacheMutex.RUnlock()
+	return cacheLastUpdate
+}
+
 // InvalidateWeightLossCache marks the cache as stale (will be refreshed on next access)
 func InvalidateWeightLossCache() {
 	cacheMutex.Lock()
