@@ -143,6 +143,7 @@ func (v CaretypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateCaretypesRefCache()
 	if err := saveTranslations(c, tx, "caretypes", caretype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -227,6 +228,7 @@ func (v CaretypesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateCaretypesRefCache()
 	if err := saveTranslations(c, tx, "caretypes", caretype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -264,6 +266,7 @@ func (v CaretypesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(caretype); err != nil {
 		return err
 	}
+	InvalidateCaretypesRefCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

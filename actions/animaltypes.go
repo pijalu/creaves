@@ -160,6 +160,7 @@ func (v AnimaltypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateAnimaltypesRefCache()
 	if err := saveTranslations(c, tx, "animaltypes", animaltype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -259,6 +260,7 @@ func (v AnimaltypesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateAnimaltypesRefCache()
 	if err := saveTranslations(c, tx, "animaltypes", animaltype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -300,6 +302,7 @@ func (v AnimaltypesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(animaltype); err != nil {
 		return err
 	}
+	InvalidateAnimaltypesRefCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

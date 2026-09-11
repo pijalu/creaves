@@ -144,6 +144,7 @@ func (v ZonesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateZonesRefCache()
 	if err := saveTranslations(c, tx, "zones", zone.ID.String(), []string{"zone", "type"}); err != nil {
 		return err
 	}
@@ -227,6 +228,7 @@ func (v ZonesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
+	InvalidateZonesRefCache()
 	if err := saveTranslations(c, tx, "zones", zone.ID.String(), []string{"zone", "type"}); err != nil {
 		return err
 	}
@@ -264,6 +266,7 @@ func (v ZonesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(zone); err != nil {
 		return err
 	}
+	InvalidateZonesRefCache()
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

@@ -32,13 +32,7 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	ts := &models.Animaltypes{}
-	if err := tx.Order("name asc").All(ts); err != nil {
-		return nil, err
-	}
-	//c.Logger().Debugf("Loaded animal types: %v", ts)
-
-	return ts, nil
+	return loadAnimalTypes(tx)
 }
 
 // currentLang normalizes the UI language cookie. Empty/"fr" mean base
@@ -270,13 +264,7 @@ func animalages(c buffalo.Context) (*models.Animalages, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
-	ts := &models.Animalages{}
-	if err := tx.Order("name asc").All(ts); err != nil {
-		return nil, err
-	}
-	//c.Logger().Debugf("Loaded animal types: %v", ts)
-
-	return ts, nil
+	return loadAnimalages(tx)
 }
 
 func animalagesToSelectables(ts *models.Animalages, lang string, tx *pop.Connection) form.Selectables {
