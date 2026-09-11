@@ -46,13 +46,27 @@ func SuggestionsSpeciesType(c buffalo.Context) error {
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
-	q := resolveReferenceInput(c, "species", c.Param("q"))
+	q := strings.TrimSpace(c.Param("q"))
+	lang := currentLang(c)
 	var result struct {
 		Species        string `db:"species" json:"species"`
 		AnimaltypeID   string `db:"animaltype_id" json:"animaltype_id"`
 		AnimaltypeName string `db:"animaltype_name" json:"animaltype_name"`
 	}
-	if err := tx.RawQuery("SELECT s.creaves_species AS species, s.animaltype_id, t.name AS animaltype_name FROM species s LEFT JOIN animaltypes t ON t.id = s.animaltype_id WHERE s.creaves_species = ? LIMIT 1", q).First(&result); err != nil {
+	query := "SELECT s.creaves_species AS species, s.animaltype_id, t.name AS animaltype_name FROM species s LEFT JOIN animaltypes t ON t.id = s.animaltype_id"
+	args := []interface{}{}
+	if lang != "" {
+		query += " LEFT JOIN translations tr ON tr.table_name = 'species' AND tr.field = 'creaves_species' AND tr.locale = ? AND tr.record_id = s.id"
+		args = append(args, lang)
+	}
+	query += " WHERE (s.creaves_species = ?"
+	args = append(args, q)
+	if lang != "" {
+		query += " OR tr.value = ?"
+		args = append(args, q)
+	}
+	query += ") AND s.animaltype_id IS NOT NULL LIMIT 1"
+	if err := tx.RawQuery(query, args...).First(&result); err != nil {
 		return c.Render(http.StatusNotFound, r.JSON(map[string]string{"error": "species not found"}))
 	}
 	return c.Render(http.StatusOK, r.JSON(result))

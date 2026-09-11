@@ -98,7 +98,7 @@
 
                     $( "#animal-AnimaltypeID" ).on( "change", function() {
                         var term = $("#animal-AnimaltypeID :selected").text();
-                        $.getJSON('/suggestions/animaltype_species', { q: term }, function(data){ 
+                                                $.getJSON('/suggestions/animal_species', { q: "", animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
                             if (data.length > 0 ) {
                                 $("#animal-Species").val(data[0]);
                                 $("#animal-Species").removeClass("is-invalid")
@@ -117,7 +117,8 @@
                     minChars: 1,
                     source: function(term, response){
                         $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: $('#animal-AnimaltypeID').val() }, function(data){ response(data); });
-                    }
+                    },
+                    onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
 
                 $( "#animal-Species" ).on( "change", function() {
