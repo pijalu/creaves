@@ -3,6 +3,6 @@
 </div>
 
 <%= formFor(species, {action: speciesPath({ species_id: species.ID }), method: "PUT"}) { %>
-  <%= partial("species/_form.plush.nl.html") %>
+  <%= partial("species/form.plush.nl.html") %>
   <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
 <% } %>

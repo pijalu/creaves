@@ -80,7 +80,7 @@ func (v SpeciesResource) Show(c buffalo.Context) error {
 	species := &models.Species{}
 
 	// To find the Species the parameter species_id is used.
-	if err := tx.Eager().Find(species, c.Param("species_id")); err != nil {
+	if err := tx.Eager("Animaltype").Find(species, c.Param("species_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 
@@ -193,7 +193,7 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 	// Allocate an empty Species
 	species := &models.Species{}
 
-	if err := tx.Find(species, c.Param("species_id")); err != nil {
+	if err := tx.Eager("Animaltype").Find(species, c.Param("species_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
 

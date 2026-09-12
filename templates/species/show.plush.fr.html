@@ -50,7 +50,12 @@
 
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Espèces Creaves</label>
+      <label class="small d-block">Type animal</label>
+      <p class="d-inline-block"><%= tname("animaltypes", species.Animaltype.ID, species.Animaltype.Name) %></p>
+    </li>
+
+  <li class="list-group-item pb-1">
+      <label class="small d-block">Espèces Creaves</label>
     <p class="d-inline-block"><%= tname("species", species.ID, species.CreavesSpecies) %></p>
   </li>
 

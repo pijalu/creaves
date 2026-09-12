@@ -20,6 +20,7 @@
   <li class="list-group-item pb-1"><label class="small d-block">Orde</label><p class="d-inline-block"><%= tfield("species", "order", species.ID, species.Order) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Familie</label><p class="d-inline-block"><%= tfield("species", "family", species.ID, species.Family) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Wild</label><p class="d-inline-block"><%= bool2html(species.Game) %></p></li>
+  <li class="list-group-item pb-1"><label class="small d-block">Diergroep</label><p class="d-inline-block"><%= tname("animaltypes", species.Animaltype.ID, species.Animaltype.Name) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Creaves-soort</label><p class="d-inline-block"><%= tfield("species", "creaves_species", species.ID, species.CreavesSpecies) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Creaves-groep</label><p class="d-inline-block"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Subsidie</label><p class="d-inline-block"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></p></li>

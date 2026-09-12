@@ -99,8 +99,8 @@
                     $( "#animal-AnimaltypeID" ).on( "change", function() {
                         var term = $("#animal-AnimaltypeID :selected").text();
                                                 $.getJSON('/suggestions/animal_species', { q: "", animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
-                            if (data.length > 0 ) {
-                                $("#animal-Species").val(data[0]);
+                            if (data.length > 0 && !$("#animal-Species").val()) {
+                                                                                                                    $("#animal-Species").val(data[0]);
                                 $("#animal-Species").removeClass("is-invalid")
                             }
                         });
@@ -121,12 +121,12 @@
                     onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
 
-                $( "#animal-Species" ).on( "change", function() {
+                $( "#animal-Species" ).on( "change input", function() {
                                       var term = $("#animal-Species").val();
                                       if (term) {
                                                                                 $.getJSON('/suggestions/species_type', { q: term }, function(info){
                                                                                     if (!$("#animal-AnimaltypeID").val() && info.animaltype_id) {
-                                                                                        $("#animal-AnimaltypeID").val(info.animaltype_id).trigger('change');
+                                                                                        $("#animal-AnimaltypeID").val(info.animaltype_id);
                                                                                     } else if (info.animaltype_id && info.animaltype_id !== $("#animal-AnimaltypeID").val()) {
                                                                                         $("#speciesTypeHint").removeClass("d-none");
                                                                                     } else {
