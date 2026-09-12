@@ -1,1 +1,1 @@
-sql("ALTER TABLE users DROP COLUMN IF EXISTS maintainer")
+remove_column("users", "maintainer")

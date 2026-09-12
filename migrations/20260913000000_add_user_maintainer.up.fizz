@@ -1,2 +1,2 @@
-sql("ALTER TABLE users ADD COLUMN IF NOT EXISTS maintainer BOOLEAN NOT NULL DEFAULT false")
+add_column("users", "maintainer", "bool", {default: false})
 sql("UPDATE users SET maintainer = true WHERE admin = true")
