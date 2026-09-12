@@ -87,6 +87,15 @@ func (v DiscoverersResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("discoverer", discoverer)
+		tx, ok := c.Value("tx").(*pop.Connection)
+		if !ok {
+			return fmt.Errorf("no transaction found")
+		}
+		replacements := &models.Discoverers{}
+		if err := tx.Where("id <> ?", discoverer.ID).Order("lastname asc, firstname asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("discoverer_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/discoverers/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

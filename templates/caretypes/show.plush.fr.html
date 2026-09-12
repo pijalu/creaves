@@ -14,6 +14,11 @@
 
 
 
+<%= formFor(caretype, {action: "/caretypes/" + caretype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
+  <label for="replacement_id">Remplacement avant suppression</label>
+  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in caretype_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
+  <button type="submit" class="btn btn-danger mt-2">Réaffecter et supprimer</button>
+<% } %>
 <ul class="list-group mb-2 ">
 
 

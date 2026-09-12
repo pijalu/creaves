@@ -182,6 +182,11 @@ func (v DrugsResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("drug", drug)
+		replacements := &models.Drugs{}
+		if err := tx.Where("id <> ?", drug.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("drug_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/drugs/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

@@ -89,6 +89,11 @@ func (v AnimalagesResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animalage", animalage)
+		replacements := &models.Animalages{}
+		if err := tx.Where("id <> ?", animalage.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("animalage_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/animalages/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

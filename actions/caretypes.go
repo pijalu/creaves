@@ -79,6 +79,11 @@ func (v CaretypesResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("caretype", caretype)
+		replacements := &models.Caretypes{}
+		if err := tx.Where("id <> ?", caretype.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("caretype_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/caretypes/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

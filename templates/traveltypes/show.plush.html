@@ -12,6 +12,11 @@
 
 
 
+<%= formFor(traveltype, {action: "/traveltypes/" + traveltype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
+  <label for="replacement_id">Replacement before deletion</label>
+  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in traveltype_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
+  <button type="submit" class="btn btn-danger mt-2">Remap dependents and delete</button>
+<% } %>
 <ul class="list-group mb-2 ">
 
 

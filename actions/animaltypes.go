@@ -88,6 +88,11 @@ func (v AnimaltypesResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animaltype", animaltype)
+		replacements := &models.Animaltypes{}
+		if err := tx.Where("id <> ?", animaltype.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("animaltype_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/animaltypes/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

@@ -79,6 +79,11 @@ func (v TraveltypesResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("traveltype", traveltype)
+		replacements := &models.Traveltypes{}
+		if err := tx.Where("id <> ?", traveltype.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("traveltype_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/traveltypes/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
