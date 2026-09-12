@@ -7,6 +7,11 @@
   </div>
 </div>
 
+<form method="GET" action="/species" class="form-inline mb-3">
+  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Rechercher espèce, classe, ordre, famille…">
+  <button class="btn btn-primary" type="submit">Rechercher</button>
+</form>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Espèce</th><th>Classe</th><th>Ordre</th><th>Famille</th><th>Gibier</th><th>Espèce Creaves</th><th>Famille Creaves</th><th>Subside</th>

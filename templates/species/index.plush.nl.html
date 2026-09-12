@@ -7,6 +7,11 @@
   </div>
 </div>
 
+<form method="GET" action="/species" class="form-inline mb-3">
+  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Zoek soort, klasse, orde, familie…">
+  <button class="btn btn-primary" type="submit">Zoeken</button>
+</form>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Soort</th><th>Klasse</th><th>Orde</th><th>Familie</th><th>Wild</th><th>Creaves-soort</th><th>Creaves-groep</th><th>Subsidie</th>

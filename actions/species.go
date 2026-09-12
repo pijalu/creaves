@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -42,9 +43,23 @@ func (v SpeciesResource) List(c buffalo.Context) error {
 
 	species := &[]models.Species{}
 
+	// Optional search filter: match the canonical columns plus any
+	// translation value, so users can find a species by the localized
+	// name they see in the UI.
+	search := strings.TrimSpace(c.Param("q"))
+	c.Set("speciesSearch", search)
+
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.PaginateFromParams(c.Params()).Order("class ASC, `order` ASC, family ASC, creaves_species ASC")
+	q := tx.PaginateFromParams(c.Params())
+	if search != "" {
+		pat := "%" + search + "%"
+		q = q.Where(
+			"(species.species LIKE ? OR species.class LIKE ? OR species.`order` LIKE ? OR species.family LIKE ? OR species.creaves_species LIKE ? OR species.agw_group LIKE ? OR species.subside_group LIKE ? OR species.native_status LIKE ? OR species.id IN (SELECT record_id FROM translations WHERE table_name = 'species' AND value LIKE ?))",
+			pat, pat, pat, pat, pat, pat, pat, pat, pat,
+		)
+	}
+	q = q.Order("class ASC, `order` ASC, family ASC, creaves_species ASC")
 
 	// Retrieve all Species from the DB
 	if err := q.All(species); err != nil {
