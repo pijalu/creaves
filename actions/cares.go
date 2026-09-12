@@ -67,7 +67,7 @@ func EnrichCares(cs *models.Cares, c buffalo.Context) (*models.Cares, error) {
 
 	animals := models.Animals{}
 	if err := tx.Where("ID in (?)", aList).All(&animals); err != nil {
-		return nil, fmt.Errorf("Could not lookup animals for list of cares: %v", err)
+		return nil, fmt.Errorf("could not lookup animals for list of cares: %v", err)
 	}
 	aMap := make(map[int]models.Animal)
 	for i := 0; i < len(animals); i++ {

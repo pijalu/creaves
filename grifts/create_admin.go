@@ -4,10 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 )
 
-func createAdmin(c *Context) error {
+func createAdmin(c *grift.Context) error {
 	u := &models.User{
 		Login:      "admin",
 		Password:   "admin",

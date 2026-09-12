@@ -70,7 +70,7 @@ func runSnapshotTask(task *SnapshotTaskStatus) {
 	}
 
 	// Load config
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		if _, err := LoadConfig(tx); err != nil {
 			fail(fmt.Sprintf("Failed to load config: %v", err))
 			return
@@ -273,7 +273,7 @@ func getSnapshotTask(id string) (*SnapshotTaskStatus, bool) {
 func MaintenanceIndex(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 
 	// Get event stream stats for display
@@ -339,7 +339,7 @@ func unmappedSpeciesDiagnostics(tx *pop.Connection) ([]unmappedSpeciesRow, error
 func MaintenanceRenumber(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -380,7 +380,7 @@ func MaintenanceRenumber(c buffalo.Context) error {
 func MaintenanceSnapshot(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 
 	taskID := enqueueSnapshotTask("snapshot")
@@ -393,7 +393,7 @@ func MaintenanceSnapshot(c buffalo.Context) error {
 func MaintenanceCleanup(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 
 	taskID := enqueueSnapshotTask("cleanup")
@@ -430,13 +430,13 @@ func MaintenanceDeleteAllEvents(c buffalo.Context) error {
 func MaintenanceTaskStatus(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
 	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 
 	taskID := c.Param("task_id")
 	task, ok := getSnapshotTask(taskID)
 	if !ok {
-		return c.Error(http.StatusNotFound, fmt.Errorf("Task not found"))
+		return c.Error(http.StatusNotFound, fmt.Errorf("task not found"))
 	}
 
 	return c.Render(http.StatusOK, r.JSON(task))

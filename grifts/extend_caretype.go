@@ -4,11 +4,11 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
 )
 
-func extendCaretype(c *Context) error {
+func extendCaretype(c *grift.Context) error {
 	ts := []struct {
 		name         string
 		description  string

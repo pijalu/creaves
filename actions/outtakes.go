@@ -177,7 +177,7 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 
 	animalID := c.Param("animal_id")
 	if len(animalID) <= 0 {
-		return fmt.Errorf("Missing animal ID")
+		return fmt.Errorf("missing animal ID")
 	}
 	animal := &models.Animal{}
 	if err := tx.Eager().Find(animal, animalID); err != nil {

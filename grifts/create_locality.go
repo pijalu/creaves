@@ -8,13 +8,13 @@ import (
 	"log"
 	"strings"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/pop/v6"
 
 	_ "embed"
 )
 
-func createLocality(c *Context) error {
+func createLocality(c *grift.Context) error {
 	ts := []models.Locality{}
 
 	// Open the file

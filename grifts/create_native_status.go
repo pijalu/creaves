@@ -4,11 +4,11 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
 )
 
-func createNativeStatus(c *Context) error {
+func createNativeStatus(c *grift.Context) error {
 	ts := []struct {
 		ID         string
 		Status     string

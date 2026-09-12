@@ -169,7 +169,7 @@ func (v LogentriesResource) Edit(c buffalo.Context) error {
 
 	cu := GetCurrentUser(c)
 	if !cu.Admin && cu.ID != logentry.UserID {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Cannot edit other user entries"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("cannot edit other user entries"))
 	}
 
 	c.Set("logentry", logentry)
@@ -199,7 +199,7 @@ func (v LogentriesResource) Update(c buffalo.Context) error {
 
 	cu := GetCurrentUser(c)
 	if !cu.Admin && cu.ID != logentry.UserID {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Cannot edit other user entries"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("cannot edit other user entries"))
 	}
 
 	verrs, err := tx.ValidateAndUpdate(logentry)
@@ -256,7 +256,7 @@ func (v LogentriesResource) Destroy(c buffalo.Context) error {
 
 	cu := GetCurrentUser(c)
 	if !cu.Admin && cu.ID != logentry.UserID {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Cannot remove other user entries"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("cannot remove other user entries"))
 	}
 
 	if err := tx.Destroy(logentry); err != nil {

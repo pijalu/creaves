@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/pop/v6"
 )
 
-func createEntryCause(c *Context) error {
+func createEntryCause(c *grift.Context) error {
 	ts := []models.EntryCause{}
 
 	// Open the file

@@ -4,10 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 )
 
-func createRequiredOuttaketype(c *Context) error {
+func createRequiredOuttaketype(c *grift.Context) error {
 	ts := []struct {
 		Name    string
 		Default bool

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
 )
 
-func animalTypeID(c *Context) (map[string]models.Animaltype, error) {
+func animalTypeID(c *grift.Context) (map[string]models.Animaltype, error) {
 	m := map[string]models.Animaltype{}
 	animalTypes := []models.Animaltype{}
 	if err := models.DB.Q().All(&animalTypes); err != nil {
@@ -21,7 +21,7 @@ func animalTypeID(c *Context) (map[string]models.Animaltype, error) {
 	return m, nil
 }
 
-func createDrugs(c *Context) error {
+func createDrugs(c *grift.Context) error {
 	type dosage struct {
 		animalType string
 		dosage     string

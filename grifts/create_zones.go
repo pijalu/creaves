@@ -4,10 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 )
 
-func createZones(c *Context) error {
+func createZones(c *grift.Context) error {
 	ts := []struct {
 		zone      string
 		zone_type string

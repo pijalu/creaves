@@ -57,7 +57,7 @@ func cachedSyncStatus() *SyncStatus {
 
 func WebhookResyncIndex(c buffalo.Context) error {
 	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
 	}
 	c.Set("webhookEnabled", IsWebhookEnabled())
 	// Expected-set visibility (phase 8): computed in the background — the
@@ -68,7 +68,7 @@ func WebhookResyncIndex(c buffalo.Context) error {
 }
 func WebhookResyncStart(c buffalo.Context) error {
 	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -104,7 +104,7 @@ func WebhookResyncStart(c buffalo.Context) error {
 }
 func WebhookResyncStatus(c buffalo.Context) error {
 	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -122,7 +122,7 @@ func WebhookResyncStatus(c buffalo.Context) error {
 
 func WebhookResyncCancel(c buffalo.Context) error {
 	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required"))
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

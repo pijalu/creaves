@@ -4,10 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 )
 
-func createSubsideGroup(c *Context) error {
+func createSubsideGroup(c *grift.Context) error {
 	ts := []struct {
 		ID     string
 		Group  string

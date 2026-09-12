@@ -114,17 +114,6 @@ func auditTravelProjection(t models.Travel) models.Travel {
 	return t
 }
 
-// auditAnimalIDByOuttake resolves the animal linked to an outtake via the
-// animals.outtake_id column (outtakes have no animal_id column).
-// Returns 0 when no animal is linked.
-func auditAnimalIDByOuttake(tx *pop.Connection, outtakeID interface{}) int {
-	a := &models.Animal{}
-	if err := tx.Where("outtake_id = ?", outtakeID).First(a); err == nil {
-		return a.ID
-	}
-	return 0
-}
-
 // auditAnimalIDByIntake resolves the animal linked to an intake via the
 // animals.intake_id column. Returns 0 when no animal is linked.
 func auditAnimalIDByIntake(tx *pop.Connection, intakeID interface{}) int {

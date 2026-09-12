@@ -135,34 +135,6 @@ func loadAnimalTypes(tx *pop.Connection) (*models.Animaltypes, error) {
 	return v.(*models.Animaltypes), nil
 }
 
-func loadZones(tx *pop.Connection) (*models.Zones, error) {
-	v, err := cachedRef(&refDataCache.zones, func() (interface{}, error) {
-		ts := &models.Zones{}
-		if err := tx.Order("zone asc").All(ts); err != nil {
-			return nil, err
-		}
-		return ts, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*models.Zones), nil
-}
-
-func loadCaretypes(tx *pop.Connection) (*models.Caretypes, error) {
-	v, err := cachedRef(&refDataCache.caretypes, func() (interface{}, error) {
-		ts := &models.Caretypes{}
-		if err := tx.Order("name asc").All(ts); err != nil {
-			return nil, err
-		}
-		return ts, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*models.Caretypes), nil
-}
-
 func loadAnimalages(tx *pop.Connection) (*models.Animalages, error) {
 	v, err := cachedRef(&refDataCache.animalages, func() (interface{}, error) {
 		ts := &models.Animalages{}
@@ -175,46 +147,4 @@ func loadAnimalages(tx *pop.Connection) (*models.Animalages, error) {
 		return nil, err
 	}
 	return v.(*models.Animalages), nil
-}
-
-func loadOuttaketypes(tx *pop.Connection) (*models.Outtaketypes, error) {
-	v, err := cachedRef(&refDataCache.outtakeTypes, func() (interface{}, error) {
-		ts := &models.Outtaketypes{}
-		if err := tx.Order("name asc").All(ts); err != nil {
-			return nil, err
-		}
-		return ts, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*models.Outtaketypes), nil
-}
-
-func loadTraveltypes(tx *pop.Connection) (*models.Traveltypes, error) {
-	v, err := cachedRef(&refDataCache.traveltypes, func() (interface{}, error) {
-		ts := &models.Traveltypes{}
-		if err := tx.Order("name asc").All(ts); err != nil {
-			return nil, err
-		}
-		return ts, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*models.Traveltypes), nil
-}
-
-func loadEntryCauses(tx *pop.Connection) (*models.EntryCauses, error) {
-	v, err := cachedRef(&refDataCache.entryCauses, func() (interface{}, error) {
-		ts := &models.EntryCauses{}
-		if err := tx.Order("sort_order asc").All(ts); err != nil {
-			return nil, err
-		}
-		return ts, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return v.(*models.EntryCauses), nil
 }

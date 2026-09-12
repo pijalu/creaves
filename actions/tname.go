@@ -224,7 +224,7 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 	if !allowed[table] {
 		return out
 	}
-	baseField, ok := translationBaseFields[table]
+	baseField := translationBaseFields[table]
 	if table == "zones" {
 		baseField = "zone"
 	}
@@ -240,7 +240,7 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 	if baseField == "" || field != baseField {
 		return out
 	}
-	q := fmt.Sprintf("SELECT fr.value AS base, tr.value AS value FROM translations fr JOIN translations tr ON tr.table_name = fr.table_name AND tr.record_id = fr.record_id AND tr.field = fr.field AND tr.locale = ? WHERE fr.table_name = ? AND fr.field = ? AND fr.locale = 'fr' AND tr.value <> ''")
+	q := "SELECT fr.value AS base, tr.value AS value FROM translations fr JOIN translations tr ON tr.table_name = fr.table_name AND tr.record_id = fr.record_id AND tr.field = fr.field AND tr.locale = ? WHERE fr.table_name = ? AND fr.field = ? AND fr.locale = 'fr' AND tr.value <> ''"
 	if err := tx.RawQuery(q, lang, table, field).All(&rows); err != nil {
 		return out
 	}

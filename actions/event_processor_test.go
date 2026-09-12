@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -306,20 +305,5 @@ func TestConsolidatedAnimalNullHandling(t *testing.T) {
 
 	if ca.IntakeDate.Valid {
 		t.Error("Expected intake date to be invalid (null)")
-	}
-}
-
-// Helper function to verify nulls.String
-func verifyNullsString(t *testing.T, name string, expected string, actual nulls.String) {
-	if expected == "" {
-		if actual.Valid {
-			t.Errorf("Expected %s to be null, got '%s'", name, actual.String)
-		}
-	} else {
-		if !actual.Valid {
-			t.Errorf("Expected %s to be '%s', got null", name, expected)
-		} else if actual.String != expected {
-			t.Errorf("Expected %s to be '%s', got '%s'", name, expected, actual.String)
-		}
 	}
 }

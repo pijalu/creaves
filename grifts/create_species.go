@@ -8,11 +8,11 @@ import (
 	"log"
 	"strings"
 
-	. "github.com/gobuffalo/grift/grift"
+	grift "github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/pop/v6"
 )
 
-func createSpecies(c *Context) error {
+func createSpecies(c *grift.Context) error {
 	ts := []models.Species{}
 
 	// Open the file

@@ -54,7 +54,7 @@ func getConfig() *Config {
 
 	configYamlData, err := excelConfig.ReadFile("config/config.yaml")
 	if err != nil {
-		panic(fmt.Errorf("Failed to load configuration: %v", err))
+		panic(fmt.Errorf("failed to load configuration: %v", err))
 	}
 
 	if err := yaml.Unmarshal(configYamlData, &config); err != nil {
@@ -77,11 +77,11 @@ func getConfig() *Config {
 
 func (c *Config) getQuery(id string) (*Queries, error) {
 	for _, q := range c.Queries {
-		if strings.ToLower(q.Name) == strings.ToLower(id) {
+		if strings.EqualFold(q.Name, id) {
 			return &q, nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find query %s", id)
+	return nil, fmt.Errorf("could not find query %s", id)
 }
 
 // Return queries

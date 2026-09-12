@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"log"
-	stdlog "log"
 	"os"
 	"strconv"
 	"time"
@@ -18,7 +17,7 @@ import (
 // throughout your application.
 var DB *pop.Connection
 
-var popStdLogger = stdlog.New(os.Stderr, "[POP] ", stdlog.LstdFlags)
+var popStdLogger = log.New(os.Stderr, "[POP] ", log.LstdFlags)
 
 func init() {
 	var err error

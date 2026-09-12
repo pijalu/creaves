@@ -113,16 +113,6 @@ func newTranslationPreloader() *translationPreloader {
 	}
 }
 
-// newLoadedTranslationPreloader loads every translation and species row the
-// given animals can reference. tx must be non-nil. Query failures on
-// individual groups are ignored (missing translations fall back to base
-// values) — the same leniency as the per-animal path.
-func newLoadedTranslationPreloader(tx *pop.Connection, animals *models.Animals) *translationPreloader {
-	p := newTranslationPreloader()
-	p.ensure(tx, animals)
-	return p
-}
-
 // ensure loads the reference data the given animals need that is not loaded
 // yet. Safe to call repeatedly with successive chunks: everything already
 // covered is skipped, so steady-state cost per chunk is zero queries.
