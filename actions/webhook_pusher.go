@@ -18,7 +18,7 @@ import (
 
 // CircuitBreaker implements a simple circuit breaker pattern
 type CircuitBreaker struct {
-	mu               sync.RWMutex
+	mu               sync.Mutex
 	failures         int
 	lastFailure      time.Time
 	state            string // "closed", "open", "half-open"
@@ -35,23 +35,17 @@ func NewCircuitBreaker() *CircuitBreaker {
 	}
 }
 
-// IsOpen returns true if the circuit is open
+// IsOpen reports whether the circuit is open. An open circuit whose reset
+// timeout has elapsed transitions to half-open (delivery allowed again) under
+// the same lock, so the state machine has no lock-upgrade race.
 func (cb *CircuitBreaker) IsOpen() bool {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
 
-	if cb.state == "open" {
-		if time.Since(cb.lastFailure) > cb.resetTimeout {
-			cb.mu.RUnlock()
-			cb.mu.Lock()
-			cb.state = "half-open"
-			cb.mu.Unlock()
-			cb.mu.RLock()
-			return false
-		}
-		return true
+	if cb.state == "open" && time.Since(cb.lastFailure) > cb.resetTimeout {
+		cb.state = "half-open"
 	}
-	return false
+	return cb.state == "open"
 }
 
 // RecordSuccess resets the circuit breaker

@@ -222,9 +222,9 @@ func TestCircuitBreaker_HalfOpenAfterResetTimeout(t *testing.T) {
 
 	// First probe after timeout trips half-open and returns false (allow probe).
 	assert.False(t, cb.IsOpen())
-	cb.mu.RLock()
+	cb.mu.Lock()
 	assert.Equal(t, "half-open", cb.state)
-	cb.mu.RUnlock()
+	cb.mu.Unlock()
 
 	// A success while half-open closes the circuit.
 	cb.RecordSuccess()
