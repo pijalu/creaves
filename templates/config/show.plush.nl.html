@@ -48,8 +48,12 @@
       <td><%= t("config.show.api-key") %></td>
       <td>
         <%= if (settings.WebhookAPIKey != "") { %>
-          <code><%= settings.MaskedWebhookAPIKey() %></code>
-          <small class="form-text text-muted"><%= t("config.show.api-key-prefix-hint") %></small>
+          <%= if (current_user.Maintainer) { %>
+            <code><%= settings.WebhookAPIKey %></code>
+          <% } else { %>
+            <code><%= settings.MaskedWebhookAPIKey() %></code>
+            <small class="form-text text-muted"><%= t("config.show.api-key-prefix-hint") %></small>
+          <% } %>
         <% } else { %>
           <em><%= t("config.show.api-key-not-set") %></em>
         <% } %>

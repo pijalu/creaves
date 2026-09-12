@@ -390,8 +390,13 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// Parse settings for template display
+	// Parse settings for template display. The stored webhook API key is
+	// only revealed to maintainers; other admins get a write-only field
+	// (blank submit preserves the stored key in Update).
 	settings, _ := config.GetSettings()
+	if !GetCurrentUser(c).Maintainer {
+		settings.WebhookAPIKey = ""
+	}
 	c.Set("settings", settings)
 
 	c.Set("config", config)

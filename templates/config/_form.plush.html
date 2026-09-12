@@ -46,8 +46,8 @@
 
 <div class="form-group">
   <label for="webhook_api_key">API Key</label>
-  <input type="password" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="Enter API key (leave blank to keep current)" autocomplete="new-password">
-  <small class="form-text text-muted">API key generated in Creaves Console. For security it is never displayed — enter a new key to replace the stored one, or leave the field blank to keep the current key.</small>
+  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="Enter API key (leave blank to keep current)" autocomplete="new-password">
+  <small class="form-text text-muted">API key generated in Creaves Console. Maintainers can view the stored key; other admins see a write-only field — enter a new key to replace the stored one, or leave the field blank to keep the current key.</small>
 </div>
 
 <div class="form-group">
