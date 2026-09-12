@@ -1,6 +1,10 @@
 package grifts
 
-import "github.com/gobuffalo/grift/grift"
+import (
+	"creaves/actions"
+
+	"github.com/gobuffalo/grift/grift"
+)
 
 var _ = grift.Namespace("species", func() {
 	grift.Desc("repair_links", "Repairs empty species animal-type links from the approved mapping")
@@ -13,6 +17,9 @@ var _ = grift.Namespace("db", func() {
 		if err := seedStartup(c); err != nil {
 			return err
 		}
+		// Startup reconciliation can rename/remove reference rows; ensure any
+		// request-process cache cannot serve pre-seed animal types.
+		actions.InvalidateAnimaltypesRefCache()
 		if err := createAdmin(c); err != nil {
 			return err
 		}

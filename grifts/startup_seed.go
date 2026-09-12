@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"creaves/actions"
 	"creaves/models"
 	"creaves/utils"
 
@@ -107,10 +108,19 @@ var startupNameField = map[string]string{
 	"drugs":        "name",
 }
 
+// startupNameAliases maps canonical dump names to legacy names that identify
+// the same reference row. Keeping the legacy row ID preserves existing animal
+// and species foreign keys while allowing startup data to adopt newer labels.
+var startupNameAliases = map[string]map[string][]string{
+	"animaltypes": {
+		"Hérissons / Insectivore": {"Hérissons et mammifères insectivores"},
+	},
+}
+
 // seedStartup syncs the embedded production reference data (French) into the
-// 7 startup tables. It is add-only: rows that already exist are preserved
-// (production databases must never be rewritten), rows whose id or canonical
-// name matches stay untouched, and only genuinely new items are inserted.
+// 7 startup tables. Existing reference rows are preserved by name where
+// possible; explicitly configured semantic aliases are merged and their
+// dependent foreign keys are re-keyed before genuinely new items are inserted.
 // All writes run in a single transaction.
 func seedStartup(c *grift.Context) error {
 	gz, err := gzip.NewReader(bytes.NewReader(startupSQLGz))
@@ -212,6 +222,9 @@ func seedStartup(c *grift.Context) error {
 //
 // Returns the mapping dump record id -> target record id.
 func syncStartupTable(tx *pop.Connection, table string, statements []string, fkMapping map[string]string) (map[string]string, error) {
+	if err := mergeStartupAnimaltypeAliases(tx, table); err != nil {
+		return nil, err
+	}
 	columns := startupTableColumns[table]
 	nameField := startupNameField[table]
 
@@ -248,6 +261,25 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 			normIndex[n] = id
 		}
 	}
+	for canonical, aliases := range startupNameAliases[table] {
+		canonicalNorm := normKey(canonical)
+		if id := normIndex[canonicalNorm]; id != "" {
+			for _, alias := range aliases {
+				if n := normKey(alias); n != "" {
+					normIndex[n] = id
+				}
+			}
+			continue
+		}
+		for id, raw := range existingNames {
+			for _, alias := range aliases {
+				if normKey(raw) == normKey(alias) {
+					normIndex[canonicalNorm] = id
+					break
+				}
+			}
+		}
+	}
 
 	mapping := map[string]string{}
 	inserted, kept, matched := 0, 0, 0
@@ -277,6 +309,9 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 					// unique name index would reject a duplicate insert):
 					// attach to it before considering the dump row new.
 					if id2 := matchRefName(normIndex, usedTargets, normKey(row[nameField])); id2 != "" {
+						if err := renameStartupAlias(tx, table, id2, row[nameField]); err != nil {
+							return nil, err
+						}
 						mapping[id] = id2
 						usedTargets[id2] = true
 						matched++
@@ -311,6 +346,9 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 			}
 			if nameField != "" {
 				if id2 := matchRefName(normIndex, usedTargets, normKey(row[nameField])); id2 != "" {
+					if err := renameStartupAlias(tx, table, id2, row[nameField]); err != nil {
+						return nil, err
+					}
 					mapping[id] = id2
 					usedTargets[id2] = true
 					matched++
@@ -343,6 +381,94 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 	}
 	fmt.Printf("%s: %d kept, %d name-matched, %d inserted\n", table, kept, matched, inserted)
 	return mapping, nil
+}
+
+func startupAliasMergeIDs(rows []trRow, canonical string, aliases []string) (string, []string) {
+	var retainedID string
+	var duplicateIDs []string
+	// Prefer legacy ID: this preserves existing animal/species references even
+	// when a previous seed already inserted the newer canonical row.
+	for _, row := range rows {
+		for _, alias := range aliases {
+			if normKey(row.Value.String) == normKey(alias) {
+				if retainedID == "" {
+					retainedID = row.ID
+				} else {
+					duplicateIDs = append(duplicateIDs, row.ID)
+				}
+			}
+		}
+	}
+	for _, row := range rows {
+		if normKey(row.Value.String) == normKey(canonical) {
+			if retainedID == "" {
+				retainedID = row.ID
+			} else if row.ID != retainedID {
+				duplicateIDs = append(duplicateIDs, row.ID)
+			}
+		}
+	}
+	return retainedID, duplicateIDs
+}
+
+// mergeStartupAnimaltypeAliases folds legacy animal type rows into their
+// canonical rows before the dump is reconciled. When both names exist, the
+// legacy row ID is retained; all known foreign keys are repointed before the
+// duplicate row is removed. When only the legacy row exists, its ID is retained.
+func mergeStartupAnimaltypeAliases(tx *pop.Connection, table string) error {
+	if table != "animaltypes" {
+		return nil
+	}
+	var rows []trRow
+	if err := tx.Store.Select(&rows, "SELECT `id`, `name` AS `value` FROM `animaltypes`"); err != nil {
+		return errors.WithStack(err)
+	}
+	for canonical, aliases := range startupNameAliases[table] {
+		retainedID, duplicateIDs := startupAliasMergeIDs(rows, canonical, aliases)
+		if retainedID == "" {
+			continue
+		}
+		// Remove canonical duplicate first so renaming retained legacy row cannot
+		// violate unique(name).
+		for _, duplicateID := range duplicateIDs {
+			for _, child := range []string{"animals", "dosages", "species"} {
+				if err := tx.RawQuery("UPDATE `"+child+"` SET `animaltype_id` = ? WHERE `animaltype_id` = ?", retainedID, duplicateID).Exec(); err != nil {
+					return errors.WithStack(err)
+				}
+			}
+			if err := tx.RawQuery("DELETE FROM `translations` WHERE `table_name` = 'animaltypes' AND `record_id` = ?", duplicateID).Exec(); err != nil {
+				return errors.WithStack(err)
+			}
+			if err := tx.RawQuery("DELETE FROM `animaltypes` WHERE `id` = ?", duplicateID).Exec(); err != nil {
+				return errors.WithStack(err)
+			}
+		}
+		if err := tx.RawQuery("UPDATE `animaltypes` SET `name` = ? WHERE `id` = ?", canonical, retainedID).Exec(); err != nil {
+			return errors.WithStack(err)
+		}
+	}
+	return nil
+}
+
+func renameStartupAlias(tx *pop.Connection, table, id, canonical string) error {
+	if table != "animaltypes" || canonical == "" {
+		return nil
+	}
+	var current string
+	if err := tx.RawQuery("SELECT name FROM `"+table+"` WHERE id = ? LIMIT 1", id).First(&current); err != nil {
+		return err
+	}
+	isAlias := false
+	for _, alias := range startupNameAliases[table][canonical] {
+		if normKey(current) == normKey(alias) {
+			isAlias = true
+			break
+		}
+	}
+	if !isAlias {
+		return nil
+	}
+	return tx.RawQuery("UPDATE `"+table+"` SET name = ? WHERE id = ?", canonical, id).Exec()
 }
 
 // matchRefName finds an existing record id whose normalized name matches norm.
@@ -666,6 +792,12 @@ func idsToInterfaces(ids []string) []interface{} {
 var _ = grift.Namespace("db", func() {
 	grift.Desc("seed:startup", "Seeds the 7 startup reference tables from the embedded production dump (idempotent)")
 	grift.Add("seed:startup", func(c *grift.Context) error {
-		return seedStartup(c)
+		if err := seedStartup(c); err != nil {
+			return err
+		}
+		// Reconciliation may rename/remove animal types; never retain stale
+		// reference rows in the process-local lookup cache.
+		actions.InvalidateAnimaltypesRefCache()
+		return nil
 	})
 })

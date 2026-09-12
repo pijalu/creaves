@@ -35,6 +35,40 @@ func TestNormKey(t *testing.T) {
 	}
 }
 
+func TestStartupAliasMergeIDsPrefersLegacyName(t *testing.T) {
+	rows := []trRow{
+		{ID: "canonical-id", Value: nulls.String{String: "Hérissons / Insectivore", Valid: true}},
+		{ID: "legacy-id", Value: nulls.String{String: "Hérissons et mammifères insectivores", Valid: true}},
+	}
+	canonical := "Hérissons / Insectivore"
+	retained, duplicates := startupAliasMergeIDs(rows, canonical, startupNameAliases["animaltypes"][canonical])
+	if retained != "legacy-id" {
+		t.Fatalf("retained ID = %q, want legacy row ID", retained)
+	}
+	if len(duplicates) != 1 || duplicates[0] != "canonical-id" {
+		t.Fatalf("duplicates = %#v, want canonical row only", duplicates)
+	}
+}
+
+func TestAnimaltypeLegacyAlias(t *testing.T) {
+	canonical := "Hérissons / Insectivore"
+	legacy := "Hérissons et mammifères insectivores"
+	aliases := startupNameAliases["animaltypes"][canonical]
+	found := false
+	for _, alias := range aliases {
+		if alias == legacy {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("animal type %q missing legacy alias %q", canonical, legacy)
+	}
+	if normKey(canonical) == normKey(legacy) {
+		t.Fatalf("regression fixture must cover semantic, not textual, rename")
+	}
+}
+
 func TestMatchRefName(t *testing.T) {
 	index := map[string]string{
 		"relacher":       "id-old-relacher",
