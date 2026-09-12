@@ -50,6 +50,23 @@ func TestStartupAliasMergeIDsPrefersLegacyName(t *testing.T) {
 	}
 }
 
+func TestReptileAnimaltypeAlias(t *testing.T) {
+	canonical := "Reptiles, Amphibiens"
+	legacy := "Reptiles et Amphibiens"
+	aliases := startupNameAliases["animaltypes"][canonical]
+	if len(aliases) != 1 || aliases[0] != legacy {
+		t.Fatalf("aliases for %q = %#v, want %q", canonical, aliases, legacy)
+	}
+	rows := []trRow{
+		{ID: "canonical-id", Value: nulls.String{String: canonical, Valid: true}},
+		{ID: "legacy-id", Value: nulls.String{String: legacy, Valid: true}},
+	}
+	retained, duplicates := startupAliasMergeIDs(rows, canonical, aliases)
+	if retained != "legacy-id" || len(duplicates) != 1 || duplicates[0] != "canonical-id" {
+		t.Fatalf("merge = retained %q, duplicates %#v; want legacy-id and canonical-id", retained, duplicates)
+	}
+}
+
 func TestAnimaltypeLegacyAlias(t *testing.T) {
 	canonical := "Hérissons / Insectivore"
 	legacy := "Hérissons et mammifères insectivores"
