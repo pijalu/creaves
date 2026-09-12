@@ -6,7 +6,7 @@
     <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
-<%= formFor(outtaketype, {action: outtaketypePath({outtaketype_id: outtaketype.ID}) + "/remap", method: "POST", class: "mb-3"}) { %>
+<%= formFor(outtaketype, {action: "/outtaketypes/" + outtaketype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
   <label for="replacement_id">Remplacement avant suppression</label>
   <select id="replacement_id" name="replacement_id" class="form-control">
     <% for (replacement) in outtaketype_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %>

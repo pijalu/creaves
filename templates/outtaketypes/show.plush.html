@@ -10,7 +10,7 @@
   </div>
 </div>
 
-<%= formFor(outtaketype, {action: outtaketypePath({outtaketype_id: outtaketype.ID}) + "/remap", method: "POST", class: "mb-3"}) { %>
+<%= formFor(outtaketype, {action: "/outtaketypes/" + outtaketype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
   <label for="replacement_id">Replacement before deletion</label>
   <select id="replacement_id" name="replacement_id" class="form-control">
     <% for (replacement) in outtaketype_replacements { %>
