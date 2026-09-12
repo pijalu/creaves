@@ -82,7 +82,10 @@ var (
 	webhookTicker *time.Ticker
 	webhookWakeCh chan struct{}
 	stopChan      chan bool
-	pusherMu      sync.Mutex
+	// webhookWorkerDone is closed by the worker loop goroutine on exit so
+	// StopWebhookWorker can join it (making stops fully synchronous).
+	webhookWorkerDone chan struct{}
+	pusherMu          sync.Mutex
 )
 
 // retryPollInterval is the fallback polling cadence used to retry failed
@@ -130,8 +133,10 @@ func StartWebhookWorker() {
 	webhookTicker = ticker
 	webhookWakeCh = wake
 	stopChan = stop
+	done := make(chan struct{})
+	webhookWorkerDone = done
 
-	go webhookWorkerLoop(ticker, wake, stop)
+	go webhookWorkerLoop(ticker, wake, stop, done)
 
 	fmt.Println("Webhook worker started")
 }
@@ -143,7 +148,8 @@ func StartWebhookWorker() {
 // nil-ing the package globals cannot race with a delivery already in flight
 // (previously this read the global webhookTicker directly and could nil-deref
 // on shutdown).
-func webhookWorkerLoop(ticker *time.Ticker, wake chan struct{}, stop chan bool) {
+func webhookWorkerLoop(ticker *time.Ticker, wake chan struct{}, stop chan bool, done chan struct{}) {
+	defer close(done)
 	lastPurge := time.Time{} // zero value: purge runs on first tick
 	for {
 		select {
@@ -214,24 +220,32 @@ func deliverPendingBatch() bool {
 		fmt.Printf("Webhook delivery failed: %v\n", err)
 		return false
 	}
-	settings, err := CurrentConfig.GetSettings()
+	settings, err := CurrentConfigGet().GetSettings()
 	if err != nil {
 		return false
 	}
 	return n >= settings.WebhookBatchSize
 }
 
-// StopWebhookWorker stops the background webhook delivery worker
+// StopWebhookWorker stops the background webhook delivery worker. It is
+// synchronous: it waits for the worker goroutine (including any delivery
+// already in flight) to exit, so callers that follow it with config changes
+// cannot race with a worker still reading the old config.
 func StopWebhookWorker() {
 	pusherMu.Lock()
-	defer pusherMu.Unlock()
-
+	var done chan struct{}
 	if webhookTicker != nil {
 		webhookTicker.Stop()
 		close(stopChan)
+		done = webhookWorkerDone
 		webhookTicker = nil
 		webhookWakeCh = nil
+		webhookWorkerDone = nil
 		fmt.Println("Webhook worker stopped")
+	}
+	pusherMu.Unlock()
+	if done != nil {
+		<-done
 	}
 }
 
@@ -252,7 +266,7 @@ func (wp *WebhookPusher) allowDelivery() bool {
 		wp.eventsThisMin = 0
 	}
 
-	config := CurrentConfig
+	config := CurrentConfigGet()
 	if config == nil {
 		return false
 	}
@@ -474,7 +488,7 @@ func newWireEvent(event models.EventStream) webhookEvent {
 // It returns the number of events in the queried batch (accepted or not), so
 // callers can decide whether more events are likely pending.
 func deliverBatch() (int, error) {
-	config := CurrentConfig
+	config := CurrentConfigGet()
 	if config == nil {
 		return 0, fmt.Errorf("no config loaded")
 	}

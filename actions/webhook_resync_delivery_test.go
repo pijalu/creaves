@@ -170,9 +170,9 @@ func TestResyncDeliveryRetriesPartialAccept(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	saved := CurrentConfig
+	saved := CurrentConfigGet()
 	seedPusherConfig(t, srv.URL)
-	t.Cleanup(func() { CurrentConfig = saved })
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	require.NoError(t, completeResyncDelivery(context.Background(), models.DB, run))
 
@@ -211,9 +211,9 @@ func TestResyncDeliveryHardFailMarksRunFailed(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(cr.handler))
 	defer srv.Close()
 
-	saved := CurrentConfig
+	saved := CurrentConfigGet()
 	seedPusherConfig(t, srv.URL)
-	t.Cleanup(func() { CurrentConfig = saved })
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	require.NoError(t, completeResyncDelivery(context.Background(), models.DB, run))
 
@@ -238,9 +238,9 @@ func TestResyncDeliveryNoReceiverMarksRunFailed(t *testing.T) {
 	run := seedResyncDeliveryRun(t)
 	seedResyncDeliveryEvent(t, run, 1)
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	require.NoError(t, completeResyncDelivery(context.Background(), models.DB, run))
 

@@ -53,10 +53,10 @@ func TestInstanceIDDefault(t *testing.T) {
 
 func TestGetInstanceID(t *testing.T) {
 	// Test when CurrentConfig is nil
-	oldConfig := CurrentConfig
-	CurrentConfig = nil
+	oldConfig := CurrentConfigGet()
+	CurrentConfigSet(nil)
 	defer func() {
-		CurrentConfig = oldConfig
+		CurrentConfigSet(oldConfig)
 	}()
 
 	id := GetInstanceID()

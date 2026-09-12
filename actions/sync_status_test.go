@@ -192,7 +192,7 @@ func TestExpectedStateHashesMatchProducerPath(t *testing.T) {
 		"Discovery", "Discovery.EntryCause", "Discovery.Discoverer",
 		"Outtake", "Outtake.Type",
 	).All(animals))
-	pre := newLoadedTranslationPreloader(models.DB, animals)
+	pre := loadedPreloader(models.DB, animals)
 	lines := expectedStateHashes(models.DB, animals, pre, syncStatusInstance)
 	require.Len(t, lines, 4)
 

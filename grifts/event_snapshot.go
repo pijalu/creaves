@@ -17,7 +17,7 @@ var _ = grift.Desc("event:snapshot", "Creates event stream snapshot for all anim
 var _ = grift.Add("event:snapshot", func(c *grift.Context) error {
 	return models.DB.Transaction(func(tx *pop.Connection) error {
 		// Load config to ensure event stream is enabled
-		if actions.CurrentConfig == nil {
+		if actions.CurrentConfigGet() == nil {
 			if _, err := actions.LoadConfig(tx); err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
@@ -122,7 +122,7 @@ var _ = grift.Desc("event:snapshot:force", "Force creates events for all animals
 var _ = grift.Add("event:snapshot:force", func(c *grift.Context) error {
 	return models.DB.Transaction(func(tx *pop.Connection) error {
 		// Load config to ensure event stream is enabled
-		if actions.CurrentConfig == nil {
+		if actions.CurrentConfigGet() == nil {
 			if _, err := actions.LoadConfig(tx); err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
@@ -228,7 +228,7 @@ var _ = grift.Desc("event:snapshot:stats", "Shows statistics about the event str
 var _ = grift.Add("event:snapshot:stats", func(c *grift.Context) error {
 	return models.DB.Transaction(func(tx *pop.Connection) error {
 		// Load config
-		if actions.CurrentConfig == nil {
+		if actions.CurrentConfigGet() == nil {
 			if _, err := actions.LoadConfig(tx); err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}

@@ -141,10 +141,10 @@ func TestPublishAnimalStateEvent_DisabledByConfig(t *testing.T) {
 	seedPusherConfig(t, "http://unused.example")
 	seedPublishAnimals(t, 9105)
 
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = false
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 
 	require.NoError(t, PublishAnimalStateEvent(pusherTestDB, 9105, nil))
 	assert.Equal(t, 0, countStateEvents(t, 9105), "no event when the stream is disabled")

@@ -192,12 +192,12 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 		t.Skip("MySQL-only: sqlite single-writer lock blocks cross-connection commit check")
 	}
 	purgeResyncCommitTestData(t)
-	saved := CurrentConfig
-	CurrentConfig = &models.Config{InstanceID: "rsync-commit-test"}
-	if err := CurrentConfig.SetSettings(models.ConfigSettings{WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable"}); err != nil {
+	saved := CurrentConfigGet()
+	CurrentConfigSet(&models.Config{InstanceID: "rsync-commit-test"})
+	if err := CurrentConfigGet().SetSettings(models.ConfigSettings{WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable"}); err != nil {
 		t.Fatalf("SetSettings: %v", err)
 	}
-	t.Cleanup(func() { CurrentConfig = saved })
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	var runID uuid.UUID
 	err := models.DB.Transaction(func(tx *pop.Connection) error {

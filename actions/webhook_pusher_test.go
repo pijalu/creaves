@@ -116,8 +116,11 @@ func createPusherTables() {
 }
 
 // resetPusherState clears DB tables and resets the package-global pusher
-// (rate limiter counters + circuit breaker) between tests.
+// (rate limiter counters + circuit breaker) between tests. It also stops the
+// webhook worker so a leaked worker from a previous test cannot deliver
+// events (or read config) mid-test.
 func resetPusherState() {
+	StopWebhookWorker()
 	pusherTestDB.RawQuery("DELETE FROM event_streams").Exec()
 	pusherTestDB.RawQuery("DELETE FROM resync_runs").Exec()
 	pusherTestDB.RawQuery("DELETE FROM config").Exec()
@@ -151,7 +154,7 @@ func seedPusherConfig(t *testing.T, url string) {
 	}
 	require.NoError(t, cfg.SetSettings(settings))
 	require.NoError(t, pusherTestDB.Create(cfg))
-	CurrentConfig = cfg
+	CurrentConfigSet(cfg)
 }
 
 // seedUndeliveredEvent inserts an event with delivered_at IS NULL.
@@ -237,9 +240,9 @@ func TestCircuitBreaker_HalfOpenAfterResetTimeout(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestWebhookPusher_AllowDeliveryRequiresConfig(t *testing.T) {
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	wp := &WebhookPusher{circuitBreaker: NewCircuitBreaker()}
 	assert.False(t, wp.allowDelivery())
@@ -249,7 +252,7 @@ func TestWebhookPusher_AllowDeliveryRateLimits(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
 
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	maxPerMin := settings.WebhookMaxPerMin
 
 	// Consume the budget.
@@ -358,10 +361,10 @@ func TestDeliverBatch_FullCountResponseMarksEventsDelivered(t *testing.T) {
 		_, _ = w.Write([]byte(`{"processed":1,"total":1}`))
 	}))
 	defer srv.Close()
-	settings, err := CurrentConfig.GetSettings()
+	settings, err := CurrentConfigGet().GetSettings()
 	require.NoError(t, err)
 	settings.WebhookURL = srv.URL
-	require.NoError(t, CurrentConfig.SetSettings(settings))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
 	_, err = deliverBatch()
 	require.NoError(t, err)
 	var got models.EventStream
@@ -378,10 +381,10 @@ func TestDeliverBatch_ExplicitPartialResponseDoesNotDeliver(t *testing.T) {
 		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["failed"]}`))
 	}))
 	defer srv.Close()
-	settings, settingsErr := CurrentConfig.GetSettings()
+	settings, settingsErr := CurrentConfigGet().GetSettings()
 	require.NoError(t, settingsErr)
 	settings.WebhookURL = srv.URL
-	require.NoError(t, CurrentConfig.SetSettings(settings))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
 	_, err := deliverBatch()
 	require.Error(t, err)
 	var got models.EventStream
@@ -451,7 +454,8 @@ func TestDeliverBatch_EnvelopeHasInstanceAndVersion(t *testing.T) {
 	defer srv.Close()
 
 	seedPusherConfig(t, srv.URL)
-	CurrentConfig.Description = "Wildlife care centre"
+	cfg := CurrentConfigGet()
+	cfg.Description = "Wildlife care centre"
 	seedUndeliveredEvent(t, 9)
 
 	_, err := deliverBatch()
@@ -724,7 +728,7 @@ func TestEnsureWebhookWorkerRunning_StartsWhenDisabled(t *testing.T) {
 		Active:     true,
 	}
 	require.NoError(t, cfg.SetSettings(settings))
-	CurrentConfig = cfg
+	CurrentConfigSet(cfg)
 
 	EnsureWebhookWorkerRunning()
 	assert.True(t, IsWebhookWorkerRunning(), "worker must start even when webhook is disabled (purge duty)")

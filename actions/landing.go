@@ -54,7 +54,7 @@ func LandingIndex(c buffalo.Context) error {
 	}
 
 	// Load config if not already loaded
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		if _, err := LoadConfig(tx); err != nil {
 			return fmt.Errorf("failed to load config: %v", err)
 		}

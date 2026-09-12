@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -14,8 +15,35 @@ import (
 	"github.com/pkg/errors"
 )
 
-// CurrentConfig holds the cached configuration
+// configMu guards CurrentConfig: the webhook delivery worker goroutine reads
+// the cached config concurrently with request-time reloads (config CRUD,
+// confirm-to-enable) and test resets.
+var configMu sync.RWMutex
+
+// CurrentConfig holds the cached configuration. Read it through
+// CurrentConfigGet() and replace it through CurrentConfigSet() — direct
+// access races with the webhook worker goroutine.
 var CurrentConfig *models.Config
+
+// CurrentConfigGet returns the cached config (nil when not yet loaded).
+func CurrentConfigGet() *models.Config {
+	configMu.RLock()
+	defer configMu.RUnlock()
+	return CurrentConfig
+}
+
+// CurrentConfigSet replaces the cached config (nil forces the next LoadConfig
+// to reload from the database). Stopping the webhook worker here guarantees a
+// stale worker goroutine can never read the old config while callers replace
+// it; flows that need delivery call EnsureWebhookWorkerRunning afterwards
+// (config Update, EnableWebhookForwarding) or restart it lazily on the next
+// publish.
+func CurrentConfigSet(c *models.Config) {
+	configMu.Lock()
+	CurrentConfig = c
+	configMu.Unlock()
+	StopWebhookWorker()
+}
 
 // LoadConfig loads or creates the configuration from the database.
 //
@@ -26,8 +54,8 @@ var CurrentConfig *models.Config
 // and EnableWebhookForwarding assign or update CurrentConfig explicitly.
 // Tests reset CurrentConfig to nil to force a reload.
 func LoadConfig(tx *pop.Connection) (*models.Config, error) {
-	if CurrentConfig != nil {
-		return CurrentConfig, nil
+	if CurrentConfigGet() != nil {
+		return CurrentConfigGet(), nil
 	}
 
 	// Try to find existing active config
@@ -38,8 +66,8 @@ func LoadConfig(tx *pop.Connection) (*models.Config, error) {
 	}
 
 	if len(*configs) > 0 {
-		CurrentConfig = &(*configs)[0]
-		return CurrentConfig, nil
+		CurrentConfigSet(&(*configs)[0])
+		return CurrentConfigGet(), nil
 	}
 
 	// No config exists, create one
@@ -74,24 +102,24 @@ func LoadConfig(tx *pop.Connection) (*models.Config, error) {
 		return nil, fmt.Errorf("validation errors: %v", verrs)
 	}
 
-	CurrentConfig = config
+	CurrentConfigSet(config)
 	return config, nil
 }
 
 // GetInstanceID returns the current instance ID from the loaded config
 func GetInstanceID() string {
-	if CurrentConfig != nil {
-		return CurrentConfig.InstanceID
+	if CurrentConfigGet() != nil {
+		return CurrentConfigGet().InstanceID
 	}
 	return ""
 }
 
 // IsEventStreamEnabled checks if the event stream is enabled in config
 func IsEventStreamEnabled() bool {
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		return false
 	}
-	settings, err := CurrentConfig.GetSettings()
+	settings, err := CurrentConfigGet().GetSettings()
 	if err != nil {
 		return false
 	}
@@ -100,10 +128,10 @@ func IsEventStreamEnabled() bool {
 
 // IsWebhookEnabled checks if the webhook is enabled in config
 func IsWebhookEnabled() bool {
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		return false
 	}
-	settings, err := CurrentConfig.GetSettings()
+	settings, err := CurrentConfigGet().GetSettings()
 	if err != nil {
 		return false
 	}
@@ -116,12 +144,13 @@ func IsWebhookEnabled() bool {
 // silently queue events forever. Persists on tx, refreshes CurrentConfig,
 // and ensures the delivery/purge worker is running.
 func EnableWebhookForwarding(tx *pop.Connection) error {
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		if _, err := LoadConfig(tx); err != nil {
 			return fmt.Errorf("no active config: configure the webhook URL first")
 		}
 	}
-	settings, err := CurrentConfig.GetSettings()
+	current := CurrentConfigGet()
+	settings, err := current.GetSettings()
 	if err != nil {
 		return err
 	}
@@ -129,7 +158,7 @@ func EnableWebhookForwarding(tx *pop.Connection) error {
 		return fmt.Errorf("no webhook URL configured: set the console URL before enabling")
 	}
 	settings.WebhookEnabled = true
-	if err := CurrentConfig.SetSettings(settings); err != nil {
+	if err := current.SetSettings(settings); err != nil {
 		return err
 	}
 	// Persist on models.DB (autocommit) rather than the request tx: the
@@ -139,7 +168,7 @@ func EnableWebhookForwarding(tx *pop.Connection) error {
 	if persistTx == nil {
 		persistTx = tx
 	}
-	verrs, err := persistTx.ValidateAndUpdate(CurrentConfig)
+	verrs, err := persistTx.ValidateAndUpdate(CurrentConfigGet())
 	if err != nil {
 		return err
 	}
@@ -210,7 +239,7 @@ func paramIsTrue(c buffalo.Context, key string) bool {
 func requireAdmin(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
 	if cu == nil || !cu.Admin {
-		return nil, c.Error(http.StatusForbidden, fmt.Errorf("Admin rights required for this action"))
+		return nil, c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
 	return cu, nil
 }
@@ -219,7 +248,7 @@ func requireAdmin(c buffalo.Context) (*models.User, error) {
 func requireMaintainer(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
 	if cu == nil || !cu.Admin || !cu.Maintainer {
-		return nil, c.Error(http.StatusForbidden, fmt.Errorf("Maintainer rights required for this action"))
+		return nil, c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 	return cu, nil
 }
@@ -249,8 +278,8 @@ func (v ConfigsResource) List(c buffalo.Context) error {
 		// Expose the active config ID so the template can hide the delete
 		// button for the configuration that cannot be deleted.
 		currentConfigID := ""
-		if CurrentConfig != nil {
-			currentConfigID = CurrentConfig.ID.String()
+		if CurrentConfigGet() != nil {
+			currentConfigID = CurrentConfigGet().ID.String()
 		}
 		c.Set("currentConfigID", currentConfigID)
 		return c.Render(http.StatusOK, r.HTML("config/index.plush.html"))
@@ -468,8 +497,8 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	}
 
 	// Update cached config if this is the current one
-	if CurrentConfig != nil && CurrentConfig.ID == config.ID {
-		CurrentConfig = config
+	if CurrentConfigGet() != nil && CurrentConfigGet().ID == config.ID {
+		CurrentConfigSet(config)
 	}
 
 	// If webhook forwarding was just enabled, start the delivery worker now.
@@ -503,7 +532,7 @@ func (v ConfigsResource) Destroy(c buffalo.Context) error {
 	}
 
 	// Don't allow deleting the currently active config
-	if CurrentConfig != nil && CurrentConfig.ID == config.ID {
+	if CurrentConfigGet() != nil && CurrentConfigGet().ID == config.ID {
 		return c.Error(http.StatusBadRequest, fmt.Errorf("cannot delete the currently active configuration"))
 	}
 

@@ -240,10 +240,10 @@ func TestBuildEventPayloadMinimal(t *testing.T) {
 
 func TestPublishEventWithoutInstanceConfig(t *testing.T) {
 	// Save and clear current config
-	oldConfig := CurrentConfig
-	CurrentConfig = nil
+	oldConfig := CurrentConfigGet()
+	CurrentConfigSet(nil)
 	defer func() {
-		CurrentConfig = oldConfig
+		CurrentConfigSet(oldConfig)
 	}()
 
 	// This should fail because we can't load instance config without DB

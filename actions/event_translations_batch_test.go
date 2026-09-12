@@ -23,6 +23,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// loadedPreloader is the sqlite-tag test helper replacing the deleted
+// production constructor: builds a translation preloader and eagerly loads
+// the reference data the given animals need.
+func loadedPreloader(tx *pop.Connection, animals *models.Animals) *translationPreloader {
+	p := newTranslationPreloader()
+	p.ensure(tx, animals)
+	return p
+}
+
 // These tests pin the N+1 fix for the webhook full resync: per-animal
 // translation/species SELECTs and the per-animal EXISTS check were replaced
 // by run-wide batches (translationPreloader + resyncStateIndex).
@@ -131,7 +140,7 @@ func TestTranslationPreloaderEquivalence(t *testing.T) {
 	animal := &(*animals)[0]
 
 	perAnimal := buildEventPayloadWithTranslations(models.DB, animal)
-	pre := newLoadedTranslationPreloader(models.DB, animals)
+	pre := loadedPreloader(models.DB, animals)
 	batched := buildEventPayloadInto(models.DB, pre, animal)
 
 	perAnimal.Timestamp = ""
@@ -205,7 +214,7 @@ func TestTranslationPreloaderIncremental(t *testing.T) {
 	assert.Equal(t, 0, count, "repeated ensure() with already-covered references must issue no queries")
 
 	// Values must still resolve exactly like a freshly built preloader.
-	fresh := newLoadedTranslationPreloader(models.DB, animals)
+	fresh := loadedPreloader(models.DB, animals)
 	animal := &(*animals)[0]
 	payload := buildEventPayloadInto(models.DB, pre, animal)
 	freshPayload := buildEventPayloadInto(models.DB, fresh, animal)
@@ -285,14 +294,14 @@ func TestRunResyncQueryCountBounded(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer acceptAll.Close()
-	savedCfg := CurrentConfig
+	savedCfg := CurrentConfigGet()
 	cfg := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: preloaderInstance, Name: "resync-n1-stub", Active: true}
 	require.NoError(t, cfg.SetSettings(models.ConfigSettings{
 		EnableEventStream: true, WebhookEnabled: true, WebhookURL: acceptAll.URL,
 		WebhookAPIKey: "k", WebhookBatchSize: 100, WebhookMaxPerMin: 10000,
 	}))
-	CurrentConfig = cfg
-	defer func() { CurrentConfig = savedCfg }()
+	CurrentConfigSet(cfg)
+	defer func() { CurrentConfigSet(savedCfg) }()
 
 	require.NoError(t, RunResync(context.Background(), models.DB, run.ID, false))
 
@@ -427,8 +436,8 @@ func TestResyncChunkLoaderEquivalence(t *testing.T) {
 		chunkAnimal := chunked[id]
 		// Normalize non-payload noise: pop sets no CreatedAt/UpdatedAt layout
 		// differences here, but the payload Timestamp always differs.
-		preRef := newLoadedTranslationPreloader(models.DB, &models.Animals{*reference})
-		preChunk := newLoadedTranslationPreloader(models.DB, &models.Animals{*chunkAnimal})
+		preRef := loadedPreloader(models.DB, &models.Animals{*reference})
+		preChunk := loadedPreloader(models.DB, &models.Animals{*chunkAnimal})
 		pRef := buildEventPayloadInto(models.DB, preRef, reference)
 		pChunk := buildEventPayloadInto(models.DB, preChunk, chunkAnimal)
 		require.NotNil(t, pRef, "reference payload for animal %d", id)

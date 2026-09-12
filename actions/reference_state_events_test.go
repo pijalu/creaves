@@ -37,10 +37,10 @@ func refStateDB(t *testing.T) *pop.Connection {
 func refStateConfig(t *testing.T) *models.Config {
 	t.Helper()
 	cfg := seedConfig(t, "refstate", true)
-	saved := CurrentConfig
-	CurrentConfig = cfg
+	saved := CurrentConfigGet()
+	CurrentConfigSet(cfg)
 	t.Cleanup(func() {
-		CurrentConfig = saved
+		CurrentConfigSet(saved)
 		models.DB.RawQuery("DELETE FROM event_streams WHERE instance_id = ?", cfg.InstanceID).Exec()
 		models.DB.RawQuery("DELETE FROM config WHERE id = ?", cfg.ID).Exec()
 	})

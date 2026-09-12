@@ -36,7 +36,7 @@ func seedDisabledWebhookConfig(t *testing.T, url string) {
 	}
 	require.NoError(t, cfg.SetSettings(settings))
 	require.NoError(t, pusherTestDB.Create(cfg))
-	CurrentConfig = cfg
+	CurrentConfigSet(cfg)
 }
 
 // TestStartResyncDisabledWebhookReturnsClearError proves a disabled-webhook
@@ -44,8 +44,8 @@ func seedDisabledWebhookConfig(t *testing.T, url string) {
 // trace) and creates no run row.
 func TestStartResyncDisabledWebhookReturnsClearError(t *testing.T) {
 	seedDisabledWebhookConfig(t, "http://127.0.0.1:1/unreachable")
-	saved := CurrentConfig
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	_, err := StartResync(pusherTestDB, "rsync-disabled-test", 1, false)
 	require.Error(t, err)
@@ -64,9 +64,9 @@ func TestStartResyncDisabledWebhookReturnsClearError(t *testing.T) {
 // flag (and the in-memory cache), after which StartResync accepts the run.
 func TestEnableWebhookForwardingConfirmFlow(t *testing.T) {
 	seedDisabledWebhookConfig(t, "http://127.0.0.1:1/unreachable")
-	saved := CurrentConfig
+	saved := CurrentConfigGet()
 	t.Cleanup(func() {
-		CurrentConfig = saved
+		CurrentConfigSet(saved)
 		pusherTestDB.RawQuery("DELETE FROM resync_runs WHERE instance_id = 'rsync-enable-test'").Exec()
 	})
 	require.False(t, IsWebhookEnabled())
@@ -74,22 +74,22 @@ func TestEnableWebhookForwardingConfirmFlow(t *testing.T) {
 	require.NoError(t, EnableWebhookForwarding(pusherTestDB))
 	assert.True(t, IsWebhookEnabled())
 
-	settings, err := CurrentConfig.GetSettings()
+	settings, err := CurrentConfigGet().GetSettings()
 	require.NoError(t, err)
 	assert.True(t, settings.WebhookEnabled)
 
 	persisted := &models.Config{}
-	require.NoError(t, pusherTestDB.Find(persisted, CurrentConfig.ID))
+	require.NoError(t, pusherTestDB.Find(persisted, CurrentConfigGet().ID))
 	persistedSettings, err := persisted.GetSettings()
 	require.NoError(t, err)
 	assert.True(t, persistedSettings.WebhookEnabled)
 
-	savedCfg := CurrentConfig
-	CurrentConfig = &models.Config{InstanceID: "rsync-enable-test"}
-	require.NoError(t, CurrentConfig.SetSettings(models.ConfigSettings{
+	savedCfg := CurrentConfigGet()
+	CurrentConfigSet(&models.Config{InstanceID: "rsync-enable-test"})
+	require.NoError(t, CurrentConfigGet().SetSettings(models.ConfigSettings{
 		WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable",
 	}))
-	t.Cleanup(func() { CurrentConfig = savedCfg })
+	t.Cleanup(func() { CurrentConfigSet(savedCfg) })
 	_ = savedCfg
 
 	run, err := StartResync(pusherTestDB, "rsync-enable-test", 1, false)
@@ -103,8 +103,8 @@ func TestEnableWebhookForwardingConfirmFlow(t *testing.T) {
 // destination fails with a clear message instead of silently queueing.
 func TestEnableWebhookForwardingRequiresURL(t *testing.T) {
 	seedDisabledWebhookConfig(t, "")
-	saved := CurrentConfig
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	err := EnableWebhookForwarding(pusherTestDB)
 	require.Error(t, err)

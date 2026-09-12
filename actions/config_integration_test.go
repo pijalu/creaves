@@ -19,15 +19,15 @@ func TestLoadConfig_FindsExistingActive(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://example.com/webhook")
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	cfg, err := LoadConfig(pusherTestDB)
 	require.NoError(t, err)
 	assert.NotNil(t, cfg)
 	assert.True(t, cfg.Active)
-	assert.Equal(t, CurrentConfig.ID, cfg.ID)
+	assert.Equal(t, CurrentConfigGet().ID, cfg.ID)
 
 	// Webhook fields round-tripped from settings JSON.
 	settings, err := cfg.GetSettings()
@@ -41,9 +41,9 @@ func TestLoadConfig_FindsExistingActive(t *testing.T) {
 func TestLoadConfig_CreatesDefaultWhenMissing(t *testing.T) {
 	resetPusherState()
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	cfg, err := LoadConfig(pusherTestDB)
 	require.NoError(t, err)
@@ -65,20 +65,20 @@ func TestIsEventStreamEnabled(t *testing.T) {
 	seedPusherConfig(t, "http://unused.example")
 
 	// Disabled by default in seeded config? Enable it explicitly.
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = true
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 	assert.True(t, IsEventStreamEnabled())
 
 	// Now disable.
 	settings.EnableEventStream = false
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 	assert.False(t, IsEventStreamEnabled())
 
 	// Nil config → false.
-	CurrentConfig = nil
+	CurrentConfigSet(nil)
 	assert.False(t, IsEventStreamEnabled())
 }
 
@@ -89,14 +89,14 @@ func TestIsWebhookEnabled(t *testing.T) {
 	assert.True(t, IsWebhookEnabled())
 
 	// URL empty → disabled.
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.WebhookURL = ""
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 	assert.False(t, IsWebhookEnabled())
 
 	// Nil config → false.
-	CurrentConfig = nil
+	CurrentConfigSet(nil)
 	assert.False(t, IsWebhookEnabled())
 }
 
@@ -104,9 +104,9 @@ func TestIsWebhookEnabled(t *testing.T) {
 func TestGetInstanceID_FromConfig(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
-	assert.Equal(t, CurrentConfig.InstanceID, GetInstanceID())
+	assert.Equal(t, CurrentConfigGet().InstanceID, GetInstanceID())
 
-	CurrentConfig = nil
+	CurrentConfigSet(nil)
 	assert.Equal(t, "", GetInstanceID())
 }
 
@@ -119,10 +119,10 @@ func TestInitWebhookAtBoot(t *testing.T) {
 	// Seed an enabled config into the DB (CurrentConfig is nil so it must be
 	// loaded by InitWebhookAtBoot).
 	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
-	CurrentConfig = nil
+	CurrentConfigSet(nil)
 
 	InitWebhookAtBoot()
-	assert.NotNil(t, CurrentConfig, "config should be loaded at boot")
+	assert.NotNil(t, CurrentConfigGet(), "config should be loaded at boot")
 	assert.True(t, IsWebhookWorkerRunning(), "worker should start at boot when enabled")
 
 	StopWebhookWorker()
@@ -149,7 +149,7 @@ func TestInitWebhookAtBoot_StartsWhenDisabled(t *testing.T) {
 	}
 	require.NoError(t, cfg.SetSettings(settings))
 	require.NoError(t, pusherTestDB.Create(cfg))
-	CurrentConfig = nil
+	CurrentConfigSet(nil)
 
 	InitWebhookAtBoot()
 	assert.True(t, IsWebhookWorkerRunning(), "worker should start at boot even when disabled (purge duty)")
@@ -165,9 +165,9 @@ func TestLoadConfig_QueryError(t *testing.T) {
 	bad := newEmptyDB(t)
 	defer bad.Close()
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	cfg, err := LoadConfig(bad)
 	require.Error(t, err)
@@ -190,12 +190,12 @@ func TestInitWebhookAtBoot_ConfigLoadFailure(t *testing.T) {
 	models.DB = bad
 	defer func() { models.DB = savedDB }()
 
-	savedCfg := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = savedCfg }()
+	savedCfg := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(savedCfg) }()
 
 	InitWebhookAtBoot()
 	// Config load failed, so the worker must NOT start.
 	assert.False(t, IsWebhookWorkerRunning())
-	assert.Nil(t, CurrentConfig)
+	assert.Nil(t, CurrentConfigGet())
 }

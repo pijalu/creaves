@@ -118,15 +118,15 @@ func seedConfig(t *testing.T, name string, active bool) *models.Config {
 // another (inactive) config.
 func TestConfigsListHidesDeleteForActiveConfig(t *testing.T) {
 	requireMySQLTestDB(t)
-	saved := CurrentConfig
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	active := seedConfig(t, "active-row", true)
 	inactive := seedConfig(t, "inactive-row", false)
 	t.Cleanup(func() {
 		models.DB.RawQuery("DELETE FROM config WHERE id IN (?, ?)", active.ID.String(), inactive.ID.String()).Exec()
 	})
-	CurrentConfig = active
+	CurrentConfigSet(active)
 
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
@@ -175,14 +175,14 @@ func TestConfigsListHidesDeleteForActiveConfig(t *testing.T) {
 // the currently active configuration returns 400 and keeps the row.
 func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
 	requireMySQLTestDB(t)
-	saved := CurrentConfig
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	active := seedConfig(t, "destroy-active", true)
 	t.Cleanup(func() {
 		models.DB.RawQuery("DELETE FROM config WHERE id = ?", active.ID.String()).Exec()
 	})
-	CurrentConfig = active
+	CurrentConfigSet(active)
 
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
@@ -227,15 +227,15 @@ func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
 // be deleted through the resource.
 func TestConfigsDestroyAllowsInactiveConfig(t *testing.T) {
 	requireMySQLTestDB(t)
-	saved := CurrentConfig
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	active := seedConfig(t, "destroy-current", true)
 	inactive := seedConfig(t, "destroy-inactive", false)
 	t.Cleanup(func() {
 		models.DB.RawQuery("DELETE FROM config WHERE id IN (?, ?)", active.ID.String(), inactive.ID.String()).Exec()
 	})
-	CurrentConfig = active
+	CurrentConfigSet(active)
 
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
@@ -281,9 +281,9 @@ func TestConfigsDestroyAllowsInactiveConfig(t *testing.T) {
 func TestLoadConfigMultipleConfigsCoexist(t *testing.T) {
 	tx := searchTestDB(t)
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	t.Cleanup(func() { CurrentConfig = saved })
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	t.Cleanup(func() { CurrentConfigSet(saved) })
 
 	first := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-first", Name: "multi-first", Active: true}
 	second := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-second", Name: "multi-second", Active: false}
@@ -318,7 +318,7 @@ func TestLoadConfigMultipleConfigsCoexist(t *testing.T) {
 	if cfg.ID != first.ID {
 		t.Errorf("LoadConfig picked %v, want oldest active %v", cfg.ID, first.ID)
 	}
-	if CurrentConfig == nil || CurrentConfig.ID != first.ID {
+	if CurrentConfigGet() == nil || CurrentConfigGet().ID != first.ID {
 		t.Error("CurrentConfig not refreshed to the oldest active config")
 	}
 }
