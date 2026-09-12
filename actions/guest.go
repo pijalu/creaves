@@ -12,11 +12,10 @@ package actions
 //     re-rendered with a generic error — no information is disclosed about
 //     whether the animal number exists.
 //  3. Direct link (QR code on the animal page): GET /guest with number +
-//     token + lang opens the status view immediately — the token is a salted
-//     hash of the recorded discoverer phone (guestPhoneToken), so the phone
-//     number itself never appears in the URL. Animals recorded WITHOUT a
-//     discoverer phone get a token salted with the empty phone: the QR code
-//     always opens the status view directly, never a phone-prompted form.
+//     token + lang opens the status view immediately — the token is a random
+//     per-animal secret generated on first QR use and persisted in
+//     discoveries.guest_token. Without a persisted token (QR code never
+//     generated for this animal) the form is shown.
 //     lang selects the page language
 //     before rendering; the QR code is generated in the current UI language.
 //  4. On success a succinct view is rendered:
@@ -37,7 +36,7 @@ package actions
 // verification attempts per client IP (guestRateMax within guestRateWindow).
 
 import (
-	cryptosha256 "crypto/sha256"
+	crand "crypto/rand"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/hex"
@@ -55,6 +54,7 @@ import (
 	"creaves/models"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 	"github.com/skip2/go-qrcode"
@@ -176,19 +176,68 @@ func lastDigits(s string, n int) string {
 }
 
 // ---------------------------------------------------------------------------
-// Phone token (salted hash for the direct QR-code link)
+// Random guest token (direct QR-code link)
 // ---------------------------------------------------------------------------
 
-// guestPhoneToken returns a hex-encoded SHA-256 hash of the phone number,
-// salted with the animal number. The token is embedded in the URL encoded in
-// the QR code on the animal page, so that scanning the code opens the guest
-// status view directly (no form, no phone entry) while the raw phone number
-// never appears in the URL. Knowing the animal number alone is not enough to
-// forge a token — the discoverer's phone number is required.
-func guestPhoneToken(animalNumber, phone string) string {
-	sum := cryptosha256.Sum256([]byte("creaves-guest:" +
-		guestNormalizePhone(animalNumber) + ":" + guestNormalizePhone(phone)))
-	return hex.EncodeToString(sum[:])
+// guestNewToken generates a fresh random URL token (16 bytes of CSPRNG
+// entropy, hex-encoded — 32 characters). Tokens are generated per animal on
+// first QR-code use and persisted in discoveries.guest_token; only holders
+// of the token (i.e. people who scanned the animal's QR code) can open the
+// guest status view directly.
+func guestNewToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := crand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+// guestStoredToken returns the guest token persisted for the animal's
+// discovery. Returns "" when the animal has no discovery or no token yet.
+func guestStoredToken(tx *pop.Connection, a *models.Animal) (string, error) {
+	if a.DiscoveryID == uuid.Nil {
+		return "", nil
+	}
+	d := models.Discovery{}
+	if err := tx.Find(&d, a.DiscoveryID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	if !d.GuestToken.Valid {
+		return "", nil
+	}
+	return d.GuestToken.String, nil
+}
+
+// guestEnsureToken returns the persisted guest token for the animal,
+// generating and persisting a fresh random one on first use (i.e. the first
+// time the QR code is rendered). Animals without a discovery row get an
+// empty token: the QR code then degrades to the plain form link.
+func guestEnsureToken(tx *pop.Connection, a *models.Animal) (string, error) {
+	if a.DiscoveryID == uuid.Nil {
+		return "", nil
+	}
+	d := models.Discovery{}
+	if err := tx.Find(&d, a.DiscoveryID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	if d.GuestToken.Valid && d.GuestToken.String != "" {
+		return d.GuestToken.String, nil
+	}
+	tok, err := guestNewToken()
+	if err != nil {
+		return "", err
+	}
+	d.GuestToken = nulls.NewString(tok)
+	if err := tx.UpdateColumns(&d, "guest_token"); err != nil {
+		return "", err
+	}
+	return tok, nil
 }
 
 // guestTokenMatches compares the given token with the expected one in
@@ -490,10 +539,11 @@ func guestStoredPhone(tx *pop.Connection, a *models.Animal) (string, error) {
 
 // GuestNew renders the public guest lookup form. GET /guest
 //
-// Direct link (QR code on the animal page): with number, token (salted hash
-// of the discoverer phone) and lang the status view is rendered immediately,
-// without any further interaction. lang is applied before rendering so the
-// scanned code opens the page in the encoded language.
+// Direct link (QR code on the animal page): with number, token (random
+// per-animal secret persisted in discoveries.guest_token) and lang the
+// status view is rendered immediately, without any further interaction.
+// lang is applied before rendering so the scanned code opens the page in
+// the encoded language.
 func GuestNew(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -510,8 +560,8 @@ func GuestNew(c buffalo.Context) error {
 	}
 	c.Set("animalNumber", number)
 
-	// Direct link: animal number + phone token. On any failure the plain
-	// form is shown — no information is disclosed about the reason.
+	// Direct link: animal number + persisted random token. On any failure
+	// the plain form is shown — no information is disclosed about the reason.
 	token := strings.TrimSpace(c.Param("token"))
 	if number != "" && token != "" {
 		// Rate limit direct lookups like form submissions.
@@ -528,12 +578,14 @@ func GuestNew(c buffalo.Context) error {
 			return err
 		}
 		if a != nil {
-			stored, err := guestStoredPhone(tx, a)
+			// Constant-time comparison of the URL token against the random
+			// token persisted for this animal (empty stored token never
+			// matches, so animals without a generated QR code stay closed).
+			stored, err := guestStoredToken(tx, a)
 			if err != nil {
 				return err
 			}
-			expected := guestPhoneToken(a.YearNumberFormatted(), stored)
-			if guestTokenMatches(expected, token) {
+			if guestTokenMatches(stored, token) {
 				view, err := buildGuestView(tx, a, time.Now())
 				if err != nil {
 					return err
@@ -652,11 +704,10 @@ func guestRequestLang(c buffalo.Context) string {
 }
 
 // AnimalQR renders a QR code (PNG) that opens the guest status view for this
-// animal directly: the URL carries a salted hash (token) of the discoverer
-// phone instead of the phone number itself, plus the current UI language.
-// The token is ALWAYS present: animals without a recorded discoverer phone
-// get a token salted with the empty phone, so the QR code never degrades to
-// a phone-prompted form — scanning must always open the status view.
+// animal directly: the URL carries the random per-animal token persisted in
+// discoveries.guest_token, plus the current UI language. The token is
+// generated and persisted on first use, so the QR code never degrades to a
+// phone-prompted form — scanning must always open the status view.
 // GET /animals/{animal_id}/qr.png
 func AnimalQR(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -669,16 +720,10 @@ func AnimalQR(c buffalo.Context) error {
 	}
 	number := animal.YearNumberFormatted()
 
-	phone, err := guestStoredPhone(tx, animal)
+	token, err := guestEnsureToken(tx, animal)
 	if err != nil {
 		return err
 	}
-	// With a stored phone the token proves knowledge of it. Without one the
-	// empty phone is the salt: GuestNew derives the SAME expected token from
-	// its own stored-phone lookup, so the link still opens directly — the
-	// phone prompt would be unpassable for such animals anyway (GuestCreate
-	// cannot match against a missing phone).
-	token := guestPhoneToken(number, phone)
 
 	u := guestStatusURL(guestScheme(c.Request()), c.Request().Host, number, token, guestRequestLang(c))
 	qr, err := qrcode.New(u, qrcode.Medium)

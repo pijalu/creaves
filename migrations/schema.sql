@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.4.11, for macos26.6 (arm64)
 --
--- Host: localhost    Database: creaves
+-- Host: localhost    Database: creaves_test
 -- ------------------------------------------------------
 -- Server version	8.4.11
 
@@ -95,7 +95,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10170 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=980075 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -280,6 +280,7 @@ CREATE TABLE `discoveries` (
   `city` varchar(255) DEFAULT NULL,
   `return_habitat` tinyint(1) NOT NULL DEFAULT '0',
   `in_garden` tinyint(1) NOT NULL DEFAULT '0',
+  `guest_token` varchar(255) DEFAULT NULL,
   `entry_cause_id` varchar(255) NOT NULL DEFAULT '1.1',
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
@@ -771,4 +772,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-12 11:20:42
+-- Dump completed on 2026-09-12 12:59:30

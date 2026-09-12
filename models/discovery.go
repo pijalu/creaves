@@ -27,6 +27,7 @@ type Discovery struct {
 	DiscovererID  uuid.UUID    `json:"discoverer_id" db:"discoverer_id"`
 	ReturnHabitat bool         `json:"return_habitat" db:"return_habitat"`
 	InGarden      bool         `json:"in_garden" db:"in_garden"`
+	GuestToken    nulls.String `json:"guest_token" db:"guest_token"`
 	CreatedAt     time.Time    `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time    `json:"updated_at" db:"updated_at"`
 }

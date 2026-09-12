@@ -458,11 +458,12 @@ language selector.
 `<scheme>://<host>/guest/?number=<num>&token=<token>&lang=<lang>`. Scheme and host are
 taken from the incoming request (`Request.Host`, `X-Forwarded-Proto` honoured), so the
 QR always points at the same host/protocol the staff page was loaded from. The token is
-`guestPhoneToken` — a SHA-256 hash of the normalized discoverer phone, salted with the
-animal number — so the raw phone never appears in the URL and scanning the code opens
-the status view directly (no form). The token is ALWAYS emitted: animals recorded
-WITHOUT a discoverer phone get a token salted with the empty phone, so the QR code
-never degrades to the phone-prompted form — for such animals the phone check can
+a random per-animal secret (`guestEnsureToken`): on first QR use a 16-byte CSPRNG token
+(hex, 32 chars) is generated and persisted in the nullable `discoveries.guest_token`
+column; later QR renders reuse the stored token, so the QR code stays stable.
+`GuestNew` compares the URL token against the stored one in constant time
+(`guestTokenMatches`); animals whose QR was never generated have no token and stay on
+the plain form. For animals recorded WITHOUT a discoverer phone the phone check can
 never succeed and the QR deep link is the only way to open the status view. The
 guest form states this, and the animal show modal shows a warning (`guestNoPhone`)
 so intake staff can point it out to the finder. `lang` is applied before rendering

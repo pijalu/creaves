@@ -343,41 +343,36 @@ func TestGuestStatusURL(t *testing.T) {
 	}
 }
 
-func TestGuestPhoneToken(t *testing.T) {
-	tok := guestPhoneToken("1766/26", "06 12 34 56 78")
-	if len(tok) != 64 {
-		t.Errorf("guestPhoneToken length = %d, want 64 (hex sha256)", len(tok))
+func TestGuestNewToken(t *testing.T) {
+	tok, err := guestNewToken()
+	if err != nil {
+		t.Fatalf("guestNewToken: %v", err)
 	}
-	// deterministic
-	if again := guestPhoneToken("1766/26", "06 12 34 56 78"); again != tok {
-		t.Errorf("guestPhoneToken not deterministic: %q != %q", again, tok)
+	if len(tok) != 32 {
+		t.Errorf("guestNewToken length = %d, want 32 (hex of 16 random bytes)", len(tok))
 	}
-	// equivalent phone spellings may hash differently — the token is always
-	// generated from the stored phone and compared to itself, so only
-	// determinism matters, not cross-spelling equivalence.
-	if eq := guestPhoneToken("1766/26", "0612345678"); eq != tok {
-		t.Logf("note: spaced vs compact spelling hash differently (%q)", eq)
+	for _, r := range tok {
+		if !strings.ContainsRune("0123456789abcdef", r) {
+			t.Errorf("guestNewToken contains non-hex character %q: %q", r, tok)
+			break
+		}
 	}
-	// different animal number (salt) => different token
-	if diff := guestPhoneToken("1767/26", "06 12 34 56 78"); diff == tok {
-		t.Error("guestPhoneToken ignores the animal number salt")
+	// randomness: two consecutive tokens must differ
+	tok2, err := guestNewToken()
+	if err != nil {
+		t.Fatalf("guestNewToken (2nd): %v", err)
 	}
-	// different phone => different token
-	if diff := guestPhoneToken("1766/26", "06 12 34 56 79"); diff == tok {
-		t.Error("guestPhoneToken ignores the phone number")
-	}
-	// raw phone never appears in the token
-	if strings.Contains(tok, "0612345678") {
-		t.Error("guestPhoneToken leaks the raw phone number")
+	if tok == tok2 {
+		t.Error("guestNewToken returned the same token twice")
 	}
 }
 
 func TestGuestTokenMatches(t *testing.T) {
-	tok := guestPhoneToken("1766/26", "0612345678")
+	tok := "0123456789abcdef0123456789abcdef"
 	if !guestTokenMatches(tok, tok) {
 		t.Error("guestTokenMatches should accept the identical token")
 	}
-	if guestTokenMatches(tok, guestPhoneToken("1766/26", "0699999999")) {
+	if guestTokenMatches(tok, "ffffffffffffffffffffffffffffffff") {
 		t.Error("guestTokenMatches accepted a wrong token")
 	}
 	if guestTokenMatches(tok, "") || guestTokenMatches("", tok) || guestTokenMatches("", "") {
@@ -385,10 +380,12 @@ func TestGuestTokenMatches(t *testing.T) {
 	}
 }
 
-// TestGuestStoredPhoneToken exercises the AnimalQR direct-link logic against
-// DB fixtures: the stored discoverer phone must produce the token accepted by
-// the direct guest link.
-func TestGuestStoredPhoneToken(t *testing.T) {
+// TestGuestEnsureToken exercises the AnimalQR direct-link logic against DB
+// fixtures: the first call generates a random token and persists it in
+// discoveries.guest_token; later calls return the SAME stored token, which
+// the direct guest link accepts (constant-time compare) and foreign tokens
+// reject.
+func TestGuestEnsureToken(t *testing.T) {
 	tx := searchTestDB(t)
 	f := createGuestFixtures(t, tx)
 	a := &models.Animal{}
@@ -396,59 +393,94 @@ func TestGuestStoredPhoneToken(t *testing.T) {
 		t.Fatalf("load fixture animal: %v", err)
 	}
 
-	stored, err := guestStoredPhone(tx, a)
+	tok, err := guestEnsureToken(tx, a)
 	if err != nil {
-		t.Fatalf("guestStoredPhone: %v", err)
+		t.Fatalf("guestEnsureToken: %v", err)
 	}
-	if stored == "" {
-		t.Fatal("fixture discoverer phone should be set")
+	if len(tok) != 32 {
+		t.Fatalf("guestEnsureToken = %q, want 32-char random token", tok)
 	}
 
-	number := a.YearNumberFormatted()
-	token := guestPhoneToken(number, stored)
-	if !guestTokenMatches(token, token) {
+	// token persisted in the discoveries row
+	d := models.Discovery{}
+	if err := tx.Find(&d, a.DiscoveryID); err != nil {
+		t.Fatalf("load discovery: %v", err)
+	}
+	if !d.GuestToken.Valid || d.GuestToken.String != tok {
+		t.Fatalf("guest_token not persisted: got %v, want %q", d.GuestToken, tok)
+	}
+
+	// second use returns the SAME token (stable QR codes)
+	again, err := guestEnsureToken(tx, a)
+	if err != nil {
+		t.Fatalf("guestEnsureToken (2nd): %v", err)
+	}
+	if again != tok {
+		t.Errorf("guestEnsureToken regenerated token: %q != %q", again, tok)
+	}
+
+	// the persisted token is accepted by the direct-link check
+	stored, err := guestStoredToken(tx, a)
+	if err != nil {
+		t.Fatalf("guestStoredToken: %v", err)
+	}
+	if !guestTokenMatches(stored, tok) {
 		t.Fatal("roundtrip token mismatch")
 	}
-	if guestTokenMatches(token, guestPhoneToken(number, "wrong-phone")) {
-		t.Error("token from wrong phone must not match")
+	if guestTokenMatches(stored, "ffffffffffffffffffffffffffffffff") {
+		t.Error("token from another animal must not match")
 	}
 
 	// URL built by AnimalQR must open the view directly (token + lang)
-	u := guestStatusURL("https", "creaves.example.org", number, token, "fr")
-	if !strings.Contains(u, "token="+token) || !strings.Contains(u, "lang=fr") {
+	u := guestStatusURL("https", "creaves.example.org", a.YearNumberFormatted(), tok, "fr")
+	if !strings.Contains(u, "token="+tok) || !strings.Contains(u, "lang=fr") {
 		t.Errorf("guestStatusURL missing token/lang: %q", u)
 	}
 }
 
-// TestGuestPhonelessAnimalToken pins the QR-only access path: an animal
-// WITHOUT a recorded discoverer phone gets a QR token salted with the empty
-// phone, and GuestNew derives the SAME expected token from its own (empty)
-// stored-phone lookup — so the QR deep link opens the status view directly.
-// The empty-phone token is distinct from any phone-salted token of the same
-// animal: the phone factor still protects animals that HAVE a phone.
-func TestGuestPhonelessAnimalToken(t *testing.T) {
-	number := "1791/26"
+// TestGuestEnsureTokenDistinct animals get distinct random tokens.
+func TestGuestEnsureTokenDistinct(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createGuestFixtures(t, tx)
 
-	// AnimalQR side: guestStoredPhone returned "" → empty-phone salt.
-	qrToken := guestPhoneToken(number, "")
-	// GuestNew side: expected token from the same empty lookup.
-	expected := guestPhoneToken(number, "")
-	if !guestTokenMatches(expected, qrToken) {
-		t.Fatal("phoneless token must be accepted by the direct guest link")
+	a1, a2 := &models.Animal{}, &models.Animal{}
+	if err := tx.Find(a1, f.animalID); err != nil {
+		t.Fatalf("load fixture animal 1: %v", err)
+	}
+	if err := tx.Find(a2, f.animalGoneID); err != nil {
+		t.Fatalf("load fixture animal 2: %v", err)
+	}
+	tok1, err := guestEnsureToken(tx, a1)
+	if err != nil {
+		t.Fatalf("guestEnsureToken 1: %v", err)
+	}
+	tok2, err := guestEnsureToken(tx, a2)
+	if err != nil {
+		t.Fatalf("guestEnsureToken 2: %v", err)
+	}
+	if tok1 == tok2 {
+		t.Error("distinct animals must get distinct guest tokens")
 	}
 
-	// Distinct from phone-salted tokens of the same animal, both directions.
-	if guestTokenMatches(qrToken, guestPhoneToken(number, "0612345678")) {
-		t.Error("phoneless token must not match a phone-salted token")
+	// cross-animal tokens must not be interchangeable
+	s1, err := guestStoredToken(tx, a1)
+	if err != nil {
+		t.Fatalf("guestStoredToken 1: %v", err)
 	}
-	if guestTokenMatches(guestPhoneToken(number, "0612345678"), qrToken) {
-		t.Error("phone-salted token must not match the phoneless token")
+	if guestTokenMatches(s1, tok2) {
+		t.Error("token of another animal must not open this animal")
 	}
+}
 
-	// A wrong animal number never yields a valid phoneless token.
-	if guestTokenMatches(expected, guestPhoneToken("9999/99", "")) {
-		t.Error("phoneless token must stay animal-number salted")
+// TestGuestStoredTokenMissing pins the closed-by-default behaviour: without a
+// persisted token (QR code never generated) no URL token opens the direct
+// view — guestStoredToken returns "" and guestTokenMatches rejects anything.
+func TestGuestStoredTokenMissing(t *testing.T) {
+	if guestTokenMatches("", "0123456789abcdef0123456789abcdef") {
+		t.Error("empty stored token must never match")
 	}
+	// nil-discovery guard is structural: DiscoveryID == uuid.Nil short-circuits
+	// to "" in guestStoredToken — covered implicitly by the empty-match rule.
 }
 
 // TestGuestScheme checks the scheme fallback order (TLS, X-Forwarded-Proto,
