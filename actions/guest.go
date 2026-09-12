@@ -70,8 +70,9 @@ const (
 )
 
 var (
-	guestRateMu   sync.Mutex
-	guestRateHits = map[string][]time.Time{}
+	guestRateMu        sync.Mutex
+	guestRateHits      = map[string][]time.Time{}
+	guestRateLastSweep time.Time
 )
 
 // guestClientIP returns the client IP used for rate limiting. The
@@ -108,6 +109,8 @@ func guestRateAllow(key string, now time.Time) bool {
 	guestRateMu.Lock()
 	defer guestRateMu.Unlock()
 
+	guestRateSweepLocked(now)
+
 	hits := guestRateHits[key]
 	fresh := hits[:0]
 	for _, ts := range hits {
@@ -119,8 +122,38 @@ func guestRateAllow(key string, now time.Time) bool {
 		guestRateHits[key] = fresh
 		return false
 	}
-	guestRateHits[key] = append(fresh, now)
+	if len(fresh) == 0 {
+		// First attempt ever, or a fully aged-out entry: start a fresh slice
+		// (also releases the old backing array). Dead keys that never come
+		// back are removed by guestRateSweepLocked below.
+		guestRateHits[key] = []time.Time{now}
+	} else {
+		guestRateHits[key] = append(fresh, now)
+	}
 	return true
+}
+
+// guestRateSweepLocked drops every key whose hits have fully aged out of the
+// rate window. It runs at most once per guestRateWindow so the whole map is
+// not walked on every request. Caller must hold guestRateMu.
+func guestRateSweepLocked(now time.Time) {
+	if now.Sub(guestRateLastSweep) < guestRateWindow {
+		return
+	}
+	guestRateLastSweep = now
+	for key, hits := range guestRateHits {
+		fresh := hits[:0]
+		for _, ts := range hits {
+			if now.Sub(ts) < guestRateWindow {
+				fresh = append(fresh, ts)
+			}
+		}
+		if len(fresh) == 0 {
+			delete(guestRateHits, key)
+		} else {
+			guestRateHits[key] = fresh
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------

@@ -495,3 +495,69 @@ func TestGuestScheme(t *testing.T) {
 		t.Errorf("guestScheme xfp = %q, want https", got)
 	}
 }
+
+// guestRateTestIsolate swaps in a fresh rate map and restores the previous
+// state after the test.
+func guestRateTestIsolate(t *testing.T) {
+	t.Helper()
+	guestRateMu.Lock()
+	savedHits := guestRateHits
+	savedSweep := guestRateLastSweep
+	guestRateHits = map[string][]time.Time{}
+	guestRateLastSweep = time.Time{}
+	guestRateMu.Unlock()
+	t.Cleanup(func() {
+		guestRateMu.Lock()
+		guestRateHits = savedHits
+		guestRateLastSweep = savedSweep
+		guestRateMu.Unlock()
+	})
+}
+
+// TestGuestRateAllowBlocksAtMax proves the limiter still blocks after the
+// budget is used up and unblocks once the window passes.
+func TestGuestRateAllowBlocksAtMax(t *testing.T) {
+	guestRateTestIsolate(t)
+
+	now := time.Now()
+	for i := 0; i < guestRateMax; i++ {
+		if !guestRateAllow("ip-block", now) {
+			t.Fatalf("attempt %d blocked before the limit", i+1)
+		}
+	}
+	if guestRateAllow("ip-block", now) {
+		t.Fatal("attempt over the limit must be blocked")
+	}
+	if !guestRateAllow("ip-block", now.Add(guestRateWindow+time.Second)) {
+		t.Fatal("attempt after the window must be allowed again")
+	}
+}
+
+// TestGuestRateAllowSweepsAgedOutKeys proves the map does not keep one dead
+// entry per past client IP: keys whose hits fully aged out are removed both
+// by the per-request path and by the periodic sweep.
+func TestGuestRateAllowSweepsAgedOutKeys(t *testing.T) {
+	guestRateTestIsolate(t)
+
+	now := time.Now()
+	if !guestRateAllow("ip-old", now) {
+		t.Fatal("first attempt must be allowed")
+	}
+	// A later request from another key, past the window: the sweep runs and
+	// must drop the fully aged-out ip-old entry.
+	later := now.Add(guestRateWindow + time.Minute)
+	if !guestRateAllow("ip-new", later) {
+		t.Fatal("attempt must be allowed")
+	}
+
+	guestRateMu.Lock()
+	_, oldPresent := guestRateHits["ip-old"]
+	_, newPresent := guestRateHits["ip-new"]
+	guestRateMu.Unlock()
+	if oldPresent {
+		t.Error("aged-out key should have been swept from the map")
+	}
+	if !newPresent {
+		t.Error("active key must survive the sweep")
+	}
+}
