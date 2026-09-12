@@ -517,8 +517,15 @@ func assertEq(t *testing.T, label, want, got string) {
 }
 
 func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
+	animalTypeID := uuid.Must(uuid.NewV4())
+	animalType := &models.Animaltype{ID: animalTypeID, Name: "T51-taxo type"}
+	if err := models.DB.Create(animalType); err != nil {
+		t.Fatalf("create animal type: %v", err)
+	}
+	defer models.DB.RawQuery("DELETE FROM animaltypes WHERE ID = ?", animalTypeID).Exec()
+
 	spID := uuid.Must(uuid.NewV4()).String()
-	sp := &models.Species{ID: spID, Species: "Erinaceus europaeus", CreavesSpecies: "SP-T51-taxo", Class: "Mammalia", Order: "Eulipotyphla", Family: "Erinaceidae", AgwGroup: "AGW-T51", SubsideGroup: "SUB-T51", NativeStatus: "Indigène"}
+	sp := &models.Species{ID: spID, Species: "Erinaceus europaeus", CreavesSpecies: "SP-T51-taxo", Class: "Mammalia", Order: "Eulipotyphla", Family: "Erinaceidae", AgwGroup: "AGW-T51", SubsideGroup: "SUB-T51", NativeStatus: "Indigène", AnimaltypeID: animalTypeID}
 	if err := models.DB.Create(sp); err != nil {
 		t.Fatalf("create species: %v", err)
 	}

@@ -16,19 +16,19 @@ var canonicalOuttakeTypes = []struct {
 	def, dead, err          bool
 	rating                  int
 }{
-	{"OT1", "DCD", "Animal died", true, true, false, -1},
-	{"OT2", "Relacher", "Released to the wild", false, false, false, 1},
-	{"OT3", "Transferer", "Transferred to another centre", false, false, false, 1},
-	{"OT4", "Euthanasier", "Euthanized", false, true, false, -1},
-	{"OT5", "Lost", "Lost", false, false, true, -1},
-	{"OT6", "Stolen", "Stolen", false, false, true, -1},
-	{"OT7", "Other outcome", "Other outcome", false, false, false, 0},
+	{"OT1", "Relacher", "Animal réhabilité et remis en liberté dans son milieu naturel.", false, false, false, 1},
+	{"OT2", "DCD", "Animal décédé naturellement durant la prise en charge.", true, true, false, -1},
+	{"OT3", "Euthanasier", "Animal euthanasié en raison de lésions ou d’un état incompatible avec une remise en liberté.", false, true, false, -1},
+	{"OT4", "Transferer", "Transfert de l'animal vers un: refuge, CREAVES, VOC, ZOO, ...", false, false, false, 1},
+	{"OT5", "Mort à l'arrivée avant l'encodage", "Animal arrivé décédé avant l'encodage ou la prise en charge.", false, true, false, -1},
+	{"OT6", "Adoption", "Animal placé en captivité autorisée car espèce non indigène.", false, false, false, 0},
+	{"OT7", "Doublon", "Fiche créée en double pour le même animal.", false, false, true, -1},
 }
 
 // createOuttaketype assigns stable OT codes to existing semantic rows and
 // creates only missing named types; it never replaces legacy names with codes.
 func createOuttaketype(c *grift.Context) error {
-	if err := models.DB.RawQuery("UPDATE outtaketypes SET code = NULL WHERE code IN ('OT1','OT2','OT3','OT4','OT5','OT6','OT7') AND name NOT IN ('DCD','Relacher','Transferer','Euthanasier','Lost','Stolen','Other outcome')").Exec(); err != nil {
+	if err := models.DB.RawQuery("UPDATE outtaketypes SET code = NULL WHERE code IN ('OT1','OT2','OT3','OT4','OT5','OT6','OT7') AND name NOT IN ('Relacher','DCD','Euthanasier','Transferer','Mort à l''arrivée avant l''encodage','Adoption','Doublon')").Exec(); err != nil {
 		return err
 	}
 	for _, t := range canonicalOuttakeTypes {

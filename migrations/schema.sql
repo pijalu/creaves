@@ -95,7 +95,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=980051 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10170 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -498,7 +498,6 @@ DROP TABLE IF EXISTS `outtaketypes`;
 CREATE TABLE `outtaketypes` (
   `id` char(36) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `code` varchar(255) DEFAULT NULL,
   `description` text,
   `def` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL,
@@ -507,6 +506,7 @@ CREATE TABLE `outtaketypes` (
   `rating` int NOT NULL DEFAULT '0',
   `discoverer_news` text,
   `error` tinyint(1) NOT NULL DEFAULT '0',
+  `code` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `outtaketypes_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -579,7 +579,8 @@ CREATE TABLE `species` (
   `animaltype_id` char(36) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `species_creaves_species_idx` (`creaves_species`),
-  KEY `species_animaltype_id_idx` (`animaltype_id`)
+  KEY `species_animaltype_id_idx` (`animaltype_id`),
+  CONSTRAINT `species_animaltype_fk` FOREIGN KEY (`animaltype_id`) REFERENCES `animaltypes` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -770,4 +771,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-11 15:16:10
+-- Dump completed on 2026-09-12 11:20:42
