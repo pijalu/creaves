@@ -226,6 +226,7 @@ Creaves (this app)                    Creaves Console
 | `animal_status_changed` | Status update | `actions/animals.go` |
 | `animal_released` | Release outtake | `actions/outtakes.go` |
 | `animal_died` | Death outtake | `actions/outtakes.go` |
+| `animal_deleted` | Destroy (error outtake / Doublon): animal removed from consolidation | `actions/animals.go` (`Destroy`), `actions/event_producer.go` |
 
 Care entries (feeding/treatment notes) are deliberately **not** part of the state
 hash and emit no event: the payload builder and `CanonicalStateContent` exclude
