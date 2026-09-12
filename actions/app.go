@@ -135,6 +135,12 @@ func App() *buffalo.App {
 		app.GET("/landing/index", LandingIndex)
 		app.GET("/suggestions/animal_species", SuggestionsAnimalSpecies)
 		app.GET("/suggestions/species_type", SuggestionsSpeciesType)
+		app.POST("/animalages/{animalage_id}/remap", AnimalagesResource{}.Remap)
+		app.POST("/caretypes/{caretype_id}/remap", CaretypesResource{}.Remap)
+		app.POST("/outtaketypes/{outtaketype_id}/remap", OuttaketypesResource{}.Remap)
+		app.POST("/traveltypes/{traveltype_id}/remap", TraveltypesResource{}.Remap)
+		app.POST("/discoverers/{discoverer_id}/remap", DiscoverersResource{}.Remap)
+		app.POST("/drugs/{drug_id}/remap", DrugsResource{}.Remap)
 		app.POST("/animaltypes/{animaltype_id}/remap", AnimaltypesRemap)
 		app.GET("/suggestions/discovery_location", SuggestionsDiscoveryLocation)
 		app.GET("/suggestions/outtake_location", SuggestionsOuttakeLocation)
@@ -148,7 +154,6 @@ func App() *buffalo.App {
 		app.GET("/suggestions/postal_code", SuggestionsPostalCode)
 		app.GET("/suggestions/locality", SuggestionsLocality)
 		app.GET("/suggestions/discoverer", SuggestionsDiscoverer)
-
 		app.Resource("/traveltypes", TraveltypesResource{})
 		app.Resource("/travels", TravelsResource{})
 

@@ -89,6 +89,11 @@ func (v OuttaketypesResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("outtaketype", outtaketype)
+		replacements := &models.Outtaketypes{}
+		if err := tx.Where("id <> ?", outtaketype.ID).Order("name asc").All(replacements); err != nil {
+			return err
+		}
+		c.Set("outtaketype_replacements", replacements)
 
 		return c.Render(http.StatusOK, r.HTML("/outtaketypes/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
@@ -297,6 +302,13 @@ func (v OuttaketypesResource) Destroy(c buffalo.Context) error {
 	// To find the Outtaketype the parameter outtaketype_id is used.
 	if err := tx.Find(outtaketype, c.Param("outtaketype_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+	if replacementID := c.Param("replacement_id"); replacementID != "" {
+		if err := referenceRemap(c, "outtaketypes", "outtaketype_id", map[string]string{"outtakes": "outtaketype_id"}); err != nil {
+			return err
+		}
+		InvalidateOuttaketypesRefCache()
+		return nil
 	}
 
 	if err := tx.Destroy(outtaketype); err != nil {

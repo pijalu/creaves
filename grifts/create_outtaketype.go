@@ -1,48 +1,57 @@
 package grifts
 
 import (
-	"creaves/models"
+	"database/sql"
 	"fmt"
 
-	. "github.com/gobuffalo/grift/grift"
+	"creaves/models"
+	"github.com/gobuffalo/grift/grift"
 	"github.com/gobuffalo/nulls"
+	"github.com/gofrs/uuid"
 )
 
-func createOuttaketype(c *Context) error {
-	ts := []struct {
-		name        string
-		description string
-		def         bool
-	}{
-		{name: "Dead", description: "animal died", def: true},
-		{name: "Transfer", description: "animal is transfered"},
-		{name: "Freed", description: "animal is freed"},
-	}
+var canonicalOuttakeTypes = []struct {
+	name, description string
+	def, dead, err    bool
+	rating            int
+}{
+	{"OT1", "Animal died", true, true, false, -1},
+	{"OT2", "Released to the wild", false, false, false, 1},
+	{"OT3", "Transferred to another centre", false, false, false, 1},
+	{"OT4", "Euthanized", false, true, false, -1},
+	{"OT5", "Lost", false, false, true, -1},
+	{"OT6", "Stolen", false, false, true, -1},
+	{"OT7", "Other outcome", false, false, false, 0},
+}
 
-	cnt, err := models.DB.Q().Count(&models.Outtaketype{})
-	if err != nil {
-		return err
-	}
-	if cnt > 0 {
-		fmt.Printf("Already %d records in outtake types - skipping\n", cnt)
-		return nil
-	}
-
-	for _, t := range ts {
-		if exists, err := models.DB.Q().Where("name = ?", t.name).Exists(&models.Outtaketype{}); err != nil {
-			return err
-		} else if !exists {
-			fmt.Printf("Creating outtake type %v\n", t)
-			if err := models.DB.Create(&models.Outtaketype{
-				Name:        t.name,
-				Description: nulls.NewString(t.description),
-				Default:     t.def,
-			}); err != nil {
+// createOuttaketype installs the seven canonical outcome types. Upsert by name
+// keeps existing ids (and dependent outtakes) stable while correcting fields.
+func createOuttaketype(c *grift.Context) error {
+	for _, t := range canonicalOuttakeTypes {
+		row := &models.Outtaketype{}
+		err := models.DB.Q().Where("name = ?", t.name).First(row)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return err
+			}
+			row = &models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: t.name}
+		}
+		row.Name, row.Description = t.name, nulls.NewString(t.description)
+		row.Default, row.Dead, row.Error, row.Rating = t.def, t.dead, t.err, t.rating
+		if row.ID == uuid.Nil {
+			if err := models.DB.Create(row); err != nil {
 				return err
 			}
 		} else {
-			fmt.Printf("Outtake type %s already exists\n", t.name)
+			verrs, err := models.DB.ValidateAndUpdate(row)
+			if err != nil {
+				return err
+			}
+			if verrs.HasAny() {
+				return fmt.Errorf("outtake type %s invalid: %v", t.name, verrs)
+			}
 		}
+		fmt.Printf("Upserted outtake type %s\n", t.name)
 	}
 	return nil
 }
