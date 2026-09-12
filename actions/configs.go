@@ -17,8 +17,19 @@ import (
 // CurrentConfig holds the cached configuration
 var CurrentConfig *models.Config
 
-// LoadConfig loads or creates the configuration from the database
+// LoadConfig loads or creates the configuration from the database.
+//
+// Single-init guard: CurrentConfig is the process-local singleton, so once it
+// is loaded subsequent calls return it without re-querying the config table
+// (this runs on hot paths like SetCurrentUser and event production). Mutating
+// flows keep the pointer fresh themselves — ConfigsResource Update/Activate
+// and EnableWebhookForwarding assign or update CurrentConfig explicitly.
+// Tests reset CurrentConfig to nil to force a reload.
 func LoadConfig(tx *pop.Connection) (*models.Config, error) {
+	if CurrentConfig != nil {
+		return CurrentConfig, nil
+	}
+
 	// Try to find existing active config
 	configs := &models.Configs{}
 	err := tx.Where("active = ?", true).Order("created_at asc").Limit(1).All(configs)
