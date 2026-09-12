@@ -35,10 +35,10 @@ func TestPublishEvent_CreatesEventStreamRow(t *testing.T) {
 	seedPusherConfig(t, "http://unused.example")
 
 	// Enable event stream in the current config.
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = true
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 
 	before := countEvents(t)
 	require.NoError(t, PublishEvent(pusherTestDB, string(models.EventTypeAnimalDiscovered), makeAnimal(1), nil, nil))
@@ -50,7 +50,7 @@ func TestPublishEvent_CreatesEventStreamRow(t *testing.T) {
 	var ev models.EventStream
 	require.NoError(t, pusherTestDB.Order("created_at desc").First(&ev))
 	assert.Nil(t, ev.DeliveredAt)
-	assert.Equal(t, CurrentConfig.InstanceID, ev.InstanceID)
+	assert.Equal(t, CurrentConfigGet().InstanceID, ev.InstanceID)
 }
 
 // TestPublishEvent_DisabledByConfig proves no event is written when the event
@@ -59,10 +59,10 @@ func TestPublishEvent_DisabledByConfig(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
 
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = false
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 
 	before := countEvents(t)
 	require.NoError(t, PublishEvent(pusherTestDB, string(models.EventTypeAnimalDiscovered), makeAnimal(2), nil, nil))
@@ -75,12 +75,12 @@ func TestPublishEvent_LoadsConfigWhenNil(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	require.NoError(t, PublishEvent(pusherTestDB, string(models.EventTypeAnimalDiscovered), makeAnimal(3), nil, nil))
-	assert.NotNil(t, CurrentConfig, "config should have been loaded by PublishEvent")
+	assert.NotNil(t, CurrentConfigGet(), "config should have been loaded by PublishEvent")
 	assert.Equal(t, 1, countEvents(t))
 }
 
@@ -141,10 +141,10 @@ func placeholderList(n int) string {
 func TestPublishAnimalHelpers(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = true
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 
 	seedPublishAnimals(t, 10, 11)
 
@@ -168,10 +168,10 @@ func TestPublishAnimalHelpers(t *testing.T) {
 func TestPublishEvent_SetsUserAuditTrail(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = true
-	require.NoError(t, CurrentConfig.SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfig))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
 
 	uid := uuid.Must(uuid.NewV4())
 	user := &models.User{ID: uid, Login: "alice"}
@@ -195,9 +195,9 @@ func TestPublishEvent_LoadConfigFails(t *testing.T) {
 	bad := newEmptyDB(t)
 	defer bad.Close()
 
-	saved := CurrentConfig
-	CurrentConfig = nil
-	defer func() { CurrentConfig = saved }()
+	saved := CurrentConfigGet()
+	CurrentConfigSet(nil)
+	defer func() { CurrentConfigSet(saved) }()
 
 	err := PublishEvent(bad, string(models.EventTypeAnimalDiscovered), makeAnimal(1), nil, nil)
 	require.Error(t, err)
@@ -211,9 +211,9 @@ func TestPublishEvent_LoadConfigFails(t *testing.T) {
 func TestPublishEvent_CreateError(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")
-	settings, _ := CurrentConfig.GetSettings()
+	settings, _ := CurrentConfigGet().GetSettings()
 	settings.EnableEventStream = true
-	require.NoError(t, CurrentConfig.SetSettings(settings))
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
 	// No need to persist the config update to pusherTestDB — we only need
 	// CurrentConfig in memory for IsEventStreamEnabled() to return true.
 
@@ -231,6 +231,33 @@ func countEvents(t *testing.T) int {
 	events := &models.EventStreams{}
 	require.NoError(t, pusherTestDB.All(events))
 	return len(*events)
+}
+
+// TestPublishAnimalDeletedEvent_TypeAndStatus proves the destroy flow's event
+// is an animal_deleted event carrying current_status "deleted" — the console
+// removes the animal instead of listing it as deceased (bugs.md "Delete show
+// as deceased in console").
+func TestPublishAnimalDeletedEvent_TypeAndStatus(t *testing.T) {
+	resetPusherState()
+	seedPusherConfig(t, "http://unused.example")
+	settings, _ := CurrentConfigGet().GetSettings()
+	settings.EnableEventStream = true
+	require.NoError(t, CurrentConfigGet().SetSettings(settings))
+	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
+	seedPublishAnimals(t, 12)
+
+	require.NoError(t, PublishAnimalDeletedEvent(pusherTestDB, makeAnimal(12), nil))
+
+	events := &models.EventStreams{}
+	require.NoError(t, pusherTestDB.Where("animal_id = ?", 12).All(events))
+	require.Len(t, *events, 1, "exactly one event must be created")
+	ev := (*events)[0]
+	assert.Equal(t, models.EventTypeAnimalDeleted, models.EventType(ev.EventType),
+		"destroy must publish animal_deleted, not animal_died")
+
+	payload, err := ev.GetPayload()
+	require.NoError(t, err)
+	assert.Equal(t, "deleted", payload.CurrentStatus)
 }
 
 // keep time referenced (helper used by payload parsing elsewhere)

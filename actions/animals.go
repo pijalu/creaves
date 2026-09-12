@@ -1047,9 +1047,11 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, animal.Outtake.ID.String(), models.AuditActionCreate, nil, auditOuttakeProjection(*animal.Outtake))
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(animalBefore), auditAnimalProjection(*animal))
 
-	// Publish animal_died event for destroyed animals
-	if err := PublishAnimalDiedEvent(tx, animal, GetCurrentUser(c)); err != nil {
-		c.Logger().Warnf("Failed to publish animal_died event: %v", err)
+	// Publish animal_deleted event for destroyed animals: the record is
+	// marked erroneous, not deceased — the console must remove it from the
+	// consolidated view (bugs.md "Delete show as deceased in console").
+	if err := PublishAnimalDeletedEvent(tx, animal, GetCurrentUser(c)); err != nil {
+		c.Logger().Warnf("Failed to publish animal_deleted event: %v", err)
 	}
 
 	/*animal.OuttakeID = nulls.NewUUID(animal.Outtake.ID)

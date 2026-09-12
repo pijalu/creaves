@@ -180,16 +180,25 @@ LEFT JOIN intakes i ON i.id = a.intake_id
 LEFT JOIN outtakes o ON o.id = a.outtake_id
 LEFT JOIN outtaketypes ot ON ot.id = o.outtaketype_id
 WHERE a.id > ?
+/* Destroyed records (error outtake type) are deletions, not states: the
+   resync must not re-send them, and the expected sync set must not count
+   them — the console removes animals with an error outtake. */
+AND (o.id IS NULL OR COALESCE(ot.error, 0) = 0)
 ORDER BY a.id
 LIMIT ?`
 
-// countAnimals returns the total number of animals — StartResync's cheap
-// replacement for loading the whole table just to take len().
+// countAnimals returns the total number of syncable animals — StartResync's
+// cheap replacement for loading the whole table just to take len().
+// Destroyed records (error outtake type) are excluded: they are deletions,
+// not part of the expected sync set (see resyncChunkSelect).
 func countAnimals(tx *pop.Connection) (int, error) {
 	row := struct {
 		Total int `db:"total"`
 	}{}
-	if err := tx.RawQuery("SELECT COUNT(*) AS total FROM animals").First(&row); err != nil {
+	if err := tx.RawQuery(`SELECT COUNT(*) AS total FROM animals a
+		LEFT JOIN outtakes o ON o.id = a.outtake_id
+		LEFT JOIN outtaketypes ot ON ot.id = o.outtaketype_id
+		WHERE o.id IS NULL OR COALESCE(ot.error, 0) = 0`).First(&row); err != nil {
 		return 0, err
 	}
 	return row.Total, nil

@@ -20,8 +20,12 @@ const (
 	// EventTypeAnimalReleased is emitted when an animal is released
 	EventTypeAnimalReleased EventType = "animal_released"
 	// EventTypeAnimalDied is emitted when an animal dies
-	EventTypeAnimalDied  EventType = "animal_died"
-	EventTypeAnimalState EventType = "animal_state"
+	EventTypeAnimalDied EventType = "animal_died"
+	// EventTypeAnimalDeleted is emitted when an animal record is destroyed
+	// (marked erroneous via the error outtake type). The console removes the
+	// animal from the consolidated view on this event.
+	EventTypeAnimalDeleted EventType = "animal_deleted"
+	EventTypeAnimalState   EventType = "animal_state"
 )
 
 // EventStream represents an event in the event stream for multi-instance consolidation

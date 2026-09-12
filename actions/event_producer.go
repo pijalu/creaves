@@ -15,7 +15,7 @@ import (
 // This should be called within an existing database transaction
 func PublishEvent(tx *pop.Connection, eventType string, animal *models.Animal, payload *models.EventPayload, user *models.User) error {
 	// Ensure config is loaded
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		if _, err := LoadConfig(tx); err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -344,7 +344,7 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 //     consolidation when the snapshot is unchanged.
 func PublishAnimalStateEvent(tx *pop.Connection, animalID int, user *models.User) error {
 	// Ensure config is loaded
-	if CurrentConfig == nil {
+	if CurrentConfigGet() == nil {
 		if _, err := LoadConfig(tx); err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -490,4 +490,17 @@ func PublishAnimalDiedEvent(tx *pop.Connection, animal *models.Animal, user *mod
 	payload := buildEventPayloadWithTranslations(tx, full)
 	payload.CurrentStatus = "died"
 	return PublishEvent(tx, string(models.EventTypeAnimalDied), animal, payload, user)
+}
+
+// PublishAnimalDeletedEvent creates an animal_deleted event. Destroying an
+// animal record (error outtake) is NOT a death: the console must remove the
+// animal from the consolidated view instead of listing it as deceased.
+func PublishAnimalDeletedEvent(tx *pop.Connection, animal *models.Animal, user *models.User) error {
+	full, err := reloadAnimalForEvent(tx, animal)
+	if err != nil {
+		return fmt.Errorf("failed to reload animal %d for event: %w", animal.ID, err)
+	}
+	payload := buildEventPayloadWithTranslations(tx, full)
+	payload.CurrentStatus = "deleted"
+	return PublishEvent(tx, string(models.EventTypeAnimalDeleted), animal, payload, user)
 }
