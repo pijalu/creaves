@@ -10,7 +10,6 @@
   </div>
 </div>
 
-<% if (len(outtaketype_replacements) > 0) { %>
 <%= formFor(outtaketype, {action: outtaketypePath({outtaketype_id: outtaketype.ID}) + "/remap", method: "POST", class: "mb-3"}) { %>
   <label for="replacement_id">Replacement before deletion</label>
   <select id="replacement_id" name="replacement_id" class="form-control">
@@ -19,7 +18,6 @@
     <% } %>
   </select>
   <button type="submit" class="btn btn-danger mt-2">Remap dependents and delete</button>
-<% } %>
 <% } %>
 
 
