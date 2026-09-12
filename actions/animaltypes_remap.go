@@ -42,6 +42,12 @@ func AnimaltypesRemap(c buffalo.Context) error {
 	if err := tx.Find(replacement, replacementID); err != nil {
 		return c.Error(http.StatusNotFound, err)
 	}
+	// Collect the affected animals before the FK updates rewire them
+	// (species/dosages carry no animal linkage and are skipped).
+	affected, err := referenceAffectedAnimalIDs(tx, map[string]string{"animals": "animaltype_id"}, sourceID)
+	if err != nil {
+		return err
+	}
 	for _, q := range []string{
 		"UPDATE animals SET animaltype_id = ? WHERE animaltype_id = ?",
 		"UPDATE dosages SET animaltype_id = ? WHERE animaltype_id = ?",
@@ -54,6 +60,7 @@ func AnimaltypesRemap(c buffalo.Context) error {
 	if err := tx.RawQuery("DELETE FROM animaltypes WHERE id = ?", sourceID).Exec(); err != nil {
 		return err
 	}
-	InvalidateAnimaltypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateAnimaltypesRefCache)
+	publishReferenceStateEvents(c, tx, affected)
 	return c.Render(http.StatusOK, r.JSON(map[string]string{"remapped_to": replacementID.String()}))
 }

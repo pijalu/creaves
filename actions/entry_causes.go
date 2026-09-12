@@ -144,7 +144,7 @@ func (v EntryCausesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateEntryCausesRefCache()
+	queuePostCommitInvalidation(c, InvalidateEntryCausesRefCache)
 	if err := saveTranslations(c, tx, "entry_causes", entryCause.ID, []string{"cause", "detail", "nature", "indication"}); err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (v EntryCausesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateEntryCausesRefCache()
+	queuePostCommitInvalidation(c, InvalidateEntryCausesRefCache)
 	if err := saveTranslations(c, tx, "entry_causes", entryCause.ID, []string{"cause", "detail", "nature", "indication"}); err != nil {
 		return err
 	}
@@ -266,7 +266,7 @@ func (v EntryCausesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(entryCause); err != nil {
 		return err
 	}
-	InvalidateEntryCausesRefCache()
+	queuePostCommitInvalidation(c, InvalidateEntryCausesRefCache)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

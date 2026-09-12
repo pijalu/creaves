@@ -359,7 +359,7 @@ func (v UsersResource) Update(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	InvalidateUserCache(user.ID.String())
+	queuePostCommitInvalidation(c, func() { InvalidateUserCache(user.ID.String()) })
 
 	if verrs.HasAny() {
 		return responder.Wants("html", func(c buffalo.Context) error {
@@ -413,7 +413,7 @@ func (v UsersResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(user); err != nil {
 		return err
 	}
-	InvalidateUserCache(user.ID.String())
+	queuePostCommitInvalidation(c, func() { InvalidateUserCache(user.ID.String()) })
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

@@ -165,7 +165,7 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateOuttaketypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateOuttaketypesRefCache)
 	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateOuttaketypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateOuttaketypesRefCache)
 	if err := saveTranslations(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
@@ -307,14 +307,14 @@ func (v OuttaketypesResource) Destroy(c buffalo.Context) error {
 		if err := referenceRemap(c, "outtaketypes", "outtaketype_id", map[string]string{"outtakes": "outtaketype_id"}); err != nil {
 			return err
 		}
-		InvalidateOuttaketypesRefCache()
+		queuePostCommitInvalidation(c, InvalidateOuttaketypesRefCache)
 		return nil
 	}
 
 	if err := tx.Destroy(outtaketype); err != nil {
 		return err
 	}
-	InvalidateOuttaketypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateOuttaketypesRefCache)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

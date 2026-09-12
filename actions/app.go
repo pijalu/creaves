@@ -62,6 +62,11 @@ func App() *buffalo.App {
 		// Remove to disable this.
 		app.Use(csrf.New)
 
+		// Flushes cache invalidations queued by handlers after the
+		// transaction middleware has committed/rolled back. Must stay
+		// BEFORE popmw.Transaction in this chain.
+		app.Use(PostCommitInvalidations)
+
 		// Wraps each request in a transaction.
 		//  c.Value("tx").(*pop.Connection)
 		// Remove to disable this.

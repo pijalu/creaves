@@ -155,7 +155,7 @@ func (v TraveltypesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateTraveltypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateTraveltypesRefCache)
 	if err := saveTranslations(c, tx, "traveltypes", traveltype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -250,7 +250,7 @@ func (v TraveltypesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateTraveltypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateTraveltypesRefCache)
 	if err := saveTranslations(c, tx, "traveltypes", traveltype.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -293,7 +293,7 @@ func (v TraveltypesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(traveltype); err != nil {
 		return err
 	}
-	InvalidateTraveltypesRefCache()
+	queuePostCommitInvalidation(c, InvalidateTraveltypesRefCache)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

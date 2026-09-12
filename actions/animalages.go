@@ -165,7 +165,7 @@ func (v AnimalagesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateAnimalagesRefCache()
+	queuePostCommitInvalidation(c, InvalidateAnimalagesRefCache)
 	if err := saveTranslations(c, tx, "animalages", animalage.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (v AnimalagesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 
-	InvalidateAnimalagesRefCache()
+	queuePostCommitInvalidation(c, InvalidateAnimalagesRefCache)
 	if err := saveTranslations(c, tx, "animalages", animalage.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (v AnimalagesResource) Destroy(c buffalo.Context) error {
 	if err := tx.Destroy(animalage); err != nil {
 		return err
 	}
-	InvalidateAnimalagesRefCache()
+	queuePostCommitInvalidation(c, InvalidateAnimalagesRefCache)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

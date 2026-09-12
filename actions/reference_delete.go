@@ -30,6 +30,17 @@ var referenceDeleteSpecs = []referenceDeleteSpec{
 	{"traveltypes", "traveltype_id", "Travel type", map[string]string{"travels": "traveltype_id"}},
 }
 
+// referenceDeleteInvalidators maps deleteable reference tables to the
+// ref-cache they feed; nil (discoverers, drugs) means the table is not
+// cached. ReferenceDeleteCreate queues the matching invalidation post-commit.
+var referenceDeleteInvalidators = map[string]func(){
+	"animalages":   InvalidateAnimalagesRefCache,
+	"animaltypes":  InvalidateAnimaltypesRefCache,
+	"caretypes":    InvalidateCaretypesRefCache,
+	"outtaketypes": InvalidateOuttaketypesRefCache,
+	"traveltypes":  InvalidateTraveltypesRefCache,
+}
+
 func referenceDeleteSpecFor(c buffalo.Context) (referenceDeleteSpec, error) {
 	path := strings.Trim(c.Request().URL.Path, "/")
 	for _, spec := range referenceDeleteSpecs {
@@ -98,6 +109,11 @@ func ReferenceDeleteCreate(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	// Collect the affected animals before the FK updates rewire them.
+	affected, err := referenceAffectedAnimalIDs(tx, spec.Dependents, sourceID)
+	if err != nil {
+		return err
+	}
 	var input struct {
 		ReplacementID string `form:"replacement_id" json:"replacement_id"`
 	}
@@ -130,5 +146,9 @@ func ReferenceDeleteCreate(c buffalo.Context) error {
 	if err := tx.RawQuery("DELETE FROM `"+spec.Table+"` WHERE id = ?", sourceID).Exec(); err != nil {
 		return err
 	}
+	if invalidate, ok := referenceDeleteInvalidators[spec.Table]; ok && invalidate != nil {
+		queuePostCommitInvalidation(c, invalidate)
+	}
+	publishReferenceStateEvents(c, tx, affected)
 	return c.Redirect(http.StatusSeeOther, "/"+spec.Table)
 }

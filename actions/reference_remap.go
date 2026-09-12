@@ -45,6 +45,11 @@ func referenceRemap(c buffalo.Context, table, param string, dependents map[strin
 	if count == 0 {
 		return c.Error(http.StatusNotFound, fmt.Errorf("replacement not found"))
 	}
+	// Collect the affected animals before the FK updates rewire them.
+	affected, err := referenceAffectedAnimalIDs(tx, dependents, sourceID)
+	if err != nil {
+		return err
+	}
 	for dep, column := range dependents {
 		if err := tx.RawQuery("UPDATE `"+dep+"` SET `"+column+"` = ? WHERE `"+column+"` = ?", replacementID, sourceID).Exec(); err != nil {
 			return err
@@ -53,34 +58,35 @@ func referenceRemap(c buffalo.Context, table, param string, dependents map[strin
 	if err := tx.RawQuery("DELETE FROM `"+table+"` WHERE id = ?", sourceID).Exec(); err != nil {
 		return err
 	}
+	publishReferenceStateEvents(c, tx, affected)
 	return c.Render(http.StatusOK, r.JSON(map[string]string{"remapped_to": replacementID.String()}))
 }
 
 func (v AnimalagesResource) Remap(c buffalo.Context) error {
 	err := referenceRemap(c, "animalages", "animalage_id", map[string]string{"animals": "animalage_id"})
 	if err == nil {
-		InvalidateAnimalagesRefCache()
+		queuePostCommitInvalidation(c, InvalidateAnimalagesRefCache)
 	}
 	return err
 }
 func (v CaretypesResource) Remap(c buffalo.Context) error {
 	err := referenceRemap(c, "caretypes", "caretype_id", map[string]string{"cares": "type_id"})
 	if err == nil {
-		InvalidateCaretypesRefCache()
+		queuePostCommitInvalidation(c, InvalidateCaretypesRefCache)
 	}
 	return err
 }
 func (v OuttaketypesResource) Remap(c buffalo.Context) error {
 	err := referenceRemap(c, "outtaketypes", "outtaketype_id", map[string]string{"outtakes": "outtaketype_id"})
 	if err == nil {
-		InvalidateOuttaketypesRefCache()
+		queuePostCommitInvalidation(c, InvalidateOuttaketypesRefCache)
 	}
 	return err
 }
 func (v TraveltypesResource) Remap(c buffalo.Context) error {
 	err := referenceRemap(c, "traveltypes", "traveltype_id", map[string]string{"travels": "traveltype_id"})
 	if err == nil {
-		InvalidateTraveltypesRefCache()
+		queuePostCommitInvalidation(c, InvalidateTraveltypesRefCache)
 	}
 	return err
 }
