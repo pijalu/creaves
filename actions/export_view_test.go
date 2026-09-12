@@ -43,6 +43,7 @@ func TestExportViewRequiresLogin(t *testing.T) {
 // TestExportViewChooserListsQueries proves GET /export/view without a query
 // renders the chooser with View and CSV links for every configured query.
 func TestExportViewChooserListsQueries(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -71,6 +72,7 @@ func TestExportViewChooserListsQueries(t *testing.T) {
 // TestExportViewRendersHTMLTable proves GET /export/view?query=register runs
 // the query and renders results as an HTML table.
 func TestExportViewRendersHTMLTable(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -157,6 +159,7 @@ func TestExportViewRendersHTMLTable(t *testing.T) {
 // TestExportViewUnknownQuery proves an unknown query id does not crash and
 // returns 404.
 func TestExportViewUnknownQuery(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -174,6 +177,7 @@ func TestExportViewUnknownQuery(t *testing.T) {
 // TestExportCsvStillDownloads proves the CSV path is unchanged: it downloads
 // a text/csv attachment.
 func TestExportCsvStillDownloads(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -198,6 +202,7 @@ func TestExportCsvStillDownloads(t *testing.T) {
 // exposes a single "Exports" entry pointing at /export/view, and no longer
 // links the removed CSV chooser page.
 func TestReportsNavShowsExportsEntry(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -229,6 +234,7 @@ func TestReportsNavShowsExportsEntry(t *testing.T) {
 // TestExportCsvChooserRedirects proves bare /export/csv no longer renders
 // the CSV chooser page: it redirects to the online view chooser.
 func TestExportCsvChooserRedirects(t *testing.T) {
+	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)

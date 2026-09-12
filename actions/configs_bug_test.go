@@ -117,6 +117,7 @@ func seedConfig(t *testing.T, name string, active bool) *models.Config {
 // rendered for the currently active configuration but is rendered for
 // another (inactive) config.
 func TestConfigsListHidesDeleteForActiveConfig(t *testing.T) {
+	requireMySQLTestDB(t)
 	saved := CurrentConfig
 	t.Cleanup(func() { CurrentConfig = saved })
 
@@ -173,6 +174,7 @@ func TestConfigsListHidesDeleteForActiveConfig(t *testing.T) {
 // TestConfigsDestroyRejectsActiveConfig pins the server-side guard: deleting
 // the currently active configuration returns 400 and keeps the row.
 func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
+	requireMySQLTestDB(t)
 	saved := CurrentConfig
 	t.Cleanup(func() { CurrentConfig = saved })
 
@@ -224,6 +226,7 @@ func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
 // TestConfigsDestroyAllowsInactiveConfig proves an inactive config can still
 // be deleted through the resource.
 func TestConfigsDestroyAllowsInactiveConfig(t *testing.T) {
+	requireMySQLTestDB(t)
 	saved := CurrentConfig
 	t.Cleanup(func() { CurrentConfig = saved })
 

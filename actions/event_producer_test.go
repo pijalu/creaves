@@ -599,6 +599,7 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 }
 
 func TestBuildEventPayload_LocalityResolution(t *testing.T) {
+	requireMySQLTestDB(t)
 	locID := "T-LOC-bug9"
 	models.DB.RawQuery("DELETE FROM localities WHERE id = ?", locID).Exec()
 	loc := &models.Locality{

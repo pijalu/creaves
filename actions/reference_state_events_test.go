@@ -104,6 +104,7 @@ func refStatePost(t *testing.T, wantStatus int, path, replacementID string) {
 // remap re-emits animal_state events for exactly the animals that referenced
 // the removed age, with the replacement age in the payload.
 func TestAnimalagesRemapRepublishesAnimalState(t *testing.T) {
+	requireMySQLTestDB(t)
 	tx := refStateDB(t)
 	cfg := refStateConfig(t)
 	f := createAnimalSearchFixtures(t, tx)
@@ -137,6 +138,7 @@ func TestAnimalagesRemapRepublishesAnimalState(t *testing.T) {
 // TestAnimaltypesRemapRepublishesAnimalState proves the animaltype remap
 // handler re-emits animal_state events for affected animals.
 func TestAnimaltypesRemapRepublishesAnimalState(t *testing.T) {
+	requireMySQLTestDB(t)
 	tx := refStateDB(t)
 	cfg := refStateConfig(t)
 	f := createAnimalSearchFixtures(t, tx)
@@ -160,6 +162,7 @@ func TestAnimaltypesRemapRepublishesAnimalState(t *testing.T) {
 // delete-create flow (with replacement) re-emits animal_state events for the
 // affected animals.
 func TestReferenceDeleteCreateRepublishesAnimalState(t *testing.T) {
+	requireMySQLTestDB(t)
 	tx := refStateDB(t)
 	cfg := refStateConfig(t)
 	f := createAnimalSearchFixtures(t, tx)

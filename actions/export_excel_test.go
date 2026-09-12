@@ -138,6 +138,7 @@ func checkPivotCache(t *testing.T, xlsx []byte, sheet, lastCol string, totalRows
 // TestExportExcelRegistrePivotCache proves the registre export rewrites its
 // pivot cache to the exported range and forces a refresh on open.
 func TestExportExcelRegistrePivotCache(t *testing.T) {
+	requireMySQLTestDB(t)
 	seedExcelExportFixtures(t)
 
 	client := adminClient(t)
@@ -156,6 +157,7 @@ func TestExportExcelRegistrePivotCache(t *testing.T) {
 // TestExportExcelStatCommunesPivotCache proves the stats export rewrites both
 // its pivot cache and the _xlnm._FilterDatabase defined name.
 func TestExportExcelStatCommunesPivotCache(t *testing.T) {
+	requireMySQLTestDB(t)
 	seedExcelExportFixtures(t)
 
 	client := adminClient(t)
