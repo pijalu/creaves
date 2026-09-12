@@ -48,12 +48,7 @@
       <td><%= t("config.show.api-key") %></td>
       <td>
         <%= if (settings.WebhookAPIKey != "") { %>
-          <div class="input-group input-group-sm" style="max-width: 480px;">
-            <input type="text" readonly class="form-control font-monospace" id="webhook-api-key-display" value="<%= settings.WebhookAPIKey %>" onclick="this.select();">
-            <div class="input-group-append">
-              <button type="button" class="btn btn-outline-secondary" onclick="navigator.clipboard && navigator.clipboard.writeText(document.getElementById('webhook-api-key-display').value); this.blur();"><i class="fas fa-copy"></i></button>
-            </div>
-          </div>
+          <code><%= settings.MaskedWebhookAPIKey() %></code>
           <small class="form-text text-muted"><%= t("config.show.api-key-prefix-hint") %></small>
         <% } else { %>
           <em><%= t("config.show.api-key-not-set") %></em>

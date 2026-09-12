@@ -49,6 +49,20 @@ func DefaultSettings() ConfigSettings {
 	}
 }
 
+// MaskedWebhookAPIKey returns a masked representation of the webhook API
+// key (e.g. "••••last4") that is safe to render in HTML. It never returns
+// the full secret.
+func (s ConfigSettings) MaskedWebhookAPIKey() string {
+	if s.WebhookAPIKey == "" {
+		return ""
+	}
+	const dot = "••••"
+	if len(s.WebhookAPIKey) <= 4 {
+		return dot
+	}
+	return dot + s.WebhookAPIKey[len(s.WebhookAPIKey)-4:]
+}
+
 // GetSettings parses the settings JSON into a ConfigSettings struct
 func (c *Config) GetSettings() (ConfigSettings, error) {
 	settings := DefaultSettings()

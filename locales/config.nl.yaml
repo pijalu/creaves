@@ -25,7 +25,7 @@
 - id: "config.show.api-key-not-set"
   translation: "Niet ingesteld"
 - id: "config.show.api-key-prefix-hint"
-  translation: "De sleutel is zichtbaar zodat u deze naar Creaves Console kunt kopiëren of kunt verifiëren. In de console worden sleutels geïdentificeerd door de eerste tekens na 'creaves_' (bijv. creaves_ab12cd34…)."
+  translation: "Om beveiligingsredenen worden alleen de laatste tekens van de sleutel weergegeven. In de console worden sleutels geïdentificeerd door de eerste tekens na 'creaves_' (bijv. creaves_ab12cd34…)."
 - id: "config.show.batch-size"
   translation: "Batchgrootte"
 - id: "config.show.max-events-per-minute"

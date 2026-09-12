@@ -46,8 +46,8 @@
 
 <div class="form-group">
   <label for="webhook_api_key">Clé API</label>
-  <input type="text" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="Saisir la clé API (laisser vide pour conserver l’actuelle)" autocomplete="off">
-  <small class="form-text text-muted">Clé API générée dans la Creaves Console. Visible pour permettre de la copier ou de la vérifier — videz le champ lors de l’édition pour conserver la clé actuelle.</small>
+  <input type="password" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" placeholder="Saisir la clé API (laisser vide pour conserver l’actuelle)" autocomplete="new-password">
+  <small class="form-text text-muted">Clé API générée dans la Creaves Console. Pour des raisons de sécurité, elle n’est jamais affichée — saisissez une nouvelle clé pour remplacer celle enregistrée, ou laissez le champ vide pour conserver la clé actuelle.</small>
 </div>
 
 <div class="form-group">
