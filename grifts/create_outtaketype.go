@@ -2,6 +2,7 @@ package grifts
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"creaves/models"
@@ -30,15 +31,16 @@ func createOuttaketype(c *grift.Context) error {
 	for _, t := range canonicalOuttakeTypes {
 		row := &models.Outtaketype{}
 		err := models.DB.Q().Where("name = ?", t.name).First(row)
+		found := err == nil
 		if err != nil {
-			if err != sql.ErrNoRows {
+			if !errors.Is(err, sql.ErrNoRows) {
 				return err
 			}
 			row = &models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: t.name}
 		}
 		row.Name, row.Description = t.name, nulls.NewString(t.description)
 		row.Default, row.Dead, row.Error, row.Rating = t.def, t.dead, t.err, t.rating
-		if row.ID == uuid.Nil {
+		if !found {
 			if err := models.DB.Create(row); err != nil {
 				return err
 			}

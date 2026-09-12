@@ -1,0 +1,16 @@
+<div class="py-4 mb-2">
+  <h3>Delete <%= reference_delete_spec.Label %></h3>
+</div>
+<p>Choose a replacement before deleting <strong><%= reference_delete_name %></strong>.</p>
+<form action="/<%= reference_delete_spec.Table %>/<%= reference_delete_id %>/delete" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+  <label for="replacement_id">Replacement</label>
+  <select id="replacement_id" name="replacement_id" class="form-control">
+    <option value="">No replacement (only if unused)</option>
+    <%= for (replacement) in reference_delete_options { %>
+      <option value="<%= replacement.ID %>"><%= replacement.Name %></option>
+    <% } %>
+  </select>
+  <button type="submit" class="btn btn-danger mt-2">Delete</button>
+  <a class="btn btn-secondary mt-2" href="/<%= reference_delete_spec.Table %>/<%= reference_delete_id %>/">Cancel</a>
+</form>

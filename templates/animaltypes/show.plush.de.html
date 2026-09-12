@@ -6,17 +6,12 @@
       Zurück zu allen Tierarten
     <% } %>
     <%= linkTo(editAnimaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(animaltypePath({ animaltype_id: animaltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/animaltypes/" + animaltype.ID + "/delete", {class: "btn btn-danger", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
 
 
-<%= formFor(animaltype, {action: "/animaltypes/" + animaltype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
-  <label for="replacement_id">Ersatz vor dem Löschen</label>
-  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in animaltype_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
-  <button type="submit" class="btn btn-danger mt-2">Abhängigkeiten umleiten und löschen</button>
-<% } %>
 <ul class="list-group mb-2 ">
 
 

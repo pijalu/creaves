@@ -6,17 +6,12 @@
       Retour à tous les types de déplacement
     <% } %>
     <%= linkTo(editTraveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-warning", title: "Modifier", body:"<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(traveltypePath({ traveltype_id: traveltype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/traveltypes/" + traveltype.ID + "/delete", {class: "btn btn-danger", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
 
 
-<%= formFor(traveltype, {action: "/traveltypes/" + traveltype.ID + "/remap", method: "POST", class: "mb-3"}) { %>
-  <label for="replacement_id">Remplacement avant suppression</label>
-  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in traveltype_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
-  <button type="submit" class="btn btn-danger mt-2">Réaffecter et supprimer</button>
-<% } %>
 <ul class="list-group mb-2 ">
 
 

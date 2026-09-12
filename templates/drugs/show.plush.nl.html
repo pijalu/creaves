@@ -6,17 +6,12 @@
       Terug naar alle geneesmiddelen
     <% } %>
     <%= linkTo(editDrugPath({ drug_id: drug.ID }), {id: "editButton", class: "btn btn-warning", title: "Bewerken", body:"<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(drugPath({ drug_id: drug.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/drugs/" + drug.ID + "/delete", {class: "btn btn-danger", title: "Verwijderen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
 
 
-<%= formFor(drug, {action: "/drugs/" + drug.ID + "/remap", method: "POST", class: "mb-3"}) { %>
-  <label for="replacement_id">Vervanging vóór verwijderen</label>
-  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in drug_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
-  <button type="submit" class="btn btn-danger mt-2">Afhankelijkheden omzetten en verwijderen</button>
-<% } %>
 <ul class="list-group mb-2 ">
 
 

@@ -6,17 +6,12 @@
      Retour à tous types d'âge
     <% } %>
     <%= linkTo(editAnimalagePath({ animalage_id: animalage.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/animalages/" + animalage.ID + "/delete", {class: "btn btn-danger", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
 
 
-<%= formFor(animalage, {action: "/animalages/" + animalage.ID + "/remap", method: "POST", class: "mb-3"}) { %>
-  <label for="replacement_id">Remplacement avant suppression</label>
-  <select id="replacement_id" name="replacement_id" class="form-control"><% for (replacement) in animalage_replacements { %><option value="<%= replacement.ID %>"><%= replacement.Name %></option><% } %></select>
-  <button type="submit" class="btn btn-danger mt-2">Réaffecter et supprimer</button>
-<% } %>
 <ul class="list-group mb-2 ">
 
 

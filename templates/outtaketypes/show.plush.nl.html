@@ -6,7 +6,7 @@
       Terug naar alle aflooptypen
     <% } %>
     <%= linkTo(editOuttaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(outtaketypePath({ outtaketype_id: outtaketype.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/outtaketypes/" + outtaketype.ID + "/delete", {class: "btn btn-danger", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

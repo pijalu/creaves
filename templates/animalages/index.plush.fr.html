@@ -24,7 +24,7 @@
           <div class="float-right">
             <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(editAnimalagePath({ animalage_id: animalage.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(animalagePath({ animalage_id: animalage.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo("/animalages/" + animalage.ID + "/delete", {class: "btn btn-danger", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>
