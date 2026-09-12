@@ -4,8 +4,6 @@
 package actions
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"creaves/models"
@@ -159,83 +157,6 @@ func TestInitWebhookAtBoot_StartsWhenDisabled(t *testing.T) {
 	StopWebhookWorker()
 }
 
-// TestTriggerWebhookDelivery proves the trigger attempts a delivery when enabled.
-func TestTriggerWebhookDelivery(t *testing.T) {
-	resetPusherState()
-	StopWebhookWorker()
-
-	// No config → no-op.
-	CurrentConfig = nil
-	TriggerWebhookDelivery()
-	// (should not panic)
-}
-
-// TestTriggerWebhookDelivery_Delivers proves a manual trigger actually delivers
-// pending events when the webhook is enabled and the receiver is up.
-func TestTriggerWebhookDelivery_Delivers(t *testing.T) {
-	resetPusherState()
-	StopWebhookWorker()
-
-	rr := newRecordingReceiver(http.StatusOK)
-	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
-	defer srv.Close()
-
-	seedPusherConfig(t, srv.URL)
-	seedUndeliveredEvent(t, 1)
-
-	TriggerWebhookDelivery()
-	assert.Equal(t, 1, rr.totalEvents(), "the trigger should have delivered the pending event")
-}
-
-// TestTriggerWebhookDelivery_SkipsWhenCircuitOpen proves the trigger is a no-op
-// when the circuit breaker is open.
-func TestTriggerWebhookDelivery_SkipsWhenCircuitOpen(t *testing.T) {
-	resetPusherState()
-	StopWebhookWorker()
-
-	rr := newRecordingReceiver(http.StatusOK)
-	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
-	defer srv.Close()
-
-	seedPusherConfig(t, srv.URL)
-	seedUndeliveredEvent(t, 2)
-
-	// Trip the circuit breaker open.
-	for i := 0; i < webhookPusher.circuitBreaker.failureThreshold; i++ {
-		webhookPusher.circuitBreaker.RecordFailure()
-	}
-
-	TriggerWebhookDelivery()
-	assert.Equal(t, 0, rr.totalEvents(), "no delivery should occur while the circuit is open")
-}
-
-// TestTriggerWebhookDelivery_SkipsWhenRateLimited proves the trigger is a no-op
-// when the rate limiter denies delivery.
-func TestTriggerWebhookDelivery_SkipsWhenRateLimited(t *testing.T) {
-	resetPusherState()
-	StopWebhookWorker()
-
-	rr := newRecordingReceiver(http.StatusOK)
-	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
-	defer srv.Close()
-
-	seedPusherConfig(t, srv.URL)
-	seedUndeliveredEvent(t, 3)
-
-	// Exhaust the rate-limit budget.
-	settings, _ := CurrentConfig.GetSettings()
-	for i := 0; i < settings.WebhookMaxPerMin; i++ {
-		if !webhookPusher.allowDelivery() {
-			break
-		}
-	}
-
-	TriggerWebhookDelivery()
-	// Some events may have been delivered by allowDelivery consumption, but the
-	// trigger itself is blocked once the budget is exhausted — assert the worker
-	// never started (this branch returns before starting the worker).
-	assert.False(t, IsWebhookWorkerRunning())
-}
 
 // TestLoadConfig_QueryError verifies the error path when the database query
 // itself fails (e.g. the config table does not exist). LoadConfig must return

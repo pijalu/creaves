@@ -629,22 +629,6 @@ func deliverBatch() (int, error) {
 	return len(*events), nil
 }
 
-// TriggerWebhookDelivery triggers an immediate webhook delivery attempt
-func TriggerWebhookDelivery() {
-	if !IsWebhookEnabled() {
-		return
-	}
-	if webhookPusher.circuitBreaker.IsOpen() {
-		return
-	}
-	if !webhookPusher.allowDelivery() {
-		return
-	}
-	if _, err := deliverBatch(); err != nil {
-		fmt.Printf("Webhook delivery failed: %v\n", err)
-	}
-}
-
 // RegisterWebhookShutdown registers graceful shutdown hook
 func RegisterWebhookShutdown(app *buffalo.App) {
 	events.Listen(func(e events.Event) {
