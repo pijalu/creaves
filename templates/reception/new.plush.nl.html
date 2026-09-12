@@ -114,9 +114,13 @@
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
-                    minChars: 1,
+                    minChars: 0,
                     source: function(term, response){
-                        $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: $('#animal-AnimaltypeID').val() }, function(data){ response(data); });
+                        var typeId = $('#animal-AnimaltypeID').val();
+                        // Focus with a type selected shows that type's species
+                        // right away; without a type, an empty term lists nothing.
+                        if (!term && !typeId) { response([]); return; }
+                        $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: typeId }, function(data){ response(data); });
                     },
                     onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
