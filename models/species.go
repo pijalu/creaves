@@ -24,7 +24,7 @@ type Species struct {
 	Game           bool       `json:"game" db:"game"`
 	Huntable       bool       `json:"huntable" db:"huntable"`
 	Animaltype     Animaltype `json:"animaltype" belongs_to:"animaltype"`
-	AnimaltypeID   uuid.UUID  `json:"animaltype_id" db:"animaltype_id"`
+	AnimaltypeID   *uuid.UUID `json:"animaltype_id" db:"animaltype_id"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

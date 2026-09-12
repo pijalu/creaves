@@ -4,7 +4,7 @@
 <%= f.InputTag("Family") %>
 <%= f.CheckboxTag("Game") %>
 <%= f.InputTag("CreavesSpecies") %>
-<%= f.SelectTag("AnimaltypeID", {label: "Animal type", options: selectAnimalTypes}) %>
+<%= f.SelectTag("AnimaltypeID", {label: "Animal type", options: selectAnimalTypes, value: selectedAnimaltypeID}) %>
 <%= f.InputTag("CreavesGroup") %>
 <%= f.InputTag("Subside") %>
 <%= partial("translations/fields.html") %>

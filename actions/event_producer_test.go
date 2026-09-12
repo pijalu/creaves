@@ -525,7 +525,7 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 	defer models.DB.RawQuery("DELETE FROM animaltypes WHERE ID = ?", animalTypeID).Exec()
 
 	spID := uuid.Must(uuid.NewV4()).String()
-	sp := &models.Species{ID: spID, Species: "Erinaceus europaeus", CreavesSpecies: "SP-T51-taxo", Class: "Mammalia", Order: "Eulipotyphla", Family: "Erinaceidae", AgwGroup: "AGW-T51", SubsideGroup: "SUB-T51", NativeStatus: "Indigène", AnimaltypeID: animalTypeID}
+	sp := &models.Species{ID: spID, Species: "Erinaceus europaeus", CreavesSpecies: "SP-T51-taxo", Class: "Mammalia", Order: "Eulipotyphla", Family: "Erinaceidae", AgwGroup: "AGW-T51", SubsideGroup: "SUB-T51", NativeStatus: "Indigène", AnimaltypeID: &animalTypeID}
 	if err := models.DB.Create(sp); err != nil {
 		t.Fatalf("create species: %v", err)
 	}

@@ -79,7 +79,7 @@ func TestUnmappedSpeciesDiagnostics(t *testing.T) {
 	// Mapped species stay out of the list: the fixture above used a unique
 	// marker, so a mapped control species must not appear.
 	mappedSpecies := "DIAG-MAPPED-" + marker
-	sp := models.Species{ID: "diag-mapped-" + marker, Species: "Diag mapped " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: mappedSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: at.ID}
+	sp := models.Species{ID: "diag-mapped-" + marker, Species: "Diag mapped " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: mappedSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: &at.ID}
 	if err := tx.Create(&sp); err != nil {
 		t.Fatal(err)
 	}

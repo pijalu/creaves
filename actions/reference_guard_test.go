@@ -98,9 +98,9 @@ func TestSpeciesListSearchFilter(t *testing.T) {
 	atID := uuid.Must(uuid.NewV4())
 	at := models.Animaltype{ID: atID, Name: "Search type " + marker}
 	require.NoError(t, tx.Create(&at))
-	spA := models.Species{ID: "ssearch-a-" + marker, Species: "Alpha " + marker, Class: "Mammalia", Order: "OrdA-" + marker, Family: famA, CreavesSpecies: "ALPHA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: atID}
-	spB := models.Species{ID: "ssearch-b-" + marker, Species: "Beta " + marker, Class: "Aves", Order: "OrdB-" + marker, Family: famA, CreavesSpecies: "BETA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: atID}
-	spC := models.Species{ID: "ssearch-c-" + marker, Species: "Gamma " + marker, Class: "Aves", Order: "OrdB-" + marker, Family: famB, CreavesSpecies: "GAMMA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: atID}
+	spA := models.Species{ID: "ssearch-a-" + marker, Species: "Alpha " + marker, Class: "Mammalia", Order: "OrdA-" + marker, Family: famA, CreavesSpecies: "ALPHA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: &atID}
+	spB := models.Species{ID: "ssearch-b-" + marker, Species: "Beta " + marker, Class: "Aves", Order: "OrdB-" + marker, Family: famA, CreavesSpecies: "BETA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: &atID}
+	spC := models.Species{ID: "ssearch-c-" + marker, Species: "Gamma " + marker, Class: "Aves", Order: "OrdB-" + marker, Family: famB, CreavesSpecies: "GAMMA-" + marker, SubsideGroup: "g", AgwGroup: "g", NativeStatus: "n", AnimaltypeID: &atID}
 	for _, sp := range []models.Species{spA, spB, spC} {
 		s := sp
 		require.NoError(t, tx.Create(&s))

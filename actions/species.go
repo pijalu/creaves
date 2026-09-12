@@ -123,6 +123,7 @@ func (v SpeciesResource) New(c buffalo.Context) error {
 		return err
 	}
 	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), c.Value("tx").(*pop.Connection)))
+	c.Set("selectedAnimaltypeID", "")
 
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "species", "", []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
@@ -140,6 +141,12 @@ func (v SpeciesResource) Create(c buffalo.Context) error {
 
 	// Allocate an empty Species
 	species := &models.Species{}
+
+	// An empty animal type select must leave the (nullable) FK unset
+	// instead of failing UUID parsing during bind.
+	if c.Request().Form.Get("AnimaltypeID") == "" {
+		c.Request().Form.Del("AnimaltypeID")
+	}
 
 	// Bind species to the html form elements
 	if err := c.Bind(species); err != nil {
@@ -218,6 +225,11 @@ func (v SpeciesResource) Edit(c buffalo.Context) error {
 		return err
 	}
 	c.Set("selectAnimalTypes", animalTypesToSelectables(at, currentLang(c), tx))
+	selectedAnimaltypeID := ""
+	if species.AnimaltypeID != nil {
+		selectedAnimaltypeID = species.AnimaltypeID.String()
+	}
+	c.Set("selectedAnimaltypeID", selectedAnimaltypeID)
 	if err := setTranslationValues(c, tx, "species", species.ID, []string{"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"}); err != nil {
 		return err
 	}
@@ -247,6 +259,13 @@ func (v SpeciesResource) Update(c buffalo.Context) error {
 
 	// reset flags
 	species.Game = false
+
+	// An empty animal type select must clear the (nullable) FK
+	// instead of failing UUID parsing during bind.
+	if c.Request().Form.Get("AnimaltypeID") == "" {
+		c.Request().Form.Del("AnimaltypeID")
+		species.AnimaltypeID = nil
+	}
 
 	// Bind Species to the html form elements
 	if err := c.Bind(species); err != nil {

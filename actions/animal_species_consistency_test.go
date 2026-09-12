@@ -27,7 +27,7 @@ func TestCompleteAndValidateSpeciesType(t *testing.T) {
 	if err := tx.Create(&other); err != nil {
 		t.Fatal(err)
 	}
-	sp.AnimaltypeID = atID
+	sp.AnimaltypeID = &atID
 	if err := tx.Create(&sp); err != nil {
 		t.Fatal(err)
 	}
@@ -123,8 +123,8 @@ func TestCompleteAndValidateSpeciesTypeMultipleMappingsRejected(t *testing.T) {
 	if err := tx.Create(&other); err != nil {
 		t.Fatal(err)
 	}
-	sp1 := models.Species{ID: "multi-1-" + marker, Species: "Multi species " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: creavesSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: atID}
-	sp2 := models.Species{ID: "multi-2-" + marker, Species: "Multi species " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: creavesSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: otherID}
+	sp1 := models.Species{ID: "multi-1-" + marker, Species: "Multi species " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: creavesSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: &atID}
+	sp2 := models.Species{ID: "multi-2-" + marker, Species: "Multi species " + marker, Class: "class", Order: "order", Family: "family", CreavesSpecies: creavesSpecies, SubsideGroup: "group", AgwGroup: "agw", NativeStatus: "native", AnimaltypeID: &otherID}
 	if err := tx.Create(&sp1); err != nil {
 		t.Fatal(err)
 	}
