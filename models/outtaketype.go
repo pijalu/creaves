@@ -15,6 +15,7 @@ import (
 type Outtaketype struct {
 	ID             uuid.UUID    `json:"id" db:"id"`
 	Name           string       `json:"name" db:"name"`
+	Code           nulls.String `json:"code" db:"code"`
 	Default        bool         `json:"default" db:"def"`
 	Dead           bool         `json:"dead" db:"dead"`
 	Error          bool         `json:"error" db:"error"`

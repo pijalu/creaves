@@ -9,6 +9,7 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
+    <th>OT-code</th>
     <th>Naam</th>
     <th>Beschrijving</th>
     <th>Nieuws voor ontdekker</th>
@@ -21,6 +22,7 @@
   <tbody>
     <%= for (outtaketype) in outtaketypes { %>
       <tr>
+        <td class="align-middle"><%= outtaketype.Code.String %></td>
         <td class="align-middle"><%= tname("outtaketypes", outtaketype.ID, outtaketype.Name) %></td>
         <td class="align-middle"><%= tdesc("outtaketypes", outtaketype.ID, outtaketype.Description) %></td>
         <td class="align-middle"><%= tfield("outtaketypes", "discoverer_news", outtaketype.ID, outtaketype.DiscovererNews) %></td>

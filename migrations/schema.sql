@@ -498,6 +498,7 @@ DROP TABLE IF EXISTS `outtaketypes`;
 CREATE TABLE `outtaketypes` (
   `id` char(36) NOT NULL,
   `name` varchar(255) NOT NULL,
+  `code` varchar(255) DEFAULT NULL,
   `description` text,
   `def` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL,

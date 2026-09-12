@@ -3,6 +3,8 @@
 
 package actions
 
+import "strings"
+
 // createReferenceTables adds the application reference/data tables to the
 // SQLite test database so the payload-builder, resync, report and sync-status
 // fixtures can seed full animal chains (animals, discoveries, intakes,
@@ -165,6 +167,7 @@ func createReferenceTables() {
 
   "id" char(36) PRIMARY KEY,
   "name" varchar(255) NOT NULL,
+  "code" varchar(255) DEFAULT NULL,
   "description" text,
   "def" tinyint(1) NOT NULL DEFAULT '0',
   "created_at" datetime NOT NULL,
@@ -198,5 +201,11 @@ func createReferenceTables() {
 )`,
 	} {
 		must(q)
+	}
+	if err := pusherTestDB.RawQuery(`ALTER TABLE outtaketypes ADD COLUMN code varchar(255)`).Exec(); err != nil {
+		// Existing test DBs may already include the column; fixture setup remains idempotent.
+		if !strings.Contains(err.Error(), "duplicate column") {
+			panic("test schema: " + err.Error())
+		}
 	}
 }
