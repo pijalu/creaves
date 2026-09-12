@@ -52,6 +52,28 @@
   </div>
 </div>
 
+<h2>Soorten­diagnostiek</h2>
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Soorten zonder toegewezen diertype</h5>
+    <%= if (len(unmappedSpecies) > 0) { %>
+    <p class="text-muted"><small>Deze soorten hebben geen goedgekeurd diertype. Dieren van deze soorten worden opgeslagen met het ingediende (of lege) type; wijs ze toe in de soortentabel om typevalidatie en -afleiding in te schakelen.</small></p>
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Soort</th><th>Dieren</th></tr>
+      </thead>
+      <tbody>
+        <%= for (row) in unmappedSpecies { %>
+        <tr><td><%= row.Species %></td><td><%= row.AnimalCount %></td></tr>
+        <% } %>
+      </tbody>
+    </table>
+    <% } else { %>
+    <p class="text-muted"><small>Alle gebruikte soorten hebben een goedgekeurd diertype.</small></p>
+    <% } %>
+  </div>
+</div>
+
 <%= if (params["task"]) { %>
 <div class="card mb-4" id="task-status">
   <div class="card-body">

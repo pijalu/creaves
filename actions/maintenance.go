@@ -291,12 +291,48 @@ func MaintenanceIndex(c buffalo.Context) error {
 	var deliveredEvents int
 	tx.RawQuery("SELECT COUNT(*) FROM event_streams WHERE delivered_at IS NOT NULL").First(&deliveredEvents)
 
+	// Diagnostic: species in use that have no approved animal type mapping.
+	// These animals are saved with their submitted (possibly blank) type and
+	// logged as warnings; this list is the follow-up worklist.
+	unmappedSpecies, err := unmappedSpeciesDiagnostics(tx)
+	if err != nil {
+		return err
+	}
+
 	c.Set("totalEvents", totalEvents)
 	c.Set("undeliveredEvents", undeliveredEvents)
 	c.Set("deliveredEvents", deliveredEvents)
 	c.Set("eventStreamEnabled", IsEventStreamEnabled())
+	c.Set("unmappedSpecies", unmappedSpecies)
 
 	return c.Render(http.StatusOK, r.HTML("maintenance/index.plush.html"))
+}
+
+// unmappedSpeciesRow is one entry of the unmapped-species diagnostic: a
+// species string used by animals that has no approved animal type mapping,
+// with the number of animals referencing it.
+type unmappedSpeciesRow struct {
+	Species     string `db:"species"`
+	AnimalCount int    `db:"animal_count"`
+}
+
+// unmappedSpeciesDiagnostics lists species in use that have no approved
+// animal type mapping (no species row with a non-null animaltype_id).
+func unmappedSpeciesDiagnostics(tx *pop.Connection) ([]unmappedSpeciesRow, error) {
+	rows := []unmappedSpeciesRow{}
+	if err := tx.RawQuery(`
+		SELECT a.species AS species, COUNT(*) AS animal_count
+		FROM animals a
+		WHERE a.species <> ''
+		  AND NOT EXISTS (
+			SELECT 1 FROM species s
+			WHERE s.creaves_species = a.species AND s.animaltype_id IS NOT NULL
+		  )
+		GROUP BY a.species
+		ORDER BY animal_count DESC, a.species ASC`).All(&rows); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // MaintenanceRenumber default implementation.
