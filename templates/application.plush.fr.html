@@ -46,8 +46,10 @@
           <div class="dropdown-menu">
             <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Médicaments</a>
             <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Âges des animaux</a>
+            <%= if (current_user.Maintainer) { %>
             <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Types d'animaux</a>
             <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Types d'issue</a>
+            <% } %>
             <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Types de suivi</a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Types de voyages</a>
             <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localités</a>

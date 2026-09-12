@@ -31,9 +31,9 @@ type AnimaltypesResource struct {
 // List gets all Animaltypes. This function is mapped to the path
 // GET /animaltypes
 func (v AnimaltypesResource) List(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -68,9 +68,9 @@ func (v AnimaltypesResource) List(c buffalo.Context) error {
 // Show gets the data for one Animaltype. This function is mapped to
 // the path GET /animaltypes/{animaltype_id}
 func (v AnimaltypesResource) Show(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -105,9 +105,9 @@ func (v AnimaltypesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Animaltype.
 // This function is mapped to the path GET /animaltypes/new
 func (v AnimaltypesResource) New(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	c.Set("animaltype", &models.Animaltype{})
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "animaltypes", "", []string{"name", "description"}); err != nil {
@@ -120,9 +120,9 @@ func (v AnimaltypesResource) New(c buffalo.Context) error {
 // Create adds a Animaltype to the DB. This function is mapped to the
 // path POST /animaltypes
 func (v AnimaltypesResource) Create(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Allocate an empty Animaltype
 	animaltype := &models.Animaltype{}
@@ -186,9 +186,9 @@ func (v AnimaltypesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Animaltype. This function is
 // mapped to the path GET /animaltypes/{animaltype_id}/edit
 func (v AnimaltypesResource) Edit(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -213,9 +213,9 @@ func (v AnimaltypesResource) Edit(c buffalo.Context) error {
 // Update changes a Animaltype in the DB. This function is mapped to
 // the path PUT /animaltypes/{animaltype_id}
 func (v AnimaltypesResource) Update(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -286,9 +286,9 @@ func (v AnimaltypesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Animaltype from the DB. This function is mapped
 // to the path DELETE /animaltypes/{animaltype_id}
 func (v AnimaltypesResource) Destroy(c buffalo.Context) error {
-	// Admin only
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	// Maintainer only
+	if _, err := requireMaintainer(c); err != nil {
+		return err
 	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)

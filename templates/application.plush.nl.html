@@ -46,8 +46,10 @@
           <div class="dropdown-menu">
             <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medicijnen</a>
             <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Leeftijden</a>
+            <%= if (current_user.Maintainer) { %>
             <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
             <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
+            <% } %>
             <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reistypes</a>
             <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
