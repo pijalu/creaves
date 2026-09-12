@@ -110,6 +110,7 @@ func createReferenceTables() {
   "city" varchar(255) DEFAULT NULL,
   "return_habitat" tinyint(1) NOT NULL DEFAULT '0',
   "in_garden" tinyint(1) NOT NULL DEFAULT '0',
+  "guest_token" varchar(255) DEFAULT NULL,
   "entry_cause_id" varchar(255) NOT NULL DEFAULT '1.1'
 )`,
 		`CREATE TABLE IF NOT EXISTS discoverers (
