@@ -285,7 +285,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 					newID := uuid.NewV5(startupRowNamespace, table+"|"+strings.TrimSpace(row[nameField])).String()
 					if !usedTargets[newID] {
 						raw = strings.Replace(raw, "'"+id+"'", "'"+newID+"'", 1)
-						if err := tx.RawQuery("INSERT INTO `" + table + "` VALUES " + raw).Exec(); err != nil {
+						if err := tx.RawQuery("INSERT INTO `" + table + "` (" + strings.Join(columns, ",") + ") VALUES " + raw).Exec(); err != nil {
 							return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s (renamed %s)", table, newID, id))
 						}
 						existingNames[newID] = row[nameField]
@@ -326,7 +326,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 					raw = strings.Replace(raw, "'"+row[fk]+"'", "'"+target+"'", 1)
 				}
 			}
-			if err := tx.RawQuery("INSERT INTO `" + table + "` VALUES " + raw).Exec(); err != nil {
+			if err := tx.RawQuery("INSERT INTO `" + table + "` (" + strings.Join(columns, ",") + ") VALUES " + raw).Exec(); err != nil {
 				return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s", table, id))
 			}
 			if nameField != "" {
