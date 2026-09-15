@@ -164,6 +164,21 @@ func zonesToSelectables(ts *models.Zones, lang string, tx *pop.Connection) form.
 	return res
 }
 
+// nativeStatuses loads all native statuses ordered by status.
+func nativeStatuses(c buffalo.Context) (*models.NativeStatuses, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	ts := &models.NativeStatuses{}
+	if err := tx.Order("status asc").All(ts); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
 // nativeStatusesToSelectables builds select options for native statuses,
 // resolving the translated status label for non-base languages.
 func nativeStatusesToSelectables(ts *models.NativeStatuses, lang string, tx *pop.Connection) form.Selectables {

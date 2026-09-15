@@ -3,9 +3,11 @@
 <%= f.InputTag("Order", {label:"Ordre"}) %>
 <%= f.InputTag("Family", {label:"Famille"}) %>
 <%= f.CheckboxTag("Game", {label:"Gibier"}) %>
+<%= f.CheckboxTag("Huntable", {label:"Chassable"}) %>
 <%= f.InputTag("CreavesSpecies", {label:"Espéce Creaves"}) %>
 <%= f.SelectTag("AnimaltypeID", {label: "Type animal", options: selectAnimalTypes, value: selectedAnimaltypeID}) %>
-<%= f.InputTag("CreavesGroup", {label:"Groupe Creaves"}) %>
-<%= f.InputTag("Subside") %>
+<%= f.SelectTag("NativeStatus", {label: "Statut indigène", options: selectNativeStatuses, value: selectedNativeStatus}) %>
+<%= f.InputTag("AgwGroup", {label:"Groupe Creaves"}) %>
+<%= f.InputTag("SubsideGroup", {label:"Subside"}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Sauvegarder</button>

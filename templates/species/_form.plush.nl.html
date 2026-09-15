@@ -3,9 +3,11 @@
 <%= f.InputTag("Order", {label:"Orde"}) %>
 <%= f.InputTag("Family", {label:"Familie"}) %>
 <%= f.CheckboxTag("Game", {label:"Wild"}) %>
+<%= f.CheckboxTag("Huntable", {label:"Jachtbaar"}) %>
 <%= f.InputTag("CreavesSpecies", {label:"Creaves-soort"}) %>
 <%= f.SelectTag("AnimaltypeID", {label: "Diergroep", options: selectAnimalTypes, value: selectedAnimaltypeID}) %>
-<%= f.InputTag("CreavesGroup", {label:"Creaves-groep"}) %>
-<%= f.InputTag("Subside", {label:"Subsidie"}) %>
+<%= f.SelectTag("NativeStatus", {label: "Inheemse status", options: selectNativeStatuses, value: selectedNativeStatus}) %>
+<%= f.InputTag("AgwGroup", {label:"Creaves-groep"}) %>
+<%= f.InputTag("SubsideGroup", {label:"Subsidie"}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Opslaan</button>

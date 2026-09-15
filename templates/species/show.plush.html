@@ -44,6 +44,20 @@
   </li>
 
 
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Huntable</label>
+    <p class="d-inline-block"><%= bool2html(species.Huntable) %></p>
+  </li>
+
+
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Native status</label>
+    <p class="d-inline-block"><%= nativeStatusLabel %></p>
+  </li>
+
+
   <li class="list-group-item pb-1">
     <label class="small d-block">Animal type</label>
     <p class="d-inline-block"><%= tname("animaltypes", species.Animaltype.ID, species.Animaltype.Name) %></p>
