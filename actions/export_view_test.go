@@ -198,6 +198,36 @@ func TestExportCsvStillDownloads(t *testing.T) {
 	}
 }
 
+// TestExportCsvUTF8Encoding proves the configured CSV export signals its
+// encoding: Content-Type carries charset=utf-8 and the body starts with a
+// UTF-8 BOM, so spreadsheet readers (Excel) don't fall back to the local
+// ANSI codepage and garble accented values (bug: animal_age showing boxes).
+func TestExportCsvUTF8Encoding(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/csv?query=register")
+	if err != nil {
+		t.Fatalf("GET /export/csv?query=register: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /export/csv?query=register = %d, want 200", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "charset=utf-8") {
+		t.Fatalf("Content-Type = %q, want charset=utf-8", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if !strings.HasPrefix(string(body), "\ufeff") {
+		t.Fatalf("CSV body must start with UTF-8 BOM, got % x", body[:3])
+	}
+}
+
 // TestReportsNavShowsExportsEntry proves the Reports dropdown in the layout
 // exposes a single "Exports" entry pointing at /export/view, and no longer
 // links the removed CSV chooser page.

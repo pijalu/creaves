@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -108,6 +109,30 @@ func FetchRows(query string) (*Queries, []string, [][]string, error) {
 	return sqlQuery, cols, result, nil
 }
 
+// utf8BOM is written at the start of CSV files so Excel and other
+// locale-dependent readers detect UTF-8 instead of assuming the local
+// ANSI codepage (accented characters would render as mojibake).
+var utf8BOM = []byte{0xEF, 0xBB, 0xBF}
+
+// writeCSV writes cols and rows to w as comma-separated CSV prefixed with a
+// UTF-8 BOM. NULL/empty values must be passed as empty strings.
+func writeCSV(w io.Writer, cols []string, rows [][]string) error {
+	if _, err := w.Write(utf8BOM); err != nil {
+		return err
+	}
+	csvWriter := csv.NewWriter(w)
+	if err := csvWriter.Write(cols); err != nil {
+		return err
+	}
+	for _, row := range rows {
+		if err := csvWriter.Write(row); err != nil {
+			return err
+		}
+	}
+	csvWriter.Flush()
+	return csvWriter.Error()
+}
+
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
 	sqlQuery, cols, rows, err := FetchRows(query)
@@ -122,16 +147,8 @@ func RunQuery(c buffalo.Context, query string) error {
 		return err
 	}
 
-	c.Response().Header().Add("Content-Type", "text/csv")
+	c.Response().Header().Add("Content-Type", "text/csv; charset=utf-8")
 	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, sqlQuery.Name))
 
-	// Create a new CSV writer for the response stream.
-	csvWriter := csv.NewWriter(c.Response())
-	defer csvWriter.Flush()
-	csvWriter.Write(cols)
-	for _, row := range rows {
-		csvWriter.Write(row)
-	}
-
-	return nil
+	return writeCSV(c.Response(), cols, rows)
 }
