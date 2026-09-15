@@ -214,6 +214,8 @@ func App() *buffalo.App {
 		app.GET("/feeding/close", FeedingClose)
 
 		app.Resource("/native_statuses", NativeStatusesResource{})
+		app.GET("/native_statuses/{native_status_id}/delete", NativeStatusDeleteNew)
+		app.POST("/native_statuses/{native_status_id}/delete", NativeStatusDeleteCreate)
 		app.Resource("/subside_groups", SubsideGroupsResource{})
 
 		// Hints

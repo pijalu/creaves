@@ -1,0 +1,28 @@
+<div class="py-4 mb-2">
+  <h3>Inheemse status <strong><%= nativeStatus.ID %></strong> verwijderen</h3>
+</div>
+
+<%= if (usageCount > 0) { %>
+  <div class="alert alert-warning">
+    Deze inheemse status wordt gebruikt door <strong><%= usageCount %></strong> soorten. Kies een vervanging: de soorten worden vóór het verwijderen bijgewerkt.
+  </div>
+<% } else { %>
+  <div class="alert alert-info">
+    Deze inheemse status wordt door geen enkele soort gebruikt en kan direct worden verwijderd.
+  </div>
+<% } %>
+
+<form action="/native_statuses/<%= nativeStatus.ID %>/delete" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+  <div class="form-group">
+    <label for="replacement_id">Vervangende inheemse status</label>
+    <select id="replacement_id" name="replacement_id" class="form-control">
+      <option value="">Geen vervanging (alleen mogelijk indien ongebruikt)</option>
+      <%= for (opt) in replacementOptions { %>
+        <option value="<%= opt.SelectValue() %>"><%= opt.SelectLabel() %></option>
+      <% } %>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-danger">Verwijderen</button>
+  <a class="btn btn-secondary" href="/native_statuses/<%= nativeStatus.ID %>">Annuleren</a>
+</form>

@@ -1,0 +1,28 @@
+<div class="py-4 mb-2">
+  <h3>Supprimer le statut indigène <strong><%= nativeStatus.ID %></strong></h3>
+</div>
+
+<%= if (usageCount > 0) { %>
+  <div class="alert alert-warning">
+    Ce statut indigène est utilisé par <strong><%= usageCount %></strong> espèces. Choisissez un remplacement : les espèces seront mises à jour avant la suppression.
+  </div>
+<% } else { %>
+  <div class="alert alert-info">
+    Ce statut indigène n'est utilisé par aucune espèce et peut être supprimé directement.
+  </div>
+<% } %>
+
+<form action="/native_statuses/<%= nativeStatus.ID %>/delete" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+  <div class="form-group">
+    <label for="replacement_id">Statut indigène de remplacement</label>
+    <select id="replacement_id" name="replacement_id" class="form-control">
+      <option value="">Aucun remplacement (possible uniquement si inutilisé)</option>
+      <%= for (opt) in replacementOptions { %>
+        <option value="<%= opt.SelectValue() %>"><%= opt.SelectLabel() %></option>
+      <% } %>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-danger">Supprimer</button>
+  <a class="btn btn-secondary" href="/native_statuses/<%= nativeStatus.ID %>">Annuler</a>
+</form>

@@ -6,7 +6,7 @@
       Retour à tous les statuts indigènes
     <% } %>
     <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?", title: "Supprimer", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/native_statuses/" + nativeStatus.ID + "/delete", {class: "btn btn-danger", title: "Supprimer", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 

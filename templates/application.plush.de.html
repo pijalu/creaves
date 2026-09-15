@@ -56,6 +56,7 @@
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zonen</a>
             <%= if (current_user.Maintainer) { %>
               <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Arten</a>
+              <a class="dropdown-item" href="/native_statuses"><i class="fas fa-leaf"></i> Heimisch-Status</a>
             <% } %>
             <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Übersetzungen</a>
           </div>

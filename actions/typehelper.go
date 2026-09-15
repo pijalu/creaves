@@ -164,6 +164,26 @@ func zonesToSelectables(ts *models.Zones, lang string, tx *pop.Connection) form.
 	return res
 }
 
+// nativeStatusesToSelectables builds select options for native statuses,
+// resolving the translated status label for non-base languages.
+func nativeStatusesToSelectables(ts *models.NativeStatuses, lang string, tx *pop.Connection) form.Selectables {
+	res := []form.Selectable{}
+
+	ids := make([]string, 0, len(*ts))
+	for _, t := range *ts {
+		ids = append(ids, t.ID)
+	}
+	tr := translateIDs(tx, "native_statuses", "status", lang, ids)
+
+	for _, t := range *ts {
+		res = append(res, &selType{
+			label: models.ResolveName(lang, t.Status, tr, t.ID),
+			value: t.ID,
+		})
+	}
+	return res
+}
+
 func outtakeTypes(c buffalo.Context) (*models.Outtaketypes, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

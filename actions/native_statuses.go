@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -31,6 +32,9 @@ type NativeStatusesResource struct {
 // List gets all NativeStatuses. This function is mapped to the path
 // GET /native_statuses
 func (v NativeStatusesResource) List(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -64,6 +68,9 @@ func (v NativeStatusesResource) List(c buffalo.Context) error {
 // Show gets the data for one NativeStatus. This function is mapped to
 // the path GET /native_statuses/{native_status_id}
 func (v NativeStatusesResource) Show(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -92,11 +99,11 @@ func (v NativeStatusesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new NativeStatus.
 // This function is mapped to the path GET /native_statuses/new
 func (v NativeStatusesResource) New(c buffalo.Context) error {
-	c.Set("nativeStatus", &models.NativeStatus{})
-
-	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "native_statuses", "", []string{"status", "indication", "precision"}); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
+	c.Set("nativeStatus", &models.NativeStatus{})
+
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "native_statuses", "", []string{"status", "indication", "precision"}); err != nil {
 		return err
 	}
@@ -107,6 +114,9 @@ func (v NativeStatusesResource) New(c buffalo.Context) error {
 // Create adds a NativeStatus to the DB. This function is mapped to the
 // path POST /native_statuses
 func (v NativeStatusesResource) Create(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Allocate an empty NativeStatus
 	nativeStatus := &models.NativeStatus{}
 
@@ -164,6 +174,9 @@ func (v NativeStatusesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a NativeStatus. This function is
 // mapped to the path GET /native_statuses/{native_status_id}/edit
 func (v NativeStatusesResource) Edit(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -187,6 +200,9 @@ func (v NativeStatusesResource) Edit(c buffalo.Context) error {
 // Update changes a NativeStatus in the DB. This function is mapped to
 // the path PUT /native_statuses/{native_status_id}
 func (v NativeStatusesResource) Update(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -245,8 +261,14 @@ func (v NativeStatusesResource) Update(c buffalo.Context) error {
 }
 
 // Destroy deletes a NativeStatus from the DB. This function is mapped
-// to the path DELETE /native_statuses/{native_status_id}
+// to the path DELETE /native_statuses/{native_status_id}.
+// Direct destroy is only allowed when no species references the record;
+// otherwise the delete-with-replacement flow (GET/POST .../delete) must
+// be used so dependent species rows are remapped first.
 func (v NativeStatusesResource) Destroy(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -259,6 +281,14 @@ func (v NativeStatusesResource) Destroy(c buffalo.Context) error {
 	// To find the NativeStatus the parameter native_status_id is used.
 	if err := tx.Find(nativeStatus, c.Param("native_status_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+
+	count, err := nativeStatusSpeciesUsage(tx, nativeStatus.ID)
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("native status %s is used by %d species: use the delete-with-replacement flow", nativeStatus.ID, count))
 	}
 
 	if err := tx.Destroy(nativeStatus); err != nil {
@@ -276,4 +306,94 @@ func (v NativeStatusesResource) Destroy(c buffalo.Context) error {
 	}).Wants("xml", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.XML(nativeStatus))
 	}).Respond(c)
+}
+
+// nativeStatusSpeciesUsage counts species rows referencing a native status.
+func nativeStatusSpeciesUsage(tx *pop.Connection, id string) (int, error) {
+	var count int
+	if err := tx.RawQuery("SELECT COUNT(*) FROM species WHERE native_status = ?", id).First(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// NativeStatusDeleteNew renders the delete-with-replacement confirmation
+// form. Mapped to GET /native_statuses/{native_status_id}/delete.
+func NativeStatusDeleteNew(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	nativeStatus := &models.NativeStatus{}
+	if err := tx.Find(nativeStatus, c.Param("native_status_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+
+	usage, err := nativeStatusSpeciesUsage(tx, nativeStatus.ID)
+	if err != nil {
+		return err
+	}
+
+	others := &models.NativeStatuses{}
+	if err := tx.Where("id <> ?", nativeStatus.ID).Order("status asc").All(others); err != nil {
+		return err
+	}
+
+	c.Set("nativeStatus", nativeStatus)
+	c.Set("usageCount", usage)
+	c.Set("replacementOptions", nativeStatusesToSelectables(others, currentLang(c), tx))
+	return c.Render(http.StatusOK, r.HTML("native_statuses/delete.plush.html"))
+}
+
+// NativeStatusDeleteCreate performs the delete-with-replacement: species
+// referencing the record are remapped to the chosen replacement before the
+// record is removed. Mapped to POST /native_statuses/{native_status_id}/delete.
+func NativeStatusDeleteCreate(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	nativeStatus := &models.NativeStatus{}
+	if err := tx.Find(nativeStatus, c.Param("native_status_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+
+	usage, err := nativeStatusSpeciesUsage(tx, nativeStatus.ID)
+	if err != nil {
+		return err
+	}
+
+	replacementID := strings.TrimSpace(c.Param("replacement_id"))
+	if usage > 0 && replacementID == "" {
+		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("replacement required: %d species use this native status", usage))
+	}
+	if replacementID != "" {
+		if replacementID == nativeStatus.ID {
+			return c.Error(http.StatusBadRequest, fmt.Errorf("replacement must differ from the deleted native status"))
+		}
+		replacement := &models.NativeStatus{}
+		if err := tx.Find(replacement, replacementID); err != nil {
+			return c.Error(http.StatusBadRequest, fmt.Errorf("replacement not found"))
+		}
+		if err := tx.RawQuery("UPDATE species SET native_status = ? WHERE native_status = ?", replacementID, nativeStatus.ID).Exec(); err != nil {
+			return err
+		}
+	}
+
+	if err := tx.Destroy(nativeStatus); err != nil {
+		return err
+	}
+
+	// Plain message: this endpoint is also exercised without the i18n
+	// middleware, where T.Translate would panic on a nil TranslateFunc.
+	c.Flash().Add("success", "native status deleted")
+	return c.Redirect(http.StatusSeeOther, "/native_statuses")
 }

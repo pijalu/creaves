@@ -20,7 +20,7 @@
           <div class="float-end">
             <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo("/native_statuses/" + nativeStatus.ID + "/delete", {class: "btn btn-danger", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

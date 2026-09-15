@@ -1,0 +1,28 @@
+<div class="py-4 mb-2">
+  <h3>Delete native status <strong><%= nativeStatus.ID %></strong></h3>
+</div>
+
+<%= if (usageCount > 0) { %>
+  <div class="alert alert-warning">
+    This native status is used by <strong><%= usageCount %></strong> species. Choose a replacement: the species will be updated before deletion.
+  </div>
+<% } else { %>
+  <div class="alert alert-info">
+    This native status is not used by any species and can be deleted directly.
+  </div>
+<% } %>
+
+<form action="/native_statuses/<%= nativeStatus.ID %>/delete" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+  <div class="form-group">
+    <label for="replacement_id">Replacement native status</label>
+    <select id="replacement_id" name="replacement_id" class="form-control">
+      <option value="">No replacement (only possible if unused)</option>
+      <%= for (opt) in replacementOptions { %>
+        <option value="<%= opt.SelectValue() %>"><%= opt.SelectLabel() %></option>
+      <% } %>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-danger">Delete</button>
+  <a class="btn btn-secondary" href="/native_statuses/<%= nativeStatus.ID %>">Cancel</a>
+</form>

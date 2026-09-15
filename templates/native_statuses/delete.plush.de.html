@@ -1,0 +1,28 @@
+<div class="py-4 mb-2">
+  <h3>Heimisch-Status <strong><%= nativeStatus.ID %></strong> löschen</h3>
+</div>
+
+<%= if (usageCount > 0) { %>
+  <div class="alert alert-warning">
+    Dieser Heimisch-Status wird von <strong><%= usageCount %></strong> Arten verwendet. Wählen Sie einen Ersatz: die Arten werden vor dem Löschen aktualisiert.
+  </div>
+<% } else { %>
+  <div class="alert alert-info">
+    Dieser Heimisch-Status wird von keiner Art verwendet und kann direkt gelöscht werden.
+  </div>
+<% } %>
+
+<form action="/native_statuses/<%= nativeStatus.ID %>/delete" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+  <div class="form-group">
+    <label for="replacement_id">Ersatz-Heimisch-Status</label>
+    <select id="replacement_id" name="replacement_id" class="form-control">
+      <option value="">Kein Ersatz (nur möglich wenn unbenutzt)</option>
+      <%= for (opt) in replacementOptions { %>
+        <option value="<%= opt.SelectValue() %>"><%= opt.SelectLabel() %></option>
+      <% } %>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-danger">Löschen</button>
+  <a class="btn btn-secondary" href="/native_statuses/<%= nativeStatus.ID %>">Abbrechen</a>
+</form>

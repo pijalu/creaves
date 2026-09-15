@@ -6,7 +6,7 @@
       Terug naar alle inheemse statussen
     <% } %>
     <%= linkTo(editNativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(nativeStatusPath({ native_status_id: nativeStatus.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo("/native_statuses/" + nativeStatus.ID + "/delete", {class: "btn btn-danger", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
