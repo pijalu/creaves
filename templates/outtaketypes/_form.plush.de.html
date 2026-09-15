@@ -9,6 +9,25 @@
 
 <%= f.TextAreaTag("DiscovererNews", {label:"Nachricht für Finder", rows: 10}) %>
 
+<div class="form-group">
+  <label for="LocationMode">Ortsmodus</label>
+  <select id="LocationMode" name="LocationMode" class="form-control">
+    <option value="none" <%= if (outtaketype.LocationMode == "none" || outtaketype.LocationMode == "") { %>selected<% } %>>Kein Ort</option>
+    <option value="free" <%= if (outtaketype.LocationMode == "free") { %>selected<% } %>>Freitext</option>
+    <option value="list" <%= if (outtaketype.LocationMode == "list") { %>selected<% } %>>Optionsliste</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="excluded_native_status_ids">Ausgeschlossene Heimisch-Status</label>
+  <select id="excluded_native_status_ids" name="excluded_native_status_ids" class="form-control" multiple size="5">
+    <%= for (ns) in nativeStatuses { %>
+      <option value="<%= ns.ID %>" <%= if (excludedNativeStatuses[ns.ID]) { %>selected<% } %>><%= ns.ID %> — <%= tname("native_statuses", ns.ID, ns.Status) %></option>
+    <% } %>
+  </select>
+  <small class="form-text text-muted">Dieser Ausgangstyp wird für Tiere nicht angeboten, deren Art einen der ausgewählten Heimisch-Status hat.</small>
+</div>
+
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Speichern</button>
 <script type="text/javascript">

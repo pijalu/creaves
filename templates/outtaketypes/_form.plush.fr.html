@@ -9,6 +9,25 @@
 
 <%= f.TextAreaTag("DiscovererNews", {label:"Nouvelles pour le découvreur", rows: 10}) %>
 
+<div class="form-group">
+  <label for="LocationMode">Mode de lieu</label>
+  <select id="LocationMode" name="LocationMode" class="form-control">
+    <option value="none" <%= if (outtaketype.LocationMode == "none" || outtaketype.LocationMode == "") { %>selected<% } %>>Pas de lieu</option>
+    <option value="free" <%= if (outtaketype.LocationMode == "free") { %>selected<% } %>>Texte libre</option>
+    <option value="list" <%= if (outtaketype.LocationMode == "list") { %>selected<% } %>>Liste d'options</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="excluded_native_status_ids">Statuts indigènes exclus</label>
+  <select id="excluded_native_status_ids" name="excluded_native_status_ids" class="form-control" multiple size="5">
+    <%= for (ns) in nativeStatuses { %>
+      <option value="<%= ns.ID %>" <%= if (excludedNativeStatuses[ns.ID]) { %>selected<% } %>><%= ns.ID %> — <%= tname("native_statuses", ns.ID, ns.Status) %></option>
+    <% } %>
+  </select>
+  <small class="form-text text-muted">Ce type d'issue ne sera pas proposé pour les animaux dont l'espèce possède l'un des statuts indigènes sélectionnés.</small>
+</div>
+
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Sauvegarder</button>
 <script type="text/javascript">

@@ -2,7 +2,9 @@ package actions
 
 import (
 	"creaves/models"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"time"
 
@@ -93,6 +95,113 @@ func (v OuttakesResource) Show(c buffalo.Context) error {
 	}).Respond(c)
 }
 
+// speciesNativeStatus returns the native status ID of the species matching
+// the animal's species name, or "" when unknown.
+func speciesNativeStatus(tx *pop.Connection, speciesName string) string {
+	if speciesName == "" {
+		return ""
+	}
+	species := &models.Species{}
+	if err := tx.RawQuery("SELECT ID AS id, species, creaves_species, class, `order`, family, native_status, agw_group, subside_group, game, huntable, created_at, updated_at FROM species WHERE creaves_species = ?", speciesName).First(species); err != nil {
+		return ""
+	}
+	return species.NativeStatus
+}
+
+// filterOuttaketypesForNativeStatus returns the subset of outtake types that
+// are allowed for a species with the given native status. An empty native
+// status disables filtering (unknown species → all types).
+func filterOuttaketypesForNativeStatus(ts *models.Outtaketypes, nativeStatus string) *models.Outtaketypes {
+	if nativeStatus == "" {
+		return ts
+	}
+	res := models.Outtaketypes{}
+	for _, t := range *ts {
+		if !t.ExcludesNativeStatus(nativeStatus) {
+			res = append(res, t)
+		}
+	}
+	return &res
+}
+
+// setOuttakeLocationFormData passes to the template, as JSON script tags, the
+// per-type location mode and the (translated) location options used by the
+// new-outtake form JS.
+func setOuttakeLocationFormData(c buffalo.Context, tx *pop.Connection, ts *models.Outtaketypes) error {
+	modes := map[string]string{}
+	for _, t := range *ts {
+		modes[t.ID.String()] = t.LocationMode
+	}
+	modesJSON, err := json.Marshal(modes)
+	if err != nil {
+		return err
+	}
+	c.Set("outtakeLocationModesJSON", template.HTML(modesJSON))
+
+	options := &models.OuttakeLocationOptions{}
+	if err := tx.Order("name asc").All(options); err != nil {
+		return err
+	}
+	ids := make([]string, 0, len(*options))
+	for _, o := range *options {
+		ids = append(ids, o.ID.String())
+	}
+	tr := translateIDs(tx, "outtake_location_options", "name", currentLang(c), ids)
+	type optionEntry struct {
+		Value string `json:"value"`
+		Label string `json:"label"`
+	}
+	entries := make([]optionEntry, 0, len(*options))
+	for _, o := range *options {
+		entries = append(entries, optionEntry{
+			Value: o.Name,
+			Label: models.ResolveName(currentLang(c), o.Name, tr, o.ID.String()),
+		})
+	}
+	optionsJSON, err := json.Marshal(entries)
+	if err != nil {
+		return err
+	}
+	c.Set("outtakeLocationOptionsJSON", template.HTML(optionsJSON))
+	return nil
+}
+
+// setFilteredOuttakeFormData sets selectOuttaketype (filtered by the species
+// native status of the animal) plus the location-mode JSON data used by the
+// new-outtake form JS.
+func setFilteredOuttakeFormData(c buffalo.Context, tx *pop.Connection, ot *models.Outtaketypes, animal *models.Animal) error {
+	filtered := filterOuttaketypesForNativeStatus(ot, speciesNativeStatus(tx, animal.Species))
+	c.Set("selectOuttaketype", outtakeTypesToSelectables(filtered, currentLang(c), tx))
+	return setOuttakeLocationFormData(c, tx, filtered)
+}
+
+// enforceOuttakeLocationRule applies the location_mode of the outtake type to
+// the bound outtake: "none" clears the location, "list" requires the value to
+// be one of the reference options (matched on the base name), "free" accepts
+// any value. It returns an error when the rule is violated.
+func enforceOuttakeLocationRule(tx *pop.Connection, outtake *models.Outtake, outtakeType *models.Outtaketype) error {
+	switch outtakeType.LocationMode {
+	case models.OuttakeLocationModeNone, "":
+		outtake.Location = nulls.String{}
+		return nil
+	case models.OuttakeLocationModeList:
+		if !outtake.Location.Valid || outtake.Location.String == "" {
+			return fmt.Errorf("location is required for outcome type %s", outtakeType.Name)
+		}
+		count, err := tx.Where("name = ?", outtake.Location.String).Count(&models.OuttakeLocationOption{})
+		if err != nil {
+			return err
+		}
+		if count == 0 {
+			return fmt.Errorf("location %q is not in the reference list", outtake.Location.String)
+		}
+		return nil
+	default:
+		// free mode: any text is accepted
+		return nil
+	}
+}
+
 // New renders the form for creating a new Outtake.
 // This function is mapped to the path GET /outtakes/new
 func (v OuttakesResource) New(c buffalo.Context) error {
@@ -153,9 +262,53 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 		}
 		animal.Outtake = outtake
 		c.Set("animal", animal)
+
+		// Filter out outcome types forbidden by the species native status
+		// and expose the location-mode data for the form JS.
+		if err := setFilteredOuttakeFormData(c, tx, ot, animal); err != nil {
+			return err
+		}
 	}
 
 	return c.Render(http.StatusOK, r.HTML("/outtakes/new.plush.html"))
+}
+
+// renderOuttakeNewRejected re-renders the new-outtake form (422) with the
+// animal context, the filtered outcome type list and the location-mode data
+// so the user can correct the input.
+func renderOuttakeNewRejected(c buffalo.Context, tx *pop.Connection, animal *models.Animal, outtake *models.Outtake) error {
+	ot, err := outtakeTypes(c)
+	if err != nil {
+		return err
+	}
+	c.Set("outtake", outtake)
+	c.Set("animal", animal)
+	if err := setFilteredOuttakeFormData(c, tx, ot, animal); err != nil {
+		return err
+	}
+	return c.Render(http.StatusUnprocessableEntity, r.HTML("/outtakes/new.plush.html"))
+}
+
+// rejectOuttakeCreate checks the outtake rules for the bound outtake: the
+// outcome type must exist and be allowed for the species native status, and
+// the location must satisfy the type's location_mode. On violation it adds a
+// translated flash and re-renders the form with 422; it reports whether the
+// request was rejected.
+func rejectOuttakeCreate(c buffalo.Context, tx *pop.Connection, animal *models.Animal, outtake *models.Outtake) (bool, error) {
+	outtakeType := &models.Outtaketype{}
+	if err := tx.Find(outtakeType, outtake.TypeID); err != nil {
+		c.Flash().Add("danger", T.Translate(c, "outtake.type.invalid"))
+		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
+	}
+	if outtakeType.ExcludesNativeStatus(speciesNativeStatus(tx, animal.Species)) {
+		c.Flash().Add("danger", T.Translate(c, "outtake.type.forbidden_by_native_status"))
+		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
+	}
+	if err := enforceOuttakeLocationRule(tx, outtake, outtakeType); err != nil {
+		c.Flash().Add("danger", T.Translate(c, "outtake.location.invalid"))
+		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
+	}
+	return false, nil
 }
 
 // Create adds a Outtake to the DB. This function is mapped to the
@@ -183,6 +336,12 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 	if err := tx.Eager().Find(animal, animalID); err != nil {
 		// cannot link animal
 		return c.Render(http.StatusNotFound, r.HTML("/outtakes/new.plush.html"))
+	}
+
+	// Enforce outtake rules: the outcome type must be allowed for the
+	// species native status, and the location must match the type mode.
+	if rejected, err := rejectOuttakeCreate(c, tx, animal, outtake); rejected || err != nil {
+		return err
 	}
 	// Audit snapshot before mutating the animal (ring, outtake link).
 	oldAnimal := *animal

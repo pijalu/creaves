@@ -1,0 +1,33 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Lieux d'issue</h3>
+  <div class="float-end">
+    <%= linkTo(newOuttakeLocationOptionsPath(), {class: "btn btn-primary"}) { %>
+      Créer un nouveau lieu d'issue
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th>ID</th><th>Nom</th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (option) in outtakeLocationOptions { %>
+      <tr>
+        <td class="align-middle"><%= option.ID %></td><td class="align-middle"><%= tname("outtake_location_options", option.ID, option.Name) %></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(outtakeLocationOptionPath({ outtake_location_option_id: option.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(editOuttakeLocationOptionPath({ outtake_location_option_id: option.ID }), {class: "btn btn-warning", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(outtakeLocationOptionPath({ outtake_location_option_id: option.ID }), {class: "btn btn-danger", title: "Supprimer", body: "<i class='fa fa-trash'></i>", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<div class="text-center">
+  <%= paginator(pagination) %>
+</div>

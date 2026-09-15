@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier le lieu d'issue</h3>
+</div>
+
+<%= formFor(outtakeLocationOption, {action: outtakeLocationOptionPath({ outtake_location_option_id: outtakeLocationOption.ID }), method: "PUT"}) { %>
+  <%= partial("outtake_location_options/form.plush.fr.html") %>
+  <%= linkTo(outtakeLocationOptionPath({ outtake_location_option_id: outtakeLocationOption.ID }), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>

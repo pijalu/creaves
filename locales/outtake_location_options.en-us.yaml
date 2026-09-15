@@ -1,0 +1,6 @@
+- id: "outtakeLocationOption.created.success"
+  translation: "Outtake location option was successfully created."
+- id: "outtakeLocationOption.updated.success"
+  translation: "Outtake location option was successfully updated."
+- id: "outtakeLocationOption.destroyed.success"
+  translation: "Outtake location option was successfully destroyed."

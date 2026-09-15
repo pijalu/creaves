@@ -1,0 +1,6 @@
+- id: "outtakeLocationOption.created.success"
+  translation: "Uitgaanlocatie is succesvol aangemaakt."
+- id: "outtakeLocationOption.updated.success"
+  translation: "Uitgaanlocatie is succesvol bijgewerkt."
+- id: "outtakeLocationOption.destroyed.success"
+  translation: "Uitgaanlocatie is succesvol verwijderd."

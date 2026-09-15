@@ -1,0 +1,6 @@
+- id: "outtakeLocationOption.created.success"
+  translation: "Ausgangsort wurde erfolgreich erstellt."
+- id: "outtakeLocationOption.updated.success"
+  translation: "Ausgangsort wurde erfolgreich aktualisiert."
+- id: "outtakeLocationOption.destroyed.success"
+  translation: "Ausgangsort wurde erfolgreich gelöscht."

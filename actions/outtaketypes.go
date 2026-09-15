@@ -4,8 +4,10 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 )
@@ -103,6 +105,42 @@ func (v OuttaketypesResource) Show(c buffalo.Context) error {
 	}).Respond(c)
 }
 
+// setOuttaketypeRuleFormValues loads the native statuses and the currently
+// excluded IDs so the form can render the multi-select with selection.
+func setOuttaketypeRuleFormValues(c buffalo.Context, tx *pop.Connection, outtaketype *models.Outtaketype) error {
+	nativeStatuses := &models.NativeStatuses{}
+	if err := tx.Order("id asc").All(nativeStatuses); err != nil {
+		return err
+	}
+	c.Set("nativeStatuses", nativeStatuses)
+	excluded := map[string]bool{}
+	for _, id := range outtaketype.ExcludedNativeStatusList() {
+		excluded[id] = true
+	}
+	c.Set("excludedNativeStatuses", excluded)
+	return nil
+}
+
+// bindExcludedNativeStatuses reads the multi-select values (name:
+// excluded_native_status_ids) and stores them as a normalized CSV on the model.
+func bindExcludedNativeStatuses(c buffalo.Context, outtaketype *models.Outtaketype) {
+	if err := c.Request().ParseForm(); err != nil {
+		return
+	}
+	ids := []string{}
+	for _, id := range c.Request().Form["excluded_native_status_ids"] {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		outtaketype.ExcludedNativeStatuses = nulls.String{}
+		return
+	}
+	outtaketype.ExcludedNativeStatuses = nulls.NewString(strings.Join(ids, ","))
+}
+
 // New renders the form for creating a new Outtaketype.
 // This function is mapped to the path GET /outtaketypes/new
 func (v OuttaketypesResource) New(c buffalo.Context) error {
@@ -113,7 +151,11 @@ func (v OuttaketypesResource) New(c buffalo.Context) error {
 
 	c.Set("outtaketype", &models.Outtaketype{})
 
-	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "outtaketypes", "", []string{"name", "description", "discoverer_news"}); err != nil {
+	tx := c.Value("tx").(*pop.Connection)
+	if err := setTranslationValues(c, tx, "outtaketypes", "", []string{"name", "description", "discoverer_news"}); err != nil {
+		return err
+	}
+	if err := setOuttaketypeRuleFormValues(c, tx, &models.Outtaketype{}); err != nil {
 		return err
 	}
 
@@ -135,6 +177,7 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 	if err := c.Bind(outtaketype); err != nil {
 		return err
 	}
+	bindExcludedNativeStatuses(c, outtaketype)
 
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -156,6 +199,9 @@ func (v OuttaketypesResource) Create(c buffalo.Context) error {
 			// Render again the new.html template that the user can
 			// correct the input.
 			c.Set("outtaketype", outtaketype)
+			if err := setOuttaketypeRuleFormValues(c, tx, outtaketype); err != nil {
+				return err
+			}
 
 			return c.Render(http.StatusUnprocessableEntity, r.HTML("/outtaketypes/new.plush.html"))
 		}).Wants("json", func(c buffalo.Context) error {
@@ -208,6 +254,9 @@ func (v OuttaketypesResource) Edit(c buffalo.Context) error {
 	if err := setTranslationValues(c, tx, "outtaketypes", outtaketype.ID.String(), []string{"name", "description", "discoverer_news"}); err != nil {
 		return err
 	}
+	if err := setOuttaketypeRuleFormValues(c, tx, outtaketype); err != nil {
+		return err
+	}
 
 	return c.Render(http.StatusOK, r.HTML("/outtaketypes/edit.plush.html"))
 }
@@ -241,6 +290,7 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 	if err := c.Bind(outtaketype); err != nil {
 		return err
 	}
+	bindExcludedNativeStatuses(c, outtaketype)
 
 	verrs, err := tx.ValidateAndUpdate(outtaketype)
 	if err != nil {
@@ -255,6 +305,9 @@ func (v OuttaketypesResource) Update(c buffalo.Context) error {
 			// Render again the edit.html template that the user can
 			// correct the input.
 			c.Set("outtaketype", outtaketype)
+			if err := setOuttaketypeRuleFormValues(c, tx, outtaketype); err != nil {
+				return err
+			}
 
 			return c.Render(http.StatusUnprocessableEntity, r.HTML("/outtaketypes/edit.plush.html"))
 		}).Wants("json", func(c buffalo.Context) error {

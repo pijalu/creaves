@@ -29,6 +29,58 @@
 <%}%>
 </div>
 
+<%= if (outtakeLocationModesJSON) { %>
+<div class="form-group" id="outtake-location-group">
+    <label for="outtakeLocationFree">Lieu</label>
+    <input class="form-control" id="outtakeLocationFree" name="Location" type="text" value="<%= outtake.Location %>">
+    <select class="form-control d-none" id="outtakeLocationList" name="Location" disabled></select>
+</div>
+<script id="outtake-location-modes" type="application/json"><%= outtakeLocationModesJSON %></script>
+<script id="outtake-location-options" type="application/json"><%= outtakeLocationOptionsJSON %></script>
+<script>
+(function(){
+    var modes = JSON.parse(document.getElementById('outtake-location-modes').textContent || '{}');
+    var options = JSON.parse(document.getElementById('outtake-location-options').textContent || '[]');
+    var group = document.getElementById('outtake-location-group');
+    var free = document.getElementById('outtakeLocationFree');
+    var list = document.getElementById('outtakeLocationList');
+    function applyMode(){
+        var checked = document.querySelector('input[name="TypeID"]:checked');
+        var mode = checked ? (modes[checked.value] || 'none') : 'none';
+        if (mode === 'none') {
+            group.classList.add('d-none');
+            free.disabled = true; free.value = '';
+            list.disabled = true;
+        } else if (mode === 'free') {
+            group.classList.remove('d-none');
+            free.classList.remove('d-none'); free.disabled = false;
+            list.classList.add('d-none'); list.disabled = true;
+        } else {
+            group.classList.remove('d-none');
+            free.classList.add('d-none'); free.disabled = true;
+            list.classList.remove('d-none'); list.disabled = false;
+            list.innerHTML = '';
+            options.forEach(function(o){
+                var el = document.createElement('option');
+                el.value = o.value; el.textContent = o.label;
+                list.appendChild(el);
+            });
+        }
+    }
+    document.querySelectorAll('input[name="TypeID"]').forEach(function(r){
+        r.addEventListener('change', applyMode);
+    });
+    $(free).autoComplete({
+        delay: 250,
+        minChars: 1,
+        source: function(term, response){
+            $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });
+        }
+    });
+    applyMode();
+})();
+</script>
+<% } else { %>
 <%= f.InputTag("Location", {label: "Lieu"}) %>
 <script>
 $('input[name="Location"]').autoComplete({
@@ -39,6 +91,7 @@ $('input[name="Location"]').autoComplete({
     }
 });
 </script>
+<% } %>
 
 <a class="btn btn-primary" data-toggle="collapse" href="#OuttakeNote" role="button" aria-expanded="false" aria-controls="collapseExample">
 Notes

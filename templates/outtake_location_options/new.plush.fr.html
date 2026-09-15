@@ -1,0 +1,8 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nouveau lieu d'issue</h3>
+</div>
+
+<%= formFor(outtakeLocationOption, {action: outtakeLocationOptionsPath(), method: "POST"}) { %>
+  <%= partial("outtake_location_options/form.plush.fr.html") %>
+  <%= linkTo(outtakeLocationOptionsPath(), {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>

@@ -35,6 +35,13 @@ var csrfTokenRe = regexp.MustCompile(`(?:name="csrf-token" content=|name="authen
 // The user row is removed at test cleanup.
 func adminClient(t *testing.T) *http.Client {
 	t.Helper()
+	client, _ := adminClientWithURL(t)
+	return client
+}
+
+// adminClientWithURL is adminClient plus the base URL of the test server.
+func adminClientWithURL(t *testing.T) (*http.Client, string) {
+	t.Helper()
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
 	}
@@ -92,7 +99,7 @@ func adminClient(t *testing.T) *http.Client {
 	if resp.StatusCode != http.StatusFound {
 		t.Fatalf("login POST /auth/ = %d, want 302", resp.StatusCode)
 	}
-	return client
+	return client, srv.URL
 }
 
 // seedConfig inserts a config row and returns it.

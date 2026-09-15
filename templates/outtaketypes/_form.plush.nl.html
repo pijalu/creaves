@@ -9,6 +9,25 @@
 
 <%= f.TextAreaTag("DiscovererNews", {label:"Nieuwtje voor vinder", rows: 10}) %>
 
+<div class="form-group">
+  <label for="LocationMode">Locatiemodus</label>
+  <select id="LocationMode" name="LocationMode" class="form-control">
+    <option value="none" <%= if (outtaketype.LocationMode == "none" || outtaketype.LocationMode == "") { %>selected<% } %>>Geen locatie</option>
+    <option value="free" <%= if (outtaketype.LocationMode == "free") { %>selected<% } %>>Vrije tekst</option>
+    <option value="list" <%= if (outtaketype.LocationMode == "list") { %>selected<% } %>>Lijst met opties</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label for="excluded_native_status_ids">Uitgesloten inheemse statussen</label>
+  <select id="excluded_native_status_ids" name="excluded_native_status_ids" class="form-control" multiple size="5">
+    <%= for (ns) in nativeStatuses { %>
+      <option value="<%= ns.ID %>" <%= if (excludedNativeStatuses[ns.ID]) { %>selected<% } %>><%= ns.ID %> — <%= tname("native_statuses", ns.ID, ns.Status) %></option>
+    <% } %>
+  </select>
+  <small class="form-text text-muted">Dit uitgaantype wordt niet aangeboden voor dieren waarvan de soort een van de geselecteerde inheemse statussen heeft.</small>
+</div>
+
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Opslaan</button>
 <script type="text/javascript">

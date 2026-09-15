@@ -1,0 +1,27 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Détails du lieu d'issue</h3>
+
+  <div class="float-end">
+    <%= linkTo(outtakeLocationOptionsPath(), {class: "btn btn-info"}) { %>
+      Retour à tous les lieux d'issue
+    <% } %>
+    <%= linkTo(editOuttakeLocationOptionPath({ outtake_location_option_id: outtakeLocationOption.ID }), {class: "btn btn-warning", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(outtakeLocationOptionPath({ outtake_location_option_id: outtakeLocationOption.ID }), {class: "btn btn-danger", title: "Supprimer", body: "<i class='fa fa-trash'></i>", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr ?"}) %>
+  </div>
+</div>
+
+
+
+<ul class="list-group mb-2 ">
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">ID</label>
+    <p class="d-inline-block"><%= outtakeLocationOption.ID %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Nom</label>
+    <p class="d-inline-block"><%= tname("outtake_location_options", outtakeLocationOption.ID, outtakeLocationOption.Name) %></p>
+  </li>
+
+</ul>

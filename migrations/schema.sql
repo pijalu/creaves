@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.4.11, for macos26.6 (arm64)
 --
--- Host: localhost    Database: creaves_test
+-- Host: localhost    Database: creaves
 -- ------------------------------------------------------
 -- Server version	8.4.11
 
@@ -95,7 +95,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=980075 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=980142 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -280,8 +280,8 @@ CREATE TABLE `discoveries` (
   `city` varchar(255) DEFAULT NULL,
   `return_habitat` tinyint(1) NOT NULL DEFAULT '0',
   `in_garden` tinyint(1) NOT NULL DEFAULT '0',
-  `guest_token` varchar(255) DEFAULT NULL,
   `entry_cause_id` varchar(255) NOT NULL DEFAULT '1.1',
+  `guest_token` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `discoverer_id` (`discoverer_id`),
   CONSTRAINT `discoveries_ibfk_1` FOREIGN KEY (`discoverer_id`) REFERENCES `discoverers` (`id`) ON DELETE CASCADE
@@ -468,6 +468,22 @@ CREATE TABLE `native_statuses` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `outtake_location_options`
+--
+
+DROP TABLE IF EXISTS `outtake_location_options`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `outtake_location_options` (
+  `id` char(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `outtakes`
 --
 
@@ -508,6 +524,8 @@ CREATE TABLE `outtaketypes` (
   `discoverer_news` text,
   `error` tinyint(1) NOT NULL DEFAULT '0',
   `code` varchar(255) DEFAULT NULL,
+  `excluded_native_statuses` varchar(255) DEFAULT NULL,
+  `location_mode` varchar(255) NOT NULL DEFAULT 'none',
   PRIMARY KEY (`id`),
   UNIQUE KEY `outtaketypes_name_idx` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -772,4 +790,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-12 12:59:30
+-- Dump completed on 2026-09-15 23:56:28

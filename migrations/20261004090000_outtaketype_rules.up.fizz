@@ -1,0 +1,8 @@
+add_column("outtaketypes", "excluded_native_statuses", "string", {"null": true})
+add_column("outtaketypes", "location_mode", "string", {"default": "none"})
+
+create_table("outtake_location_options") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("name", "string", {})
+	t.Timestamps()
+}

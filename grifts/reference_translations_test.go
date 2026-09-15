@@ -91,6 +91,12 @@ func TestReferenceTranslationsFixedRecords(t *testing.T) {
 			"SG3": {"group"},
 			"SG4": {"group"},
 		},
+		"outtake_location_options": {
+			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b01": {"name"},
+			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b02": {"name"},
+			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b03": {"name"},
+			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b04": {"name"},
+		},
 	}
 	for table, records := range expected {
 		for recordID, fields := range records {

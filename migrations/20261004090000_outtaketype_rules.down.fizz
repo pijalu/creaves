@@ -1,0 +1,3 @@
+drop_table("outtake_location_options")
+drop_column("outtaketypes", "excluded_native_statuses")
+drop_column("outtaketypes", "location_mode")

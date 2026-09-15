@@ -62,6 +62,9 @@ var _ = grift.Namespace("db", func() {
 		if err := createNativeStatus(c); err != nil {
 			return err
 		}
+		if err := createOuttakeLocationOptions(c); err != nil {
+			return err
+		}
 		if err := createSubsideGroup(c); err != nil {
 			return err
 		}

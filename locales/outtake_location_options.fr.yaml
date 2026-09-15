@@ -1,0 +1,6 @@
+- id: "outtakeLocationOption.created.success"
+  translation: "Le lieu d'issue a été créé avec succès."
+- id: "outtakeLocationOption.updated.success"
+  translation: "Le lieu d'issue a été mis à jour avec succès."
+- id: "outtakeLocationOption.destroyed.success"
+  translation: "Le lieu d'issue a été supprimé avec succès."

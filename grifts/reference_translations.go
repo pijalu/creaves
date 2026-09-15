@@ -196,6 +196,20 @@ var referenceTranslations = map[string]map[string]refFieldTr{
 			"precision":  {"(Art. 5/1 e)", "(Art. 5/1 e)", "(Art. 5/1 e)"},
 		},
 	},
+	"outtake_location_options": {
+		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b01": {
+			"name": {"Wildlife rescue center", "Wildtierauffangstation", "Wildopvangcentrum"},
+		},
+		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b02": {
+			"name": {"Shelter", "Auffangstation", "Opvang"},
+		},
+		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b03": {
+			"name": {"VOC", "VOC", "VOC"},
+		},
+		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b04": {
+			"name": {"Zoo", "Zoo", "Zoo"},
+		},
+	},
 	"subside_groups": {
 		"SG1": {"group": {"Birds of prey, waterfowl, waders or shorebirds", "Greifvögel, Wasservögel, Watvögel oder Limikolen", "Roofvogels, watervogels of steltlopers"}},
 		"SG2": {"group": {"Other birds and bats", "Andere Vögel und Fledermäuse", "Andere vogels en vleermuizen"}},
@@ -248,6 +262,17 @@ var refCanonicalLoaders = map[string]refCanonicalLoader{
 				precision = r.Precision.String
 			}
 			out[r.ID] = map[string]string{"status": r.Status, "indication": r.Indication, "precision": precision}
+		}
+		return out, nil
+	},
+	"outtake_location_options": func(c *pop.Connection) (map[string]map[string]string, error) {
+		rows := models.OuttakeLocationOptions{}
+		if err := c.All(&rows); err != nil {
+			return nil, err
+		}
+		out := map[string]map[string]string{}
+		for _, r := range rows {
+			out[r.ID.String()] = map[string]string{"name": r.Name}
 		}
 		return out, nil
 	},
