@@ -66,3 +66,22 @@ func repairSpeciesAnimaltypeLinks() error {
 		return nil
 	})
 }
+
+// fixColombidesAnimaltypeLinks re-links every species of family Colombidés to
+// the Colombidés animal type, even when a (wrong) link already exists. Unlike
+// repairSpeciesAnimaltypeLinks it is not guarded by IS NULL: it corrects links
+// previously established from the residual "Petits Oiseaux" bucket.
+func fixColombidesAnimaltypeLinks() error {
+	return models.DB.Transaction(func(tx *pop.Connection) error {
+		var at models.Animaltype
+		if err := tx.RawQuery("SELECT * FROM animaltypes WHERE LOWER(TRIM(name)) = ? LIMIT 1", "colombidés").First(&at); err != nil {
+			return fmt.Errorf("animal type %q: %w", "Colombidés", err)
+		}
+		res, err := tx.RawQuery("UPDATE species SET animaltype_id = ? WHERE family = ? AND (animaltype_id IS NULL OR animaltype_id != ?)", at.ID, "Colombidés", at.ID).ExecWithCount()
+		if err != nil {
+			return err
+		}
+		fmt.Printf("species:fix_colombides - re-linked %d Colombidés species to animal type Colombidés (%s)\n", res, at.ID)
+		return nil
+	})
+}

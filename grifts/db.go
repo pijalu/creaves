@@ -9,6 +9,8 @@ import (
 var _ = grift.Namespace("species", func() {
 	grift.Desc("repair_links", "Repairs empty species animal-type links from the approved mapping")
 	grift.Add("repair_links", func(c *grift.Context) error { return repairSpeciesAnimaltypeLinks() })
+	grift.Desc("fix_colombides", "Re-links Colombidés family species to the Colombidés animal type")
+	grift.Add("fix_colombides", func(c *grift.Context) error { return fixColombidesAnimaltypeLinks() })
 })
 
 var _ = grift.Namespace("db", func() {

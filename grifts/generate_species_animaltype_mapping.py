@@ -109,6 +109,8 @@ def main():
         if cls == 'aves':
             # Existing reference descriptions divide birds by care-size groups;
             # explicit AGW families have stable operational categories.
+            if 'colombid' in family:
+                return 'Colombidés', 'taxonomy: family Columbidae'
             if agw in ('grand échassier', 'anatidé / grèbe', 'autre oiseau d\'eau'):
                 return 'Grands Oiseaux', 'taxonomy: AGW large/water bird'
             if agw in ('limicole', 'laridé'):

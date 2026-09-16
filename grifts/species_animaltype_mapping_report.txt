@@ -15,13 +15,14 @@ Assignments by animal type:
 Autres mammifères (Procyonidé, Viverridés, ...): 10
 Canidés: 3
 chauves-souris: 22
+Colombidés: 6
 Grands Oiseaux: 108
 Hérissons / Insectivore: 8
 Lagomorphe: 2
 Moyens Oiseaux: 106
 Mustélidés: 9
 Ongulés: 5
-Petits Oiseaux: 126
+Petits Oiseaux: 120
 Rapaces: 38
 Reptiles, Amphibiens: 30
 Rongeurs: 17
