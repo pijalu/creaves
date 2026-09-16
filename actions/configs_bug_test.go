@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"creaves/models"
 
@@ -295,6 +296,11 @@ func TestLoadConfigMultipleConfigsCoexist(t *testing.T) {
 	first := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-first", Name: "multi-first", Active: true}
 	second := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-second", Name: "multi-second", Active: false}
 	third := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-third", Name: "multi-third", Active: false}
+	// LoadConfig picks the oldest *active* config (created_at asc). The shared test
+	// DB may already hold an older active row (e.g. an auto-created default), so back
+	// date `first` to guarantee it is the oldest active config regardless of what
+	// else is in the DB.
+	first.CreatedAt = time.Now().Add(-24 * time.Hour)
 	for _, c := range []*models.Config{first, second, third} {
 		if err := c.SetSettings(models.DefaultSettings()); err != nil {
 			t.Fatalf("SetSettings: %v", err)
@@ -317,7 +323,11 @@ func TestLoadConfigMultipleConfigsCoexist(t *testing.T) {
 		t.Errorf("configs coexisting in DB = %d, want 3", len(*configs))
 	}
 
-	// LoadConfig still resolves to the oldest active config.
+	// LoadConfig still resolves to the oldest active config. Re-clear the global
+	// cache right before the call: another test may have re-populated it while this
+	// test was seeding rows (shared MySQL test DB), and LoadConfig short-circuits
+	// on the cache, which would mask the lookup under test.
+	CurrentConfigSet(nil)
 	cfg, err := LoadConfig(tx)
 	if err != nil {
 		t.Fatalf("LoadConfig with multiple configs: %v", err)
