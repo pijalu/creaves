@@ -94,7 +94,7 @@ def main():
         order = norm(row['Order'])
         if agw == norm('Rapace'):
             return 'Rapaces', 'taxonomy: AGW Rapace'
-        if agw == norm('Chauve-souris'):
+        if agw == norm('Chauve-souris') or order == 'chiroptera':
             return 'chauves-souris', 'taxonomy: AGW Chauve-souris'
         if agw == norm('Mustélidé'):
             return 'Mustélidés', 'taxonomy: AGW Mustélidé'
@@ -103,7 +103,7 @@ def main():
         if cls in ('amphibia', 'reptilia') or agw in ('batracien', 'reptile'):
             return 'Reptiles, Amphibiens', 'taxonomy: class/AGW amphibian or reptile'
         if agw == norm('Micro-mammifère'):
-            if 'erinace' in family or 'soric' in family:
+            if 'erinace' in family or 'soric' in family or 'talp' in family:
                 return 'Hérissons / Insectivore', 'taxonomy: insectivore family'
             return 'Rongeurs', 'taxonomy: AGW Micro-mammifère'
         if cls == 'aves':
@@ -119,6 +119,8 @@ def main():
                 return 'Moyens Oiseaux', 'taxonomy: AGW corvid'
             return 'Petits Oiseaux', 'taxonomy: Aves residual operational group'
         if agw == norm('Domestique'):
+            if any(x in family for x in ('felid',)):
+                return 'Félidés', 'taxonomy: family Felidae'
             return 'Autres mammifères (Procyonidé, Viverridés, ...)', 'taxonomy: AGW Domestique'
         if cls == 'mammalia':
             if any(x in family for x in ('felid',)):
@@ -129,6 +131,8 @@ def main():
                 return 'Hérissons / Insectivore', 'taxonomy: insectivore family'
             if order == 'lagomorpha':
                 return 'Lagomorphe', 'taxonomy: order Lagomorpha'
+            if any(x in family for x in ('sciur', 'castorid')):
+                return 'Rongeurs', 'taxonomy: rodent family'
             return 'Autres mammifères (Procyonidé, Viverridés, ...)', 'taxonomy: Mammalia residual group'
         return '', 'unclassified'
 

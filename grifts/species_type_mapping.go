@@ -13,6 +13,22 @@ func normalizedMappingName(value string) string {
 	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(value)), " "))
 }
 
+// findAnimaltypeByName resolves an animal type by canonical (dump) name,
+// falling back to known legacy aliases (startupNameAliases) so repair tasks
+// also work on databases whose reference rows were renamed by operators.
+func findAnimaltypeByName(tx *pop.Connection, canonicalName string) (models.Animaltype, error) {
+	var at models.Animaltype
+	names := []string{canonicalName}
+	names = append(names, startupNameAliases["animaltypes"][canonicalName]...)
+	for _, name := range names {
+		err := tx.RawQuery("SELECT * FROM animaltypes WHERE LOWER(TRIM(name)) = ? LIMIT 1", normalizedMappingName(name)).First(&at)
+		if err == nil {
+			return at, nil
+		}
+	}
+	return at, fmt.Errorf("animal type %q (aliases %v) not found", canonicalName, names[1:])
+}
+
 // repairSpeciesAnimaltypeLinks repairs only empty links. It deliberately
 // requires approved mapping rows, preventing candidate Phase 1 data from
 // silently changing production classifications.
@@ -55,9 +71,9 @@ func repairSpeciesAnimaltypeLinks() error {
 			if err := tx.RawQuery("SELECT ID AS id, species, class, `order`, family, creaves_species, subside_group, agw_group, native_status, game, huntable FROM species WHERE LOWER(TRIM(creaves_species)) = ? AND animaltype_id IS NULL LIMIT 1", normalizedMappingName(row[header["species_name"]])).First(&species); err != nil {
 				return err
 			}
-			var at models.Animaltype
-			if err := tx.RawQuery("SELECT * FROM animaltypes WHERE LOWER(TRIM(name)) = ? LIMIT 1", normalizedMappingName(row[header["animal_type_name"]])).First(&at); err != nil {
-				return fmt.Errorf("species %q: animal type %q: %w", species.CreavesSpecies, row[header["animal_type_name"]], err)
+			at, err := findAnimaltypeByName(tx, row[header["animal_type_name"]])
+			if err != nil {
+				return fmt.Errorf("species %q: %w", species.CreavesSpecies, err)
 			}
 			if err := tx.RawQuery("UPDATE species SET animaltype_id = ? WHERE ID = ? AND animaltype_id IS NULL", at.ID, species.ID).Exec(); err != nil {
 				return err
@@ -73,9 +89,9 @@ func repairSpeciesAnimaltypeLinks() error {
 // previously established from the residual "Petits Oiseaux" bucket.
 func fixColombidesAnimaltypeLinks() error {
 	return models.DB.Transaction(func(tx *pop.Connection) error {
-		var at models.Animaltype
-		if err := tx.RawQuery("SELECT * FROM animaltypes WHERE LOWER(TRIM(name)) = ? LIMIT 1", "colombidés").First(&at); err != nil {
-			return fmt.Errorf("animal type %q: %w", "Colombidés", err)
+		at, err := findAnimaltypeByName(tx, "Colombidés")
+		if err != nil {
+			return err
 		}
 		res, err := tx.RawQuery("UPDATE species SET animaltype_id = ? WHERE family = ? AND (animaltype_id IS NULL OR animaltype_id != ?)", at.ID, "Colombidés", at.ID).ExecWithCount()
 		if err != nil {

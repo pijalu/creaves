@@ -89,11 +89,11 @@ SP474,Canard semi-domestique,Anas,Grands Oiseaux,candidate_taxonomy_rule,high,ap
 SP24,Canard siffleur,Anas penelope,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP21,Canard souchet,Anas clypeata,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP300,Cassenoix moucheté,Nucifraga caryocatactes,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
-SP103,Castor d'Europe,Castor fiber,"Autres mammifères (Procyonidé, Viverridés, ...)",candidate_taxonomy_rule,high,approved,taxonomy: Mammalia residual group,Phase 1 operational classification; verify domain ownership before migration.
+SP103,Castor d'Europe,Castor fiber,Rongeurs,candidate_taxonomy_rule,high,approved,taxonomy: rodent family,Phase 1 operational classification; verify domain ownership before migration.
 SP106,Cerf élaphe,Cervus elaphus,Ongulés,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP97,Chardonneret élégant,Carduelis carduelis,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
-SP179,Chat haret,Felis catus,"Autres mammifères (Procyonidé, Viverridés, ...)",candidate_taxonomy_rule,high,approved,taxonomy: AGW Domestique,Phase 1 operational classification; verify domain ownership before migration.
-SP180,Chat sylvestre,Felis silvestris,"Autres mammifères (Procyonidé, Viverridés, ...)",candidate_taxonomy_rule,high,approved,taxonomy: Mammalia residual group,Phase 1 operational classification; verify domain ownership before migration.
+SP179,Chat haret,Felis catus,Félidés,candidate_taxonomy_rule,high,approved,taxonomy: family Felidae,Phase 1 operational classification; verify domain ownership before migration.
+SP180,Chat sylvestre,Felis silvestris,Félidés,candidate_taxonomy_rule,high,approved,taxonomy: family Felidae,Phase 1 operational classification; verify domain ownership before migration.
 SP447,Chevalier aboyeur,Tringa nebularia,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP445,Chevalier arlequin,Tringa erythropus,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP444,Chevalier bargette,Tringa cinerea,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
@@ -139,7 +139,7 @@ SP146,Cygne de Bewick,Cygnus columbianus bewickii,Grands Oiseaux,candidate_taxon
 SP148,Cygne tuberculé,Cygnus olor,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP149,Daim,Dama dama,Ongulés,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP207,Echasse blanche,Himantopus himantopus,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
-SP399,Ecureuil roux,Sciurus vulgaris,"Autres mammifères (Procyonidé, Viverridés, ...)",candidate_taxonomy_rule,high,approved,taxonomy: Mammalia residual group,Phase 1 operational classification; verify domain ownership before migration.
+SP399,Ecureuil roux,Sciurus vulgaris,Rongeurs,candidate_taxonomy_rule,high,approved,taxonomy: rodent family,Phase 1 operational classification; verify domain ownership before migration.
 SP462,Effraie des clochers,Tyto alba,Rapaces,candidate_taxonomy_rule,high,approved,taxonomy: AGW Rapace,Phase 1 operational classification; verify domain ownership before migration.
 SP404,Eider à duvet,Somateria mollissima,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP157,Elanion blanc,Elanus caeruleus,Rapaces,candidate_taxonomy_rule,high,approved,taxonomy: AGW Rapace,Phase 1 operational classification; verify domain ownership before migration.
@@ -338,7 +338,7 @@ SP31,Oie rieuse,Anser albifrons,Grands Oiseaux,candidate_taxonomy_rule,high,appr
 SP33,Oie à bec court,Anser brachyrhynchus,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP475,Oie à tête barrée,Anser indicus,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP312,Oisillon,Oisillon,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
-SP364,Oreillard,Plecotus austriacus,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
+SP364,Oreillard,Plecotus austriacus,chauves-souris,candidate_taxonomy_rule,high,approved,taxonomy: AGW Chauve-souris,Phase 1 operational classification; verify domain ownership before migration.
 SP363,Oreillard roux,Plecotus auritus,chauves-souris,candidate_taxonomy_rule,high,approved,taxonomy: AGW Chauve-souris,Phase 1 operational classification; verify domain ownership before migration.
 SP10,Orite à longue queue,Aegithalos caudatus,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP29,Orvet fragile,Anguis fragilis,"Reptiles, Amphibiens",candidate_taxonomy_rule,high,approved,taxonomy: class/AGW amphibian or reptile,Phase 1 operational classification; verify domain ownership before migration.
@@ -457,7 +457,7 @@ SP437,Tamia de Sibérie,Tamias sibiricus,"Autres mammifères (Procyonidé, Viver
 SP397,Tarier des prés,Saxicola rubetra,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP398,Tarier pâtre (torquatus),Saxicola rubicola,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP101,Tarin des aulnes,Carduelis spinus,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
-SP436,Taupe,Talpa europaea,Rongeurs,candidate_taxonomy_rule,high,approved,taxonomy: AGW Micro-mammifère,Phase 1 operational classification; verify domain ownership before migration.
+SP436,Taupe,Talpa europaea,"Hérissons / Insectivore",candidate_taxonomy_rule,high,approved,taxonomy: insectivore family,Phase 1 operational classification; verify domain ownership before migration.
 SP438,Tetras lyre,Tetrao tetrix,Grands Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP441,Tichodrome échelette,Tichodroma muraria,Petits Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.
 SP216,Torcol fourmilier,Jynx torquilla,Moyens Oiseaux,candidate_taxonomy_rule,high,approved,source description exact-name membership,Phase 1 operational classification; verify domain ownership before migration.

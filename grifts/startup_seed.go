@@ -115,6 +115,7 @@ var startupNameAliases = map[string]map[string][]string{
 	"animaltypes": {
 		"Hérissons / Insectivore": {"Hérissons et mammifères insectivores"},
 		"Reptiles, Amphibiens":    {"Reptiles et Amphibiens"},
+		"Lagomorphe":              {"Lapins et Lièvres (Lagomorphes)"},
 	},
 }
 
