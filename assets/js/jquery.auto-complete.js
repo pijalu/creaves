@@ -129,7 +129,9 @@
             });
 
             that.on('keyup.autocomplete', function(e){
-                if (!~$.inArray(e.which, [13, 27, 35, 36, 37, 38, 39, 40])) {
+                // e.which is undefined when the handler is triggered synthetically
+                // (e.g. by the focus handler above); treat it as a normal key.
+                if (!e.which || !~$.inArray(e.which, [13, 27, 35, 36, 37, 38, 39, 40])) {
                     var val = that.val();
                     if (val.length >= o.minChars) {
                         if (val != that.last_val) {
