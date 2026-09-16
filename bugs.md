@@ -139,7 +139,7 @@ confirm (accept → advances); unknown species → `#speciesUnknownHint` visible
 shows confirm (cancel → stays on step 1); matching combo → no confirm, advances.
 `/suggestions/species_type` returns 404 for unknown species, 200 for known.
 
-## 5. ⏳ TODO — animals/_form (update): full reception/new type/species approach
+## 5. ✅ DONE — animals/_form (update): full reception/new type/species approach
 
 **Request:** the edit (update) form must get the *same* type/species approach as
 reception/new, including suggestions — not just a mismatch banner.
@@ -171,6 +171,16 @@ Per locale, port from reception/new (after item 4 lands — copy its final marku
 5. Submit-time confirm: on form submit, if mismatch or unknown hint visible →
    `confirm(...)` (same localized strings as item 4); cancel aborts submit. (Update
    form has no wizard, so hook the submit instead of `.nextBtn`.)
+
+**Status:** all 5 steps applied to en/fr/de/nl; inline scripts pass `node --check`.
+Submit confirm + type-change prefill are bound inside `$(function(){ ... })` (see
+item 4 binding note).
+
+**Verified (agent-browser, FR, `/animals/1/edit`):** mismatch → `#speciesTypeHint`
+visible; unknown → `#speciesUnknownHint` visible; submit cancel stays on edit page;
+submit accept saves and the show page renders the `speciesTypeMismatch` banner;
+Species autocomplete filtered by type (Canidés → canids); type-change prefills
+Species (Canidés → "Chien viverrin"). Test data restored to original afterwards.
 
 ## 6. ⏳ TODO — /species admin list: use species suggest for search
 

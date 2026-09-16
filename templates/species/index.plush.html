@@ -8,9 +8,21 @@
 </div>
 
 <form method="GET" action="/species" class="form-inline mb-3">
-  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Search species, class, order, family…">
+  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Search species, class, order, family…" autocomplete="off">
   <button class="btn btn-primary" type="submit">Search</button>
 </form>
+
+<script>
+// Suggest known species names (locale-aware) while searching; selecting one
+// submits the search immediately.
+$('form.form-inline input[name="q"]').autoComplete({
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+    },
+    onSelect: function() { $('form.form-inline input[name="q"]').closest('form').trigger('submit'); }
+});
+</script>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">

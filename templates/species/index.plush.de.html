@@ -8,9 +8,19 @@
 </div>
 
 <form method="GET" action="/species" class="form-inline mb-3">
-  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Art, Klasse, Ordnung, Familie suchen…">
+  <input class="form-control mr-2" type="search" name="q" value="<%= speciesSearch %>" placeholder="Art, Klasse, Ordnung, Familie suchen…" autocomplete="off">
   <button class="btn btn-primary" type="submit">Suchen</button>
 </form>
+
+<script>
+$('form.form-inline input[name="q"]').autoComplete({
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
+    },
+    onSelect: function() { $('form.form-inline input[name="q"]').closest('form').trigger('submit'); }
+});
+</script>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
