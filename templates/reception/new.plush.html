@@ -110,9 +110,11 @@
 
                 <script>
                 // Ask confirmation before leaving step 1 when the species is unknown
-                // or does not match the selected animal type. Bound at parse time so it
-                // runs before the wizard nextBtn handler (bound on document.ready).
-                $('#step-1 .nextBtn').on('click', function(e){
+                // or does not match the selected animal type. Bound on document.ready
+                // (registered here, after wizard.js setupWizard's ready handler) so it
+                // runs BEFORE the wizard's nextBtn handler and can veto the advance.
+                $(function(){
+                  $('#step-1 .nextBtn').on('click', function(e){
                     var mismatch = !$('#speciesTypeHint').hasClass('d-none');
                     var unknown = !$('#speciesUnknownHint').hasClass('d-none');
                     if ((mismatch || unknown) && !confirm("The species is unknown or does not match the selected type. Continue anyway?")) {
@@ -120,6 +122,7 @@
                         e.preventDefault();
                         return false;
                     }
+                  });
                 });
                 </script>
                 <%= f.InputTag("Species", {required: "required"})%>

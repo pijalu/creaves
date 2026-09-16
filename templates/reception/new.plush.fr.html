@@ -113,9 +113,11 @@
 
                 <script>
                 // Demande confirmation avant de quitter l'étape 1 quand l'espèce est
-                // inconnue ou ne correspond pas au type sélectionné. Lié au chargement
-                // pour s'exécuter avant le gestionnaire nextBtn du wizard (document.ready).
-                $('#step-1 .nextBtn').on('click', function(e){
+                // inconnue ou ne correspond pas au type sélectionné. Lié au document.ready
+                // (enregistré ici, après le handler ready de setupWizard) pour s'exécuter
+                // AVANT le gestionnaire nextBtn du wizard et pouvoir bloquer l'avance.
+                $(function(){
+                  $('#step-1 .nextBtn').on('click', function(e){
                     var mismatch = !$('#speciesTypeHint').hasClass('d-none');
                     var unknown = !$('#speciesUnknownHint').hasClass('d-none');
                     if ((mismatch || unknown) && !confirm("L'espèce est inconnue ou ne correspond pas au type sélectionné. Continuer quand même ?")) {
@@ -123,6 +125,7 @@
                         e.preventDefault();
                         return false;
                     }
+                  });
                 });
                 </script>
                 <%= f.InputTag("Species", {label: "Espèce", required: "required"})%>

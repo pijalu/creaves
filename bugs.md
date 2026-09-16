@@ -29,7 +29,7 @@ base (en), `.fr`, `.de`, `.nl`.
 
 ---
 
-## 1. ✅ DONE (code) / ⏳ VERIFY — Autocomplete cache ignores linked inputs (Species)
+## 1. ✅ DONE — Autocomplete cache ignores linked inputs (Species)
 
 **Symptom:** on `/reception/new`, selecting a type (e.g. Canidé) then typing `%` in
 Species lists canids; switching to another type (chauves-souris) and typing `%` again
@@ -49,7 +49,7 @@ suggestions also depend on `#animal-AnimaltypeID`.
 `cache: 0` in all 4 locales. `Discovery.Location` and `Discoverer.Country` are
 single-input and keep the default cache on purpose.)
 
-## 2. ✅ DONE (code) / ⏳ VERIFY — Refocus does not re-query (plugin bug)
+## 2. ✅ DONE — Refocus does not re-query (plugin bug)
 
 **Cause (part 2, root):** in `creaves/assets/js/jquery.auto-complete.js`, the focus
 handler triggers a *synthetic* `keyup.autocomplete` whose `e.which` is `undefined`.
@@ -60,9 +60,9 @@ and the keyup handler bails: no re-query on refocus, stale dropdown HTML reshown
 
 Also fixes the same stale-refocus behavior for PostalCode/City fields (minChars: 0).
 
-**Verification pending:** webpack rebuild (`buffalo dev` watches assets; confirm
-`public/assets/jquery.auto-complete.*.js` regenerated), then browser repro:
-Canidé → `%` → switch to chauves-souris → refocus Species → list must show bats.
+**Verified (agent-browser, FR):** webpack rebuilt the plugin; Canidé → `%` listed
+canids; switched to chauves-souris → refocus Species (no retyping) → list showed bats
+(Pipistrelle, etc.), no canids. Items 1+2 confirmed fixed together.
 
 ## 3. ✅ DONE — Server rejects mismatched type/species with HTTP 422
 
@@ -89,7 +89,7 @@ warnings on new/update forms. Do **not** hard-block.
 mismatching animal must now be **accepted** (nil error, submitted type preserved).
 `TestCompleteAndValidateSpeciesTypeMultipleMappingsRejected` stays unchanged.
 
-## 4. ✅ DONE (code) / ⏳ VERIFY — reception/new: visible warnings + wizard confirm dialog
+## 4. ✅ DONE — reception/new: visible warnings + wizard confirm dialog
 
 Per locale (4 files: `creaves/templates/reception/new.plush[.fr|.de|.nl].html`):
 
@@ -125,8 +125,19 @@ Per locale (4 files: `creaves/templates/reception/new.plush[.fr|.de|.nl].html`):
    - de: `Die Art ist unbekannt oder passt nicht zum ausgewählten Typ. Trotzdem fortfahren?`
    - nl: `De soort is onbekend of komt niet overeen met het geselecteerde type. Toch doorgaan?`
 
-**Status:** applied to all 4 locales; all 10 inline `<script>` blocks per file pass
-`node --check`. Browser verification pending (item 7).
+**Status:** applied to all 4 locales; all inline `<script>` blocks pass `node --check`.
+
+**Binding fix during verification:** direct `.on('click')` bound at parse time is wiped
+on document.ready in this stack (only delegated handlers survive), and a delegated
+handler fires *after* the wizard's direct nextBtn handler (cannot veto). Fix: bind
+direct inside `$(function(){ ... })` — registered here, it runs after wizard.js
+setupWizard's ready handler, so the confirm handler executes first and
+`stopImmediatePropagation()` cancels the advance.
+
+**Verified (agent-browser, FR):** mismatch → `#speciesTypeHint` visible, Next shows
+confirm (accept → advances); unknown species → `#speciesUnknownHint` visible, Next
+shows confirm (cancel → stays on step 1); matching combo → no confirm, advances.
+`/suggestions/species_type` returns 404 for unknown species, 200 for known.
 
 ## 5. ⏳ TODO — animals/_form (update): full reception/new type/species approach
 

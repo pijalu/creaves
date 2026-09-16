@@ -109,7 +109,8 @@
                 </script>
 
                 <script>
-                $('#step-1 .nextBtn').on('click', function(e){
+                $(function(){
+                  $('#step-1 .nextBtn').on('click', function(e){
                     var mismatch = !$('#speciesTypeHint').hasClass('d-none');
                     var unknown = !$('#speciesUnknownHint').hasClass('d-none');
                     if ((mismatch || unknown) && !confirm("De soort is onbekend of komt niet overeen met het geselecteerde type. Toch doorgaan?")) {
@@ -117,6 +118,7 @@
                         e.preventDefault();
                         return false;
                     }
+                  });
                 });
                 </script>
 
