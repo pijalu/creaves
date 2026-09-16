@@ -10,10 +10,12 @@ import (
 )
 
 // completeAndValidateSpeciesType resolves a blank type from the canonical
-// species link and rejects an explicit contradiction with an existing mapping.
-// Species with zero approved mappings are soft-blocked: the submitted type
-// (or a blank one) is accepted and a warning is logged instead of failing the
-// request; the maintenance page lists these unmapped species for follow-up.
+// species link and warns on an explicit contradiction with an existing mapping.
+// Mismatched combos are accepted (user-confirmed client-side): the submitted
+// type is kept, a warning is logged, and the mismatch stays visible via the
+// show-page banner (animalSpeciesTypeMismatch). Species with zero approved
+// mappings are handled the same way (soft-block) and listed on the maintenance
+// page for follow-up.
 func completeAndValidateSpeciesType(tx *pop.Connection, animal *models.Animal) error {
 	if animal.Species == "" {
 		return nil
@@ -45,7 +47,11 @@ func completeAndValidateSpeciesType(tx *pop.Connection, animal *models.Animal) e
 			return nil
 		}
 	}
-	return fmt.Errorf("species %q does not match selected animal type", animal.Species)
+	// Soft-block: contradicts an existing mapping, but the user confirmed the
+	// combo client-side (reception wizard dialog). Accept the submitted type;
+	// the mismatch stays visible via animalSpeciesTypeMismatch (show-page banner).
+	log.Printf("WARNING: species %q does not match selected animal type %s; accepting submitted type", animal.Species, animal.AnimaltypeID)
+	return nil
 }
 
 func animalSpeciesTypeMismatch(tx *pop.Connection, animal *models.Animal) bool {

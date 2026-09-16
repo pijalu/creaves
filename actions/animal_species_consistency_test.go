@@ -50,8 +50,15 @@ func TestCompleteAndValidateSpeciesType(t *testing.T) {
 	}
 
 	mismatching := &models.Animal{Species: sp.CreavesSpecies, AnimaltypeID: otherID}
-	if err := completeAndValidateSpeciesType(tx, mismatching); err == nil {
-		t.Fatal("expected mismatch validation error")
+	if err := completeAndValidateSpeciesType(tx, mismatching); err != nil {
+		t.Fatalf("mismatching type should be accepted with a warning, got %v", err)
+	}
+	if mismatching.AnimaltypeID != otherID {
+		t.Fatalf("submitted type should be kept, got %s", mismatching.AnimaltypeID)
+	}
+	// The mismatch must still be flagged for the show-page warning banner.
+	if !animalSpeciesTypeMismatch(tx, mismatching) {
+		t.Fatal("mismatching species/type combo should be flagged as mismatch")
 	}
 }
 
