@@ -38,12 +38,20 @@ $( document ).ready(function(){
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
-                    minChars: 1,
+                    minChars: 0,
+                    cache: 0,
                     source: function(term, response){
-                        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
-                    }
+                        var typeId = $('#animal-AnimaltypeID').val();
+                        // Focus with a type selected shows that type's species
+                        // right away; without a type, an empty term lists nothing.
+                        if (!term && !typeId) { response([]); return; }
+                        $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: typeId }, function(data){ response(data); });
+                    },
+                    onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
                 </script>
+                <div id="speciesTypeHint" class="alert alert-danger d-none">type and species do not match</div>
+                <div id="speciesUnknownHint" class="alert alert-danger d-none">unknown species</div>
                 <div id="speciesHint"></div>
                 <script type="text/javascript">
                 function setSpeciesHint() {
@@ -64,6 +72,57 @@ $( document ).ready(function(){
                 });
                 $( "#animal-Species" ).on( "change", function() {
                   setSpeciesHint();
+                });
+                </script>
+                <script>
+                // Type/species consistency: auto-set the type from a known species,
+                // warn (never block) on mismatch or unknown species, and ask for
+                // confirmation on submit when an oddity is visible.
+                $( "#animal-Species" ).on( "change input", function() {
+                  var term = $("#animal-Species").val();
+                  if (term) {
+                      $.getJSON('/suggestions/species_type', { q: term }, function(info){
+                          if (!$("#animal-AnimaltypeID").val() && info.animaltype_id) {
+                              $("#animal-AnimaltypeID").val(info.animaltype_id);
+                              $("#speciesTypeHint").addClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          } else if (info.animaltype_id && info.animaltype_id !== $("#animal-AnimaltypeID").val()) {
+                              $("#speciesTypeHint").removeClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          } else {
+                              $("#speciesTypeHint").addClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          }
+                      }).fail(function(){
+                          $("#speciesTypeHint").addClass("d-none");
+                          $("#speciesUnknownHint").removeClass("d-none");
+                      });
+                  } else {
+                      $("#speciesTypeHint").addClass("d-none");
+                      $("#speciesUnknownHint").addClass("d-none");
+                  }
+                });
+                $(function(){
+                  // Prefill Species with the first species of a newly selected type
+                  // when the field is empty.
+                  $('#animal-AnimaltypeID').on('change', function(){
+                      $.getJSON('/suggestions/animal_species', { q: "", animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
+                          if (data.length > 0 && !$("#animal-Species").val()) {
+                              $("#animal-Species").val(data[0]);
+                              $("#animal-Species").removeClass("is-invalid");
+                              $("#animal-Species").trigger("change");
+                          }
+                      });
+                  });
+                  // Confirm on submit when the species is unknown or mismatched.
+                  $("#animal-Species").closest("form").on("submit", function(e){
+                      var mismatch = !$("#speciesTypeHint").hasClass("d-none");
+                      var unknown = !$("#speciesUnknownHint").hasClass("d-none");
+                      if ((mismatch || unknown) && !confirm("The species is unknown or does not match the selected type. Continue anyway?")) {
+                          e.preventDefault();
+                          return false;
+                      }
+                  });
                 });
                 </script>
           </div>

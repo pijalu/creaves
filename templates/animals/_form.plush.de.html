@@ -38,12 +38,18 @@ $( document ).ready(function(){
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
-                    minChars: 1,
+                    minChars: 0,
+                    cache: 0,
                     source: function(term, response){
-                        $.getJSON('/suggestions/animal_species', { q: term }, function(data){ response(data); });
-                    }
+                        var typeId = $('#animal-AnimaltypeID').val();
+                        if (!term && !typeId) { response([]); return; }
+                        $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: typeId }, function(data){ response(data); });
+                    },
+                    onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
                 </script>
+                <div id="speciesTypeHint" class="alert alert-danger d-none">Typ und Art stimmen nicht überein</div>
+                <div id="speciesUnknownHint" class="alert alert-danger d-none">unbekannte Art</div>
                 <div id="speciesHint"></div>
                 <script type="text/javascript">
                 function setSpeciesHint() {
@@ -64,6 +70,51 @@ $( document ).ready(function(){
                 });
                 $( "#animal-Species" ).on( "change", function() {
                   setSpeciesHint();
+                });
+                </script>
+                <script>
+                $( "#animal-Species" ).on( "change input", function() {
+                  var term = $("#animal-Species").val();
+                  if (term) {
+                      $.getJSON('/suggestions/species_type', { q: term }, function(info){
+                          if (!$("#animal-AnimaltypeID").val() && info.animaltype_id) {
+                              $("#animal-AnimaltypeID").val(info.animaltype_id);
+                              $("#speciesTypeHint").addClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          } else if (info.animaltype_id && info.animaltype_id !== $("#animal-AnimaltypeID").val()) {
+                              $("#speciesTypeHint").removeClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          } else {
+                              $("#speciesTypeHint").addClass("d-none");
+                              $("#speciesUnknownHint").addClass("d-none");
+                          }
+                      }).fail(function(){
+                          $("#speciesTypeHint").addClass("d-none");
+                          $("#speciesUnknownHint").removeClass("d-none");
+                      });
+                  } else {
+                      $("#speciesTypeHint").addClass("d-none");
+                      $("#speciesUnknownHint").addClass("d-none");
+                  }
+                });
+                $(function(){
+                  $('#animal-AnimaltypeID').on('change', function(){
+                      $.getJSON('/suggestions/animal_species', { q: "", animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
+                          if (data.length > 0 && !$("#animal-Species").val()) {
+                              $("#animal-Species").val(data[0]);
+                              $("#animal-Species").removeClass("is-invalid");
+                              $("#animal-Species").trigger("change");
+                          }
+                      });
+                  });
+                  $("#animal-Species").closest("form").on("submit", function(e){
+                      var mismatch = !$("#speciesTypeHint").hasClass("d-none");
+                      var unknown = !$("#speciesUnknownHint").hasClass("d-none");
+                      if ((mismatch || unknown) && !confirm("Die Art ist unbekannt oder passt nicht zum ausgewählten Typ. Trotzdem fortfahren?")) {
+                          e.preventDefault();
+                          return false;
+                      }
+                  });
                 });
                 </script>
           </div>
