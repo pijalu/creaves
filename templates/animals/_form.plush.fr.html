@@ -74,7 +74,10 @@ $( document ).ready(function(){
                 });
                 </script>
                 <script>
-                $( "#animal-Species" ).on( "change input", function() {
+                // Vérifie l'espèce courante par rapport au type sélectionné et
+                // affiche/masque les alertes de correspondance. Appelé lors du
+                // changement/saisie de l'espèce ET du changement de type.
+                function checkSpeciesTypeConsistency() {
                   var term = $("#animal-Species").val();
                   if (term) {
                       $.getJSON('/suggestions/species_type', { q: term }, function(info){
@@ -97,6 +100,9 @@ $( document ).ready(function(){
                       $("#speciesTypeHint").addClass("d-none");
                       $("#speciesUnknownHint").addClass("d-none");
                   }
+                }
+                $( "#animal-Species" ).on( "change input", function() {
+                  checkSpeciesTypeConsistency();
                 });
                 $(function(){
                   $('#animal-AnimaltypeID').on('change', function(){
@@ -105,9 +111,16 @@ $( document ).ready(function(){
                               $("#animal-Species").val(data[0]);
                               $("#animal-Species").removeClass("is-invalid");
                               $("#animal-Species").trigger("change");
+                          } else {
+                              // Type changed with an existing species: re-validate
+                              // so the mismatch alert shows immediately.
+                              checkSpeciesTypeConsistency();
                           }
                       });
                   });
+                  // Show the mismatch alert right away when the edit form opens
+                  // with an already-inconsistent species/type combination.
+                  $(function(){ checkSpeciesTypeConsistency(); });
                   $("#animal-Species").closest("form").on("submit", function(e){
                       var mismatch = !$("#speciesTypeHint").hasClass("d-none");
                       var unknown = !$("#speciesUnknownHint").hasClass("d-none");
