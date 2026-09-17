@@ -103,6 +103,10 @@
                                                                                                                     $("#animal-Species").val(data[0]);
                                 $("#animal-Species").removeClass("is-invalid")
                             }
+                            // Type changed: re-validate the (possibly pre-filled or
+                            // stale) species against the newly selected type so the
+                            // mismatch alert shows immediately.
+                            checkSpeciesTypeConsistency();
                         });
                     });
 
@@ -144,7 +148,10 @@
                     onSelect: function() { $("#animal-Species").trigger("change"); }
                 });
 
-                $( "#animal-Species" ).on( "change input", function() {
+                // Checks the current species against the selected type and
+                // toggles the mismatch/unknown alerts accordingly. Called on
+                // species change/input AND on type change.
+                function checkSpeciesTypeConsistency() {
                     var term = $("#animal-Species").val();
                     if (term) {
                         $.getJSON('/suggestions/species_type', { q: term }, function(info){
@@ -167,6 +174,11 @@
                         $("#speciesTypeHint").addClass("d-none");
                         $("#speciesUnknownHint").addClass("d-none");
                     }
+                }
+
+                $( "#animal-Species" ).on( "change input", function() {
+                    var term = $("#animal-Species").val();
+                    checkSpeciesTypeConsistency();
                     $.getJSON('/suggestions/animal_species', { q: term, animaltype_id: $('#animal-AnimaltypeID').val() }, function(data){
                                             $( "#animal-Species" ).addClass("is-invalid")
                         $( "#nativeGroupHint").html("").removeClass("alert alert-primary")
