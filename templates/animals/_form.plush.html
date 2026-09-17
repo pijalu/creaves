@@ -78,7 +78,10 @@ $( document ).ready(function(){
                 // Type/species consistency: auto-set the type from a known species,
                 // warn (never block) on mismatch or unknown species, and ask for
                 // confirmation on submit when an oddity is visible.
-                $( "#animal-Species" ).on( "change input", function() {
+                // Checks the current species against the selected type and
+                // toggles the mismatch/unknown alerts accordingly. Called on
+                // species change/input AND on type change.
+                function checkSpeciesTypeConsistency() {
                   var term = $("#animal-Species").val();
                   if (term) {
                       $.getJSON('/suggestions/species_type', { q: term }, function(info){
@@ -101,6 +104,9 @@ $( document ).ready(function(){
                       $("#speciesTypeHint").addClass("d-none");
                       $("#speciesUnknownHint").addClass("d-none");
                   }
+                }
+                $( "#animal-Species" ).on( "change input", function() {
+                  checkSpeciesTypeConsistency();
                 });
                 $(function(){
                   // Prefill Species with the first species of a newly selected type
@@ -111,9 +117,16 @@ $( document ).ready(function(){
                               $("#animal-Species").val(data[0]);
                               $("#animal-Species").removeClass("is-invalid");
                               $("#animal-Species").trigger("change");
+                          } else {
+                              // Type changed with an existing species: re-validate
+                              // so the mismatch alert shows immediately.
+                              checkSpeciesTypeConsistency();
                           }
                       });
                   });
+                  // Show the mismatch alert right away when the edit form opens
+                  // with an already-inconsistent species/type combination.
+                  $(function(){ checkSpeciesTypeConsistency(); });
                   // Confirm on submit when the species is unknown or mismatched.
                   $("#animal-Species").closest("form").on("submit", function(e){
                       var mismatch = !$("#speciesTypeHint").hasClass("d-none");
