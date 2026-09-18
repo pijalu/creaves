@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -35,22 +36,41 @@ func animalTypes(c buffalo.Context) (*models.Animaltypes, error) {
 	return loadAnimalTypes(tx)
 }
 
-// currentLang normalizes the UI language cookie. Empty/"fr" mean base
-// (canonical French) — no translation lookup needed.
+// currentLang resolves the UI language for DB-backed name translations
+// (tname/tspecies/selectables). It MUST match the language used to render
+// the page: the mw-i18n middleware resolves languages from cookie, session
+// and the Accept-Language header (default en-US) and stores them in the
+// context as "languages". Reading only the cookie here would diverge from
+// the rendered template language (e.g. French UI via Accept-Language with
+// no cookie would still translate species to English).
+// "" means base (canonical French) — no translation lookup needed.
 func currentLang(c buffalo.Context) string {
-	lang := ""
-	if cookie, err := c.Request().Cookie("lang"); err == nil {
-		lang = cookie.Value
+	if langs, ok := c.Value("languages").([]string); ok && len(langs) > 0 {
+		return normalizeDBLang(langs[0])
 	}
-	switch lang {
-	case "":
-		return "en-US"
-	case "fr", "fr-FR":
+	if cookie, err := c.Request().Cookie("lang"); err == nil {
+		return normalizeDBLang(cookie.Value)
+	}
+	return normalizeDBLang("")
+}
+
+// normalizeDBLang maps a UI language code (cookie value, Accept-Language
+// entry or i18n default) to the locale used in the translations table.
+// Canonical French is "" (base values, no lookup needed); regional variants
+// are folded onto the locales actually seeded (en-US, de, nl). Unknown or
+// empty languages resolve to "en-US": the i18n stack falls back to the
+// default en-US locale and the base English templates in that case, so
+// DB-backed names must follow the same fallback to stay consistent.
+func normalizeDBLang(lang string) string {
+	// Fold regional variants: "de-AT" -> "de", "fr-FR" -> "fr".
+	base := strings.ToLower(strings.SplitN(lang, "-", 2)[0])
+	switch base {
+	case "fr":
 		return ""
-	case "en", "en-US":
-		return "en-US"
+	case "de", "nl":
+		return base
 	default:
-		return lang
+		return "en-US"
 	}
 }
 
