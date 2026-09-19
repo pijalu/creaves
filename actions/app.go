@@ -133,6 +133,10 @@ func App() *buffalo.App {
 		app.Resource("/animaltypes", AnimaltypesResource{})
 		app.Resource("/intakes", IntakesResource{})
 		app.Resource("/outtaketypes", OuttaketypesResource{})
+		// Batch outtake for a whole cage (issue #170) — registered BEFORE
+		// the /outtakes resource so "cage" is not eaten by /{outtake_id}.
+		app.GET("/outtakes/cage", OuttakeCageNew)
+		app.POST("/outtakes/cage", OuttakeCageCreate)
 		app.Resource("/outtakes", OuttakesResource{})
 		app.Resource("/animals", AnimalsResource{})
 		app.GET("/reception/new", ReceptionNew)

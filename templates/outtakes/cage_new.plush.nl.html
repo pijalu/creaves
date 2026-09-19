@@ -1,0 +1,48 @@
+<%= if (!params["cage"]) { %>
+  <div class="py-4 mb-2">
+    <div class="float-right">
+    <%= linkTo(outtakesPath(), {class: "btn btn-info"}) { %>
+          Alle aflopen bekijken
+    <% } %>
+    </div>
+  </div>
+  <h4>Kooi kiezen voor afloop</h4>
+  <form method="GET" action="/outtakes/cage">
+    <div class="form-group row">
+      <label for="cage" class="col-sm-2 col-form-label">Kooi</label>
+      <div class="col-sm-10">
+        <input name="cage" type="text" class="form-control" id="cage" required>
+        <script>
+          $('input[name="cage"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/CageWithAnimalInCare', { q: term }, function(data){ response(data); });
+              }
+          });
+        </script>
+      </div>
+    </div>
+    <div class="form-group row">
+      <button class="btn btn-success" role="submit">Volgende</button>
+        <script type="text/javascript">
+        $( document ).ready(function(){
+            window.submitfix();
+        })
+        </script>
+    </div>
+  </form>
+<% } else { %>
+  <div class="py-4 mb-2">
+    <h3 class="d-inline-block">Afloop voor kooi <i><%= params["cage"] %></i> (<%= cageAnimalCount %> dier(en))</h3>
+  </div>
+  <ul class="list-group mb-3">
+    <%= for (a) in cageAnimals { %>
+      <li class="list-group-item pb-1"><%= a.YearNumberFormatted() %> — <%= a.Species %></li>
+    <% } %>
+  </ul>
+  <%= formFor(outtake, {action: "/outtakes/cage", method: "POST"}) { %>
+    <input type="hidden" name="cage" value="<%= params["cage"] %>">
+    <%= partial("outtakes/form.html") %>
+    <%= linkTo("/outtakes/cage", {class: "btn btn-warning", body: "Annuleren"}) %>
+  <% } %>
+<% } %>
