@@ -168,6 +168,12 @@ $( document ).ready(function(){
               required:"required"}) %>
           </div>
       </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+          <%= f.CheckboxTag("ReadyForRelease", {label:"Klaar voor vrijlating", unchecked: false}) %>
+          <small class="form-text text-muted">Het dier mag worden vrijgelaten zodra zijn zorgtraject is afgerond</small>
+        </div>
+      </div>
   </div>
 
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">

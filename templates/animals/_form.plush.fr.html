@@ -167,6 +167,12 @@ $( document ).ready(function(){
             required:"required"}) %>
         </div>
     </div>
+    <div class="form-row">
+      <div class="form-group col-md-12">
+        <%= f.CheckboxTag("ReadyForRelease", {label:"À relâcher", unchecked: false}) %>
+        <small class="form-text text-muted">L'animal peut être relâché une fois son parcours de soins terminé</small>
+      </div>
+    </div>
   </div>
 
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">

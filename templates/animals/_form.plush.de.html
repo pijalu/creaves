@@ -168,6 +168,12 @@ $( document ).ready(function(){
               required:"required"}) %>
           </div>
       </div>
+      <div class="form-row">
+        <div class="form-group col-md-12">
+          <%= f.CheckboxTag("ReadyForRelease", {label:"Auswilderungsbereit", unchecked: false}) %>
+          <small class="form-text text-muted">Das Tier kann ausgewildert werden, sobald sein Pflegeweg abgeschlossen ist</small>
+        </div>
+      </div>
   </div>
 
   <div class="tab-pane fade" id="nav-discovery" role="tabpanel" aria-labelledby="nav-discovery-tab">

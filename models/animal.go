@@ -32,6 +32,10 @@ type Animal struct {
 	FeedingEnd    nulls.Time `json:"feedingEnd" db:"feeding_end"`
 	FeedingPeriod int        `json:"feedingPeriod" db:"feeding_period"`
 
+	// ReadyForRelease marks animals whose care path is finished and that
+	// can be released (#197 sub-item 8).
+	ReadyForRelease nulls.Bool `json:"readyForRelease" db:"ready_for_release"`
+
 	Animalage    Animalage         `json:"animalage" belongs_to:"animalage"`
 	AnimalageID  uuid.UUID         `json:"animalage_id" db:"animalage_id"`
 	Animaltype   Animaltype        `json:"animaltype" belongs_to:"animaltype"`

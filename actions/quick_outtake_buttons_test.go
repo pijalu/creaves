@@ -99,7 +99,9 @@ func createQuickOuttakeFixture(t *testing.T, tx *pop.Connection) quickOuttakeFix
 	t.Cleanup(func() {
 		tx.RawQuery("UPDATE animals SET outtake_id = NULL WHERE id = ?", done.ID).Exec()
 		tx.RawQuery("DELETE FROM outtakes WHERE id = ?", o.ID).Exec()
-		tx.RawQuery("DELETE FROM animals WHERE id IN (?)", free.ID, done.ID).Exec()
+		// NOTE: "id IN (?)" with two args would bind both args to ONE
+		// placeholder and fail silently — spell the placeholders out.
+		tx.RawQuery("DELETE FROM animals WHERE id IN (?, ?)", free.ID, done.ID).Exec()
 		tx.RawQuery("DELETE FROM discoveries WHERE id = ?", d.ID).Exec()
 		tx.RawQuery("DELETE FROM discoverers WHERE id = ?", disc.ID).Exec()
 		tx.RawQuery("DELETE FROM intakes WHERE id = ?", in.ID).Exec()

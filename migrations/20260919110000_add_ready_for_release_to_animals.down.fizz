@@ -1,0 +1,1 @@
+drop_column("animals", "ready_for_release")

@@ -1,0 +1,1 @@
+add_column("animals", "ready_for_release", "boolean", {null: true})
