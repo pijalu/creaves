@@ -1,7 +1,11 @@
 package actions
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -168,6 +172,12 @@ func createAnimalSearchFixtures(t *testing.T, tx *pop.Connection) *animalSearchF
 		nulls.NewString("ZZZ-"+f.marker+"-002"), &f.outtakeErr)
 	f.animalC = mkAnimal(2021, ynBase+3, f.animaltype1, f.animalage1, f.entryCause1, "Testsp Alpha "+f.marker,
 		nulls.String{}, nil)
+
+	// #197 sub-item 1: mark intake flags for the wound/parasite filters —
+	// animalA wounded, animalB parasites, animalC neither (intakeIDs order
+	// follows the mkAnimal calls above).
+	tx.RawQuery("UPDATE intakes SET has_wounds = 1 WHERE id = ?", f.intakeIDs[0]).Exec()
+	tx.RawQuery("UPDATE intakes SET has_parasites = 1 WHERE id = ?", f.intakeIDs[1]).Exec()
 
 	t.Cleanup(func() {
 		// clean only the fixture rows (children first)
@@ -395,5 +405,114 @@ func TestAnimalSearchCSVHeaderKeysInLocales(t *testing.T) {
 				t.Errorf("locale animals.%s.yaml missing key %s", lang, key)
 			}
 		}
+	}
+}
+
+// --- #197 sub-item 1: wounds/parasites filters + found-count display ---
+
+func TestAnimalSearchFilterHasWounds(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// animalA's intake is flagged has_wounds = 1
+	ids := runSearch(t, tx, f, animalSearchParams{HasWounds: "1"})
+	idsMatch(t, ids, f.animalA)
+
+	// "0" returns the two non-wounded animals
+	ids = runSearch(t, tx, f, animalSearchParams{HasWounds: "0"})
+	idsMatch(t, ids, f.animalB, f.animalC)
+}
+
+func TestAnimalSearchFilterHasParasites(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// animalB's intake is flagged has_parasites = 1
+	ids := runSearch(t, tx, f, animalSearchParams{HasParasites: "1"})
+	idsMatch(t, ids, f.animalB)
+
+	ids = runSearch(t, tx, f, animalSearchParams{HasParasites: "0"})
+	idsMatch(t, ids, f.animalA, f.animalC)
+}
+
+func TestAnimalSearchFilterWoundsParasitesCombined(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// A is wounded only, B has parasites only: AND-combination is empty
+	ids := runSearch(t, tx, f, animalSearchParams{HasWounds: "1", HasParasites: "1"})
+	idsMatch(t, ids)
+
+	// any value other than "0"/"1" means "no filter" (defensive)
+	ids = runSearch(t, tx, f, animalSearchParams{HasWounds: "maybe"})
+	idsMatch(t, ids, f.animalA, f.animalB, f.animalC)
+}
+
+// fetchAnimalsJSON requests the animals listing as JSON and decodes it;
+// retries once — the shared test DB occasionally exceeds readTimeout under
+// suite load, which surfaces as a 500 (pre-existing harness trait).
+func fetchAnimalsJSON(t *testing.T, client *http.Client, baseURL string, q url.Values) []map[string]interface{} {
+	t.Helper()
+	for attempt := 0; attempt < 2; attempt++ {
+		req, err := http.NewRequest("GET", baseURL+"/animals?"+q.Encode(), nil)
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		req.Header.Set("Accept", "application/json")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("GET /animals (json): %v", err)
+		}
+		raw, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		var got []map[string]interface{}
+		if err := json.Unmarshal(raw, &got); err != nil {
+			if attempt == 0 {
+				continue
+			}
+			t.Fatalf("decode json: %v (%.200s)", err, raw)
+		}
+		return got
+	}
+	t.Fatal("unreachable")
+	return nil
+}
+
+// TestAnimalSearchCountDisplayed verifies through the real app that the
+// animals listing shows the number of found animals and that the
+// wounds/parasites filters narrow the JSON result set.
+func TestAnimalSearchCountDisplayed(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	client, baseURL := adminClientWithURL(t)
+
+	// HTML listing scoped to the fixture species: count line must show 1/2
+	q := url.Values{}
+	q.Set("species", "Testsp Alpha "+f.marker)
+	resp, err := client.Get(baseURL + "/animals?" + q.Encode())
+	if err != nil {
+		t.Fatalf("GET /animals: %v", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET /animals status = %d body: %.600s", resp.StatusCode, body)
+	}
+	if !strings.Contains(string(body), "2 animal(s) found") {
+		t.Errorf("count line missing or wrong (want '2 animal(s) found'), body snippet: %.400s", body)
+	}
+
+	// JSON endpoint honors the has_wounds filter: only animalA remains
+	q.Set("has_wounds", "1")
+	got := fetchAnimalsJSON(t, client, baseURL, q)
+	if len(got) != 1 {
+		t.Fatalf("has_wounds=1 json results = %d, want 1 (%s)", len(got), f.marker)
 	}
 }

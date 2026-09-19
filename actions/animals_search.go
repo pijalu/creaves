@@ -19,6 +19,8 @@ type animalSearchParams struct {
 	AnimalageID   string
 	Ring          string
 	OuttaketypeID string
+	HasWounds     string // "" any, "1" wounded, "0" not wounded (intakes.has_wounds)
+	HasParasites  string // "" any, "1" parasites, "0" no parasites (intakes.has_parasites)
 }
 
 // animalSearchParamsFrom extracts search filters from the request params.
@@ -31,6 +33,8 @@ func animalSearchParamsFrom(c buffalo.Context) animalSearchParams {
 		AnimalageID:   c.Param("animalage_id"),
 		Ring:          c.Param("ring"),
 		OuttaketypeID: c.Param("outtaketype_id"),
+		HasWounds:     c.Param("has_wounds"),
+		HasParasites:  c.Param("has_parasites"),
 	}
 }
 
@@ -38,12 +42,21 @@ func animalSearchParamsFrom(c buffalo.Context) animalSearchParams {
 func (p animalSearchParams) Any() bool {
 	return p.Year != "" || p.AnimaltypeID != "" || p.Species != "" ||
 		p.EntryCauseID != "" || p.AnimalageID != "" || p.Ring != "" ||
-		p.OuttaketypeID != ""
+		p.OuttaketypeID != "" || p.HasWounds != "" || p.HasParasites != ""
 }
 
 // NoOuttakeFilterValue is the special outtaketype_id filter value meaning
 // "animals without any outtake" (still in care).
 const NoOuttakeFilterValue = "none"
+
+// applyIntakeFlagFilter adds a tri-state intake flag filter ("" = any,
+// "1" = flagged, "0" = not flagged) as an EXISTS-style subquery.
+func applyIntakeFlagFilter(q *pop.Query, column, value string) *pop.Query {
+	if value != "0" && value != "1" {
+		return q
+	}
+	return q.Where("animals.intake_id IN (SELECT id FROM intakes WHERE "+column+" = ?)", value == "1")
+}
 
 // applyAnimalSearchFilters adds WHERE clauses for each non-empty filter.
 // Subquery style is used for related-table filters (entry cause, outtake
@@ -80,6 +93,10 @@ func applyAnimalSearchFilters(tx *pop.Connection, lang string, q *pop.Query, p a
 			JOIN outtaketypes oo ON oo.id = o.outtaketype_id
 			WHERE o.outtaketype_id = ? AND (oo.error = 0 OR oo.error IS NULL))`, p.OuttaketypeID)
 	}
+	// Wounded / parasites flags live on the intake of the animal (tri-state:
+	// empty = any, "1" = flagged, "0" = not flagged).
+	q = applyIntakeFlagFilter(q, "has_wounds", p.HasWounds)
+	q = applyIntakeFlagFilter(q, "has_parasites", p.HasParasites)
 	return q, nil
 }
 

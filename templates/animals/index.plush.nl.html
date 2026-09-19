@@ -116,6 +116,42 @@
             <% } %>
           </select>
         </div>
+        <div class="form-group col-md-2">
+          <label for="sf_has_wounds">Gewond</label>
+          <select class="form-control" id="sf_has_wounds" name="has_wounds">
+            <%= if (search.HasWounds == "1") { %>
+              <option value="">--</option>
+              <option value="1" selected>Ja</option>
+              <option value="0">Nee</option>
+            <% } else if (search.HasWounds == "0") { %>
+              <option value="">--</option>
+              <option value="1">Ja</option>
+              <option value="0" selected>Nee</option>
+            <% } else { %>
+              <option value="" selected>--</option>
+              <option value="1">Ja</option>
+              <option value="0">Nee</option>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
+          <label for="sf_has_parasites">Parasieten</label>
+          <select class="form-control" id="sf_has_parasites" name="has_parasites">
+            <%= if (search.HasParasites == "1") { %>
+              <option value="">--</option>
+              <option value="1" selected>Ja</option>
+              <option value="0">Nee</option>
+            <% } else if (search.HasParasites == "0") { %>
+              <option value="">--</option>
+              <option value="1">Ja</option>
+              <option value="0" selected>Nee</option>
+            <% } else { %>
+              <option value="" selected>--</option>
+              <option value="1">Ja</option>
+              <option value="0">Nee</option>
+            <% } %>
+          </select>
+        </div>
       </div>
       <div class="form-row">
         <div class="col">
@@ -128,6 +164,10 @@
       </div>
     </form>
   </div>
+</div>
+
+<div class="container px-3">
+  <p class="text-muted"><%= pagination.TotalEntriesSize %> dier(en) gevonden</p>
 </div>
 
 <% contentFor("eveningSVG") { %>
