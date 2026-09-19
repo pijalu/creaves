@@ -284,3 +284,62 @@ func TestExportCsvChooserRedirects(t *testing.T) {
 		t.Fatalf("redirect = %q, want /export/view", loc)
 	}
 }
+
+// TestExportCsvHonorsViewFilters is the regression test for the #197
+// sub-item 3 bug: the CSV download used to stream the raw query result,
+// ignoring the filters applied in the online view. With a global search
+// that matches nothing the download must contain only the header row.
+func TestExportCsvHonorsViewFilters(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	// Unfiltered download: header + at least one data row.
+	resp, err := client.Get(srv.URL + "/export/csv?query=register")
+	if err != nil {
+		t.Fatalf("GET /export/csv?query=register: %v", err)
+	}
+	raw, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unfiltered download = %d (body: %.200s)", resp.StatusCode, raw)
+	}
+	unfiltered := strings.Count(strings.TrimRight(string(raw), "\n"), "\n") + 1
+	if unfiltered < 2 {
+		t.Fatalf("unfiltered download has %d lines, want header + >=1 row:\n%.200s", unfiltered, raw)
+	}
+
+	// Filtered download: the global search term cannot match any row.
+	resp, err = client.Get(srv.URL + "/export/csv?query=register&q=ZZZNOMATCH9471")
+	if err != nil {
+		t.Fatalf("GET filtered download: %v", err)
+	}
+	raw, err = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	filtered := strings.Count(strings.TrimRight(string(raw), "\n"), "\n") + 1
+	if filtered != 1 {
+		t.Fatalf("filtered download has %d lines, want header only:\n%.200s", filtered, raw)
+	}
+
+	// Column filter via cols=idx=substring.
+	resp, err = client.Get(srv.URL + "/export/csv?query=register&cols=0%3DZZZNOMATCH9471")
+	if err != nil {
+		t.Fatalf("GET column-filtered download: %v", err)
+	}
+	raw, err = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	colFiltered := strings.Count(strings.TrimRight(string(raw), "\n"), "\n") + 1
+	if colFiltered != 1 {
+		t.Fatalf("column-filtered download has %d lines, want header only:\n%.200s", colFiltered, raw)
+	}
+}

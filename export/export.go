@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gobuffalo/buffalo"
@@ -133,6 +134,84 @@ func writeCSV(w io.Writer, cols []string, rows [][]string) error {
 	return csvWriter.Error()
 }
 
+// ExportFilter captures the search state of the online export view
+// (DataTables global search + per-column filters) so the CSV download can
+// return the same rows the user sees, not the raw query result (#197
+// sub-item 3).
+type ExportFilter struct {
+	Global   string
+	Contains map[int]string // column index -> case-insensitive substring
+}
+
+// FilterFromParams reads the filter state from request params: "q" is the
+// global search, "cols" is a comma-separated list of "idx=substring" pairs
+// (e.g. cols=0=pigeon,3=2026) for per-column filters.
+func FilterFromParams(params buffalo.ParamValues) ExportFilter {
+	f := ExportFilter{Contains: map[int]string{}}
+	f.Global = params.Get("q")
+	if raw := params.Get("cols"); raw != "" {
+		for _, pair := range strings.Split(raw, ",") {
+			kv := strings.SplitN(pair, "=", 2)
+			if len(kv) != 2 || kv[1] == "" {
+				continue
+			}
+			idx, err := strconv.Atoi(kv[0])
+			if err != nil || idx < 0 {
+				continue
+			}
+			f.Contains[idx] = kv[1]
+		}
+	}
+	return f
+}
+
+// Empty reports whether the filter is a no-op.
+func (f ExportFilter) Empty() bool {
+	return f.Global == "" && len(f.Contains) == 0
+}
+
+// matchRow reports whether one row satisfies the global search (any column)
+// and every per-column filter (case-insensitive contains).
+func (f ExportFilter) matchRow(row []string) bool {
+	fold := strings.ToLower
+	if f.Global != "" {
+		hit := false
+		for _, cell := range row {
+			if strings.Contains(fold(cell), fold(f.Global)) {
+				hit = true
+				break
+			}
+		}
+		if !hit {
+			return false
+		}
+	}
+	for idx, want := range f.Contains {
+		if idx < 0 || idx >= len(row) {
+			continue
+		}
+		if !strings.Contains(fold(row[idx]), fold(want)) {
+			return false
+		}
+	}
+	return true
+}
+
+// FilterRows returns the subset of rows matching the filter. When the filter
+// is empty the original slice is returned untouched.
+func FilterRows(rows [][]string, f ExportFilter) [][]string {
+	if f.Empty() {
+		return rows
+	}
+	out := make([][]string, 0, len(rows))
+	for _, row := range rows {
+		if f.matchRow(row) {
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
 	sqlQuery, cols, rows, err := FetchRows(query)
@@ -146,6 +225,10 @@ func RunQuery(c buffalo.Context, query string) error {
 		c.Logger().Debugf("Error running query: %v", err)
 		return err
 	}
+
+	// Honor the filters applied in the online view (#197 sub-item 3):
+	// the download must match what the user sees on /export/view.
+	rows = FilterRows(rows, FilterFromParams(c.Params()))
 
 	c.Response().Header().Add("Content-Type", "text/csv; charset=utf-8")
 	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, sqlQuery.Name))

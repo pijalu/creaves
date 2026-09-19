@@ -140,3 +140,76 @@ func TestGetQuery_OnLoadedConfig(t *testing.T) {
 		assert.Equal(t, "Registre", q.Description)
 	}
 }
+
+// --- #197 sub-item 3: the CSV download must honor the view's filters ---
+
+func TestFilterRows_NoFilterReturnsOriginal(t *testing.T) {
+	rows := [][]string{{"a", "1"}, {"b", "2"}}
+	got := FilterRows(rows, ExportFilter{})
+	assert.Equal(t, rows, got)
+}
+
+func TestFilterRows_GlobalSearch(t *testing.T) {
+	rows := [][]string{
+		{"1862", "Feral Pigeon", "Centre"},
+		{"1861", "Hedgehog", "E"},
+		{"1860", "Feral Pigeon", "Centre"},
+	}
+	f := ExportFilter{Global: "pigeon"}
+	got := FilterRows(rows, f)
+	assert.Len(t, got, 2)
+	assert.Equal(t, rows[0], got[0])
+	assert.Equal(t, rows[2], got[1])
+}
+
+func TestFilterRows_GlobalSearchCaseInsensitive(t *testing.T) {
+	rows := [][]string{{"Feral Pigeon"}, {"Hedgehog"}}
+	got := FilterRows(rows, ExportFilter{Global: "pigeon"})
+	assert.Len(t, got, 1, "lowercase needle matches capitalized cell")
+}
+
+func TestFilterRows_ColumnFilter(t *testing.T) {
+	rows := [][]string{
+		{"1862", "Feral Pigeon", "Centre"},
+		{"1861", "Hedgehog", "E"},
+	}
+	f := ExportFilter{Contains: map[int]string{1: "hedge"}}
+	got := FilterRows(rows, f)
+	assert.Len(t, got, 1)
+	assert.Equal(t, rows[1], got[0])
+}
+
+func TestFilterRows_GlobalAndColumnCombine(t *testing.T) {
+	rows := [][]string{
+		{"1862", "Feral Pigeon", "Centre"},
+		{"1861", "Hedgehog", "E"},
+		{"1860", "Feral Pigeon", "E"},
+	}
+	f := ExportFilter{Global: "pigeon", Contains: map[int]string{2: "centre"}}
+	got := FilterRows(rows, f)
+	assert.Len(t, got, 1)
+	assert.Equal(t, rows[0], got[0])
+}
+
+func TestFilterRows_ColumnIndexOutOfRangeIgnored(t *testing.T) {
+	rows := [][]string{{"a"}}
+	f := ExportFilter{Contains: map[int]string{5: "zzz"}}
+	assert.Len(t, FilterRows(rows, f), 1, "out-of-range column filter is skipped")
+}
+
+func TestFilterFromParams_ParsesQAndCols(t *testing.T) {
+	// minimal ParamValues stand-in: buffalo's default context params
+	f := FilterFromParams(paramsStub{"q": "Pi", "cols": "0=1862,2=Centre,bad=x,3="})
+	assert.Equal(t, "Pi", f.Global)
+	assert.Equal(t, map[int]string{0: "1862", 2: "Centre"}, f.Contains)
+	assert.False(t, f.Empty())
+
+	empty := FilterFromParams(paramsStub{})
+	assert.True(t, empty.Empty())
+}
+
+// paramsStub satisfies the buffalo.ParamValues interface for tests.
+type paramsStub map[string]string
+
+func (p paramsStub) Get(key string) string          { return p[key] }
+func (p paramsStub) Set(key, value string)          { p[key] = value }
