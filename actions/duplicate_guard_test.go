@@ -155,7 +155,7 @@ func TestCareDuplicateGuardFingerprint(t *testing.T) {
 	}
 
 	fp := func(weight, note nulls.String) []interface{} {
-		return []interface{}{care.AnimalID, care.Date, care.TypeID, weight, note, care.Clean, care.InWarning, care.LinkToID}
+		return []interface{}{care.AnimalID, care.Date, care.TypeID, weight, note, care.Clean, care.InWarning, care.LinkToID, care.HeatSource, care.Oxygen}
 	}
 
 	if !recentDuplicateExists(log, tx, &models.Care{}, careFingerprintQuery, fp(nulls.NewString("150"), nulls.NewString("TS note "+fx.marker))...) {

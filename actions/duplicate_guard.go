@@ -48,7 +48,7 @@ const veterinaryvisitFingerprintQuery = "animal_id = ? AND date = ? AND veterina
 
 // careFingerprintQuery returns the fingerprint comparison for a care entry:
 // same animal, date, care type, weight, note, flags and link.
-const careFingerprintQuery = "animal_id = ? AND date = ? AND type_id = ? AND weight <=> ? AND note <=> ? AND clean <=> ? AND in_warning <=> ? AND link_to_id <=> ?"
+const careFingerprintQuery = "animal_id = ? AND date = ? AND type_id = ? AND weight <=> ? AND note <=> ? AND clean <=> ? AND in_warning <=> ? AND link_to_id <=> ? AND heat_source <=> ? AND oxygen = ?"
 
 // duplicateSubmissionRedirect answers a detected double submission: a warning
 // flash plus a redirect to the "back" parameter when present, else the given

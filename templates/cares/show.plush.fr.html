@@ -39,6 +39,20 @@
     <p class="d-inline-block"><%= care.Note %></p>
   </li>
 
+  <%= if (care.HeatSource.Valid && care.HeatSource.String != "") { %>
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Source de chaleur</label>
+    <p class="d-inline-block"><%= care.HeatSource.String %></p>
+  </li>
+  <% } %>
+
+  <%= if (care.Oxygen) { %>
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Oxygène</label>
+    <i class="fa fa-check" aria-hidden="true"></i>
+  </li>
+  <% } %>
+
   <li class="list-group-item pb-1">
     <label class="small d-block">Cage propre</label>
     <%= if (care.Clean.Value() == true) { %>

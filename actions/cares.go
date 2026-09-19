@@ -178,6 +178,9 @@ func (v CaresResource) New(c buffalo.Context) error {
 		Date: time.Now(),
 	}
 	c.Set("care", care)
+	// Defaults so the plush form partial always sees the identifiers.
+	c.Set("previousWeight", "")
+	c.Set("suiviCareTypeID", "")
 
 	animalYearNumber := c.Param("animal_year_number")
 	cageNumber := c.Param("cage")
@@ -259,6 +262,20 @@ func (v CaresResource) New(c buffalo.Context) error {
 
 		care.Animal = *animal
 		care.AnimalID = animal.ID
+
+		// ±10% weight warning support (issue #158): latest known weight
+		// before this care. Plain string for the template: plush prints a
+		// bare nulls.String context value as empty.
+		pw := previousCareWeight(tx, animal.ID, care.Date, nulls.UUID{})
+		if pw.Valid {
+			c.Set("previousWeight", pw.String)
+		}
+	}
+	// Note templates UI only applies to "suivi" cares (issue #158).
+	if tx, ok := c.Value("tx").(*pop.Connection); ok {
+		if sid, ok := suiviCareTypeID(tx); ok {
+			c.Set("suiviCareTypeID", sid.String())
+		}
 	}
 	return c.Render(http.StatusOK, r.HTML("/cares/new.plush.html"))
 }
@@ -318,7 +335,7 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			// Duplicate submission guard (issue #100): skip a care identical
 			// to one created moments ago for this animal.
 			if recentDuplicateExists(c.Logger(), tx, &models.Care{}, careFingerprintQuery,
-				care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID) {
+				care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID, care.HeatSource, care.Oxygen) {
 				c.Logger().Warnf("Duplicate submission guard: skipping care already recorded for animal %d", care.AnimalID)
 				continue
 			}
@@ -330,6 +347,8 @@ func (v CaresResource) Create(c buffalo.Context) error {
 				break
 			}
 			created++
+			// Heat source / O2 fields used → automatic "Soin" care (issue #158).
+			createAutoSupportCare(c, tx, care)
 			// Audit log: care creation for this animal (best effort)
 			auditAnimalChange(c, tx, a.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
@@ -338,7 +357,7 @@ func (v CaresResource) Create(c buffalo.Context) error {
 		// moments ago means the form was double-submitted. Redirect instead
 		// of creating a duplicate.
 		if recentDuplicateExists(c.Logger(), tx, &models.Care{}, careFingerprintQuery,
-			care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID) {
+			care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID, care.HeatSource, care.Oxygen) {
 			return duplicateSubmissionRedirect(c, "care.duplicate.prevented", "/animals/%v/#nav-care", care.AnimalID)
 		}
 		// Validate the data from the html form
@@ -347,6 +366,8 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			return err
 		}
 		if !verrs.HasAny() {
+			// Heat source / O2 fields used → automatic "Soin" care (issue #158).
+			createAutoSupportCare(c, tx, care)
 			// Audit log: care creation (best effort)
 			auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
@@ -403,6 +424,9 @@ func (v CaresResource) Edit(c buffalo.Context) error {
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
+	// Defaults so the plush form partial always sees the identifiers.
+	c.Set("previousWeight", "")
+	c.Set("suiviCareTypeID", "")
 
 	// Set care type
 	ct, err := caretypes(c)
@@ -419,6 +443,15 @@ func (v CaresResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("care", care)
+	// ±10% weight warning support (issue #158). Plain string for the
+	// template: plush prints a bare nulls.String context value as empty.
+	if pw := previousCareWeight(tx, care.AnimalID, care.Date, nulls.NewUUID(care.ID)); pw.Valid {
+		c.Set("previousWeight", pw.String)
+	}
+	// Note templates UI only applies to "suivi" cares (issue #158).
+	if sid, ok := suiviCareTypeID(tx); ok {
+		c.Set("suiviCareTypeID", sid.String())
+	}
 
 	return c.Render(http.StatusOK, r.HTML("/cares/edit.plush.html"))
 }
@@ -474,6 +507,12 @@ func (v CaresResource) Update(c buffalo.Context) error {
 		}).Wants("xml", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
 		}).Respond(c)
+	}
+
+	// Heat source / O2 fields changed → automatic "Soin" care (issue #158).
+	if careNeedsSupportCare(care) &&
+		(oldCare.HeatSource != care.HeatSource || oldCare.Oxygen != care.Oxygen) {
+		createAutoSupportCare(c, tx, care)
 	}
 
 	// Audit log: care update (best effort)

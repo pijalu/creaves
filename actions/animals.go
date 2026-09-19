@@ -526,6 +526,9 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 				return err
 			}
 		}
+		// Care tab display annotations: weight trend colors, day-group
+		// borders, today highlight (issue #158).
+		models.AnnotateCaresForDisplay(animal.Cares, time.Now())
 
 		// Full (host-aware) guest form URL shown under the QR code in the
 		// show view: same scheme+host as the page itself.

@@ -293,6 +293,11 @@
     </div>
     <br/>
     <% } %>
+    <style>
+      tr.care-today td { background-color: #fff8e1; }
+      tr.care-day-start td { border-top: 2px solid #868e96; }
+      tr.care-day-end td { border-bottom: 2px solid #868e96; }
+    </style>
     <table class="table table-hover table-bordered"
       data-pagination="true"
       data-toggle="table"
@@ -317,10 +322,21 @@
             <% } else if (care.Type.ResetWarning) { %>
               table-success
             <% }%>
+            <%= if (care.IsToday) { %>care-today<% } %>
+            <%= if (care.DayGroupStart) { %>care-day-start<% } %>
+            <%= if (care.DayGroupEnd) { %>care-day-end<% } %>
             ">
             <td class="align-middle"><%= care.DateFormated() %></td>
-            <td class="align-middle"><%= care.Weight %></td>
-            <td class="align-middle"><%= care.Note %></td>
+            <td class="align-middle"><span class="<%= care.WeightTrendClass() %>"><%= care.Weight %></span></td>
+            <td class="align-middle">
+              <%= care.Note %>
+              <%= if (care.HeatSource.Valid && care.HeatSource.String != "") { %>
+                <span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> <%= care.HeatSource.String %></span>
+              <% } %>
+              <%= if (care.Oxygen) { %>
+                <span class="badge badge-pill badge-info">O<sub>2</sub></span>
+              <% } %>
+            </td>
             <td class="align-middle">
               <%= if (care.Clean.Value()==true) { %>
                 <i class="fa fa-check" aria-hidden="true"></i>

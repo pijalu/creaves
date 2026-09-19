@@ -20,12 +20,105 @@
 
 <%= f.InputTag("Weight", {label:"Gewicht (Gramm)", type:"number"}) %>
 
+<%= f.InputTag("HeatSource", {label:"Wärmequelle"}) %>
+
+<%= f.CheckboxTag("Oxygen", {unchecked: false, label:"O2"}) %>
+
 <%= f.CheckboxTag("Clean", {unchecked: false, label:"Käfig gereinigt"}) %>
 
 <%= f.TextAreaTag("Note", {rows: 5}) %>
+
+<div class="form-group d-none" id="careTemplateRow">
+  <label for="careTemplateSelect">Notizvorlage</label>
+  <div class="input-group">
+    <select class="form-control" id="careTemplateSelect"><option value=""></option></select>
+    <div class="input-group-append">
+      <button type="button" class="btn btn-outline-secondary" id="careTemplateInsert">Einfügen</button>
+      <button type="button" class="btn btn-outline-success" id="careTemplateSave">Als Vorlage speichern</button>
+      <button type="button" class="btn btn-outline-danger" id="careTemplateDelete">Löschen</button>
+    </div>
+  </div>
+</div>
+
 <button class="btn btn-success" role="submit">Speichern</button>
 <script type="text/javascript">
 $( document ).ready(function(){
+    var csrfToken = $('meta[name="csrf-token"]').attr('content');
+    var suiviTypeId = '<%= suiviCareTypeID %>';
+    var prevWeight = '<%= previousWeight %>';
+
+    // Heat source autosuggest from recorded cares (issue #158)
+    $('input[name="HeatSource"]').autoComplete({
+        delay: 250,
+        minChars: 0,
+        cache: 0,
+        source: function(term, response){
+            $.getJSON('/suggestions/heat_source', { q: term }, function(data){ response(data); });
+        }
+    });
+
+    // ---- Note templates, "suivi" cares only (issue #158) ----
+    var $row = $('#careTemplateRow');
+    var $sel = $('#careTemplateSelect');
+
+    function refreshTemplates() {
+        $.getJSON('/care_templates', function(data){
+            $sel.find('option:not(:first)').remove();
+            $.each(data, function(i, t){
+                $sel.append($('<option>', { value: t.id, text: t.name, 'data-content': t.content }));
+            });
+        });
+    }
+
+    function toggleTemplateRow() {
+        if (suiviTypeId && $('#care-TypeID').val() === suiviTypeId) { $row.removeClass('d-none'); }
+        else { $row.addClass('d-none'); }
+    }
+    $('#care-TypeID').on('change', toggleTemplateRow);
+    toggleTemplateRow();
+    refreshTemplates();
+
+    $('#careTemplateInsert').on('click', function(){
+        var content = $sel.find('option:selected').data('content');
+        if (content) { $('#care-Note').val(content); }
+    });
+
+    $('#careTemplateSave').on('click', function(){
+        var content = $('#care-Note').val();
+        if (!content) { return; }
+        var name = window.prompt('Vorlagenname');
+        if (!name) { return; }
+        $.ajax({
+            url: '/care_templates',
+            method: 'POST',
+            data: { Name: name, Content: content },
+            headers: { 'X-CSRF-Token': csrfToken }
+        }).done(function(){ refreshTemplates(); });
+    });
+
+    $('#careTemplateDelete').on('click', function(){
+        var id = $sel.val();
+        if (!id) { return; }
+        $.ajax({
+            url: '/care_templates/' + id + '/delete',
+            method: 'POST',
+            headers: { 'X-CSRF-Token': csrfToken }
+        }).done(function(){ refreshTemplates(); });
+    });
+
+    // ---- ±10% weight deviation warning (issue #158) ----
+    $('form').on('submit', function(e){
+        var w = parseFloat(String($('input[name="Weight"]').val()).replace(',', '.'));
+        var p = parseFloat(String(prevWeight).replace(',', '.'));
+        if (!isNaN(w) && !isNaN(p) && p > 0) {
+            if (Math.abs(w - p) / p > 0.10 && !confirm('Das eingegebene Gewicht weicht um mehr als 10% vom vorherigen Gewicht ab (' + p + ' g). Fortfahren?')) {
+                e.preventDefault();
+                var f = this;
+                setTimeout(function(){ $(f).find(':submit').prop('disabled', false); }, 0);
+            }
+        }
+    });
+
     window.submitfix();
 })
 </script>

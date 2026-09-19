@@ -1,0 +1,2 @@
+remove_column("cares", "oxygen")
+remove_column("cares", "heat_source")
