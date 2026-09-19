@@ -57,8 +57,8 @@ const careFingerprintQuery = "animal_id = ? AND date = ? AND type_id = ? AND wei
 func duplicateSubmissionRedirect(c buffalo.Context, i18nKey, redirectFormat string, redirectArgs ...interface{}) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Flash().Add("warning", T.Translate(c, i18nKey))
-		if len(c.Param("back")) > 0 {
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+		if back := safeBackParam(c); back != "/" {
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		return c.Redirect(http.StatusSeeOther, redirectFormat, redirectArgs...)
 	}).Wants("json", func(c buffalo.Context) error {

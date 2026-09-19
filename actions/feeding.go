@@ -270,8 +270,8 @@ func FeedingClose(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", T.Translate(c, "feeding.close.success"))
-	if len(c.Param("back")) > 0 {
-		return c.Redirect(http.StatusSeeOther, c.Param("back"))
+	if back := safeBackParam(c); back != "/" {
+		return c.Redirect(http.StatusSeeOther, back)
 	}
 	return c.Redirect(http.StatusSeeOther, "/feeding")
 }

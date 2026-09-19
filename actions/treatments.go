@@ -320,9 +320,9 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "treatment.created.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// and redirect to the animal page
 		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
@@ -429,9 +429,9 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "treatment.updated.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/treatments/%v", treatment.ID)
@@ -469,9 +469,9 @@ func (v TreatmentsResource) Destroy(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
 		c.Flash().Add("success", T.Translate(c, "treatment.destroyed.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// Redirect to the index page
 		return c.Redirect(http.StatusSeeOther, "/treatments")

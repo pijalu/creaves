@@ -228,9 +228,9 @@ func (v VeterinaryvisitsResource) Create(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.created.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// and redirect to the animal page
 		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-vet", veterinaryvisit.AnimalID)
@@ -317,9 +317,9 @@ func (v VeterinaryvisitsResource) Update(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a success message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.updated.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// and redirect to the show page
 		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits/%v", veterinaryvisit.ID)
@@ -362,9 +362,9 @@ func (v VeterinaryvisitsResource) Destroy(c buffalo.Context) error {
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
 		c.Flash().Add("success", T.Translate(c, "veterinaryvisit.destroyed.success"))
-		if len(c.Param("back")) > 0 {
+		if back := safeBackParam(c); back != "/" {
 			// and redirect to the show page
-			return c.Redirect(http.StatusSeeOther, c.Param("back"))
+			return c.Redirect(http.StatusSeeOther, back)
 		}
 		// Redirect to the index page
 		return c.Redirect(http.StatusSeeOther, "/veterinaryvisits")

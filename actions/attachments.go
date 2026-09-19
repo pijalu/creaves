@@ -243,9 +243,10 @@ func AttachmentsDestroy(c buffalo.Context) error {
 	return c.Redirect(http.StatusSeeOther, attachmentsRedirectURL(c, a.AnimalID))
 }
 
-// attachmentsRedirectURL builds the post-action redirect (honors back=).
+// attachmentsRedirectURL builds the post-action redirect (honors back=,
+// filtered to local paths — BUG-R5).
 func attachmentsRedirectURL(c buffalo.Context, animalID int) string {
-	if back := c.Param("back"); back != "" {
+	if back := safeBackParam(c); back != "/" {
 		return back
 	}
 	return "/animals/" + strconv.Itoa(animalID) + "#nav-media"

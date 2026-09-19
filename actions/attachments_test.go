@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -381,4 +382,36 @@ func TestAnimalDestroyRemovesAttachmentsR2(t *testing.T) {
 	require.NoError(t, err)
 	resp3.Body.Close()
 	require.Equal(t, http.StatusNotFound, resp3.StatusCode)
+}
+
+// TestAttachmentsRedirectBackParamSafeR5 pins BUG-R5: a hostile back= param
+// must not be honored — redirects stay on local paths.
+func TestAttachmentsRedirectBackParamSafeR5(t *testing.T) {
+	tx := searchTestDB(t)
+	fx := createAnimalSearchFixtures(t, tx)
+	attTCleanup(t, fx.animalC)
+
+	adminLogin, _ := feedingGuideUser(t, true)
+	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+
+	for _, evil := range []string{"https://evil.example/phish", "//evil.example/phish"} {
+		var buf bytes.Buffer
+		w := multipart.NewWriter(&buf)
+		fw, err := w.CreateFormFile("file", "x.png")
+		require.NoError(t, err)
+		_, err = fw.Write(attTPng())
+		require.NoError(t, err)
+		require.NoError(t, w.Close())
+
+		req, err := http.NewRequest("POST", adminBase+"/animals/"+strconv.Itoa(fx.animalC)+"/attachments?back="+url.QueryEscape(evil), &buf)
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", w.FormDataContentType())
+		resp, err := adminClient.Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+		require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		loc := resp.Header.Get("Location")
+		require.True(t, strings.HasPrefix(loc, "/") && !strings.HasPrefix(loc, "//"),
+			"back=%q must not redirect off-site, got Location %q", evil, loc)
+	}
 }
