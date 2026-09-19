@@ -206,8 +206,8 @@
     <th><a class="text-body" href="<%= sortLink("species") %>">Soort <%= sortIcon("species") %></a></th>
     <th><a class="text-body" href="<%= sortLink("age") %>">Leeftijd <%= sortIcon("age") %></a></th>
     <th><a class="text-body" href="<%= sortLink("identification") %>">Identificatie <%= sortIcon("identification") %></a></th>
-    <th>Behandelingen</th>
-    <th title="Gedwongen voeding">GV</th>
+    <th>Reden van binnenkomst</th>
+    <th>Uitgangsstatus</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -238,60 +238,10 @@
         </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><%= animal.Ring %></td>   
+        <td class="align-middle"><%= animal.Discovery.EntryCauseID %></td>
         <td class="align-middle">
-          <% 
-              let stat = animal.Treatments.TodayStatitics()
-              let morning = stat.Morning
-              let noon = stat.Noon 
-              let evening = stat.Evening
-          %>
-          <p style="white-space: nowrap;">
-            <%= if (!morning.Valid) { %>                          
-              <i class="fas fa-minus" title="'s Ochtends niet vereist"></i>
-            <% } else if (morning.Bool) {%>
-              <span style="color:green;" title="'s Ochtends gedaan">
-                <%= contentOf("morningSVG") %>
-              </span>
-            <% } else { %>
-              <span style="color:orange;" title="'s Ochtends te doen">
-                <%= contentOf("morningSVG") %>
-              </span>
-            <% }%>
-            
-            &nbsp;
-
-            <%= if (!noon.Valid) { %>
-              <i class="fas fa-minus" title="'s Middags niet vereist"></i>
-            <% } else if (noon.Bool) {%>
-              <span style="color:green;" title="'s Middags gedaan">
-                <%= contentOf("noonSVG") %>
-              </span>
-            <% } else { %>
-              <span style="color:orange;" title="'s Middags te doen">
-                <%= contentOf("noonSVG") %>
-              </span>
-            <% }%>
-
-            &nbsp;
-
-            <%= if (!evening.Valid) { %>
-              <i class="fas fa-minus" title="'s Avonds niet vereist"></i>
-            <% } else if (evening.Bool) {%>
-              <span style="color:green;" title="'s Avonds gedaan">
-                <%= contentOf("eveningSVG") %>
-              </span>
-            <% } else { %>
-              <span style="color:orange;" title="'s Avonds te doen">
-                <%= contentOf("eveningSVG") %>
-              </span>
-            <% }%>
-          </p>
-        </td>
-        <td>
-          <%= if (animal.ForceFeed) {%>
-            <i class="fa fa-check"></i>
-          <% } else { %>
-            <i class="fa fa-times"></i>
+          <%= if (animal.Outtake != nil) { %>
+            <%= animal.Outtake.Type.Rating %>
           <% } %>
         </td>
         <td>
