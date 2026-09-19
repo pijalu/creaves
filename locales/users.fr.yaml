@@ -4,3 +4,5 @@
   translation: "l'utilisateur a été mis à jour avec succès."
 - id: "user.destroyed.success"
   translation: "l'utilisateur a été détruit avec succès."
+- id: "users.role.denied"
+  translation: "Le rôle de votre compte ne permet pas cette action."

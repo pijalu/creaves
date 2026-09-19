@@ -4,3 +4,5 @@
   translation: "Benutzer wurde erfolgreich aktualisiert."
 - id: "user.destroyed.success"
   translation: "Benutzer wurde erfolgreich gelöscht."
+- id: "users.role.denied"
+  translation: "Die Rolle Ihres Kontos erlaubt diese Aktion nicht."

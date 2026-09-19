@@ -4,3 +4,28 @@
 <% } %>
 <%= f.CheckboxTag("Approved", {unchecked: false}) %>
 <%= f.CheckboxTag("Shared", {unchecked: false}) %>
+
+<div class="form-group">
+  <label class="control-label" for="Role">Account role</label>
+  <select name="Role" id="Role" class="form-control custom-select">
+    <option value="" <%= if (user.Role == "") { %> selected<% } %>>Utilisateur</option>
+    <option value="lecteur" <%= if (user.Role == "lecteur") { %> selected<% } %>>Lecteur</option>
+    <option value="scientifique" <%= if (user.Role == "scientifique") { %> selected<% } %>>Scientifique (U Liège, DEMNA)</option>
+    <option value="spw" <%= if (user.Role == "spw") { %> selected<% } %>>SPW</option>
+  </select>
+  <small class="form-text text-muted">Lecteur: view-only &middot; Scientifique: view + vet visits &middot; SPW: read-only pages</small>
+</div>
+
+<strong>Volunteer roles</strong>
+<%= f.CheckboxTag("FosterFamily", {label: "Foster family", unchecked: false}) %>
+<%= f.CheckboxTag("Transporter", {label: "Transporter", unchecked: false}) %>
+<%= f.CheckboxTag("BoardMember", {label: "Board member", unchecked: false}) %>
+<%= f.CheckboxTag("Committee", {label: "Committee", unchecked: false}) %>
+<%= f.CheckboxTag("Coordinator", {label: "Coordinator", unchecked: false}) %>
+<%= f.CheckboxTag("Veterinarian", {label: "Veterinarian", unchecked: false}) %>
+<%= f.CheckboxTag("Referent", {label: "Referent", unchecked: false}) %>
+<%= f.CheckboxTag("TeamLeader", {label: "Team leader", unchecked: false}) %>
+<%= f.CheckboxTag("Caregiver", {label: "Caregiver", unchecked: false}) %>
+<%= f.CheckboxTag("CareAssistant", {label: "Care assistant", unchecked: false}) %>
+<%= f.CheckboxTag("Helper", {label: "Helper", unchecked: false}) %>
+<%= f.TextAreaTag("Remark", {label: "Remark", rows: 2}) %>

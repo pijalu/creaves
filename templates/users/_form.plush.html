@@ -1,4 +1,11 @@
 <%= f.InputTag("Login") %>
+<%= f.InputTag("FirstName", {label: "First name"}) %>
+<%= f.InputTag("LastName", {label: "Last name"}) %>
+<%= f.InputTag("Address", {label: "Address"}) %>
+<%= f.InputTag("PostalCode", {label: "Postal code"}) %>
+<%= f.InputTag("City", {label: "City"}) %>
+<%= f.InputTag("Email", {label: "Email", type: "email"}) %>
+<%= f.InputTag("Phone", {label: "Phone"}) %>
 <%= f.InputTag("Password", {type: "password"}) %>
 <%= f.InputTag("PasswordConfirmation", {type: "password"}) %>
 <%= if (current_user.Admin) { %>

@@ -4,3 +4,5 @@
   translation: "Gebruiker is succesvol bijgewerkt."
 - id: "user.destroyed.success"
   translation: "Gebruiker is succesvol verwijderd."
+- id: "users.role.denied"
+  translation: "De rol van uw account staat deze actie niet toe."

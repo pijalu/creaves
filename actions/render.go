@@ -117,6 +117,7 @@ func init() {
 			"langLinksAll": langLinksAll,
 			"sortLink":     sortLink,
 			"sortIcon":     sortIcon,
+			"userRoleName": userRoleName,
 			"bool2html": func(s bool) string {
 				if s {
 					return "✓"

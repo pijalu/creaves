@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
@@ -25,8 +26,75 @@ type User struct {
 	Shared       bool      `json:"-" db:"shared"`
 	PasswordHash string    `json:"-" db:"password_hash"`
 
+	// Account role for restricted profiles (issue #107). Empty = regular
+	// user (full read/write for non-admins, as before).
+	Role string `json:"role" db:"role"`
+
+	// Volunteer management columns (issue #107). Contact fields are
+	// editable by the user and admins; flags + remark are admin-only.
+	FirstName  string `json:"first_name" db:"first_name"`
+	LastName   string `json:"last_name" db:"last_name"`
+	Address    string `json:"address" db:"address"`
+	PostalCode string `json:"postal_code" db:"postal_code"`
+	City       string `json:"city" db:"city"`
+	Email      string `json:"email" db:"email"`
+	Phone      string `json:"phone" db:"phone"`
+
+	FosterFamily  bool `json:"foster_family" db:"foster_family"`
+	Transporter   bool `json:"transporter" db:"transporter"`
+	BoardMember   bool `json:"board_member" db:"board_member"`
+	Committee     bool `json:"committee" db:"committee"`
+	Coordinator   bool `json:"coordinator" db:"coordinator"`
+	Veterinarian  bool `json:"veterinarian" db:"veterinarian"`
+	Referent      bool `json:"referent" db:"referent"`
+	TeamLeader    bool `json:"team_leader" db:"team_leader"`
+	Caregiver     bool `json:"caregiver" db:"caregiver"`
+	CareAssistant bool `json:"care_assistant" db:"care_assistant"`
+	Helper        bool `json:"helper" db:"helper"`
+
+	Remark nulls.String `json:"remark" db:"remark"`
+
 	Password             string `json:"-" db:"-"`
 	PasswordConfirmation string `json:"-" db:"-"`
+}
+
+// Account roles (issue #107).
+const (
+	UserRoleRegular   = ""             // default: full user rights
+	UserRoleReader    = "lecteur"      // view-only everywhere, own account
+	UserRoleScientist = "scientifique" // view all animal tabs (don hidden), reports, animals; vet visits only
+	UserRoleSPW       = "spw"          // view general/discovery/intake/outtake tabs, reports, animals, users; own account only
+)
+
+// Role display names for the admin UI.
+var UserRoleNames = map[string]string{
+	UserRoleRegular:   "Utilisateur",
+	UserRoleReader:    "Lecteur",
+	UserRoleScientist: "Scientifique (U Liège, DEMNA)",
+	UserRoleSPW:       "SPW",
+}
+
+// IsReader reports whether the account is the read-only "Lecteur" role.
+func (u *User) IsReader() bool { return u.Role == UserRoleReader }
+
+// IsScientist reports whether the account is the "Scientifique" role
+// (U Liège / DEMNA).
+func (u *User) IsScientist() bool { return u.Role == UserRoleScientist }
+
+// IsSPW reports whether the account is the restricted "SPW" role.
+func (u *User) IsSPW() bool { return u.Role == UserRoleSPW }
+
+// IsRestricted reports whether the account has a limited role (anything but
+// a regular user/admin).
+func (u *User) IsRestricted() bool { return u.Role != UserRoleRegular }
+
+// DisplayName returns the volunteer name when known, the login otherwise.
+func (u *User) DisplayName() string {
+	name := strings.TrimSpace(u.FirstName + " " + u.LastName)
+	if name == "" {
+		return u.Login
+	}
+	return name
 }
 
 // SetPasswordHash update password hash based on password

@@ -2,14 +2,16 @@
   <h3 class="d-inline-block">Gebruikersdetails</h3>
 
   <div class="float-right">
-    <%= if (current_user.Admin) {%>
+    <%= if (current_user.Admin || current_user.IsSPW()) {%>
     <%= linkTo(usersPath(), {class: "btn btn-info"}) { %>
       Terug naar alle gebruikers
     <% } %>
     <%} %>
+    <%= if (current_user.Admin || current_user.ID.String() == user.ID.String()) {%>
     <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+    <% } %>
     <%= if (current_user.Admin) {%>
-    <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Bent u zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
   </div>
 </div>
@@ -25,7 +27,32 @@
   </li>
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Admin</label>
+    <label class="small d-block">Naam</label>
+    <p class="d-inline-block"><%= user.DisplayName() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Adres</label>
+    <p class="d-inline-block"><%= user.Address %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Postcode / Stad</label>
+    <p class="d-inline-block"><%= user.PostalCode %> <%= user.City %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">E-mail</label>
+    <p class="d-inline-block"><%= user.Email %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Telefoon</label>
+    <p class="d-inline-block"><%= user.Phone %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Administrator</label>
     <p class="d-inline-block"><%= user.Admin %></p>
   </li>
 
@@ -35,8 +62,37 @@
   </li>
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Gedeeld</label>
+    <label class="small d-block">Gedeeld account</label>
     <p class="d-inline-block"><%= user.Shared %></p>
   </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Accountrol</label>
+    <p class="d-inline-block"><%= userRoleName(user.Role) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Vrijwilligersrollen</label>
+    <p class="d-inline-block mb-0">
+      <span class="mr-2 <%= if (user.FosterFamily) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.FosterFamily) %> Pleeggezin</span>
+      <span class="mr-2 <%= if (user.Transporter) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Transporter) %> Transporteur</span>
+      <span class="mr-2 <%= if (user.BoardMember) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.BoardMember) %> Bestuurslid</span>
+      <span class="mr-2 <%= if (user.Committee) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Committee) %> Comité</span>
+      <span class="mr-2 <%= if (user.Coordinator) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Coordinator) %> Coördinator</span>
+      <span class="mr-2 <%= if (user.Veterinarian) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Veterinarian) %> Dierenarts</span>
+      <span class="mr-2 <%= if (user.Referent) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Referent) %> Referent</span>
+      <span class="mr-2 <%= if (user.TeamLeader) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.TeamLeader) %> Teamleider</span>
+      <span class="mr-2 <%= if (user.Caregiver) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Caregiver) %> Verzorger</span>
+      <span class="mr-2 <%= if (user.CareAssistant) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.CareAssistant) %> Hulpverzorger</span>
+      <span class="mr-2 <%= if (user.Helper) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Helper) %> Helper</span>
+    </p>
+  </li>
+
+  <%= if (user.Remark.Valid) { %>
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Opmerking</label>
+    <p class="d-inline-block"><%= user.Remark.String %></p>
+  </li>
+  <% } %>
 
 </ul>

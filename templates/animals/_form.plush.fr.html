@@ -377,7 +377,9 @@ $( document ).ready(function(){
 
 
       <div class="form-row">
+          <%= if (!current_user.IsRestricted()) { %>
           <%= f.InputTag("Discovery.Discoverer.Donation", {bootstrap:{form-group-class:"form-group col-md-12"}, label:"Don"}) %>
+          <% } %>
       </div>
 
       <div class="form-row">

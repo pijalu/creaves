@@ -80,6 +80,9 @@ func App() *buffalo.App {
 		//AuthMiddlewares
 		app.Use(SetCurrentUser)
 		app.Use(Authorize)
+		// Restricted roles (lecteur / scientifique / spw) get a whitelist
+		// guard on every route below (issue #107).
+		app.Use(RoleGuard)
 		app.GET("/paths", PathHandler)
 		app.GET("/webhook_resync", WebhookResyncIndex)
 		app.POST("/webhook_resync/start", WebhookResyncStart)
@@ -93,18 +96,23 @@ func App() *buffalo.App {
 		auth.POST("/", AuthCreate)
 		auth.DELETE("/", AuthDestroy)
 		auth.Middleware.Skip(Authorize, AuthLanding, AuthNew, AuthCreate)
+		// Login/logout must stay reachable for restricted roles (issue #107):
+		// account switching would otherwise be impossible.
+		auth.Middleware.Remove(RoleGuard)
 
 		//Routes for languages
 		language := app.Group("/lang")
 		language.GET("/", SwitchLanguage)
 		language.POST("/", SwitchLanguagePost)
 		language.Middleware.Remove(Authorize)
+		language.Middleware.Remove(RoleGuard)
 
 		//Routes for User registration
 		registrations := app.Group("/registration")
 		registrations.GET("/new", UsersNew)
 		registrations.POST("/", UsersCreate)
 		registrations.Middleware.Remove(Authorize)
+		registrations.Middleware.Remove(RoleGuard)
 
 		// Public guest status view (phone-verified, see actions/guest.go)
 		guest := app.Group("/guest")

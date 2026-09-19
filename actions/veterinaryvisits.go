@@ -146,8 +146,12 @@ func (v VeterinaryvisitsResource) New(c buffalo.Context) error {
 			errCode = http.StatusNotFound
 		}
 		if animal.OuttakeID.Valid {
-			c.Flash().Add("danger", T.Translate(c, "veterinaryvisit.animal.outtake.already.exist", data))
-			errCode = http.StatusConflict
+			// Scientists may create vet visits even on outtaken animals
+			// (issue #107); everyone else keeps the refusal.
+			if cu := GetCurrentUser(c); cu == nil || !cu.IsScientist() {
+				c.Flash().Add("danger", T.Translate(c, "veterinaryvisit.animal.outtake.already.exist", data))
+				errCode = http.StatusConflict
+			}
 		}
 
 		if errCode != http.StatusOK {

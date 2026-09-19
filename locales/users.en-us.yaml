@@ -4,3 +4,5 @@
   translation: "User was successfully updated."
 - id: "user.destroyed.success"
   translation: "User was successfully destroyed."
+- id: "users.role.denied"
+  translation: "Your account role does not allow this action."

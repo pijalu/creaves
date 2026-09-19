@@ -1,15 +1,31 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Gebruikers</h3>
+  <%= if (current_user.Admin) { %>
   <div class="float-right">
     <%= linkTo(newUsersPath(), {class: "btn btn-primary"}) { %>
-      Nieuwe gebruiker aanmaken
+      Nieuwe gebruiker maken
     <% } %>
   </div>
+  <% } %>
 </div>
+
+<form method="get" action="<%= usersPath() %>" class="form-inline mb-2">
+  <input type="hidden" name="sort" value="<%= curSort %>">
+  <input type="hidden" name="dir" value="<%= curDir %>">
+  <input type="text" name="q" value="<%= searchQ %>" class="form-control mr-sm-2" placeholder="Zoek op login, naam, e-mail, stad…">
+  <button type="submit" class="btn btn-outline-primary">Zoeken</button>
+  <%= if (searchQ != "") { %>
+    <a class="btn btn-outline-secondary ml-1" href="<%= usersPath() %>">Wissen</a>
+  <% } %>
+</form>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>login</th>
+    <th><a class="text-body" href="<%= sortLink("name") %>">Naam <%= sortIcon("name") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("login") %>">login <%= sortIcon("login") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("email") %>">E-mail <%= sortIcon("email") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("city") %>">Stad <%= sortIcon("city") %></a></th>
+    <th>Rol</th>
     <th>Goedgekeurd</th>
     <th>Admin</th>
     <th>Gedeeld</th>
@@ -18,15 +34,21 @@
   <tbody>
     <%= for (user) in users { %>
       <tr>
+        <td class="align-middle"><%= user.DisplayName() %></td>
         <td class="align-middle"><%= user.Login %></td>
-        <td class="align-middle"><%= user.Approved %></td>
-        <td class="align-middle"><%= user.Admin %></td>
-        <td class="align-middle"><%= user.Shared %></td>
+        <td class="align-middle"><%= user.Email %></td>
+        <td class="align-middle"><%= user.City %></td>
+        <td class="align-middle"><%= userRoleName(user.Role) %></td>
+        <td class="align-middle text-center"><%= bool2html(user.Approved) %></td>
+        <td class="align-middle text-center"><%= bool2html(user.Admin) %></td>
+        <td class="align-middle text-center"><%= bool2html(user.Shared) %></td>
         <td>
           <div class="float-right">
             <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (current_user.Admin) { %>
             <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Weet u het zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Bent u zeker?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
           </div>
         </td>
       </tr>

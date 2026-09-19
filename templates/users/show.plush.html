@@ -2,12 +2,14 @@
   <h3 class="d-inline-block">User Details</h3>
 
   <div class="float-right">
-    <%= if (current_user.Admin) {%>
+    <%= if (current_user.Admin || current_user.IsSPW()) {%>
     <%= linkTo(usersPath(), {class: "btn btn-info"}) { %>
       Back to all Users
     <% } %>
     <%} %>
+    <%= if (current_user.Admin || current_user.ID.String() == user.ID.String()) {%>
     <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+    <% } %>
     <%= if (current_user.Admin) {%>
     <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
@@ -25,6 +27,31 @@
   </li>
 
   <li class="list-group-item pb-1">
+    <label class="small d-block">Name</label>
+    <p class="d-inline-block"><%= user.DisplayName() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Address</label>
+    <p class="d-inline-block"><%= user.Address %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Postal code / City</label>
+    <p class="d-inline-block"><%= user.PostalCode %> <%= user.City %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Email</label>
+    <p class="d-inline-block"><%= user.Email %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Phone</label>
+    <p class="d-inline-block"><%= user.Phone %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
     <label class="small d-block">Admin</label>
     <p class="d-inline-block"><%= user.Admin %></p>
   </li>
@@ -38,5 +65,34 @@
     <label class="small d-block">Shared</label>
     <p class="d-inline-block"><%= user.Shared %></p>
   </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Account role</label>
+    <p class="d-inline-block"><%= userRoleName(user.Role) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Volunteer roles</label>
+    <p class="d-inline-block mb-0">
+      <span class="mr-2 <%= if (user.FosterFamily) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.FosterFamily) %> Foster family</span>
+      <span class="mr-2 <%= if (user.Transporter) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Transporter) %> Transporter</span>
+      <span class="mr-2 <%= if (user.BoardMember) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.BoardMember) %> Board member</span>
+      <span class="mr-2 <%= if (user.Committee) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Committee) %> Committee</span>
+      <span class="mr-2 <%= if (user.Coordinator) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Coordinator) %> Coordinator</span>
+      <span class="mr-2 <%= if (user.Veterinarian) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Veterinarian) %> Veterinarian</span>
+      <span class="mr-2 <%= if (user.Referent) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Referent) %> Referent</span>
+      <span class="mr-2 <%= if (user.TeamLeader) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.TeamLeader) %> Team leader</span>
+      <span class="mr-2 <%= if (user.Caregiver) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Caregiver) %> Caregiver</span>
+      <span class="mr-2 <%= if (user.CareAssistant) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.CareAssistant) %> Care assistant</span>
+      <span class="mr-2 <%= if (user.Helper) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Helper) %> Helper</span>
+    </p>
+  </li>
+
+  <%= if (user.Remark.Valid) { %>
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Remark</label>
+    <p class="d-inline-block"><%= user.Remark.String %></p>
+  </li>
+  <% } %>
 
 </ul>

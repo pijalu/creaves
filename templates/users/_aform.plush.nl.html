@@ -1,3 +1,31 @@
 <%= f.CheckboxTag("Admin", { label:"Administrator", unchecked: false}) %>
+<%= if (current_user.Maintainer) { %>
+  <%= f.CheckboxTag("Maintainer", {unchecked: false}) %>
+<% } %>
 <%= f.CheckboxTag("Approved", {label:"Goedgekeurd", unchecked: false}) %>
 <%= f.CheckboxTag("Shared", { label:"Gedeeld account", unchecked: false}) %>
+
+<div class="form-group">
+  <label class="control-label" for="Role">Accountrol</label>
+  <select name="Role" id="Role" class="form-control custom-select">
+    <option value="" <%= if (user.Role == "") { %> selected<% } %>>Gebruiker</option>
+    <option value="lecteur" <%= if (user.Role == "lecteur") { %> selected<% } %>>Lecteur</option>
+    <option value="scientifique" <%= if (user.Role == "scientifique") { %> selected<% } %>>Scientifique (U Liège, DEMNA)</option>
+    <option value="spw" <%= if (user.Role == "spw") { %> selected<% } %>>SPW</option>
+  </select>
+  <small class="form-text text-muted">Lecteur: alleen lezen &middot; Scientifique: lezen + dierenartsbezoeken &middot; SPW: pagina's alleen lezen</small>
+</div>
+
+<strong>Vrijwilligersrollen</strong>
+<%= f.CheckboxTag("FosterFamily", {label: "Pleeggezin", unchecked: false}) %>
+<%= f.CheckboxTag("Transporter", {label: "Transporteur", unchecked: false}) %>
+<%= f.CheckboxTag("BoardMember", {label: "Bestuurslid", unchecked: false}) %>
+<%= f.CheckboxTag("Committee", {label: "Comité", unchecked: false}) %>
+<%= f.CheckboxTag("Coordinator", {label: "Coördinator", unchecked: false}) %>
+<%= f.CheckboxTag("Veterinarian", {label: "Dierenarts", unchecked: false}) %>
+<%= f.CheckboxTag("Referent", {label: "Referent", unchecked: false}) %>
+<%= f.CheckboxTag("TeamLeader", {label: "Teamleider", unchecked: false}) %>
+<%= f.CheckboxTag("Caregiver", {label: "Verzorger", unchecked: false}) %>
+<%= f.CheckboxTag("CareAssistant", {label: "Hulpverzorger", unchecked: false}) %>
+<%= f.CheckboxTag("Helper", {label: "Helper", unchecked: false}) %>
+<%= f.TextAreaTag("Remark", {label: "Opmerking", rows: 2}) %>

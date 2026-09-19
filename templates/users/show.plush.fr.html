@@ -2,12 +2,14 @@
   <h3 class="d-inline-block">Détails de l'utilisateur</h3>
 
   <div class="float-right">
-    <%= if (current_user.Admin) {%>
+    <%= if (current_user.Admin || current_user.IsSPW()) {%>
     <%= linkTo(usersPath(), {class: "btn btn-info"}) { %>
       Retour à tous les utilisateurs
     <% } %>
     <%} %>
+    <%= if (current_user.Admin || current_user.ID.String() == user.ID.String()) {%>
     <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
+    <% } %>
     <%= if (current_user.Admin) {%>
     <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
@@ -25,6 +27,31 @@
   </li>
 
   <li class="list-group-item pb-1">
+    <label class="small d-block">Nom</label>
+    <p class="d-inline-block"><%= user.DisplayName() %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Adresse</label>
+    <p class="d-inline-block"><%= user.Address %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Code postal / Ville</label>
+    <p class="d-inline-block"><%= user.PostalCode %> <%= user.City %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">E-mail</label>
+    <p class="d-inline-block"><%= user.Email %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Téléphone</label>
+    <p class="d-inline-block"><%= user.Phone %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
     <label class="small d-block">Admin</label>
     <p class="d-inline-block"><%= user.Admin %></p>
   </li>
@@ -39,5 +66,33 @@
     <p class="d-inline-block"><%= user.Shared %></p>
   </li>
 
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Rôle du compte</label>
+    <p class="d-inline-block"><%= userRoleName(user.Role) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Rôles bénévoles</label>
+    <p class="d-inline-block mb-0">
+      <span class="mr-2 <%= if (user.FosterFamily) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.FosterFamily) %> Famille d'accueil</span>
+      <span class="mr-2 <%= if (user.Transporter) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Transporter) %> Transporteur</span>
+      <span class="mr-2 <%= if (user.BoardMember) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.BoardMember) %> Membre du CA</span>
+      <span class="mr-2 <%= if (user.Committee) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Committee) %> Comité</span>
+      <span class="mr-2 <%= if (user.Coordinator) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Coordinator) %> Coordinateur</span>
+      <span class="mr-2 <%= if (user.Veterinarian) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Veterinarian) %> Vétérinaire</span>
+      <span class="mr-2 <%= if (user.Referent) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Referent) %> Référent</span>
+      <span class="mr-2 <%= if (user.TeamLeader) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.TeamLeader) %> Chef d'équipe</span>
+      <span class="mr-2 <%= if (user.Caregiver) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Caregiver) %> Soigneur</span>
+      <span class="mr-2 <%= if (user.CareAssistant) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.CareAssistant) %> Aide-soignant</span>
+      <span class="mr-2 <%= if (user.Helper) { %>text-success<% } else { %>text-muted<% } %>"><%= bool2html(user.Helper) %> Aidant</span>
+    </p>
+  </li>
+
+  <%= if (user.Remark.Valid) { %>
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Remarque</label>
+    <p class="d-inline-block"><%= user.Remark.String %></p>
+  </li>
+  <% } %>
 
 </ul>

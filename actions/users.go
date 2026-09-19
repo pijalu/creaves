@@ -35,6 +35,7 @@ func UsersCreate(c buffalo.Context) error {
 		u.Approved = false
 		u.Shared = false
 		u.Maintainer = false
+		zeroAdminOnlyUserFields(u)
 	}
 	if cu == nil || !cu.Maintainer {
 		u.Maintainer = false
@@ -207,7 +208,9 @@ func (v UsersResource) Create(c buffalo.Context) error {
 // GET /users
 func (v UsersResource) List(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
+	// Admins manage users; SPW accounts have read-only access to the
+	// listing (issue #107).
+	if !cu.Admin && !cu.IsSPW() {
 		c.Logger().Debugf("List user rejected with user %v", cu)
 		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
@@ -223,6 +226,10 @@ func (v UsersResource) List(c buffalo.Context) error {
 	// Default values are "page=1" and "per_page=20".
 	q := tx.PaginateFromParams(c.Params())
 
+	// Search + sort (issue #107): `q` filters login/name/email/city,
+	// `sort`/`dir` pick a whitelisted ORDER BY (default: volunteer name).
+	q = usersListQuery(q, c.Param("q"), c.Param("sort"), c.Param("dir"))
+
 	// Retrieve all Users from the DB
 	if err := q.All(users); err != nil {
 		return err
@@ -233,6 +240,9 @@ func (v UsersResource) List(c buffalo.Context) error {
 		c.Set("pagination", q.Paginator)
 
 		c.Set("users", users)
+		c.Set("searchQ", c.Param("q"))
+		c.Set("curSort", c.Param("sort"))
+		c.Set("curDir", c.Param("dir"))
 		return c.Render(http.StatusOK, r.HTML("/users/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(users))
@@ -245,7 +255,8 @@ func (v UsersResource) List(c buffalo.Context) error {
 // the path GET /users/{user_id}
 func (v UsersResource) Show(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin && cu.ID.String() != c.Param("user_id") {
+	// SPW accounts may view user details read-only (issue #107).
+	if !cu.Admin && !cu.IsSPW() && cu.ID.String() != c.Param("user_id") {
 		c.Logger().Debugf("Show user failed with %v to show user_id %s", cu, c.Param("user_id"))
 		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
 	}
@@ -329,6 +340,10 @@ func (v UsersResource) Update(c buffalo.Context) error {
 	user.Shared = false
 	user.Maintainer = false
 
+	// Snapshot of the persisted row for field-level permission restores
+	// (issue #107).
+	was := *user
+
 	// Bind User to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
@@ -347,6 +362,12 @@ func (v UsersResource) Update(c buffalo.Context) error {
 	if !cu.Admin {
 		user.Approved = cu.Approved
 	}
+
+	// Field-level rights for the volunteer columns (issue #107): contact
+	// fields are editable by self + admin; flags, remark and the account
+	// role are admin-only. Restore persisted values when the actor lacks
+	// the right to change them.
+	applyUserFieldPermissions(c, user, &was)
 
 	// change password
 	if len(user.Password) > 0 {
