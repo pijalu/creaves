@@ -158,9 +158,21 @@ func calculateFeedings(afRaw []AnimalFeeding) (FeedingByZoneMap, error) {
 		}
 	}
 
-	// Sort the feeding (always 1 elem)
+	// Sort by next feeding time, then species, feeding instruction and
+	// animal number so animals due at the same minute keep a stable,
+	// meaningful order (#197 sub-item 7).
 	sort.Slice(afCalc, func(i, j int) bool {
-		return afCalc[i].NextFeeding.Time.Before(afCalc[j].NextFeeding.Time)
+		a, b := afCalc[i], afCalc[j]
+		if !a.NextFeeding.Time.Equal(b.NextFeeding.Time) {
+			return a.NextFeeding.Time.Before(b.NextFeeding.Time)
+		}
+		if a.Species != b.Species {
+			return a.Species < b.Species
+		}
+		if a.Feeding != b.Feeding {
+			return a.Feeding < b.Feeding
+		}
+		return a.YearNumber < b.YearNumber
 	})
 
 	feedingByZone := FeedingByZoneMap{}
