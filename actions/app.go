@@ -213,6 +213,11 @@ func App() *buffalo.App {
 		app.GET("/reports/annual", ReportsAnnualIndex)
 		app.GET("/reports/annual/export.csv", ReportsAnnualExportCSV)
 
+		app.GET("/reports/corpses", ReportsCorpsesIndex)
+		app.GET("/reports/corpses/export.csv", ReportsCorpsesExportCSV)
+		app.POST("/reports/corpses/mark", ReportsCorpsesMark)
+		app.GET("/suggestions/corpse_destination", SuggestionsCorpseDestination)
+
 		app.GET("/animals/search/export.csv", AnimalSearchExportCSV)
 		app.GET("/animals/{animal_id}/qr.png", AnimalQR)
 

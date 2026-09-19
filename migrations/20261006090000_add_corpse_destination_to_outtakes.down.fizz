@@ -1,0 +1,3 @@
+drop_column("outtakes", "corpse_destination")
+drop_column("outtakes", "corpse_destination_at")
+drop_column("outtakes", "corpse_destination_by_id")

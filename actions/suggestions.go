@@ -139,6 +139,13 @@ func SuggestionsOuttakeLocation(c buffalo.Context) error {
 	return c.Render(200, r.JSON(s))
 }
 
+// SuggestionsCorpseDestination returns the DISTINCT previously used corpse
+// destination values from outtakes (issue #149) for the autocomplete of the
+// corpse register marking form.
+func SuggestionsCorpseDestination(c buffalo.Context) error {
+	return suggest(c, "outtakes", "corpse_destination")
+}
+
 // SuggestionsDiscovererCity default implementation.
 func SuggestionsDiscovererCity(c buffalo.Context) error {
 	return suggest(c, "discoverers", "city")

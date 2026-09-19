@@ -1,0 +1,3 @@
+add_column("outtakes", "corpse_destination", "string", {null: true})
+add_column("outtakes", "corpse_destination_at", "timestamp", {null: true})
+add_column("outtakes", "corpse_destination_by_id", "uuid", {null: true})

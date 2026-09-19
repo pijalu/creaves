@@ -28,6 +28,13 @@ type Outtake struct {
 	// outtake date (issue #175). NULL for outtakes encoded before the
 	// column existed.
 	StayDuration nulls.Int `json:"stay_duration" db:"stay_duration"`
+	// Corpse destination tracking (issue #149). Only meaningful when the
+	// outtake type has Dead=true, i.e. the outtake produced a corpse.
+	// Destination is free text with autocomplete from previously used
+	// values; By is the user who recorded the marking (set server-side).
+	CorpseDestination     nulls.String `json:"corpse_destination" db:"corpse_destination"`
+	CorpseDestinationAt   nulls.Time   `json:"corpse_destination_at" db:"corpse_destination_at"`
+	CorpseDestinationByID nulls.UUID   `json:"corpse_destination_by_id" db:"corpse_destination_by_id"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }
