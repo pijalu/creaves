@@ -195,6 +195,20 @@ func listLast24hLogEntries(c buffalo.Context) (models.Logentries, error) {
 	return logentries, nil
 }
 
+// listDashboardTodos returns the open todos for the dashboard block with
+// their status colors (issue #147).
+func listDashboardTodos(c buffalo.Context) ([]todoView, error) {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+	todos := &models.Todos{}
+	if err := tx.Where("done_at IS NULL").Order("todo_date asc").All(todos); err != nil {
+		return nil, err
+	}
+	return todoViews(tx, *todos)
+}
+
 // DashboardIndex default implementation with optimizations.
 func DashboardIndex(c buffalo.Context) error {
 	// Use cached weight loss data
@@ -255,6 +269,12 @@ func DashboardIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("lastLogentries", le)
+
+	todos, err := listDashboardTodos(c)
+	if err != nil {
+		return err
+	}
+	c.Set("dashboardTodos", todos)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.HTML("dashboard/dashboard.plush.html"))

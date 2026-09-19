@@ -1,0 +1,10 @@
+create_table("todos") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("description", "text", {null: false})
+	t.Column("todo_date", "timestamp", {null: false})
+	t.Column("done_at", "timestamp", {null: true})
+	t.Column("done_by_id", "uuid", {null: true})
+	t.Timestamps()
+}
+sql("ALTER TABLE todos MODIFY description text NOT NULL")
+sql("ALTER TABLE todos MODIFY todo_date datetime NOT NULL")

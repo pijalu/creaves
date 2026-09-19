@@ -218,6 +218,15 @@ func App() *buffalo.App {
 		app.POST("/reports/corpses/mark", ReportsCorpsesMark)
 		app.GET("/suggestions/corpse_destination", SuggestionsCorpseDestination)
 
+		app.GET("/todos", TodosIndex)
+		app.GET("/todos/new", TodosNew)
+		app.POST("/todos", TodosCreate)
+		app.GET("/todos/{todo_id}/edit", TodosEdit)
+		app.POST("/todos/{todo_id}", TodosUpdate)
+		app.POST("/todos/{todo_id}/delete", TodosDestroy)
+		app.POST("/todos/{todo_id}/done", TodosDone)
+		app.POST("/todos/{todo_id}/reopen", TodosReopen)
+
 		app.GET("/animals/search/export.csv", AnimalSearchExportCSV)
 		app.GET("/animals/{animal_id}/qr.png", AnimalQR)
 

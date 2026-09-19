@@ -1,0 +1,71 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">TODOs</h3>
+  <a class="btn btn-primary float-right" href="/todos/new"><i class="fas fa-plus"></i> New</a>
+</div>
+
+<h5>Open</h5>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <tr>
+      <th></th>
+      <th>Description</th>
+      <th>Date</th>
+      <th>Aangemaakt</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for (v) in openTodos { %>
+      <tr>
+        <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
+        <td class="align-middle"><%= v.Todo.Description %></td>
+        <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
+        <td class="align-middle"><%= v.Todo.CreatedAt.Format("02/01/2006") %></td>
+        <td class="align-middle">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('Als voltooid markeren?')">
+            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Klaar</button>
+          </form>
+          <a class="btn btn-sm btn-outline-secondary" href="/todos/<%= v.Todo.ID %>/edit"><i class="fas fa-pen"></i></a>
+          <%= if (isAdmin) { %>
+          <form action="/todos/<%= v.Todo.ID %>/delete" method="POST" class="d-inline" onsubmit="return confirm('Deze TODO verwijderen?')">
+            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<h5>Voltooid</h5>
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <tr>
+      <th></th>
+      <th>Description</th>
+      <th>Voltooid op</th>
+      <th>Voltooid door</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for (v) in doneTodos { %>
+      <tr>
+        <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
+        <td class="align-middle"><%= v.Todo.Description %></td>
+        <td class="align-middle"><%= v.Todo.DoneAt.Time.Format("02/01/2006 15:04") %></td>
+        <td class="align-middle"><%= v.DoneBy %></td>
+        <td class="align-middle">
+          <%= if (isAdmin) { %>
+          <form action="/todos/<%= v.Todo.ID %>/reopen" method="POST" class="d-inline">
+            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-undo"></i> Heropenen</button>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
