@@ -73,6 +73,10 @@ type AnimalPayload struct {
 	SpeciesOrder    string `json:"species_order,omitempty"`
 	SpeciesGame     bool   `json:"species_game,omitempty"`
 	SpeciesHuntable bool   `json:"species_huntable,omitempty"`
+
+	// ReadyForRelease flags animals whose care path is finished (#197-8).
+	// Pointer: null (unknown/unset), false and true are distinct states.
+	ReadyForRelease *bool `json:"ready_for_release,omitempty"`
 }
 
 // DiscoveryPayload represents the complete discovery information in an event
@@ -140,6 +144,14 @@ type OuttakePayload struct {
 	Rating int  `json:"rating"`
 	Dead   bool `json:"dead"`
 	Error  bool `json:"error"`
+
+	// Extended outtake data (BUG-R3 contract sync): precise free-text
+	// release location (#197-4), computed stay duration in hours (#175)
+	// and corpse register destination (#149).
+	PreciseLocation     string `json:"precise_location,omitempty"`
+	StayDuration        *int   `json:"stay_duration,omitempty"`
+	CorpseDestination   string `json:"corpse_destination,omitempty"`
+	CorpseDestinationAt string `json:"corpse_destination_at,omitempty"`
 }
 
 // EventPayload represents the complete structured event payload with all entities

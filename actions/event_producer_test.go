@@ -10,6 +10,7 @@ import (
 	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 // TestBuildEventPayload_IncludesAllLocales proves the builder resolves
@@ -210,6 +211,54 @@ func TestBuildEventPayload(t *testing.T) {
 	if payload.Intake.General != animal.Intake.General.String {
 		t.Errorf("Expected intake general %s, got %s", animal.Intake.General.String, payload.Intake.General)
 	}
+}
+
+// TestBuildEventPayloadExtendedOuttakeFieldsR3 pins BUG-R3: the new outtake
+// fields (#197-4 precise location, #175 stay duration, #149 corpse
+// destination) and the animal ready-for-release flag (#197-8) must reach
+// the webhook payload so the console can store them.
+func TestBuildEventPayloadExtendedOuttakeFieldsR3(t *testing.T) {
+	corpseAt := time.Date(2026, 10, 1, 12, 30, 0, 0, time.UTC)
+	animal := &models.Animal{
+		ID:              3,
+		Year:            2026,
+		Species:         "R3 Species",
+		ReadyForRelease: nulls.NewBool(true),
+		Outtake: &models.Outtake{
+			ID:                  uuid.Must(uuid.NewV4()),
+			Date:                time.Now(),
+			PreciseLocation:     nulls.NewString("Forêt de Soignes, parking 3"),
+			StayDuration:        nulls.NewInt(1234),
+			CorpseDestination:   nulls.NewString("Incinération"),
+			CorpseDestinationAt: nulls.NewTime(corpseAt),
+		},
+	}
+
+	payload := buildEventPayload(animal)
+
+	require.NotNil(t, payload.Animal.ReadyForRelease, "ready_for_release set")
+	require.True(t, *payload.Animal.ReadyForRelease)
+	require.Equal(t, "Forêt de Soignes, parking 3", payload.Outtake.PreciseLocation)
+	require.NotNil(t, payload.Outtake.StayDuration, "stay_duration set")
+	require.Equal(t, 1234, *payload.Outtake.StayDuration)
+	require.Equal(t, "Incinération", payload.Outtake.CorpseDestination)
+	require.Equal(t, corpseAt.Format(models.DateTimeFormat), payload.Outtake.CorpseDestinationAt)
+
+	// JSON contract: keys present with the documented names
+	raw, err := json.Marshal(payload)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), `"ready_for_release":true`)
+	require.Contains(t, string(raw), `"precise_location":"Forêt de Soignes, parking 3"`)
+	require.Contains(t, string(raw), `"stay_duration":1234`)
+	require.Contains(t, string(raw), `"corpse_destination":"Incinération"`)
+
+	// unset fields stay absent (omitempty / nil pointers)
+	minimal := buildEventPayload(&models.Animal{ID: 4, Year: 2026, Species: "R3 bare"})
+	raw, err = json.Marshal(minimal)
+	require.NoError(t, err)
+	require.NotContains(t, string(raw), "ready_for_release")
+	require.NotContains(t, string(raw), "stay_duration")
+	require.NotContains(t, string(raw), "corpse_destination")
 }
 
 func TestBuildEventPayloadMinimal(t *testing.T) {

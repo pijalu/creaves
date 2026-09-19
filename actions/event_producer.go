@@ -139,6 +139,10 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 	if animal.Ring.Valid {
 		payload.Animal.Ring = animal.Ring.String
 	}
+	if animal.ReadyForRelease.Valid {
+		v := animal.ReadyForRelease.Bool
+		payload.Animal.ReadyForRelease = &v
+	}
 
 	// Animal type
 	if animal.Animaltype.ID != uuid.Nil {
@@ -314,6 +318,20 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 		}
 		if animal.Outtake.Note.Valid {
 			payload.Outtake.Note = animal.Outtake.Note.String
+		}
+		// Extended outtake data (BUG-R3 contract sync)
+		if animal.Outtake.PreciseLocation.Valid {
+			payload.Outtake.PreciseLocation = animal.Outtake.PreciseLocation.String
+		}
+		if animal.Outtake.StayDuration.Valid {
+			v := animal.Outtake.StayDuration.Int
+			payload.Outtake.StayDuration = &v
+		}
+		if animal.Outtake.CorpseDestination.Valid {
+			payload.Outtake.CorpseDestination = animal.Outtake.CorpseDestination.String
+		}
+		if animal.Outtake.CorpseDestinationAt.Valid {
+			payload.Outtake.CorpseDestinationAt = animal.Outtake.CorpseDestinationAt.Time.Format(models.DateTimeFormat)
 		}
 	}
 
