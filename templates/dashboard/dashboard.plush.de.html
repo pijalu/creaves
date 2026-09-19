@@ -56,6 +56,7 @@
     <th>Art</th>
     <th>Alter</th>
     <th>Gewichte</th>
+    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
@@ -78,6 +79,11 @@
         </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
+        <td class="align-middle">
+          <%= if (!animal.OuttakeID.Value()) { %>
+            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Ausgang anlegen", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
+          <% } %>
+        </td>
       </tr>
     <% } %>
   </tbody>
@@ -122,6 +128,7 @@
     <th>Käfig</th>
     <th>Art</th>
     <th>Behandlungen</th>
+    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsToTreat { %>
@@ -217,6 +224,11 @@
                 <%}%>
               <%}%>
             </ul>
+        </td>
+        <td class="align-middle">
+          <%= if (!animal.OuttakeID.Value()) { %>
+            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Ausgang anlegen", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
+          <% } %>
         </td>
       </tr>
     <% } %>
@@ -337,6 +349,7 @@
     <th>Käfig</th>
     <th>Art</th>
     <th>Fütterung</th>
+    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsToForceFeedPreview { %>
@@ -357,6 +370,11 @@
           <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle"><p><%= animal.Feeding %></p></td>
+        <td class="align-middle">
+          <%= if (!animal.OuttakeID.Value()) { %>
+            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Ausgang anlegen", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
+          <% } %>
+        </td>
       </tr>
     <% } %>
   </tbody>

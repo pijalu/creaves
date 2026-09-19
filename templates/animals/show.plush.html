@@ -12,6 +12,9 @@
     <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#guestQRModal" title="Guest QR code">
       <i class="fa fa-qrcode"></i>
     </button>
+    <%= if (!animal.OuttakeID.Valid) { %>
+    <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success", title: "Create outtake", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
+    <% } %>
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {id: "editButton", class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
     <%}%>

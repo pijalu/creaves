@@ -246,6 +246,9 @@
         </td>
         <td>
           <div class="float-right">
+            <%= if (!animal.OuttakeID.Value()) { %>
+            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success", title: "Uitgang aanmaken", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
+            <% } %>
             <%= if (!animal.OuttakeID.Value() || current_user.Admin) {%>
             <%= linkTo(editAnimalPath({ animal_id: animal.ID }), {class: "btn btn-warning", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
             <% } %>
