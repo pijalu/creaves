@@ -99,6 +99,8 @@ func roleAllows(c buffalo.Context, u *models.User, method, path string) bool {
 		case path == "/" || path == "/dashboard",
 			path == "/animals",
 			strings.HasPrefix(path, "/animals/"),
+			strings.HasPrefix(path, "/attachments/"), // media shown on animal pages
+			path == "/todos",                         // read-only visibility, same as lecteur
 			strings.HasPrefix(path, "/reports"),
 			path == "/users", // users listing (view only)
 			strings.HasPrefix(path, "/users/"):
