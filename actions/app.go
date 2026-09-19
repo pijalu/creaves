@@ -166,6 +166,7 @@ func App() *buffalo.App {
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
 		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
+		app.GET("/suggestions/drug_remark", SuggestionsDrugRemark)
 		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
 		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
 		app.GET("/suggestions/postal_code", SuggestionsPostalCode)

@@ -160,13 +160,29 @@ $( document ).ready(function(){
 
         <%= f.InputTag("Drug", {label:"Médicament", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
-          $('input[name="Drug"]').autoComplete({
+          $($('input[name="Drug"]')).autoComplete({
               delay: 250,
               minChars: 0,
               source: function(term, response){
                   $.getJSON('/suggestions/treatment_drug', { q: term, at: animalTypeID, w: weight }, function(data){ response(data); });
-            }
+              },
+              onSelect: function(e, term, item){ copyDrugRemark(term); }
           });
+          // Issue #73: also cover manually typed drug names on blur/change.
+          $('input[name="Drug"]').on('change', function(){ copyDrugRemark($(this).val()); });
+        </script>
+        <script type="text/javascript">
+          // Issue #73: copy the drug remark (description) into the remarks
+          // field - but never overwrite remarks the user already typed.
+          function copyDrugRemark(term){
+              if (!term) return;
+              if ($($('textarea[name="Remarks"]')).val()) return;
+              $.getJSON('/suggestions/drug_remark', { name: term }, function(data){
+                  if (data.description && !$($('textarea[name="Remarks"]')).val()) {
+                      $($('textarea[name="Remarks"]')).val(data.description).trigger('input');
+                  }
+              });
+          }
         </script>
         <%= f.InputTag("Dosage", {label:"Posologie", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>

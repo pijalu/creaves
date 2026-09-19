@@ -335,6 +335,23 @@ func SuggestionsTreatmentDrug(c buffalo.Context) error {
 	return c.Render(200, r.JSON(localizeSuggestions(c, "drugs", "name", s)))
 }
 
+// SuggestionsDrugRemark returns the remark (description) of a drug by exact
+// name. Used by the treatment form to prefill the remarks field when a drug
+// is selected (issue #73). Missing or empty remarks yield an empty string so
+// the client can safely no-op.
+func SuggestionsDrugRemark(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	drug := &models.Drug{}
+	if err := tx.Where("name = ?", c.Param("name")).First(drug); err != nil {
+		return c.Render(http.StatusOK, r.JSON(map[string]string{"description": ""}))
+	}
+	return c.Render(http.StatusOK, r.JSON(map[string]string{"description": drug.Description.String}))
+}
+
 // SuggestionsTreatmentDrug default implementation.
 func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 	result := []string{}
