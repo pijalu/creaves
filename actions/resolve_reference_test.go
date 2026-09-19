@@ -1,7 +1,13 @@
 package actions
 
 import (
+	"fmt"
 	"testing"
+
+	"creaves/models"
+
+	"github.com/gofrs/uuid"
+	"github.com/stretchr/testify/require"
 )
 
 // TestResolveReferenceInputPassthrough covers the no-DB guard paths: nil tx,
@@ -31,4 +37,41 @@ func TestResolveReferenceInputPassthrough(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestResolveReferenceExistsKeepsPopColumnCacheIntact pins the pop column-cache
+// regression: Query.Exists must be given a model, not a bare table name. With
+// a string, pop's internal reflection panics and silently caches
+// "SELECT <table>.*" as the column list for the whole process; MySQL then
+// returns reference columns in their defined case (species.ID) and every
+// later model scan for that table fails with "missing destination name ID"
+// (observed as /species/ 500s after an animal save).
+func TestResolveReferenceExistsKeepsPopColumnCacheIntact(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+
+	// The resolution itself (canonical input → passthrough).
+	marker := fmt.Sprintf("cacheprobe-%s", uuid.Must(uuid.NewV4()).String()[:8])
+	sp := models.Species{
+		ID:             "crp-" + marker,
+		Species:        "CacheProbe " + marker,
+		CreavesSpecies: "CACHEPROBE-" + marker,
+		Class:          "class",
+		Order:          "order",
+		Family:         "family",
+		NativeStatus:   "NS1",
+	}
+	require.NoError(t, tx.Create(&sp))
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM species WHERE id = ?", sp.ID).Exec()
+	})
+
+	require.Equal(t, sp.CreavesSpecies, resolveReferenceInputTx(tx, "en-US", "species", sp.CreavesSpecies))
+
+	// Whatever the resolution did, a plain species scan must still work —
+	// this is exactly what breaks when the column cache got poisoned.
+	probe := &[]models.Species{}
+	require.NoError(t, tx.Where("creaves_species = ?", sp.CreavesSpecies).All(probe))
+	require.Len(t, *probe, 1)
+	require.Equal(t, sp.ID, (*probe)[0].ID)
 }

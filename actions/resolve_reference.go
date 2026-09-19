@@ -5,6 +5,8 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+
+	"creaves/models"
 )
 
 // Option A (I18N_UI_LOCALIZATION_FIX_PLAN.md): suggestion popups display
@@ -19,6 +21,19 @@ import (
 var refBaseField = map[string]string{
 	"species": "creaves_species",
 	"drugs":   "name",
+}
+
+// refModels maps a reference table to an empty pop model of that table.
+// pop's Query.Exists must be given a MODEL, not a bare table name:
+// NewModel(<string>) makes pop's column builder panic internally and fall
+// back to "SELECT <table>.*" — which pop then caches PROCESS-WIDE for that
+// table. MySQL returns reference columns in their defined case (e.g.
+// species.ID) for star queries, and sqlx's safe scan then fails with
+// "missing destination name ID" for every later species query in the same
+// process (observed as /species/ 500s after any animal save).
+var refModels = map[string]interface{}{
+	"species": &models.Species{},
+	"drugs":   &models.Drug{},
 }
 
 // resolveReferenceInput returns the canonical value for a submitted
@@ -44,7 +59,7 @@ func resolveReferenceInputTx(tx *pop.Connection, lang, table, input string) stri
 
 	// Already canonical? (source column equality; MySQL collation is
 	// case-insensitive by default, matching LIKE-based suggestions)
-	exists, err := tx.Where(baseField+" = ?", input).Exists(table)
+	exists, err := tx.Where(baseField+" = ?", input).Exists(refModels[table])
 	if err == nil && exists {
 		return input
 	}
