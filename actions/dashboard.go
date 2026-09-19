@@ -134,6 +134,29 @@ func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
 	return EnrichAnimalsOptimized(animals, c)
 }
 
+// forceFeedPreviewLimit caps the force-feed list shown on the dashboard; the
+// full list (the gavage function) lives on the Feeding page (issue #88).
+const forceFeedPreviewLimit = 5
+
+// listTodaysVetVisits returns the veterinary visits planned today with their
+// animal preloaded (issue #88).
+func listTodaysVetVisits(c buffalo.Context) (*models.Veterinaryvisits, error) {
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	tmrDt := nowDt.AddDate(0, 0, 1)
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return nil, fmt.Errorf("no transaction found")
+	}
+
+	vvs := &models.Veterinaryvisits{}
+	if err := tx.Where("date >= ? AND date < ?", nowDt, tmrDt).Eager("Animal").Order("date asc").All(vvs); err != nil {
+		return nil, err
+	}
+	return vvs, nil
+}
+
 type listAnimalCountPerTypeReply struct {
 	ID    uuid.UUID `db:"ID"`
 	Name  string    `db:"Name"`
@@ -200,6 +223,20 @@ func DashboardIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("animalsToForceFeed", animalsToForceFeed)
+
+	// Dashboard only previews a few force-feed animals; the complete list and
+	// the gavage workflow live on the Feeding page (issue #88).
+	forceFeedPreview := *animalsToForceFeed
+	if len(forceFeedPreview) > forceFeedPreviewLimit {
+		forceFeedPreview = forceFeedPreview[:forceFeedPreviewLimit]
+	}
+	c.Set("animalsToForceFeedPreview", forceFeedPreview)
+
+	vvs, err := listTodaysVetVisits(c)
+	if err != nil {
+		return err
+	}
+	c.Set("todaysVetVisits", vvs)
 
 	ct, err := listAnimalCountPerType(c)
 	if err != nil {

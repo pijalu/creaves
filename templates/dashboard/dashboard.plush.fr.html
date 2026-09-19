@@ -280,7 +280,33 @@
 <br/>
 
 
-<h3 class="d-inline-block">Animaux à gaver</h3>
+<h3 class="d-inline-block">Visites vétérinaires du jour</h3>
+<%= if (len(todaysVetVisits)>0) {%>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th>Heure</th>
+    <th>Animal</th>
+    <th>Vétérinaire</th>
+    <th>Diagnostic</th>
+  </thead>
+  <tbody>
+    <%= for (vv) in todaysVetVisits { %>
+      <tr>
+        <td class="align-middle"><%= vv.Date.Format("15:04") %></td>
+        <td class="align-middle"><a class="btn btn-primary" href="/animals/<%= vv.Animal.ID %>/#nav-vet"><%= vv.Animal.YearNumberFormatted() %></a></td>
+        <td class="align-middle"><%= vv.Veterinary %></td>
+        <td class="align-middle"><%= vv.Diagnostic %></td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+  <%} else {%>
+<p>Aucun</p>
+<%}%>
+<br/>
+
+<h3 class="d-inline-block">Animaux à gaver (<%= len(animalsToForceFeed) %>)</h3>
+<a class="btn btn-success btn-sm ml-2" href="<%= feedingPath() %>" title="Gavage"><i class="fas fa-utensils"></i> Gavage</a>
 <%= if (len(animalsToForceFeed)>0) {%>
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
@@ -290,7 +316,7 @@
     <th>Alimentation</th>
   </thead>
   <tbody>
-    <%= for (animal) in animalsToForceFeed { %>
+    <%= for (animal) in animalsToForceFeedPreview { %>
       <tr>
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
