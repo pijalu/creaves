@@ -1,0 +1,12 @@
+create_table("attachments") {
+ t.Column("id", "uuid", {primary: true})
+ t.Column("animal_id", "int", {null: false})
+ t.Column("filename", "string", {size: 255})
+ t.Column("content_type", "string", {size: 100})
+ t.Column("size", "bigint", {null: false})
+ t.Column("storage_path", "string", {size: 255})
+ t.Column("kind", "string", {size: 20})
+ t.Column("uploaded_by", "uuid", {null: true})
+ t.Timestamps()
+}
+add_index("attachments", ["animal_id"], {name: "idx_attachments_animal"})

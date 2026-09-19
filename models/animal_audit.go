@@ -24,6 +24,7 @@ const (
 	AuditEntityOuttake         = "outtake"
 	AuditEntityDiscovery       = "discovery"
 	AuditEntityDiscoverer      = "discoverer"
+	AuditEntityAttachment      = "attachment"
 )
 
 // Audit action names.

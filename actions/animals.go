@@ -525,6 +525,8 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			if err := setAnimalFeedingGuides(c, tx, animal.Species); err != nil {
 				return err
 			}
+			// Photo/video gallery (issue #34).
+			setAnimalAttachments(tx, c, animal.ID)
 		}
 		// Care tab display annotations: weight trend colors, day-group
 		// borders, today highlight (issue #158).

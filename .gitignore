@@ -29,3 +29,4 @@ db
 test/db_data
 
 .goa
+attachments-storage/

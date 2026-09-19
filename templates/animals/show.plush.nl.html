@@ -29,6 +29,7 @@
     <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Zorg</a>
     <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Dierenarts</a>
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Behandeling</a>
+    <a class="nav-item nav-link" id="nav-media-tab" data-toggle="tab" href="#nav-media" role="tab" aria-controls="nav-media" aria-selected="false">Media</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
       <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Afloop</a>
@@ -594,6 +595,48 @@
       });
     });
   </script>
+
+  <div class="tab-pane fade" id="nav-media" role="tabpanel" aria-labelledby="nav-media-tab">
+    <%= if (!animal.OuttakeID.Valid || current_user.Admin) { %>
+    <div class="py-4 mb-2">
+      <form action="/animals/<%= animal.ID.String() %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
+        <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
+        <div class="custom-file mr-2" style="max-width:360px">
+          <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required>
+          <label class="custom-file-label" for="attachmentFile">Kies een bestand (foto of video)</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Uploaden</button>
+      </form>
+    </div>
+    <% } %>
+    <%= if (len(animalAttachments) > 0) { %>
+    <div class="row">
+      <%= for (a) in animalAttachments { %>
+      <div class="col-md-3 col-sm-6 mb-3">
+        <div class="card h-100">
+          <%= if (a.Kind == "image") { %>
+          <a href="/attachments/<%= a.ID %>" target="_blank" rel="noopener"><img class="card-img-top" src="/attachments/<%= a.ID %>" alt="<%= a.Filename %>" style="object-fit:contain;height:180px;background:#f8f9fa"></a>
+          <% } else { %>
+          <video class="card-img-top" controls preload="metadata" src="/attachments/<%= a.ID %>" style="height:180px;background:#f8f9fa"></video>
+          <% } %>
+          <div class="card-body py-2">
+            <small class="text-muted d-block text-truncate" title="<%= a.Filename %>"><%= a.Filename %></small>
+            <small class="text-muted d-block"><%= a.CreatedAt.Format("2006-01-02 15:04") %></small>
+            <%= if (current_user.Admin || (a.UploadedBy.Valid && a.UploadedBy.UUID == current_user.ID)) { %>
+            <form method="post" action="/attachments/<%= a.ID %>/delete" class="mt-1" data-confirm="Deze bijlage verwijderen?">
+              <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
+              <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash" aria-hidden="true"></i></button>
+            </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </div>
+    <% } else { %>
+    <p class="text-muted">Nog geen foto's of video's.</p>
+    <% } %>
+  </div>
 
   <%= if (animal.OuttakeID.Value() != nil) {%>
   <div class="tab-pane fade" id="nav-outtake" role="tabpanel" aria-labelledby="nav-outtake-tab">
