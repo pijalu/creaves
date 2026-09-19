@@ -74,6 +74,10 @@
     <input class="form-control" id="outtakeLocationFree" name="Location" type="text" value="<%= outtake.Location %>">
     <select class="form-control d-none" id="outtakeLocationList" name="Location" disabled></select>
 </div>
+<div class="form-group d-none" id="outtake-precise-group">
+    <label for="outtakePreciseLocation">Lieu précis</label>
+    <input class="form-control" id="outtakePreciseLocation" name="PreciseLocation" type="text" value="<%= outtake.PreciseLocation %>">
+</div>
 <script id="outtake-location-modes" type="application/json"><%= outtakeLocationModesJSON %></script>
 <script id="outtake-location-options" type="application/json"><%= outtakeLocationOptionsJSON %></script>
 <script>
@@ -83,6 +87,8 @@
     var group = document.getElementById('outtake-location-group');
     var free = document.getElementById('outtakeLocationFree');
     var list = document.getElementById('outtakeLocationList');
+    var preciseGroup = document.getElementById('outtake-precise-group');
+    var precise = document.getElementById('outtakePreciseLocation');
     function applyMode(){
         var checked = document.querySelector('input[name="TypeID"]:checked');
         var mode = checked ? (modes[checked.value] || 'none') : 'none';
@@ -90,11 +96,15 @@
             group.classList.add('d-none');
             free.disabled = true; free.value = '';
             list.disabled = true;
+            precise.disabled = true; precise.value = '';
         } else if (mode === 'free') {
             group.classList.remove('d-none');
             free.classList.remove('d-none'); free.disabled = false;
             list.classList.add('d-none'); list.disabled = true;
+            preciseGroup.classList.remove('d-none');
+            precise.disabled = false;
         } else {
+            precise.disabled = true; precise.value = '';
             group.classList.remove('d-none');
             free.classList.add('d-none'); free.disabled = true;
             list.classList.remove('d-none'); list.disabled = false;
@@ -121,6 +131,7 @@
 </script>
 <% } else { %>
 <%= f.InputTag("Location", {label: "Lieu"}) %>
+<%= f.InputTag("PreciseLocation", {label: "Lieu précis"}) %>
 <script>
 $('input[name="Location"]').autoComplete({
     delay: 250,

@@ -180,6 +180,11 @@ func setFilteredOuttakeFormData(c buffalo.Context, tx *pop.Connection, ot *model
 // be one of the reference options (matched on the base name), "free" accepts
 // any value. It returns an error when the rule is violated.
 func enforceOuttakeLocationRule(tx *pop.Connection, outtake *models.Outtake, outtakeType *models.Outtaketype) error {
+	// The precise address ("Adresse, lieu précis", #197-4) only applies to
+	// free-mode types; clear it for the other modes, mirroring Location.
+	if outtakeType.LocationMode != models.OuttakeLocationModeFree {
+		outtake.PreciseLocation = nulls.String{}
+	}
 	switch outtakeType.LocationMode {
 	case models.OuttakeLocationModeNone, "":
 		outtake.Location = nulls.String{}

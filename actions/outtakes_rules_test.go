@@ -101,14 +101,16 @@ func TestEnforceOuttakeLocationRule(t *testing.T) {
 	freeType := &models.Outtaketype{Name: "free", LocationMode: models.OuttakeLocationModeFree}
 
 	// none: any submitted location is silently dropped.
-	o := &models.Outtake{Location: nulls.NewString("should be cleared")}
+	o := &models.Outtake{Location: nulls.NewString("should be cleared"), PreciseLocation: nulls.NewString("should be cleared")}
 	require.NoError(t, enforceOuttakeLocationRule(tx, o, noneType))
 	require.False(t, o.Location.Valid)
+	require.False(t, o.PreciseLocation.Valid, "precise location only applies to free mode (#197-4)")
 
 	// empty mode behaves like none (pre-migration rows).
-	o = &models.Outtake{Location: nulls.NewString("should be cleared")}
+	o = &models.Outtake{Location: nulls.NewString("should be cleared"), PreciseLocation: nulls.NewString("should be cleared")}
 	require.NoError(t, enforceOuttakeLocationRule(tx, o, &models.Outtaketype{Name: "legacy"}))
 	require.False(t, o.Location.Valid)
+	require.False(t, o.PreciseLocation.Valid)
 
 	// list: missing location rejected.
 	require.Error(t, enforceOuttakeLocationRule(tx, &models.Outtake{}, listType))
@@ -117,13 +119,16 @@ func TestEnforceOuttakeLocationRule(t *testing.T) {
 	o = &models.Outtake{Location: nulls.NewString("nope-" + marker)}
 	require.Error(t, enforceOuttakeLocationRule(tx, o, listType))
 
-	// list: value from the reference list accepted.
-	o = &models.Outtake{Location: nulls.NewString(optName)}
+	// list: value from the reference list accepted, precise location cleared.
+	o = &models.Outtake{Location: nulls.NewString(optName), PreciseLocation: nulls.NewString("12 rue du Test")}
 	require.NoError(t, enforceOuttakeLocationRule(tx, o, listType))
+	require.False(t, o.PreciseLocation.Valid)
 
-	// free: arbitrary text accepted.
-	o = &models.Outtake{Location: nulls.NewString("anywhere")}
+	// free: arbitrary text accepted, precise location preserved.
+	o = &models.Outtake{Location: nulls.NewString("anywhere"), PreciseLocation: nulls.NewString("12 rue du Test")}
 	require.NoError(t, enforceOuttakeLocationRule(tx, o, freeType))
+	require.True(t, o.PreciseLocation.Valid)
+	require.Equal(t, "12 rue du Test", o.PreciseLocation.String)
 }
 
 // TestSpeciesNativeStatus checks the species → native status lookup used by
@@ -236,7 +241,7 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 // first to obtain a session cookie and a valid authenticity_token.
 // postOuttakeAt submits the new-outtake form with an explicit date
 // ("2006/01/02 15:04"). postOuttake is the historical date-only variant.
-func postOuttakeAt(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, date, location string) *http.Response {
+func postOuttakeAt(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, date, location string, extra ...url.Values) *http.Response {
 	t.Helper()
 
 	resp, err := client.Get(fmt.Sprintf("%s/outtakes/new?animal_year_number=%d/%02d", baseURL, f.animalYearNumber, f.animalYear%100))
@@ -258,9 +263,23 @@ func postOuttakeAt(t *testing.T, client *http.Client, baseURL string, f outtakeR
 	if location != "" {
 		form.Set("Location", location)
 	}
+	if len(extra) > 0 {
+		for k, vs := range extra[0] {
+			for _, v := range vs {
+				form.Add(k, v)
+			}
+		}
+	}
 	resp, err = client.PostForm(baseURL+"/outtakes/", form)
 	require.NoError(t, err)
 	return resp
+}
+
+// postOuttakeFormAt posts the new-outtake form with extra fields (e.g.
+// PreciseLocation) on top of the standard ones.
+func postOuttakeFormAt(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, date string, extra url.Values) *http.Response {
+	t.Helper()
+	return postOuttakeAt(t, client, baseURL, f, date, "", extra)
 }
 
 func postOuttake(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, location string) *http.Response {
@@ -273,6 +292,59 @@ func truncate(b []byte, n int) string {
 		return string(b)
 	}
 	return string(b[:n])
+}
+
+// TestOuttakePreciseLocationRule: free-mode outtake types persist the precise
+// address ("Adresse, lieu précis", #197 sub-item 4); non-free types drop it
+// server-side even when the client submits one.
+func TestOuttakePreciseLocationRule(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+
+	t.Run("free mode persists", func(t *testing.T) {
+		f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeFree)
+		client, baseURL := adminClientWithURL(t)
+
+		resp := postOuttakeFormAt(t, client, baseURL, f, "2026/01/15 12:00", url.Values{
+			"Location":        {"anywhere"},
+			"PreciseLocation": {"12 rue du Test, 5000 Namur"},
+		})
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.Equal(t, http.StatusSeeOther, resp.StatusCode, "body: %s", truncate(body, 800))
+
+		o := &models.Outtake{}
+		require.NoError(t, tx.Where("outtaketype_id = ?", f.outtakeTypeID).First(o))
+		require.True(t, o.Location.Valid)
+		require.Equal(t, "anywhere", o.Location.String)
+		require.True(t, o.PreciseLocation.Valid, "precise location must be persisted for free-mode types")
+		require.Equal(t, "12 rue du Test, 5000 Namur", o.PreciseLocation.String)
+	})
+
+	t.Run("list mode clears", func(t *testing.T) {
+		marker := uuid.Must(uuid.NewV4()).String()[:8]
+		opt := models.OuttakeLocationOption{ID: uuid.Must(uuid.NewV4()), Name: "TSOPL-" + marker}
+		require.NoError(t, tx.Create(&opt))
+		t.Cleanup(func() {
+			tx.RawQuery("DELETE FROM outtake_location_options WHERE id = ?", opt.ID).Exec()
+		})
+
+		f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeList)
+		client, baseURL := adminClientWithURL(t)
+
+		resp := postOuttakeFormAt(t, client, baseURL, f, "2026/01/15 12:00", url.Values{
+			"Location":        {opt.Name},
+			"PreciseLocation": {"12 rue du Test, 5000 Namur"},
+		})
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.Equal(t, http.StatusSeeOther, resp.StatusCode, "body: %s", truncate(body, 800))
+
+		o := &models.Outtake{}
+		require.NoError(t, tx.Where("outtaketype_id = ?", f.outtakeTypeID).First(o))
+		require.Equal(t, opt.Name, o.Location.String)
+		require.False(t, o.PreciseLocation.Valid, "precise location must be dropped for list-mode types")
+	})
 }
 
 // TestOuttakeCreateRejectsTypeForbiddenByNativeStatus posts an outtake whose

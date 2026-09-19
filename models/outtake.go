@@ -23,7 +23,11 @@ type Outtake struct {
 	Type     Outtaketype  `json:"type" belongs_to:"outtaketype"`
 	TypeID   uuid.UUID    `json:"type_id" db:"outtaketype_id"`
 	Location nulls.String `json:"location" db:"location"`
-	Note     nulls.String `json:"note" db:"note"`
+	// PreciseLocation carries the full free-text address ("Adresse, lieu
+	// précis", #197 sub-item 4) for outtake types with location_mode=free.
+	// Cleared for other modes by enforceOuttakeLocationRule.
+	PreciseLocation nulls.String `json:"precise_location" db:"precise_location"`
+	Note            nulls.String `json:"note" db:"note"`
 	// Stay duration in whole hours between the animal intake date and the
 	// outtake date (issue #175). NULL for outtakes encoded before the
 	// column existed.
@@ -35,8 +39,8 @@ type Outtake struct {
 	CorpseDestination     nulls.String `json:"corpse_destination" db:"corpse_destination"`
 	CorpseDestinationAt   nulls.Time   `json:"corpse_destination_at" db:"corpse_destination_at"`
 	CorpseDestinationByID nulls.UUID   `json:"corpse_destination_by_id" db:"corpse_destination_by_id"`
-	CreatedAt    time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
+	CreatedAt             time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time    `json:"updated_at" db:"updated_at"`
 }
 
 func (o Outtake) IsSelected(value interface{}) bool {
