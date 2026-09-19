@@ -57,10 +57,20 @@ type TreatmentTemplate struct {
 	Dosage   string       `json:"dosage"`
 	Remarks  nulls.String `json:"remarks"`
 
+	// NoDrug marks a wound-care treatment (issue #96): no medication and no
+	// posology, only remarks. The stored Drug is WoundCareDrugName.
+	NoDrug bool `json:"no_drug"`
+
 	Morning bool `json:"morning"`
 	Noon    bool `json:"noon"`
 	Evening bool `json:"evening"`
 }
+
+// WoundCareDrugName is the canonical Drug value stored for wound-care
+// treatments that carry no medication and no posology (issue #96). Such
+// treatments consist of remarks only; the Dosage requirement is waived in
+// validation when Drug has this value.
+const WoundCareDrugName = "Soin de plaie"
 
 // Time bitmaps
 const (
@@ -200,13 +210,19 @@ func (t *Treatment) IsFuture() bool {
 // This method is not required and may be deleted.
 func (t *Treatment) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	utils.TrimStringFields(t)
-	return validate.Validate(
+	// Wound-care treatments (issue #96) carry no medication and no posology:
+	// Drug is set to the WoundCareDrugName marker and remarks hold the actual
+	// content, so the posology requirement is waived.
+	vs := []validate.Validator{
 		&validators.TimeIsPresent{Field: t.Date, Name: "Date"},
 		&validators.IntIsPresent{Field: t.AnimalID, Name: "AnimalID"},
 		&validators.StringIsPresent{Field: t.Drug, Name: "Drug"},
-		&validators.StringIsPresent{Field: t.Dosage, Name: "Dosage"},
 		&validators.IntIsPresent{Field: t.Timebitmap, Name: "Timebitmap"},
-	), nil
+	}
+	if t.Drug != WoundCareDrugName {
+		vs = append(vs, &validators.StringIsPresent{Field: t.Dosage, Name: "Dosage"})
+	}
+	return validate.Validate(vs...), nil
 }
 
 // ValidateCreate gets run every time you call "pop.ValidateAndCreate" method.

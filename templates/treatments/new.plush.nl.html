@@ -156,6 +156,24 @@ $( document ).ready(function(){
             </div>
           </div>
 
+        <div class="form-group col-md-12">
+          <div class="ck-button" style="vertical-align: middle;">
+            <input type="checkbox" id="NoDrug" name="NoDrug" value="true" />
+            <label for="NoDrug" style="padding: 4px 10px;">Wondverzorging (enkel opmerkingen)</label>
+          </div>
+        </div>
+        <script type="text/javascript">
+          // Issue #96: wound-care treatments carry no drug and no posology.
+          function toggleDrugFields(){
+            var noDrug = $('#NoDrug').is(':checked');
+            $('input[name="Drug"]').closest('.form-group').toggle(!noDrug);
+            $('input[name="Dosage"]').closest('.form-group').toggle(!noDrug);
+            $('input[name="Drug"]').prop('disabled', noDrug);
+            $('input[name="Dosage"]').prop('disabled', noDrug);
+          }
+          $(document).on('change', '#NoDrug', toggleDrugFields);
+          $(document).ready(toggleDrugFields);
+        </script>
         <%= f.InputTag("Drug", {label:"Geneesmiddel", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $($('input[name="Drug"]')).autoComplete({

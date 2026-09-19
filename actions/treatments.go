@@ -230,6 +230,12 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	}
 	// Normalize possibly-localized drug input back to canonical (Option A)
 	treatmentTemplate.Drug = resolveReferenceInput(c, "drugs", treatmentTemplate.Drug)
+	// Wound-care treatment (issue #96): no medication and no posology, only
+	// remarks. Store the canonical marker as Drug and clear the posology.
+	if treatmentTemplate.NoDrug {
+		treatmentTemplate.Drug = models.WoundCareDrugName
+		treatmentTemplate.Dosage = ""
+	}
 	treatmentTemplate.Animal = &models.Animal{}
 	if err := tx.Find(treatmentTemplate.Animal, treatmentTemplate.AnimalID); err != nil {
 		c.Logger().Errorf("Animal id %d not found for %v", treatmentTemplate.AnimalID, treatmentTemplate)
