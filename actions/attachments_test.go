@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,18 +19,10 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Issue #34: animal attachments — upload, serve, delete with auth and
-// type/size whitelists.
+// Issue #34 (reopened): animal attachments — binary content stored in the
+// database (attachment_blobs), upload/serve/delete with auth and type/size
+// whitelists. No files are written to disk.
 // ---------------------------------------------------------------------------
-
-// attTStorageRoot points the storage at a temp dir for the test and restores
-// the real limits afterwards.
-func attTStorageRoot(t *testing.T) string {
-	t.Helper()
-	dir := t.TempDir()
-	t.Setenv("ATTACHMENTS_DIR", dir)
-	return dir
-}
 
 // attTPng returns a minimal valid PNG (1x1 pixel).
 func attTPng() []byte {
@@ -72,10 +63,25 @@ func attTFind(t *testing.T, tx *pop.Connection, animalID int) *models.Attachment
 	return a
 }
 
+// attTBlobCount counts the blob rows of an attachment.
+func attTBlobCount(t *testing.T, tx *pop.Connection, id uuid.UUID) int {
+	t.Helper()
+	cnt, err := tx.Where("attachment_id = ?", id).Count(&models.AttachmentBlob{})
+	require.NoError(t, err)
+	return cnt
+}
+
+// attTCleanup removes attachments + blobs of an animal after the test.
+func attTCleanup(t *testing.T, animalID int) {
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM attachment_blobs WHERE attachment_id IN (SELECT id FROM attachments WHERE animal_id = ?)", animalID).Exec()
+		models.DB.RawQuery("DELETE FROM attachments WHERE animal_id = ?", animalID).Exec()
+	})
+}
+
 func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	tx := searchTestDB(t)
 	fx := createAnimalSearchFixtures(t, tx)
-	root := attTStorageRoot(t)
 
 	login, password := feedingGuideUser(t, true)
 	client, baseURL := feedingGuideLogin(t, login, password)
@@ -87,10 +93,7 @@ func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode, "body: %s", body)
 
 	a := attTFind(t, tx, fx.animalC)
-	t.Cleanup(func() {
-		models.DB.RawQuery("DELETE FROM attachments WHERE animal_id = ?", fx.animalC).Exec()
-		os.RemoveAll(filepath.Join(root, "animal-"+strconv.Itoa(fx.animalC)))
-	})
+	attTCleanup(t, fx.animalC)
 
 	require.Equal(t, "image/png", a.ContentType)
 	require.Equal(t, models.AttachmentKindImage, a.Kind)
@@ -98,13 +101,15 @@ func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	require.True(t, a.UploadedBy.Valid, "uploader recorded")
 	// original name sanitized but preserved for display
 	require.Equal(t, "hé llo photo.png", a.Filename)
-	// stored under a generated uuid path inside the animal dir
+	// storage_path is a logical locator only — nothing on disk
 	require.Contains(t, a.StoragePath, "animal-"+strconv.Itoa(fx.animalC)+"/")
+	require.NoFileExists(t, filepath.Join("attachments-storage", filepath.FromSlash(a.StoragePath)))
 
-	stored := filepath.Join(root, filepath.FromSlash(a.StoragePath))
-	fi, err := os.Stat(stored)
-	require.NoError(t, err, "file stored on disk")
-	require.Equal(t, a.Size, fi.Size())
+	// ---- binary stored in the database, byte-identical
+	data, found, err := models.LoadAttachmentBlob(tx, a.ID)
+	require.NoError(t, err)
+	require.True(t, found, "blob row must exist after upload")
+	require.Equal(t, attTPng(), data)
 
 	// ---- serve it back
 	resp2, err := client.Get(baseURL + "/attachments/" + a.ID.String())
@@ -116,7 +121,7 @@ func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	require.True(t, strings.Contains(resp2.Header.Get("Content-Disposition"), "photo.png"))
 	require.Equal(t, attTPng(), body2, "bytes must survive the roundtrip")
 
-	// ---- owner delete removes row + file
+	// ---- owner delete removes row + blob
 	req, err := http.NewRequest("POST", baseURL+"/attachments/"+a.ID.String()+"/delete", nil)
 	require.NoError(t, err)
 	resp3, err := client.Do(req)
@@ -127,14 +132,12 @@ func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	cnt, err := tx.Where("animal_id = ?", fx.animalC).Count(&models.Attachment{})
 	require.NoError(t, err)
 	require.Equal(t, 0, cnt, "row deleted")
-	_, err = os.Stat(stored)
-	require.True(t, os.IsNotExist(err), "file removed from disk")
+	require.Equal(t, 0, attTBlobCount(t, tx, a.ID), "blob deleted")
 }
 
 func TestAttachmentsRejectsTypeAndSize34(t *testing.T) {
 	tx := searchTestDB(t)
 	fx := createAnimalSearchFixtures(t, tx)
-	attTStorageRoot(t)
 
 	// shrink the image limit so the oversize case stays cheap
 	old := models.AttachmentMaxImageSize
@@ -143,9 +146,7 @@ func TestAttachmentsRejectsTypeAndSize34(t *testing.T) {
 
 	login, password := feedingGuideUser(t, true)
 	client, baseURL := feedingGuideLogin(t, login, password)
-	t.Cleanup(func() {
-		models.DB.RawQuery("DELETE FROM attachments WHERE animal_id = ?", fx.animalC).Exec()
-	})
+	attTCleanup(t, fx.animalC)
 
 	// ---- wrong type (plain text) rejected
 	resp := attTUpload(t, client, baseURL, fx.animalC, "file", "note.txt", "text/plain", []byte("not an image"))
@@ -169,7 +170,6 @@ func TestAttachmentsRejectsTypeAndSize34(t *testing.T) {
 func TestAttachmentsDeleteOwnership34(t *testing.T) {
 	tx := searchTestDB(t)
 	fx := createAnimalSearchFixtures(t, tx)
-	root := attTStorageRoot(t)
 
 	owner, _ := feedingGuideUser(t, false)
 	other, _ := feedingGuideUser(t, false)
@@ -186,14 +186,8 @@ func TestAttachmentsDeleteOwnership34(t *testing.T) {
 		UploadedBy:  nulls.NewUUID(ownerID),
 	}
 	require.NoError(t, tx.Create(a))
-	t.Cleanup(func() {
-		models.DB.RawQuery("DELETE FROM attachments WHERE animal_id = ?", fx.animalC).Exec()
-		os.RemoveAll(filepath.Join(root, "animal-"+strconv.Itoa(fx.animalC)))
-	})
-	// put a real file at the storage location
-	abs := filepath.Join(root, filepath.FromSlash(a.StoragePath))
-	require.NoError(t, os.MkdirAll(filepath.Dir(abs), 0o755))
-	require.NoError(t, os.WriteFile(abs, attTPng(), 0o644))
+	require.NoError(t, models.StoreAttachmentBlob(tx, a.ID, attTPng()))
+	attTCleanup(t, fx.animalC)
 
 	// ---- a different non-admin user is forbidden
 	otherClient, otherBase := feedingGuideLogin(t, other, "fgpass123")
@@ -216,8 +210,81 @@ func TestAttachmentsDeleteOwnership34(t *testing.T) {
 	cnt, err := tx.Where("id = ?", a.ID).Count(&models.Attachment{})
 	require.NoError(t, err)
 	require.Equal(t, 0, cnt)
-	_, err = os.Stat(abs)
-	require.True(t, os.IsNotExist(err), "file removed")
+	require.Equal(t, 0, attTBlobCount(t, tx, a.ID), "blob removed with the row")
+}
+
+// TestAttachmentsServeMissingBlob404 pins the DB-only contract: an
+// attachment row without a blob serves 404 (there is no disk fallback).
+func TestAttachmentsServeMissingBlob404(t *testing.T) {
+	tx := searchTestDB(t)
+	fx := createAnimalSearchFixtures(t, tx)
+	attTCleanup(t, fx.animalC)
+
+	login, password := feedingGuideUser(t, true)
+	client, baseURL := feedingGuideLogin(t, login, password)
+
+	a := &models.Attachment{
+		ID:          uuid.Must(uuid.NewV4()),
+		AnimalID:    fx.animalC,
+		Filename:    "x.png",
+		ContentType: "image/png",
+		Size:        int64(len(attTPng())),
+		StoragePath: "animal-" + strconv.Itoa(fx.animalC) + "/" + uuid.Must(uuid.NewV4()).String() + ".png",
+		Kind:        models.AttachmentKindImage,
+	}
+	require.NoError(t, tx.Create(a))
+
+	resp, err := client.Get(baseURL + "/attachments/" + a.ID.String())
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode)
+}
+
+// TestAttachmentBlobStoreLoadDelete34 exercises the storage helpers
+// directly, including the idempotent re-store (upsert).
+func TestAttachmentBlobStoreLoadDelete34(t *testing.T) {
+	tx := searchTestDB(t)
+	fx := createAnimalSearchFixtures(t, tx)
+
+	a := &models.Attachment{
+		ID:          uuid.Must(uuid.NewV4()),
+		AnimalID:    fx.animalC,
+		Filename:    "blob.png",
+		ContentType: "image/png",
+		Size:        int64(len(attTPng())),
+		StoragePath: "animal-" + strconv.Itoa(fx.animalC) + "/" + uuid.Must(uuid.NewV4()).String() + ".png",
+		Kind:        models.AttachmentKindImage,
+	}
+	require.NoError(t, tx.Create(a))
+	attTCleanup(t, fx.animalC)
+
+	// not found before store
+	_, found, err := models.LoadAttachmentBlob(tx, a.ID)
+	require.NoError(t, err)
+	require.False(t, found)
+
+	// store + load back
+	require.NoError(t, models.StoreAttachmentBlob(tx, a.ID, attTPng()))
+	data, found, err := models.LoadAttachmentBlob(tx, a.ID)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, attTPng(), data)
+
+	// re-store replaces (upsert, still one row)
+	other := []byte{0xde, 0xad, 0xbe, 0xef}
+	require.NoError(t, models.StoreAttachmentBlob(tx, a.ID, other))
+	require.Equal(t, 1, attTBlobCount(t, tx, a.ID))
+	data, found, err = models.LoadAttachmentBlob(tx, a.ID)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, other, data)
+
+	// delete
+	require.NoError(t, models.DeleteAttachmentBlob(tx, a.ID))
+	require.Equal(t, 0, attTBlobCount(t, tx, a.ID))
+	_, found, err = models.LoadAttachmentBlob(tx, a.ID)
+	require.NoError(t, err)
+	require.False(t, found)
 }
 
 // ownerUUID34 resolves the uuid of a login created by feedingGuideUser.

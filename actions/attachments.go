@@ -1,13 +1,13 @@
 package actions
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
+	"time"
 
 	"creaves/models"
 
@@ -19,20 +19,13 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Animal attachments: photos and videos stored on the local disk, metadata in
-// the attachments table (issue #34). One storage root per instance (each
-// deployment is per-center), overridable with ATTACHMENTS_DIR.
+// Animal attachments: photos and videos. Metadata lives in the attachments
+// table, binary content in the database (attachment_blobs, issue #34
+// reopened). The database is the only storage: no files are written to disk.
+// storage_path stays populated as a logical locator for the audit trail.
 // ---------------------------------------------------------------------------
 
-// attachmentsRoot returns the directory holding uploaded attachment files.
-func attachmentsRoot() string {
-	if d := strings.TrimSpace(os.Getenv("ATTACHMENTS_DIR")); d != "" {
-		return d
-	}
-	return filepath.Join(".", "attachments-storage")
-}
-
-// attachmentExtension picks a canonical file extension for the stored copy.
+// attachmentExtension picks a canonical file extension for the storage path.
 func attachmentExtension(contentType string) string {
 	switch models.AttachmentKind(contentType) {
 	case models.AttachmentKindVideo:
@@ -51,9 +44,10 @@ func loadAttachment(tx *pop.Connection, c buffalo.Context) (*models.Attachment, 
 	return a, nil
 }
 
-// AttachmentsServe streams an attachment file inline (images render in the
+// AttachmentsServe streams an attachment inline (images render in the
 // gallery, mp4/webm play in the browser). Range requests are supported via
-// http.ServeContent, which is required for video seeking.
+// http.ServeContent, which is required for video seeking. The binary comes
+// from the database.
 func AttachmentsServe(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -64,21 +58,18 @@ func AttachmentsServe(c buffalo.Context) error {
 		return err
 	}
 
-	path := filepath.Join(attachmentsRoot(), filepath.FromSlash(a.StoragePath))
-	f, err := os.Open(path)
+	data, found, err := models.LoadAttachmentBlob(tx, a.ID)
 	if err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return err
 	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
-		return c.Error(http.StatusNotFound, err)
+	if !found {
+		return c.Error(http.StatusNotFound, fmt.Errorf("attachment binary not found"))
 	}
 
 	disposition := fmt.Sprintf("inline; filename=%q", a.Filename)
 	c.Response().Header().Set("Content-Disposition", disposition)
 	c.Response().Header().Set("Content-Type", a.ContentType)
-	http.ServeContent(c.Response(), c.Request(), a.Filename, fi.ModTime(), f)
+	http.ServeContent(c.Response(), c.Request(), a.Filename, time.Time{}, bytes.NewReader(data))
 	return nil
 }
 
@@ -112,24 +103,23 @@ func AttachmentsCreate(c buffalo.Context) error {
 		return c.Redirect(http.StatusSeeOther, redir)
 	}
 
-	a, ok := buildAttachmentFromUpload(c, f, user.ID, animalID)
+	a, data, ok := buildAttachmentFromUpload(c, f, user.ID, animalID)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, redir)
 	}
 
 	rel := filepath.Join("animal-"+strconv.Itoa(animalID), a.ID.String()+attachmentExtension(a.ContentType))
-	if err := storeAttachmentFile(f.File, rel, models.AttachmentMaxSize(a.ContentType)); err != nil {
-		c.Logger().Errorf("attachments: store failed: %v", err)
-		c.Flash().Add("danger", T.Translate(c, "attachments.upload.failed"))
-		return c.Redirect(http.StatusSeeOther, redir)
-	}
 	a.StoragePath = filepath.ToSlash(rel)
 
 	if verrs, err := tx.ValidateAndCreate(a); err != nil || verrs.HasAny() {
-		_ = os.Remove(filepath.Join(attachmentsRoot(), rel))
 		c.Logger().Errorf("attachments: db create failed: %v %v", verrs, err)
 		c.Flash().Add("danger", T.Translate(c, "attachments.upload.failed"))
 		return c.Redirect(http.StatusSeeOther, redir)
+	}
+	// Same transaction as the row insert: a blob failure rolls back both.
+	if err := models.StoreAttachmentBlob(tx, a.ID, data); err != nil {
+		c.Logger().Errorf("attachments: blob store failed (is max_allowed_packet >= upload size?): %v", err)
+		return err
 	}
 
 	auditAnimalChange(c, tx, animalID, models.AuditEntityAttachment, auditEntityID(a.ID), models.AuditActionCreate, nil, a)
@@ -138,20 +128,27 @@ func AttachmentsCreate(c buffalo.Context) error {
 }
 
 // buildAttachmentFromUpload validates the upload (presence, type whitelist,
-// size limit) and returns the metadata record; ok=false means the upload was
-// rejected and the danger flash already queued.
-func buildAttachmentFromUpload(c buffalo.Context, f binding.File, uploaderID uuid.UUID, animalID int) (*models.Attachment, bool) {
+// size limit), reads the bytes (never more than the limit) and returns the
+// metadata record + content; ok=false means the upload was rejected and the
+// danger flash already queued.
+func buildAttachmentFromUpload(c buffalo.Context, f binding.File, uploaderID uuid.UUID, animalID int) (*models.Attachment, []byte, bool) {
 	ct, kind := sniffAttachmentType(f)
 	if kind == "" {
 		c.Logger().Warnf("attachments: rejected type %q for %q", ct, f.Filename)
 		c.Flash().Add("danger", T.Translate(c, "attachments.upload.type"))
-		return nil, false
+		return nil, nil, false
 	}
 	max := models.AttachmentMaxSize(ct)
 	if f.Size <= 0 || f.Size > max {
 		c.Logger().Warnf("attachments: rejected size %d for %q", f.Size, f.Filename)
 		c.Flash().Add("danger", T.Translate(c, "attachments.upload.size"))
-		return nil, false
+		return nil, nil, false
+	}
+	data, ok := readUploadLimited(f.File, max)
+	if !ok {
+		c.Logger().Errorf("attachments: read of upload %q failed or exceeded limit", f.Filename)
+		c.Flash().Add("danger", T.Translate(c, "attachments.upload.failed"))
+		return nil, nil, false
 	}
 	return &models.Attachment{
 		ID:          uuid.Must(uuid.NewV4()),
@@ -161,7 +158,7 @@ func buildAttachmentFromUpload(c buffalo.Context, f binding.File, uploaderID uui
 		Size:        f.Size,
 		Kind:        kind,
 		UploadedBy:  nulls.NewUUID(uploaderID),
-	}, true
+	}, data, true
 }
 
 // sniffAttachmentType determines the attachment MIME type from the first
@@ -184,31 +181,17 @@ func sniffAttachmentType(f binding.File) (contentType, kind string) {
 	return declared, models.AttachmentKind(declared)
 }
 
-// storeAttachmentFile copies the upload to its disk location under the
-// storage root, never accepting more than max bytes.
-func storeAttachmentFile(src io.Reader, rel string, max int64) error {
-	path := filepath.Join(attachmentsRoot(), rel)
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
+// readUploadLimited reads the whole upload (already rewound to the start by
+// the type sniffing), never accepting more than max bytes.
+func readUploadLimited(src io.Reader, max int64) ([]byte, bool) {
+	data, err := io.ReadAll(io.LimitReader(src, max+1))
+	if err != nil || int64(len(data)) > max || len(data) == 0 {
+		return nil, false
 	}
-	dst, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-	n, err := io.Copy(dst, io.LimitReader(src, max+1))
-	if err != nil {
-		_ = os.Remove(path)
-		return err
-	}
-	if n > max {
-		_ = os.Remove(path)
-		return fmt.Errorf("upload exceeds %d bytes", max)
-	}
-	return nil
+	return data, true
 }
 
-// AttachmentsDestroy removes an attachment (file + row). Only its uploader
+// AttachmentsDestroy removes an attachment (blob + row). Only its uploader
 // or an admin may delete it.
 func AttachmentsDestroy(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -231,10 +214,11 @@ func AttachmentsDestroy(c buffalo.Context) error {
 	if err := tx.Destroy(a); err != nil {
 		return err
 	}
-	if a.StoragePath != "" {
-		if err := os.Remove(filepath.Join(attachmentsRoot(), filepath.FromSlash(a.StoragePath))); err != nil && !os.IsNotExist(err) {
-			c.Logger().Errorf("attachments: could not remove file %q: %v", a.StoragePath, err)
-		}
+	// Same transaction as the row destroy; failure rolls both back. (The FK
+	// also cascades, this is belt and braces for installs without it.)
+	if err := models.DeleteAttachmentBlob(tx, a.ID); err != nil {
+		c.Logger().Errorf("attachments: could not delete blob %s: %v", a.ID, err)
+		return err
 	}
 
 	auditAnimalChange(c, tx, a.AnimalID, models.AuditEntityAttachment, auditEntityID(a.ID), models.AuditActionDelete, a, nil)

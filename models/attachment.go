@@ -14,8 +14,8 @@ import (
 )
 
 // Attachment is a photo or video attached to an animal record (issue #34).
-// The binary content lives on the local disk (storage_path is relative to
-// the instance storage root); only metadata is persisted.
+// The binary content lives in the database (attachment_blobs table);
+// storage_path is a logical locator only — nothing is written to disk.
 type Attachment struct {
 	ID          uuid.UUID `json:"id" db:"id"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
