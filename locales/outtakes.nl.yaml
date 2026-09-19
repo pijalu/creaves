@@ -14,3 +14,5 @@
   translation: "Dit uitgaantype is niet toegestaan voor de inheemse status van deze soort."
 - id: "outtake.location.invalid"
   translation: "De locatie voldoet niet aan de regels van het geselecteerde uitgaantype."
+- id: "outtake.date.future"
+  translation: "De afloopdatum mag niet in de toekomst liggen."

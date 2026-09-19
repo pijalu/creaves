@@ -209,6 +209,9 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 		Date: time.Now(),
 	}
 	c.Set("outtake", outtake)
+	// Intake date of the animal being taken out, for the stay-duration
+	// helpers in the form (issue #175). Empty while no animal is picked.
+	c.Set("intakeDate", "")
 
 	// Set outtake type
 	ot, err := outtakeTypes(c)
@@ -262,6 +265,7 @@ func (v OuttakesResource) New(c buffalo.Context) error {
 		}
 		animal.Outtake = outtake
 		c.Set("animal", animal)
+		c.Set("intakeDate", animal.Intake.Date.Format(models.DateTimeFormat))
 
 		// Filter out outcome types forbidden by the species native status
 		// and expose the location-mode data for the form JS.
@@ -283,6 +287,7 @@ func renderOuttakeNewRejected(c buffalo.Context, tx *pop.Connection, animal *mod
 	}
 	c.Set("outtake", outtake)
 	c.Set("animal", animal)
+	c.Set("intakeDate", animal.Intake.Date.Format(models.DateTimeFormat))
 	if err := setFilteredOuttakeFormData(c, tx, ot, animal); err != nil {
 		return err
 	}
@@ -295,6 +300,11 @@ func renderOuttakeNewRejected(c buffalo.Context, tx *pop.Connection, animal *mod
 // translated flash and re-renders the form with 422; it reports whether the
 // request was rejected.
 func rejectOuttakeCreate(c buffalo.Context, tx *pop.Connection, animal *models.Animal, outtake *models.Outtake) (bool, error) {
+	// No outtake date in the future (issue #175).
+	if outtake.Date.After(time.Now().Add(time.Minute)) {
+		c.Flash().Add("danger", T.Translate(c, "outtake.date.future"))
+		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
+	}
 	outtakeType := &models.Outtaketype{}
 	if err := tx.Find(outtakeType, outtake.TypeID); err != nil {
 		c.Flash().Add("danger", T.Translate(c, "outtake.type.invalid"))
@@ -343,6 +353,9 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 	if rejected, err := rejectOuttakeCreate(c, tx, animal, outtake); rejected || err != nil {
 		return err
 	}
+	// Persist the stay duration from the intake date to the outtake date
+	// (issue #175).
+	outtake.ComputeStayDuration(animal.Intake.Date)
 	// Audit snapshot before mutating the animal (ring, outtake link).
 	oldAnimal := *animal
 	// save ring if needed
@@ -410,11 +423,9 @@ func (v OuttakesResource) Create(c buffalo.Context) error {
 			// Make the errors available inside the html template
 			c.Set("errors", verrs)
 
-			// Render again the new.html template that the user can
-			// correct the input.
-			c.Set("outtake", outtake)
-
-			return c.Render(http.StatusUnprocessableEntity, r.HTML("/outtakes/new.plush.html"))
+			// Re-render the new.html form with the animal context and the
+			// filtered outcome type list so the user can correct the input.
+			return renderOuttakeNewRejected(c, tx, animal, outtake)
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
 		}).Wants("xml", func(c buffalo.Context) error {
@@ -463,6 +474,13 @@ func (v OuttakesResource) Edit(c buffalo.Context) error {
 	}
 	c.Set("outtake", outtake)
 
+	// Intake date of the animal for the stay-duration helpers (issue #175).
+	c.Set("intakeDate", "")
+	stayedAnimal := &models.Animal{}
+	if err := tx.Eager().Where("outtake_id = ?", outtake.ID).First(stayedAnimal); err == nil && stayedAnimal.ID != 0 {
+		c.Set("intakeDate", stayedAnimal.Intake.Date.Format(models.DateTimeFormat))
+	}
+
 	// Set outtake type
 	ot, err := outtakeTypes(c)
 	if err != nil {
@@ -500,6 +518,13 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 	// Bind Outtake to the html form elements
 	if err := c.Bind(outtake); err != nil {
 		return err
+	}
+
+	// Recompute the stay duration from the animal intake date to the new
+	// outtake date (issue #175).
+	stayedAnimal := &models.Animal{}
+	if err := tx.Eager().Where("outtake_id = ?", outtake.ID).First(stayedAnimal); err == nil && stayedAnimal.ID != 0 {
+		outtake.ComputeStayDuration(stayedAnimal.Intake.Date)
 	}
 
 	verrs, err := tx.ValidateAndUpdate(outtake)

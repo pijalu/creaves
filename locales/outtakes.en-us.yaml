@@ -14,3 +14,5 @@
   translation: "This outcome type is not allowed for the native status of this species."
 - id: "outtake.location.invalid"
   translation: "The location does not match the rules of the selected outcome type."
+- id: "outtake.date.future"
+  translation: "The outcome date cannot be in the future."

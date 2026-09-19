@@ -47,10 +47,10 @@ func TestFilterOuttaketypesForNativeStatus(t *testing.T) {
 		allowed      []string
 	}{
 		{"", []string{"OT1", "OT2", "OT3", "OT4", "OT5", "OT6"}},
-		{"NS1", []string{"OT1", "OT2", "OT3", "OT4", "OT5"}},       // OT6 blocked
-		{"NS2", []string{"OT2", "OT3", "OT4", "OT5", "OT6"}},       // OT1 blocked
-		{"NS3", []string{"OT2", "OT3", "OT5"}},                     // OT1, OT4, OT6 blocked
-		{"NS4", []string{"OT2", "OT3", "OT4", "OT5", "OT6"}},       // OT1 blocked
+		{"NS1", []string{"OT1", "OT2", "OT3", "OT4", "OT5"}},        // OT6 blocked
+		{"NS2", []string{"OT2", "OT3", "OT4", "OT5", "OT6"}},        // OT1 blocked
+		{"NS3", []string{"OT2", "OT3", "OT5"}},                      // OT1, OT4, OT6 blocked
+		{"NS4", []string{"OT2", "OT3", "OT4", "OT5", "OT6"}},        // OT1 blocked
 		{"NS5", []string{"OT1", "OT2", "OT3", "OT4", "OT5", "OT6"}}, // nothing excludes NS5
 	}
 	for _, tc := range cases {
@@ -234,7 +234,9 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 // postOuttake submits the new-outtake form for the fixture animal through
 // the full app (real middleware stack, incl. CSRF). It fetches the new form
 // first to obtain a session cookie and a valid authenticity_token.
-func postOuttake(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, location string) *http.Response {
+// postOuttakeAt submits the new-outtake form with an explicit date
+// ("2006/01/02 15:04"). postOuttake is the historical date-only variant.
+func postOuttakeAt(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, date, location string) *http.Response {
 	t.Helper()
 
 	resp, err := client.Get(fmt.Sprintf("%s/outtakes/new?animal_year_number=%d/%02d", baseURL, f.animalYearNumber, f.animalYear%100))
@@ -247,7 +249,7 @@ func postOuttake(t *testing.T, client *http.Client, baseURL string, f outtakeRul
 	require.NotNil(t, m, "no authenticity_token on /outtakes/new")
 
 	form := url.Values{
-		"Outtake.Date":       {"2026/01/15"},
+		"Outtake.Date":       {date},
 		"TypeID":             {f.outtakeTypeID.String()},
 		"animal_id":          {strconv.Itoa(f.animalID)},
 		"animal_ring":        {""},
@@ -259,6 +261,11 @@ func postOuttake(t *testing.T, client *http.Client, baseURL string, f outtakeRul
 	resp, err = client.PostForm(baseURL+"/outtakes/", form)
 	require.NoError(t, err)
 	return resp
+}
+
+func postOuttake(t *testing.T, client *http.Client, baseURL string, f outtakeRulesFixture, location string) *http.Response {
+	t.Helper()
+	return postOuttakeAt(t, client, baseURL, f, "2026/01/15", location)
 }
 
 func truncate(b []byte, n int) string {
@@ -321,4 +328,92 @@ func TestOuttakeCreateRejectsLocationOutsideList(t *testing.T) {
 	cnt, err := tx.Where("outtaketype_id = ?", f.outtakeTypeID).Count(&models.Outtake{})
 	require.NoError(t, err)
 	require.Zero(t, cnt)
+}
+
+// TestOuttakeCreateRejectsIndigenatType: "ID d'indigénat" is an entry cause
+// and must never be accepted as an outtake cause (issue #175). The type is
+// stored in the reference table, so the guard lives in Outtake.Validate.
+func TestOuttakeCreateRejectsIndigenatType(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+
+	indig := models.Outtaketype{
+		ID:           uuid.Must(uuid.NewV4()),
+		Name:         "ID d'indigénat TSOI-" + uuid.Must(uuid.NewV4()).String()[:8],
+		LocationMode: models.OuttakeLocationModeNone,
+	}
+	require.NoError(t, tx.Create(&indig))
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM outtaketypes WHERE id = ?", indig.ID).Exec()
+	})
+
+	client, baseURL := adminClientWithURL(t)
+	f.outtakeTypeID = indig.ID
+	resp := postOuttake(t, client, baseURL, f, "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "body: %s", truncate(body, 800))
+	require.Contains(t, string(body), "indigénat")
+
+	cnt, err := tx.Where("outtaketype_id = ?", indig.ID).Count(&models.Outtake{})
+	require.NoError(t, err)
+	require.Zero(t, cnt, "no outtake must be persisted with the indigénat type")
+
+	var animal models.Animal
+	require.NoError(t, tx.Find(&animal, f.animalID))
+	require.False(t, animal.OuttakeID.Valid)
+}
+
+// TestOuttakeCreateRejectsFutureDate: an outtake dated in the future must be
+// refused with 422 and nothing persisted (issue #175).
+func TestOuttakeCreateRejectsFutureDate(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+	client, baseURL := adminClientWithURL(t)
+
+	resp := postOuttakeAt(t, client, baseURL, f, "2030/01/15 10:00", "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "body: %s", truncate(body, 800))
+
+	cnt, err := tx.Where("outtaketype_id = ?", f.outtakeTypeID).Count(&models.Outtake{})
+	require.NoError(t, err)
+	require.Zero(t, cnt)
+
+	var animal models.Animal
+	require.NoError(t, tx.Find(&animal, f.animalID))
+	require.False(t, animal.OuttakeID.Valid, "animal must not be linked to a rejected outtake")
+}
+
+// TestOuttakeStayDurationPersisted: creating an outtake persists the stay
+// duration in whole hours between the animal intake and the outtake date
+// (issue #175).
+func TestOuttakeStayDurationPersisted(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+	client, baseURL := adminClientWithURL(t)
+
+	resp := postOuttakeAt(t, client, baseURL, f, "2026/01/15 12:00", "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode, "body: %s", truncate(body, 800))
+
+	o := &models.Outtake{}
+	require.NoError(t, tx.Where("outtaketype_id = ?", f.outtakeTypeID).First(o))
+	require.True(t, o.StayDuration.Valid, "stay duration must be persisted")
+
+	var animal models.Animal
+	require.NoError(t, tx.Eager().Find(&animal, f.animalID))
+	require.True(t, animal.OuttakeID.Valid)
+
+	intake := &models.Intake{}
+	require.NoError(t, tx.Find(intake, animal.IntakeID))
+	want := int(o.Date.Sub(intake.Date).Hours())
+	if want < 0 {
+		want = 0
+	}
+	require.Equal(t, want, o.StayDuration.Int, "stay duration = whole hours between intake %s and outtake %s", intake.Date, o.Date)
 }

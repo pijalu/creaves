@@ -663,6 +663,10 @@
         <p class="d-inline-block"><%= animal.Outtake.Location %></p>
       </li>
       <li class="list-group-item pb-1">
+        <label class="small d-block">Durée de séjour</label>
+        <p class="d-inline-block"><%= if (animal.Outtake.StayDuration.Valid) { %><%= animal.Outtake.StayDuration.Int %> h<% } %></p>
+      </li>
+      <li class="list-group-item pb-1">
         <label class="small d-block">Note</label>
         <p class="d-inline-block"><%= animal.Outtake.Note %></p>
       </li>

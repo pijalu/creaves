@@ -14,3 +14,5 @@
   translation: "Dieser Ausgangstyp ist für den Heimisch-Status dieser Art nicht zulässig."
 - id: "outtake.location.invalid"
   translation: "Der Ort entspricht nicht den Regeln des ausgewählten Ausgangstyps."
+- id: "outtake.date.future"
+  translation: "Das Ausgangsdatum darf nicht in der Zukunft liegen."

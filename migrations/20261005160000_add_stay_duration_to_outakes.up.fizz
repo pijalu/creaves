@@ -1,0 +1,1 @@
+add_column("outtakes", "stay_duration", "int", {null: true})

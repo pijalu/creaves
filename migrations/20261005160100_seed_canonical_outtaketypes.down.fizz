@@ -1,0 +1,1 @@
+sql("DELETE FROM outtaketypes WHERE code IN ('OT1','OT2','OT3','OT4','OT5','OT6','OT7') AND id NOT IN (SELECT outtaketype_id FROM outtakes)")

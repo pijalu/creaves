@@ -14,3 +14,5 @@
   translation: "Ce type d'issue n'est pas autorisé pour le statut indigène de cette espèce."
 - id: "outtake.location.invalid"
   translation: "Le lieu ne respecte pas les règles du type d'issue sélectionné."
+- id: "outtake.date.future"
+  translation: "La date de sortie ne peut pas être dans le futur."

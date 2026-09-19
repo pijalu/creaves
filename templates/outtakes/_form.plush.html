@@ -10,7 +10,46 @@
 </div>
 
 <script type="text/javascript">
-    $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+    $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i', maxDate: new Date()});
+</script>
+
+<div class="form-group" id="stay-duration-group">
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="stay24h">+24h</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="stay48h">+48h</button>
+    <small class="text-muted ml-2" id="stayDurationText"></small>
+</div>
+<script>
+(function(){
+    var intakeStr = '<%= intakeDate %>';
+    function parseDate(v){
+        var m = (v || '').match(/^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2})$/);
+        if (!m) return null;
+        return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
+    }
+    function updateDuration(){
+        var it = parseDate(intakeStr), ot = parseDate($('#outtakeDate').val());
+        var el = document.getElementById('stayDurationText');
+        if (!el) return;
+        if (!it || !ot) { el.textContent = ''; return; }
+        var h = Math.floor((ot - it) / 3600000);
+        if (h < 0) h = 0;
+        el.textContent = h + ' h';
+    }
+    function setStay(hours){
+        var it = parseDate(intakeStr);
+        if (!it) return;
+        var d = new Date(it.getTime() + hours*3600000);
+        function p(n){ return (n<10?'0':'')+n; }
+        var v = d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+        var fp = $('#outtakeDate')[0]._flatpickr;
+        if (fp) { fp.setDate(v, false); } else { $('#outtakeDate').val(v); }
+        updateDuration();
+    }
+    $('#stay24h').on('click', function(){ setStay(24); });
+    $('#stay48h').on('click', function(){ setStay(48); });
+    $('#outtakeDate').on('change', updateDuration);
+    updateDuration();
+})();
 </script>
 
 <label>Type</label>

@@ -10,7 +10,7 @@
   </div>
 </div>
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block"> Outcome details of animal <%= outtake.Animal.ID %></h3>
+  <h3 class="d-inline-block"> Outcome details of animal <%= outtake.Animal.YearNumberFormatted() %></h3>
   <p><%= tspecies(outtake.Animal.Species) %> (<%= tname("animaltypes", outtake.Animal.Animaltype.ID, outtake.Animal.Animaltype.Name) %>) - Arrived: <%= outtake.Animal.Intake.DateFormated() %></p>
 </div>
 
@@ -26,6 +26,11 @@
   <li class="list-group-item pb-1">
     <label class="small d-block">Type</label>
     <p class="d-inline-block"><%= tname("outtaketypes", outtake.Type.ID, outtake.Type.Name) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block">Stay duration</label>
+    <p class="d-inline-block"><%= if (outtake.StayDuration.Valid) { %><%= outtake.StayDuration.Int %> h<% } %></p>
   </li>
 
 
