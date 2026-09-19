@@ -370,6 +370,12 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
 		WebhookBatchSize:  batchSize,
 		WebhookMaxPerMin:  maxPerMin,
+		CenterName:    c.Param("Settings.CenterName"),
+		AsblName:      c.Param("Settings.AsblName"),
+		BceNumber:     c.Param("Settings.BceNumber"),
+		Address:       c.Param("Settings.Address"),
+		AccountNumber: c.Param("Settings.AccountNumber"),
+		Website:       c.Param("Settings.Website"),
 	}
 	if err := config.SetSettings(settings); err != nil {
 		return errors.WithStack(err)
@@ -466,6 +472,12 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
 		WebhookBatchSize:  batchSize,
 		WebhookMaxPerMin:  maxPerMin,
+		CenterName:    c.Param("Settings.CenterName"),
+		AsblName:      c.Param("Settings.AsblName"),
+		BceNumber:     c.Param("Settings.BceNumber"),
+		Address:       c.Param("Settings.Address"),
+		AccountNumber: c.Param("Settings.AccountNumber"),
+		Website:       c.Param("Settings.Website"),
 	}
 	// The API key field is intentionally NOT pre-filled in the form (to avoid
 	// exposing the secret in the HTML). If the admin left it blank, preserve

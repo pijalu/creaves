@@ -513,13 +513,31 @@ func buildGuestView(tx *pop.Connection, a *models.Animal, now time.Time) (*guest
 // only the language selector — no application menu.
 const guestLayout = "guest.plush.html"
 
+// guestSetCenterIdentity loads the CREAVES identity from the current config
+// (issue #150) into the context for the guest templates. Empty struct when
+// no config exists — templates hide the block when all fields are empty.
+func guestSetCenterIdentity(c buffalo.Context) {
+	var settings models.ConfigSettings
+	if cfg := CurrentConfigGet(); cfg != nil {
+		if s, err := cfg.GetSettings(); err == nil {
+			settings = s
+		}
+	}
+	c.Set("centerSettings", settings)
+	c.Set("centerHasIdentity", settings.CenterName != "" || settings.AsblName != "" ||
+		settings.BceNumber != "" || settings.Address != "" ||
+		settings.AccountNumber != "" || settings.Website != "")
+}
+
 // guestRenderNew renders the guest form with the minimal guest layout.
 func guestRenderNew(c buffalo.Context, status int) error {
+	guestSetCenterIdentity(c)
 	return c.Render(status, r.HTML("guest/new.plush.html", guestLayout))
 }
 
 // guestRenderShow renders the guest status view with the minimal guest layout.
 func guestRenderShow(c buffalo.Context) error {
+	guestSetCenterIdentity(c)
 	return c.Render(http.StatusOK, r.HTML("guest/show.plush.html", guestLayout))
 }
 

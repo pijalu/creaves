@@ -61,3 +61,30 @@
   <input type="number" class="form-control" id="webhook_max_per_min" name="Settings.WebhookMaxPerMin" value="<%= settings.WebhookMaxPerMin %>" min="1" max="10000">
   <small class="form-text text-muted">Ratenlimit für die Ereignis-Zustellung (Standard: 60).</small>
 </div>
+
+<h5>CREAVES-Identität</h5>
+<p class="form-text text-muted">Wird auf der öffentlichen Gastseite („Über“) angezeigt. Leer lassen zum Ausblenden.</p>
+<div class="form-group">
+  <label for="settings_center_name">CREAVES-Name</label>
+  <input type="text" class="form-control" id="settings_center_name" name="Settings.CenterName" value="<%= settings.CenterName %>">
+</div>
+<div class="form-group">
+  <label for="settings_asbl_name">Name der ASBL</label>
+  <input type="text" class="form-control" id="settings_asbl_name" name="Settings.AsblName" value="<%= settings.AsblName %>">
+</div>
+<div class="form-group">
+  <label for="settings_bce_number">BCE-Nummer</label>
+  <input type="text" class="form-control" id="settings_bce_number" name="Settings.BceNumber" value="<%= settings.BceNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_address">Adresse</label>
+  <input type="text" class="form-control" id="settings_address" name="Settings.Address" value="<%= settings.Address %>">
+</div>
+<div class="form-group">
+  <label for="settings_account_number">Kontonummer</label>
+  <input type="text" class="form-control" id="settings_account_number" name="Settings.AccountNumber" value="<%= settings.AccountNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_website">Webseite</label>
+  <input type="text" class="form-control" id="settings_website" name="Settings.Website" value="<%= settings.Website %>">
+</div>

@@ -20,9 +20,31 @@
         <img style="height:24px;" alt="Creaves-App" src="<%= assetPath("images/creaves-app-small.png") %>">
       </span>
       <ul class="navbar-nav ml-auto">
+        <%= if (centerHasIdentity) { %>
+        <li class="nav-item">
+          <a class="nav-link" href="#centerAbout" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="centerAbout"><i class="fas fa-info-circle"></i> <%= if (centerSettings.CenterName != "") { %>About <%= centerSettings.CenterName %><% } else { %>About<% } %></a>
+        </li>
+        <% } %>
         <%= langLinksAll(guestLangTarget, "nav-link") %>
       </ul>
     </nav>
+
+    <%= if (centerHasIdentity) { %>
+    <div class="collapse bg-light border-bottom" id="centerAbout">
+      <div class="container py-3">
+        <div class="card card-body">
+          <h5><%= if (centerSettings.CenterName != "") { %><%= centerSettings.CenterName %><% } else { %>About<% } %></h5>
+          <table class="table table-sm mb-0">
+            <%= if (centerSettings.AsblName != "") { %><tr><th scope="row" class="text-nowrap">ASBL</th><td><%= centerSettings.AsblName %></td></tr><% } %>
+            <%= if (centerSettings.BceNumber != "") { %><tr><th scope="row" class="text-nowrap">BCE</th><td><%= centerSettings.BceNumber %></td></tr><% } %>
+            <%= if (centerSettings.Address != "") { %><tr><th scope="row" class="text-nowrap">Address</th><td><%= centerSettings.Address %></td></tr><% } %>
+            <%= if (centerSettings.AccountNumber != "") { %><tr><th scope="row" class="text-nowrap">Account</th><td><%= centerSettings.AccountNumber %></td></tr><% } %>
+            <%= if (centerSettings.Website != "") { %><tr><th scope="row" class="text-nowrap">Website</th><td><%= centerSettings.Website %></td></tr><% } %>
+          </table>
+        </div>
+      </div>
+    </div>
+    <% } %>
 
     <div class="container">
       <%= partial("flash.html") %>

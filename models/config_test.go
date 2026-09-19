@@ -144,3 +144,33 @@ func TestConfigSettings(t *testing.T) {
 		t.Error("Expected EnableEventStream to be false after update")
 	}
 }
+
+// TestConfigSettingsIdentityRoundTrip: the 6 CREAVES identity fields
+// (issue #150) survive the JSON blob round-trip and default to empty.
+func TestConfigSettingsIdentityRoundTrip(t *testing.T) {
+	c := Config{}
+	s, err := c.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+	if s.CenterName != "" || s.AsblName != "" || s.BceNumber != "" || s.Address != "" || s.AccountNumber != "" || s.Website != "" {
+		t.Errorf("identity must default to empty, got %+v", s)
+	}
+
+	s.CenterName = "CREAVES X"
+	s.AsblName = "ASBL Y"
+	s.BceNumber = "0123.456.789"
+	s.Address = "Rue 1"
+	s.AccountNumber = "BE68 5440 1234 5678"
+	s.Website = "https://x.example.org"
+	if err := c.SetSettings(s); err != nil {
+		t.Fatalf("SetSettings: %v", err)
+	}
+	got, err := c.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings after set: %v", err)
+	}
+	if got != s {
+		t.Errorf("round-trip mismatch: got %+v want %+v", got, s)
+	}
+}

@@ -37,6 +37,13 @@ type ConfigSettings struct {
 	WebhookAPIKey    string `json:"webhook_api_key"`
 	WebhookBatchSize int    `json:"webhook_batch_size"`
 	WebhookMaxPerMin int    `json:"webhook_max_per_min"`
+	// CREAVES identity (issue #150), shown on the guest page. Not secret.
+	CenterName    string `json:"center_name"`
+	AsblName      string `json:"asbl_name"`
+	BceNumber     string `json:"bce_number"`
+	Address       string `json:"address"`
+	AccountNumber string `json:"account_number"`
+	Website       string `json:"website"`
 }
 
 // DefaultSettings returns the default configuration settings
