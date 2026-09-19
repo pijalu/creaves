@@ -296,11 +296,20 @@ func TestLoadConfigMultipleConfigsCoexist(t *testing.T) {
 	first := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-first", Name: "multi-first", Active: true}
 	second := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-second", Name: "multi-second", Active: false}
 	third := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-multi-third", Name: "multi-third", Active: false}
-	// LoadConfig picks the oldest *active* config (created_at asc). The shared test
-	// DB may already hold an older active row (e.g. an auto-created default), so back
-	// date `first` to guarantee it is the oldest active config regardless of what
-	// else is in the DB.
+	// LoadConfig picks the oldest *active* config (created_at asc). The shared
+	// test DB already holds older active rows (e.g. the auto-created "Default
+	// Instance" written at DB bootstrap, days before this test runs), so a fixed
+	// backdate from now() is not enough. Backdate `first` to precede the oldest
+	// existing active row, making the expectation deterministic regardless of
+	// environment; fall back to now-24h when no active row exists yet.
+	existing := &models.Configs{}
+	if err := tx.Where("active = ?", true).Order("created_at asc").All(existing); err != nil {
+		t.Fatalf("list existing active configs: %v", err)
+	}
 	first.CreatedAt = time.Now().Add(-24 * time.Hour)
+	if len(*existing) > 0 {
+		first.CreatedAt = (*existing)[0].CreatedAt.Add(-1 * time.Hour)
+	}
 	for _, c := range []*models.Config{first, second, third} {
 		if err := c.SetSettings(models.DefaultSettings()); err != nil {
 			t.Fatalf("SetSettings: %v", err)
