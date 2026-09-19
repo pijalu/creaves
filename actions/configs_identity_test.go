@@ -124,6 +124,8 @@ func TestConfigUpdatePersistsIdentity(t *testing.T) {
 	form.Set("Settings.CenterName", identityName)
 	form.Set("Settings.AsblName", "ASBL Update")
 	form.Set("Settings.Website", "https://updated.example.org")
+	form.Set("Settings.GuestText1", "Guest text one")
+	form.Set("Settings.GuestText2", "Guest text two")
 	resp := postTodoForm(t, client, baseURL, "/config/"+cfg.ID.String(), token, form)
 	if resp.StatusCode != http.StatusSeeOther && resp.StatusCode != http.StatusFound {
 		t.Fatalf("config update status = %d, want redirect", resp.StatusCode)
@@ -139,5 +141,8 @@ func TestConfigUpdatePersistsIdentity(t *testing.T) {
 	}
 	if s.CenterName != identityName || s.AsblName != "ASBL Update" || s.Website != "https://updated.example.org" {
 		t.Errorf("identity not persisted: %+v", s)
+	}
+	if s.GuestText1 != "Guest text one" || s.GuestText2 != "Guest text two" {
+		t.Errorf("guest texts not persisted: %+v", s)
 	}
 }

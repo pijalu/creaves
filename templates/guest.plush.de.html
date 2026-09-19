@@ -46,6 +46,16 @@
     </div>
     <% } %>
 
+    <%= if (centerSettings.GuestText1 != "" || centerSettings.GuestText2 != "") { %>
+    <div class="bg-light border-bottom">
+      <div class="container py-2">
+        <h6 class="text-muted">Informationen des Zentrums</h6>
+        <%= if (centerSettings.GuestText1 != "") { %><p class="mb-1"><%= centerSettings.GuestText1 %></p><% } %>
+        <%= if (centerSettings.GuestText2 != "") { %><p class="mb-1"><%= centerSettings.GuestText2 %></p><% } %>
+      </div>
+    </div>
+    <% } %>
+
     <div class="container">
       <%= partial("flash.html") %>
       <%= yield %>

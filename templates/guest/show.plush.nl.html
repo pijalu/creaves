@@ -26,6 +26,12 @@
         <% } %>
       <% } %>
     </li>
+    <%= if (guest.HasWounds) { %>
+      <li class="list-group-item"><i class="fas fa-band-aid" aria-hidden="true"></i> Uw dier is gewond.</li>
+    <% } %>
+    <%= if (guest.HasParasites) { %>
+      <li class="list-group-item"><i class="fas fa-bug" aria-hidden="true"></i> Uw dier heeft parasieten.</li>
+    <% } %>
   </ul>
 
   <a class="btn btn-secondary" href="/guest/">Nieuwe opvraag</a>

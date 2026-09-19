@@ -458,6 +458,10 @@ type guestView struct {
 	// Set when !Present
 	OuttakeDate string
 	OuttakeNews string // "News for Discoverer" text of the outtake type
+
+	// Intake findings reported to the discoverer (#197 sub-item 9)
+	HasWounds    bool
+	HasParasites bool
 }
 
 func buildGuestView(tx *pop.Connection, a *models.Animal, now time.Time) (*guestView, error) {
@@ -473,6 +477,8 @@ func buildGuestView(tx *pop.Connection, a *models.Animal, now time.Time) (*guest
 		in := models.Intake{}
 		if err := tx.Find(&in, a.IntakeID); err == nil {
 			arrival = in.Date
+			v.HasWounds = in.HasWounds
+			v.HasParasites = in.HasParasites
 		}
 	}
 	if arrival.IsZero() {

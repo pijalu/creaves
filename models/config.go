@@ -44,6 +44,10 @@ type ConfigSettings struct {
 	Address       string `json:"address"`
 	AccountNumber string `json:"account_number"`
 	Website       string `json:"website"`
+	// Free-text blocks the center fills with its own information; they are
+	// rendered on the public guest page (#197 sub-item 9).
+	GuestText1 string `json:"guest_text_1"`
+	GuestText2 string `json:"guest_text_2"`
 }
 
 // DefaultSettings returns the default configuration settings
