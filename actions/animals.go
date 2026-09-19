@@ -521,6 +521,10 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 		c.Set("animal", animal)
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
 			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
+			// Régime alimentaire by species × life stage (issue #145).
+			if err := setAnimalFeedingGuides(c, tx, animal.Species); err != nil {
+				return err
+			}
 		}
 
 		// Full (host-aware) guest form URL shown under the QR code in the

@@ -352,6 +352,23 @@ func SuggestionsDrugRemark(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.JSON(map[string]string{"description": drug.Description.String}))
 }
 
+// SuggestionsFeedingGuide returns the diet text ("régime alimentaire") for a
+// species at a life stage (issue #145). Missing guides yield an empty string
+// so the client can show a graceful "no guide" state. Species is matched
+// exactly (canonical name), stage must be one of the canonical stages.
+func SuggestionsFeedingGuide(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	guide := &models.FeedingGuide{}
+	if err := tx.Where("species_name = ? AND stage = ?", c.Param("species"), c.Param("stage")).First(guide); err != nil {
+		return c.Render(http.StatusOK, r.JSON(map[string]string{"text": ""}))
+	}
+	return c.Render(http.StatusOK, r.JSON(map[string]string{"text": guide.Text}))
+}
+
 // SuggestionsTreatmentDrug default implementation.
 func SuggestionsTreatmentDrugDosage(c buffalo.Context) error {
 	result := []string{}

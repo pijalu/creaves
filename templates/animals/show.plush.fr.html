@@ -238,6 +238,14 @@
         <label class="small d-block">Alimentation</label>
         <p class="d-inline-block"><%= animal.Feeding %></p>
       </li>
+      <%= if (hasFeedingGuides) { %>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Régime alimentaire par stade</label>
+        <%= for (g) in feedingGuides { %>
+          <p class="mb-1"><strong><%= g.StageLabel %></strong> — <%= g.Text %></p>
+        <% } %>
+      </li>
+      <% } %>
     </ul>
     <%= if (animal.ForceFeed) {%>
       <div class="p-3 mb-2 bg-danger text-white">Gavage !</div>

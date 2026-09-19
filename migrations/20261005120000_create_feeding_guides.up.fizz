@@ -1,0 +1,8 @@
+create_table("feeding_guides") {
+ t.Column("id", "int", {primary: true})
+ t.Column("species_name", "string", {size: 200})
+ t.Column("stage", "string", {size: 50})
+ t.Column("text", "text", {null: true})
+ t.Timestamps()
+}
+add_index("feeding_guides", ["species_name", "stage"], {unique: true, name: "idx_feeding_guides_species_stage"})

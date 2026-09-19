@@ -490,7 +490,62 @@ $( document ).ready(function(){
   <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
     <div class="container p-3 my-3 border">
       <%= f.TextAreaTag("Feeding", {label:"Fütterung", rows: 2, class:"col-md-12"}) %>
+      <div class="form-group row">
+        <label class="col-sm-2 col-form-label">Fütterungsleitfaden</label>
+        <div class="col-sm-10">
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1 feeding-guide-btn" data-stage="Bébé">Säugling</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1 feeding-guide-btn" data-stage="Juvénile">Jungtier</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1 feeding-guide-btn" data-stage="Adulte">Erwachsen</button>
+          <button type="button" class="btn btn-outline-secondary btn-sm mr-1 feeding-guide-btn" data-stage="Malade">Krank</button>
+          <small class="form-text text-muted">Klicken Sie auf ein Lebensstadium, um den Fütterungshinweis der Art anzuzeigen und ins Futterfeld zu übernehmen</small>
+        </div>
+      </div>
       <%= f.CheckboxTag("ForceFeed", {label:"Zwangsernährung", unchecked: false}) %>
+
+      <div class="modal fade" id="feedingGuideModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="feedingGuideModalTitle"></h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div id="feedingGuideModalEmpty" class="text-muted d-none">Kein Leitfaden für diese Art in diesem Stadium</div>
+              <pre id="feedingGuideModalText" class="mb-0" style="white-space: pre-wrap"></pre>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-success d-none" id="feedingGuideCopyBtn">Ins Feld übernehmen</button>
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Schließen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script type="text/javascript">
+      $( document ).ready(function(){
+          $('.feeding-guide-btn').on('click', function(){
+              var stage = $(this).data('stage');
+              var label = $(this).text();
+              var species = $('#animal-Species').val();
+              $('#feedingGuideModalTitle').text(label + ' — ' + (species || ''));
+              $('#feedingGuideModalText').text('');
+              $('#feedingGuideModalEmpty').addClass('d-none');
+              $('#feedingGuideCopyBtn').addClass('d-none');
+              $.getJSON('/suggestions/feeding_guide', { species: species, stage: stage }, function(data){
+                  if (data && data.text) {
+                      $('#feedingGuideModalText').text(data.text);
+                      $('#feedingGuideCopyBtn').data('text', data.text).removeClass('d-none');
+                  } else {
+                      $('#feedingGuideModalEmpty').removeClass('d-none');
+                  }
+                  $('#feedingGuideModal').modal('show');
+              });
+          });
+          $('#feedingGuideCopyBtn').on('click', function(){
+              $('#animal-Feeding').val($('#feedingGuideCopyBtn').data('text') || '').trigger('change');
+              $('#feedingGuideModal').modal('hide');
+          });
+      });
+      </script>
 
       <br/>
 

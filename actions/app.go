@@ -167,6 +167,7 @@ func App() *buffalo.App {
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
 		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
 		app.GET("/suggestions/drug_remark", SuggestionsDrugRemark)
+		app.GET("/suggestions/feeding_guide", SuggestionsFeedingGuide)
 		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
 		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
 		app.GET("/suggestions/postal_code", SuggestionsPostalCode)
@@ -224,6 +225,9 @@ func App() *buffalo.App {
 		app.GET("/hint/speciesDetails", HintSpeciesDetails)
 
 		app.Resource("/entry_causes", EntryCausesResource{})
+		app.GET("/feeding_guides", FeedingGuidesIndex)
+		app.POST("/feeding_guides", FeedingGuidesCreate)
+		app.POST("/feeding_guides/{feeding_guide_id}/delete", FeedingGuidesDestroy)
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 

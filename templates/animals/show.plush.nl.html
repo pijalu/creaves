@@ -235,6 +235,14 @@
         <label class="small d-block">Voeding</label>
         <p class="d-inline-block"><%= animal.Feeding %></p>
       </li>
+      <%= if (hasFeedingGuides) { %>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Voeding per levensfase</label>
+        <%= for (g) in feedingGuides { %>
+          <p class="mb-1"><strong><%= g.StageLabel %></strong> — <%= g.Text %></p>
+        <% } %>
+      </li>
+      <% } %>
     </ul>
     <%= if (animal.ForceFeed) {%>
       <div class="p-3 mb-2 bg-danger text-white">Gedwongen voeding!</div>
