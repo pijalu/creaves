@@ -268,7 +268,9 @@ func TestUsersListSearchSort(t *testing.T) {
 	}
 
 	// default order: first_name asc → Alice, Bob, Celine
-	code, body := roleTestGetBody(t, client, baseURL, "/users")
+	// per_page keeps all fixture rows on page 1 regardless of how many
+	// users accumulate in the shared test database.
+	code, body := roleTestGetBody(t, client, baseURL, "/users?per_page=100")
 	require.Equal(t, http.StatusOK, code)
 	pa, pb, pc := pos(body, ua.login), pos(body, ub.login), pos(body, uc.login)
 	require.GreaterOrEqual(t, pa, 0)
@@ -276,28 +278,28 @@ func TestUsersListSearchSort(t *testing.T) {
 	require.Greater(t, pc, pb, "Celine after Bob (default name asc)")
 
 	// explicit desc reverses
-	code, body = roleTestGetBody(t, client, baseURL, "/users?sort=name&dir=desc")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&sort=name&dir=desc")
 	require.Equal(t, http.StatusOK, code)
 	pa, pb, pc = pos(body, ua.login), pos(body, ub.login), pos(body, uc.login)
 	require.Greater(t, pa, pb, "Alice after Bob (name desc)")
 	require.Greater(t, pb, pc, "Bob after Celine (name desc)")
 
 	// sort by city: Liège < Namur
-	code, body = roleTestGetBody(t, client, baseURL, "/users?sort=city")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&sort=city")
 	require.Equal(t, http.StatusOK, code)
 	pb = pos(body, ub.login)
 	pn := pos(body, ua.login)
 	require.Greater(t, pn, pb, "Namur rows after Liège row (city asc)")
 
 	// search by last name matches only Beta
-	code, body = roleTestGetBody(t, client, baseURL, "/users?q=Beta")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&q=Beta")
 	require.Equal(t, http.StatusOK, code)
 	require.GreaterOrEqual(t, pos(body, ub.login), 0, "Beta found")
 	require.Equal(t, -1, pos(body, ua.login), "Alpha not in search results")
 	require.Equal(t, -1, pos(body, uc.login), "Gamma not in search results")
 
 	// search by city matches both Namur rows
-	code, body = roleTestGetBody(t, client, baseURL, "/users?q=Namur")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&q=Namur")
 	require.Equal(t, http.StatusOK, code)
 	require.GreaterOrEqual(t, pos(body, ua.login), 0)
 	require.GreaterOrEqual(t, pos(body, uc.login), 0)
