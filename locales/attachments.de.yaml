@@ -10,3 +10,5 @@
   translation: "Anhang hinzugefügt."
 - id: "attachments.destroyed.success"
   translation: "Anhang gelöscht."
+- id: "attachments.upload.outtaken"
+  translation: "Dieses Tier wurde ausgewildert/entlassen. Nur Administratoren können Anhänge hinzufügen."

@@ -1056,6 +1056,16 @@ func (v AnimalsResource) Destroy(c buffalo.Context) error {
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityOuttake, animal.Outtake.ID.String(), models.AuditActionCreate, nil, auditOuttakeProjection(*animal.Outtake))
 	auditAnimalChange(c, tx, animal.ID, models.AuditEntityAnimal, auditEntityID(animal.ID), models.AuditActionUpdate, auditAnimalProjection(animalBefore), auditAnimalProjection(*animal))
 
+	// Remove attachments + blobs: the animal is logically deleted, its media
+	// must not stay servable (no FK from attachments to animals — clean up
+	// explicitly, blobs first because of the blob → attachment FK).
+	if err := tx.RawQuery("DELETE FROM attachment_blobs WHERE attachment_id IN (SELECT id FROM attachments WHERE animal_id = ?)", animal.ID).Exec(); err != nil {
+		return err
+	}
+	if err := tx.RawQuery("DELETE FROM attachments WHERE animal_id = ?", animal.ID).Exec(); err != nil {
+		return err
+	}
+
 	// Publish animal_deleted event for destroyed animals: the record is
 	// marked erroneous, not deceased — the console must remove it from the
 	// consolidated view (bugs.md "Delete show as deceased in console").

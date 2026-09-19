@@ -10,3 +10,5 @@
   translation: "Bijlage toegevoegd."
 - id: "attachments.destroyed.success"
   translation: "Bijlage verwijderd."
+- id: "attachments.upload.outtaken"
+  translation: "Dit dier is uitgezet/ontslagen. Alleen een beheerder kan bijlagen toevoegen."

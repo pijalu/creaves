@@ -294,3 +294,91 @@ func ownerUUID34(t *testing.T, login string) uuid.UUID {
 	require.NoError(t, models.DB.Where("login = ?", login).First(u))
 	return u.ID
 }
+
+// TestAttachmentsCreateOuttakenAnimalAuthR1 pins BUG-R1: once an animal has
+// an outtake, only admins may upload attachments (server-side; the hidden
+// form in the template is not a security boundary).
+func TestAttachmentsCreateOuttakenAnimalAuthR1(t *testing.T) {
+	tx := searchTestDB(t)
+	fx := createAnimalSearchFixtures(t, tx)
+	attTCleanup(t, fx.animalA)
+	attTCleanup(t, fx.animalC)
+
+	countFor := func(animalID int) int {
+		t.Helper()
+		cnt, err := tx.Where("animal_id = ?", animalID).Count(&models.Attachment{})
+		require.NoError(t, err)
+		return cnt
+	}
+
+	// ---- non-admin on outtaken animal (animalA has an outtake) → blocked
+	plainLogin, _ := feedingGuideUser(t, false)
+	plainClient, plainBase := feedingGuideLogin(t, plainLogin, "fgpass123")
+	resp := attTUpload(t, plainClient, plainBase, fx.animalA, "file", "x.png", "image/png", attTPng())
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	rows := []models.Attachment{}
+	require.NoError(t, tx.Where("animal_id = ?", fx.animalA).All(&rows))
+	for _, r := range rows {
+		t.Logf("DBG row: id=%s animal=%d file=%s uploader=%v", r.ID, r.AnimalID, r.Filename, r.UploadedBy)
+	}
+	require.Equal(t, 0, countFor(fx.animalA), "non-admin upload on outtaken animal must be rejected")
+
+	// ---- admin on outtaken animal → allowed
+	adminLogin, _ := feedingGuideUser(t, true)
+	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+	resp = attTUpload(t, adminClient, adminBase, fx.animalA, "file", "x.png", "image/png", attTPng())
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	require.Equal(t, 1, countFor(fx.animalA), "admin upload on outtaken animal must succeed")
+
+	// ---- non-admin on in-care animal (animalC, no outtake) → allowed
+	resp = attTUpload(t, plainClient, plainBase, fx.animalC, "file", "y.png", "image/png", attTPng())
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	require.Equal(t, 1, countFor(fx.animalC), "non-admin upload on in-care animal must succeed")
+}
+
+// TestAnimalDestroyRemovesAttachmentsR2 pins BUG-R2: destroying an animal
+// (admin, error-outtake flow) must remove its attachment rows AND blobs —
+// orphaned media must not stay servable.
+func TestAnimalDestroyRemovesAttachmentsR2(t *testing.T) {
+	tx := searchTestDB(t)
+	fx := createAnimalSearchFixtures(t, tx)
+	attTCleanup(t, fx.animalC)
+
+	adminLogin, _ := feedingGuideUser(t, true)
+	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+
+	// upload an attachment on the in-care animal
+	resp := attTUpload(t, adminClient, adminBase, fx.animalC, "file", "gone.png", "image/png", attTPng())
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	a := attTFind(t, tx, fx.animalC)
+	require.Equal(t, 1, attTBlobCount(t, tx, a.ID))
+
+	// destroy the animal (DELETE /animals/{id})
+	// The destroy flow creates an extra error-outtake referencing the animal;
+	// remove it first (LIFO: runs before the fixture cleanup) so the fixture
+	// can delete the animal row without FK violations.
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM outtakes WHERE animal_id = ?", fx.animalC).Exec()
+	})
+	req, err := http.NewRequest("DELETE", adminBase+"/animals/"+strconv.Itoa(fx.animalC), nil)
+	require.NoError(t, err)
+	resp2, err := adminClient.Do(req)
+	require.NoError(t, err)
+	resp2.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp2.StatusCode)
+
+	cnt, err := tx.Where("animal_id = ?", fx.animalC).Count(&models.Attachment{})
+	require.NoError(t, err)
+	require.Equal(t, 0, cnt, "attachment rows removed on animal destroy")
+	require.Equal(t, 0, attTBlobCount(t, tx, a.ID), "attachment blobs removed on animal destroy")
+
+	// the media URL is gone too
+	resp3, err := adminClient.Get(adminBase + "/attachments/" + a.ID.String())
+	require.NoError(t, err)
+	resp3.Body.Close()
+	require.Equal(t, http.StatusNotFound, resp3.StatusCode)
+}

@@ -10,3 +10,5 @@
   translation: "Attachment added."
 - id: "attachments.destroyed.success"
   translation: "Attachment deleted."
+- id: "attachments.upload.outtaken"
+  translation: "This animal has been released. Only an administrator can add attachments."

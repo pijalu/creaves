@@ -86,16 +86,20 @@ func AttachmentsCreate(c buffalo.Context) error {
 		return c.Error(http.StatusUnauthorized, fmt.Errorf("not authenticated"))
 	}
 
-	animalID, err := strconv.Atoi(c.Param("animal_id"))
-	if err != nil || animalID == 0 {
-		return c.Error(http.StatusNotFound, fmt.Errorf("animal not found"))
-	}
+	animalID, _ := strconv.Atoi(c.Param("animal_id"))
 	animal := &models.Animal{}
-	if err := tx.Find(animal, animalID); err != nil {
-		return c.Error(http.StatusNotFound, err)
+	if animalID == 0 || tx.Find(animal, animalID) != nil {
+		return c.Error(http.StatusNotFound, fmt.Errorf("animal not found"))
 	}
 
 	redir := attachmentsRedirectURL(c, animalID)
+
+	// Server-side enforcement of the rule stated in the doc comment: once the
+	// animal has an outtake, only admins may add attachments (the template
+	// hides the form, but that is not a security boundary).
+	if rejectOuttakenAnimalUpload(c, animal, user, redir) {
+		return nil // redirect + flash already queued by the helper
+	}
 
 	f, ferr := c.File("file")
 	if ferr != nil || !f.Valid() {
@@ -125,6 +129,19 @@ func AttachmentsCreate(c buffalo.Context) error {
 	auditAnimalChange(c, tx, animalID, models.AuditEntityAttachment, auditEntityID(a.ID), models.AuditActionCreate, nil, a)
 	c.Flash().Add("success", T.Translate(c, "attachments.created.success"))
 	return c.Redirect(http.StatusSeeOther, redir)
+}
+
+// rejectOuttakenAnimalUpload enforces the "in-care only for non-admins"
+// upload rule. Returns true when the upload was rejected (danger flash queued
+// and redirect written — note buffalo's c.Redirect returns nil, so the caller
+// must stop via the bool).
+func rejectOuttakenAnimalUpload(c buffalo.Context, animal *models.Animal, user *models.User, redir string) bool {
+	if animal.OuttakeID.Valid && !user.Admin {
+		c.Flash().Add("danger", T.Translate(c, "attachments.upload.outtaken"))
+		_ = c.Redirect(http.StatusSeeOther, redir)
+		return true
+	}
+	return false
 }
 
 // buildAttachmentFromUpload validates the upload (presence, type whitelist,

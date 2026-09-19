@@ -10,3 +10,5 @@
   translation: "Pièce jointe ajoutée."
 - id: "attachments.destroyed.success"
   translation: "Pièce jointe supprimée."
+- id: "attachments.upload.outtaken"
+  translation: "Cet animal est sorti. Seul un administrateur peut ajouter des pièces jointes."
