@@ -150,7 +150,7 @@ func ReportsCorpsesMark(c buffalo.Context) error {
 	markedAt := time.Now()
 	if raw := c.Param("destination_at"); raw != "" {
 		for _, layout := range []string{"2006-01-02T15:04", "2006-01-02 15:04", "2006-01-02T15:04:05", "2006-01-02"} {
-			if t, err := time.Parse(layout, raw); err == nil {
+			if t, err := time.ParseInLocation(layout, raw, time.Local); err == nil {
 				markedAt = t
 				break
 			}
