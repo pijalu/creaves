@@ -8,3 +8,5 @@
   translation: "l'animal avec id {{.animalID}} n'existe pas"
 - id: "care.animal.outtake.already.exist"
   translation: "l'animal avec id {{.animalID}} est sorti"
+- id: "care.duplicate.prevented"
+  translation: "Envoi en double détecté : un enregistrement identique existe déjà (créé il y a moins de 2 minutes). Aucun doublon n'a été créé."

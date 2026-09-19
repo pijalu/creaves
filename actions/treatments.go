@@ -263,10 +263,17 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 
 	c.Logger().Debugf("Treatments: %v", treatments)
 
-	// Save all
+	// Save all, skipping entries that are exact duplicates of a treatment
+	// created moments ago (double submission, issue #100).
 	var verrs *validate.Errors
 	var err error
+	created := 0
 	for _, treatment := range treatments {
+		if recentDuplicateExists(c.Logger(), tx, &models.Treatment{}, treatmentFingerprintQuery,
+			treatment.AnimalID, treatment.Date, treatment.Drug, treatment.Dosage, treatment.Remarks, treatment.Timebitmap, treatment.Timedonebitmap) {
+			c.Logger().Warnf("Duplicate submission guard: skipping treatment already recorded for animal %d on %s", treatment.AnimalID, treatment.Date.Format(models.DateFormat))
+			continue
+		}
 		// Validate the data from the html form
 		verrs, err = tx.ValidateAndCreate(treatment)
 		if err != nil {
@@ -275,8 +282,15 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 		if verrs.HasAny() {
 			break
 		}
+		created++
 		// Audit log: treatment creation (best effort)
 		auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionCreate, nil, auditTreatmentProjection(*treatment))
+	}
+
+	// Every entry of the submission was already recorded: the form was
+	// double-submitted. Warn the user and redirect without creating anything.
+	if created == 0 && len(treatments) > 0 && (verrs == nil || !verrs.HasAny()) {
+		return duplicateSubmissionRedirect(c, "treatment.duplicate.prevented", "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
 	}
 
 	if verrs.HasAny() {

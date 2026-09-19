@@ -8,3 +8,5 @@
   translation: "Tier mit ID {{.animalID}} existiert nicht"
 - id: "veterinaryvisit.animal.outtake.already.exist"
   translation: "Tier mit ID {{.animalID}} hat bereits einen Ausgang"
+- id: "veterinaryvisit.duplicate.prevented"
+  translation: "Doppelte Übermittlung erkannt: ein identischer Eintrag existiert bereits (vor weniger als 2 Minuten erstellt). Es wurde kein Duplikat erstellt."

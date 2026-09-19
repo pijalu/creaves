@@ -10,3 +10,5 @@
   translation: "Dates de traitement non valides"
 - id: "treatment.animal.outtake.already.exist"
   translation: "l'animal avec id {{.animalID}} est sorti"
+- id: "treatment.duplicate.prevented"
+  translation: "Envoi en double détecté : un enregistrement identique existe déjà (créé il y a moins de 2 minutes). Aucun doublon n'a été créé."

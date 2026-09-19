@@ -295,6 +295,7 @@ func (v CaresResource) Create(c buffalo.Context) error {
 
 	var verrs *validate.Errors
 	var err error
+	created := 0
 
 	if len(c.Param("cage")) > 0 {
 		cage := c.Param("cage")
@@ -314,6 +315,13 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			c.Logger().Debugf("Care for cage %s: Creating for animal ID %d", cage, a.ID)
 			care.ID = uuid.Nil
 			care.AnimalID = a.ID
+			// Duplicate submission guard (issue #100): skip a care identical
+			// to one created moments ago for this animal.
+			if recentDuplicateExists(c.Logger(), tx, &models.Care{}, careFingerprintQuery,
+				care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID) {
+				c.Logger().Warnf("Duplicate submission guard: skipping care already recorded for animal %d", care.AnimalID)
+				continue
+			}
 			verrs, err = tx.ValidateAndCreate(care)
 			if err != nil {
 				return err
@@ -321,10 +329,18 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			if verrs.HasAny() {
 				break
 			}
+			created++
 			// Audit log: care creation for this animal (best effort)
 			auditAnimalChange(c, tx, a.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
 	} else {
+		// Duplicate submission guard (issue #100): an identical care created
+		// moments ago means the form was double-submitted. Redirect instead
+		// of creating a duplicate.
+		if recentDuplicateExists(c.Logger(), tx, &models.Care{}, careFingerprintQuery,
+			care.AnimalID, care.Date, care.TypeID, care.Weight, care.Note, care.Clean, care.InWarning, care.LinkToID) {
+			return duplicateSubmissionRedirect(c, "care.duplicate.prevented", "/animals/%v/#nav-care", care.AnimalID)
+		}
 		// Validate the data from the html form
 		verrs, err = tx.ValidateAndCreate(care)
 		if err != nil {
@@ -334,6 +350,12 @@ func (v CaresResource) Create(c buffalo.Context) error {
 			// Audit log: care creation (best effort)
 			auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
 		}
+	}
+
+	// Cage batch where every animal was already recorded: the form was
+	// double-submitted. Warn the user and redirect without creating anything.
+	if len(c.Param("cage")) > 0 && created == 0 && (verrs == nil || !verrs.HasAny()) {
+		return duplicateSubmissionRedirect(c, "care.duplicate.prevented", "/cares/new?cage=%v", c.Param("cage"))
 	}
 
 	if verrs.HasAny() {

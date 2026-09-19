@@ -8,3 +8,5 @@
   translation: "Tier mit ID {{.animalID}} existiert nicht"
 - id: "care.animal.outtake.already.exist"
   translation: "Tier mit ID {{.animalID}} hat bereits einen Ausgang"
+- id: "care.duplicate.prevented"
+  translation: "Doppelte Übermittlung erkannt: ein identischer Eintrag existiert bereits (vor weniger als 2 Minuten erstellt). Es wurde kein Duplikat erstellt."

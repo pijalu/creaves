@@ -10,3 +10,5 @@
   translation: "Invalid treatment dates"
 - id: "treatment.animal.outtake.already.exist"
   translation: "animal with id {{.animalID}} is out"
+- id: "treatment.duplicate.prevented"
+  translation: "Duplicate submission detected: an identical record already exists (created less than 2 minutes ago). No duplicate was created."

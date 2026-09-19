@@ -187,6 +187,14 @@ func (v VeterinaryvisitsResource) Create(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	// Duplicate submission guard (issue #100): an identical visit created
+	// moments ago means the form was double-submitted (double-click, double
+	// Enter, browser refresh). Redirect instead of creating a duplicate.
+	if recentDuplicateExists(c.Logger(), tx, &models.Veterinaryvisit{}, veterinaryvisitFingerprintQuery,
+		veterinaryvisit.AnimalID, veterinaryvisit.Date, veterinaryvisit.Veterinary, veterinaryvisit.Diagnostic) {
+		return duplicateSubmissionRedirect(c, "veterinaryvisit.duplicate.prevented", "/animals/%v/#nav-vet", veterinaryvisit.AnimalID)
+	}
+
 	// Validate the data from the html form
 	verrs, err := tx.ValidateAndCreate(veterinaryvisit)
 	if err != nil {

@@ -10,3 +10,5 @@
   translation: "Ungültige Behandlungsdaten"
 - id: "treatment.animal.outtake.already.exist"
   translation: "Tier mit ID {{.animalID}} hat bereits einen Ausgang"
+- id: "treatment.duplicate.prevented"
+  translation: "Doppelte Übermittlung erkannt: ein identischer Eintrag existiert bereits (vor weniger als 2 Minuten erstellt). Es wurde kein Duplikat erstellt."

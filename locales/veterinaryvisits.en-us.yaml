@@ -8,3 +8,5 @@
   translation: "animal with id {{.animalID}} does not exist"
 - id: "veterinaryvisit.animal.outtake.already.exist"
   translation: "animal with id {{.animalID}} is out"
+- id: "veterinaryvisit.duplicate.prevented"
+  translation: "Duplicate submission detected: an identical record already exists (created less than 2 minutes ago). No duplicate was created."
