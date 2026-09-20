@@ -664,7 +664,7 @@ func TestDeliverBatch_PartialAcceptRecordsBreakerFailure(t *testing.T) {
 	before := webhookPusher.circuitBreaker.failures
 	_, err := deliverBatch()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "webhook accepted 0/1 events")
+	assert.Contains(t, err.Error(), "accepted 0/1 events")
 	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures,
 		"partial acceptance must record a circuit-breaker failure")
 
@@ -1209,4 +1209,61 @@ func mustLock(mu *sync.Mutex, m map[string]json.RawMessage) []byte {
 		panic(err)
 	}
 	return data
+}
+
+
+// ---------------------------------------------------------------------------
+// Actionable delivery error messages (bug 5)
+// ---------------------------------------------------------------------------
+
+func TestDeliverBatch_NonOKStatusIncludesBodyExcerpt(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"detail":"boom: invalid api key"}`))
+	}))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "500")
+	assert.Contains(t, err.Error(), "boom: invalid api key")
+	assert.Contains(t, err.Error(), srv.URL, "error must name the failing URL")
+}
+
+func TestDeliverBatch_PartialFailureIncludesReceiverErrors(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["event abc: instance block mismatch"]}`))
+	}))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "0/1")
+	assert.Contains(t, err.Error(), "instance block mismatch")
+	assert.Contains(t, err.Error(), srv.URL, "error must name the failing URL")
+}
+
+func TestDeliverBatch_TransportErrorIncludesURL(t *testing.T) {
+	resetPusherState()
+
+	// Closed port forces a connection-refused transport error.
+	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
+	seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "http://127.0.0.1:1/webhook")
+	assert.Contains(t, err.Error(), "connection refused")
 }

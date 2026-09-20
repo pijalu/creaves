@@ -16,6 +16,10 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+// maxErrorExcerpt caps how much of a failing webhook response body is copied
+// into error messages / logs (receivers can return arbitrarily large bodies).
+const maxErrorExcerpt = 500
+
 // CircuitBreaker implements a simple circuit breaker pattern
 type CircuitBreaker struct {
 	mu               sync.Mutex
@@ -542,13 +546,18 @@ func deliverBatch() (int, error) {
 	resp, err := webhookPusher.client.Do(req)
 	if err != nil {
 		webhookPusher.circuitBreaker.RecordFailure()
-		return len(*events), fmt.Errorf("failed to send request: %w", err)
+		// Transport failure: surface the URL so operators can tell DNS /
+		// refused-connection / TLS problems apart without guessing.
+		return len(*events), fmt.Errorf("webhook POST %s (%d events) failed: %w", settings.WebhookURL, len(*events), err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		webhookPusher.circuitBreaker.RecordFailure()
-		return len(*events), fmt.Errorf("webhook returned status %d", resp.StatusCode)
+		// Non-200: include a body excerpt — receivers usually explain the
+		// rejection there (bad auth, malformed envelope, ...).
+		excerpt, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorExcerpt))
+		return len(*events), fmt.Errorf("webhook POST %s (%d events) returned status %d: %s", settings.WebhookURL, len(*events), resp.StatusCode, strings.TrimSpace(string(excerpt)))
 	}
 
 	// Determine which events the receiver actually accepted. On partial
@@ -631,7 +640,10 @@ func deliverBatch() (int, error) {
 	acknowledged := applyConfirmations(events, accepted, result.Confirmed, now)
 
 	if responseErr {
-		return len(*events), fmt.Errorf("webhook accepted %d/%d events", delivered, len(*events))
+		// Partial/rejected delivery: relay the receiver's per-event errors
+		// (they name the exact event and cause, e.g. "instance block
+		// mismatch") so the log line is actionable on its own.
+		return len(*events), fmt.Errorf("webhook POST %s accepted %d/%d events (receiver errors: %s)", settings.WebhookURL, delivered, len(*events), strings.Join(result.Errors, "; "))
 	}
 	webhookPusher.circuitBreaker.RecordSuccess()
 	if delivered < len(*events) {
