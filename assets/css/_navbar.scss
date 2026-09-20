@@ -11,6 +11,17 @@
   }
 }
 
+// Navbar entries must never wrap their label under the icon (bugs.md):
+// between lg and xl the bar overflows and inline <a> content wrapped,
+// stacking icon above text on plain entries while dropdown entries stayed
+// on one line. Flex + nowrap keeps icon and full label side by side; the
+// label is either fully shown next to the icon or hidden (d-xl-inline).
+#navbarSupportedContent .navbar-nav .nav-link {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 // Admin dropdown submenus (Configuration / System / Synchronization).
 // Bootstrap 4 has no native nested dropdowns: the submenu opens to the
 // right of its parent item, toggled by the click handler in application.js.
