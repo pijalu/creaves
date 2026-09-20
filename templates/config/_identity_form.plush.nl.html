@@ -1,0 +1,42 @@
+<input type="hidden" name="form_scope" value="identity">
+<%= f.InputTag("InstanceID", {label: "Instantie-ID"}) %>
+<%= f.InputTag("Name", {label: "Naam"}) %>
+<%= f.TextArea("Description", {label: "Beschrijving", rows: 3}) %>
+<%= f.CheckboxTag("Active", {label: "Actief", unchecked: false}) %>
+
+<h5>CREAVES-identiteit</h5>
+<p class="form-text text-muted">Getoond op de openbare gastpagina ("Over"). Laat leeg om te verbergen.</p>
+<div class="form-group">
+  <label for="settings_center_name">CREAVES-naam</label>
+  <input type="text" class="form-control" id="settings_center_name" name="Settings.CenterName" value="<%= settings.CenterName %>">
+</div>
+<div class="form-group">
+  <label for="settings_asbl_name">Naam van de vzw</label>
+  <input type="text" class="form-control" id="settings_asbl_name" name="Settings.AsblName" value="<%= settings.AsblName %>">
+</div>
+<div class="form-group">
+  <label for="settings_bce_number">BCE-nummer</label>
+  <input type="text" class="form-control" id="settings_bce_number" name="Settings.BceNumber" value="<%= settings.BceNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_address">Adres</label>
+  <input type="text" class="form-control" id="settings_address" name="Settings.Address" value="<%= settings.Address %>">
+</div>
+<div class="form-group">
+  <label for="settings_account_number">Rekeningnummer</label>
+  <input type="text" class="form-control" id="settings_account_number" name="Settings.AccountNumber" value="<%= settings.AccountNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_website">Website</label>
+  <input type="text" class="form-control" id="settings_website" name="Settings.Website" value="<%= settings.Website %>">
+</div>
+<div class="form-group">
+  <label for="settings_guest_text_1">Bezoekertekst 1</label>
+  <textarea class="form-control" id="settings_guest_text_1" name="Settings.GuestText1" rows="3"><%= settings.GuestText1 %></textarea>
+  <small class="form-text text-muted">Vrije tekst die op de openbare statuspagina wordt getoond.</small>
+</div>
+<div class="form-group">
+  <label for="settings_guest_text_2">Bezoekertekst 2</label>
+  <textarea class="form-control" id="settings_guest_text_2" name="Settings.GuestText2" rows="3"><%= settings.GuestText2 %></textarea>
+  <small class="form-text text-muted">Vrije tekst die op de openbare statuspagina wordt getoond.</small>
+</div>

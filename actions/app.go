@@ -123,6 +123,7 @@ func App() *buffalo.App {
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
+		app.GET("/config/{config_id}/sync", ConfigsResource{}.SyncEdit)
 		app.Resource("/event_streams", EventStreamsResource{})
 		app.DELETE("/event_streams", EventStreamsResource{}.ClearAll)
 		app.Resource("/translations", TranslationsResource{})

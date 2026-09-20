@@ -1,0 +1,42 @@
+<input type="hidden" name="form_scope" value="identity">
+<%= f.InputTag("InstanceID", {label: "Instanz-ID"}) %>
+<%= f.InputTag("Name", {label: "Name"}) %>
+<%= f.TextArea("Description", {label: "Beschreibung", rows: 3}) %>
+<%= f.CheckboxTag("Active", {label: "Aktiv", unchecked: false}) %>
+
+<h5>CREAVES-Identität</h5>
+<p class="form-text text-muted">Wird auf der öffentlichen Gastseite („Über“) angezeigt. Leer lassen zum Ausblenden.</p>
+<div class="form-group">
+  <label for="settings_center_name">CREAVES-Name</label>
+  <input type="text" class="form-control" id="settings_center_name" name="Settings.CenterName" value="<%= settings.CenterName %>">
+</div>
+<div class="form-group">
+  <label for="settings_asbl_name">Name der ASBL</label>
+  <input type="text" class="form-control" id="settings_asbl_name" name="Settings.AsblName" value="<%= settings.AsblName %>">
+</div>
+<div class="form-group">
+  <label for="settings_bce_number">BCE-Nummer</label>
+  <input type="text" class="form-control" id="settings_bce_number" name="Settings.BceNumber" value="<%= settings.BceNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_address">Adresse</label>
+  <input type="text" class="form-control" id="settings_address" name="Settings.Address" value="<%= settings.Address %>">
+</div>
+<div class="form-group">
+  <label for="settings_account_number">Kontonummer</label>
+  <input type="text" class="form-control" id="settings_account_number" name="Settings.AccountNumber" value="<%= settings.AccountNumber %>">
+</div>
+<div class="form-group">
+  <label for="settings_website">Webseite</label>
+  <input type="text" class="form-control" id="settings_website" name="Settings.Website" value="<%= settings.Website %>">
+</div>
+<div class="form-group">
+  <label for="settings_guest_text_1">Gasttext 1</label>
+  <textarea class="form-control" id="settings_guest_text_1" name="Settings.GuestText1" rows="3"><%= settings.GuestText1 %></textarea>
+  <small class="form-text text-muted">Freier Text, der auf der öffentlichen Statusseite angezeigt wird.</small>
+</div>
+<div class="form-group">
+  <label for="settings_guest_text_2">Gasttext 2</label>
+  <textarea class="form-control" id="settings_guest_text_2" name="Settings.GuestText2" rows="3"><%= settings.GuestText2 %></textarea>
+  <small class="form-text text-muted">Freier Text, der auf der öffentlichen Statusseite angezeigt wird.</small>
+</div>

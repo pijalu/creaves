@@ -235,6 +235,34 @@ func paramIsTrue(c buffalo.Context, key string) bool {
 	return c.Param(key) == "true"
 }
 
+// bindSettingsForScope merges submitted form values into the stored settings
+// according to the form scope: "sync" updates only event-stream/webhook
+// fields, "identity" only center/identity fields, and "" (legacy full form)
+// updates both groups. Fields outside the scope keep their stored values.
+func bindSettingsForScope(c buffalo.Context, stored models.ConfigSettings, scope string) models.ConfigSettings {
+	settings := stored
+	batchSize, maxPerMin := parseWebhookLimits(c)
+	if scope == "" || scope == "sync" {
+		settings.EnableEventStream = paramIsTrue(c, "Settings.EnableEventStream")
+		settings.WebhookEnabled = paramIsTrue(c, "Settings.WebhookEnabled")
+		settings.WebhookURL = c.Param("Settings.WebhookURL")
+		settings.WebhookAPIKey = c.Param("Settings.WebhookAPIKey")
+		settings.WebhookBatchSize = batchSize
+		settings.WebhookMaxPerMin = maxPerMin
+	}
+	if scope == "" || scope == "identity" {
+		settings.CenterName = c.Param("Settings.CenterName")
+		settings.AsblName = c.Param("Settings.AsblName")
+		settings.BceNumber = c.Param("Settings.BceNumber")
+		settings.Address = c.Param("Settings.Address")
+		settings.AccountNumber = c.Param("Settings.AccountNumber")
+		settings.Website = c.Param("Settings.Website")
+		settings.GuestText1 = c.Param("Settings.GuestText1")
+		settings.GuestText2 = c.Param("Settings.GuestText2")
+	}
+	return settings
+}
+
 // requireAdmin checks if the current user is an admin
 func requireAdmin(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
@@ -440,6 +468,36 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("config/edit.plush.html"))
 }
 
+// SyncEdit renders the synchronization (event stream + webhook) edit form
+// for a Config — the instance-identity fields live on the regular edit view.
+// Mapped to GET /config/{config_id}/sync.
+func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
+	if _, err := requireAdmin(c); err != nil {
+		return err
+	}
+
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	config := &models.Config{}
+	if err := tx.Find(config, c.Param("config_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+
+	// Same API-key policy as Edit: maintainers see the stored key, other
+	// admins get a write-only field (blank submit preserves the stored key).
+	settings, _ := config.GetSettings()
+	if !GetCurrentUser(c).Maintainer {
+		settings.WebhookAPIKey = ""
+	}
+	c.Set("settings", settings)
+
+	c.Set("config", config)
+	return c.Render(http.StatusOK, r.HTML("config/sync_edit.plush.html"))
+}
+
 // Update changes a Config in the DB. This function is mapped to
 // the path PUT /config/{config_id}
 func (v ConfigsResource) Update(c buffalo.Context) error {
@@ -457,32 +515,26 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// Bind non-boolean fields manually to avoid formam parsing issues
-	config.InstanceID = c.Param("InstanceID")
-	config.Name = c.Param("Name")
-	config.Description = c.Param("Description")
-	// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
-	config.Active = paramIsTrue(c, "Active")
-
-	// Build settings from form
-	batchSize, maxPerMin := parseWebhookLimits(c)
-
-	settings := models.ConfigSettings{
-		EnableEventStream: paramIsTrue(c, "Settings.EnableEventStream"),
-		WebhookEnabled:    paramIsTrue(c, "Settings.WebhookEnabled"),
-		WebhookURL:        c.Param("Settings.WebhookURL"),
-		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
-		WebhookBatchSize:  batchSize,
-		WebhookMaxPerMin:  maxPerMin,
-		CenterName:        c.Param("Settings.CenterName"),
-		AsblName:          c.Param("Settings.AsblName"),
-		BceNumber:         c.Param("Settings.BceNumber"),
-		Address:           c.Param("Settings.Address"),
-		AccountNumber:     c.Param("Settings.AccountNumber"),
-		Website:           c.Param("Settings.Website"),
-		GuestText1:        c.Param("Settings.GuestText1"),
-		GuestText2:        c.Param("Settings.GuestText2"),
+	// Scoped update: the identity view (form_scope=identity) edits only the
+	// instance identity + center fields; the sync view (form_scope=sync)
+	// edits only event-stream/webhook fields. The other field group is
+	// preserved from the stored record. No scope = legacy full update.
+	scope := c.Param("form_scope")
+	stored, storedErr := config.GetSettings()
+	if storedErr != nil {
+		return errors.WithStack(storedErr)
 	}
+
+	// Bind non-boolean fields manually to avoid formam parsing issues
+	if scope != "sync" {
+		config.InstanceID = c.Param("InstanceID")
+		config.Name = c.Param("Name")
+		config.Description = c.Param("Description")
+		// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
+		config.Active = paramIsTrue(c, "Active")
+	}
+
+	settings := bindSettingsForScope(c, stored, scope)
 	// The API key field is intentionally NOT pre-filled in the form (to avoid
 	// exposing the secret in the HTML). If the admin left it blank, preserve
 	// the previously stored key rather than wiping it.
