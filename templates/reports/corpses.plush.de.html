@@ -118,6 +118,20 @@ function checkedCount(){
   return $('.corpse-check:checked').length;
 }
 
+// Bei mehreren ausgewählten Zeilen markiert die Aktion alle: die Buttons
+// wechseln zu „Alle markieren" und die Auswahl bleibt erhalten.
+var markLabel = 'Markieren';
+var markAllLabel = 'Alle markieren';
+function refreshMarkLabels(){
+  var all = checkedCount() >= 2;
+  $('.quick-mark').each(function(){
+    $(this).text(all ? markAllLabel : markLabel);
+  });
+}
+
+$('#checkAll').on('change', refreshMarkLabels);
+$(document).on('change', '.corpse-check', refreshMarkLabels);
+
 function openMarkModal(){
   if (checkedCount() === 0) {
     alert('Wählen Sie mindestens ein Tier aus.');
@@ -127,10 +141,15 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Zeilen-„Markieren": gilt nur für das Tier dieser Zeile (keine weitere Auswahl nötig).
+// Zeilen-„Markieren": ohne Mehrfachauswahl nur für das Tier dieser Zeile;
+// bei mehreren ausgewählten Zeilen werden alle markiert und die Auswahl
+// bleibt unverändert.
 $('.quick-mark').on('click', function(){
-  $('.corpse-check').prop('checked', false);
-  $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+  if (checkedCount() < 2) {
+    $('.corpse-check').prop('checked', false);
+    $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+    refreshMarkLabels();
+  }
   openMarkModal();
 });
 

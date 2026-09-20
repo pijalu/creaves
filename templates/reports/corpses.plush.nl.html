@@ -118,6 +118,20 @@ function checkedCount(){
   return $('.corpse-check:checked').length;
 }
 
+// Bij meerdere geselecteerde rijen markeert de actie alles: de knoppen
+// wijzigen naar "Alles markeren" en de selectie blijft behouden.
+var markLabel = 'Markeren';
+var markAllLabel = 'Alles markeren';
+function refreshMarkLabels(){
+  var all = checkedCount() >= 2;
+  $('.quick-mark').each(function(){
+    $(this).text(all ? markAllLabel : markLabel);
+  });
+}
+
+$('#checkAll').on('change', refreshMarkLabels);
+$(document).on('change', '.corpse-check', refreshMarkLabels);
+
 function openMarkModal(){
   if (checkedCount() === 0) {
     alert('Selecteer minstens één dier.');
@@ -127,10 +141,15 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Rij-"Markeren": geldt alleen voor het dier van die rij (geen andere selectie nodig).
+// Rij-"Markeren": zonder meervoudige selectie alleen voor het dier van die
+// rij; bij meerdere aangevinkte rijen wordt alles gemarkeerd en blijft de
+// selectie behouden.
 $('.quick-mark').on('click', function(){
-  $('.corpse-check').prop('checked', false);
-  $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+  if (checkedCount() < 2) {
+    $('.corpse-check').prop('checked', false);
+    $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+    refreshMarkLabels();
+  }
   openMarkModal();
 });
 

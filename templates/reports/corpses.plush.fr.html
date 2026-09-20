@@ -118,6 +118,20 @@ function checkedCount(){
   return $('.corpse-check:checked').length;
 }
 
+// Avec plusieurs lignes sélectionnées, l'action marque tout : les boutons
+// passent en « Tout marquer » et la sélection est conservée.
+var markLabel = 'Marquer';
+var markAllLabel = 'Tout marquer';
+function refreshMarkLabels(){
+  var all = checkedCount() >= 2;
+  $('.quick-mark').each(function(){
+    $(this).text(all ? markAllLabel : markLabel);
+  });
+}
+
+$('#checkAll').on('change', refreshMarkLabels);
+$(document).on('change', '.corpse-check', refreshMarkLabels);
+
 function openMarkModal(){
   if (checkedCount() === 0) {
     alert('Sélectionnez au moins un animal.');
@@ -127,10 +141,15 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Bouton « Marquer » d'une ligne : s'applique uniquement à l'animal de cette ligne.
+// Bouton « Marquer » d'une ligne : sans sélection multiple, s'applique à
+// l'animal de cette ligne ; avec plusieurs lignes cochées, marque tout et
+// la sélection est conservée.
 $('.quick-mark').on('click', function(){
-  $('.corpse-check').prop('checked', false);
-  $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+  if (checkedCount() < 2) {
+    $('.corpse-check').prop('checked', false);
+    $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+    refreshMarkLabels();
+  }
   openMarkModal();
 });
 

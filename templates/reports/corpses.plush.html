@@ -118,6 +118,20 @@ function checkedCount(){
   return $('.corpse-check:checked').length;
 }
 
+// With multiple rows selected, the mark action marks them all: relabel
+// every row button to "Mark all" and keep the current selection intact.
+var markLabel = 'Mark';
+var markAllLabel = 'Mark all';
+function refreshMarkLabels(){
+  var all = checkedCount() >= 2;
+  $('.quick-mark').each(function(){
+    $(this).text(all ? markAllLabel : markLabel);
+  });
+}
+
+$('#checkAll').on('change', refreshMarkLabels);
+$(document).on('change', '.corpse-check', refreshMarkLabels);
+
 function openMarkModal(){
   if (checkedCount() === 0) {
     alert('Select at least one animal.');
@@ -127,10 +141,15 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Row "Mark": applies to that row's animal only (no other selection needed).
+// Row "Mark": with a single (or no) selection it applies to that row's
+// animal only; with multiple rows selected it marks them all and the
+// selection is left untouched.
 $('.quick-mark').on('click', function(){
-  $('.corpse-check').prop('checked', false);
-  $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+  if (checkedCount() < 2) {
+    $('.corpse-check').prop('checked', false);
+    $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+    refreshMarkLabels();
+  }
   openMarkModal();
 });
 
