@@ -305,8 +305,9 @@ func renderOuttakeNewRejected(c buffalo.Context, tx *pop.Connection, animal *mod
 // translated flash and re-renders the form with 422; it reports whether the
 // request was rejected.
 func rejectOuttakeCreate(c buffalo.Context, tx *pop.Connection, animal *models.Animal, outtake *models.Outtake) (bool, error) {
-	// No outtake date in the future (issue #175).
-	if outtake.Date.After(time.Now().Add(time.Minute)) {
+	// No outtake date in the future (issue #175). The bound date is a naive
+	// local wall clock (binder parses as UTC) — compare in the same frame.
+	if outtake.Date.After(models.FormWallClockNow().Add(time.Minute)) {
 		c.Flash().Add("danger", T.Translate(c, "outtake.date.future"))
 		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
 	}

@@ -93,6 +93,19 @@ func deaccent(s string) string {
 	return b.String()
 }
 
+// FormWallClockNow returns the current wall clock in the server local time
+// zone, expressed as a UTC instant. Form-bound dates live in that frame (the
+// buffalo binder parses custom layouts with time.Parse → UTC, and the MySQL
+// driver stores the UTC wall clock into the naive DATETIME column), so
+// future-date comparisons must use this "now" instead of a TZ-aware
+// time.Now() — in a UTC+NN zone, time.Now() sits behind the local wall clock
+// by the TZ offset and rejects a freshly-picked "now" as being in the future
+// (issue #175 TZ quirk).
+func FormWallClockNow() time.Time {
+	n := time.Now()
+	return time.Date(n.Year(), n.Month(), n.Day(), n.Hour(), n.Minute(), n.Second(), n.Nanosecond(), time.UTC)
+}
+
 // Validate gets run every time you call a "pop.Validate*" (pop.ValidateAndSave, pop.ValidateAndCreate, pop.ValidateAndUpdate) method.
 // This method is not required and may be deleted.
 func (o *Outtake) Validate(tx *pop.Connection) (*validate.Errors, error) {
@@ -102,7 +115,12 @@ func (o *Outtake) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	)
 	// No outtake date in the future (issue #175). Small tolerance absorbs
 	// sub-second skew between the encoder's clock and freshly-picked "now".
-	if !o.Date.IsZero() && o.Date.After(time.Now().Add(time.Minute)) {
+	// The form-bound date is a naive local wall clock (buffalo binder parses
+	// custom layouts as UTC, the MySQL driver stores the UTC wall clock in the
+	// naive DATETIME column), so "now" must be taken in the same frame — a
+	// TZ-aware time.Now() would sit behind the local wall clock by the TZ
+	// offset in UTC+NN zones and reject a freshly-picked "now" as future.
+	if !o.Date.IsZero() && o.Date.After(FormWallClockNow().Add(time.Minute)) {
 		errs.Add("Date", "cannot be in the future")
 	}
 	// "ID d'indigénat" is an entry cause and must never be usable as an

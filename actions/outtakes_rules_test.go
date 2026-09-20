@@ -459,6 +459,34 @@ func TestOuttakeCreateRejectsFutureDate(t *testing.T) {
 	require.False(t, animal.OuttakeID.Valid, "animal must not be linked to a rejected outtake")
 }
 
+// TestOuttakeCreateAcceptsCurrentLocalTime: the flatpickr widget submits the
+// browser's local wall clock ("now"). The buffalo form binder parses custom
+// time layouts with time.Parse (UTC), so without server-side localization a
+// "now" value in a UTC+NN timezone lands in the future and is wrongly
+// rejected. The form value must be re-interpreted in the server local time
+// zone before the future-date guard runs (issue #175 TZ quirk).
+func TestOuttakeCreateAcceptsCurrentLocalTime(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+	client, baseURL := adminClientWithURL(t)
+
+	nowLocal := time.Now().Format(models.DateTimeFormat)
+	resp := postOuttakeAt(t, client, baseURL, f, nowLocal, "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode,
+		"outtake at local %q (server TZ %s) must be accepted, body: %s",
+		nowLocal, time.Now().Format("-07:00"), truncate(body, 800))
+
+	o := &models.Outtake{}
+	require.NoError(t, tx.Where("outtaketype_id = ?", f.outtakeTypeID).First(o))
+	// The persisted wall clock must match what the user typed, and the stored
+	// instant must not be in the future.
+	require.Equal(t, nowLocal, o.Date.Format(models.DateTimeFormat), "stored wall clock must equal the submitted local wall clock")
+	require.False(t, o.Date.After(models.FormWallClockNow().Add(time.Minute)), "stored outtake date must not be in the future")
+}
+
 // TestOuttakeStayDurationPersisted: creating an outtake persists the stay
 // duration in whole hours between the animal intake and the outtake date
 // (issue #175).

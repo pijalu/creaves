@@ -108,8 +108,11 @@ func TestDeaccent(t *testing.T) {
 
 // TestOuttakeValidateRejectsFutureDate: an outtake date in the future must
 // fail validation (issue #175). TypeID is Nil so no DB connection is used.
+// Dates are built in the form/storage frame (naive local wall clock as UTC,
+// see FormWallClockNow): a real future wall clock must be rejected, a past
+// wall clock accepted.
 func TestOuttakeValidateRejectsFutureDate(t *testing.T) {
-	future := time.Now().Add(2 * time.Hour)
+	future := FormWallClockNow().Add(2 * time.Hour)
 	o := Outtake{Date: future}
 	errs, err := o.Validate(nil)
 	if err != nil {
