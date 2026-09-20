@@ -24,6 +24,33 @@ type Queries struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Query       string `yaml:"query"`
+	// YearColumn is the alias of the year column in the SELECT list (e.g.
+	// "Année"). When set, the export accepts a ?year= parameter and filters
+	// the report on it. Empty means the report cannot be filtered by year.
+	YearColumn string `yaml:"year_column"`
+}
+
+// YearFilter wraps an export SQL query so only rows of the given year are
+// returned: SELECT * FROM (<query>) t WHERE t.<yearColumn> = ?. Returns the
+// query untouched when year <= 0 or the query declares no year column.
+// The year is passed as a bind parameter, never interpolated.
+func YearFilter(sqlQuery string, yearColumn string, year int) (string, []interface{}) {
+	if year <= 0 || yearColumn == "" {
+		return sqlQuery, nil
+	}
+	wrapped := "SELECT * FROM (" + strings.TrimSuffix(strings.TrimSpace(sqlQuery), ";") + ") AS year_filter WHERE year_filter.`" + yearColumn + "` = ?"
+	return wrapped, []interface{}{year}
+}
+
+// ParseYear reads an optional "year" request parameter. It returns 0 (no
+// filter) when the parameter is absent, empty, or not a plausible 4-digit
+// year.
+func ParseYear(c buffalo.Context) int {
+	y, err := strconv.Atoi(strings.TrimSpace(c.Param("year")))
+	if err != nil || y < 1900 || y > 2100 {
+		return 0
+	}
+	return y
 }
 
 type Config struct {
@@ -61,7 +88,9 @@ func GetQueries() []Queries {
 
 // FetchRows runs the named export query and returns the query definition,
 // the column names and the result rows as strings (NULL rendered as "").
-func FetchRows(query string) (*Queries, []string, [][]string, error) {
+// When year > 0 and the query declares a year column, rows are restricted
+// to that year.
+func FetchRows(query string, year int) (*Queries, []string, [][]string, error) {
 	// Connect to the database using the connection information from the config file.
 	db, err := sql.Open(models.DB.Dialect.Name(), models.DB.Dialect.URL())
 	if err != nil {
@@ -74,7 +103,8 @@ func FetchRows(query string) (*Queries, []string, [][]string, error) {
 		return nil, nil, nil, err
 	}
 
-	rows, err := db.Query(sqlQuery.Query)
+	sqlText, args := YearFilter(sqlQuery.Query, sqlQuery.YearColumn, year)
+	rows, err := db.Query(sqlText, args...)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("error running query: %s", err)
 	}
@@ -214,7 +244,8 @@ func FilterRows(rows [][]string, f ExportFilter) [][]string {
 
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
-	sqlQuery, cols, rows, err := FetchRows(query)
+	year := ParseYear(c)
+	sqlQuery, cols, rows, err := FetchRows(query, year)
 	if err != nil {
 		if errors.Is(err, ErrQueryNotFound) {
 			c.Logger().Debugf("Could not find query %s", query)
@@ -230,8 +261,12 @@ func RunQuery(c buffalo.Context, query string) error {
 	// the download must match what the user sees on /export/view.
 	rows = FilterRows(rows, FilterFromParams(c.Params()))
 
+	filename := sqlQuery.Name
+	if year > 0 && sqlQuery.YearColumn != "" {
+		filename = fmt.Sprintf("%s_%d", sqlQuery.Name, year)
+	}
 	c.Response().Header().Add("Content-Type", "text/csv; charset=utf-8")
-	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, sqlQuery.Name))
+	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, filename))
 
 	return writeCSV(c.Response(), cols, rows)
 }

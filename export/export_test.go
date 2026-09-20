@@ -213,3 +213,40 @@ type paramsStub map[string]string
 
 func (p paramsStub) Get(key string) string          { return p[key] }
 func (p paramsStub) Set(key, value string)          { p[key] = value }
+
+func TestYearFilter(t *testing.T) {
+	base := "SELECT a.year AS \"Année\" FROM animals AS a"
+
+	// No year or no column: untouched, no args.
+	q, args := YearFilter(base, "Année", 0)
+	assert.Equal(t, base, q)
+	assert.Empty(t, args)
+	q, args = YearFilter(base, "", 2024)
+	assert.Equal(t, base, q)
+	assert.Empty(t, args)
+
+	// Valid year: wrapped, year bound as parameter (never interpolated).
+	q, args = YearFilter(base, "Année", 2024)
+	assert.Equal(t, "SELECT * FROM ("+base+") AS year_filter WHERE year_filter.`Année` = ?", q)
+	assert.Equal(t, []interface{}{2024}, args)
+
+	// Trailing semicolon stripped.
+	q, _ = YearFilter(base+";\n", "Année", 2024)
+	assert.Equal(t, "SELECT * FROM ("+base+") AS year_filter WHERE year_filter.`Année` = ?", q)
+}
+
+func TestYearColumns_LoadedConfig(t *testing.T) {
+	// Every query declaring a year column must actually select a column with
+	// that alias; animal_gavage has no year column and must not declare one.
+	byName := map[string]Queries{}
+	for _, q := range GetQueries() {
+		byName[q.Name] = q
+	}
+	assert.Empty(t, byName["animal_gavage"].YearColumn, "animal_gavage has no year column")
+	for name, q := range byName {
+		if q.YearColumn == "" {
+			continue
+		}
+		assert.Contains(t, q.Query, `"`+q.YearColumn+`"`, "%s must select its year_column alias", name)
+	}
+}

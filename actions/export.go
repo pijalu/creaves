@@ -29,7 +29,8 @@ func ExportView(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.HTML("export/index.html"))
 	}
 
-	sqlQuery, cols, rows, err := export.FetchRows(query)
+	year := export.ParseYear(c)
+	sqlQuery, cols, rows, err := export.FetchRows(query, year)
 	if err != nil {
 		if errors.Is(err, export.ErrQueryNotFound) {
 			c.Set("queries", export.GetQueries())
@@ -39,6 +40,7 @@ func ExportView(c buffalo.Context) error {
 	}
 
 	c.Set("query", sqlQuery)
+	c.Set("year", year)
 	c.Set("cols", cols)
 	c.Set("rows", rows)
 	return c.Render(http.StatusOK, r.HTML("export/view.html"))

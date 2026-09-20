@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gobuffalo/buffalo"
@@ -25,6 +26,10 @@ type Queries struct {
 	Template    string `yaml:"template"`
 	Sheet       string `yaml:"sheet"`
 	Query       string `yaml:"query"`
+	// YearColumn is the alias of the year column in the SELECT list (e.g.
+	// "année"). When set, RunQuery accepts a ?year= parameter and filters the
+	// report on it. Empty means the report cannot be filtered by year.
+	YearColumn string `yaml:"year_column"`
 }
 
 type Config struct {
@@ -101,6 +106,29 @@ func sheetPosition(line, col int) string {
 	return fmt.Sprintf("%s%d", result, line)
 }
 
+// yearFilter wraps an export SQL query so only rows of the given year are
+// returned: SELECT * FROM (<query>) t WHERE t.<yearColumn> = ?. Returns the
+// query untouched when year <= 0 or the query declares no year column.
+// The year is passed as a bind parameter, never interpolated.
+func yearFilter(sqlQuery string, yearColumn string, year int) (string, []interface{}) {
+	if year <= 0 || yearColumn == "" {
+		return sqlQuery, nil
+	}
+	wrapped := "SELECT * FROM (" + strings.TrimSuffix(strings.TrimSpace(sqlQuery), ";") + ") AS year_filter WHERE year_filter.`" + yearColumn + "` = ?"
+	return wrapped, []interface{}{year}
+}
+
+// ParseYear reads an optional "year" request parameter. It returns 0 (no
+// filter) when the parameter is absent, empty, or not a plausible 4-digit
+// year.
+func ParseYear(c buffalo.Context) int {
+	y, err := strconv.Atoi(strings.TrimSpace(c.Param("year")))
+	if err != nil || y < 1900 || y > 2100 {
+		return 0
+	}
+	return y
+}
+
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
 	// Connect to the database using the connection information from the config file.
@@ -131,9 +159,12 @@ func RunQuery(c buffalo.Context, query string) error {
 	}
 	defer f.Close()
 
-	// Run the SQL query against the database and return the result set.
-	c.Logger().Debugf("Running query %s: %s", sqlQuery.Name, sqlQuery.Query)
-	rows, err := db.Query(sqlQuery.Query)
+	// Run the SQL query against the database and return the result set,
+	// restricted to the requested year when the query declares a year column.
+	year := ParseYear(c)
+	sqlText, args := yearFilter(sqlQuery.Query, sqlQuery.YearColumn, year)
+	c.Logger().Debugf("Running query %s (year=%d): %s", sqlQuery.Name, year, sqlText)
+	rows, err := db.Query(sqlText, args...)
 	if err != nil {
 		c.Logger().Debugf("Error running query: %v", err)
 		return fmt.Errorf("error running query: %s", err)
@@ -147,8 +178,12 @@ func RunQuery(c buffalo.Context, query string) error {
 		return fmt.Errorf("error getting columns name: %v", err)
 	}
 
+	filename := sqlQuery.Name
+	if year > 0 && sqlQuery.YearColumn != "" {
+		filename = fmt.Sprintf("%s_%d", sqlQuery.Name, year)
+	}
 	c.Response().Header().Add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, sqlQuery.Name))
+	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, filename))
 
 	line := 1
 	for i, co := range cols {

@@ -343,3 +343,180 @@ func TestExportCsvHonorsViewFilters(t *testing.T) {
 		t.Fatalf("column-filtered download has %d lines, want header only:\n%.200s", colFiltered, raw)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Bug 4 (2026-10): every export report can run for a specific year via an
+// optional ?year= parameter, applied in SQL (subquery wrap on the query's
+// declared year column), consistently on the online view, the CSV download
+// and the Excel exports.
+// ---------------------------------------------------------------------------
+
+// TestExportViewYearFilter proves ?year= restricts the online view to the
+// requested year and that the page shows the active filter.
+func TestExportViewYearFilter(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	countRows := func(url string) int {
+		resp, err := client.Get(url)
+		if err != nil {
+			t.Fatalf("GET %s: %v", url, err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			bb, _ := io.ReadAll(resp.Body)
+			t.Fatalf("GET %s = %d (body: %.300s)", url, resp.StatusCode, string(bb))
+		}
+		bb, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		return strings.Count(string(bb), "<tr>")
+	}
+
+	all := countRows(srv.URL + "/export/view?query=register")
+	filtered := countRows(srv.URL + "/export/view?query=register&year=2024")
+	if filtered > all {
+		t.Errorf("year-filtered view has more rows (%d) than unfiltered (%d)", filtered, all)
+	}
+
+	// The active year must be visible and the CSV link must carry it.
+	resp, err := client.Get(srv.URL + "/export/view?query=register&year=2024")
+	if err != nil {
+		t.Fatalf("GET view: %v", err)
+	}
+	bb, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	body := string(bb)
+	if !strings.Contains(body, `params.set("year", "2024")`) {
+		t.Error("view page CSV sync does not carry the year param")
+	}
+
+	// A garbage year is ignored (no filter, no crash).
+	if countRows(srv.URL+"/export/view?query=register&year=garbage") != all {
+		t.Error("garbage year should be ignored and return the unfiltered result")
+	}
+}
+
+// TestExportCsvYearFilter proves the CSV download is year-filtered in SQL:
+// every data row's year column equals the requested year and the filename
+// carries the year.
+func TestExportCsvYearFilter(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/csv?query=register&year=2024")
+	if err != nil {
+		t.Fatalf("GET /export/csv?query=register&year=2024: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bb, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status = %d (body: %.300s)", resp.StatusCode, string(bb))
+	}
+	if cd := resp.Header.Get("Content-Disposition"); !strings.Contains(cd, "register_2024.csv") {
+		t.Errorf("Content-Disposition = %q, want filename with year", cd)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	lines := strings.Split(strings.TrimPrefix(strings.TrimSpace(string(body)), "\ufeff"), "\n")
+	if len(lines) < 1 {
+		t.Fatal("empty CSV")
+	}
+	// Column 0 of the register query is the year ("année").
+	for i, line := range lines[1:] {
+		first := strings.SplitN(line, ",", 2)[0]
+		if first != "2024" {
+			t.Errorf("row %d: year column = %q, want 2024", i+1, first)
+		}
+	}
+}
+
+// TestExportCsvYearFilterNoYearColumn proves a query without a year column
+// (animal_gavage: animals currently in care) ignores ?year= instead of
+// erroring.
+func TestExportCsvYearFilterNoYearColumn(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/csv?query=animal_gavage&year=2024")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bb, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status = %d (body: %.300s)", resp.StatusCode, string(bb))
+	}
+	if cd := resp.Header.Get("Content-Disposition"); strings.Contains(cd, "_2024") {
+		t.Errorf("filename %q must not carry a year for a year-less query", cd)
+	}
+}
+
+// TestExportExcelYearFilter proves the Excel export accepts ?year= and tags
+// the downloaded filename with it.
+func TestExportExcelYearFilter(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/excel?query=registre_detail&year=2024")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bb, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status = %d (body: %.300s)", resp.StatusCode, string(bb))
+	}
+	if cd := resp.Header.Get("Content-Disposition"); !strings.Contains(cd, "registre_detail_2024.xlsx") {
+		t.Errorf("Content-Disposition = %q, want filename with year", cd)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "spreadsheetml") {
+		t.Errorf("Content-Type = %q, want xlsx", ct)
+	}
+}
+
+// TestExportExcelChooserUI proves the Excel chooser renders as a table with
+// per-query year inputs and an all-years download link (bug 4 UI).
+func TestExportExcelChooserUI(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/excel")
+	if err != nil {
+		t.Fatalf("GET /export/excel: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	bb, _ := io.ReadAll(resp.Body)
+	body := string(bb)
+	for _, frag := range []string{
+		"<table",
+		`action="/export/excel"`,
+		`name="year"`,
+		`placeholder="All years"`,
+		"/export/excel?query=registre_detail",
+		"/export/excel?query=stat_communes",
+	} {
+		if !strings.Contains(body, frag) {
+			t.Errorf("Excel chooser lacks fragment %q", frag)
+		}
+	}
+	if strings.Contains(body, "<ul>") {
+		t.Error("Excel chooser still renders the old bare <ul> list")
+	}
+}

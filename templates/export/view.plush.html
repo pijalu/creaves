@@ -1,5 +1,9 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><a href="/export/view" title="Back to exports" class="mr-2"><i class="fas fa-arrow-left"></i></a> <%= query.Description %></h3>
+  <%= if (year > 0) { %>
+    <span class="badge badge-info ml-2"><%= t("export.year.active") %>: <%= year %></span>
+    <a href="/export/view?query=<%= query.Name %>" class="btn btn-outline-secondary btn-sm ml-1" title="<%= t("export.year.all") %>"><i class="fas fa-times"></i> <%= t("export.year.all") %></a>
+  <% } %>
 </div>
 
 <style>
@@ -85,6 +89,9 @@ $("#exportGlobalSearch").on("keyup change", function () {
 function syncExportCsvLink() {
     var params = new URLSearchParams();
     params.set("query", "<%= query.Name %>");
+    <%= if (year > 0) { %>
+    params.set("year", "<%= year %>");
+    <% } %>
     var global = table.search();
     if (global) { params.set("q", global); }
     var cols = [];

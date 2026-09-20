@@ -141,3 +141,44 @@ func TestGetQuery_OnLoadedConfig(t *testing.T) {
 		assert.Equal(t, "registre.xlsx", q.Template)
 	}
 }
+
+func TestYearFilter(t *testing.T) {
+	base := "SELECT a.year AS \"année\" FROM animals AS a ORDER BY a.id asc"
+
+	// year <= 0 or no year column: query untouched, no args.
+	for _, tc := range []struct {
+		name       string
+		yearColumn string
+		year       int
+	}{
+		{"no year", "année", 0},
+		{"negative year", "année", -5},
+		{"no year column", "", 2024},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			q, args := yearFilter(base, tc.yearColumn, tc.year)
+			assert.Equal(t, base, q)
+			assert.Empty(t, args)
+		})
+	}
+
+	// Valid year + column: wrapped subquery, year bound as parameter.
+	q, args := yearFilter(base, "année", 2024)
+	assert.Equal(t, "SELECT * FROM ("+base+") AS year_filter WHERE year_filter.`année` = ?", q)
+	assert.Equal(t, []interface{}{2024}, args)
+
+	// Trailing semicolon is stripped so the subquery stays valid.
+	q, _ = yearFilter(base+";", "année", 2024)
+	assert.Equal(t, "SELECT * FROM ("+base+") AS year_filter WHERE year_filter.`année` = ?", q)
+}
+
+func TestExcelConfigYearColumns(t *testing.T) {
+	// Both embedded excel queries declare a year column matching the alias
+	// used in their SELECT list (bug 4).
+	byName := map[string]Queries{}
+	for _, q := range GetQueries() {
+		byName[q.Name] = q
+	}
+	assert.Equal(t, "année", byName["registre_detail"].YearColumn)
+	assert.Equal(t, "Année", byName["stat_communes"].YearColumn)
+}

@@ -1,6 +1,7 @@
 queries:
  - name: Annexe_2A_2024
    description: Annexe 2A 2024
+   year_column: "année"
    query: SELECT distinct
             a.id AS "ID",
             a.year AS "année",
@@ -32,6 +33,7 @@ queries:
   
  - name: Annexe_2B_2024
    description: Annexe 2B 2024
+   year_column: "Année"
    query: SELECT DISTINCT
             a.year AS "Année",
             CASE
@@ -51,6 +53,7 @@ queries:
 
  - name: Annexe_2024
    description: Annexe au rapport 2024
+   year_column: "année"
    query: SELECT distinct
             a.year AS "année",
             CASE
@@ -83,6 +86,7 @@ queries:
   
  - name: detail_register
    description: Registre détaillé
+   year_column: "année"
    query: SELECT distinct
            a.year AS "année",
            a.id AS "ID",
@@ -157,6 +161,7 @@ queries:
 
  - name: register
    description: Registre
+   year_column: "année"
    query: SELECT distinct
             a.year AS "année",
             a.yearNumber AS "N°",
@@ -187,6 +192,7 @@ queries:
             
  - name: dead_register
    description: Registre des cadavres
+   year_column: "année"
    query: SELECT distinct
             a.year AS "année",
             a.yearNumber AS "N°",
@@ -207,6 +213,7 @@ queries:
 
  - name: descoverer_register
    description: Registre des découvreurs
+   year_column: "Année"
    query: SELECT
            a.year AS "Année",
            a.id, 
@@ -232,6 +239,7 @@ queries:
            
  - name: donation_register
    description: Registre des dons
+   year_column: "Année"
    query: SELECT
            year(di.created_at) as "Année", 
            DATE_FORMAT(di.created_at, "%Y %m %d") AS "Date du don",
@@ -249,6 +257,7 @@ queries:
            
  - name: species_registre
    description: Registre détailé des espèces
+   year_column: "Année"
    query: SELECT DISTINCT
            a.year AS "Année",
            a.yearNumber AS "N°",
@@ -283,6 +292,7 @@ queries:
 
  - name: entry_age
    description: "Age à l'entrée"
+   year_column: "Année"
    query: SELECT
            a.year AS "Année", 
            aa.name AS "Age à l'Entrée",
@@ -297,6 +307,7 @@ queries:
 
  - name: sortie_reason
    description: Causes de sortie
+   year_column: "Année"
    query: SELECT DISTINCT 
            a.year AS "Année",
            ot.name AS "Causes de sortie",
@@ -310,6 +321,7 @@ queries:
 
  - name: sortie_types
    description: Types de sortie
+   year_column: "Année"
    query: SELECT DISTINCT
            a.year AS "Année",
            CASE
@@ -327,6 +339,7 @@ queries:
 
  - name: entry_date_year
    description: "Nombre d'animaux accueillis selon le jour de l'année"
+   year_column: "Année"
    query: SELECT 
             year(i.date) as "Année", 
             date_format(i.date, "%Y %m %d") AS "Date d'Entrée", 
@@ -337,6 +350,7 @@ queries:
           
  - name: entry_day_week
    description: "Nombre d'animaux accueillis selon le jour de la semaine"
+   year_column: "Année"
    query: SELECT Year(i.date) AS "Année", 
             Dayofweek(i.date) AS "numéro jour de la semaine - (1=dimanche)",  
             COUNT(*) AS "Nombre"
@@ -346,6 +360,7 @@ queries:
 
  - name: day_to_month
    description: "Nombre d'animaux accueillis selon le mois"
+   year_column: "Année"
    query: SELECT 
            Year(i.date) AS "Année",
            DATE_FORMAT(i.date, "%m") AS "Mois d'Entrée", 
@@ -356,6 +371,7 @@ queries:
 
  - name: treatments_day_year
    description: "Nombre de traitement selon le jour de l'année"
+   year_column: "Année"
    query: SELECT Year(date) AS "Année",
            DATE_FORMAT(date, "%Y %m %d") AS "Date de traitement", 
            COUNT(*) AS "Nombre"
@@ -365,6 +381,7 @@ queries:
 
  - name: animals_species
    description: "Nombre d'animaux accueillis selon l'éspece"
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            sp.creaves_species AS "Espèce",
@@ -379,6 +396,7 @@ queries:
 
  - name: AGW_group
    description: "Nombre d'animaux accueillis selon le groupe du SPW CREAVES"
+   year_column: "Année"
    query: SELECT
            year AS "Année",
            sp.agw_group AS "CREAVES Groupe",
@@ -394,6 +412,7 @@ queries:
 
  - name: animals_types
    description: "Nombre d'animaux accueillis selon le type"
+   year_column: "Année"
    query: SELECT 
            a.year as "Année",
            t.name AS "Type",
@@ -409,6 +428,7 @@ queries:
 
  - name: animals_family
    description: "Nombre d'animaux accueillis selon la famille"
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            sp.family AS "Famille",
@@ -423,6 +443,7 @@ queries:
 
  - name: animals_order
    description: Nombre d'animaux accueillis selon l'ordre
+   year_column: "Année"
    query: SELECT
            year AS "Année",
            sp.order AS "Ordre",
@@ -437,6 +458,7 @@ queries:
 
  - name: animals_class
    description: "Nombre d'animaux accueillis selon la classe"
+   year_column: "Année"
    query: SELECT DISTINCT
            year AS "Année",
            sp.class AS "Classe",
@@ -451,6 +473,7 @@ queries:
 
  - name: animals_game
    description: Espèce gibier accueillie
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            sp.creaves_species AS "Espèce",
@@ -465,6 +488,7 @@ queries:
 
  - name: animals_huntable
    description: Espèce chassable accueillie
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            sp.creaves_species AS "Espèce",
@@ -479,6 +503,7 @@ queries:
 
  - name: native_status
    description: "Statut d'indigénat"
+   year_column: "Année"
    query: SELECT
             year AS "Année",
             ns.status AS "Statut",
@@ -494,6 +519,7 @@ queries:
            
  - name: entry_causes_détail
    description: "Causes d'entrée détail"
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            ec.nature AS "Nature de la cause",
@@ -511,6 +537,7 @@ queries:
 
  - name: entry_causes
    description: "Causes d'entrée"
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            ec.cause AS "Cause",
@@ -526,6 +553,7 @@ queries:
 
  - name: nature_entry_causes
    description: "Nature des causes d'entrée"
+   year_column: "Année"
    query: SELECT 
            year AS "Année",
            ec.nature AS "Nature des causes d'entrée",
@@ -558,12 +586,14 @@ queries:
 
  - name: controle_espèce
    description: "Animaux avec un nom d'espèce inconnue"
+   year_column: "Année"
    query: select a.year AS "Année", a.yearNumber AS "N°", a.species AS "Espèce"
             from animals a
             where a.species not in(select creaves_species from species)
 
  - name: Nombre
    description: "Nombre d'animaux dans l'année"
+   year_column: "année"
    query: SELECT
             a.year AS "année",
             COUNT(Distinct a.id) AS "Nombre"

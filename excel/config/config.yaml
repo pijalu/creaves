@@ -3,6 +3,7 @@ queries:
     description: REGISTRE DÉTAILLÉ
     template: registre.xlsx
     sheet: animals
+    year_column: "année"
     query: SELECT distinct
             a.id AS "ID",
             a.year AS "année",
@@ -53,6 +54,7 @@ queries:
     description: Statistique Communes
     template: stats_communes.xlsx
     sheet: bdd
+    year_column: "Année"
     query: SELECT distinct
             a.year AS "Année",
             a.yearNumber AS "N°",
