@@ -33,12 +33,33 @@ $( document ).ready(function(){
 })
 </script>
   </div>
-  <div class="form-group row">
-    <%= linkTo("/outtakes/cage", {class: "btn btn-link"}) { %>
-      of een hele kooi kiezen
-    <% } %>
-  </div>
   <% } %>
+
+  <h4>Kooi selecteren voor afloop</h4>
+  <form method="GET" action="/outtakes/cage">
+    <div class="form-group row">
+      <label for="cage" class="col-sm-2 col-form-label">Kooi</label>
+      <div class="col-sm-10">
+        <input name="cage" type="text" class="form-control" id="cage" required>
+        <script>
+          $('input[name="cage"]').autoComplete({
+              minChars: 0,
+              source: function(term, response){
+                  $.getJSON('/suggestions/CageWithAnimalInCare', { q: term }, function(data){ response(data); });
+              }
+          });
+        </script>
+      </div>
+    </div>
+    <div class="form-group row">
+      <button class="btn btn-success" role="submit">Volgende</button>
+        <script type="text/javascript">
+        $( document ).ready(function(){
+            window.submitfix();
+        })
+        </script>
+    </div>
+  </form>
 <% } else { %>
   <div class="py-4 mb-2">
   <h3 class="d-inline-block"> Afloop van dier <%= animal.YearNumberFormatted() %></h3>
