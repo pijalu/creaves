@@ -1,5 +1,13 @@
 <input type="hidden" name="form_scope" value="sync">
 <hr/>
+<h5>Identité de l'instance</h5>
+<p class="text-muted">Identifiant unique de cette instance Creaves, joint à chaque événement transmis afin que la console distingue les centres.</p>
+<div class="form-group">
+  <label for="instance_id">ID d'instance</label>
+  <input type="text" class="form-control" id="instance_id" name="InstanceID" value="<%= config.InstanceID %>">
+</div>
+
+<hr/>
 <h5>Flux d’événements</h5>
 <p class="text-muted">Configurer le flux pour la consolidation multi-instances.</p>
 

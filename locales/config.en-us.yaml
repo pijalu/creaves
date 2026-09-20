@@ -36,5 +36,7 @@
   translation: "Updated At"
 - id: "config.show.edit"
   translation: "Edit"
+- id: "config.show.sync-config"
+  translation: "Sync configuration"
 - id: "config.show.back"
   translation: "Back"

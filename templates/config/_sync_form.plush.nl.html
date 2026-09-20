@@ -1,5 +1,13 @@
 <input type="hidden" name="form_scope" value="sync">
 <hr/>
+<h5>Instantie-identiteit</h5>
+<p class="text-muted">Unieke identificatie van deze Creaves-instantie, toegevoegd aan elke doorgestuurde gebeurtenis zodat de console de centra kan onderscheiden.</p>
+<div class="form-group">
+  <label for="instance_id">Instantie-ID</label>
+  <input type="text" class="form-control" id="instance_id" name="InstanceID" value="<%= config.InstanceID %>">
+</div>
+
+<hr/>
 <h5>Gebeurtenisstroom</h5>
 <p class="text-muted">Configureer de gebeurtenisstroom voor consolidatie over meerdere instanties.</p>
 

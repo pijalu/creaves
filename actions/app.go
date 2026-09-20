@@ -123,6 +123,10 @@ func App() *buffalo.App {
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
+		// Sync configuration lives in the admin Synchronization area and
+		// always addresses the active config; the legacy per-config URL
+		// redirects there (see ConfigsResource.SyncEdit).
+		app.GET("/sync_configuration", ConfigsResource{}.SyncEdit)
 		app.GET("/config/{config_id}/sync", ConfigsResource{}.SyncEdit)
 		app.Resource("/event_streams", EventStreamsResource{})
 		app.DELETE("/event_streams", EventStreamsResource{}.ClearAll)

@@ -36,5 +36,7 @@
   translation: "Mis à jour à"
 - id: "config.show.edit"
   translation: "Modifier"
+- id: "config.show.sync-config"
+  translation: "Configuration de la synchronisation"
 - id: "config.show.back"
   translation: "Retour"

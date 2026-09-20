@@ -263,6 +263,25 @@ func bindSettingsForScope(c buffalo.Context, stored models.ConfigSettings, scope
 	return settings
 }
 
+// bindColumnsForScope merges submitted form values into the config table
+// columns according to the form scope: "identity" updates only the
+// name/description/active columns, "sync" updates only the instance ID
+// (the sync identity moved to the admin sync form), and "" (legacy full
+// form) updates both groups. Columns outside the scope keep their stored
+// values. Boolean and fields prone to formam parsing issues are bound
+// manually.
+func bindColumnsForScope(c buffalo.Context, config *models.Config, scope string) {
+	if scope != "sync" {
+		config.Name = c.Param("Name")
+		config.Description = c.Param("Description")
+		// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
+		config.Active = paramIsTrue(c, "Active")
+	}
+	if scope == "" || scope == "sync" {
+		config.InstanceID = c.Param("InstanceID")
+	}
+}
+
 // requireAdmin checks if the current user is an admin
 func requireAdmin(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
@@ -468,9 +487,12 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("config/edit.plush.html"))
 }
 
-// SyncEdit renders the synchronization (event stream + webhook) edit form
-// for a Config — the instance-identity fields live on the regular edit view.
-// Mapped to GET /config/{config_id}/sync.
+// SyncEdit renders the synchronization (instance ID, event stream, webhook)
+// edit form for the active config — the guest-view instance details live on
+// the regular edit view. Mapped to GET /sync_configuration (admin
+// Synchronization menu) and, for backward compatibility, to
+// GET /config/{config_id}/sync (redirects to /sync_configuration when the
+// addressed config is the active one).
 func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 	if _, err := requireAdmin(c); err != nil {
 		return err
@@ -481,9 +503,21 @@ func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
-	config := &models.Config{}
-	if err := tx.Find(config, c.Param("config_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+	if c.Param("config_id") != "" {
+		// Legacy per-config URL: only the active config carries the live
+		// synchronization settings, so redirect to the canonical page.
+		if CurrentConfigGet() != nil && CurrentConfigGet().ID.String() == c.Param("config_id") {
+			return c.Redirect(http.StatusMovedPermanently, "/sync_configuration")
+		}
+		return c.Error(http.StatusNotFound, fmt.Errorf("synchronization is configured on the active configuration only"))
+	}
+
+	if _, err := LoadConfig(tx); err != nil {
+		return errors.WithStack(err)
+	}
+	config := CurrentConfigGet()
+	if config == nil {
+		return c.Error(http.StatusNotFound, fmt.Errorf("no active configuration"))
 	}
 
 	// Same API-key policy as Edit: maintainers see the stored key, other
@@ -525,14 +559,9 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 		return errors.WithStack(storedErr)
 	}
 
-	// Bind non-boolean fields manually to avoid formam parsing issues
-	if scope != "sync" {
-		config.InstanceID = c.Param("InstanceID")
-		config.Name = c.Param("Name")
-		config.Description = c.Param("Description")
-		// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
-		config.Active = paramIsTrue(c, "Active")
-	}
+	// Bind non-boolean fields for the submitted scope; the other field
+	// group keeps its stored values (see bindColumnsForScope).
+	bindColumnsForScope(c, config, scope)
 
 	settings := bindSettingsForScope(c, stored, scope)
 	// The API key field is intentionally NOT pre-filled in the form (to avoid

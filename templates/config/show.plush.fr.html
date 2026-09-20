@@ -79,6 +79,7 @@
 </table>
 
 <div class="float-right">
+  <%= linkTo("/sync_configuration", {class: "btn btn-outline-primary", body: t("config.show.sync-config")}) %>
   <%= linkTo(editConfigPath({ config_id: config.ID }), {class: "btn btn-warning", body: t("config.show.edit")}) %>
   <%= linkTo("/config", {class: "btn btn-info", body: t("config.show.back")}) %>
 </div>

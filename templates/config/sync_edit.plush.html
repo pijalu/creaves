@@ -1,6 +1,8 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Sync Configuration — <%= config.Name %></h3>
+  <a href="/config/<%= config.ID %>/edit" class="btn btn-outline-primary btn-sm float-right mt-2">Instance details (guest view)</a>
 </div>
+<p class="text-muted">Instance ID, event stream and webhook delivery for the active configuration.</p>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
   <%= partial("config/sync_form.html") %>

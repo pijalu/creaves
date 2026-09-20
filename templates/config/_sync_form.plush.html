@@ -1,5 +1,13 @@
 <input type="hidden" name="form_scope" value="sync">
 <hr/>
+<h5>Instance Identity</h5>
+<p class="text-muted">Unique identifier of this Creaves instance, attached to every forwarded event so the console can tell centers apart.</p>
+<div class="form-group">
+  <label for="instance_id">Instance ID</label>
+  <input type="text" class="form-control" id="instance_id" name="InstanceID" value="<%= config.InstanceID %>">
+</div>
+
+<hr/>
 <h5>Event Stream</h5>
 <p class="text-muted">Configure event stream for multi-instance consolidation.</p>
 

@@ -1,5 +1,13 @@
 <input type="hidden" name="form_scope" value="sync">
 <hr/>
+<h5>Instanz-Identität</h5>
+<p class="text-muted">Eindeutige Kennung dieser Creaves-Instanz, die jedem weitergeleiteten Ereignis beigefügt wird, damit die Konsole die Zentren unterscheiden kann.</p>
+<div class="form-group">
+  <label for="instance_id">Instanz-ID</label>
+  <input type="text" class="form-control" id="instance_id" name="InstanceID" value="<%= config.InstanceID %>">
+</div>
+
+<hr/>
 <h5>Ereignisstrom</h5>
 <p class="text-muted">Ereignisstrom für die Multi-Instanz-Konsolidierung konfigurieren.</p>
 

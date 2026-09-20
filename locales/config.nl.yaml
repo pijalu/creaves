@@ -36,5 +36,7 @@
   translation: "Bijgewerkt op"
 - id: "config.show.edit"
   translation: "Bewerken"
+- id: "config.show.sync-config"
+  translation: "Synchronisatieconfiguratie"
 - id: "config.show.back"
   translation: "Terug"
