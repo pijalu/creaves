@@ -156,6 +156,80 @@ func markCorpse(t *testing.T, client *http.Client, baseURL string, f *corpseFixt
 	return resp
 }
 
+// TestCorpseRegisterUnmark: admin can clear a corpse mark; non-admin gets
+// 403; unmark only touches dead-type outtakes.
+func TestCorpseRegisterUnmark(t *testing.T) {
+	f := seedCorpseFixtures(t)
+	client, baseURL := adminClientWithURL(t)
+
+	// mark first
+	resp := markCorpse(t, client, baseURL, f, f.deadOuttakeID)
+	if resp.StatusCode >= 400 {
+		t.Fatalf("mark status = %d", resp.StatusCode)
+	}
+	dead := &models.Outtake{}
+	if err := models.DB.Find(dead, f.deadOuttakeID); err != nil {
+		t.Fatalf("load dead outtake: %v", err)
+	}
+	if !dead.CorpseDestination.Valid {
+		t.Fatal("precondition: outtake must be marked")
+	}
+
+	// non-admin may not unmark
+	userLogin, userPass := feedingGuideUser(t, false)
+	uclient, ubaseURL := feedingGuideLogin(t, userLogin, userPass)
+	form := url.Values{"outtake_ids": {f.deadOuttakeID}, "year": {fmt.Sprint(corpseTestYear)}}
+	resp, err := uclient.PostForm(ubaseURL+"/reports/corpses/unmark", form)
+	if err != nil {
+		t.Fatalf("POST unmark (non-admin): %v", err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("non-admin unmark status = %d, want 403", resp.StatusCode)
+	}
+	if err := models.DB.Find(dead, f.deadOuttakeID); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if !dead.CorpseDestination.Valid {
+		t.Error("non-admin unmark must not clear the destination")
+	}
+
+	// admin unmark clears destination/date/recorder
+	resp = unmarkCorpse(t, client, baseURL, f.deadOuttakeID)
+	if resp.StatusCode >= 400 {
+		t.Fatalf("admin unmark status = %d", resp.StatusCode)
+	}
+	dead = &models.Outtake{}
+	if err := models.DB.Find(dead, f.deadOuttakeID); err != nil {
+		t.Fatalf("reload after unmark: %v", err)
+	}
+	if dead.CorpseDestination.Valid || dead.CorpseDestinationAt.Valid || dead.CorpseDestinationByID.Valid {
+		t.Errorf("unmark must clear all mark fields, got dest=%v at=%v by=%v",
+			dead.CorpseDestination, dead.CorpseDestinationAt, dead.CorpseDestinationByID)
+	}
+}
+
+// unmarkCorpse posts the unmark form for the given outtake ids.
+func unmarkCorpse(t *testing.T, client *http.Client, baseURL string, ids ...string) *http.Response {
+	t.Helper()
+	form := url.Values{}
+	for _, id := range ids {
+		form.Add("outtake_ids", id)
+	}
+	form.Set("year", fmt.Sprint(corpseTestYear))
+	req, err := http.NewRequest("POST", baseURL+"/reports/corpses/unmark", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("POST unmark: %v", err)
+	}
+	t.Cleanup(func() { resp.Body.Close() })
+	return resp
+}
+
 // TestCorpseRegisterMark: bulk marking stores destination + date + current
 // user on dead outtakes only (issue #149).
 func TestCorpseRegisterMark(t *testing.T) {

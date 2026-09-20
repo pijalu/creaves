@@ -26,6 +26,8 @@
 <form action="/reports/corpses/mark" method="POST" id="markForm">
   <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
   <input type="hidden" name="year" value="<%= selectedYear %>">
+  <input type="hidden" name="destination" id="destination">
+  <input type="hidden" name="destination_at" id="destination_at">
   <table class="table table-hover table-bordered">
     <thead class="thead-light">
       <tr>
@@ -51,42 +53,104 @@
           <td class="align-middle"><%= corpse.CorpseDestination %></td>
           <td class="align-middle"><%= if (corpse.CorpseDestinationAt.Valid) { %><%= corpse.CorpseDestinationAt.Time.Format("02/01/2006 15:04") %><% } %></td>
           <td class="align-middle"><%= corpse.CorpseDestinationBy %></td>
-          <td class="align-middle"><button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Mark</button></td>
+          <td class="align-middle text-nowrap">
+            <button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Mark</button>
+            <%= if (isAdmin && corpse.CorpseDestination.Valid) { %>
+              <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="Unmark">Unmark</button>
+            <% } %>
+          </td>
         </tr>
       <% } %>
     </tbody>
   </table>
 
-  <div class="card card-body mb-3">
-    <div class="form-row align-items-end">
-      <div class="form-group col-md-4">
-        <label for="destination">Organism</label>
-        <input type="text" class="form-control" id="destination" name="destination" autocomplete="off">
+  <div class="mb-3">
+    <button type="button" class="btn btn-primary" id="bulkMark">Mark destination</button>
+  </div>
+</form>
+
+<%= if (isAdmin) { %>
+  <%= for (corpse) in corpses { %>
+    <%= if (corpse.CorpseDestination.Valid) { %>
+      <form action="/reports/corpses/unmark" method="POST" id="unmarkForm-<%= corpse.OuttakeID %>" class="d-none">
+        <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+        <input type="hidden" name="year" value="<%= selectedYear %>">
+        <input type="hidden" name="outtake_ids" value="<%= corpse.OuttakeID %>">
+      </form>
+    <% } %>
+  <% } %>
+<% } %>
+
+<div class="modal fade" id="markModal" tabindex="-1" role="dialog" aria-labelledby="markModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="markModalLabel">Mark destination</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
       </div>
-      <div class="form-group col-md-3">
-        <label for="destination_at">Date</label>
-        <input type="datetime-local" class="form-control" id="destination_at" name="destination_at">
+      <div class="modal-body">
+        <p id="markModalCount"></p>
+        <div class="form-group">
+          <label for="modalDestination">Organism</label>
+          <input type="text" class="form-control" id="modalDestination" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="modalDestinationAt">Date</label>
+          <input type="datetime-local" class="form-control" id="modalDestinationAt">
+        </div>
       </div>
-      <div class="form-group col-md-2">
-        <button type="submit" class="btn btn-primary">Mark destination</button>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="markModalConfirm">Mark</button>
       </div>
     </div>
   </div>
-</form>
+</div>
 
 <script>
 $('#checkAll').on('change', function(){
   $('.corpse-check').prop('checked', this.checked);
 });
+
+function checkedCount(){
+  return $('.corpse-check:checked').length;
+}
+
+function openMarkModal(){
+  if (checkedCount() === 0) {
+    alert('Select at least one animal.');
+    return;
+  }
+  $('#markModalCount').text(checkedCount() + ' corpse(s) selected');
+  $('#markModal').modal('show');
+}
+
+// Row "Mark": applies to that row's animal only (no other selection needed).
 $('.quick-mark').on('click', function(){
   $('.corpse-check').prop('checked', false);
   $('input.corpse-check[value="' + $(this).data('id') + '"]').prop('checked', true);
+  openMarkModal();
+});
+
+$('#bulkMark').on('click', openMarkModal);
+
+$('#markModalConfirm').on('click', function(){
+  var dest = $.trim($('#modalDestination').val());
+  if (dest === '') {
+    $('#modalDestination').focus();
+    return;
+  }
+  $('#destination').val(dest);
+  $('#destination_at').val($('#modalDestinationAt').val());
   $('#markForm').submit();
 });
+
 var now = new Date();
 now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-$('#destination_at').val(now.toISOString().slice(0,16));
-$('#destination').autoComplete({
+$('#modalDestinationAt').val(now.toISOString().slice(0,16));
+$('#modalDestination').autoComplete({
   delay: 250,
   minChars: 1,
   source: function(term, response){

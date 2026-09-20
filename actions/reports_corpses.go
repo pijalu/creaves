@@ -19,17 +19,17 @@ import (
 // corpseRow is one line of the corpse register. Raw-query mapped: yearNumber
 // keeps the animals table's camelCase column name.
 type corpseRow struct {
-	AnimalID    int       `db:"animal_id"`
-	Year        int       `db:"year"`
-	YearNumber  int       `db:"yearNumber"`
-	Species     string    `db:"species"`
-	IntakeDate  time.Time `db:"intake_date"`
-	OuttakeID   uuid.UUID `db:"outtake_id"`
-	DeathDate   time.Time `db:"death_date"`
+	AnimalID   int       `db:"animal_id"`
+	Year       int       `db:"year"`
+	YearNumber int       `db:"yearNumber"`
+	Species    string    `db:"species"`
+	IntakeDate time.Time `db:"intake_date"`
+	OuttakeID  uuid.UUID `db:"outtake_id"`
+	DeathDate  time.Time `db:"death_date"`
 
-	CorpseDestination    nulls.String `db:"corpse_destination"`
-	CorpseDestinationAt  nulls.Time   `db:"corpse_destination_at"`
-	CorpseDestinationBy  nulls.String `db:"corpse_destination_by"`
+	CorpseDestination   nulls.String `db:"corpse_destination"`
+	CorpseDestinationAt nulls.Time   `db:"corpse_destination_at"`
+	CorpseDestinationBy nulls.String `db:"corpse_destination_by"`
 }
 
 const SQL_CORPSE_ROWS = `
@@ -73,6 +73,7 @@ func ReportsCorpsesIndex(c buffalo.Context) error {
 		}
 	}
 	c.Set("corpses", rows)
+	c.Set("isAdmin", GetCurrentUser(c).Admin)
 
 	return c.Render(http.StatusOK, r.HTML("reports/corpses.plush.html"))
 }
@@ -179,5 +180,47 @@ func ReportsCorpsesMark(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) marked", marked))
+	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
+}
+
+// ReportsCorpsesUnmark handles POST /reports/corpses/unmark — admin only.
+// Clears destination/date/recorder on the selected dead-type outtakes so a
+// mistaken mark can be corrected.
+func ReportsCorpsesUnmark(c buffalo.Context) error {
+	if !GetCurrentUser(c).Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	ids := c.Request().Form["outtake_ids"]
+	if len(ids) == 0 {
+		return c.Render(http.StatusBadRequest, r.String("no outtake selected"))
+	}
+
+	// Only unmark outtakes whose type is Dead=true; silently ignore the rest.
+	eligible := []models.Outtake{}
+	if err := tx.RawQuery(`
+		select o.* from outtakes o
+		join outtaketypes ot on o.outtaketype_id = ot.id and ot.dead = 1
+		where o.id in (?)`, ids).All(&eligible); err != nil {
+		return err
+	}
+
+	unmarked := 0
+	for i := range eligible {
+		o := &eligible[i]
+		o.CorpseDestination = nulls.String{}
+		o.CorpseDestinationAt = nulls.Time{}
+		o.CorpseDestinationByID = nulls.UUID{}
+		if err := tx.Save(o); err != nil {
+			return err
+		}
+		unmarked++
+	}
+
+	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) unmarked", unmarked))
 	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
 }
