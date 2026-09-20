@@ -690,15 +690,26 @@ func resyncDeliveryCancelled(ctx context.Context, tx *pop.Connection, run *model
 	return cancelled, nil
 }
 
-// resyncDeliveryPump drives one delivery attempt and re-counts the run's
-// delivered events, returning the updated stall counter (0 on progress).
+// resyncDeliveryPump drives one delivery attempt per deliverable sync
+// target and re-counts the run's delivered events, returning the updated
+// stall counter (0 on progress).
 func resyncDeliveryPump(tx *pop.Connection, run *models.ResyncRun, deliveredBefore, stalled int) (int, error) {
-	// The background worker shares this duty; driving deliverBatch here keeps
-	// the run responsive instead of waiting for the 60s fallback tick.
+	// The background worker shares this duty; driving deliverTargetBatch here
+	// keeps the run responsive instead of waiting for the 60s fallback tick.
 	// Deliveries are idempotent (console-side upsert), so overlap with the
 	// worker is harmless.
-	if _, err := deliverBatch(); err != nil {
-		log.Printf("resync run %s delivery attempt failed: %v", run.ID, err)
+	targets, err := models.EnabledSyncTargets(models.DB)
+	if err != nil {
+		log.Printf("resync run %s: failed to list sync targets: %v", run.ID, err)
+	}
+	for i := range targets {
+		target := &targets[i]
+		if !target.Deliverable() {
+			continue
+		}
+		if _, err := deliverTargetBatch(target); err != nil {
+			log.Printf("resync run %s delivery to %q failed: %v", run.ID, target.Name, err)
+		}
 	}
 	_, deliveredNow, err := countResyncRunEvents(tx, run.ID)
 	if err != nil {

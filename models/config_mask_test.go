@@ -2,7 +2,7 @@ package models
 
 import "testing"
 
-func TestMaskedWebhookAPIKey(t *testing.T) {
+func TestMaskedAPIKey(t *testing.T) {
 	cases := []struct {
 		name string
 		key  string
@@ -15,14 +15,14 @@ func TestMaskedWebhookAPIKey(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := ConfigSettings{WebhookAPIKey: tc.key}
-			if got := s.MaskedWebhookAPIKey(); got != tc.want {
-				t.Fatalf("MaskedWebhookAPIKey() = %q, want %q", got, tc.want)
+			s := SyncTarget{WebhookAPIKey: tc.key}
+			if got := s.MaskedAPIKey(); got != tc.want {
+				t.Fatalf("MaskedAPIKey() = %q, want %q", got, tc.want)
 			}
 			// The full secret must never appear in the masked output
 			// (unless the key is 4 chars or less, in which case only
 			// dots are shown).
-			if tc.key != "" && len(tc.key) > 4 && s.MaskedWebhookAPIKey() == tc.key {
+			if tc.key != "" && len(tc.key) > 4 && s.MaskedAPIKey() == tc.key {
 				t.Fatalf("masked value leaked the full key")
 			}
 		})

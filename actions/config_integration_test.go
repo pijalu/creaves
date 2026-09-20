@@ -29,11 +29,12 @@ func TestLoadConfig_FindsExistingActive(t *testing.T) {
 	assert.True(t, cfg.Active)
 	assert.Equal(t, CurrentConfigGet().ID, cfg.ID)
 
-	// Webhook fields round-tripped from settings JSON.
-	settings, err := cfg.GetSettings()
-	require.NoError(t, err)
-	assert.True(t, settings.WebhookEnabled)
-	assert.Equal(t, "http://example.com/webhook", settings.WebhookURL)
+	// The seeded sync target round-tripped from the DB.
+	targets := models.SyncTargets{}
+	require.NoError(t, pusherTestDB.All(&targets))
+	require.Len(t, targets, 1)
+	assert.True(t, targets[0].Enabled)
+	assert.Equal(t, "http://example.com/webhook", targets[0].WebhookURL)
 }
 
 // TestLoadConfig_CreatesDefaultWhenMissing proves LoadConfig bootstraps a new
@@ -54,9 +55,6 @@ func TestLoadConfig_CreatesDefaultWhenMissing(t *testing.T) {
 	settings, err := cfg.GetSettings()
 	require.NoError(t, err)
 	assert.True(t, settings.EnableEventStream)
-	assert.False(t, settings.WebhookEnabled)
-	assert.Equal(t, 1, settings.WebhookBatchSize)
-	assert.Equal(t, 60, settings.WebhookMaxPerMin)
 }
 
 // TestIsEventStreamEnabled proves the flag reflects CurrentConfig.
@@ -82,21 +80,33 @@ func TestIsEventStreamEnabled(t *testing.T) {
 	assert.False(t, IsEventStreamEnabled())
 }
 
-// TestIsWebhookEnabled proves the flag requires both WebhookEnabled and URL.
+// TestIsWebhookEnabled proves the flag is DB-backed: it requires at least
+// one enabled sync target with a URL.
 func TestIsWebhookEnabled(t *testing.T) {
 	resetPusherState()
-	seedPusherConfig(t, "http://unused.example")
+	target := seedPusherConfig(t, "http://unused.example")
 	assert.True(t, IsWebhookEnabled())
 
 	// URL empty → disabled.
-	settings, _ := CurrentConfigGet().GetSettings()
-	settings.WebhookURL = ""
-	require.NoError(t, CurrentConfigGet().SetSettings(settings))
-	require.NoError(t, pusherTestDB.Update(CurrentConfigGet()))
+	target.WebhookURL = ""
+	require.NoError(t, pusherTestDB.Update(target))
 	assert.False(t, IsWebhookEnabled())
 
-	// Nil config → false.
-	CurrentConfigSet(nil)
+	// URL back, but target disabled → still false.
+	target.WebhookURL = "http://unused.example"
+	target.Enabled = false
+	require.NoError(t, pusherTestDB.Update(target))
+	assert.False(t, IsWebhookEnabled())
+
+	// Re-enabled → true.
+	target.Enabled = true
+	require.NoError(t, pusherTestDB.Update(target))
+	assert.True(t, IsWebhookEnabled())
+
+	// Nil DB → false.
+	savedDB := models.DB
+	models.DB = nil
+	defer func() { models.DB = savedDB }()
 	assert.False(t, IsWebhookEnabled())
 }
 
@@ -136,11 +146,8 @@ func TestInitWebhookAtBoot_StartsWhenDisabled(t *testing.T) {
 	resetPusherState()
 	StopWebhookWorker()
 
-	// Seed a config with webhook disabled.
-	settings := models.ConfigSettings{
-		EnableEventStream: true,
-		WebhookEnabled:    false,
-	}
+	// Seed a config with event stream on but no sync targets.
+	settings := models.ConfigSettings{EnableEventStream: true}
 	cfg := &models.Config{
 		ID:         uuid.Must(uuid.NewV4()),
 		InstanceID: "test-instance",
@@ -156,7 +163,6 @@ func TestInitWebhookAtBoot_StartsWhenDisabled(t *testing.T) {
 
 	StopWebhookWorker()
 }
-
 
 // TestLoadConfig_QueryError verifies the error path when the database query
 // itself fails (e.g. the config table does not exist). LoadConfig must return

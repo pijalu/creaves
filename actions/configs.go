@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/gobuffalo/buffalo"
@@ -126,55 +125,63 @@ func IsEventStreamEnabled() bool {
 	return settings.EnableEventStream
 }
 
-// IsWebhookEnabled checks if the webhook is enabled in config
+// IsWebhookEnabled reports whether webhook forwarding can deliver: at
+// least one sync target is enabled and configured with a URL. DB-backed —
+// the flag no longer lives on the config settings.
 func IsWebhookEnabled() bool {
-	if CurrentConfigGet() == nil {
+	db := models.DB
+	if db == nil {
 		return false
 	}
-	settings, err := CurrentConfigGet().GetSettings()
+	ok, err := models.HasEnabledSyncTarget(db)
 	if err != nil {
 		return false
 	}
-	return settings.WebhookEnabled && settings.WebhookURL != ""
+	return ok
 }
 
-// EnableWebhookForwarding turns webhook forwarding on for the active config
-// (confirm-to-enable path from the resync page). It requires a webhook URL
-// to already be configured — enabling delivery with no destination would
-// silently queue events forever. Persists on tx, refreshes CurrentConfig,
-// and ensures the delivery/purge worker is running.
+// EnableWebhookForwarding enables every sync target that has a webhook URL
+// configured (confirm-to-enable path from the resync page). It requires at
+// least one such target — enabling delivery with no destination would
+// silently queue events forever. Persists on models.DB (autocommit) rather
+// than the request tx: the buffalo pop transaction middleware rolls back
+// the request tx after a redirect response, which would silently discard
+// the flag flip. Ensures the delivery/purge worker is running.
 func EnableWebhookForwarding(tx *pop.Connection) error {
-	if CurrentConfigGet() == nil {
-		if _, err := LoadConfig(tx); err != nil {
-			return fmt.Errorf("no active config: configure the webhook URL first")
-		}
-	}
-	current := CurrentConfigGet()
-	settings, err := current.GetSettings()
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(settings.WebhookURL) == "" {
-		return fmt.Errorf("no webhook URL configured: set the console URL before enabling")
-	}
-	settings.WebhookEnabled = true
-	if err := current.SetSettings(settings); err != nil {
-		return err
-	}
-	// Persist on models.DB (autocommit) rather than the request tx: the
-	// buffalo pop transaction middleware rolls back the request tx after a
-	// redirect response, which would silently discard the flag flip.
 	persistTx := models.DB
 	if persistTx == nil {
 		persistTx = tx
 	}
-	verrs, err := persistTx.ValidateAndUpdate(CurrentConfigGet())
-	if err != nil {
+	if persistTx == nil {
+		return fmt.Errorf("no database connection")
+	}
+	targets := models.SyncTargets{}
+	if err := persistTx.Where("webhook_url <> ''").All(&targets); err != nil {
 		return err
 	}
-	if verrs.HasAny() {
-		return fmt.Errorf("config validation failed: %v", verrs)
+	if len(targets) == 0 {
+		return fmt.Errorf("no sync target configured: create a sync target with the console URL before enabling")
 	}
+	enabled := 0
+	for i := range targets {
+		if targets[i].Enabled {
+			enabled++
+			continue
+		}
+		targets[i].Enabled = true
+		verrs, err := persistTx.ValidateAndUpdate(&targets[i])
+		if err != nil {
+			return err
+		}
+		if verrs.HasAny() {
+			return fmt.Errorf("sync target validation failed: %v", verrs)
+		}
+		enabled++
+	}
+	if enabled == 0 {
+		return fmt.Errorf("no sync target could be enabled")
+	}
+	SetSyncTargetsKnown(true)
 	EnsureWebhookWorkerRunning()
 	return nil
 }
@@ -182,33 +189,6 @@ func EnableWebhookForwarding(tx *pop.Connection) error {
 // ConfigsResource is the resource for the Config model
 type ConfigsResource struct {
 	buffalo.Resource
-}
-
-// parseWebhookLimits parses and clamps the webhook delivery limits from form
-// parameters into their documented ranges (batch 1-100, rate 1-10000), so an
-// invalid value can never reach the delivery worker (SQL LIMIT, request size).
-func parseWebhookLimits(c buffalo.Context) (batchSize, maxPerMin int) {
-	batchSize = 1
-	maxPerMin = 60
-	if bs := c.Param("Settings.WebhookBatchSize"); bs != "" {
-		fmt.Sscanf(bs, "%d", &batchSize)
-	}
-	if mpm := c.Param("Settings.WebhookMaxPerMin"); mpm != "" {
-		fmt.Sscanf(mpm, "%d", &maxPerMin)
-	}
-	if batchSize < 1 {
-		batchSize = 1
-	}
-	if batchSize > 100 {
-		batchSize = 100
-	}
-	if maxPerMin < 1 {
-		maxPerMin = 1
-	}
-	if maxPerMin > 10000 {
-		maxPerMin = 10000
-	}
-	return batchSize, maxPerMin
 }
 
 // paramIsTrue reports whether a boolean form field was checked.
@@ -236,19 +216,13 @@ func paramIsTrue(c buffalo.Context, key string) bool {
 }
 
 // bindSettingsForScope merges submitted form values into the stored settings
-// according to the form scope: "sync" updates only event-stream/webhook
-// fields, "identity" only center/identity fields, and "" (legacy full form)
+// according to the form scope: "sync" updates only the event-stream flag,
+// "identity" only center/identity fields, and "" (legacy full form)
 // updates both groups. Fields outside the scope keep their stored values.
 func bindSettingsForScope(c buffalo.Context, stored models.ConfigSettings, scope string) models.ConfigSettings {
 	settings := stored
-	batchSize, maxPerMin := parseWebhookLimits(c)
 	if scope == "" || scope == "sync" {
 		settings.EnableEventStream = paramIsTrue(c, "Settings.EnableEventStream")
-		settings.WebhookEnabled = paramIsTrue(c, "Settings.WebhookEnabled")
-		settings.WebhookURL = c.Param("Settings.WebhookURL")
-		settings.WebhookAPIKey = c.Param("Settings.WebhookAPIKey")
-		settings.WebhookBatchSize = batchSize
-		settings.WebhookMaxPerMin = maxPerMin
 	}
 	if scope == "" || scope == "identity" {
 		settings.CenterName = c.Param("Settings.CenterName")
@@ -408,15 +382,8 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 	config.Active = paramIsTrue(c, "Active")
 
 	// Build settings from form
-	batchSize, maxPerMin := parseWebhookLimits(c)
-
 	settings := models.ConfigSettings{
 		EnableEventStream: paramIsTrue(c, "Settings.EnableEventStream"),
-		WebhookEnabled:    paramIsTrue(c, "Settings.WebhookEnabled"),
-		WebhookURL:        c.Param("Settings.WebhookURL"),
-		WebhookAPIKey:     c.Param("Settings.WebhookAPIKey"),
-		WebhookBatchSize:  batchSize,
-		WebhookMaxPerMin:  maxPerMin,
 		CenterName:        c.Param("Settings.CenterName"),
 		AsblName:          c.Param("Settings.AsblName"),
 		BceNumber:         c.Param("Settings.BceNumber"),
@@ -474,25 +441,21 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// Parse settings for template display. The stored webhook API key is
-	// only revealed to maintainers; other admins get a write-only field
-	// (blank submit preserves the stored key in Update).
+	// Parse settings for template display
 	settings, _ := config.GetSettings()
-	if !GetCurrentUser(c).Maintainer {
-		settings.WebhookAPIKey = ""
-	}
 	c.Set("settings", settings)
 
 	c.Set("config", config)
 	return c.Render(http.StatusOK, r.HTML("config/edit.plush.html"))
 }
 
-// SyncEdit renders the synchronization (instance ID, event stream, webhook)
-// edit form for the active config — the guest-view instance details live on
-// the regular edit view. Mapped to GET /sync_configuration (admin
-// Synchronization menu) and, for backward compatibility, to
-// GET /config/{config_id}/sync (redirects to /sync_configuration when the
-// addressed config is the active one).
+// SyncEdit renders the synchronization page for the active config: the
+// global settings (instance ID, event stream) plus the sync targets list
+// with per-target delivery counters and actions (add, edit, delete, retry
+// undeliverable). Mapped to GET /sync_configuration (admin Synchronization
+// menu) and, for backward compatibility, to GET /config/{config_id}/sync
+// (redirects to /sync_configuration when the addressed config is the active
+// one).
 func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 	if _, err := requireAdmin(c); err != nil {
 		return err
@@ -520,15 +483,26 @@ func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, fmt.Errorf("no active configuration"))
 	}
 
-	// Same API-key policy as Edit: maintainers see the stored key, other
-	// admins get a write-only field (blank submit preserves the stored key).
 	settings, _ := config.GetSettings()
-	if !GetCurrentUser(c).Maintainer {
-		settings.WebhookAPIKey = ""
-	}
 	c.Set("settings", settings)
-
 	c.Set("config", config)
+
+	// Sync targets with their delivery counters (few rows: per-target
+	// aggregate queries are fine).
+	targets := models.SyncTargets{}
+	if err := tx.Order("name asc").All(&targets); err != nil {
+		return errors.WithStack(err)
+	}
+	targetRows := make([]SyncTargetRow, 0, len(targets))
+	for i := range targets {
+		counts, err := models.DeliveryCountsForTarget(tx, targets[i].ID)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		targetRows = append(targetRows, SyncTargetRow{Target: &targets[i], Counts: counts})
+	}
+	c.Set("targets", targetRows)
+
 	return c.Render(http.StatusOK, r.HTML("config/sync_edit.plush.html"))
 }
 
@@ -564,14 +538,6 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	bindColumnsForScope(c, config, scope)
 
 	settings := bindSettingsForScope(c, stored, scope)
-	// The API key field is intentionally NOT pre-filled in the form (to avoid
-	// exposing the secret in the HTML). If the admin left it blank, preserve
-	// the previously stored key rather than wiping it.
-	if settings.WebhookAPIKey == "" {
-		if existing, err := config.GetSettings(); err == nil {
-			settings.WebhookAPIKey = existing.WebhookAPIKey
-		}
-	}
 	if err := config.SetSettings(settings); err != nil {
 		return errors.WithStack(err)
 	}

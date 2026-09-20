@@ -6,17 +6,18 @@ import (
 	"testing"
 )
 
-// Bug 4 regression: Config JSON responses must never include the webhook API
-// key, which is the shared secret authorizing pushes to the console.
+// Bug 4 regression: settings JSON must never include a webhook API key —
+// the shared secret authorizing pushes to a console now lives on the
+// sync_targets table, never on the config settings blob. Legacy blobs that
+// still carry the old keys are ignored on read (json.Unmarshal skips
+// unknown fields).
 
-func TestConfigMarshalJSONRedactsWebhookAPIKey(t *testing.T) {
+func TestConfigMarshalJSONHasNoWebhookSecrets(t *testing.T) {
 	c := Config{
 		InstanceID: "test-instance",
 		Name:       "Test",
 	}
-	settings := DefaultSettings()
-	settings.WebhookAPIKey = "super-secret-key-123"
-	if err := c.SetSettings(settings); err != nil {
+	if err := c.SetSettings(DefaultSettings()); err != nil {
 		t.Fatalf("SetSettings: %v", err)
 	}
 
@@ -24,37 +25,34 @@ func TestConfigMarshalJSONRedactsWebhookAPIKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	if strings.Contains(string(data), "super-secret-key-123") {
-		t.Errorf("marshaled config leaks webhook API key: %s", data)
-	}
-	if !strings.Contains(string(data), `"webhook_api_key":""`) {
-		t.Errorf("expected redacted webhook_api_key field in output: %s", data)
+	for _, legacy := range []string{"webhook_api_key", "webhook_url", "webhook_enabled"} {
+		if strings.Contains(string(data), legacy) {
+			t.Errorf("marshaled config carries legacy webhook field %q: %s", legacy, data)
+		}
 	}
 }
 
-func TestConfigMarshalJSONKeepsOtherSettings(t *testing.T) {
-	c := Config{
-		InstanceID: "test-instance",
-		Name:       "Test",
+func TestConfigSettingsIgnoresLegacyWebhookKeys(t *testing.T) {
+	// A settings blob written before the sync_targets migration still holds
+	// the old webhook keys; reading it must not fail and must not leak them
+	// back out on re-marshal.
+	legacy := json.RawMessage(`{"enable_event_stream":true,"webhook_enabled":true,"webhook_url":"http://console.example/webhook/events","webhook_api_key":"super-secret-key-123","webhook_batch_size":5,"webhook_max_per_min":120}`)
+	c := Config{InstanceID: "x", Name: "y", Settings: legacy}
+
+	settings, err := c.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings on legacy blob: %v", err)
 	}
-	settings := DefaultSettings()
-	settings.WebhookAPIKey = "super-secret-key-123"
-	if err := c.SetSettings(settings); err != nil {
-		t.Fatalf("SetSettings: %v", err)
+	if !settings.EnableEventStream {
+		t.Errorf("enable_event_stream lost from legacy blob: %+v", settings)
 	}
 
-	data, err := json.Marshal(c)
+	out, err := json.Marshal(settings)
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}
-	var decoded struct {
-		Settings ConfigSettings `json:"settings"`
-	}
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		t.Fatalf("Unmarshal: %v", err)
-	}
-	if decoded.Settings.WebhookBatchSize != settings.WebhookBatchSize {
-		t.Errorf("batch size lost: got %d, want %d", decoded.Settings.WebhookBatchSize, settings.WebhookBatchSize)
+	if strings.Contains(string(out), "super-secret-key-123") {
+		t.Errorf("legacy webhook API key leaked through settings round-trip: %s", out)
 	}
 }
 

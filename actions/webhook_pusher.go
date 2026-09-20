@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -19,14 +20,6 @@ import (
 // maxErrorExcerpt caps how much of a failing webhook response body is copied
 // into error messages / logs (receivers can return arbitrarily large bodies).
 const maxErrorExcerpt = 500
-
-// maxDeliveryAttempts caps how many times one event is retried. An event
-// that keeps failing (e.g. the console rejects it as "instance block
-// mismatch") is skipped once it reaches the cap so it cannot block every
-// newer event behind it (head-of-line blocking / poison queue). The
-// operator can still see the stranded event — with attempts count and last
-// error — in the event stream admin view.
-const maxDeliveryAttempts = 25
 
 // CircuitBreaker implements a simple circuit breaker pattern
 type CircuitBreaker struct {
@@ -79,13 +72,22 @@ func (cb *CircuitBreaker) RecordFailure() {
 	}
 }
 
-// WebhookPusher handles sending events to the webhook endpoint
+// targetDeliveryState holds the per-target delivery runtime state: one
+// circuit breaker and one rate limiter per sync target, so a failing or
+// slow hub never throttles delivery to the others.
+type targetDeliveryState struct {
+	breaker       *CircuitBreaker
+	lastDelivery  time.Time
+	eventsThisMin int
+}
+
+// WebhookPusher handles sending events to the configured sync targets
+// (multi-hub fan-out). Shared HTTP client; per-target state keyed by
+// sync target ID.
 type WebhookPusher struct {
-	client         *http.Client
-	circuitBreaker *CircuitBreaker
-	lastDelivery   time.Time
-	eventsThisMin  int
-	mu             sync.RWMutex
+	client  *http.Client
+	mu      sync.Mutex
+	targets map[uuid.UUID]*targetDeliveryState
 }
 
 // Global webhook pusher instance
@@ -122,8 +124,51 @@ func init() {
 		client: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		circuitBreaker: NewCircuitBreaker(),
+		targets: make(map[uuid.UUID]*targetDeliveryState),
 	}
+}
+
+// targetState returns (creating on first use) the delivery runtime state for
+// one sync target. Caller must not hold wp.mu.
+func (wp *WebhookPusher) targetState(targetID uuid.UUID) *targetDeliveryState {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+	st, ok := wp.targets[targetID]
+	if !ok {
+		st = &targetDeliveryState{breaker: NewCircuitBreaker()}
+		wp.targets[targetID] = st
+	}
+	return st
+}
+
+// forgetTarget drops the runtime state of a deleted sync target.
+func (wp *WebhookPusher) forgetTarget(targetID uuid.UUID) {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+	delete(wp.targets, targetID)
+}
+
+// allowDelivery checks and consumes the per-target rate limit. The batch
+// size is charged up front so a burst of full batches cannot exceed the
+// configured per-minute cap.
+func (st *targetDeliveryState) allowDelivery(maxPerMin, batchSize int) bool {
+	wp := webhookPusher
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	now := time.Now()
+	if now.Sub(st.lastDelivery) >= time.Minute {
+		st.eventsThisMin = 0
+	}
+	if st.eventsThisMin >= maxPerMin {
+		return false
+	}
+	st.lastDelivery = now
+	st.eventsThisMin += batchSize
+	if st.eventsThisMin > maxPerMin {
+		st.eventsThisMin = maxPerMin
+	}
+	return true
 }
 
 // StartWebhookWorker starts the background webhook delivery worker
@@ -213,30 +258,61 @@ func purgeExpiredEvents(lastPurge time.Time) time.Time {
 	return time.Now()
 }
 
-// deliverPendingBatch delivers one batch of pending events if delivery is
-// currently allowed (webhook enabled, circuit closed, rate limit not hit).
-// It returns true only when a full batch was delivered, meaning more events
-// are likely pending and the caller should loop (see drainPendingBatches).
+// syncTargetsKnown caches "at least one enabled sync target exists" so the
+// background worker can short-circuit before touching the database. This
+// matters beyond the cheap win: the worker goroutine shares models.DB with
+// request handlers, and a pop connection is not safe for concurrent use —
+// with no target configured (the default, and the state of most test flows)
+// the worker must not query the database at all (mirrors the legacy
+// behaviour, which returned before any query when no webhook URL was set).
+// The flag is refreshed at boot and on every sync-target CRUD operation via
+// SetSyncTargetsKnown.
+var syncTargetsKnown atomic.Bool
+
+// SetSyncTargetsKnown records whether at least one enabled sync target
+// exists. Called by the sync-target CRUD handlers, by InitWebhookAtBoot, and
+// by tests seeding targets directly.
+func SetSyncTargetsKnown(known bool) {
+	syncTargetsKnown.Store(known)
+}
+
+// deliverPendingBatch fans one delivery round out to every deliverable sync
+// target. It returns true when at least one target delivered a full batch,
+// meaning more events are likely pending and the caller should loop (see
+// drainPendingBatches).
 func deliverPendingBatch() bool {
-	if !IsWebhookEnabled() {
+	if !syncTargetsKnown.Load() {
 		return false
 	}
-	if webhookPusher.circuitBreaker.IsOpen() {
-		return false
-	}
-	if !webhookPusher.allowDelivery() {
-		return false
-	}
-	n, err := deliverBatch()
+	targets, err := models.EnabledSyncTargets(models.DB)
 	if err != nil {
-		fmt.Printf("Webhook delivery failed: %v\n", err)
+		fmt.Printf("Webhook: failed to list sync targets: %v\n", err)
 		return false
 	}
-	settings, err := CurrentConfigGet().GetSettings()
-	if err != nil {
-		return false
+	more := false
+	for i := range targets {
+		target := &targets[i]
+		if !target.Deliverable() {
+			continue
+		}
+		state := webhookPusher.targetState(target.ID)
+		if state.breaker.IsOpen() {
+			continue
+		}
+		batchSize := target.EffectiveBatchSize()
+		if !state.allowDelivery(target.EffectiveMaxPerMin(), batchSize) {
+			continue
+		}
+		n, err := deliverTargetBatch(target)
+		if err != nil {
+			fmt.Printf("Webhook delivery to %q failed: %v\n", target.Name, err)
+			continue
+		}
+		if n >= batchSize {
+			more = true
+		}
 	}
-	return n >= settings.WebhookBatchSize
+	return more
 }
 
 // StopWebhookWorker stops the background webhook delivery worker. It is
@@ -268,43 +344,6 @@ func IsWebhookWorkerRunning() bool {
 	return webhookTicker != nil
 }
 
-// allowDelivery checks if delivery is allowed based on rate limiting
-func (wp *WebhookPusher) allowDelivery() bool {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	now := time.Now()
-	if now.Sub(wp.lastDelivery) >= time.Minute {
-		wp.eventsThisMin = 0
-	}
-
-	config := CurrentConfigGet()
-	if config == nil {
-		return false
-	}
-
-	settings, err := config.GetSettings()
-	if err != nil {
-		return false
-	}
-
-	maxPerMin := settings.WebhookMaxPerMin
-	if maxPerMin <= 0 {
-		maxPerMin = 60
-	}
-
-	if wp.eventsThisMin >= maxPerMin {
-		return false
-	}
-
-	wp.eventsThisMin += settings.WebhookBatchSize
-	if wp.eventsThisMin > maxPerMin {
-		wp.eventsThisMin = maxPerMin
-	}
-
-	return true
-}
-
 // purgeOldEvents deletes events that have outlived the retention
 // policy: delivered events older than deliveredEventRetention and
 // undelivered events older than undeliveredEventRetention.
@@ -331,9 +370,7 @@ func purgeOldEvents() error {
 		if len(ids) == 0 {
 			break
 		}
-		if _, err := models.DB.RawQuery(
-			"DELETE FROM event_streams WHERE id IN (?)", ids,
-		).ExecWithCount(); err != nil {
+		if err := deleteEventsAndDeliveries(ids); err != nil {
 			return fmt.Errorf("failed to purge delivered events: %w", err)
 		}
 		if len(ids) < purgeChunk {
@@ -352,9 +389,7 @@ func purgeOldEvents() error {
 		if len(ids) == 0 {
 			break
 		}
-		if _, err := models.DB.RawQuery(
-			"DELETE FROM event_streams WHERE id IN (?)", ids,
-		).ExecWithCount(); err != nil {
+		if err := deleteEventsAndDeliveries(ids); err != nil {
 			return fmt.Errorf("failed to purge undelivered events: %w", err)
 		}
 		if len(ids) < purgeChunk {
@@ -363,6 +398,24 @@ func purgeOldEvents() error {
 	}
 
 	return nil
+}
+
+// deleteEventsAndDeliveries removes a chunk of events together with their
+// per-target delivery rows (event_deliveries references event_streams
+// logically; rows are removed first to keep the pair consistent).
+func deleteEventsAndDeliveries(ids []uuid.UUID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if _, err := models.DB.RawQuery(
+		"DELETE FROM event_deliveries WHERE event_id IN (?)", ids,
+	).ExecWithCount(); err != nil {
+		return err
+	}
+	_, err := models.DB.RawQuery(
+		"DELETE FROM event_streams WHERE id IN (?)", ids,
+	).ExecWithCount()
+	return err
 }
 
 // syncAnnouncementWire is the "sync" envelope block: the producer's
@@ -404,96 +457,6 @@ type stateConfirmation struct {
 	StateHash string `json:"state_hash"`
 }
 
-// applyConfirmations applies console confirmations: an acknowledgement is
-// only trusted when the echoed state hash equals the producer's content
-// hash for that event. Older consoles never send "confirmed" — those
-// deliveries keep acknowledged_at NULL and the resync page honestly reports
-// them unconfirmed instead of pretending delivery == confirmation.
-func applyConfirmations(events *models.EventStreams, accepted map[string]bool, confirmed []stateConfirmation, now time.Time) int {
-	batchByID := make(map[string]*models.EventStream, len(*events))
-	for i := range *events {
-		batchByID[(*events)[i].ID.String()] = &(*events)[i]
-	}
-	acknowledgeIDs := make([]uuid.UUID, 0, len(confirmed))
-	for _, conf := range confirmed {
-		event, ok := batchByID[conf.ID]
-		if !ok || !accepted[conf.ID] || event.ContentHash == nil ||
-			*event.ContentHash == "" || *event.ContentHash != conf.StateHash {
-			continue
-		}
-		acknowledgeIDs = append(acknowledgeIDs, event.ID)
-	}
-	if len(acknowledgeIDs) == 0 {
-		return 0
-	}
-	if err := updateEventAcknowledgements(acknowledgeIDs, now); err != nil {
-		fmt.Printf("Failed to acknowledge %d events: %v\n", len(acknowledgeIDs), err)
-		return 0
-	}
-	for _, id := range acknowledgeIDs {
-		if event, ok := batchByID[id.String()]; ok {
-			ack := now
-			event.AcknowledgedAt = &ack
-		}
-	}
-	return len(acknowledgeIDs)
-}
-
-// updateEventAcknowledgements updates only acknowledgement bookkeeping for a
-// validated set of events. IDs are parameterized; the column names are fixed
-// in this function, not caller-controlled.
-func updateEventAcknowledgements(ids []uuid.UUID, now time.Time) error {
-	return updateEventTimestamp("acknowledged_at", ids, now)
-}
-
-// updateEventTimestamp performs one narrow bulk update instead of Pop.Update,
-// which serializes every EventStream field into an UPDATE statement.
-func updateEventTimestamp(column string, ids []uuid.UUID, now time.Time) error {
-	if len(ids) == 0 {
-		return nil
-	}
-	placeholders := strings.TrimRight(strings.Repeat("?,", len(ids)), ",")
-	args := make([]interface{}, 0, len(ids)+2)
-	args = append(args, now, now)
-	for _, id := range ids {
-		args = append(args, id)
-	}
-	query := fmt.Sprintf("UPDATE event_streams SET %s = ?, updated_at = ? WHERE id IN (%s)", column, placeholders)
-	return models.DB.RawQuery(query, args...).Exec()
-}
-
-func updateEventDeliveries(ids []uuid.UUID, now time.Time) error {
-	return updateEventTimestamp("delivered_at", ids, now)
-}
-
-// recordDeliveryFailures increments delivery_attempts and stores the last
-// delivery error on every event still pending after a failed batch (i.e.
-// delivered_at IS NULL). Accepted events of a partial batch are already
-// marked delivered by then, so the WHERE clause naturally excludes them.
-// Failure to persist is logged, never fatal: delivery correctness does not
-// depend on the counter, only poison-queue protection does.
-func recordDeliveryFailures(events *models.EventStreams, batchErr error) {
-	if events == nil || len(*events) == 0 || batchErr == nil {
-		return
-	}
-	msg := batchErr.Error()
-	if len(msg) > maxErrorExcerpt {
-		msg = msg[:maxErrorExcerpt]
-	}
-	for i := range *events {
-		event := &(*events)[i]
-		if event.DeliveredAt != nil {
-			continue
-		}
-		if err := models.DB.RawQuery(
-			"UPDATE event_streams SET delivery_attempts = delivery_attempts + 1, last_delivery_error = ? WHERE id = ? AND delivered_at IS NULL",
-			msg, event.ID.String(),
-		).Exec(); err != nil {
-			fmt.Printf("Failed to record delivery failure for event %s: %v\n", event.ID, err)
-		}
-	}
-}
-
 // webhookEvent is the wire representation of one lifecycle event in the
 // delivery payload (contract v2).
 type webhookEvent struct {
@@ -524,33 +487,34 @@ func newWireEvent(event models.EventStream) webhookEvent {
 	return wire
 }
 
-// deliverBatch queries undelivered events and sends them to the webhook.
-// It returns the number of events in the queried batch (accepted or not), so
-// callers can decide whether more events are likely pending.
-func deliverBatch() (int, error) {
+// pendingEventsForTarget selects the oldest events that still need delivery
+// to this target: no delivery row yet, or a delivery row that is neither
+// delivered nor undeliverable (attempts below the cap).
+func pendingEventsForTarget(target *models.SyncTarget, limit int) (*models.EventStreams, error) {
+	events := &models.EventStreams{}
+	err := models.DB.RawQuery(`SELECT e.* FROM event_streams e
+		LEFT JOIN event_deliveries d ON d.event_id = e.id AND d.target_id = ?
+		WHERE (d.id IS NULL) OR (d.delivered_at IS NULL AND d.attempts < ?)
+		ORDER BY e.created_at LIMIT ?`,
+		target.ID.String(), models.MaxDeliveryAttempts, limit).All(events)
+	return events, err
+}
+
+// deliverTargetBatch queries pending events for one target and posts them to
+// that target's webhook endpoint. It returns the number of events in the
+// queried batch (accepted or not), so callers can decide whether more events
+// are likely pending.
+func deliverTargetBatch(target *models.SyncTarget) (int, error) {
 	config := CurrentConfigGet()
 	if config == nil {
 		return 0, fmt.Errorf("no config loaded")
 	}
 
-	settings, err := config.GetSettings()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get settings: %w", err)
-	}
-
-	// Query undelivered events. Events at the delivery-attempt cap are
-	// excluded: they have repeatedly failed (permanent rejections) and would
-	// otherwise sit at the head of the queue forever, starving every newer
-	// event.
-	events := &models.EventStreams{}
-	err = models.DB.Where("delivered_at IS NULL AND delivery_attempts < ?", maxDeliveryAttempts).
-		Order("created_at").
-		Limit(settings.WebhookBatchSize).
-		All(events)
+	batchSize := target.EffectiveBatchSize()
+	events, err := pendingEventsForTarget(target, batchSize)
 	if err != nil {
 		return 0, fmt.Errorf("failed to query events: %w", err)
 	}
-
 	if len(*events) == 0 {
 		return 0, nil
 	}
@@ -573,44 +537,57 @@ func deliverBatch() (int, error) {
 		return len(*events), fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
+	state := webhookPusher.targetState(target.ID)
+
 	// Send HTTP POST
-	req, err := http.NewRequest("POST", settings.WebhookURL, bytes.NewBuffer(payloadBytes))
+	req, err := http.NewRequest("POST", target.WebhookURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		return len(*events), fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+settings.WebhookAPIKey)
+	req.Header.Set("Authorization", "Bearer "+target.WebhookAPIKey)
 
 	resp, err := webhookPusher.client.Do(req)
 	if err != nil {
-		webhookPusher.circuitBreaker.RecordFailure()
+		state.breaker.RecordFailure()
 		// Transport failure: surface the URL so operators can tell DNS /
 		// refused-connection / TLS problems apart without guessing.
-		err = fmt.Errorf("webhook POST %s (%d events) failed: %w", settings.WebhookURL, len(*events), err)
-		recordDeliveryFailures(events, err)
+		err = fmt.Errorf("webhook POST %s (%d events) failed: %w", target.WebhookURL, len(*events), err)
+		recordDeliveryFailures(events, target, err)
 		return len(*events), err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		webhookPusher.circuitBreaker.RecordFailure()
+		state.breaker.RecordFailure()
 		// Non-200: include a body excerpt — receivers usually explain the
 		// rejection there (bad auth, malformed envelope, ...).
 		excerpt, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorExcerpt))
-		err = fmt.Errorf("webhook POST %s (%d events) returned status %d: %s", settings.WebhookURL, len(*events), resp.StatusCode, strings.TrimSpace(string(excerpt)))
-		recordDeliveryFailures(events, err)
+		err = fmt.Errorf("webhook POST %s (%d events) returned status %d: %s", target.WebhookURL, len(*events), resp.StatusCode, strings.TrimSpace(string(excerpt)))
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			// Invalid API key: retrying cannot succeed until the operator
+			// fixes the target credentials. Mark the batch undeliverable at
+			// once instead of burning the attempt budget while the queue
+			// stalls; the "retry undeliverable" action re-queues the events
+			// after the key is fixed.
+			markBatchUndeliverable(events, target, err)
+		} else {
+			recordDeliveryFailures(events, target, err)
+		}
 		return len(*events), err
 	}
 
 	// Determine which events the receiver actually accepted. On partial
 	// failure the receiver returns the IDs it processed (processed_ids);
-	// events absent from that list are left undelivered (delivered_at IS
-	// NULL) so they are retried on the next tick instead of being silently
-	// dropped.
+	// events absent from that list are left undelivered (delivery row stays
+	// pending) so they are retried on the next tick instead of being
+	// silently dropped.
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return len(*events), fmt.Errorf("failed to read webhook response: %w", err)
+		err = fmt.Errorf("failed to read webhook response: %w", err)
+		recordDeliveryFailures(events, target, err)
+		return len(*events), err
 	}
 
 	var result struct {
@@ -627,7 +604,15 @@ func deliverBatch() (int, error) {
 	}
 	if len(bytes.TrimSpace(bodyBytes)) > 0 {
 		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			return len(*events), fmt.Errorf("invalid webhook response: %w", err)
+			// 200 OK with a body we cannot parse (e.g. contract violation
+			// like "confirmed": true instead of an array). Without
+			// recording attempts the batch would retry forever, bypassing
+			// the poison-message backstop (found in e2e: a mock receiver
+			// with a malformed response shape kept the queue spinning).
+			state.breaker.RecordFailure()
+			err = fmt.Errorf("invalid webhook response: %w", err)
+			recordDeliveryFailures(events, target, err)
+			return len(*events), err
 		}
 	}
 
@@ -643,7 +628,7 @@ func deliverBatch() (int, error) {
 	if responseErr {
 		// Continue below so explicitly listed processed_ids are persisted;
 		// unlisted events remain pending for retry.
-		webhookPusher.circuitBreaker.RecordFailure()
+		state.breaker.RecordFailure()
 	}
 	// The documented Console response reports only processed/total counts on
 	// full success. Treat that complete response as acceptance of every event;
@@ -656,7 +641,8 @@ func deliverBatch() (int, error) {
 		}
 	}
 
-	// Mark accepted events as delivered; leave the rest for retry.
+	// Mark accepted events as delivered for this target; leave the rest
+	// pending for retry.
 	now := time.Now()
 	deliveredIDs := make([]uuid.UUID, 0, len(*events))
 	for i := range *events {
@@ -666,8 +652,8 @@ func deliverBatch() (int, error) {
 		}
 	}
 	delivered := 0
-	if err := updateEventDeliveries(deliveredIDs, now); err != nil {
-		fmt.Printf("Failed to mark %d events as delivered: %v\n", len(deliveredIDs), err)
+	if err := upsertDeliveries(deliveredIDs, target.ID, now); err != nil {
+		fmt.Printf("Failed to mark %d events as delivered to %q: %v\n", len(deliveredIDs), target.Name, err)
 	} else {
 		delivered = len(deliveredIDs)
 		for _, id := range deliveredIDs {
@@ -678,26 +664,287 @@ func deliverBatch() (int, error) {
 				}
 			}
 		}
+		// Rollup: event_streams.delivered_at is set once every enabled
+		// target has its delivery row delivered.
+		if err := rollupDeliveredEvents(deliveredIDs, now); err != nil {
+			fmt.Printf("Failed to roll up delivered events: %v\n", err)
+		}
 	}
 
-	acknowledged := applyConfirmations(events, accepted, result.Confirmed, now)
+	acknowledged := applyConfirmations(events, accepted, result.Confirmed, target, now)
 
 	if responseErr {
 		// Partial/rejected delivery: relay the receiver's per-event errors
 		// (they name the exact event and cause, e.g. "instance block
 		// mismatch") so the log line is actionable on its own.
-		err := fmt.Errorf("webhook POST %s accepted %d/%d events (receiver errors: %s)", settings.WebhookURL, delivered, len(*events), strings.Join(result.Errors, "; "))
-		recordDeliveryFailures(events, err)
+		err := fmt.Errorf("webhook POST %s accepted %d/%d events (receiver errors: %s)", target.WebhookURL, delivered, len(*events), strings.Join(result.Errors, "; "))
+		// Rejected events stay pending and are retried on the next tick —
+		// a partial accept is often transient (receiver busy, one event
+		// momentarily invalid). The per-event attempt budget (25) is the
+		// poison-message backstop; once exhausted the event is undeliverable
+		// and the "retry undeliverable" admin action re-queues it.
+		recordDeliveryFailures(events, target, err)
 		return len(*events), err
 	}
-	webhookPusher.circuitBreaker.RecordSuccess()
+	state.breaker.RecordSuccess()
 	if delivered < len(*events) {
-		fmt.Printf("Delivered %d/%d events to webhook (%d acknowledged); %d will be retried\n", delivered, len(*events), acknowledged, len(*events)-delivered)
+		fmt.Printf("Delivered %d/%d events to %q (%d acknowledged); %d will be retried\n", delivered, len(*events), target.Name, acknowledged, len(*events)-delivered)
 	} else {
-		fmt.Printf("Delivered %d events to webhook (%d acknowledged)\n", delivered, acknowledged)
+		fmt.Printf("Delivered %d events to %q (%d acknowledged)\n", delivered, target.Name, acknowledged)
 	}
 
 	return len(*events), nil
+}
+
+// upsertDeliveries marks each listed event delivered for one target,
+// creating the delivery row on first success. Portable upsert (SELECT then
+// INSERT or UPDATE — pop has no portable ON DUPLICATE KEY support and the
+// sqlite test suite runs the same code path).
+func upsertDeliveries(eventIDs []uuid.UUID, targetID uuid.UUID, now time.Time) error {
+	for _, id := range eventIDs {
+		if err := markDeliveryDelivered(id, targetID, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// markDeliveryDelivered sets delivered_at on the (event, target) delivery
+// row, creating it when missing.
+func markDeliveryDelivered(eventID, targetID uuid.UUID, now time.Time) error {
+	var existing models.EventDelivery
+	err := models.DB.Where("event_id = ? AND target_id = ?", eventID.String(), targetID.String()).First(&existing)
+	if err == nil {
+		return models.DB.RawQuery(
+			"UPDATE event_deliveries SET delivered_at = ?, updated_at = ? WHERE id = ?",
+			now, now, existing.ID.String()).Exec()
+	}
+	rowID, idErr := uuid.NewV4()
+	if idErr != nil {
+		return idErr
+	}
+	return models.DB.RawQuery(
+		"INSERT INTO event_deliveries (id, event_id, target_id, attempts, delivered_at, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?)",
+		rowID.String(), eventID.String(), targetID.String(), now, now, now).Exec()
+}
+
+// rollupDeliveredEvents sets event_streams.delivered_at for events whose
+// delivery rows now cover every enabled target. Runs after each successful
+// batch; cheap because the candidate set is the just-delivered ids.
+func rollupDeliveredEvents(eventIDs []uuid.UUID, now time.Time) error {
+	if len(eventIDs) == 0 {
+		return nil
+	}
+	enabled, err := models.EnabledSyncTargets(models.DB)
+	if err != nil {
+		return err
+	}
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(eventIDs)), ",")
+	args := make([]interface{}, 0, len(eventIDs)+2)
+	args = append(args, now, now)
+	for _, id := range eventIDs {
+		args = append(args, id)
+	}
+	if len(enabled) == 0 {
+		// No enabled target (anymore): nothing should stay marked delivered
+		// from this round — but the rows were delivered to a target that got
+		// disabled meanwhile, which is a legitimate delivered state. Mark
+		// them delivered on the stream too so they purge normally.
+		q := fmt.Sprintf("UPDATE event_streams SET delivered_at = COALESCE(delivered_at, ?), updated_at = ? WHERE id IN (%s)", placeholders)
+		return models.DB.RawQuery(q, args...).Exec()
+	}
+	// delivered when the count of enabled targets equals the count of
+	// delivered rows for this event over enabled targets.
+	targetIDs := make([]interface{}, 0, len(enabled))
+	for _, t := range enabled {
+		targetIDs = append(targetIDs, t.ID.String())
+	}
+	tph := strings.TrimRight(strings.Repeat("?,", len(enabled)), ",")
+	q := fmt.Sprintf(`UPDATE event_streams SET delivered_at = ?, updated_at = ?
+		WHERE id IN (%s) AND delivered_at IS NULL
+		AND (SELECT COUNT(*) FROM event_deliveries d
+			WHERE d.event_id = event_streams.id AND d.delivered_at IS NOT NULL AND d.target_id IN (%s)) = ?`, placeholders, tph)
+	args = append(args, targetIDs...)
+	args = append(args, len(enabled))
+	return models.DB.RawQuery(q, args...).Exec()
+}
+
+// applyConfirmations applies console confirmations for one target: an
+// acknowledgement is only trusted when the echoed state hash equals the
+// producer's content hash for that event. Older consoles never send
+// "confirmed" — those deliveries keep acknowledged_at NULL and the resync
+// page honestly reports them unconfirmed instead of pretending
+// delivery == confirmation.
+func applyConfirmations(events *models.EventStreams, accepted map[string]bool, confirmed []stateConfirmation, target *models.SyncTarget, now time.Time) int {
+	batchByID := make(map[string]*models.EventStream, len(*events))
+	for i := range *events {
+		batchByID[(*events)[i].ID.String()] = &(*events)[i]
+	}
+	acknowledgeIDs := make([]uuid.UUID, 0, len(confirmed))
+	for _, conf := range confirmed {
+		event, ok := batchByID[conf.ID]
+		if !ok || !accepted[conf.ID] || event.ContentHash == nil ||
+			*event.ContentHash == "" || *event.ContentHash != conf.StateHash {
+			continue
+		}
+		acknowledgeIDs = append(acknowledgeIDs, event.ID)
+	}
+	if len(acknowledgeIDs) == 0 {
+		return 0
+	}
+	if err := acknowledgeDeliveries(acknowledgeIDs, target.ID, now); err != nil {
+		fmt.Printf("Failed to acknowledge %d events for %q: %v\n", len(acknowledgeIDs), target.Name, err)
+		return 0
+	}
+	if err := rollupAcknowledgedEvents(acknowledgeIDs, now); err != nil {
+		fmt.Printf("Failed to roll up acknowledged events: %v\n", err)
+	}
+	for _, id := range acknowledgeIDs {
+		if event, ok := batchByID[id.String()]; ok {
+			ack := now
+			event.AcknowledgedAt = &ack
+		}
+	}
+	return len(acknowledgeIDs)
+}
+
+// acknowledgeDeliveries sets acknowledged_at on the delivery rows of one
+// target for the validated events.
+func acknowledgeDeliveries(eventIDs []uuid.UUID, targetID uuid.UUID, now time.Time) error {
+	if len(eventIDs) == 0 {
+		return nil
+	}
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(eventIDs)), ",")
+	args := make([]interface{}, 0, len(eventIDs)+3)
+	args = append(args, now, now, targetID.String())
+	for _, id := range eventIDs {
+		args = append(args, id)
+	}
+	q := fmt.Sprintf("UPDATE event_deliveries SET acknowledged_at = ?, updated_at = ? WHERE target_id = ? AND event_id IN (%s)", placeholders)
+	return models.DB.RawQuery(q, args...).Exec()
+}
+
+// rollupAcknowledgedEvents sets event_streams.acknowledged_at once every
+// enabled target has acknowledged its delivery of the event.
+func rollupAcknowledgedEvents(eventIDs []uuid.UUID, now time.Time) error {
+	if len(eventIDs) == 0 {
+		return nil
+	}
+	enabled, err := models.EnabledSyncTargets(models.DB)
+	if err != nil {
+		return err
+	}
+	if len(enabled) == 0 {
+		return nil
+	}
+	placeholders := strings.TrimRight(strings.Repeat("?,", len(eventIDs)), ",")
+	args := make([]interface{}, 0, len(eventIDs)+len(enabled)+3)
+	args = append(args, now, now)
+	for _, id := range eventIDs {
+		args = append(args, id)
+	}
+	targetIDs := make([]interface{}, 0, len(enabled))
+	for _, t := range enabled {
+		targetIDs = append(targetIDs, t.ID.String())
+	}
+	tph := strings.TrimRight(strings.Repeat("?,", len(enabled)), ",")
+	q := fmt.Sprintf(`UPDATE event_streams SET acknowledged_at = ?, updated_at = ?
+		WHERE id IN (%s) AND acknowledged_at IS NULL
+		AND (SELECT COUNT(*) FROM event_deliveries d
+			WHERE d.event_id = event_streams.id AND d.acknowledged_at IS NOT NULL AND d.target_id IN (%s)) = ?`, placeholders, tph)
+	args = append(args, targetIDs...)
+	args = append(args, len(enabled))
+	return models.DB.RawQuery(q, args...).Exec()
+}
+
+// markBatchUndeliverable marks every still-pending event of the batch
+// undeliverable for this target (attempts set to the cap) with the given
+// reason. Used for permanent rejections — invalid credentials (401/403)
+// and explicit receiver rejections — where retrying cannot succeed without
+// operator intervention. The "retry undeliverable" admin action resets the
+// rows so the events re-enter the delivery queue.
+func markBatchUndeliverable(events *models.EventStreams, target *models.SyncTarget, cause error) {
+	if events == nil || len(*events) == 0 || cause == nil {
+		return
+	}
+	msg := cause.Error()
+	if len(msg) > maxErrorExcerpt {
+		msg = msg[:maxErrorExcerpt]
+	}
+	for i := range *events {
+		event := &(*events)[i]
+		if event.DeliveredAt != nil {
+			continue
+		}
+		if err := setDeliveryAttempts(event.ID, target.ID, models.MaxDeliveryAttempts, msg); err != nil {
+			fmt.Printf("Failed to mark event %s undeliverable: %v\n", event.ID, err)
+		}
+	}
+}
+
+// setDeliveryAttempts upserts the (event, target) delivery row with an
+// absolute attempts value and a last-error message (portable SELECT then
+// INSERT or UPDATE).
+func setDeliveryAttempts(eventID, targetID uuid.UUID, attempts int, msg string) error {
+	var existing models.EventDelivery
+	err := models.DB.Where("event_id = ? AND target_id = ?", eventID.String(), targetID.String()).First(&existing)
+	if err == nil {
+		return models.DB.RawQuery(
+			"UPDATE event_deliveries SET attempts = ?, last_error = ?, updated_at = ? WHERE id = ?",
+			attempts, msg, time.Now(), existing.ID.String()).Exec()
+	}
+	rowID, idErr := uuid.NewV4()
+	if idErr != nil {
+		return idErr
+	}
+	return models.DB.RawQuery(
+		"INSERT INTO event_deliveries (id, event_id, target_id, attempts, last_error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		rowID.String(), eventID.String(), targetID.String(), attempts, msg, time.Now(), time.Now()).Exec()
+}
+
+// recordDeliveryFailures increments attempts and stores the last error on
+// the delivery rows of every event still pending for this target after a
+// failed batch. Rows are created when missing so the attempt budget is
+// tracked from the first failure. Failure to persist is logged, never
+// fatal: delivery correctness does not depend on the counter, only
+// poison-queue protection does.
+func recordDeliveryFailures(events *models.EventStreams, target *models.SyncTarget, batchErr error) {
+	if events == nil || len(*events) == 0 || batchErr == nil {
+		return
+	}
+	msg := batchErr.Error()
+	if len(msg) > maxErrorExcerpt {
+		msg = msg[:maxErrorExcerpt]
+	}
+	for i := range *events {
+		event := &(*events)[i]
+		if event.DeliveredAt != nil {
+			continue
+		}
+		if err := incrementDeliveryAttempts(event.ID, target.ID, msg); err != nil {
+			fmt.Printf("Failed to record delivery failure for event %s: %v\n", event.ID, err)
+		}
+	}
+}
+
+// incrementDeliveryAttempts upserts the (event, target) delivery row,
+// incrementing attempts by one and storing the last-error message
+// (portable SELECT then INSERT or UPDATE).
+func incrementDeliveryAttempts(eventID, targetID uuid.UUID, msg string) error {
+	var existing models.EventDelivery
+	err := models.DB.Where("event_id = ? AND target_id = ?", eventID.String(), targetID.String()).First(&existing)
+	if err == nil {
+		return models.DB.RawQuery(
+			"UPDATE event_deliveries SET attempts = attempts + 1, last_error = ?, updated_at = ? WHERE id = ?",
+			msg, time.Now(), existing.ID.String()).Exec()
+	}
+	rowID, idErr := uuid.NewV4()
+	if idErr != nil {
+		return idErr
+	}
+	return models.DB.RawQuery(
+		"INSERT INTO event_deliveries (id, event_id, target_id, attempts, last_error, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?, ?)",
+		rowID.String(), eventID.String(), targetID.String(), msg, time.Now(), time.Now()).Exec()
 }
 
 // RegisterWebhookShutdown registers graceful shutdown hook
@@ -712,8 +959,8 @@ func RegisterWebhookShutdown(app *buffalo.App) {
 // EnsureWebhookWorkerRunning starts the webhook worker if it is not
 // already running. The worker is started unconditionally (even when webhook
 // forwarding is disabled) because it also runs the hourly event purge;
-// delivery itself remains gated per-tick by IsWebhookEnabled(). It is safe
-// to call repeatedly.
+// delivery itself remains gated per-tick by the presence of deliverable
+// sync targets. It is safe to call repeatedly.
 func EnsureWebhookWorkerRunning() {
 	if !IsWebhookWorkerRunning() {
 		StartWebhookWorker()
@@ -735,6 +982,11 @@ func InitWebhookAtBoot() {
 	if err := RecoverInterruptedRuns(models.DB); err != nil {
 		fmt.Printf("Webhook: failed to recover resync runs: %v\n", err)
 	}
+	known, err := models.HasEnabledSyncTarget(models.DB)
+	if err != nil {
+		fmt.Printf("Webhook: failed to list sync targets at boot: %v\n", err)
+	}
+	SetSyncTargetsKnown(known)
 	EnsureWebhookWorkerRunning()
 	// Boot sweep: pick up events left undelivered by a previous session
 	// without waiting for the first fallback tick.

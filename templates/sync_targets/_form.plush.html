@@ -1,0 +1,38 @@
+<div class="form-group">
+  <label for="name">Name</label>
+  <input type="text" class="form-control" id="name" name="Name" value="<%= target.Name %>" placeholder="Main console" required>
+  <small class="form-text text-muted">A label to tell this Creaves Console (receiver) apart from the others.</small>
+</div>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Enabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="enabled" name="Enabled" value="true" <%= if (target.Enabled) { %>checked<% } %>>
+  <label class="form-check-label" for="enabled">
+    <strong>Enabled</strong>
+  </label>
+  <small class="form-text text-muted">Events are pushed to every enabled target with a webhook URL.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">Webhook URL</label>
+  <input type="url" class="form-control" id="webhook_url" name="WebhookURL" value="<%= target.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">The URL of the Creaves Console webhook endpoint. In the console: <strong>Admin → Webhook API Keys → Create Key</strong>, then paste the key below.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">API Key</label>
+  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="WebhookAPIKey" value="<%= target.WebhookAPIKey %>" placeholder="Enter API key (leave blank to keep current)" autocomplete="new-password">
+  <small class="form-text text-muted">API key generated in Creaves Console. Maintainers can view the stored key; other admins see a write-only field — enter a new key to replace the stored one, or leave the field blank to keep the current key.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Batch Size</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="WebhookBatchSize" value="<%= target.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Number of events to send per request to this target (default: 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Max Events Per Minute</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="WebhookMaxPerMin" value="<%= target.WebhookMaxPerMin %>" min="1" max="10000">
+  <small class="form-text text-muted">Rate limit for event delivery to this target (default: 60).</small>
+</div>

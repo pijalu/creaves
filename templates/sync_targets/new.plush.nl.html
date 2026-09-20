@@ -1,0 +1,11 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Nieuw synchronisatiedoel</h3>
+  <a href="/sync_configuration" class="btn btn-outline-primary btn-sm float-right mt-2">Terug naar synchronisatieconfiguratie</a>
+</div>
+<p class="text-muted">Voeg een Creaves Console (ontvanger) toe waarnaar deze instantie zijn gebeurtenisstroom pusht.</p>
+
+<%= formFor(target, {action: "/sync_targets", method: "POST"}) { %>
+  <%= partial("sync_targets/form.plush.nl.html") %>
+  <button class="btn btn-success" role="submit">Aanmaken</button>
+  <%= linkTo("/sync_configuration", {class: "btn btn-warning", body: "Annuleren"}) %>
+<% } %>

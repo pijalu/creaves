@@ -2,10 +2,67 @@
   <h3 class="d-inline-block">Synchronisatieconfiguratie — <%= config.Name %></h3>
   <a href="/config/<%= config.ID %>/edit" class="btn btn-outline-primary btn-sm float-right mt-2">Instantiedetails (gastenweergave)</a>
 </div>
-<p class="text-muted">Instantie-ID, gebeurtenisstroom en webhook-levering van de actieve configuratie.</p>
+<p class="text-muted">Instantie-ID, gebeurtenisstroom en synchronisatiedoelen van de actieve configuratie.</p>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
   <%= partial("config/sync_form.plush.nl.html") %>
   <button class="btn btn-success" role="submit">Opslaan</button>
-  <%= linkTo("/config/" + config.ID + "/edit", {class: "btn btn-warning", "data-confirm": "Weet u het zeker?", body: "Annuleren"}) %>
+<% } %>
+
+<hr/>
+<div class="py-3 mb-2">
+  <h4 class="d-inline-block">Synchronisatiedoelen</h4>
+  <a href="/sync_targets/new" class="btn btn-primary btn-sm float-right mt-2"><i class="fa fa-plus"></i> Synchronisatiedoel toevoegen</a>
+</div>
+<p class="text-muted">Gebeurtenissen worden naar elk ingeschakeld doel gepusht, elk met een eigen leveringsopvolging. Maak één doel per Creaves Console (ontvanger): ga in de console naar <strong>Admin → Webhook API-sleutels → Sleutel aanmaken</strong> en voeg hier een doel toe met de webhook-URL van de console (bv. <code>https://console.example.com/webhook/events</code>) en de aangemaakte sleutel.</p>
+
+<%= if (len(targets) == 0) { %>
+  <div class="alert alert-info">Nog geen synchronisatiedoel geconfigureerd. Gebeurtenissen worden geregistreerd maar nergens geleverd zolang u geen doel toevoegt en inschakelt.</div>
+<% } else { %>
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Naam</th>
+        <th>Webhook-URL</th>
+        <th>Status</th>
+        <th class="text-center">In afwachting</th>
+        <th class="text-center">Geleverd</th>
+        <th class="text-center">Onleverbaar</th>
+        <th class="text-center">Onbevestigd</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= for (row) in targets { %>
+        <tr>
+          <td><strong><%= row.Target.Name %></strong></td>
+          <td><code><%= row.Target.WebhookURL %></code></td>
+          <td>
+            <%= if (row.Target.Enabled) { %>
+              <span class="badge badge-success">Ingeschakeld</span>
+            <% } else { %>
+              <span class="badge badge-secondary">Uitgeschakeld</span>
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Pending %></td>
+          <td class="text-center"><%= row.Counts.Delivered %></td>
+          <td class="text-center">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <span class="badge badge-danger"><%= row.Counts.Undeliverable %></span>
+            <% } else { %>
+              0
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Unacked %></td>
+          <td class="text-right text-nowrap">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <%= linkTo("/sync_targets/" + row.Target.ID + "/retry_undeliverable", {class: "btn btn-info btn-sm", "data-method": "POST", "data-confirm": "Alle onleverbare gebeurtenissen voor dit doel opnieuw in de wachtrij plaatsen?", title: "Onleverbaar opnieuw proberen", body: "<i class='fa fa-repeat'></i>"}) %>
+            <% } %>
+            <%= linkTo("/sync_targets/" + row.Target.ID + "/edit", {class: "btn btn-warning btn-sm", title: "Bewerken", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo("/sync_targets/" + row.Target.ID, {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": "Dit synchronisatiedoel en zijn leveringsgeschiedenis verwijderen?", title: "Verwijderen", body: "<i class='fa fa-trash'></i>"}) %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
 <% } %>

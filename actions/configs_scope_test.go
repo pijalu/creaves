@@ -11,7 +11,9 @@ import (
 )
 
 // Scoped config update (bug 4): the identity view and the sync view submit
-// only their own field group; the other group must be preserved.
+// only their own field group; the other group must be preserved. The
+// per-target webhook fields (URL, key, limits) moved to the sync_targets
+// table — see sync_targets_test.go for their scoped-preservation coverage.
 
 func seedScopeConfig(t *testing.T) *models.Config {
 	t.Helper()
@@ -21,11 +23,6 @@ func seedScopeConfig(t *testing.T) *models.Config {
 	s := models.DefaultSettings()
 	s.CenterName = "Original Center"
 	s.GuestText1 = "original guest text"
-	s.WebhookURL = "http://console.example.org/webhook/events"
-	s.WebhookAPIKey = "secret-key-123"
-	s.WebhookBatchSize = 5
-	s.WebhookMaxPerMin = 120
-	s.WebhookEnabled = true
 	s.EnableEventStream = true
 	if err := cfg.SetSettings(s); err != nil {
 		t.Fatalf("SetSettings: %v", err)
@@ -72,8 +69,8 @@ func submitConfigForm(t *testing.T, client *http.Client, baseURL, token string, 
 	}
 }
 
-// Identity scope: center fields update; sync fields (URL, key, limits,
-// toggles) keep their stored values.
+// Identity scope: center fields update; the event-stream toggle keeps its
+// stored value.
 func TestConfigUpdateScopeIdentityPreservesSync(t *testing.T) {
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
@@ -103,22 +100,13 @@ func TestConfigUpdateScopeIdentityPreservesSync(t *testing.T) {
 	if s.CenterName != "Updated Center" || s.GuestText1 != "updated guest text" {
 		t.Errorf("identity fields not updated: %+v", s)
 	}
-	if s.WebhookURL != "http://console.example.org/webhook/events" {
-		t.Errorf("webhook URL clobbered by identity update: %q", s.WebhookURL)
-	}
-	if s.WebhookAPIKey != "secret-key-123" {
-		t.Errorf("webhook API key clobbered by identity update")
-	}
-	if s.WebhookBatchSize != 5 || s.WebhookMaxPerMin != 120 {
-		t.Errorf("webhook limits reset by identity update: batch=%d max=%d", s.WebhookBatchSize, s.WebhookMaxPerMin)
-	}
-	if !s.WebhookEnabled || !s.EnableEventStream {
-		t.Errorf("toggles reset by identity update: webhook=%v stream=%v", s.WebhookEnabled, s.EnableEventStream)
+	if !s.EnableEventStream {
+		t.Errorf("event-stream toggle reset by identity update: %+v", s)
 	}
 }
 
-// Sync scope: webhook fields update; identity fields keep stored values; a
-// blank API key preserves the stored key.
+// Sync scope: instance ID and event-stream toggle update; identity fields
+// keep stored values.
 func TestConfigUpdateScopeSyncPreservesIdentity(t *testing.T) {
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
@@ -136,12 +124,7 @@ func TestConfigUpdateScopeSyncPreservesIdentity(t *testing.T) {
 	form.Set("_method", "PUT")
 	form.Set("form_scope", "sync")
 	form.Set("InstanceID", "cfgtest-scope-renamed")
-	form.Set("Settings.EnableEventStream", "true")
-	form.Set("Settings.WebhookEnabled", "true")
-	form.Set("Settings.WebhookURL", "http://new-console.example.org/webhook/events")
-	form.Set("Settings.WebhookAPIKey", "") // blank => keep stored key
-	form.Set("Settings.WebhookBatchSize", "7")
-	form.Set("Settings.WebhookMaxPerMin", "90")
+	form.Set("Settings.EnableEventStream", "false")
 	submitConfigForm(t, client, baseURL, token, cfg.ID, form)
 
 	reloaded := reloadConfig(t, cfg.ID)
@@ -154,14 +137,8 @@ func TestConfigUpdateScopeSyncPreservesIdentity(t *testing.T) {
 	}
 
 	s := reloadSettings(t, cfg.ID)
-	if s.WebhookURL != "http://new-console.example.org/webhook/events" {
-		t.Errorf("webhook URL not updated: %q", s.WebhookURL)
-	}
-	if s.WebhookBatchSize != 7 || s.WebhookMaxPerMin != 90 {
-		t.Errorf("webhook limits not updated: batch=%d max=%d", s.WebhookBatchSize, s.WebhookMaxPerMin)
-	}
-	if s.WebhookAPIKey != "secret-key-123" {
-		t.Errorf("blank API key wiped stored key")
+	if s.EnableEventStream {
+		t.Errorf("event-stream toggle not updated: %+v", s)
 	}
 	if s.CenterName != "Original Center" || s.GuestText1 != "original guest text" {
 		t.Errorf("identity clobbered by sync update: %+v", s)

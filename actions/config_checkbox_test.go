@@ -14,7 +14,7 @@ import (
 // "true", as rendered by templates/config/_form.plush*.html) reads as true
 // despite c.Param returning the first value ("false").
 func TestParamIsTrueCheckedBoxes(t *testing.T) {
-	for _, key := range []string{"Settings.EnableEventStream", "Settings.WebhookEnabled", "Active"} {
+	for _, key := range []string{"Settings.EnableEventStream", "Enabled", "Active"} {
 		vals := url.Values{}
 		vals.Add(key, "false")
 		vals.Add(key, "true")
@@ -48,10 +48,10 @@ func TestParamIsTrueUncheckedBox(t *testing.T) {
 	a := buffalo.New(buffalo.Options{Env: "test"})
 	var seen bool
 	a.POST("/probe/", func(c buffalo.Context) error {
-		seen = paramIsTrue(c, "Settings.WebhookEnabled")
+		seen = paramIsTrue(c, "Enabled")
 		return c.Render(http.StatusOK, nil)
 	})
-	vals := url.Values{"Settings.WebhookEnabled": {"false"}}
+	vals := url.Values{"Enabled": {"false"}}
 	w := httptest.NewRecorder()
 	probe := httptest.NewRequest(http.MethodPost, "/probe/", strings.NewReader(vals.Encode()))
 	probe.Header.Set("Content-Type", "application/x-www-form-urlencoded")

@@ -30,43 +30,6 @@
       </td>
       <td><%= bool2html(settings.EnableEventStream) %></td>
     </tr>
-    <tr class="table-info">
-      <td colspan="2"><strong><%= t("config.show.webhook-configuration") %></strong></td>
-    </tr>
-    <tr>
-      <td>
-        <i class="fa fa-globe"></i> <%= t("config.show.webhook-enabled") %>
-        <br/><small class="text-muted"><%= t("config.show.webhook-enabled-hint") %></small>
-      </td>
-      <td><%= bool2html(settings.WebhookEnabled) %></td>
-    </tr>
-    <tr>
-      <td><%= t("config.show.webhook-url") %></td>
-      <td><code><%= settings.WebhookURL %></code></td>
-    </tr>
-    <tr>
-      <td><%= t("config.show.api-key") %></td>
-      <td>
-        <%= if (settings.WebhookAPIKey != "") { %>
-          <%= if (current_user.Maintainer) { %>
-            <code><%= settings.WebhookAPIKey %></code>
-          <% } else { %>
-            <code><%= settings.MaskedWebhookAPIKey() %></code>
-            <small class="form-text text-muted"><%= t("config.show.api-key-prefix-hint") %></small>
-          <% } %>
-        <% } else { %>
-          <em><%= t("config.show.api-key-not-set") %></em>
-        <% } %>
-      </td>
-    </tr>
-    <tr>
-      <td><%= t("config.show.batch-size") %></td>
-      <td><%= settings.WebhookBatchSize %></td>
-    </tr>
-    <tr>
-      <td><%= t("config.show.max-events-per-minute") %></td>
-      <td><%= settings.WebhookMaxPerMin %></td>
-    </tr>
     <tr>
       <td><%= t("config.show.created-at") %></td>
       <td><%= config.CreatedAt.Format("2006-01-02 15:04:05") %></td>

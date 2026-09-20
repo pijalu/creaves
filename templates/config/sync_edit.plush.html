@@ -2,10 +2,67 @@
   <h3 class="d-inline-block">Sync Configuration — <%= config.Name %></h3>
   <a href="/config/<%= config.ID %>/edit" class="btn btn-outline-primary btn-sm float-right mt-2">Instance details (guest view)</a>
 </div>
-<p class="text-muted">Instance ID, event stream and webhook delivery for the active configuration.</p>
+<p class="text-muted">Instance ID, event stream and sync targets of the active configuration.</p>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
   <%= partial("config/sync_form.html") %>
   <button class="btn btn-success" role="submit">Save</button>
-  <%= linkTo("/config/" + config.ID + "/edit", {class: "btn btn-warning", "data-confirm": "Are you sure?", body: "Cancel"}) %>
+<% } %>
+
+<hr/>
+<div class="py-3 mb-2">
+  <h4 class="d-inline-block">Sync Targets</h4>
+  <a href="/sync_targets/new" class="btn btn-primary btn-sm float-right mt-2"><i class="fa fa-plus"></i> Add sync target</a>
+</div>
+<p class="text-muted">Events are pushed to every enabled target, each with its own delivery tracking. Create one target per Creaves Console (receiver): in the console, go to <strong>Admin → Webhook API Keys → Create Key</strong>, then add a target here with the console's webhook URL (e.g. <code>https://console.example.com/webhook/events</code>) and the generated key.</p>
+
+<%= if (len(targets) == 0) { %>
+  <div class="alert alert-info">No sync target configured yet. Events are recorded but not delivered anywhere until you add and enable a target.</div>
+<% } else { %>
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Webhook URL</th>
+        <th>Status</th>
+        <th class="text-center">Pending</th>
+        <th class="text-center">Delivered</th>
+        <th class="text-center">Undeliverable</th>
+        <th class="text-center">Unconfirmed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= for (row) in targets { %>
+        <tr>
+          <td><strong><%= row.Target.Name %></strong></td>
+          <td><code><%= row.Target.WebhookURL %></code></td>
+          <td>
+            <%= if (row.Target.Enabled) { %>
+              <span class="badge badge-success">Enabled</span>
+            <% } else { %>
+              <span class="badge badge-secondary">Disabled</span>
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Pending %></td>
+          <td class="text-center"><%= row.Counts.Delivered %></td>
+          <td class="text-center">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <span class="badge badge-danger"><%= row.Counts.Undeliverable %></span>
+            <% } else { %>
+              0
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Unacked %></td>
+          <td class="text-right text-nowrap">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <%= linkTo("/sync_targets/" + row.Target.ID + "/retry_undeliverable", {class: "btn btn-info btn-sm", "data-method": "POST", "data-confirm": "Re-queue all undeliverable events for this target?", title: "Retry undeliverable", body: "<i class='fa fa-repeat'></i>"}) %>
+            <% } %>
+            <%= linkTo("/sync_targets/" + row.Target.ID + "/edit", {class: "btn btn-warning btn-sm", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo("/sync_targets/" + row.Target.ID, {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": "Delete this sync target and its delivery history?", title: "Delete", body: "<i class='fa fa-trash'></i>"}) %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
 <% } %>

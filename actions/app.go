@@ -128,6 +128,14 @@ func App() *buffalo.App {
 		// redirects there (see ConfigsResource.SyncEdit).
 		app.GET("/sync_configuration", ConfigsResource{}.SyncEdit)
 		app.GET("/config/{config_id}/sync", ConfigsResource{}.SyncEdit)
+		// Sync targets (multi-hub fan-out): the list lives on
+		// /sync_configuration; only the form/mutation routes are needed.
+		app.GET("/sync_targets/new", SyncTargetsResource{}.New)
+		app.POST("/sync_targets", SyncTargetsResource{}.Create)
+		app.GET("/sync_targets/{sync_target_id}/edit", SyncTargetsResource{}.Edit)
+		app.PUT("/sync_targets/{sync_target_id}", SyncTargetsResource{}.Update)
+		app.DELETE("/sync_targets/{sync_target_id}", SyncTargetsResource{}.Destroy)
+		app.POST("/sync_targets/{sync_target_id}/retry_undeliverable", SyncTargetsResource{}.RetryUndeliverable)
 		app.Resource("/event_streams", EventStreamsResource{})
 		app.DELETE("/event_streams", EventStreamsResource{}.ClearAll)
 		app.Resource("/translations", TranslationsResource{})

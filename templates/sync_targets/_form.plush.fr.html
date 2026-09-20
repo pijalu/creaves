@@ -1,0 +1,38 @@
+<div class="form-group">
+  <label for="name">Nom</label>
+  <input type="text" class="form-control" id="name" name="Name" value="<%= target.Name %>" placeholder="Console principale" required>
+  <small class="form-text text-muted">Un libellé pour distinguer cette Creaves Console (récepteur) des autres.</small>
+</div>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Enabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="enabled" name="Enabled" value="true" <%= if (target.Enabled) { %>checked<% } %>>
+  <label class="form-check-label" for="enabled">
+    <strong>Activée</strong>
+  </label>
+  <small class="form-text text-muted">Les événements sont envoyés à chaque cible activée disposant d'une URL webhook.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">URL Webhook</label>
+  <input type="url" class="form-control" id="webhook_url" name="WebhookURL" value="<%= target.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">L'URL du point de terminaison webhook de la Creaves Console. Dans la console : <strong>Admin → Clés API Webhook → Créer une clé</strong>, puis collez la clé ci-dessous.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">Clé API</label>
+  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="WebhookAPIKey" value="<%= target.WebhookAPIKey %>" placeholder="Saisir la clé API (laisser vide pour conserver l'actuelle)" autocomplete="new-password">
+  <small class="form-text text-muted">Clé API générée dans la Creaves Console. Les mainteneurs peuvent voir la clé enregistrée ; les autres administrateurs voient un champ en écriture seule — saisissez une nouvelle clé pour remplacer l'actuelle, ou laissez le champ vide pour la conserver.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Taille de lot</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="WebhookBatchSize" value="<%= target.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Nombre d'événements envoyés par requête vers cette cible (défaut : 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Événements max par minute</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="WebhookMaxPerMin" value="<%= target.WebhookMaxPerMin %>" min="1" max="10000">
+  <small class="form-text text-muted">Limite de débit pour la livraison vers cette cible (défaut : 60).</small>
+</div>

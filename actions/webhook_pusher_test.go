@@ -115,6 +115,34 @@ func createPusherTables() {
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
 	`).Exec()
+
+	pusherTestDB.RawQuery(`
+		CREATE TABLE IF NOT EXISTS sync_targets (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			enabled BOOLEAN NOT NULL DEFAULT 0,
+			webhook_url TEXT NOT NULL DEFAULT '',
+			webhook_api_key TEXT NOT NULL DEFAULT '',
+			webhook_batch_size INTEGER NOT NULL DEFAULT 1,
+			webhook_max_per_min INTEGER NOT NULL DEFAULT 60,
+			created_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`).Exec()
+
+	pusherTestDB.RawQuery(`
+		CREATE TABLE IF NOT EXISTS event_deliveries (
+			id TEXT PRIMARY KEY,
+			event_id TEXT NOT NULL,
+			target_id TEXT NOT NULL,
+			attempts INTEGER NOT NULL DEFAULT 0,
+			delivered_at TIMESTAMP,
+			acknowledged_at TIMESTAMP,
+			last_error TEXT,
+			created_at TIMESTAMP NOT NULL,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`).Exec()
 }
 
 // resetPusherState clears DB tables and resets the package-global pusher
@@ -126,28 +154,20 @@ func resetPusherState() {
 	pusherTestDB.RawQuery("DELETE FROM event_streams").Exec()
 	pusherTestDB.RawQuery("DELETE FROM resync_runs").Exec()
 	pusherTestDB.RawQuery("DELETE FROM config").Exec()
+	pusherTestDB.RawQuery("DELETE FROM sync_targets").Exec()
+	pusherTestDB.RawQuery("DELETE FROM event_deliveries").Exec()
+	SetSyncTargetsKnown(false)
 
 	webhookPusher.mu.Lock()
-	webhookPusher.eventsThisMin = 0
-	// Seed lastDelivery to "now" so the per-minute window does not reset
-	// on every call (a zero time would look like >1 minute has elapsed).
-	webhookPusher.lastDelivery = time.Now()
+	webhookPusher.targets = make(map[uuid.UUID]*targetDeliveryState)
 	webhookPusher.mu.Unlock()
-
-	webhookPusher.circuitBreaker = NewCircuitBreaker()
 }
 
-// seedPusherConfig installs CurrentConfig pointing webhook delivery at url.
-func seedPusherConfig(t *testing.T, url string) {
+// seedPusherConfig installs CurrentConfig plus one enabled sync target
+// pointing webhook delivery at url, and returns the target.
+func seedPusherConfig(t *testing.T, url string) *models.SyncTarget {
 	t.Helper()
-	settings := models.ConfigSettings{
-		EnableEventStream: true,
-		WebhookEnabled:    true,
-		WebhookURL:        url,
-		WebhookAPIKey:     "creaves_testkey",
-		WebhookBatchSize:  10,
-		WebhookMaxPerMin:  100,
-	}
+	settings := models.ConfigSettings{EnableEventStream: true}
 	cfg := &models.Config{
 		ID:         uuid.Must(uuid.NewV4()),
 		InstanceID: "test-instance",
@@ -157,6 +177,51 @@ func seedPusherConfig(t *testing.T, url string) {
 	require.NoError(t, cfg.SetSettings(settings))
 	require.NoError(t, pusherTestDB.Create(cfg))
 	CurrentConfigSet(cfg)
+	return seedSyncTarget(t, "test-target", url, true)
+}
+
+// seedSyncTarget inserts one sync target row (batch 10, max/min 100 to
+// mirror the historical seedPusherConfig settings).
+func seedSyncTarget(t *testing.T, name, url string, enabled bool) *models.SyncTarget {
+	t.Helper()
+	target := &models.SyncTarget{
+		ID:               uuid.Must(uuid.NewV4()),
+		Name:             name,
+		Enabled:          enabled,
+		WebhookURL:       url,
+		WebhookAPIKey:    "creaves_testkey",
+		WebhookBatchSize: 10,
+		WebhookMaxPerMin: 100,
+	}
+	require.NoError(t, pusherTestDB.Create(target))
+	SetSyncTargetsKnown(true)
+	// The known-targets flag is process-global: do not leak it into
+	// non-pusher tests, where a wake would make the worker query models.DB.
+	t.Cleanup(func() { SetSyncTargetsKnown(false) })
+	return target
+}
+
+// deliverBatch is a test shim: deliver one batch to the single seeded
+// target (kept so the historical single-target tests read unchanged).
+func deliverBatch(t *testing.T) (int, error) {
+	t.Helper()
+	targets := models.SyncTargets{}
+	require.NoError(t, pusherTestDB.Order("created_at").All(&targets))
+	require.NotEmpty(t, targets, "deliverBatch shim requires a seeded sync target")
+	return deliverTargetBatch(&targets[0])
+}
+
+// breakerFailures returns the failure count of the circuit breaker attached
+// to the first seeded target (single-target test shorthand).
+func breakerFailures(t *testing.T) int {
+	t.Helper()
+	targets := models.SyncTargets{}
+	require.NoError(t, pusherTestDB.Order("created_at").All(&targets))
+	require.NotEmpty(t, targets)
+	st := webhookPusher.targetState(targets[0].ID)
+	st.breaker.mu.Lock()
+	defer st.breaker.mu.Unlock()
+	return st.breaker.failures
 }
 
 // seedUndeliveredEvent inserts an event with delivered_at IS NULL.
@@ -241,33 +306,42 @@ func TestCircuitBreaker_HalfOpenAfterResetTimeout(t *testing.T) {
 // Rate limiter (allowDelivery) unit tests
 // ---------------------------------------------------------------------------
 
-func TestWebhookPusher_AllowDeliveryRequiresConfig(t *testing.T) {
-	saved := CurrentConfigGet()
-	CurrentConfigSet(nil)
-	defer func() { CurrentConfigSet(saved) }()
-
-	wp := &WebhookPusher{circuitBreaker: NewCircuitBreaker()}
-	assert.False(t, wp.allowDelivery())
-}
-
 func TestWebhookPusher_AllowDeliveryRateLimits(t *testing.T) {
 	resetPusherState()
-	seedPusherConfig(t, "http://unused.example")
+	target := seedPusherConfig(t, "http://unused.example")
 
-	settings, _ := CurrentConfigGet().GetSettings()
-	maxPerMin := settings.WebhookMaxPerMin
+	state := webhookPusher.targetState(target.ID)
+	maxPerMin := target.EffectiveMaxPerMin()
+	batchSize := target.EffectiveBatchSize()
 
 	// Consume the budget.
 	allowed := 0
 	for i := 0; i < maxPerMin; i++ {
-		if !webhookPusher.allowDelivery() {
+		if !state.allowDelivery(maxPerMin, batchSize) {
 			break
 		}
 		allowed++
 	}
 	assert.Greater(t, allowed, 0)
 	// Budget exhausted -> further delivery denied.
-	assert.False(t, webhookPusher.allowDelivery())
+	assert.False(t, state.allowDelivery(maxPerMin, batchSize))
+}
+
+// TestWebhookPusher_RateLimitIsPerTarget proves one target's exhausted
+// budget does not throttle another target.
+func TestWebhookPusher_RateLimitIsPerTarget(t *testing.T) {
+	resetPusherState()
+	targetA := seedSyncTarget(t, "target-a", "http://a.example", true)
+	targetB := seedSyncTarget(t, "target-b", "http://b.example", true)
+
+	stateA := webhookPusher.targetState(targetA.ID)
+	stateB := webhookPusher.targetState(targetB.ID)
+
+	// Exhaust A's budget.
+	for stateA.allowDelivery(10, 10) {
+	}
+	assert.False(t, stateA.allowDelivery(10, 10), "A budget exhausted")
+	assert.True(t, stateB.allowDelivery(10, 10), "B budget unaffected")
 }
 
 // ---------------------------------------------------------------------------
@@ -336,7 +410,7 @@ func TestDeliverBatch_Success(t *testing.T) {
 	ev := seedUndeliveredEvent(t, 1)
 	ev2 := seedUndeliveredEvent(t, 2)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	// Both events delivered to the receiver.
@@ -354,20 +428,130 @@ func TestDeliverBatch_Success(t *testing.T) {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// Multi-hub fan-out: one event must reach EVERY enabled target, with one
+// delivery row per (event, target); the legacy event_streams.delivered_at
+// rollup is set only once all enabled targets accepted the event.
+// ---------------------------------------------------------------------------
+
+// TestFanOut_DeliversToEveryEnabledTarget seeds two receiving targets and
+// proves one event is POSTed to both, with per-target delivery rows and the
+// rollup set after the second target accepts.
+func TestFanOut_DeliversToEveryEnabledTarget(t *testing.T) {
+	resetPusherState()
+
+	rrA := newRecordingReceiver(http.StatusOK)
+	srvA := httptest.NewServer(http.HandlerFunc(rrA.handler))
+	defer srvA.Close()
+	rrB := newRecordingReceiver(http.StatusOK)
+	srvB := httptest.NewServer(http.HandlerFunc(rrB.handler))
+	defer srvB.Close()
+
+	seedPusherConfig(t, srvA.URL)
+	targetB := seedSyncTarget(t, "target-b", srvB.URL, true)
+	// One disabled target must be skipped entirely.
+	seedSyncTarget(t, "target-disabled", "http://127.0.0.1:1/disabled", false)
+
+	ev := seedUndeliveredEvent(t, 1)
+
+	// Fan out one round to every deliverable target (the worker path).
+	// (Return value only signals "a full batch was sent, more may pend" —
+	// with a single event it is false even on success.)
+	deliverPendingBatch()
+
+	// Both enabled receivers got the event; the disabled one got nothing.
+	assert.Equal(t, 1, rrA.totalEvents(), "target A received the event")
+	assert.Equal(t, 1, rrB.totalEvents(), "target B received the event")
+
+	// One delivery row per enabled target, both delivered.
+	targetA := reloadPusherTarget(t, "test-target")
+	rowA := deliveryRow(t, ev.ID, targetA.ID)
+	assert.NotNil(t, rowA.DeliveredAt)
+	rowB := deliveryRow(t, ev.ID, targetB.ID)
+	assert.NotNil(t, rowB.DeliveredAt)
+
+	// Rollup: all enabled targets delivered -> event_streams.delivered_at set.
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.NotNil(t, got.DeliveredAt, "rollup set once every enabled target delivered")
+}
+
+// TestFanOut_RollupWaitsForSlowTarget proves the legacy rollup stays NULL
+// while one enabled target has not accepted the event yet, and is set once
+// the straggler catches up.
+func TestFanOut_RollupWaitsForSlowTarget(t *testing.T) {
+	resetPusherState()
+
+	rrA := newRecordingReceiver(http.StatusOK)
+	srvA := httptest.NewServer(http.HandlerFunc(rrA.handler))
+	defer srvA.Close()
+	// Target B rejects everything (500) until flipped.
+	flaky := &flakyReceiver{status: http.StatusInternalServerError}
+	srvB := httptest.NewServer(http.HandlerFunc(flaky.handler))
+	defer srvB.Close()
+
+	seedPusherConfig(t, srvA.URL)
+	targetB := seedSyncTarget(t, "target-b", srvB.URL, true)
+
+	ev := seedUndeliveredEvent(t, 1)
+
+	deliverPendingBatch()
+
+	// A delivered; B failed -> no rollup yet.
+	targetA := reloadPusherTarget(t, "test-target")
+	assert.NotNil(t, deliveryRow(t, ev.ID, targetA.ID).DeliveredAt)
+	rowB := deliveryRow(t, ev.ID, targetB.ID)
+	assert.Nil(t, rowB.DeliveredAt)
+	assert.Equal(t, 1, rowB.Attempts, "failed attempt recorded for B")
+
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.Nil(t, got.DeliveredAt, "rollup waits for every enabled target")
+
+	// B recovers: next fan-out round delivers the straggler and the rollup
+	// appears.
+	flaky.status = http.StatusOK
+	deliverPendingBatch()
+
+	assert.NotNil(t, deliveryRow(t, ev.ID, targetB.ID).DeliveredAt)
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.NotNil(t, got.DeliveredAt, "rollup set once B caught up")
+}
+
+// flakyReceiver answers every POST with a mutable status code and an empty
+// body (full accept on 200).
+type flakyReceiver struct {
+	mu     sync.Mutex
+	status int
+}
+
+func (fr *flakyReceiver) handler(w http.ResponseWriter, r *http.Request) {
+	fr.mu.Lock()
+	status := fr.status
+	fr.mu.Unlock()
+	w.WriteHeader(status)
+}
+
+// reloadPusherTarget fetches one sync target by name from the pusher DB.
+func reloadPusherTarget(t *testing.T, name string) *models.SyncTarget {
+	t.Helper()
+	target := &models.SyncTarget{}
+	require.NoError(t, pusherTestDB.Where("name = ?", name).First(target))
+	return target
+}
+
 func TestDeliverBatch_FullCountResponseMarksEventsDelivered(t *testing.T) {
 	resetPusherState()
-	seedPusherConfig(t, "http://unused")
+	target := seedPusherConfig(t, "http://unused")
 	ev := seedUndeliveredEvent(t, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"processed":1,"total":1}`))
 	}))
 	defer srv.Close()
-	settings, err := CurrentConfigGet().GetSettings()
-	require.NoError(t, err)
-	settings.WebhookURL = srv.URL
-	require.NoError(t, CurrentConfigGet().SetSettings(settings))
-	_, err = deliverBatch()
+	target.WebhookURL = srv.URL
+	require.NoError(t, pusherTestDB.Update(target))
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 	var got models.EventStream
 	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
@@ -376,18 +560,16 @@ func TestDeliverBatch_FullCountResponseMarksEventsDelivered(t *testing.T) {
 
 func TestDeliverBatch_ExplicitPartialResponseDoesNotDeliver(t *testing.T) {
 	resetPusherState()
-	seedPusherConfig(t, "http://unused")
+	target := seedPusherConfig(t, "http://unused")
 	ev := seedUndeliveredEvent(t, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["failed"]}`))
 	}))
 	defer srv.Close()
-	settings, settingsErr := CurrentConfigGet().GetSettings()
-	require.NoError(t, settingsErr)
-	settings.WebhookURL = srv.URL
-	require.NoError(t, CurrentConfigGet().SetSettings(settings))
-	_, err := deliverBatch()
+	target.WebhookURL = srv.URL
+	require.NoError(t, pusherTestDB.Update(target))
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	var got models.EventStream
 	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
@@ -406,7 +588,7 @@ func TestDeliverBatch_NoEventsNoop(t *testing.T) {
 
 	seedPusherConfig(t, srv.URL)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 	assert.False(t, called, "receiver must not be called when there are no events")
 }
@@ -421,13 +603,13 @@ func TestDeliverBatch_NonOKStatusRecordsFailure(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 1)
 
-	before := webhookPusher.circuitBreaker.failures
-	_, err := deliverBatch()
+	before := breakerFailures(t)
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "500")
 
 	// Circuit breaker incremented.
-	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures)
+	assert.Equal(t, before+1, breakerFailures(t))
 
 	// Event NOT marked delivered.
 	var got models.EventStream
@@ -441,11 +623,11 @@ func TestDeliverBatch_ConnectionErrorRecordsFailure(t *testing.T) {
 	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
 	seedUndeliveredEvent(t, 1)
 
-	before := webhookPusher.circuitBreaker.failures
-	_, err := deliverBatch()
+	before := breakerFailures(t)
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 
-	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures)
+	assert.Equal(t, before+1, breakerFailures(t))
 }
 
 func TestDeliverBatch_EnvelopeHasInstanceAndVersion(t *testing.T) {
@@ -460,7 +642,7 @@ func TestDeliverBatch_EnvelopeHasInstanceAndVersion(t *testing.T) {
 	cfg.Description = "Wildlife care centre"
 	seedUndeliveredEvent(t, 9)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 	require.Len(t, rr.requests, 1)
 
@@ -489,7 +671,7 @@ func TestDeliverBatch_PayloadShape(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 9)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	require.Len(t, rr.requests, 1)
@@ -525,7 +707,7 @@ func TestDeliverBatch_ResyncRunIDOnWire(t *testing.T) {
 	event.ResyncRunID = &runID
 	require.NoError(t, pusherTestDB.Update(event))
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	require.Len(t, rr.requests, 1)
@@ -551,7 +733,7 @@ func TestDeliverBatch_LiveEventOmitsResyncRunID(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 12)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	require.Len(t, rr.requests, 1)
@@ -626,7 +808,7 @@ func TestDeliverBatch_PartialFailureMarksOnlyAccepted(t *testing.T) {
 	}}
 	srv.Config.Handler = http.HandlerFunc(acc.handler)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	// Partial acceptance is reported as an error (circuit breaker records a
 	// failure) since commit be7bec9 — but the accepted subset must still be
 	// marked delivered and the rejected event left pending for retry.
@@ -663,20 +845,20 @@ func TestDeliverBatch_PartialAcceptRecordsBreakerFailure(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 1)
 
-	before := webhookPusher.circuitBreaker.failures
-	_, err := deliverBatch()
+	before := breakerFailures(t)
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "accepted 0/1 events")
-	assert.Equal(t, before+1, webhookPusher.circuitBreaker.failures,
+	assert.Equal(t, before+1, breakerFailures(t),
 		"partial acceptance must record a circuit-breaker failure")
 
 	// A subsequent full success resets the breaker (RecordSuccess path is
 	// only reached on non-partial responses).
 	srv.Config.Handler = http.HandlerFunc(newRecordingReceiver(http.StatusOK).handler)
 	seedUndeliveredEvent(t, 2)
-	_, err = deliverBatch()
+	_, err = deliverBatch(t)
 	require.NoError(t, err)
-	assert.Equal(t, 0, webhookPusher.circuitBreaker.failures,
+	assert.Equal(t, 0, breakerFailures(t),
 		"full success must reset the circuit breaker")
 }
 
@@ -717,12 +899,8 @@ func TestEnsureWebhookWorkerRunning_StartsWhenDisabled(t *testing.T) {
 	StopWebhookWorker()
 	require.False(t, IsWebhookWorkerRunning())
 
-	// Config with webhook disabled.
-	settings := models.ConfigSettings{
-		EnableEventStream: true,
-		WebhookEnabled:    false,
-		WebhookURL:        "",
-	}
+	// Config with event stream on but no enabled sync targets.
+	settings := models.ConfigSettings{EnableEventStream: true}
 	cfg := &models.Config{
 		ID:         uuid.Must(uuid.NewV4()),
 		InstanceID: "test-instance",
@@ -1111,7 +1289,7 @@ func TestDeliverBatch_ConfirmedAcksMarkAcknowledged(t *testing.T) {
 	defer srv.Close()
 	seedPusherConfig(t, srv.URL)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	var gotMatching, gotStale models.EventStream
@@ -1151,7 +1329,7 @@ func TestDeliverBatch_AttachesResyncAnnouncement(t *testing.T) {
 	defer srv.Close()
 	seedPusherConfig(t, srv.URL)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 	require.NotNil(t, envelope, "receiver must have been called")
 
@@ -1193,7 +1371,7 @@ func TestDeliverBatch_NoAnnouncementForRegularEvents(t *testing.T) {
 	defer srv.Close()
 	seedPusherConfig(t, srv.URL)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.NoError(t, err)
 
 	require.NotNil(t, envelope)
@@ -1230,7 +1408,7 @@ func TestDeliverBatch_NonOKStatusIncludesBodyExcerpt(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 1)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "500")
 	assert.Contains(t, err.Error(), "boom: invalid api key")
@@ -1249,7 +1427,7 @@ func TestDeliverBatch_PartialFailureIncludesReceiverErrors(t *testing.T) {
 	seedPusherConfig(t, srv.URL)
 	seedUndeliveredEvent(t, 1)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "0/1")
 	assert.Contains(t, err.Error(), "instance block mismatch")
@@ -1263,7 +1441,7 @@ func TestDeliverBatch_TransportErrorIncludesURL(t *testing.T) {
 	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
 	seedUndeliveredEvent(t, 1)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "http://127.0.0.1:1/webhook")
 	assert.Contains(t, err.Error(), "connection refused")
@@ -1272,6 +1450,16 @@ func TestDeliverBatch_TransportErrorIncludesURL(t *testing.T) {
 // ---------------------------------------------------------------------------
 // Poison-queue protection (bug 6): delivery attempts tracking + capped skip
 // ---------------------------------------------------------------------------
+
+// deliveryRow fetches the (event, target) delivery row; fails the test when
+// absent.
+func deliveryRow(t *testing.T, eventID, targetID uuid.UUID) *models.EventDelivery {
+	t.Helper()
+	row := &models.EventDelivery{}
+	require.NoError(t, pusherTestDB.Where(
+		"event_id = ? AND target_id = ?", eventID.String(), targetID.String()).First(row))
+	return row
+}
 
 func TestDeliverBatch_FailureIncrementsAttemptsAndStoresError(t *testing.T) {
 	resetPusherState()
@@ -1282,39 +1470,78 @@ func TestDeliverBatch_FailureIncrementsAttemptsAndStoresError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	seedPusherConfig(t, srv.URL)
+	target := seedPusherConfig(t, srv.URL)
 	ev := seedUndeliveredEvent(t, 1)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 
 	var got models.EventStream
 	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
-	assert.Equal(t, 1, got.DeliveryAttempts, "failed delivery must increment attempts")
-	require.NotNil(t, got.LastDeliveryError)
-	assert.Contains(t, *got.LastDeliveryError, "instance block mismatch")
+	assert.Nil(t, got.DeliveredAt)
+	row := deliveryRow(t, ev.ID, target.ID)
+	assert.Equal(t, 1, row.Attempts, "failed delivery must increment attempts")
+	require.NotNil(t, row.LastError)
+	assert.Contains(t, *row.LastError, "instance block mismatch")
 
 	// Second failure increments again.
-	_, err = deliverBatch()
+	_, err = deliverBatch(t)
 	require.Error(t, err)
-	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
-	assert.Equal(t, 2, got.DeliveryAttempts)
+	row = deliveryRow(t, ev.ID, target.ID)
+	assert.Equal(t, 2, row.Attempts)
 }
 
 func TestDeliverBatch_TransportFailureIncrementsAttempts(t *testing.T) {
 	resetPusherState()
 
-	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
+	target := seedPusherConfig(t, "http://127.0.0.1:1/webhook")
 	ev := seedUndeliveredEvent(t, 1)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
+
+	row := deliveryRow(t, ev.ID, target.ID)
+	assert.Equal(t, 1, row.Attempts)
+	require.NotNil(t, row.LastError)
+	assert.Contains(t, *row.LastError, "connection refused")
+}
+
+// TestDeliverBatch_UnparseableResponseIncrementsAttempts reproduces the e2e
+// finding: a receiver answering 200 with a contract-violating body (here
+// "confirmed": true, a bool where the contract expects an array) made the
+// batch retry forever WITHOUT incrementing attempts — the poison-message
+// backstop never engaged and the queue spun indefinitely.
+func TestDeliverBatch_UnparseableResponseIncrementsAttempts(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"contract_version":2,"processed":1,"total":1,"processed_ids":["x"],"errors":[],"confirmed":true}`))
+	}))
+	defer srv.Close()
+
+	target := seedPusherConfig(t, srv.URL)
+	ev := seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch(t)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid webhook response")
+
+	row := deliveryRow(t, ev.ID, target.ID)
+	assert.Equal(t, 1, row.Attempts, "unparseable 200 must consume attempt budget")
+	require.NotNil(t, row.LastError)
+	assert.Contains(t, *row.LastError, "invalid webhook response")
 
 	var got models.EventStream
 	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
-	assert.Equal(t, 1, got.DeliveryAttempts)
-	require.NotNil(t, got.LastDeliveryError)
-	assert.Contains(t, *got.LastDeliveryError, "connection refused")
+	assert.Nil(t, got.DeliveredAt, "nothing may be marked delivered on an unparseable response")
+
+	// Second round increments again — the event approaches the cap instead
+	// of spinning forever.
+	_, err = deliverBatch(t)
+	require.Error(t, err)
+	row = deliveryRow(t, ev.ID, target.ID)
+	assert.Equal(t, 2, row.Attempts)
 }
 
 // TestDeliverBatch_CappedEventSkippedNoHeadOfLineBlocking reproduces the
@@ -1327,19 +1554,27 @@ func TestDeliverBatch_CappedEventSkippedNoHeadOfLineBlocking(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
 	defer srv.Close()
 
-	seedPusherConfig(t, srv.URL)
+	target := seedPusherConfig(t, srv.URL)
 
-	// Oldest event: poisoned (at the cap).
+	// Oldest event: poisoned (at the attempt cap for this target).
 	poison := seedUndeliveredEvent(t, 1)
 	require.NoError(t, pusherTestDB.RawQuery(
-		"UPDATE event_streams SET delivery_attempts = ?, created_at = ? WHERE id = ?",
-		maxDeliveryAttempts, time.Now().Add(-time.Hour), poison.ID.String(),
+		"UPDATE event_streams SET created_at = ? WHERE id = ?",
+		time.Now().Add(-time.Hour), poison.ID.String(),
 	).Exec())
+	require.NoError(t, pusherTestDB.Create(&models.EventDelivery{
+		ID:        uuid.Must(uuid.NewV4()),
+		EventID:   poison.ID,
+		TargetID:  target.ID,
+		Attempts:  models.MaxDeliveryAttempts,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}))
 
 	// Newer event: healthy, must be delivered despite the older poison row.
 	healthy := seedUndeliveredEvent(t, 2)
 
-	n, err := deliverBatch()
+	n, err := deliverBatch(t)
 	require.NoError(t, err)
 	assert.Equal(t, 1, n, "batch must contain only the healthy event")
 	assert.Equal(t, 1, rr.totalEvents())
@@ -1374,18 +1609,21 @@ func TestDeliverBatch_PartialFailureAttemptsOnlyOnRejected(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	seedPusherConfig(t, srv.URL)
+	target := seedPusherConfig(t, srv.URL)
 	good := seedUndeliveredEvent(t, 1)
 	bad := seedUndeliveredEvent(t, 2)
 
-	_, err := deliverBatch()
+	_, err := deliverBatch(t)
 	require.Error(t, err)
 
 	var gotGood, gotBad models.EventStream
 	require.NoError(t, pusherTestDB.Find(&gotGood, good.ID))
 	assert.NotNil(t, gotGood.DeliveredAt)
-	assert.Equal(t, 0, gotGood.DeliveryAttempts, "accepted event must not be penalized")
+	goodRow := deliveryRow(t, good.ID, target.ID)
+	assert.Equal(t, 0, goodRow.Attempts, "accepted event must not be penalized")
+	assert.NotNil(t, goodRow.DeliveredAt)
 	require.NoError(t, pusherTestDB.Find(&gotBad, bad.ID))
 	assert.Nil(t, gotBad.DeliveredAt)
-	assert.Equal(t, 1, gotBad.DeliveryAttempts, "rejected event gets the attempt")
+	badRow := deliveryRow(t, bad.ID, target.ID)
+	assert.Equal(t, 1, badRow.Attempts, "rejected event gets the attempt")
 }

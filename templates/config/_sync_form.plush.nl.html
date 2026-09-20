@@ -1,7 +1,6 @@
 <input type="hidden" name="form_scope" value="sync">
-<hr/>
 <h5>Instantie-identiteit</h5>
-<p class="text-muted">Unieke identificatie van deze Creaves-instantie, toegevoegd aan elke doorgestuurde gebeurtenis zodat de console de centra kan onderscheiden.</p>
+<p class="text-muted">Unieke identificatie van deze Creaves-instantie, toegevoegd aan elke doorgestuurde gebeurtenis zodat de consoles de centra uit elkaar kunnen houden.</p>
 <div class="form-group">
   <label for="instance_id">Instantie-ID</label>
   <input type="text" class="form-control" id="instance_id" name="InstanceID" value="<%= config.InstanceID %>">
@@ -17,51 +16,5 @@
   <label class="form-check-label" for="enable_event_stream">
     <strong>Gebeurtenisstroom inschakelen</strong>
   </label>
-  <small class="form-text text-muted">Wanneer ingeschakeld, worden levenscyclusgebeurtenissen van dieren (ontdekking, statuswijzigingen, aflopen) vastgelegd voor rapportage en consolidatie over instanties heen.</small>
-</div>
-
-<hr/>
-<h5>Webhook-configuratie</h5>
-<p class="text-muted">Verstuur gebeurtenissen naar een Creaves Console-instantie.</p>
-
-<div class="alert alert-info">
-  <strong>Instelling:</strong>
-  <ol class="mb-0">
-    <li>Ga in de <em>Creaves Console</em> (ontvanger) naar <strong>Admin → Webhook-API-sleutels → Sleutel aanmaken</strong> en kopieer de gegenereerde sleutel.</li>
-    <li>Schakel de webhook hier in, plak de sleutel en stel de <strong>Webhook-URL</strong> van de Console in (bijv. <code>https://console.example.com/webhook/events</code>).</li>
-    <li>Opslaan — de bezorgingsworker start automatisch.</li>
-  </ol>
-</div>
-
-<div class="form-group form-check">
-  <input type="hidden" name="Settings.WebhookEnabled" value="false" />
-  <input type="checkbox" class="form-check-input" id="webhook_enabled" name="Settings.WebhookEnabled" value="true" <%= if (settings.WebhookEnabled) { %>checked<% } %>>
-  <label class="form-check-label" for="webhook_enabled">
-    <strong>Webhook inschakelen</strong>
-  </label>
-  <small class="form-text text-muted">Wanneer ingeschakeld, worden gebeurtenissen naar de geconfigureerde webhook-URL gestuurd.</small>
-</div>
-
-<div class="form-group">
-  <label for="webhook_url">Webhook-URL</label>
-  <input type="url" class="form-control" id="webhook_url" name="Settings.WebhookURL" value="<%= settings.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
-  <small class="form-text text-muted">De URL van het webhook-eindpunt van de Creaves Console.</small>
-</div>
-
-<div class="form-group">
-  <label for="webhook_api_key">API-sleutel</label>
-  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="Settings.WebhookAPIKey" value="<%= settings.WebhookAPIKey %>" placeholder="API-sleutel invoeren (leeg laten om de huidige te behouden)" autocomplete="new-password">
-  <small class="form-text text-muted">API-sleutel gegenereerd in Creaves Console. Maintainers kunnen de opgeslagen sleutel bekijken; andere admins zien een alleen-schrijven-veld — voer een nieuwe sleutel in om de opgeslagen te vervangen, of laat het veld leeg om de huidige sleutel te behouden.</small>
-</div>
-
-<div class="form-group">
-  <label for="webhook_batch_size">Batchgrootte</label>
-  <input type="number" class="form-control" id="webhook_batch_size" name="Settings.WebhookBatchSize" value="<%= settings.WebhookBatchSize %>" min="1" max="100">
-  <small class="form-text text-muted">Aantal gebeurtenissen per verzoek (standaard: 1).</small>
-</div>
-
-<div class="form-group">
-  <label for="webhook_max_per_min">Maximale gebeurtenissen per minuut</label>
-  <input type="number" class="form-control" id="webhook_max_per_min" name="Settings.WebhookMaxPerMin" value="<%= settings.WebhookMaxPerMin %>" min="1" max="10000">
-  <small class="form-text text-muted">Snelheidslimiet voor gebeurtenisbezorging (standaard: 60).</small>
+  <small class="form-text text-muted">Indien ingeschakeld worden levenscyclusgebeurtenissen van dieren (vondst, statuswijzigingen, uitplaatsingen) vastgelegd voor rapportage en consolidatie tussen instanties. Gebeurtenissen worden naar elke ingeschakelde synchronisatiedoel hieronder gepusht.</small>
 </div>

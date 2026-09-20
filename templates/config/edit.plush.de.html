@@ -1,6 +1,6 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Konfiguration bearbeiten: <%= config.Name %></h3>
-  <a href="/sync_configuration" class="btn btn-outline-primary btn-sm float-right mt-2">Synchronisation (Instanz-ID, Ereignisstrom &amp; Webhook)</a>
+  <a href="/sync_configuration" class="btn btn-outline-primary btn-sm float-right mt-2">Synchronisation (Instanz-ID, Ereignisstrom &amp; Sync-Ziele)</a>
 </div>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>

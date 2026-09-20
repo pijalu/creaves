@@ -2,10 +2,67 @@
   <h3 class="d-inline-block">Configuration de la synchronisation — <%= config.Name %></h3>
   <a href="/config/<%= config.ID %>/edit" class="btn btn-outline-primary btn-sm float-right mt-2">Détails de l'instance (vue invité)</a>
 </div>
-<p class="text-muted">ID d'instance, flux d'événements et envoi webhook de la configuration active.</p>
+<p class="text-muted">ID d'instance, flux d'événements et cibles de synchronisation de la configuration active.</p>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
   <%= partial("config/sync_form.plush.fr.html") %>
   <button class="btn btn-success" role="submit">Enregistrer</button>
-  <%= linkTo("/config/" + config.ID + "/edit", {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+<% } %>
+
+<hr/>
+<div class="py-3 mb-2">
+  <h4 class="d-inline-block">Cibles de synchronisation</h4>
+  <a href="/sync_targets/new" class="btn btn-primary btn-sm float-right mt-2"><i class="fa fa-plus"></i> Ajouter une cible</a>
+</div>
+<p class="text-muted">Les événements sont envoyés à chaque cible activée, chacune avec son propre suivi de livraison. Créez une cible par Creaves Console (récepteur) : dans la console, allez à <strong>Admin → Clés API Webhook → Créer une clé</strong>, puis ajoutez ici une cible avec l'URL webhook de la console (p. ex. <code>https://console.example.com/webhook/events</code>) et la clé générée.</p>
+
+<%= if (len(targets) == 0) { %>
+  <div class="alert alert-info">Aucune cible de synchronisation configurée. Les événements sont enregistrés mais ne sont livrés nulle part tant que vous n'ajoutez pas et n'activez pas une cible.</div>
+<% } else { %>
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>URL Webhook</th>
+        <th>Statut</th>
+        <th class="text-center">En attente</th>
+        <th class="text-center">Livrés</th>
+        <th class="text-center">Non livrables</th>
+        <th class="text-center">Non confirmés</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= for (row) in targets { %>
+        <tr>
+          <td><strong><%= row.Target.Name %></strong></td>
+          <td><code><%= row.Target.WebhookURL %></code></td>
+          <td>
+            <%= if (row.Target.Enabled) { %>
+              <span class="badge badge-success">Activée</span>
+            <% } else { %>
+              <span class="badge badge-secondary">Désactivée</span>
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Pending %></td>
+          <td class="text-center"><%= row.Counts.Delivered %></td>
+          <td class="text-center">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <span class="badge badge-danger"><%= row.Counts.Undeliverable %></span>
+            <% } else { %>
+              0
+            <% } %>
+          </td>
+          <td class="text-center"><%= row.Counts.Unacked %></td>
+          <td class="text-right text-nowrap">
+            <%= if (row.Counts.Undeliverable > 0) { %>
+              <%= linkTo("/sync_targets/" + row.Target.ID + "/retry_undeliverable", {class: "btn btn-info btn-sm", "data-method": "POST", "data-confirm": "Remettre en file tous les événements non livrables de cette cible ?", title: "Réessayer les non livrables", body: "<i class='fa fa-repeat'></i>"}) %>
+            <% } %>
+            <%= linkTo("/sync_targets/" + row.Target.ID + "/edit", {class: "btn btn-warning btn-sm", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo("/sync_targets/" + row.Target.ID, {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": "Supprimer cette cible de synchronisation et son historique de livraison ?", title: "Supprimer", body: "<i class='fa fa-trash'></i>"}) %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
 <% } %>

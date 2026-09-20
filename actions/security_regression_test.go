@@ -198,7 +198,7 @@ type webhookLimitContext struct {
 
 func (c *webhookLimitContext) Param(key string) string { return c.params[key] }
 
-func TestParseWebhookLimitsClampsValues(t *testing.T) {
+func TestParseTargetLimitsClampsValues(t *testing.T) {
 	cases := []struct {
 		name              string
 		batch, rate       string
@@ -214,12 +214,12 @@ func TestParseWebhookLimitsClampsValues(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			c := &webhookLimitContext{params: map[string]string{
-				"Settings.WebhookBatchSize": tc.batch,
-				"Settings.WebhookMaxPerMin": tc.rate,
+				"WebhookBatchSize": tc.batch,
+				"WebhookMaxPerMin": tc.rate,
 			}}
-			b, m := parseWebhookLimits(c)
+			b, m := parseTargetLimits(c)
 			if b != tc.wantBatch || m != tc.wantRt {
-				t.Errorf("parseWebhookLimits(%q,%q) = (%d,%d), want (%d,%d)",
+				t.Errorf("parseTargetLimits(%q,%q) = (%d,%d), want (%d,%d)",
 					tc.batch, tc.rate, b, m, tc.wantBatch, tc.wantRt)
 			}
 		})

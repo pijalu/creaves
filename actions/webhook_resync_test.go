@@ -194,10 +194,27 @@ func TestStartResyncRunCommittedBeforeReturn(t *testing.T) {
 	purgeResyncCommitTestData(t)
 	saved := CurrentConfigGet()
 	CurrentConfigSet(&models.Config{InstanceID: "rsync-commit-test"})
-	if err := CurrentConfigGet().SetSettings(models.ConfigSettings{WebhookEnabled: true, WebhookURL: "http://127.0.0.1:1/unreachable"}); err != nil {
-		t.Fatalf("SetSettings: %v", err)
+	// StartResync gates on IsWebhookEnabled — seed one enabled sync target
+	// (unreachable URL is fine: the run row commit is what this test checks).
+	target := &models.SyncTarget{
+		ID:               uuid.Must(uuid.NewV4()),
+		Name:             "rsync-commit-test",
+		Enabled:          true,
+		WebhookURL:       "http://127.0.0.1:1/unreachable",
+		WebhookBatchSize: 1,
+		WebhookMaxPerMin: 1,
 	}
-	t.Cleanup(func() { CurrentConfigSet(saved) })
+	if err := models.DB.Create(target); err != nil {
+		t.Fatalf("create sync target: %v", err)
+	}
+	t.Cleanup(func() {
+		// StartResync wakes the delivery worker; stop it before later tests
+		// serve requests — the worker shares models.DB with HTTP handlers and
+		// pop *Connection is not goroutine-safe (data race under -race).
+		StopWebhookWorker()
+		CurrentConfigSet(saved)
+		_ = models.DB.Destroy(target)
+	})
 
 	var runID uuid.UUID
 	err := models.DB.Transaction(func(tx *pop.Connection) error {

@@ -1,0 +1,10 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block">Modifier la cible — <%= target.Name %></h3>
+  <a href="/sync_configuration" class="btn btn-outline-primary btn-sm float-right mt-2">Retour à la configuration de synchronisation</a>
+</div>
+
+<%= formFor(target, {action: "/sync_targets/" + target.ID, method: "PUT"}) { %>
+  <%= partial("sync_targets/form.plush.fr.html") %>
+  <button class="btn btn-success" role="submit">Enregistrer</button>
+  <%= linkTo("/sync_configuration", {class: "btn btn-warning", body: "Annuler"}) %>
+<% } %>

@@ -1,0 +1,38 @@
+<div class="form-group">
+  <label for="name">Name</label>
+  <input type="text" class="form-control" id="name" name="Name" value="<%= target.Name %>" placeholder="Hauptkonsole" required>
+  <small class="form-text text-muted">Eine Bezeichnung, um diese Creaves Console (Empfänger) von den anderen zu unterscheiden.</small>
+</div>
+
+<div class="form-group form-check">
+  <input type="hidden" name="Enabled" value="false" />
+  <input type="checkbox" class="form-check-input" id="enabled" name="Enabled" value="true" <%= if (target.Enabled) { %>checked<% } %>>
+  <label class="form-check-label" for="enabled">
+    <strong>Aktiviert</strong>
+  </label>
+  <small class="form-text text-muted">Ereignisse werden an jedes aktivierte Ziel mit einer Webhook-URL gesendet.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_url">Webhook-URL</label>
+  <input type="url" class="form-control" id="webhook_url" name="WebhookURL" value="<%= target.WebhookURL %>" placeholder="https://console.example.com/webhook/events">
+  <small class="form-text text-muted">Die URL des Webhook-Endpunkts der Creaves Console. In der Konsole: <strong>Admin → Webhook-API-Schlüssel → Schlüssel erstellen</strong>, dann den Schlüssel unten einfügen.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_api_key">API-Schlüssel</label>
+  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="WebhookAPIKey" value="<%= target.WebhookAPIKey %>" placeholder="API-Schlüssel eingeben (leer lassen, um den aktuellen zu behalten)" autocomplete="new-password">
+  <small class="form-text text-muted">API-Schlüssel, erzeugt in der Creaves Console. Maintainer können den gespeicherten Schlüssel sehen; andere Administratoren sehen ein Nur-Schreiben-Feld — neuen Schlüssel eingeben, um den gespeicherten zu ersetzen, oder das Feld leer lassen, um den aktuellen zu behalten.</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_batch_size">Batch-Größe</label>
+  <input type="number" class="form-control" id="webhook_batch_size" name="WebhookBatchSize" value="<%= target.WebhookBatchSize %>" min="1" max="100">
+  <small class="form-text text-muted">Anzahl der Ereignisse pro Anfrage an dieses Ziel (Standard: 1).</small>
+</div>
+
+<div class="form-group">
+  <label for="webhook_max_per_min">Max. Ereignisse pro Minute</label>
+  <input type="number" class="form-control" id="webhook_max_per_min" name="WebhookMaxPerMin" value="<%= target.WebhookMaxPerMin %>" min="1" max="10000">
+  <small class="form-text text-muted">Ratenbegrenzung für die Zustellung an dieses Ziel (Standard: 60).</small>
+</div>

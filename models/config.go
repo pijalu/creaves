@@ -27,16 +27,14 @@ func (Config) TableName() string {
 	return "config"
 }
 
-// ConfigSettings represents the structure of the settings JSON
+// ConfigSettings represents the structure of the settings JSON.
+// Webhook delivery is configured per sync target (sync_targets table); the
+// config only keeps the global event-stream flag. Legacy webhook_* keys in
+// stored settings blobs are ignored on read (backfilled into sync_targets by
+// migration 20261010090000).
 type ConfigSettings struct {
 	// Event stream feature flag - controls all event stream functionality
 	EnableEventStream bool `json:"enable_event_stream"`
-	// Webhook configuration
-	WebhookEnabled   bool   `json:"webhook_enabled"`
-	WebhookURL       string `json:"webhook_url"`
-	WebhookAPIKey    string `json:"webhook_api_key"`
-	WebhookBatchSize int    `json:"webhook_batch_size"`
-	WebhookMaxPerMin int    `json:"webhook_max_per_min"`
 	// CREAVES identity (issue #150), shown on the guest page. Not secret.
 	CenterName    string `json:"center_name"`
 	AsblName      string `json:"asbl_name"`
@@ -54,24 +52,7 @@ type ConfigSettings struct {
 func DefaultSettings() ConfigSettings {
 	return ConfigSettings{
 		EnableEventStream: true,
-		WebhookEnabled:    false,
-		WebhookBatchSize:  1,
-		WebhookMaxPerMin:  60,
 	}
-}
-
-// MaskedWebhookAPIKey returns a masked representation of the webhook API
-// key (e.g. "••••last4") that is safe to render in HTML. It never returns
-// the full secret.
-func (s ConfigSettings) MaskedWebhookAPIKey() string {
-	if s.WebhookAPIKey == "" {
-		return ""
-	}
-	const dot = "••••"
-	if len(s.WebhookAPIKey) <= 4 {
-		return dot
-	}
-	return dot + s.WebhookAPIKey[len(s.WebhookAPIKey)-4:]
 }
 
 // GetSettings parses the settings JSON into a ConfigSettings struct
@@ -95,23 +76,6 @@ func (c *Config) SetSettings(settings ConfigSettings) error {
 	}
 	c.Settings = json.RawMessage(data)
 	return nil
-}
-
-// MarshalJSON redacts the webhook API key from the settings blob so the
-// shared secret is never exposed through JSON API responses.
-func (c Config) MarshalJSON() ([]byte, error) {
-	type alias Config // avoid infinite recursion
-	out := alias(c)
-	if len(out.Settings) > 0 {
-		settings, err := c.GetSettings()
-		if err == nil && settings.WebhookAPIKey != "" {
-			settings.WebhookAPIKey = ""
-			if data, err := json.Marshal(settings); err == nil {
-				out.Settings = json.RawMessage(data)
-			}
-		}
-	}
-	return json.Marshal(out)
 }
 
 // String returns the JSON representation

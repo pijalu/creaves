@@ -413,6 +413,30 @@ CREATE TABLE `entry_causes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `event_deliveries`
+--
+
+DROP TABLE IF EXISTS `event_deliveries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `event_deliveries` (
+  `id` char(36) NOT NULL,
+  `event_id` char(36) NOT NULL,
+  `target_id` char(36) NOT NULL,
+  `attempts` int NOT NULL DEFAULT '0',
+  `delivered_at` datetime DEFAULT NULL,
+  `acknowledged_at` datetime DEFAULT NULL,
+  `last_error` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `event_deliveries_event_target_idx` (`event_id`,`target_id`),
+  KEY `event_deliveries_target_id_idx` (`target_id`),
+  KEY `event_deliveries_delivered_at_idx` (`delivered_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `event_streams`
 --
 
@@ -710,6 +734,27 @@ CREATE TABLE `subside_groups` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `sync_targets`
+--
+
+DROP TABLE IF EXISTS `sync_targets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `sync_targets` (
+  `id` char(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `enabled` tinyint(1) NOT NULL DEFAULT '0',
+  `webhook_url` varchar(1024) NOT NULL DEFAULT '',
+  `webhook_api_key` varchar(512) NOT NULL DEFAULT '',
+  `webhook_batch_size` int NOT NULL DEFAULT '1',
+  `webhook_max_per_min` int NOT NULL DEFAULT '60',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `todos`
 --
 
@@ -917,4 +962,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-20 10:35:36
+-- Dump completed on 2026-09-20 12:23:07

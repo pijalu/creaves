@@ -296,12 +296,24 @@ func TestRunResyncQueryCountBounded(t *testing.T) {
 	defer acceptAll.Close()
 	savedCfg := CurrentConfigGet()
 	cfg := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: preloaderInstance, Name: "resync-n1-stub", Active: true}
-	require.NoError(t, cfg.SetSettings(models.ConfigSettings{
-		EnableEventStream: true, WebhookEnabled: true, WebhookURL: acceptAll.URL,
-		WebhookAPIKey: "k", WebhookBatchSize: 100, WebhookMaxPerMin: 10000,
-	}))
+	require.NoError(t, cfg.SetSettings(models.ConfigSettings{EnableEventStream: true}))
 	CurrentConfigSet(cfg)
 	defer func() { CurrentConfigSet(savedCfg) }()
+
+	// Delivery fan-out targets the accept-all stub receiver.
+	target := &models.SyncTarget{
+		ID:               uuid.Must(uuid.NewV4()),
+		Name:             "resync-n1-stub",
+		Enabled:          true,
+		WebhookURL:       acceptAll.URL,
+		WebhookAPIKey:    "k",
+		WebhookBatchSize: 100,
+		WebhookMaxPerMin: 10000,
+	}
+	require.NoError(t, models.DB.Create(target))
+	defer func() { _ = models.DB.Destroy(target) }()
+	SetSyncTargetsKnown(true)
+	defer SetSyncTargetsKnown(false)
 
 	require.NoError(t, RunResync(context.Background(), models.DB, run.ID, false))
 
