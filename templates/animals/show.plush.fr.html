@@ -1,4 +1,4 @@
-<div class="py-4 mb-2">
+<div class="py-4 mb-2 clearfix">
   <h3 class="d-inline-block">Numéro&nbsp;animal:&nbsp;<%=animal.YearNumber%> (<%= animal.Year %>)</h3>
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Sorti)</em></h4>
@@ -6,7 +6,7 @@
   <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
 
 
-  <div class="float-right">
+  <div class="float-right mb-2">
     <%= linkTo("/#"+animal.Animaltype.Name, {class: "btn btn-info"}) { %>
      Retour aux animaux en cours de soins
     <% } %>
