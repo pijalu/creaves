@@ -327,13 +327,20 @@
     <th></th>
     <th>Description</th>
     <th>Date</th>
+    <th>Actions</th>
   </thead>
   <tbody>
     <%= for (v) in dashboardTodos { %>
       <tr>
         <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><%= v.Todo.Description %></td>
+        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="Ouvrir le TODO"><%= v.Todo.Description %></a></td>
         <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
+        <td class="align-middle">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline">
+            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Fait</button>
+          </form>
+        </td>
       </tr>
     <% } %>
   </tbody>
