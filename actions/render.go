@@ -100,6 +100,20 @@ func normalizeUILang(lang string) string {
 	}
 }
 
+// uiLang returns the active UI language code for <html lang>: the lang
+// cookie normalized through normalizeUILang, with the canonical French base
+// ("" cookie) reported as "fr".
+func uiLang(help plush.HelperContext) string {
+	if req, ok := help.Value("request").(*http.Request); ok {
+		if cookie, err := req.Cookie("lang"); err == nil {
+			if norm := normalizeUILang(cookie.Value); norm != "" {
+				return norm
+			}
+		}
+	}
+	return "fr"
+}
+
 var r *render.Engine
 
 func init() {
@@ -115,6 +129,7 @@ func init() {
 		Helpers: render.Helpers{
 			"langLinks":    langLinks,
 			"langLinksAll": langLinksAll,
+			"uiLang":       uiLang,
 			"sortLink":     sortLink,
 			"sortIcon":     sortIcon,
 			"userRoleName": userRoleName,

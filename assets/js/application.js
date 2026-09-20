@@ -5,6 +5,16 @@ require("./jquery.auto-complete.js");
 require("bootstrap/dist/js/bootstrap.bundle.js");
 require("@fortawesome/fontawesome-free/js/all.js");
 require("flatpickr");
+// Calendar widgets must follow the UI language (bugs.md): import the fr/de/nl
+// l10n packs and localize flatpickr from the lang cookie below, in the same
+// IIFE that sets the select2/DataTables languages (English is built in).
+var flatpickr = window.flatpickr;
+// Each pack self-registers onto flatpickr.l10ns (e.g. l10ns.de) as a side
+// effect; the named exports of the UMD modules are not reliable through
+// webpack's module interop, so the localize call below reads l10ns directly.
+require('flatpickr/dist/l10n/fr.js');
+require('flatpickr/dist/l10n/de.js');
+require('flatpickr/dist/l10n/nl.js');
 require('jquery-ujs');
 require('bootstrap-table/dist/bootstrap-table.js');
 require('bootstrap-table/dist/bootstrap-table-locale-all.js');
@@ -60,6 +70,11 @@ DataTable.type('num-comma', {
     }
     if (window.jQuery && jQuery.fn && jQuery.fn.select2) {
         jQuery.fn.select2.defaults.set('language', lang);
+    }
+    // flatpickr UI labels (month/day names) follow the UI language; the
+    // per-call dateFormat options in templates are unaffected by locales.
+    if (flatpickr && flatpickr.localize && flatpickr.l10ns[lang]) {
+        flatpickr.localize(flatpickr.l10ns[lang]);
     }
     // bugs.md datatable item: default language for DataTables (export view).
     if (window.DataTable) {
