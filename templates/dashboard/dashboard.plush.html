@@ -56,7 +56,6 @@
     <th>Species</th>
     <th>Age</th>
     <th>Weights</th>
-    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
@@ -80,11 +79,6 @@
       </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
-        <td class="align-middle">
-          <%= if (!animal.OuttakeID.Value()) { %>
-            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Create outtake", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
-          <% } %>
-        </td>
       </tr>
     <% } %>
   </tbody>
@@ -129,7 +123,6 @@
     <th>Cage</th>
     <th>Species</th>
     <th>Treatments</th>
-    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsToTreat { %>
@@ -226,11 +219,6 @@
                 <%}%>
               <%}%>
             </ul>
-        </td>
-        <td class="align-middle">
-          <%= if (!animal.OuttakeID.Value()) { %>
-            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Create outtake", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
-          <% } %>
         </td>
       </tr>
     <% } %>
@@ -359,7 +347,6 @@
     <th>Cage</th>
     <th>Species</th>
     <th>Feeding</th>
-    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsToForceFeedPreview { %>
@@ -381,11 +368,6 @@
           <%= tspecies(animal.Species) %> (<%= gender %>)
         </td>
         <td class="align-middle"><p><%= animal.Feeding %></p></td>
-        <td class="align-middle">
-          <%= if (!animal.OuttakeID.Value()) { %>
-            <%= linkTo("/outtakes/new?animal_year_number="+animal.YearNumberFormatted(), {class: "btn btn-success btn-sm", title: "Create outtake", body: "<i class='fas fa-sign-out-alt'></i>"}) %>
-          <% } %>
-        </td>
       </tr>
     <% } %>
   </tbody>
