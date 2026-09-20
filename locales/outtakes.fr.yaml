@@ -22,3 +22,7 @@
   translation: "Cette cage n'a aucun animal en attente de sortie."
 - id: "outtake.cage.failed"
   translation: "Sortie refusée : {{.error}}"
+- id: "outtake.duration.day-unit"
+  translation: "j"
+- id: "outtake.duration.hour-unit"
+  translation: "h"

@@ -22,3 +22,7 @@
   translation: "Dieser Käfig hat kein Tier, das auf einen Ausgang wartet."
 - id: "outtake.cage.failed"
   translation: "Ausgang abgelehnt: {{.error}}"
+- id: "outtake.duration.day-unit"
+  translation: "T"
+- id: "outtake.duration.hour-unit"
+  translation: "h"

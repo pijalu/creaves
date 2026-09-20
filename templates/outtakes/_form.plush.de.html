@@ -33,7 +33,15 @@
         if (!it || !ot) { el.textContent = ''; return; }
         var h = Math.floor((ot - it) / 3600000);
         if (h < 0) h = 0;
-        el.textContent = h + ' h';
+        // Mirror the server-side stayDuration helper: plain hours up to
+        // 48h, then "days - leftover hours". Units are localized.
+        var dayUnit = '<%= t("outtake.duration.day-unit") %>';
+        var hourUnit = '<%= t("outtake.duration.hour-unit") %>';
+        if (h <= 48) {
+            el.textContent = h + ' ' + hourUnit;
+        } else {
+            el.textContent = Math.floor(h / 24) + ' ' + dayUnit + ' - ' + (h % 24) + ' ' + hourUnit;
+        }
     }
     function setStay(hours){
         var it = parseDate(intakeStr);
