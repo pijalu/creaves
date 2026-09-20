@@ -1,28 +1,21 @@
-<div class="py-4 mb-2">
+<div class="py-4 mb-2 clearfix">
   <h3 class="d-inline-block">TODOs</h3>
   <a class="btn btn-primary float-right" href="/todos/new"><i class="fas fa-plus"></i> New</a>
 </div>
 
-<h5>Offen</h5>
-<table class="table table-hover table-bordered">
-  <thead class="thead-light">
-    <tr>
-      <th></th>
-      <th>Description</th>
-      <th>Date</th>
-      <th>Erstellt</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <%= for (v) in openTodos { %>
-      <tr>
-        <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><%= v.Todo.Description %></td>
-        <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
-        <td class="align-middle"><%= v.Todo.CreatedAt.Format("02/01/2006") %></td>
-        <td class="align-middle">
-          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('Als erledigt markieren?')">
+<h5>Offen <span class="badge badge-secondary"><%= len(openTodos) %></span></h5>
+<div class="row" id="openTodoCards">
+  <%= for (v) in openTodos { %>
+    <div class="col-sm-6 col-md-4 col-lg-3 mb-3">
+      <div class="card h-100 border-<%= v.Color %> todo-card">
+        <div class="card-body py-2 px-3">
+          <span class="badge badge-<%= v.Color %> float-right">&nbsp;</span>
+          <p class="card-text mb-1"><%= v.Todo.Description %></p>
+          <small class="text-muted d-block"><i class="far fa-clock"></i> <%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></small>
+          <small class="text-muted d-block"><i class="far fa-calendar-plus"></i> <%= v.Todo.CreatedAt.Format("02/01/2006") %></small>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 pt-0 todo-actions" style="display:none;">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline">
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Erledigt</button>
           </form>
@@ -33,39 +26,63 @@
             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
           </form>
           <% } %>
-        </td>
-      </tr>
-    <% } %>
-  </tbody>
-</table>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>
+<%= if (len(openTodos) == 0) { %>
+  <p>Keine</p>
+<% } %>
 
-<h5>Erledigt</h5>
-<table class="table table-hover table-bordered">
-  <thead class="thead-light">
-    <tr>
-      <th></th>
-      <th>Description</th>
-      <th>Erledigt am</th>
-      <th>Erledigt von</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <%= for (v) in doneTodos { %>
+<h5>
+  <a data-toggle="collapse" href="#doneTodosCollapse" role="button" aria-expanded="false" aria-controls="doneTodosCollapse" class="text-dark">
+    <i class="fas fa-chevron-right" id="doneChevron"></i> Erledigt <span class="badge badge-secondary"><%= len(doneTodos) %></span>
+  </a>
+</h5>
+<div class="collapse" id="doneTodosCollapse">
+  <table class="table table-hover table-bordered">
+    <thead class="thead-light">
       <tr>
-        <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><%= v.Todo.Description %></td>
-        <td class="align-middle"><%= v.Todo.DoneAt.Time.Format("02/01/2006 15:04") %></td>
-        <td class="align-middle"><%= v.DoneBy %></td>
-        <td class="align-middle">
-          <%= if (isAdmin) { %>
-          <form action="/todos/<%= v.Todo.ID %>/reopen" method="POST" class="d-inline">
-            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
-            <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-undo"></i> Wieder öffnen</button>
-          </form>
-          <% } %>
-        </td>
+        <th></th>
+        <th>Description</th>
+        <th>Erledigt am</th>
+        <th>Erledigt von</th>
+        <th>Actions</th>
       </tr>
-    <% } %>
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      <%= for (v) in doneTodos { %>
+        <tr>
+          <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
+          <td class="align-middle"><%= v.Todo.Description %></td>
+          <td class="align-middle"><%= v.Todo.DoneAt.Time.Format("02/01/2006 15:04") %></td>
+          <td class="align-middle"><%= v.DoneBy %></td>
+          <td class="align-middle">
+            <%= if (isAdmin) { %>
+            <form action="/todos/<%= v.Todo.ID %>/reopen" method="POST" class="d-inline">
+              <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+              <button type="submit" class="btn btn-sm btn-outline-primary"><i class="fas fa-undo"></i> Wieder öffnen</button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .todo-card { cursor: pointer; border-width: 1px 1px 1px 4px; border-style: solid; }
+  .todo-card:hover { box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,.15); }
+</style>
+<script>
+  // Klick auf ein Post-it blendet seine Aktionen ein/aus (Erledigt / bearbeiten / löschen).
+  $('#openTodoCards').on('click', '.todo-card', function(e){
+    if ($(e.target).closest('a,button,form').length) { return; }
+    $(this).find('.todo-actions').slideToggle(120);
+  });
+  $('#doneTodosCollapse').on('show.bs.collapse hide.bs.collapse', function(e){
+    $('#doneChevron').toggleClass('fa-chevron-right fa-chevron-down', e.type === 'show');
+  });
+</script>
