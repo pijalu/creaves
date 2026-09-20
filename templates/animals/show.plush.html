@@ -668,7 +668,7 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Stay duration</label>
-        <p class="d-inline-block"><%= if (animal.Outtake.StayDuration.Valid) { %><%= animal.Outtake.StayDuration.Int %> h<% } %></p>
+        <p class="d-inline-block"><%= stayDuration(animal.Outtake.StayDuration, "d", "h") %></p>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Note</label>

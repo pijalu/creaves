@@ -31,7 +31,7 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Verblijfsduur</label>
-    <p class="d-inline-block"><%= if (outtake.StayDuration.Valid) { %><%= outtake.StayDuration.Int %> h<% } %></p>
+    <p class="d-inline-block"><%= stayDuration(outtake.StayDuration, "d", "h") %></p>
   </li>
 
 

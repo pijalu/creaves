@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/buffalo/render"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/plush/v4"
 )
 
@@ -114,6 +115,21 @@ func uiLang(help plush.HelperContext) string {
 	return "fr"
 }
 
+// stayDurationHours renders an outtake stay duration (whole hours) in a
+// human-friendly way: plain hours up to 48h ("36 h"), days-hours above
+// ("5 d - 3 h"). Unit labels are provided by the localized templates.
+// Invalid (NULL) durations render as an empty string.
+func stayDurationHours(hours nulls.Int, dayUnit, hourUnit string) string {
+	if !hours.Valid {
+		return ""
+	}
+	h := hours.Int
+	if h <= 48 {
+		return fmt.Sprintf("%d %s", h, hourUnit)
+	}
+	return fmt.Sprintf("%d %s - %d %s", h/24, dayUnit, h%24, hourUnit)
+}
+
 var r *render.Engine
 
 func init() {
@@ -133,6 +149,7 @@ func init() {
 			"sortLink":     sortLink,
 			"sortIcon":     sortIcon,
 			"userRoleName": userRoleName,
+			"stayDuration": stayDurationHours,
 			"bool2html": func(s bool) string {
 				if s {
 					return "✓"
