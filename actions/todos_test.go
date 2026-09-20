@@ -247,6 +247,63 @@ func TestTodosIndexOrderingAndDashboard(t *testing.T) {
 	}
 }
 
+// TestTodosDoneRedirect: the done endpoint honors a safe local `redirect`
+// param (dashboard posts /#todos) and rejects absolute/protocol-relative
+// targets (open-redirect guard), defaulting to /todos.
+func TestTodosDoneRedirect(t *testing.T) {
+	if models.DB == nil {
+		t.Fatal("models.DB is nil — run with GO_ENV=test")
+	}
+	login, pass := feedingGuideUser(t, true)
+	baseClient, baseURL := feedingGuideLogin(t, login, pass)
+	// do not follow redirects: assert the Location header directly
+	client := *baseClient
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	token := todoToken(t, &client, baseURL, "/todos/new")
+
+	mkTodo := func() *models.Todo {
+		t.Helper()
+		description := "TS-todo-rd-" + uuid.Must(uuid.NewV4()).String()[:8]
+		todoCleanup(t, description)
+		td := &models.Todo{Description: description}
+		td.TodoDate = parseTodoDate("2026-03-03T09:00")
+		if err := models.DB.Create(td); err != nil {
+			t.Fatalf("seed todo: %v", err)
+		}
+		return td
+	}
+
+	cases := []struct {
+		name     string
+		redirect string
+		want     string
+	}{
+		{"dashboard anchor", "/#todos", "/#todos"},
+		{"local path", "/todos", "/todos"},
+		{"empty falls back", "", "/todos"},
+		{"absolute URL rejected", "https://evil.example.com/x", "/todos"},
+		{"protocol-relative rejected", "//evil.example.com/x", "/todos"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			todo := mkTodo()
+			vals := url.Values{}
+			if tc.redirect != "" {
+				vals.Set("redirect", tc.redirect)
+			}
+			resp := postTodoForm(t, &client, baseURL, fmt.Sprintf("/todos/%s/done", todo.ID), token, vals)
+			if resp.StatusCode != http.StatusSeeOther {
+				t.Fatalf("done status = %d, want 303", resp.StatusCode)
+			}
+			if loc := resp.Header.Get("Location"); loc != tc.want {
+				t.Errorf("Location = %q, want %q", loc, tc.want)
+			}
+		})
+	}
+}
+
 func seedDone(t *testing.T, description string) {
 	t.Helper()
 	td := &models.Todo{Description: description}

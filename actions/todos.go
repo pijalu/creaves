@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -235,7 +236,17 @@ func TodosDone(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", T.Translate(c, "todos.done.success"))
-	return c.Redirect(http.StatusSeeOther, "/todos")
+	return c.Redirect(http.StatusSeeOther, "%s", todoSafeRedirect(c.Param("redirect")))
+}
+
+// todoSafeRedirect returns target when it is a safe local path (starts with
+// a single "/", anchors allowed), otherwise "/todos". Guards against open
+// redirects via absolute URLs or protocol-relative "//host" values.
+func todoSafeRedirect(target string) string {
+	if strings.HasPrefix(target, "/") && !strings.HasPrefix(target, "//") {
+		return target
+	}
+	return "/todos"
 }
 
 // TodosReopen handles POST /todos/{todo_id}/reopen — admin only, to fix

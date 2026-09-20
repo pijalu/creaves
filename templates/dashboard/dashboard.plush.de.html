@@ -318,7 +318,7 @@
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">TODOs (<%= len(dashboardTodos) %>)</h3>
+<h3 class="d-inline-block" id="todos">TODOs (<%= len(dashboardTodos) %>)</h3>
 <a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> Alle</a>
 <%= if (len(dashboardTodos)>0) {%>
 <table class="table table-hover table-bordered table-striped">
@@ -335,8 +335,9 @@
         <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="TODO öffnen"><%= v.Todo.Description %></a></td>
         <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
         <td class="align-middle">
-          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('TODO als erledigt markieren?');">
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+            <input type="hidden" name="redirect" value="/#todos">
             <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Erledigt</button>
           </form>
         </td>
