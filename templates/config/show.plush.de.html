@@ -30,6 +30,35 @@
       </td>
       <td><%= bool2html(settings.EnableEventStream) %></td>
     </tr>
+    <tr class="table-info">
+      <td colspan="2"><strong><%= t("config.show.identity") %></strong>
+        <br/><small class="text-muted"><%= t("config.show.identity-hint") %></small>
+      </td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.center-name") %></td>
+      <td><%= settings.CenterName %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.asbl-name") %></td>
+      <td><%= settings.AsblName %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.bce-number") %></td>
+      <td><%= settings.BceNumber %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.address") %></td>
+      <td><%= settings.Address %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.account-number") %></td>
+      <td><%= settings.AccountNumber %></td>
+    </tr>
+    <tr>
+      <td><%= t("config.show.website") %></td>
+      <td><%= settings.Website %></td>
+    </tr>
     <tr>
       <td><%= t("config.show.created-at") %></td>
       <td><%= config.CreatedAt.Format("2006-01-02 15:04:05") %></td>
