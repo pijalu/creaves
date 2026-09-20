@@ -74,6 +74,8 @@ func createPusherTables() {
 			acknowledged_at TIMESTAMP,
 			content_hash TEXT,
 			resync_run_id TEXT,
+			delivery_attempts INTEGER NOT NULL DEFAULT 0,
+			last_delivery_error TEXT,
 			created_at TIMESTAMP NOT NULL,
 			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)
@@ -1211,7 +1213,6 @@ func mustLock(mu *sync.Mutex, m map[string]json.RawMessage) []byte {
 	return data
 }
 
-
 // ---------------------------------------------------------------------------
 // Actionable delivery error messages (bug 5)
 // ---------------------------------------------------------------------------
@@ -1266,4 +1267,125 @@ func TestDeliverBatch_TransportErrorIncludesURL(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "http://127.0.0.1:1/webhook")
 	assert.Contains(t, err.Error(), "connection refused")
+}
+
+// ---------------------------------------------------------------------------
+// Poison-queue protection (bug 6): delivery attempts tracking + capped skip
+// ---------------------------------------------------------------------------
+
+func TestDeliverBatch_FailureIncrementsAttemptsAndStoresError(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"processed":0,"total":1,"processed_ids":[],"errors":["event x: instance block mismatch"]}`))
+	}))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	ev := seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.Equal(t, 1, got.DeliveryAttempts, "failed delivery must increment attempts")
+	require.NotNil(t, got.LastDeliveryError)
+	assert.Contains(t, *got.LastDeliveryError, "instance block mismatch")
+
+	// Second failure increments again.
+	_, err = deliverBatch()
+	require.Error(t, err)
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.Equal(t, 2, got.DeliveryAttempts)
+}
+
+func TestDeliverBatch_TransportFailureIncrementsAttempts(t *testing.T) {
+	resetPusherState()
+
+	seedPusherConfig(t, "http://127.0.0.1:1/webhook")
+	ev := seedUndeliveredEvent(t, 1)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+
+	var got models.EventStream
+	require.NoError(t, pusherTestDB.Find(&got, ev.ID))
+	assert.Equal(t, 1, got.DeliveryAttempts)
+	require.NotNil(t, got.LastDeliveryError)
+	assert.Contains(t, *got.LastDeliveryError, "connection refused")
+}
+
+// TestDeliverBatch_CappedEventSkippedNoHeadOfLineBlocking reproduces the
+// poison-queue bug: an event at the attempt cap must be skipped so newer
+// events behind it are delivered.
+func TestDeliverBatch_CappedEventSkippedNoHeadOfLineBlocking(t *testing.T) {
+	resetPusherState()
+
+	rr := newRecordingReceiver(http.StatusOK)
+	srv := httptest.NewServer(http.HandlerFunc(rr.handler))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+
+	// Oldest event: poisoned (at the cap).
+	poison := seedUndeliveredEvent(t, 1)
+	require.NoError(t, pusherTestDB.RawQuery(
+		"UPDATE event_streams SET delivery_attempts = ?, created_at = ? WHERE id = ?",
+		maxDeliveryAttempts, time.Now().Add(-time.Hour), poison.ID.String(),
+	).Exec())
+
+	// Newer event: healthy, must be delivered despite the older poison row.
+	healthy := seedUndeliveredEvent(t, 2)
+
+	n, err := deliverBatch()
+	require.NoError(t, err)
+	assert.Equal(t, 1, n, "batch must contain only the healthy event")
+	assert.Equal(t, 1, rr.totalEvents())
+
+	var gotPoison, gotHealthy models.EventStream
+	require.NoError(t, pusherTestDB.Find(&gotPoison, poison.ID))
+	assert.Nil(t, gotPoison.DeliveredAt, "capped event stays undelivered")
+	require.NoError(t, pusherTestDB.Find(&gotHealthy, healthy.ID))
+	assert.NotNil(t, gotHealthy.DeliveredAt, "healthy event delivered — no head-of-line blocking")
+}
+
+// A partial failure must not penalize events the receiver DID accept.
+func TestDeliverBatch_PartialFailureAttemptsOnlyOnRejected(t *testing.T) {
+	resetPusherState()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var payload struct {
+			Events []struct {
+				ID string `json:"id"`
+			} `json:"events"`
+		}
+		_ = json.Unmarshal(body, &payload)
+		accepted := ""
+		rejected := ""
+		if len(payload.Events) == 2 {
+			accepted = payload.Events[0].ID
+			rejected = payload.Events[1].ID
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"processed":1,"total":2,"processed_ids":["` + accepted + `"],"errors":["event ` + rejected + `: broken"]}`))
+	}))
+	defer srv.Close()
+
+	seedPusherConfig(t, srv.URL)
+	good := seedUndeliveredEvent(t, 1)
+	bad := seedUndeliveredEvent(t, 2)
+
+	_, err := deliverBatch()
+	require.Error(t, err)
+
+	var gotGood, gotBad models.EventStream
+	require.NoError(t, pusherTestDB.Find(&gotGood, good.ID))
+	assert.NotNil(t, gotGood.DeliveredAt)
+	assert.Equal(t, 0, gotGood.DeliveryAttempts, "accepted event must not be penalized")
+	require.NoError(t, pusherTestDB.Find(&gotBad, bad.ID))
+	assert.Nil(t, gotBad.DeliveredAt)
+	assert.Equal(t, 1, gotBad.DeliveryAttempts, "rejected event gets the attempt")
 }

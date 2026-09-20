@@ -31,6 +31,7 @@
     <th><%= t("event-streams.index.event-type") %></th>
     <th><%= t("event-streams.index.delivered") %></th>
     <th><%= t("event-streams.index.created-at") %></th>
+    <th><%= t("event-streams.index.attempts") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -42,6 +43,11 @@
         <td class="align-middle"><span class="badge badge-info"><%= event.EventType %></span></td>
         <td class="align-middle"><%= if (event.DeliveredAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
         <td class="align-middle"><%= event.CreatedAt.Format("2006-01-02 15:04:05") %></td>
+        <td class="align-middle">
+          <%= if (event.DeliveryAttempts > 0) { %>
+            <span class="badge <%= if (!event.DeliveredAt && event.DeliveryAttempts >= 25) { %>badge-danger<% } else { %>badge-warning<% } %>" title="<%= event.LastDeliveryError %>"><%= event.DeliveryAttempts %><%= if (!event.DeliveredAt && event.DeliveryAttempts >= 25) { %> — <%= t("event-streams.index.blocked") %><% } %></span>
+          <% } %>
+        </td>
         <td>
           <div class="float-right">
             <%= linkTo(eventStreamPath({ event_stream_id: event.ID }), {class: "btn btn-info", title: t("event-streams.view"), body: "<i class='fa fa-eye'></i>"}) %>

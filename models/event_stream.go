@@ -44,8 +44,12 @@ type EventStream struct {
 	AcknowledgedAt *time.Time `json:"acknowledged_at" db:"acknowledged_at"`
 	ContentHash    *string    `json:"content_hash" db:"content_hash"`
 	ResyncRunID    *uuid.UUID `json:"resync_run_id" db:"resync_run_id"`
-	CreatedAt      time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at" db:"updated_at"`
+	// DeliveryAttempts counts failed delivery tries; events at the cap are
+	// skipped by the pusher so one poison event cannot block the queue.
+	DeliveryAttempts  int       `json:"delivery_attempts" db:"delivery_attempts"`
+	LastDeliveryError *string   `json:"last_delivery_error" db:"last_delivery_error"`
+	CreatedAt         time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // AnimalPayload represents the complete animal information in an event
@@ -114,7 +118,7 @@ type DiscoveryPayload struct {
 	DiscovererPhone      string `json:"discoverer_phone,omitempty"`
 	DiscovererNote       string `json:"discoverer_note,omitempty"`
 	// Donation amount (free-form, e.g. "10,00") for the donation register.
-	DiscovererDonation   string `json:"discoverer_donation,omitempty"`
+	DiscovererDonation string `json:"discoverer_donation,omitempty"`
 }
 
 // IntakePayload represents the complete intake information in an event

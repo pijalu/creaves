@@ -37,6 +37,16 @@
           <td><strong><%= t("event-streams.show.created-at") %></strong></td>
           <td><%= eventStream.CreatedAt.Format("2006-01-02 15:04:05") %></td>
         </tr>
+        <tr>
+          <td><strong><%= t("event-streams.show.delivery-attempts") %></strong></td>
+          <td><%= eventStream.DeliveryAttempts %></td>
+        </tr>
+        <%= if (eventStream.LastDeliveryError) { %>
+        <tr>
+          <td><strong><%= t("event-streams.show.last-delivery-error") %></strong></td>
+          <td><code><%= eventStream.LastDeliveryError %></code></td>
+        </tr>
+        <% } %>
       </tbody>
     </table>
   </div>

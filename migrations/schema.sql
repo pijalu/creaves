@@ -96,7 +96,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=980510 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10234 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -432,6 +432,8 @@ CREATE TABLE `event_streams` (
   `content_hash` varchar(255) DEFAULT NULL,
   `resync_run_id` char(36) DEFAULT NULL,
   `acknowledged_at` datetime DEFAULT NULL,
+  `delivery_attempts` int NOT NULL DEFAULT '0',
+  `last_delivery_error` text,
   PRIMARY KEY (`id`),
   KEY `event_streams_instance_id_animal_id_created_at_idx` (`instance_id`,`animal_id`,`created_at`),
   KEY `event_streams_processed_at_idx` (`processed_at`),
@@ -458,7 +460,7 @@ CREATE TABLE `feeding_guides` (
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_feeding_guides_species_stage` (`species_name`,`stage`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -579,11 +581,11 @@ CREATE TABLE `outtakes` (
   `note` text,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `precise_location` varchar(255) DEFAULT NULL,
   `stay_duration` int DEFAULT NULL,
   `corpse_destination` varchar(255) DEFAULT NULL,
   `corpse_destination_at` datetime DEFAULT NULL,
   `corpse_destination_by_id` char(36) DEFAULT NULL,
-  `precise_location` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `outtaketype_id` (`outtaketype_id`),
   KEY `outtakes_date_idx` (`date`),
@@ -915,4 +917,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-19 20:49:20
+-- Dump completed on 2026-09-20 10:35:36

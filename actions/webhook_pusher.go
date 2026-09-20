@@ -20,6 +20,14 @@ import (
 // into error messages / logs (receivers can return arbitrarily large bodies).
 const maxErrorExcerpt = 500
 
+// maxDeliveryAttempts caps how many times one event is retried. An event
+// that keeps failing (e.g. the console rejects it as "instance block
+// mismatch") is skipped once it reaches the cap so it cannot block every
+// newer event behind it (head-of-line blocking / poison queue). The
+// operator can still see the stranded event — with attempts count and last
+// error — in the event stream admin view.
+const maxDeliveryAttempts = 25
+
 // CircuitBreaker implements a simple circuit breaker pattern
 type CircuitBreaker struct {
 	mu               sync.Mutex
@@ -458,6 +466,34 @@ func updateEventDeliveries(ids []uuid.UUID, now time.Time) error {
 	return updateEventTimestamp("delivered_at", ids, now)
 }
 
+// recordDeliveryFailures increments delivery_attempts and stores the last
+// delivery error on every event still pending after a failed batch (i.e.
+// delivered_at IS NULL). Accepted events of a partial batch are already
+// marked delivered by then, so the WHERE clause naturally excludes them.
+// Failure to persist is logged, never fatal: delivery correctness does not
+// depend on the counter, only poison-queue protection does.
+func recordDeliveryFailures(events *models.EventStreams, batchErr error) {
+	if events == nil || len(*events) == 0 || batchErr == nil {
+		return
+	}
+	msg := batchErr.Error()
+	if len(msg) > maxErrorExcerpt {
+		msg = msg[:maxErrorExcerpt]
+	}
+	for i := range *events {
+		event := &(*events)[i]
+		if event.DeliveredAt != nil {
+			continue
+		}
+		if err := models.DB.RawQuery(
+			"UPDATE event_streams SET delivery_attempts = delivery_attempts + 1, last_delivery_error = ? WHERE id = ? AND delivered_at IS NULL",
+			msg, event.ID.String(),
+		).Exec(); err != nil {
+			fmt.Printf("Failed to record delivery failure for event %s: %v\n", event.ID, err)
+		}
+	}
+}
+
 // webhookEvent is the wire representation of one lifecycle event in the
 // delivery payload (contract v2).
 type webhookEvent struct {
@@ -502,9 +538,12 @@ func deliverBatch() (int, error) {
 		return 0, fmt.Errorf("failed to get settings: %w", err)
 	}
 
-	// Query undelivered events
+	// Query undelivered events. Events at the delivery-attempt cap are
+	// excluded: they have repeatedly failed (permanent rejections) and would
+	// otherwise sit at the head of the queue forever, starving every newer
+	// event.
 	events := &models.EventStreams{}
-	err = models.DB.Where("delivered_at IS NULL").
+	err = models.DB.Where("delivered_at IS NULL AND delivery_attempts < ?", maxDeliveryAttempts).
 		Order("created_at").
 		Limit(settings.WebhookBatchSize).
 		All(events)
@@ -548,7 +587,9 @@ func deliverBatch() (int, error) {
 		webhookPusher.circuitBreaker.RecordFailure()
 		// Transport failure: surface the URL so operators can tell DNS /
 		// refused-connection / TLS problems apart without guessing.
-		return len(*events), fmt.Errorf("webhook POST %s (%d events) failed: %w", settings.WebhookURL, len(*events), err)
+		err = fmt.Errorf("webhook POST %s (%d events) failed: %w", settings.WebhookURL, len(*events), err)
+		recordDeliveryFailures(events, err)
+		return len(*events), err
 	}
 	defer resp.Body.Close()
 
@@ -557,7 +598,9 @@ func deliverBatch() (int, error) {
 		// Non-200: include a body excerpt — receivers usually explain the
 		// rejection there (bad auth, malformed envelope, ...).
 		excerpt, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorExcerpt))
-		return len(*events), fmt.Errorf("webhook POST %s (%d events) returned status %d: %s", settings.WebhookURL, len(*events), resp.StatusCode, strings.TrimSpace(string(excerpt)))
+		err = fmt.Errorf("webhook POST %s (%d events) returned status %d: %s", settings.WebhookURL, len(*events), resp.StatusCode, strings.TrimSpace(string(excerpt)))
+		recordDeliveryFailures(events, err)
+		return len(*events), err
 	}
 
 	// Determine which events the receiver actually accepted. On partial
@@ -643,7 +686,9 @@ func deliverBatch() (int, error) {
 		// Partial/rejected delivery: relay the receiver's per-event errors
 		// (they name the exact event and cause, e.g. "instance block
 		// mismatch") so the log line is actionable on its own.
-		return len(*events), fmt.Errorf("webhook POST %s accepted %d/%d events (receiver errors: %s)", settings.WebhookURL, delivered, len(*events), strings.Join(result.Errors, "; "))
+		err := fmt.Errorf("webhook POST %s accepted %d/%d events (receiver errors: %s)", settings.WebhookURL, delivered, len(*events), strings.Join(result.Errors, "; "))
+		recordDeliveryFailures(events, err)
+		return len(*events), err
 	}
 	webhookPusher.circuitBreaker.RecordSuccess()
 	if delivered < len(*events) {
