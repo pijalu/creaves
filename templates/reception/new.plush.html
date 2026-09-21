@@ -506,7 +506,7 @@
                     </div>
                 </div>
 
-                <%= f.TextAreaTag("Intake.General", {label:"General state", placeholder: "State of shock, state of thinness or overweight, dehydration, state of consciousness, neurological sign, hypothermia, good shape, suspicion of illness (virus, bacteria, fungi), ...", rows: 5}) %>
+                <%= f.TextAreaTag("Intake.General", {label:"General state", placeholder: "State of shock, state of thinness or overweight, dehydration, state of consciousness, neurological sign, hypothermia, good shape, suspicion of illness (virus, bacteria, fungi), ...", rows: 5, data: {autofocus: "autofocus"}}) %>
 
                 <div class="col-md-12 form-row">
                     <%= f.CheckboxTag("Intake.HasWounds", {label:"Wounds", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>

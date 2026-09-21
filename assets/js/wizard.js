@@ -27,7 +27,15 @@ function setupWizard() {
             $item.addClass('btn-primary');
             allWells.hide();
             $target.show();
-            $target.find('input:eq(0)').focus();
+            // Focus the field explicitly marked with data-autofocus when the
+            // step declares one; otherwise keep the historical first-input
+            // focus. This lets a step skip a leading date input whose
+            // flatpickr calendar would pop open on focus (issue #199).
+            var $focus = $target.find('[data-autofocus]:visible:first');
+            if ($focus.length === 0) {
+                $focus = $target.find('input:eq(0)');
+            }
+            $focus.focus();
         }
     });
 

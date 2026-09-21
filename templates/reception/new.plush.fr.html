@@ -509,7 +509,7 @@
                 </div>
                 
 
-                <%= f.TextAreaTag("Intake.General", {label:"Etat Général", placeholder: "État de choc, état de maigreur ou d'embonpoint, déshydratation, état de conscience, signe neurologique, hypothermie, bonne forme, suspicion de maladie (virus, bactérie, champignon),...",  rows: 5}) %>
+                <%= f.TextAreaTag("Intake.General", {label:"Etat Général", placeholder: "État de choc, état de maigreur ou d'embonpoint, déshydratation, état de conscience, signe neurologique, hypothermie, bonne forme, suspicion de maladie (virus, bactérie, champignon),...",  rows: 5, data: {autofocus: "autofocus"}}) %>
 
                 <div class="col-md-12 form-row">
                     <%= f.CheckboxTag("Intake.HasWounds", {label:"Blessures", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>

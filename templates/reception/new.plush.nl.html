@@ -503,7 +503,7 @@
                     </div>
                 </div>
 
-                <%= f.TextAreaTag("Intake.General", {label:"Algemene toestand", placeholder: "Shocktoestand, vermagering of overgewicht, uitdroging, bewustzijnstoestand, neurologisch teken, onderkoeling, goede conditie, vermoeden van ziekte (virus, bacteriën, schimmels), ...", rows: 5}) %>
+                <%= f.TextAreaTag("Intake.General", {label:"Algemene toestand", placeholder: "Shocktoestand, vermagering of overgewicht, uitdroging, bewustzijnstoestand, neurologisch teken, onderkoeling, goede conditie, vermoeden van ziekte (virus, bacteriën, schimmels), ...", rows: 5, data: {autofocus: "autofocus"}}) %>
 
                 <div class="col-md-12 form-row">
                     <%= f.CheckboxTag("Intake.HasWounds", {label:"Wonden", unchecked: false, bootstrap:{form-group-class:"form-group col-md-6 form-check text-center"} }) %>
