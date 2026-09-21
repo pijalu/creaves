@@ -611,8 +611,8 @@
       <form action="/animals/<%= animal.ID.String() %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
         <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
         <div class="custom-file mr-2" style="max-width:360px">
-          <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required>
-          <label class="custom-file-label" for="attachmentFile">Kies een bestand (foto of video)</label>
+          <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required onchange="var l=this.nextElementSibling; l.textContent = this.files.length ? this.files[0].name : l.dataset.placeholder; l.classList.toggle('text-muted', this.files.length === 0);">
+          <label class="custom-file-label text-muted" for="attachmentFile" data-placeholder="Kies een bestand (foto of video)">Kies een bestand (foto of video)</label>
         </div>
         <button type="submit" class="btn btn-primary">Uploaden</button>
       </form>
