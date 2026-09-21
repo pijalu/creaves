@@ -26,3 +26,5 @@
   translation: "T"
 - id: "outtake.duration.hour-unit"
   translation: "h"
+- id: "outtake.duration.bucket-label"
+  translation: "Aufenthaltsdauer"

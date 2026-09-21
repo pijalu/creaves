@@ -14,8 +14,12 @@
 </script>
 
 <div class="form-group" id="stay-duration-group">
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="stay24h">+24h</button>
-    <button type="button" class="btn btn-sm btn-outline-secondary" id="stay48h">+48h</button>
+    <select class="form-control form-control-sm d-inline-block" id="stayDurationBucket" style="width:auto" aria-label="<%= t("outtake.duration.bucket-label") %>">
+        <option value="lt12">-12H</option>
+        <option value="12-24">12-24H</option>
+        <option value="24-48">24-48H</option>
+        <option value="gt48">+48H</option>
+    </select>
     <small class="text-muted ml-2" id="stayDurationText"></small>
 </div>
 <script>
@@ -33,6 +37,13 @@
         if (!it || !ot) { el.textContent = ''; return; }
         var h = Math.floor((ot - it) / 3600000);
         if (h < 0) h = 0;
+        // Display-only stay-duration bucket (issue #199-5): auto-selected
+        // from the real computed duration; the user may override it and it
+        // never writes back to the outtake date.
+        var bucket = document.getElementById('stayDurationBucket');
+        if (bucket) {
+            bucket.value = (h < 12) ? 'lt12' : (h < 24) ? '12-24' : (h < 48) ? '24-48' : 'gt48';
+        }
         // Mirror the server-side stayDuration helper: plain hours up to
         // 48h, then "days - leftover hours". Units are localized.
         var dayUnit = '<%= t("outtake.duration.day-unit") %>';
@@ -43,18 +54,6 @@
             el.textContent = Math.floor(h / 24) + ' ' + dayUnit + ' - ' + (h % 24) + ' ' + hourUnit;
         }
     }
-    function setStay(hours){
-        var it = parseDate(intakeStr);
-        if (!it) return;
-        var d = new Date(it.getTime() + hours*3600000);
-        function p(n){ return (n<10?'0':'')+n; }
-        var v = d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
-        var fp = $('#outtakeDate')[0]._flatpickr;
-        if (fp) { fp.setDate(v, false); } else { $('#outtakeDate').val(v); }
-        updateDuration();
-    }
-    $('#stay24h').on('click', function(){ setStay(24); });
-    $('#stay48h').on('click', function(){ setStay(48); });
     $('#outtakeDate').on('change', updateDuration);
     updateDuration();
 })();
@@ -100,11 +99,13 @@
     function applyMode(){
         var checked = document.querySelector('input[name="TypeID"]:checked');
         var mode = checked ? (modes[checked.value] || 'none') : 'none';
+        preciseGroup.classList.add('d-none');
+        precise.disabled = true;
         if (mode === 'none') {
             group.classList.add('d-none');
             free.disabled = true; free.value = '';
             list.disabled = true;
-            precise.disabled = true; precise.value = '';
+            precise.value = '';
         } else if (mode === 'free') {
             group.classList.remove('d-none');
             free.classList.remove('d-none'); free.disabled = false;
@@ -112,7 +113,7 @@
             preciseGroup.classList.remove('d-none');
             precise.disabled = false;
         } else {
-            precise.disabled = true; precise.value = '';
+            precise.value = '';
             group.classList.remove('d-none');
             free.classList.add('d-none'); free.disabled = true;
             list.classList.remove('d-none'); list.disabled = false;
