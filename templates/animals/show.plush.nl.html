@@ -110,6 +110,12 @@
         <label class="small d-block">Cage</label>
         <p class="d-inline-block"><%= animal.Cage %></p>
       </li>
+      <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Klaar voor vrijlating</label>
+        <p class="d-inline-block"><span class="badge badge-success"><i class="fas fa-dove"></i></span></p>
+      </li>
+      <% } %>
     </ul>
   </div>
 

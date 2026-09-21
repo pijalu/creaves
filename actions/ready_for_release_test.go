@@ -156,3 +156,39 @@ func TestAnimalReadyForReleaseFlag(t *testing.T) {
 	require.True(t, a.ReadyForRelease.Valid, "flag must be stored as false")
 	require.False(t, a.ReadyForRelease.Bool, "flag must be cleared")
 }
+
+// TestAnimalReadyForReleaseReadModeVisible (#199-13): the ready-for-release
+// flag must be visible in consultation mode (animal show) and on the landing
+// page tables, not only on the edit form / dashboard.
+func TestAnimalReadyForReleaseReadModeVisible(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createQuickOuttakeFixture(t, tx)
+	client, baseURL := adminClientWithURL(t)
+
+	setFlag := func(on bool) {
+		t.Helper()
+		v := "0"
+		if on {
+			v = "1"
+		}
+		require.NoError(t, tx.RawQuery("UPDATE animals SET ready_for_release = ? WHERE id = ?", v, f.freeID).Exec())
+	}
+
+	showPath := fmt.Sprintf("/animals/%d", f.freeID)
+
+	// Flag on: badge visible on the animal sheet (read mode) and on landing.
+	setFlag(true)
+	showHTML := fetchPageGET(t, client, baseURL+showPath)
+	require.Contains(t, showHTML, "badge-success", "animal show must render the ready badge")
+	require.Contains(t, showHTML, "Ready for release", "animal show read mode must label the flag")
+	landingHTML := fetchPageGET(t, client, baseURL+"/")
+	require.Contains(t, landingHTML, "badge-success", "landing must render the ready badge")
+
+	// Flag off: no badge anywhere.
+	setFlag(false)
+	showHTML = fetchPageGET(t, client, baseURL+showPath)
+	require.NotContains(t, showHTML, "Ready for release", "animal show must hide the flag when off")
+	landingHTML = fetchPageGET(t, client, baseURL+"/")
+	require.NotContains(t, landingHTML, `title="Ready for release"`, "landing must hide the flag when off")
+}
