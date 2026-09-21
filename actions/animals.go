@@ -527,6 +527,21 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			}
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
+
+			// Corpse register info for the outtake tab (issue #199-6): when the
+			// outtake type is Dead=true, expose the corpse destination fields and
+			// the login of the user who marked it (if any).
+			if animal.OuttakeID.Valid && animal.Outtake.Type.Dead {
+				c.Set("corpseOuttake", true)
+				markedBy := ""
+				if animal.Outtake.CorpseDestinationByID.Valid {
+					u := &models.User{}
+					if err := tx.Find(u, animal.Outtake.CorpseDestinationByID.UUID); err == nil {
+						markedBy = u.Login
+					}
+				}
+				c.Set("corpseMarkedBy", markedBy)
+			}
 		}
 		// Care tab display annotations: weight trend colors, day-group
 		// borders, today highlight (issue #158).

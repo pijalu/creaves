@@ -209,6 +209,47 @@ func TestCorpseRegisterUnmark(t *testing.T) {
 	}
 }
 
+// TestCorpseRegisterMarkBackRedirect: the mark/unmark handlers honor the
+// optional `back` param (used by the animal sheet corpse block, issue
+// #199-6) via safeRedirectTarget; unsafe values fall back to the report.
+func TestCorpseRegisterMarkBackRedirect(t *testing.T) {
+	f := seedCorpseFixtures(t)
+	client, baseURL := adminClientWithURL(t)
+
+	post := func(path, back string) *http.Response {
+		t.Helper()
+		form := url.Values{}
+		form.Add("outtake_ids", f.deadOuttakeID)
+		form.Set("destination", f.destination)
+		form.Set("back", back)
+		form.Set("year", fmt.Sprint(corpseTestYear))
+		req, err := http.NewRequest("POST", baseURL+path, strings.NewReader(form.Encode()))
+		if err != nil {
+			t.Fatalf("new request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("POST %s: %v", path, err)
+		}
+		t.Cleanup(func() { resp.Body.Close() })
+		return resp
+	}
+
+	// mark with a local back target: redirect Location must be that target
+	resp := post("/reports/corpses/mark", "/animals/123#nav-outtake")
+	if loc := resp.Header.Get("Location"); loc != "/animals/123#nav-outtake" {
+		t.Errorf("mark Location = %q, want back target", loc)
+	}
+
+	// unmark with an unsafe back target: must fall back to the report URL
+	resp = post("/reports/corpses/unmark", "https://evil.example.org/x")
+	want := "/reports/corpses?year=" + fmt.Sprint(corpseTestYear)
+	if loc := resp.Header.Get("Location"); loc != want {
+		t.Errorf("unmark Location = %q, want fallback %q", loc, want)
+	}
+}
+
 // unmarkCorpse posts the unmark form for the given outtake ids.
 func unmarkCorpse(t *testing.T, client *http.Client, baseURL string, ids ...string) *http.Response {
 	t.Helper()

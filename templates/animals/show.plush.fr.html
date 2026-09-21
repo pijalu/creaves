@@ -678,6 +678,98 @@
         <p class="d-inline-block"><%= animal.Outtake.Note %></p>
       </li>
     </ul>
+
+    <%= if (corpseOuttake) { %>
+      <h6 class="mt-3">Registre des cadavres</h6>
+      <table class="table table-sm table-bordered w-auto">
+        <thead class="thead-light">
+          <tr>
+            <th>Destination</th>
+            <th>Date de destination</th>
+            <th>Marqué par</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="align-middle"><%= animal.Outtake.CorpseDestination %></td>
+            <td class="align-middle text-nowrap"><%= if (animal.Outtake.CorpseDestinationAt.Valid) { %><%= animal.Outtake.CorpseDestinationAt.Time.Format("02/01/2006 15:04") %><% } %></td>
+            <td class="align-middle"><%= corpseMarkedBy %></td>
+            <td class="align-middle text-nowrap">
+              <%= if (!animal.Outtake.CorpseDestination.Valid) { %>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="corpseTabMark">Marquer</button>
+              <% } %>
+              <%= if (current_user.Admin && animal.Outtake.CorpseDestination.Valid) { %>
+                <form action="/reports/corpses/unmark" method="POST" class="d-inline">
+                  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+                  <input type="hidden" name="outtake_ids" value="<%= animal.Outtake.ID %>">
+                  <input type="hidden" name="back" value="/animals/<%= animal.ID %>#nav-outtake">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Annuler le marquage">Annuler le marquage</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <%= if (!animal.Outtake.CorpseDestination.Valid) { %>
+      <form action="/reports/corpses/mark" method="POST" id="corpseTabMarkForm" class="d-none">
+        <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+        <input type="hidden" name="outtake_ids" value="<%= animal.Outtake.ID %>">
+        <input type="hidden" name="back" value="/animals/<%= animal.ID %>#nav-outtake">
+        <input type="hidden" name="destination" id="corpseTabDestination">
+        <input type="hidden" name="destination_at" id="corpseTabDestinationAt">
+      </form>
+      <div class="modal fade" id="corpseTabMarkModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Marquer la destination</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="corpseTabModalDestination">Organisme</label>
+                <input type="text" class="form-control" id="corpseTabModalDestination" autocomplete="off">
+              </div>
+              <div class="form-group">
+                <label for="corpseTabModalDestinationAt">Date</label>
+                <input type="datetime-local" class="form-control" id="corpseTabModalDestinationAt">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+              <button type="button" class="btn btn-primary" id="corpseTabMarkConfirm">Marquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+      $('#corpseTabMark').on('click', function(){
+        var now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        $('#corpseTabModalDestinationAt').val(now.toISOString().slice(0,16));
+        $('#corpseTabMarkModal').modal('show');
+      });
+      $('#corpseTabMarkConfirm').on('click', function(){
+        var dest = $.trim($('#corpseTabModalDestination').val());
+        if (dest === '') { $('#corpseTabModalDestination').focus(); return; }
+        $('#corpseTabDestination').val(dest);
+        $('#corpseTabDestinationAt').val($('#corpseTabModalDestinationAt').val());
+        $('#corpseTabMarkForm').submit();
+      });
+      $('#corpseTabModalDestination').autoComplete({
+        delay: 250,
+        minChars: 1,
+        source: function(term, response){
+          $.getJSON('/suggestions/corpse_destination', { q: term }, function(data){ response(data); });
+        }
+      });
+      </script>
+      <% } %>
+    <% } %>
   </div>
   <% } %>
 

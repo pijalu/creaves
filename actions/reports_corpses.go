@@ -180,6 +180,12 @@ func ReportsCorpsesMark(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) marked", marked))
+	// Redirect back to the originating page when a local "back" param is
+	// given (e.g. the animal sheet's outtake tab, issue #199-6); otherwise
+	// fall back to the corpse register.
+	if back := c.Param("back"); safeRedirectTarget(back) != "/" {
+		return c.Redirect(302, safeRedirectTarget(back))
+	}
 	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
 }
 
@@ -222,5 +228,8 @@ func ReportsCorpsesUnmark(c buffalo.Context) error {
 	}
 
 	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) unmarked", unmarked))
+	if back := c.Param("back"); safeRedirectTarget(back) != "/" {
+		return c.Redirect(302, safeRedirectTarget(back))
+	}
 	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
 }
