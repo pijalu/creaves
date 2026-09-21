@@ -250,6 +250,79 @@ func TestCorpseRegisterMarkBackRedirect(t *testing.T) {
 	}
 }
 
+// TestCorpseRegisterFiltersAndMarkOnce (issue #199-7): default view shows
+// only unmarked corpses; column filters narrow the list; a second mark on
+// an already-marked outtake is a no-op (value unchanged).
+func TestCorpseRegisterFiltersAndMarkOnce(t *testing.T) {
+	f := seedCorpseFixtures(t)
+	client, baseURL := adminClientWithURL(t)
+	year := fmt.Sprint(corpseTestYear)
+
+	// mark the dead outtake once
+	resp := markCorpse(t, client, baseURL, f, f.deadOuttakeID)
+	if resp.StatusCode >= 400 {
+		t.Fatalf("mark status = %d", resp.StatusCode)
+	}
+
+	// default view (no marked param): marked row must be hidden
+	resp, err := client.Get(baseURL + "/reports/corpses?year=" + year)
+	if err != nil {
+		t.Fatalf("GET default: %v", err)
+	}
+	page, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if strings.Contains(string(page), f.destination) {
+		t.Errorf("default view must hide marked corpses")
+	}
+
+	// marked=all: row visible again
+	resp, err = client.Get(baseURL + "/reports/corpses?year=" + year + "&marked=all")
+	if err != nil {
+		t.Fatalf("GET marked=all: %v", err)
+	}
+	page, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if !strings.Contains(string(page), f.destination) {
+		t.Errorf("marked=all view must show the marked corpse")
+	}
+
+	// species filter that cannot match: row hidden
+	resp, err = client.Get(baseURL + "/reports/corpses?year=" + year + "&marked=all&f_species=NoSuchSpeciesZZZ")
+	if err != nil {
+		t.Fatalf("GET species filter: %v", err)
+	}
+	page, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if strings.Contains(string(page), f.destination) {
+		t.Errorf("species filter must hide non-matching rows")
+	}
+
+	// mark-once: a second mark with a different destination must not
+	// overwrite the existing one
+	form := url.Values{}
+	form.Add("outtake_ids", f.deadOuttakeID)
+	form.Set("destination", f.destination+"-CHANGED")
+	form.Set("year", year)
+	req, err := http.NewRequest("POST", baseURL+"/reports/corpses/mark", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err = client.Do(req)
+	if err != nil {
+		t.Fatalf("POST re-mark: %v", err)
+	}
+	resp.Body.Close()
+	dead := &models.Outtake{}
+	if err := models.DB.Find(dead, f.deadOuttakeID); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+	if dead.CorpseDestination.String != f.destination {
+		t.Errorf("re-mark must not overwrite destination, got %q want %q",
+			dead.CorpseDestination.String, f.destination)
+	}
+}
+
 // unmarkCorpse posts the unmark form for the given outtake ids.
 func unmarkCorpse(t *testing.T, client *http.Client, baseURL string, ids ...string) *http.Response {
 	t.Helper()
@@ -323,8 +396,9 @@ func TestCorpseRegisterMark(t *testing.T) {
 			alive.CorpseDestination, alive.CorpseDestinationAt, alive.CorpseDestinationByID)
 	}
 
-	// marked values displayed on the report
-	resp, err = client.Get(baseURL + "/reports/corpses?year=" + fmt.Sprint(corpseTestYear))
+	// marked values displayed on the report (default view hides marked
+	// rows — issue #199-7 — so request marked=all explicitly)
+	resp, err = client.Get(baseURL + "/reports/corpses?year=" + fmt.Sprint(corpseTestYear) + "&marked=all")
 	if err != nil {
 		t.Fatalf("GET report after mark: %v", err)
 	}

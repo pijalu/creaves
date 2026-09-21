@@ -23,6 +23,39 @@
   <a href="/reports/corpses/export.csv?year=<%= selectedYear %>" target="_new" title="Export"/><i class="fas fa-cloud-download-alt"></i></a>
 </div>
 
+<form method="GET" action="/reports/corpses" class="mb-2">
+  <input type="hidden" name="year" value="<%= selectedYear %>">
+  <div class="form-row align-items-end">
+    <div class="col-auto">
+      <label class="small mb-0" for="f_number">Numéro</label>
+      <input type="text" class="form-control form-control-sm" id="f_number" name="f_number" value="<%= filters.Number %>">
+    </div>
+    <div class="col-auto">
+      <label class="small mb-0" for="f_species">Espèce</label>
+      <input type="text" class="form-control form-control-sm" id="f_species" name="f_species" value="<%= filters.Species %>">
+    </div>
+    <div class="col-auto">
+      <label class="small mb-0" for="f_destination">Destination</label>
+      <input type="text" class="form-control form-control-sm" id="f_destination" name="f_destination" value="<%= filters.Destination %>">
+    </div>
+    <div class="col-auto">
+      <label class="small mb-0" for="f_by">Marqué par</label>
+      <input type="text" class="form-control form-control-sm" id="f_by" name="f_by" value="<%= filters.By %>">
+    </div>
+    <div class="col-auto">
+      <label class="small mb-0" for="marked"><%= t("reports.corpses.filter.marked") %></label>
+      <select class="form-control form-control-sm" id="marked" name="marked">
+        <option value="unmarked" <%= if (filters.Marked == "unmarked") { %>selected<% } %>><%= t("reports.corpses.filter.unmarked") %></option>
+        <option value="marked" <%= if (filters.Marked == "marked") { %>selected<% } %>><%= t("reports.corpses.filter.markedonly") %></option>
+        <option value="all" <%= if (filters.Marked == "all") { %>selected<% } %>><%= t("reports.corpses.filter.all") %></option>
+      </select>
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-sm btn-outline-primary"><%= t("reports.corpses.filter.apply") %></button>
+    </div>
+  </div>
+</form>
+
 <form action="/reports/corpses/mark" method="POST" id="markForm">
   <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
   <input type="hidden" name="year" value="<%= selectedYear %>">
@@ -45,7 +78,7 @@
     <tbody>
       <%= for (corpse) in corpses { %>
         <tr>
-          <td class="align-middle"><input type="checkbox" class="corpse-check" name="outtake_ids" value="<%= corpse.OuttakeID %>"></td>
+          <td class="align-middle"><input type="checkbox" class="corpse-check" name="outtake_ids" value="<%= corpse.OuttakeID %>" <%= if (corpse.CorpseDestination.Valid) { %>disabled<% } %>></td>
           <td class="align-middle"><a class="btn btn-primary" href="/animals/<%= corpse.AnimalID %>"><%= corpse.YearNumber %></a></td>
           <td class="align-middle"><%= tspecies(corpse.Species) %></td>
           <td class="align-middle"><%= corpse.IntakeDate.Format("02/01/2006") %></td>
@@ -54,7 +87,9 @@
           <td class="align-middle"><%= if (corpse.CorpseDestinationAt.Valid) { %><%= corpse.CorpseDestinationAt.Time.Format("02/01/2006 15:04") %><% } %></td>
           <td class="align-middle"><%= corpse.CorpseDestinationBy %></td>
           <td class="align-middle text-nowrap">
-            <button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Marquer</button>
+            <%= if (!corpse.CorpseDestination.Valid) { %>
+              <button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Marquer</button>
+            <% } %>
             <%= if (isAdmin && corpse.CorpseDestination.Valid) { %>
               <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="Annuler le marquage">Démarquer</button>
             <% } %>
@@ -111,7 +146,7 @@
 
 <script>
 $('#checkAll').on('change', function(){
-  $('.corpse-check').prop('checked', this.checked);
+  $('.corpse-check:not(:disabled)').prop('checked', this.checked);
 });
 
 function checkedCount(){

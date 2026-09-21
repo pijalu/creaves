@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
@@ -52,6 +53,56 @@ func listCorpseRows(tx *pop.Connection, year string) ([]corpseRow, error) {
 	return rows, nil
 }
 
+// corpseFilters holds the server-side column filters for the corpse
+// register (issue #199-7). marked: "unmarked" (default), "marked", "all".
+type corpseFilters struct {
+	Number      string
+	Species     string
+	Destination string
+	By          string
+	Marked      string
+}
+
+func corpseFiltersFromRequest(c buffalo.Context) corpseFilters {
+	f := corpseFilters{
+		Number:      strings.TrimSpace(c.Param("f_number")),
+		Species:     strings.TrimSpace(c.Param("f_species")),
+		Destination: strings.TrimSpace(c.Param("f_destination")),
+		By:          strings.TrimSpace(c.Param("f_by")),
+		Marked:      c.Param("marked"),
+	}
+	if f.Marked == "" {
+		f.Marked = "unmarked"
+	}
+	return f
+}
+
+func (f corpseFilters) keep(r corpseRow) bool {
+	if (f.Marked == "marked") != r.CorpseDestination.Valid && f.Marked != "all" {
+		return false
+	}
+	return containsFold(fmt.Sprint(r.YearNumber), f.Number) &&
+		containsFold(r.Species, f.Species) &&
+		containsFold(r.CorpseDestination.String, f.Destination) &&
+		containsFold(r.CorpseDestinationBy.String, f.By)
+}
+
+// containsFold reports whether s contains the filter f; an empty filter
+// matches everything.
+func containsFold(s, f string) bool {
+	return f == "" || strings.Contains(strings.ToLower(s), strings.ToLower(f))
+}
+
+func (f corpseFilters) apply(rows []corpseRow) []corpseRow {
+	out := []corpseRow{}
+	for _, r := range rows {
+		if f.keep(r) {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
 // ReportsCorpsesIndex handles GET /reports/corpses?year=YYYY.
 func ReportsCorpsesIndex(c buffalo.Context) error {
 	years, selectedYear, err := selectAnnualYear(c)
@@ -66,13 +117,15 @@ func ReportsCorpsesIndex(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	filters := corpseFiltersFromRequest(c)
 	rows := []corpseRow{}
 	if selectedYear != "" {
 		if rows, err = listCorpseRows(tx, selectedYear); err != nil {
 			return err
 		}
 	}
-	c.Set("corpses", rows)
+	c.Set("corpses", filters.apply(rows))
+	c.Set("filters", filters)
 	c.Set("isAdmin", GetCurrentUser(c).Admin)
 
 	return c.Render(http.StatusOK, r.HTML("reports/corpses.plush.html"))
@@ -167,24 +220,46 @@ func ReportsCorpsesMark(c buffalo.Context) error {
 		return err
 	}
 
-	marked := 0
+	marked, skipped, err := markCorpseOuttakes(tx, eligible, destination, markedAt, user.ID)
+	if err != nil {
+		return err
+	}
+
+	if marked > 0 {
+		c.Flash().Add("success", fmt.Sprintf(T.Translate(c, "reports.corpses.marked.flash"), marked))
+	}
+	if skipped > 0 {
+		c.Flash().Add("warning", fmt.Sprintf(T.Translate(c, "reports.corpses.marked.skipped"), skipped))
+	}
+	return corpseRedirect(c)
+}
+
+// markCorpseOuttakes marks every eligible (dead-type) outtake with the
+// given destination. Mark-once (issue #199-7): an already-marked outtake
+// is skipped — it must be unmarked (admin) before it can be re-marked.
+func markCorpseOuttakes(tx *pop.Connection, eligible []models.Outtake, destination string, markedAt time.Time, by uuid.UUID) (marked, skipped int, err error) {
 	for i := range eligible {
 		o := &eligible[i]
+		if o.CorpseDestination.Valid {
+			skipped++
+			continue
+		}
 		o.CorpseDestination = nulls.NewString(destination)
 		o.CorpseDestinationAt = nulls.NewTime(markedAt)
-		o.CorpseDestinationByID = nulls.NewUUID(user.ID)
+		o.CorpseDestinationByID = nulls.NewUUID(by)
 		if err := tx.Save(o); err != nil {
-			return err
+			return marked, skipped, err
 		}
 		marked++
 	}
+	return marked, skipped, nil
+}
 
-	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) marked", marked))
-	// Redirect back to the originating page when a local "back" param is
-	// given (e.g. the animal sheet's outtake tab, issue #199-6); otherwise
-	// fall back to the corpse register.
-	if back := c.Param("back"); safeRedirectTarget(back) != "/" {
-		return c.Redirect(302, safeRedirectTarget(back))
+// corpseRedirect redirects to the local "back" param when present (e.g.
+// the animal sheet's outtake tab, issue #199-6), else to the register.
+func corpseRedirect(c buffalo.Context) error {
+	if back := safeRedirectTarget(c.Param("back")); back != "/" {
+		return c.Redirect(302, back)
 	}
 	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
 }
@@ -227,9 +302,6 @@ func ReportsCorpsesUnmark(c buffalo.Context) error {
 		unmarked++
 	}
 
-	c.Flash().Add("success", fmt.Sprintf("%d corpse(s) unmarked", unmarked))
-	if back := c.Param("back"); safeRedirectTarget(back) != "/" {
-		return c.Redirect(302, safeRedirectTarget(back))
-	}
-	return c.Redirect(302, "/reports/corpses?year=%s", c.Param("year"))
+	c.Flash().Add("success", fmt.Sprintf(T.Translate(c, "reports.corpses.unmarked.flash"), unmarked))
+	return corpseRedirect(c)
 }
