@@ -181,19 +181,3 @@ func feedingStageOptions(c buffalo.Context) []stageOption {
 	}
 	return out
 }
-
-// setAnimalFeedingGuides loads the feeding guides of an animal's species into
-// the context for the read-mode display in the animal care tab (issue #145).
-// Empty species or no guides yield an empty slice — the template hides the
-// block entirely.
-func setAnimalFeedingGuides(c buffalo.Context, tx *pop.Connection, species string) error {
-	guides := &models.FeedingGuides{}
-	if species != "" {
-		if err := tx.Where("species_name = ?", species).All(guides); err != nil {
-			return err
-		}
-	}
-	c.Set("feedingGuides", feedingGuideViews(c, *guides))
-	c.Set("hasFeedingGuides", len(*guides) > 0)
-	return nil
-}

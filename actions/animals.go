@@ -559,10 +559,6 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 		c.Set("landingBack", landingBackTarget(c, animal))
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
 			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
-			// Régime alimentaire by species × life stage (issue #145).
-			if err := setAnimalFeedingGuides(c, tx, animal.Species); err != nil {
-				return err
-			}
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
 

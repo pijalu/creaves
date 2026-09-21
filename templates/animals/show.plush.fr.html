@@ -248,14 +248,6 @@
         <label class="small d-block">Alimentation</label>
         <p class="d-inline-block"><%= animal.Feeding %></p>
       </li>
-      <%= if (hasFeedingGuides) { %>
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Régime alimentaire par stade</label>
-        <%= for (g) in feedingGuides { %>
-          <p class="mb-1"><strong><%= g.StageLabel %></strong> — <%= g.Text %></p>
-        <% } %>
-      </li>
-      <% } %>
       <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
       <li class="list-group-item pb-1">
         <label class="small d-block">Source de chaleur</label>
