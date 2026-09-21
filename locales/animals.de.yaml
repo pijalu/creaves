@@ -4,6 +4,8 @@
   translation: "Tier wurde erfolgreich aktualisiert."
 - id: "animal.destroyed.success"
   translation: "Tier wurde erfolgreich gelöscht."
+- id: "animal.duplicate.prevented"
+  translation: "Doppelte Übermittlung erkannt: ein identischer Eintrag existiert bereits (vor weniger als 2 Minuten erstellt). Es wurde kein Duplikat erstellt."
 - id: "animal.not.found"
   translation: "Tier mit ID {{.animalID}} existiert nicht"
 

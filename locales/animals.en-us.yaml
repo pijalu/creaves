@@ -4,6 +4,8 @@
   translation: "Animal was successfully updated."
 - id: "animal.destroyed.success"
   translation: "Animal was successfully destroyed."
+- id: "animal.duplicate.prevented"
+  translation: "Duplicate submission detected: an identical intake already exists (created less than 2 minutes ago). No duplicate was created."
 - id: "animal.not.found"
   translation: "animal with id {{.animalID}} does not exist"
 - id: "animal.search.filters"

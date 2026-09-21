@@ -602,6 +602,21 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 
+	// Duplicate submission guard (issue #199): a re-POSTed reception form
+	// (double-click, browser refresh, back-button resubmit) must not create
+	// the same animal(s) again. The fingerprint is the intake block, which
+	// is byte-identical on accidental resubmission.
+	probe := &models.Animal{}
+	if err := c.Bind(probe); err != nil {
+		return err
+	}
+	if recentDuplicateExists(c.Logger(), tx, &models.Intake{}, intakeFingerprintQuery,
+		probe.Intake.Date, probe.Intake.General, probe.Intake.HasWounds, probe.Intake.Wounds,
+		probe.Intake.HasParasites, probe.Intake.Parasites, probe.Intake.Remarks) {
+		c.Logger().Warnf("Duplicate submission guard: skipping identical intake (date %v)", probe.Intake.Date)
+		return duplicateSubmissionRedirect(c, "animal.duplicate.prevented", "/animals/")
+	}
+
 	animals := models.Animals{}
 
 	type registerYearNumber struct {

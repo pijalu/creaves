@@ -176,3 +176,50 @@ func TestCareDuplicateGuardFingerprint(t *testing.T) {
 		t.Fatal("expected no duplicate detection outside the submission window")
 	}
 }
+
+// TestIntakeDuplicateGuardFingerprint covers the reception-flow guard
+// (issue #199): an identical intake block within the submission window must
+// be detected as a duplicate so AnimalsResource.Create can refuse to create
+// the same animals twice.
+func TestIntakeDuplicateGuardFingerprint(t *testing.T) {
+	tx := searchTestDB(t)
+	log := guardLogger()
+	marker := uuid.Must(uuid.NewV4()).String()[:8]
+
+	intake := &models.Intake{
+		ID:        uuid.Must(uuid.NewV4()),
+		Date:      time.Now().Truncate(time.Second),
+		General:   nulls.NewString("TS general " + marker),
+		HasWounds: true,
+		Wounds:    nulls.NewString("TS wounds " + marker),
+		Remarks:   nulls.NewString("TS remarks " + marker),
+	}
+	if err := tx.Create(intake); err != nil {
+		t.Fatalf("intake fixture creation failed: %v", err)
+	}
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM intakes WHERE id = ?", intake.ID).Exec()
+	})
+
+	fp := func(general, wounds nulls.String) []interface{} {
+		return []interface{}{intake.Date, general, intake.HasWounds, wounds, intake.HasParasites, intake.Parasites, intake.Remarks}
+	}
+
+	if !recentDuplicateExists(log, tx, &models.Intake{}, intakeFingerprintQuery, fp(intake.General, intake.Wounds)...) {
+		t.Fatal("expected duplicate detection for identical intake")
+	}
+
+	if recentDuplicateExists(log, tx, &models.Intake{}, intakeFingerprintQuery, fp(nulls.NewString("other state"), intake.Wounds)...) {
+		t.Fatal("expected no duplicate detection for different general state")
+	}
+
+	// NULL wounds vs set wounds → not a duplicate (null-safe compare)
+	if recentDuplicateExists(log, tx, &models.Intake{}, intakeFingerprintQuery, fp(intake.General, nulls.String{})...) {
+		t.Fatal("expected no duplicate detection for NULL wounds vs set wounds")
+	}
+
+	ageCreatedBackdate(t, tx, "intakes", intake.ID.String())
+	if recentDuplicateExists(log, tx, &models.Intake{}, intakeFingerprintQuery, fp(intake.General, intake.Wounds)...) {
+		t.Fatal("expected no duplicate detection outside the submission window")
+	}
+}

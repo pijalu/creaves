@@ -4,6 +4,8 @@
   translation: "Dier is succesvol bijgewerkt."
 - id: "animal.destroyed.success"
   translation: "Dier is succesvol verwijderd."
+- id: "animal.duplicate.prevented"
+  translation: "Dubbele verzending gedetecteerd: een identieke registratie bestaat al (minder dan 2 minuten geleden aangemaakt). Er is geen duplicaat aangemaakt."
 - id: "animal.not.found"
   translation: "Dier met ID {{.animalID}} bestaat niet"
 

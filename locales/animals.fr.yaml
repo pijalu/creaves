@@ -4,6 +4,8 @@
   translation: "L'enregistrement de l'animal a été mis à jour avec succès."
 - id: "animal.destroyed.success"
   translation: "L'enregistrement de l'animal a été détruit avec succès."
+- id: "animal.duplicate.prevented"
+  translation: "Envoi en double détecté : une entrée identique existe déjà (créée il y a moins de 2 minutes). Aucun doublon n'a été créé."
 - id: "animal.not.found"
   translation: "l'animal avec id {{.animalID}} n'existe pas"
 - id: "animal.search.filters"

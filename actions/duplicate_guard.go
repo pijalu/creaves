@@ -50,6 +50,14 @@ const veterinaryvisitFingerprintQuery = "animal_id = ? AND date = ? AND veterina
 // same animal, date, care type, weight, note, flags and link.
 const careFingerprintQuery = "animal_id = ? AND date = ? AND type_id = ? AND weight <=> ? AND note <=> ? AND clean <=> ? AND in_warning <=> ? AND link_to_id <=> ? AND heat_source <=> ? AND oxygen = ?"
 
+// intakeFingerprintQuery returns the fingerprint comparison for an intake
+// (reception flow): same date, general state, wounds and parasites details
+// and remarks. A re-POSTed reception form (double-click, refresh, back
+// button) carries byte-identical intake values, while two genuinely distinct
+// intakes differ in at least one of them (issue #199: 4 identical animals
+// created by repeated submissions).
+const intakeFingerprintQuery = "date = ? AND general <=> ? AND has_wounds = ? AND wounds <=> ? AND has_parasites = ? AND parasites <=> ? AND remarks <=> ?"
+
 // duplicateSubmissionRedirect answers a detected double submission: a warning
 // flash plus a redirect to the "back" parameter when present, else the given
 // redirect target, so the user lands back on the animal without a duplicate
