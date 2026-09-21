@@ -339,7 +339,6 @@ var knownVariantDrift = map[string]bool{
 	"native_statuses/show.plush.html":              true,
 	"outtakes/_form.plush.html":                    true,
 	"outtakes/edit.plush.html":                     true,
-	"outtakes/new.plush.html":                      true,
 	"outtakes/show.plush.html":                     true,
 	"outtaketypes/_form.plush.html":                true,
 	"outtaketypes/show.plush.html":                 true,
