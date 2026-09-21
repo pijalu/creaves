@@ -30,7 +30,10 @@ type Outtaketype struct {
 	Default                bool         `json:"default" db:"def"`
 	Dead                   bool         `json:"dead" db:"dead"`
 	Error                  bool         `json:"error" db:"error"`
-	Rating                 int          `json:"rating" db:"rating"`
+	// Rating is nullable: a NULL rating means the outtake type carries no
+	// outcome classification (e.g. OT7 "Doublon") and the UI must hide any
+	// Positive/Negative/Neutral wording for it (#199-11).
+	Rating                 nulls.Int    `json:"rating" db:"rating"`
 	Description            nulls.String `json:"description" db:"description"`
 	DiscovererNews         nulls.String `json:"discoverer_news" db:"discoverer_news"`
 	ExcludedNativeStatuses nulls.String `json:"excluded_native_statuses" db:"excluded_native_statuses"`

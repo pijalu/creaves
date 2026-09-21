@@ -309,7 +309,9 @@ func buildEventPayloadInto(tx *pop.Connection, pre *translationPreloader, animal
 		if animal.Outtake.Type.ID != uuid.Nil {
 			payload.Outtake.Type = animal.Outtake.Type.Name
 			payload.Outtake.TypeID = animal.Outtake.Type.ID.String()
-			payload.Outtake.Rating = animal.Outtake.Type.Rating
+			// Rating is nullable on the outtake type (#199-11): forward its
+			// numeric value (0 when NULL) to keep the webhook contract's int.
+			payload.Outtake.Rating = animal.Outtake.Type.Rating.Int
 			payload.Outtake.Dead = animal.Outtake.Type.Dead
 			payload.Outtake.Error = animal.Outtake.Type.Error
 		}

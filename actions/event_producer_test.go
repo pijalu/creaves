@@ -599,7 +599,7 @@ func TestBuildEventPayload_SpeciesTaxonomyAndEntryCauseFields(t *testing.T) {
 			EntryCauseID: entryCauseID,
 			EntryCause:   models.EntryCause{ID: entryCauseID, Cause: "Accident", Detail: "Collision véhicule", Nature: "Traumatique"},
 		},
-		Outtake: &models.Outtake{Type: models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Relâché", Rating: 1, Dead: false}},
+		Outtake: &models.Outtake{Type: models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Relâché", Rating: nulls.NewInt(1), Dead: false}},
 	}
 
 	payload := buildEventPayloadWithTranslations(models.DB, animal)

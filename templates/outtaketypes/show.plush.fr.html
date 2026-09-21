@@ -42,12 +42,14 @@
   <li class="list-group-item pb-1">
     <label class="small d-block">Type</label>
     <p>
-      <%= if (outtaketype.Rating < 0) { %>
-        Négative
-      <% } else if (outtaketype.Rating > 0) { %>
-        Positive
-      <% } else { %>
-        Neutre
+      <%= if (outtaketype.Rating.Valid) { %>
+        <%= if (outtaketype.Rating.Int < 0) { %>
+          Négative
+        <% } else if (outtaketype.Rating.Int > 0) { %>
+          Positive
+        <% } else { %>
+          Neutre
+        <% } %>
       <% } %>
     </p>
   </li>

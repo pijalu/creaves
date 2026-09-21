@@ -30,12 +30,14 @@
         <td class="align-middle"><%= bool2html(outtaketype.Dead) %></td>
         <td class="align-middle"><%= bool2html(outtaketype.Error) %></td>
         <td class="align-middle">
-          <%= if (outtaketype.Rating < 0) { %>
-            Negatief
-          <% } else if (outtaketype.Rating > 0) { %>
-            Positief
-          <% } else { %>
-            Neutraal
+          <%= if (outtaketype.Rating.Valid) { %>
+            <%= if (outtaketype.Rating.Int < 0) { %>
+              Negatief
+            <% } else if (outtaketype.Rating.Int > 0) { %>
+              Positief
+            <% } else { %>
+              Neutraal
+            <% } %>
           <% } %>
         </td>
         <td>

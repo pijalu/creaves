@@ -656,7 +656,7 @@
       <li class="list-group-item pb-1">
         <label class="small d-block">Type</label>
         <p class="d-inline-block"><%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %></p>
-        <span class="badge ml-2 <%= if (animal.Outtake.Type.Rating < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating < 0) { %>Negative<% } else if (animal.Outtake.Type.Rating > 0) { %>Positive<% } else { %>Neutral<% } %></span>
+        <%= if (animal.Outtake.Type.Rating.Valid) { %><span class="badge ml-2 <%= if (animal.Outtake.Type.Rating.Int < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating.Int > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating.Int < 0) { %>Negative<% } else if (animal.Outtake.Type.Rating.Int > 0) { %>Positive<% } else { %>Neutral<% } %></span><% } %>
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Location</label>

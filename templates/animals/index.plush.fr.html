@@ -246,7 +246,7 @@
         </td>
         <td class="align-middle">
           <%= if (animal.Outtake != nil) { %>
-            <span class="badge <%= if (animal.Outtake.Type.Rating < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating < 0) { %><%= t("animals.exit_status.negative") %><% } else if (animal.Outtake.Type.Rating > 0) { %><%= t("animals.exit_status.positive") %><% } else { %><%= t("animals.exit_status.neutral") %><% } %></span>
+            <%= if (animal.Outtake.Type.Rating.Valid) { %><span class="badge <%= if (animal.Outtake.Type.Rating.Int < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating.Int > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating.Int < 0) { %><%= t("animals.exit_status.negative") %><% } else if (animal.Outtake.Type.Rating.Int > 0) { %><%= t("animals.exit_status.positive") %><% } else { %><%= t("animals.exit_status.neutral") %><% } %></span><% } %>
           <% } %>
         </td>
         <td>

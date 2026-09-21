@@ -346,7 +346,7 @@ func resyncRowToAnimal(r *resyncAnimalRow) *models.Animal {
 				Default:        r.OtDefault.Bool,
 				Dead:           r.OtDead.Bool,
 				Error:          r.OtError.Bool,
-				Rating:         r.OtRating.Int,
+				Rating:         r.OtRating,
 				Description:    r.OtDescription,
 				DiscovererNews: r.OtDiscovererNews,
 				CreatedAt:      r.OtCreatedAt.Time,

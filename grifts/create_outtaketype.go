@@ -14,17 +14,19 @@ import (
 var canonicalOuttakeTypes = []struct {
 	code, name, description string
 	def, dead, err          bool
-	rating                  int
+	rating                  nulls.Int
 	excludedNS              string
 	locationMode            string
 }{
-	{"OT1", "Relacher", "Animal réhabilité et remis en liberté dans son milieu naturel.", false, false, false, 1, "NS2,NS3,NS4", models.OuttakeLocationModeFree},
-	{"OT2", "DCD", "Animal décédé naturellement durant la prise en charge.", true, true, false, -1, "", models.OuttakeLocationModeNone},
-	{"OT3", "Euthanasier", "Animal euthanasié en raison de lésions ou d’un état incompatible avec une remise en liberté.", false, true, false, -1, "", models.OuttakeLocationModeNone},
-	{"OT4", "Transferer", "Transfert de l'animal vers un: refuge, CREAVES, VOC, ZOO, ...", false, false, false, 1, "NS3", models.OuttakeLocationModeList},
-	{"OT5", "Mort à l'arrivée avant l'encodage", "Animal arrivé décédé avant l'encodage ou la prise en charge.", false, true, false, -1, "", models.OuttakeLocationModeNone},
-	{"OT6", "Adoption", "Animal placé en captivité autorisée car espèce non indigène.", false, false, false, 0, "NS1,NS3", models.OuttakeLocationModeList},
-	{"OT7", "Doublon", "Fiche créée en double pour le même animal.", false, false, true, -1, "", models.OuttakeLocationModeNone},
+	{"OT1", "Relacher", "Animal réhabilité et remis en liberté dans son milieu naturel.", false, false, false, nulls.NewInt(1), "NS2,NS3,NS4", models.OuttakeLocationModeFree},
+	{"OT2", "DCD", "Animal décédé naturellement durant la prise en charge.", true, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
+	{"OT3", "Euthanasier", "Animal euthanasié en raison de lésions ou d’un état incompatible avec une remise en liberté.", false, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
+	{"OT4", "Transferer", "Transfert de l'animal vers un: refuge, CREAVES, VOC, ZOO, ...", false, false, false, nulls.NewInt(1), "NS3", models.OuttakeLocationModeList},
+	{"OT5", "Mort à l'arrivée avant l'encodage", "Animal arrivé décédé avant l'encodage ou la prise en charge.", false, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
+	{"OT6", "Adoption", "Animal placé en captivité autorisée car espèce non indigène.", false, false, false, nulls.NewInt(0), "NS1,NS3", models.OuttakeLocationModeList},
+	// OT7 carries no rating (#199-11): a duplicate file is an administrative
+	// error, not a Positive/Negative/Neutral outcome.
+	{"OT7", "Doublon", "Fiche créée en double pour le même animal.", false, false, true, nulls.Int{}, "", models.OuttakeLocationModeNone},
 }
 
 // createOuttaketype assigns stable OT codes to existing semantic rows and
