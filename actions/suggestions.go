@@ -270,6 +270,27 @@ func SuggestionsDiscoverer(c buffalo.Context) error {
 	return c.Render(200, r.JSON(s))
 }
 
+// SuggestionsAnimaltypeDefault returns the default species of a single animal
+// type as a one-element JSON array (empty array when the type has none or does
+// not exist). Used by the reception wizard to pre-fill the species field only
+// when the selected type actually defines a default species — see issue #199:
+// previously the first species suggestion of the type was copied, silently
+// filling a species for types without any default.
+func SuggestionsAnimaltypeDefault(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	s := []string{}
+	animalTypeID := strings.TrimSpace(c.Param("animaltype_id"))
+	if animalTypeID != "" {
+		if err := tx.RawQuery("SELECT default_species FROM animaltypes WHERE id = ? AND default_species IS NOT NULL AND default_species <> '' LIMIT 1", animalTypeID).All(&s); err != nil {
+			return err
+		}
+	}
+	return c.Render(200, r.JSON(localizeSuggestions(c, "species", "creaves_species", s)))
+}
+
 // SuggestionsAnimalTypeDefaultSpecies default implementation.
 // Suggests species names from animaltypes.default_species; when a non-base UI
 // language is active, matches translated species names and returns localized

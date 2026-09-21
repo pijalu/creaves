@@ -202,6 +202,7 @@ func App() *buffalo.App {
 		app.POST("/attachments/{attachment_id}/delete", AttachmentsDestroy)
 		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
 		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
+		app.GET("/suggestions/animaltype_default_species", SuggestionsAnimaltypeDefault)
 		app.GET("/suggestions/postal_code", SuggestionsPostalCode)
 		app.GET("/suggestions/locality", SuggestionsLocality)
 		app.GET("/suggestions/discoverer", SuggestionsDiscoverer)

@@ -98,7 +98,9 @@
 
                     $( "#animal-AnimaltypeID" ).on( "change", function() {
                         var term = $("#animal-AnimaltypeID :selected").text();
-                                                $.getJSON('/suggestions/animal_species', { q: "", animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
+                                                // Pre-fill only from the type's default species: a type
+                                                // without default must leave the species field empty (#199).
+                                                $.getJSON('/suggestions/animaltype_default_species', { animaltype_id: $("#animal-AnimaltypeID").val() }, function(data){
                                                     if (data.length > 0 && !$("#animal-Species").val()) {
                                                                                 $("#animal-Species").val(data[0]);
                                                         $("#animal-Species").removeClass("is-invalid")
