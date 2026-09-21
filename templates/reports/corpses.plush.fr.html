@@ -27,19 +27,19 @@
   <input type="hidden" name="year" value="<%= selectedYear %>">
   <div class="form-row align-items-end">
     <div class="col-auto">
-      <label class="small mb-0" for="f_number">Numéro</label>
+      <label class="small mb-0" for="f_number"><%= t("reports.corpses.csv.number") %></label>
       <input type="text" class="form-control form-control-sm" id="f_number" name="f_number" value="<%= filters.Number %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_species">Espèce</label>
+      <label class="small mb-0" for="f_species"><%= t("reports.corpses.csv.species") %></label>
       <input type="text" class="form-control form-control-sm" id="f_species" name="f_species" value="<%= filters.Species %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_destination">Destination</label>
+      <label class="small mb-0" for="f_destination"><%= t("reports.corpses.csv.destination") %></label>
       <input type="text" class="form-control form-control-sm" id="f_destination" name="f_destination" value="<%= filters.Destination %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_by">Marqué par</label>
+      <label class="small mb-0" for="f_by"><%= t("reports.corpses.csv.destination_by") %></label>
       <input type="text" class="form-control form-control-sm" id="f_by" name="f_by" value="<%= filters.By %>">
     </div>
     <div class="col-auto">
@@ -91,7 +91,7 @@
               <button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Marquer</button>
             <% } %>
             <%= if (isAdmin && corpse.CorpseDestination.Valid) { %>
-              <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="Annuler le marquage">Démarquer</button>
+              <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="<%= t("reports.corpses.unmark") %>"><%= t("reports.corpses.unmark") %></button>
             <% } %>
           </td>
         </tr>
@@ -153,8 +153,8 @@ function checkedCount(){
   return $('.corpse-check:checked').length;
 }
 
-// Avec plusieurs lignes sélectionnées, l'action marque tout : les boutons
-// passent en « Tout marquer » et la sélection est conservée.
+// Avec plusieurs lignes sélectionnées, le marquage porte sur toutes :
+// les boutons changent de libellé et la sélection est conservée.
 var markLabel = 'Marquer';
 var markAllLabel = 'Tout marquer';
 function refreshMarkLabels(){
@@ -176,9 +176,9 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Bouton « Marquer » d'une ligne : sans sélection multiple, s'applique à
-// l'animal de cette ligne ; avec plusieurs lignes cochées, marque tout et
-// la sélection est conservée.
+// Bouton de marquage de ligne : sans sélection multiple, porte sur
+// cette ligne ; avec plusieurs lignes cochées, marque tout et la
+// sélection est conservée.
 $('.quick-mark').on('click', function(){
   if (checkedCount() < 2) {
     $('.corpse-check').prop('checked', false);

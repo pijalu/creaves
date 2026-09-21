@@ -76,6 +76,8 @@
   translation: "%d corpse(s) marked"
 - id: "reports.corpses.unmarked.flash"
   translation: "%d corpse(s) unmarked"
+- id: "reports.corpses.unmark"
+  translation: "Unmark"
 - id: "reports.corpses.marked.skipped"
   translation: "%d already marked — unmark first to change"
 - id: "reports.corpses.filter.marked"

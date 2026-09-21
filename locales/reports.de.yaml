@@ -76,6 +76,8 @@
   translation: "%d Kadaver markiert"
 - id: "reports.corpses.unmarked.flash"
   translation: "%d Markierung(en) aufgehoben"
+- id: "reports.corpses.unmark"
+  translation: "Demarkieren"
 - id: "reports.corpses.marked.skipped"
   translation: "%d bereits markiert — zum Ändern zuerst Markierung aufheben"
 - id: "reports.corpses.filter.marked"

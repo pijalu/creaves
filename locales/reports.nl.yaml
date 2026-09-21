@@ -76,6 +76,8 @@
   translation: "%d kadaver(s) gemarkeerd"
 - id: "reports.corpses.unmarked.flash"
   translation: "%d markering(en) ongedaan gemaakt"
+- id: "reports.corpses.unmark"
+  translation: "Demarkeren"
 - id: "reports.corpses.marked.skipped"
   translation: "%d reeds gemarkeerd — eerst markering ongedaan maken"
 - id: "reports.corpses.filter.marked"

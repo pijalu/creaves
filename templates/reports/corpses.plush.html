@@ -27,19 +27,19 @@
   <input type="hidden" name="year" value="<%= selectedYear %>">
   <div class="form-row align-items-end">
     <div class="col-auto">
-      <label class="small mb-0" for="f_number">Number</label>
+      <label class="small mb-0" for="f_number"><%= t("reports.corpses.csv.number") %></label>
       <input type="text" class="form-control form-control-sm" id="f_number" name="f_number" value="<%= filters.Number %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_species">Species</label>
+      <label class="small mb-0" for="f_species"><%= t("reports.corpses.csv.species") %></label>
       <input type="text" class="form-control form-control-sm" id="f_species" name="f_species" value="<%= filters.Species %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_destination">Destination</label>
+      <label class="small mb-0" for="f_destination"><%= t("reports.corpses.csv.destination") %></label>
       <input type="text" class="form-control form-control-sm" id="f_destination" name="f_destination" value="<%= filters.Destination %>">
     </div>
     <div class="col-auto">
-      <label class="small mb-0" for="f_by">Marked by</label>
+      <label class="small mb-0" for="f_by"><%= t("reports.corpses.csv.destination_by") %></label>
       <input type="text" class="form-control form-control-sm" id="f_by" name="f_by" value="<%= filters.By %>">
     </div>
     <div class="col-auto">
@@ -91,7 +91,7 @@
               <button type="button" class="btn btn-sm btn-outline-secondary quick-mark" data-id="<%= corpse.OuttakeID %>">Mark</button>
             <% } %>
             <%= if (isAdmin && corpse.CorpseDestination.Valid) { %>
-              <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="Unmark">Unmark</button>
+              <button type="submit" class="btn btn-sm btn-outline-danger quick-unmark" form="unmarkForm-<%= corpse.OuttakeID %>" title="<%= t("reports.corpses.unmark") %>"><%= t("reports.corpses.unmark") %></button>
             <% } %>
           </td>
         </tr>
@@ -154,7 +154,7 @@ function checkedCount(){
 }
 
 // With multiple rows selected, the mark action marks them all: relabel
-// every row button to "Mark all" and keep the current selection intact.
+// every row button to the bulk label and keep the current selection intact.
 var markLabel = 'Mark';
 var markAllLabel = 'Mark all';
 function refreshMarkLabels(){
@@ -176,8 +176,8 @@ function openMarkModal(){
   $('#markModal').modal('show');
 }
 
-// Row "Mark": with a single (or no) selection it applies to that row's
-// animal only; with multiple rows selected it marks them all and the
+// Row mark button: with a single (or no) selection it applies to that
+// row only; with multiple rows selected it marks them all and the
 // selection is left untouched.
 $('.quick-mark').on('click', function(){
   if (checkedCount() < 2) {

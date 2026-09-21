@@ -76,6 +76,8 @@
   translation: "%d dépouille(s) marquée(s)"
 - id: "reports.corpses.unmarked.flash"
   translation: "%d dépouille(s) démarquée(s)"
+- id: "reports.corpses.unmark"
+  translation: "Démarquer"
 - id: "reports.corpses.marked.skipped"
   translation: "%d déjà marquée(s) — démarquer d'abord pour modifier"
 - id: "reports.corpses.filter.marked"
