@@ -448,6 +448,124 @@ func TestAnimalSearchFilterWoundsParasitesCombined(t *testing.T) {
 	idsMatch(t, ids, f.animalA, f.animalB, f.animalC)
 }
 
+// TestAnimalsIndexEntryCauseAndExitStatus (issue #199-10): the index shows
+// the entry-cause label (not the raw ID) and a localized exit-status word;
+// both columns are sortable.
+func TestAnimalsIndexEntryCauseAndExitStatus(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// give the two outtake types distinct ratings: A=+1 (positive), B=-1 (negative)
+	if err := tx.RawQuery("UPDATE outtaketypes SET rating = 1 WHERE id = ?", f.outtakeOK).Exec(); err != nil {
+		t.Fatalf("set rating: %v", err)
+	}
+	if err := tx.RawQuery("UPDATE outtaketypes SET rating = -1 WHERE id = ?", f.outtakeErr).Exec(); err != nil {
+		t.Fatalf("set rating: %v", err)
+	}
+
+	client, baseURL := adminClientWithURL(t)
+	get := func(q url.Values) string {
+		t.Helper()
+		resp, err := client.Get(baseURL + "/animals?" + q.Encode())
+		if err != nil {
+			t.Fatalf("GET /animals: %v", err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			t.Fatalf("read body: %v", err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("GET /animals status = %d body: %.600s", resp.StatusCode, body)
+		}
+		return string(body)
+	}
+
+	// scope rows to this fixture via the ring marker (A + B; C has no ring)
+	scope := url.Values{}
+	scope.Set("ring", f.marker)
+	body := get(scope)
+
+	// entry cause displays the cause label, never the raw ID
+	if !strings.Contains(body, "Cause1 "+f.marker) {
+		t.Errorf("index does not show entry cause label for animalA (marker %s)", f.marker)
+	}
+	if strings.Contains(body, ">"+f.entryCause1+"<") {
+		t.Errorf("index still shows raw entry cause ID %s", f.entryCause1)
+	}
+
+	// exit status shows localized words (en session): Positive / Negative
+	if !strings.Contains(body, ">Positive<") {
+		t.Errorf("index does not show Positive exit status for animalA")
+	}
+	if !strings.Contains(body, ">Negative<") {
+		t.Errorf("index does not show Negative exit status for animalB")
+	}
+
+	// sortable headers exist
+	if !strings.Contains(body, "sort=entry_cause") || !strings.Contains(body, "sort=exit_status") {
+		t.Errorf("entry_cause/exit_status sort links missing from headers")
+	}
+
+	// helper: order of A and B on the page
+	orderAB := func(body string) []int {
+		t.Helper()
+		ia := strings.Index(body, fmt.Sprintf("/animals/%d", f.animalA))
+		ib := strings.Index(body, fmt.Sprintf("/animals/%d", f.animalB))
+		if ia < 0 || ib < 0 {
+			t.Fatalf("fixture rows missing (ia=%d ib=%d)", ia, ib)
+		}
+		if ia < ib {
+			return []int{f.animalA, f.animalB}
+		}
+		return []int{f.animalB, f.animalA}
+	}
+
+	// entry_cause asc: Cause1 (A) before Cause2 (B); desc: B first
+	q := url.Values{}
+	q.Set("ring", f.marker)
+	q.Set("sort", "entry_cause")
+	q.Set("dir", "asc")
+	if got := orderAB(get(q)); got[0] != f.animalA {
+		t.Errorf("entry_cause asc order = %v, want A first", got)
+	}
+	q.Set("dir", "desc")
+	if got := orderAB(get(q)); got[0] != f.animalB {
+		t.Errorf("entry_cause desc order = %v, want B first", got)
+	}
+
+	// exit_status on cause1 scope (A=+1, C in care): asc → C (NULL) then A
+	scopeC := url.Values{}
+	scopeC.Set("entry_cause_id", f.entryCause1)
+	scopeC.Set("sort", "exit_status")
+	scopeC.Set("dir", "asc")
+	bodyC := get(scopeC)
+	ia := strings.Index(bodyC, fmt.Sprintf("/animals/%d", f.animalA))
+	ic := strings.Index(bodyC, fmt.Sprintf("/animals/%d", f.animalC))
+	if ia < 0 || ic < 0 {
+		t.Fatalf("cause1 scope missing A (%d) or C (%d)", ia, ic)
+	}
+	if ic > ia {
+		t.Errorf("exit_status asc: in-care C should sort (NULL) before A (+1)")
+	}
+
+	// desc → A before C
+	scopeC.Set("dir", "desc")
+	bodyC = get(scopeC)
+	ia = strings.Index(bodyC, fmt.Sprintf("/animals/%d", f.animalA))
+	ic = strings.Index(bodyC, fmt.Sprintf("/animals/%d", f.animalC))
+	if ia > ic {
+		t.Errorf("exit_status desc: A (+1) should sort before in-care C (NULL)")
+	}
+
+	// A (+1) vs B (-1) on ring scope: asc → B first
+	q.Set("sort", "exit_status")
+	q.Set("dir", "asc")
+	if got := orderAB(get(q)); got[0] != f.animalB {
+		t.Errorf("exit_status asc order = %v, want B (-1) first", got)
+	}
+}
+
 // fetchAnimalsJSON requests the animals listing as JSON and decodes it;
 // retries once — the shared test DB occasionally exceeds readTimeout under
 // suite load, which surfaces as a 500 (pre-existing harness trait).

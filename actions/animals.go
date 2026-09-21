@@ -118,15 +118,9 @@ func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments
 		}
 	}
 
-	discoveries := make(map[uuid.UUID]models.Discovery)
-	if len(discoveryIds) > 0 {
-		var dts models.Discoveries
-		if err := tx.Where("id IN (?)", discoveryIds).All(&dts); err != nil {
-			return nil, err
-		}
-		for _, dt := range dts {
-			discoveries[dt.ID] = dt
-		}
+	discoveries, err := loadDiscoveriesWithEntryCauses(tx, discoveryIds)
+	if err != nil {
+		return nil, err
 	}
 
 	intakes := make(map[uuid.UUID]models.Intake)
@@ -203,6 +197,48 @@ func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments
 	}
 
 	return a, nil
+}
+
+// loadDiscoveriesWithEntryCauses bulk-loads discoveries and their entry
+// causes (issue #199-10: listings display the cause label, not the raw ID).
+func loadDiscoveriesWithEntryCauses(tx *pop.Connection, discoveryIds []uuid.UUID) (map[uuid.UUID]models.Discovery, error) {
+	discoveries := make(map[uuid.UUID]models.Discovery)
+	if len(discoveryIds) == 0 {
+		return discoveries, nil
+	}
+	var dts models.Discoveries
+	if err := tx.Where("id IN (?)", discoveryIds).All(&dts); err != nil {
+		return nil, err
+	}
+	entryCauseIds := make([]string, 0, len(dts))
+	seenCauses := map[string]struct{}{}
+	for _, dt := range dts {
+		discoveries[dt.ID] = dt
+		if dt.EntryCauseID == "" {
+			continue
+		}
+		if _, dup := seenCauses[dt.EntryCauseID]; dup {
+			continue
+		}
+		seenCauses[dt.EntryCauseID] = struct{}{}
+		entryCauseIds = append(entryCauseIds, dt.EntryCauseID)
+	}
+	if len(entryCauseIds) == 0 {
+		return discoveries, nil
+	}
+	var ecs models.EntryCauses
+	if err := tx.Where("id IN (?)", entryCauseIds).All(&ecs); err != nil {
+		return nil, err
+	}
+	entryCauses := make(map[string]models.EntryCause, len(ecs))
+	for _, ec := range ecs {
+		entryCauses[ec.ID] = ec
+	}
+	for id, dt := range discoveries {
+		dt.EntryCause = entryCauses[dt.EntryCauseID]
+		discoveries[id] = dt
+	}
+	return discoveries, nil
 }
 
 // Helper function to check if UUID slice contains a UUID

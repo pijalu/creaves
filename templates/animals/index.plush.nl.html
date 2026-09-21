@@ -206,8 +206,8 @@
     <th><a class="text-body" href="<%= sortLink("species") %>">Soort <%= sortIcon("species") %></a></th>
     <th><a class="text-body" href="<%= sortLink("age") %>">Leeftijd <%= sortIcon("age") %></a></th>
     <th><a class="text-body" href="<%= sortLink("identification") %>">Identificatie <%= sortIcon("identification") %></a></th>
-    <th>Reden van binnenkomst</th>
-    <th>Uitgangsstatus</th>
+    <th><a class="text-body" href="<%= sortLink("entry_cause") %>">Reden van binnenkomst <%= sortIcon("entry_cause") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("exit_status") %>">Uitgangsstatus <%= sortIcon("exit_status") %></a></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -238,10 +238,16 @@
         </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><%= animal.Ring %></td>   
-        <td class="align-middle"><%= animal.Discovery.EntryCauseID %></td>
+        <td class="align-middle">
+          <%= if (animal.Discovery.EntryCause.ID != "") { %>
+            <%= tname("entry_causes", animal.Discovery.EntryCauseID, animal.Discovery.EntryCause.Cause) %>
+          <% } else { %>
+            <%= animal.Discovery.EntryCauseID %>
+          <% } %>
+        </td>
         <td class="align-middle">
           <%= if (animal.Outtake != nil) { %>
-            <%= animal.Outtake.Type.Rating %>
+            <span class="badge <%= if (animal.Outtake.Type.Rating < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating < 0) { %><%= t("animals.exit_status.negative") %><% } else if (animal.Outtake.Type.Rating > 0) { %><%= t("animals.exit_status.positive") %><% } else { %><%= t("animals.exit_status.neutral") %><% } %></span>
           <% } %>
         </td>
         <td>

@@ -42,6 +42,16 @@ func TestAnimalSortClausesPinsWhitelistAndDirection(t *testing.T) {
 		[]string{"(SELECT i.date FROM intakes i WHERE i.id = animals.intake_id) desc", "animals.id desc"},
 		animalSortClauses("intake_date", "desc"))
 
+	// entry cause sorts on the cause label via discoveries join (#199-10)
+	assert.Equal(t,
+		[]string{"(SELECT ec.cause FROM discoveries d INNER JOIN entry_causes ec ON ec.id = d.entry_cause_id WHERE d.id = animals.discovery_id) asc", "animals.id desc"},
+		animalSortClauses("entry_cause", "asc"))
+
+	// exit status sorts on the outtake-type rating (#199-10)
+	assert.Equal(t,
+		[]string{"(SELECT ot.rating FROM outtakes o INNER JOIN outtaketypes ot ON ot.id = o.outtaketype_id WHERE o.id = animals.outtake_id) desc", "animals.id desc"},
+		animalSortClauses("exit_status", "desc"))
+
 	// every key listed for the templates must exist in the whitelist
 	for _, field := range animalSortFields {
 		assert.Contains(t, animalSortColumns, field)

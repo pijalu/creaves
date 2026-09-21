@@ -28,6 +28,10 @@ var animalSortColumns = map[string]string{
 	"species":        "animals.species",
 	"age":            "(SELECT a.name FROM animalages a WHERE a.id = animals.animalage_id)",
 	"identification": "animals.ring",
+	// Entry cause: sort by the (canonical) cause label, not the ID (#199-10).
+	"entry_cause": "(SELECT ec.cause FROM discoveries d INNER JOIN entry_causes ec ON ec.id = d.entry_cause_id WHERE d.id = animals.discovery_id)",
+	// Exit status: numeric rating of the outtake type; NULL (in care) first on asc.
+	"exit_status": "(SELECT ot.rating FROM outtakes o INNER JOIN outtaketypes ot ON ot.id = o.outtaketype_id WHERE o.id = animals.outtake_id)",
 }
 
 // applyAnimalSort applies the `sort`/`dir` request parameters to q, falling
@@ -65,7 +69,7 @@ func animalSortClauses(sortKey, dir string) []string {
 // animals index table. Used by the template helpers below.
 var animalSortFields = []string{
 	"number", "year", "intake_date", "zone", "cage", "type", "species",
-	"age", "identification",
+	"age", "identification", "entry_cause", "exit_status",
 }
 
 // sortParams extracts the current `sort`/`dir` pair from the request inside
