@@ -126,7 +126,13 @@
           <label class="small d-block">Reden van binnenkomst</label>
           <p class="d-inline-block"><%= animal.Discovery.EntryCause.Fmt(true) %></p>
         </li>
-        
+        <%= if ( len(animal.Discovery.Reason.Value()) > 0 ) {%>
+        <li class="list-group-item pb-1">
+          <label class="small d-block">Reden</label>
+          <p class="d-inline-block"><%= animal.Discovery.Reason %></p>
+        </li>
+        <% } %>
+
         <li class="list-group-item pb-1">
           <label class="small d-block">Postcode</label>
           <p class="d-inline-block"><%= animal.Discovery.PostalCode %></p>
@@ -156,12 +162,6 @@
           <label class="small d-block">Date</label>
           <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
         </li>
-        <%= if ( len(animal.Discovery.Reason.Value()) > 0 ) {%>
-        <li class="list-group-item pb-1">
-          <label class="small d-block">Reden</label>
-          <p class="d-inline-block"><%= animal.Discovery.Reason %></p>
-        </li>
-        <% } %>
         <%= if ( len(animal.Discovery.Note.Value()) > 0 ) {%>
         <li class="list-group-item pb-1">
           <label class="small d-block">Note</label>
