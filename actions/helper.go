@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"time"
 
+	"creaves/models"
+
+	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
 )
 
@@ -12,6 +15,26 @@ func sha256(s string) string {
 	h := sha1.New()
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// landingTabAnchor returns the landing-page tab anchor ("#t-<hash>") matching
+// the grouping key (zone name or animal type name, "?" when unset) exactly as
+// the landing template builds it (issue #199-9).
+func landingTabAnchor(key string) string {
+	if key == "" {
+		key = "?"
+	}
+	return "#t-" + sha256(key)
+}
+
+// landingBackTarget resolves the "Back to animals in care" target (issue
+// #199-9): honor a safe `back` param (landing passes its tab anchor through
+// it), else default to the animal's zone tab in the default landing view.
+func landingBackTarget(c buffalo.Context, animal *models.Animal) string {
+	if c.Param("back") != "" {
+		return safeBackParam(c)
+	}
+	return "/" + landingTabAnchor(animal.Zone.String)
 }
 
 func timeToNullTime(s string) nulls.Time {

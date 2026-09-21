@@ -519,6 +519,8 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
+		// "Back to animals in care" target (issue #199-9).
+		c.Set("landingBack", landingBackTarget(c, animal))
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
 			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
 			// Régime alimentaire by species × life stage (issue #145).
