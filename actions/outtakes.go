@@ -166,11 +166,22 @@ func setOuttakeLocationFormData(c buffalo.Context, tx *pop.Connection, ts *model
 	return nil
 }
 
+// outtakeNSFilterBypassed reports whether the native-status filtering of
+// outtake types is skipped for the current request. Admin users may use any
+// outtake type with any species regardless of native status (#199-12).
+func outtakeNSFilterBypassed(c buffalo.Context) bool {
+	u := GetCurrentUser(c)
+	return u != nil && u.Admin
+}
+
 // setFilteredOuttakeFormData sets selectOuttaketype (filtered by the species
 // native status of the animal) plus the location-mode JSON data used by the
-// new-outtake form JS.
+// new-outtake form JS. Admins see the unfiltered list (#199-12).
 func setFilteredOuttakeFormData(c buffalo.Context, tx *pop.Connection, ot *models.Outtaketypes, animal *models.Animal) error {
-	filtered := filterOuttaketypesForNativeStatus(ot, speciesNativeStatus(tx, animal.Species))
+	filtered := ot
+	if !outtakeNSFilterBypassed(c) {
+		filtered = filterOuttaketypesForNativeStatus(ot, speciesNativeStatus(tx, animal.Species))
+	}
 	c.Set("selectOuttaketype", outtakeTypesToSelectables(filtered, currentLang(c), tx))
 	return setOuttakeLocationFormData(c, tx, filtered)
 }
@@ -316,7 +327,9 @@ func rejectOuttakeCreate(c buffalo.Context, tx *pop.Connection, animal *models.A
 		c.Flash().Add("danger", T.Translate(c, "outtake.type.invalid"))
 		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
 	}
-	if outtakeType.ExcludesNativeStatus(speciesNativeStatus(tx, animal.Species)) {
+	// Admins may use any outtake type regardless of the species native
+	// status (#199-12); the NS exclusion rule only applies to non-admins.
+	if !outtakeNSFilterBypassed(c) && outtakeType.ExcludesNativeStatus(speciesNativeStatus(tx, animal.Species)) {
 		c.Flash().Add("danger", T.Translate(c, "outtake.type.forbidden_by_native_status"))
 		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
 	}

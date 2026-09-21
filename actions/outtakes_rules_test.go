@@ -348,13 +348,14 @@ func TestOuttakePreciseLocationRule(t *testing.T) {
 }
 
 // TestOuttakeCreateRejectsTypeForbiddenByNativeStatus posts an outtake whose
-// type excludes the animal species' native status: the server must refuse
-// with 422 and must not persist anything.
+// type excludes the animal species' native status as a NON-admin user: the
+// server must refuse with 422 and must not persist anything.
 func TestOuttakeCreateRejectsTypeForbiddenByNativeStatus(t *testing.T) {
 	requireMySQLTestDB(t)
 	tx := models.DB
 	f := createOuttakeRulesFixture(t, tx, "NS3", models.OuttakeLocationModeNone)
-	client, baseURL := adminClientWithURL(t)
+	login, password := feedingGuideUser(t, false)
+	client, baseURL := feedingGuideLogin(t, login, password)
 
 	resp := postOuttake(t, client, baseURL, f, "")
 	body, _ := io.ReadAll(resp.Body)
@@ -368,6 +369,30 @@ func TestOuttakeCreateRejectsTypeForbiddenByNativeStatus(t *testing.T) {
 	var animal models.Animal
 	require.NoError(t, tx.Find(&animal, f.animalID))
 	require.False(t, animal.OuttakeID.Valid, "animal must not be linked to a rejected outtake")
+}
+
+// TestOuttakeCreateAdminBypassesNativeStatus (#199-12): an admin may use any
+// outtake type with any species regardless of the species native status — the
+// NS exclusion rule must not block the creation.
+func TestOuttakeCreateAdminBypassesNativeStatus(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "NS3", models.OuttakeLocationModeNone)
+	client, baseURL := adminClientWithURL(t)
+
+	resp := postOuttake(t, client, baseURL, f, "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.NotEqual(t, http.StatusUnprocessableEntity, resp.StatusCode,
+		"admin must not be blocked by the NS exclusion, body: %s", truncate(body, 800))
+
+	cnt, err := tx.Where("outtaketype_id = ?", f.outtakeTypeID).Count(&models.Outtake{})
+	require.NoError(t, err)
+	require.Equal(t, 1, cnt, "admin outtake must be persisted despite the NS exclusion")
+
+	var animal models.Animal
+	require.NoError(t, tx.Find(&animal, f.animalID))
+	require.True(t, animal.OuttakeID.Valid, "animal must be linked to the admin-created outtake")
 }
 
 // TestOuttakeCreateRejectsLocationOutsideList posts an outtake with a
