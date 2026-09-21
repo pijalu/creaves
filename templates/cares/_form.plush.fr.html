@@ -20,10 +20,6 @@
 
 <%= f.InputTag("Weight", {label:"Poids (gramme)", type:"number"}) %>
 
-<%= f.InputTag("HeatSource", {label:"Source de chaleur"}) %>
-
-<%= f.CheckboxTag("Oxygen", {unchecked: false, label:"O2"}) %>
-
 <%= f.CheckboxTag("Clean", {unchecked: false, label:"Cage nettoyée"}) %>
 
 <%= f.TextAreaTag("Note", {rows: 5}) %>
@@ -46,16 +42,6 @@ $( document ).ready(function(){
     var csrfToken = $('meta[name="csrf-token"]').attr('content');
     var suiviTypeId = '<%= suiviCareTypeID %>';
     var prevWeight = '<%= previousWeight %>';
-
-    // Heat source autosuggest from recorded cares (issue #158)
-    $('input[name="HeatSource"]').autoComplete({
-        delay: 250,
-        minChars: 0,
-        cache: 0,
-        source: function(term, response){
-            $.getJSON('/suggestions/heat_source', { q: term }, function(data){ response(data); });
-        }
-    });
 
     // ---- Note templates, "suivi" cares only (issue #158) ----
     var $row = $('#careTemplateRow');

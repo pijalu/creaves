@@ -32,6 +32,12 @@ type Animal struct {
 	FeedingEnd    nulls.Time `json:"feedingEnd" db:"feeding_end"`
 	FeedingPeriod int        `json:"feedingPeriod" db:"feeding_period"`
 
+	// Heat source + oxygen support are properties of the animal (#199-17);
+	// they used to be recorded per care entry (issue #158) — historical care
+	// values are kept as-is, no backfill.
+	HeatSource nulls.String `json:"heatSource" db:"heat_source"`
+	Oxygen     bool         `json:"oxygen" db:"oxygen"`
+
 	// ReadyForRelease marks animals whose care path is finished and that
 	// can be released (#197 sub-item 8).
 	ReadyForRelease nulls.Bool `json:"readyForRelease" db:"ready_for_release"`

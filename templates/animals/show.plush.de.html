@@ -253,6 +253,18 @@
         <% } %>
       </li>
       <% } %>
+      <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Wärmequelle</label>
+        <p class="d-inline-block"><%= animal.HeatSource.String %></p>
+      </li>
+      <% } %>
+      <%= if (animal.Oxygen) { %>
+      <li class="list-group-item pb-1">
+        <label class="small d-block">Sauerstoff</label>
+        <p class="d-inline-block">O2</p>
+      </li>
+      <% } %>
     </ul>
     <%= if (animal.ForceFeed) {%>
       <div class="p-3 mb-2 bg-danger text-white">Zwangsernährung!</div>
