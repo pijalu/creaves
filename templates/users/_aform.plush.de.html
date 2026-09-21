@@ -1,31 +1,31 @@
-<%= f.CheckboxTag("Admin", { label:"Administrator", unchecked: false}) %>
-<%= if (current_user.Maintainer) { %>
-  <%= f.CheckboxTag("Maintainer", {unchecked: false}) %>
-<% } %>
-<%= f.CheckboxTag("Approved", {label:"Genehmigt", unchecked: false}) %>
-<%= f.CheckboxTag("Shared", { label:"Geteiltes Konto", unchecked: false}) %>
+<%= f.CheckboxTag("Approved", {label: t("users.approved"), unchecked: false}) %>
 
 <div class="form-group">
-  <label class="control-label" for="Role">Kontorolle</label>
-  <select name="Role" id="Role" class="form-control custom-select">
-    <option value="" <%= if (user.Role == "") { %> selected<% } %>>Benutzer</option>
-    <option value="lecteur" <%= if (user.Role == "lecteur") { %> selected<% } %>>Lecteur</option>
-    <option value="scientifique" <%= if (user.Role == "scientifique") { %> selected<% } %>>Scientifique (U Liège, DEMNA)</option>
-    <option value="spw" <%= if (user.Role == "spw") { %> selected<% } %>>SPW</option>
+  <label class="control-label" for="AccountRole"><%= t("users.account_role") %></label>
+  <select name="AccountRole" id="AccountRole" class="form-control custom-select">
+    <option value="" <%= if (userAccountRole(user) == "") { %>selected<% } %>><%= t("users.role.user") %></option>
+    <option value="admin" <%= if (userAccountRole(user) == "admin") { %>selected<% } %>><%= t("users.role.admin") %></option>
+    <%= if (current_user.Maintainer) { %>
+    <option value="maintainer" <%= if (userAccountRole(user) == "maintainer") { %>selected<% } %>><%= t("users.role.maintainer") %></option>
+    <% } %>
+    <option value="shared" <%= if (userAccountRole(user) == "shared") { %>selected<% } %>><%= t("users.role.shared") %></option>
+    <option value="lecteur" <%= if (userAccountRole(user) == "lecteur") { %>selected<% } %>><%= t("users.role.lecteur") %></option>
+    <option value="scientifique" <%= if (userAccountRole(user) == "scientifique") { %>selected<% } %>><%= t("users.role.scientifique") %></option>
+    <option value="spw" <%= if (userAccountRole(user) == "spw") { %>selected<% } %>><%= t("users.role.spw") %></option>
   </select>
-  <small class="form-text text-muted">Lecteur: nur lesen &middot; Scientifique: lesen + Tierarztbesuche &middot; SPW: Seiten nur lesen</small>
+  <small class="form-text text-muted"><%= t("users.account_role_help") %></small>
 </div>
 
-<strong>Ehrenamtliche Rollen</strong>
-<%= f.CheckboxTag("FosterFamily", {label: "Pflegefamilie", unchecked: false}) %>
-<%= f.CheckboxTag("Transporter", {label: "Transporteur", unchecked: false}) %>
-<%= f.CheckboxTag("BoardMember", {label: "Vorstandsmitglied", unchecked: false}) %>
-<%= f.CheckboxTag("Committee", {label: "Komitee", unchecked: false}) %>
-<%= f.CheckboxTag("Coordinator", {label: "Koordinator", unchecked: false}) %>
-<%= f.CheckboxTag("Veterinarian", {label: "Tierarzt", unchecked: false}) %>
-<%= f.CheckboxTag("Referent", {label: "Referent", unchecked: false}) %>
-<%= f.CheckboxTag("TeamLeader", {label: "Teamleiter", unchecked: false}) %>
-<%= f.CheckboxTag("Caregiver", {label: "Pfleger", unchecked: false}) %>
-<%= f.CheckboxTag("CareAssistant", {label: "Pflegehelfer", unchecked: false}) %>
-<%= f.CheckboxTag("Helper", {label: "Helfer", unchecked: false}) %>
-<%= f.TextAreaTag("Remark", {label: "Bemerkung", rows: 2}) %>
+<strong><%= t("users.volunteer_roles") %></strong>
+<%= f.CheckboxTag("FosterFamily", {label: t("users.foster_family"), unchecked: false}) %>
+<%= f.CheckboxTag("Transporter", {label: t("users.transporter"), unchecked: false}) %>
+<%= f.CheckboxTag("BoardMember", {label: t("users.board_member"), unchecked: false}) %>
+<%= f.CheckboxTag("Committee", {label: t("users.committee"), unchecked: false}) %>
+<%= f.CheckboxTag("Coordinator", {label: t("users.coordinator"), unchecked: false}) %>
+<%= f.CheckboxTag("Veterinarian", {label: t("users.veterinarian"), unchecked: false}) %>
+<%= f.CheckboxTag("Referent", {label: t("users.referent"), unchecked: false}) %>
+<%= f.CheckboxTag("TeamLeader", {label: t("users.team_leader"), unchecked: false}) %>
+<%= f.CheckboxTag("Caregiver", {label: t("users.caregiver"), unchecked: false}) %>
+<%= f.CheckboxTag("CareAssistant", {label: t("users.care_assistant"), unchecked: false}) %>
+<%= f.CheckboxTag("Helper", {label: t("users.helper"), unchecked: false}) %>
+<%= f.TextAreaTag("Remark", {label: t("users.remark"), rows: 2}) %>

@@ -1,19 +1,19 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Benutzer bearbeiten</h3>
+  <h3 class="d-inline-block"><%= t("users.edit_title") %></h3>
 </div>
 
 <%= formFor(user, {action: userPath({ user_id: user.ID }), method: "PUT"}) { %>
  
-  <%= partial("users/form.plush.de.html") %>
-  <button class="btn btn-success" role="submit">Speichern</button>
+  <%= partial("users/form.html") %>
+  <button class="btn btn-success" role="submit"><%= t("users.save") %></button>
 <script type="text/javascript">
 $( document ).ready(function(){
     window.submitfix();
 })
 </script>
   <%= if (params["self"]=="true") {%>
-  <%= linkTo(rootPath(), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <%= linkTo(rootPath(), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: t("users.cancel")}) %>
   <% } else {%>
-  <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-warning", "data-confirm": "Sind Sie sicher?", body: "Abbrechen"}) %>
+  <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-warning", "data-confirm": "Are you sure?", body: t("users.cancel")}) %>
   <% } %>
 <% } %>

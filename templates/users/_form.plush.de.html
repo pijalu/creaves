@@ -1,13 +1,13 @@
-<%= f.InputTag("Login") %>
-<%= f.InputTag("FirstName", {label: "Vorname"}) %>
-<%= f.InputTag("LastName", {label: "Nachname"}) %>
-<%= f.InputTag("Address", {label: "Adresse"}) %>
-<%= f.InputTag("PostalCode", {label: "Postleitzahl"}) %>
-<%= f.InputTag("City", {label: "Stadt"}) %>
-<%= f.InputTag("Email", {label: "E-Mail", type: "email"}) %>
-<%= f.InputTag("Phone", {label: "Telefon"}) %>
-<%= f.InputTag("Password", {label:"Passwort", type: "password"}) %>
-<%= f.InputTag("PasswordConfirmation", {label:"Passwortbestätigung", type: "password"}) %>
+<%= f.InputTag("Login", {label: t("users.login")}) %>
+<%= f.InputTag("FirstName", {label: t("users.firstname")}) %>
+<%= f.InputTag("LastName", {label: t("users.lastname")}) %>
+<%= f.InputTag("Address", {label: t("users.address")}) %>
+<%= f.InputTag("PostalCode", {label: t("users.postal_code")}) %>
+<%= f.InputTag("City", {label: t("users.city")}) %>
+<%= f.InputTag("Email", {label: t("users.email"), type: "email"}) %>
+<%= f.InputTag("Phone", {label: t("users.phone")}) %>
+<%= f.InputTag("Password", {label: t("users.password"), type: "password"}) %>
+<%= f.InputTag("PasswordConfirmation", {label: t("users.password_confirmation"), type: "password"}) %>
 <%= if (current_user.Admin) { %>
   <%= partial("users/aform.plush.de.html") %>
 <% } %>

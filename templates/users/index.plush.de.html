@@ -1,9 +1,9 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Benutzer</h3>
+  <h3 class="d-inline-block"><%= t("users.index.title") %></h3>
   <%= if (current_user.Admin) { %>
   <div class="float-right">
     <%= linkTo(newUsersPath(), {class: "btn btn-primary"}) { %>
-      Neuen Benutzer erstellen
+      <%= t("users.index.new") %>
     <% } %>
   </div>
   <% } %>
@@ -12,23 +12,36 @@
 <form method="get" action="<%= usersPath() %>" class="form-inline mb-2">
   <input type="hidden" name="sort" value="<%= curSort %>">
   <input type="hidden" name="dir" value="<%= curDir %>">
-  <input type="text" name="q" value="<%= searchQ %>" class="form-control mr-sm-2" placeholder="Login, Name, E-Mail, Stadt suchen…">
-  <button type="submit" class="btn btn-outline-primary">Suchen</button>
-  <%= if (searchQ != "") { %>
-    <a class="btn btn-outline-secondary ml-1" href="<%= usersPath() %>">Zurücksetzen</a>
+  <input type="text" name="q" value="<%= searchQ %>" class="form-control mr-sm-2 mb-1" placeholder="<%= t("users.index.search_placeholder") %>">
+  <select name="role" class="form-control custom-select mr-sm-2 mb-1">
+    <option value=""><%= t("users.index.filter_role_all") %></option>
+    <option value="admin" <%= if (filterRole == "admin") { %>selected<% } %>><%= t("users.role.admin") %></option>
+    <option value="maintainer" <%= if (filterRole == "maintainer") { %>selected<% } %>><%= t("users.role.maintainer") %></option>
+    <option value="shared" <%= if (filterRole == "shared") { %>selected<% } %>><%= t("users.role.shared") %></option>
+    <option value="user" <%= if (filterRole == "user") { %>selected<% } %>><%= t("users.role.user") %></option>
+    <option value="lecteur" <%= if (filterRole == "lecteur") { %>selected<% } %>><%= t("users.role.lecteur") %></option>
+    <option value="scientifique" <%= if (filterRole == "scientifique") { %>selected<% } %>><%= t("users.role.scientifique") %></option>
+    <option value="spw" <%= if (filterRole == "spw") { %>selected<% } %>><%= t("users.role.spw") %></option>
+  </select>
+  <select name="status" class="form-control custom-select mr-sm-2 mb-1">
+    <option value=""><%= t("users.index.filter_status_all") %></option>
+    <option value="active" <%= if (filterStatus == "active") { %>selected<% } %>><%= t("users.index.status_active") %></option>
+    <option value="pending" <%= if (filterStatus == "pending") { %>selected<% } %>><%= t("users.index.status_pending") %></option>
+  </select>
+  <button type="submit" class="btn btn-outline-primary mb-1"><%= t("users.index.search") %></button>
+  <%= if (filtersActive) { %>
+    <a class="btn btn-outline-secondary ml-1 mb-1" href="<%= usersPath() %>"><%= t("users.index.clear") %></a>
   <% } %>
 </form>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th><a class="text-body" href="<%= sortLink("name") %>">Name <%= sortIcon("name") %></a></th>
-    <th><a class="text-body" href="<%= sortLink("login") %>">login <%= sortIcon("login") %></a></th>
-    <th><a class="text-body" href="<%= sortLink("email") %>">E-Mail <%= sortIcon("email") %></a></th>
-    <th><a class="text-body" href="<%= sortLink("city") %>">Stadt <%= sortIcon("city") %></a></th>
-    <th>Rolle</th>
-    <th>Genehmigt</th>
-    <th>Admin</th>
-    <th>Geteilt</th>
+    <th><a class="text-body" href="<%= sortLink("name") %>"><%= t("users.index.name") %> <%= sortIcon("name") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("login") %>"><%= t("users.login") %> <%= sortIcon("login") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("email") %>"><%= t("users.email") %> <%= sortIcon("email") %></a></th>
+    <th><a class="text-body" href="<%= sortLink("city") %>"><%= t("users.city") %> <%= sortIcon("city") %></a></th>
+    <th><%= t("users.index.role") %></th>
+    <th><%= t("users.approved") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -38,16 +51,22 @@
         <td class="align-middle"><%= user.Login %></td>
         <td class="align-middle"><%= user.Email %></td>
         <td class="align-middle"><%= user.City %></td>
-        <td class="align-middle"><%= userRoleName(user.Role) %></td>
+        <td class="align-middle">
+          <%= if (userAccountRole(user) == "maintainer") { %><%= t("users.role.maintainer") %>
+          <% } else if (userAccountRole(user) == "admin") { %><%= t("users.role.admin") %>
+          <% } else if (userAccountRole(user) == "shared") { %><%= t("users.role.shared") %>
+          <% } else if (userAccountRole(user) == "lecteur") { %><%= t("users.role.lecteur") %>
+          <% } else if (userAccountRole(user) == "scientifique") { %><%= t("users.role.scientifique") %>
+          <% } else if (userAccountRole(user) == "spw") { %><%= t("users.role.spw") %>
+          <% } else { %><%= t("users.role.user") %><% } %>
+        </td>
         <td class="align-middle text-center"><%= bool2html(user.Approved) %></td>
-        <td class="align-middle text-center"><%= bool2html(user.Admin) %></td>
-        <td class="align-middle text-center"><%= bool2html(user.Shared) %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>
-            <%= if (current_user.Admin) { %>
-            <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Bearbeiten", body: "<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= if (current_user.Admin && !current_user.Shared) { %>
+            <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
             <% } %>
           </div>
         </td>

@@ -3,6 +3,8 @@ package actions
 import (
 	"strings"
 
+	"creaves/models"
+
 	"github.com/gobuffalo/pop/v6"
 )
 
@@ -36,10 +38,37 @@ func userSortClauses(sortKey, dir string) []string {
 	return append(clauses, "login asc")
 }
 
+// usersListFilters applies the users-listing role and status filters
+// (issue #199-14). `role` is one of the single "Account role" selector values
+// (admin/maintainer/shared/lecteur/scientifique/spw/user); unknown values are
+// ignored. `status` is "active" (approved) or "pending" (awaiting approval).
+func usersListFilters(q *pop.Query, role, status string) *pop.Query {
+	switch role {
+	case "admin":
+		q = q.Where("admin = ?", true)
+	case "maintainer":
+		q = q.Where("maintainer = ?", true)
+	case "shared":
+		q = q.Where("shared = ?", true)
+	case "user":
+		q = q.Where("admin = ? AND maintainer = ? AND shared = ? AND (role IS NULL OR role = '')",
+			false, false, false)
+	case models.UserRoleReader, models.UserRoleScientist, models.UserRoleSPW:
+		q = q.Where("role = ?", role)
+	}
+	switch status {
+	case "active":
+		q = q.Where("approved = ?", true)
+	case "pending":
+		q = q.Where("approved = ?", false)
+	}
+	return q
+}
+
 // usersListQuery applies the users-listing search filter and sort to q.
 // The `search` term is matched against login, first/last name, email and
-// city (issue #107).
-func usersListQuery(q *pop.Query, search, sortKey, dir string) *pop.Query {
+// city (issue #107); role/status filter the account type (issue #199-14).
+func usersListQuery(q *pop.Query, search, role, status, sortKey, dir string) *pop.Query {
 	if s := strings.TrimSpace(search); s != "" {
 		like := "%" + s + "%"
 		q = q.Where(
@@ -47,6 +76,7 @@ func usersListQuery(q *pop.Query, search, sortKey, dir string) *pop.Query {
 			like, like, like, like, like,
 		)
 	}
+	q = usersListFilters(q, role, status)
 	for _, clause := range userSortClauses(sortKey, dir) {
 		q = q.Order(clause)
 	}

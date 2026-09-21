@@ -143,13 +143,14 @@ func init() {
 
 		// Add template helpers here:
 		Helpers: render.Helpers{
-			"langLinks":    langLinks,
-			"langLinksAll": langLinksAll,
-			"uiLang":       uiLang,
-			"sortLink":     sortLink,
-			"sortIcon":     sortIcon,
-			"userRoleName": userRoleName,
-			"stayDuration": stayDurationHours,
+			"langLinks":       langLinks,
+			"langLinksAll":    langLinksAll,
+			"uiLang":          uiLang,
+			"sortLink":        sortLink,
+			"sortIcon":        sortIcon,
+			"userRoleName":    userRoleName,
+			"userAccountRole": userAccountRole,
+			"stayDuration":    stayDurationHours,
 			"bool2html": func(s bool) string {
 				if s {
 					return "✓"

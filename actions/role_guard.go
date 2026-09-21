@@ -120,6 +120,59 @@ func userRoleName(role string) string {
 	return models.UserRoleNames[models.UserRoleRegular]
 }
 
+// applyAccountRoleSelection maps the single "Account role" selector value
+// (issue #199-14) onto the legacy flag columns: the selector folds the
+// Admin/Maintainer/Shared checkboxes and the restricted-role select into one
+// exclusive choice. Unknown/empty values map to a regular unrestricted user.
+func applyAccountRoleSelection(u *models.User, sel string) {
+	u.Admin = false
+	u.Maintainer = false
+	u.Shared = false
+	u.Role = models.UserRoleRegular
+	switch sel {
+	case "admin":
+		u.Admin = true
+	case "maintainer":
+		u.Maintainer = true
+		u.Admin = true // maintainers imply admin (existing invariant)
+	case "shared":
+		u.Shared = true
+	case models.UserRoleReader, models.UserRoleScientist, models.UserRoleSPW:
+		u.Role = sel
+	}
+}
+
+// userAccountRole is a template helper: inverse of applyAccountRoleSelection.
+// It returns the selector value matching the persisted flags. Accepts both
+// models.User and *models.User because handlers set the context value either
+// way (registration vs resource handlers).
+func userAccountRole(u interface{}) string {
+	var user *models.User
+	switch v := u.(type) {
+	case models.User:
+		user = &v
+	case *models.User:
+		user = v
+	}
+	if user == nil {
+		return ""
+	}
+	switch {
+	case user.Maintainer:
+		return "maintainer"
+	case user.Admin:
+		return "admin"
+	case user.Shared:
+		return "shared"
+	case user.Role == models.UserRoleReader ||
+		user.Role == models.UserRoleScientist ||
+		user.Role == models.UserRoleSPW:
+		return user.Role
+	default:
+		return ""
+	}
+}
+
 // zeroAdminOnlyUserFields resets the admin-only columns of issue #107
 // (account role, volunteer flags, remark) to their defaults. Used on public
 // registration so a crafted POST can never set privileged markers.

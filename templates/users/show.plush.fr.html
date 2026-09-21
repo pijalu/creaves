@@ -7,10 +7,10 @@
       Retour à tous les utilisateurs
     <% } %>
     <%} %>
-    <%= if (current_user.Admin || current_user.ID.String() == user.ID.String()) {%>
+    <%= if (!current_user.Shared && (current_user.Admin || current_user.ID.String() == user.ID.String())) {%>
     <%= linkTo(editUserPath({ user_id: user.ID }), {class: "btn btn-warning", title: "Éditer", body: "<i class='fa fa-edit'></i>"}) %>
     <% } %>
-    <%= if (current_user.Admin) {%>
+    <%= if (current_user.Admin && !current_user.Shared) {%>
     <%= linkTo(userPath({ user_id: user.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
     <% } %>
   </div>

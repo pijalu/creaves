@@ -26,10 +26,19 @@ func UsersCreate(c buffalo.Context) error {
 		return errors.WithStack(err)
 	}
 
+	cu := GetCurrentUser(c)
+	// Single "Account role" selector (issue #199-14): the admin creation
+	// form posts to this handler too (new.plush.html → registrationPath),
+	// so fold the selector value onto the legacy flags here as well.
+	if cu != nil && cu.Admin {
+		if sel, present := accountRoleParam(c); present {
+			applyAccountRoleSelection(u, sel)
+		}
+	}
+
 	// Prevent mass-assignment privilege escalation: privileged flags may only
 	// be granted by an already-authenticated admin. A crafted registration
 	// POST must never be able to set admin/approved/shared directly.
-	cu := GetCurrentUser(c)
 	if cu == nil || !cu.Admin {
 		u.Admin = false
 		u.Approved = false
@@ -127,6 +136,17 @@ type UsersResource struct {
 	buffalo.Resource
 }
 
+// accountRoleParam returns the posted "Account role" selector value and
+// whether the field was present at all (an empty string is a valid value —
+// the regular user role). The form is already parsed by c.Bind.
+func accountRoleParam(c buffalo.Context) (string, bool) {
+	vals, present := c.Request().Form["AccountRole"]
+	if !present || len(vals) == 0 {
+		return "", present
+	}
+	return vals[0], true
+}
+
 // New renders the form for creating a new User.
 // This function is mapped to the path GET /users/new
 func (v UsersResource) New(c buffalo.Context) error {
@@ -149,6 +169,11 @@ func (v UsersResource) Create(c buffalo.Context) error {
 	// Bind user to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
+	}
+	// Single "Account role" selector (issue #199-14): when posted, it folds
+	// the Admin/Maintainer/Shared/Role fields into one exclusive choice.
+	if sel, present := accountRoleParam(c); present {
+		applyAccountRoleSelection(user, sel)
 	}
 	if !cu.Maintainer {
 		user.Maintainer = false
@@ -228,7 +253,8 @@ func (v UsersResource) List(c buffalo.Context) error {
 
 	// Search + sort (issue #107): `q` filters login/name/email/city,
 	// `sort`/`dir` pick a whitelisted ORDER BY (default: volunteer name).
-	q = usersListQuery(q, c.Param("q"), c.Param("sort"), c.Param("dir"))
+	// `role`/`status` filter the account type and approval (issue #199-14).
+	q = usersListQuery(q, c.Param("q"), c.Param("role"), c.Param("status"), c.Param("sort"), c.Param("dir"))
 
 	// Retrieve all Users from the DB
 	if err := q.All(users); err != nil {
@@ -243,6 +269,9 @@ func (v UsersResource) List(c buffalo.Context) error {
 		c.Set("searchQ", c.Param("q"))
 		c.Set("curSort", c.Param("sort"))
 		c.Set("curDir", c.Param("dir"))
+		c.Set("filterRole", c.Param("role"))
+		c.Set("filterStatus", c.Param("status"))
+		c.Set("filtersActive", c.Param("q") != "" || c.Param("role") != "" || c.Param("status") != "")
 		return c.Render(http.StatusOK, r.HTML("/users/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(users))
@@ -334,19 +363,32 @@ func (v UsersResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// Preserve the persisted maintainer flag unless actor is a maintainer.
+	// Snapshot of the persisted row for field-level permission restores
+	// (issue #107) — taken before the privileged flags are reset so crafted
+	// form fields can be rolled back (issue #199-14).
+	was := *user
+
+	// Unchecked checkboxes bind nothing: reset the privileged flags before
+	// the bind so an absent field means false.
 	wasMaintainer := user.Maintainer
 	user.Admin = false
 	user.Shared = false
 	user.Maintainer = false
 
-	// Snapshot of the persisted row for field-level permission restores
-	// (issue #107).
-	was := *user
-
 	// Bind User to the html form elements
 	if err := c.Bind(user); err != nil {
 		return err
+	}
+	// Single "Account role" selector (issue #199-14): when posted by an
+	// admin it folds the Admin/Maintainer/Shared/Role fields into one
+	// exclusive choice. Non-admin actors may never change the privileged
+	// flags — restore the persisted values (crafted fields are ignored).
+	if sel, present := accountRoleParam(c); present && cu.Admin {
+		applyAccountRoleSelection(user, sel)
+	} else if !cu.Admin {
+		user.Admin = was.Admin
+		user.Shared = was.Shared
+		user.Maintainer = was.Maintainer
 	}
 	if cu.ID.String() == user.ID.String() && cu.Maintainer {
 		user.Admin = true
