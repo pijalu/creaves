@@ -12,6 +12,9 @@
           <span class="badge badge-<%= v.Color %> float-right">&nbsp;</span>
           <p class="card-text mb-1"><%= v.Todo.Description %></p>
           <small class="text-muted d-block"><i class="far fa-clock"></i> <%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></small>
+          <%= if (v.Todo.Recurrence != "") { %>
+            <small class="d-block"><span class="badge badge-info"><i class="fas fa-redo"></i> <%= t("todos.recurrence." + v.Todo.Recurrence) %></span></small>
+          <% } %>
           <small class="text-muted d-block"><i class="far fa-calendar-plus"></i> <%= v.Todo.CreatedAt.Format("02/01/2006") %></small>
         </div>
         <div class="card-footer bg-transparent border-top-0 pt-0 todo-actions" style="display:none;">

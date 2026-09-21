@@ -83,3 +83,41 @@ func TestTodoIsDone(t *testing.T) {
 		t.Error("todo with done_at must be done")
 	}
 }
+
+func TestTodoNextOccurrence(t *testing.T) {
+	base := time.Date(2026, 9, 19, 10, 0, 0, 0, time.UTC)
+	cases := []struct {
+		recurrence string
+		wantNil    bool
+		want       time.Time
+	}{
+		{TodoRecurrenceNone, true, time.Time{}},
+		{"bogus", true, time.Time{}},
+		{TodoRecurrenceWeekly, false, base.AddDate(0, 0, 7)},
+		{TodoRecurrenceMonthly, false, base.AddDate(0, 1, 0)},
+		{TodoRecurrenceYearly, false, base.AddDate(1, 0, 0)},
+	}
+	for _, tc := range cases {
+		todo := Todo{Description: "x", TodoDate: base, Recurrence: tc.recurrence}
+		next := todo.NextOccurrence()
+		if tc.wantNil {
+			if next != nil {
+				t.Errorf("recurrence %q: got %+v, want nil", tc.recurrence, next)
+			}
+			continue
+		}
+		if next == nil {
+			t.Errorf("recurrence %q: got nil", tc.recurrence)
+			continue
+		}
+		if !next.TodoDate.Equal(tc.want) {
+			t.Errorf("recurrence %q: todo_date = %s, want %s", tc.recurrence, next.TodoDate, tc.want)
+		}
+		if next.Recurrence != tc.recurrence || next.Description != todo.Description {
+			t.Errorf("recurrence %q: spawned todo must carry description+recurrence", tc.recurrence)
+		}
+		if next.IsDone() {
+			t.Errorf("recurrence %q: spawned todo must be open", tc.recurrence)
+		}
+	}
+}

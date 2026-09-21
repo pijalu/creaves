@@ -126,6 +126,98 @@ func TestTodosCreateDoneDelete(t *testing.T) {
 	}
 }
 
+// TestTodosRecurrence (issue #199-8): a recurring todo spawns the next
+// occurrence (todo_date + 1 week/month/year) when marked done; a
+// one-shot todo does not.
+func TestTodosRecurrence(t *testing.T) {
+	if models.DB == nil {
+		t.Fatal("models.DB is nil — run with GO_ENV=test")
+	}
+	adminLogin, adminPass := feedingGuideUser(t, true)
+	client, baseURL := feedingGuideLogin(t, adminLogin, adminPass)
+
+	description := "TS-todo-rec-" + uuid.Must(uuid.NewV4()).String()[:8]
+	todoCleanup(t, description)
+
+	token := todoToken(t, client, baseURL, "/todos/new")
+	resp := postTodoForm(t, client, baseURL, "/todos", token, url.Values{
+		"description": {description},
+		"todo_date":   {"2026-09-19T10:00"},
+		"recurrence":  {"weekly"},
+	})
+	if resp.StatusCode != http.StatusSeeOther {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("POST /todos status = %d, want 303: %s", resp.StatusCode, body)
+	}
+
+	todo := &models.Todo{}
+	if err := models.DB.Where("description = ?", description).First(todo); err != nil {
+		t.Fatalf("todo not persisted: %v", err)
+	}
+	if todo.Recurrence != "weekly" {
+		t.Fatalf("recurrence = %q, want weekly", todo.Recurrence)
+	}
+
+	// mark done → next occurrence must exist with todo_date + 7 days,
+	// not done, same recurrence
+	resp = postTodoForm(t, client, baseURL, fmt.Sprintf("/todos/%s/done", todo.ID), token, url.Values{})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("POST done status = %d, want 303", resp.StatusCode)
+	}
+
+	todos := []models.Todo{}
+	if err := models.DB.Where("description = ?", description).Order("todo_date asc").All(&todos); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if len(todos) != 2 {
+		t.Fatalf("todos with description = %d, want 2 (closed + next occurrence)", len(todos))
+	}
+	first, next := todos[0], todos[1]
+	if !first.IsDone() {
+		t.Error("original todo must be done")
+	}
+	if next.IsDone() {
+		t.Error("spawned occurrence must be open")
+	}
+	if next.Recurrence != "weekly" {
+		t.Errorf("spawned recurrence = %q, want weekly", next.Recurrence)
+	}
+	want := first.TodoDate.AddDate(0, 0, 7)
+	if !next.TodoDate.Equal(want) {
+		t.Errorf("spawned todo_date = %s, want %s (+7 days)", next.TodoDate, want)
+	}
+
+	// invalid recurrence value is normalized to one-shot
+	description2 := description + "-x"
+	todoCleanup(t, description2)
+	resp = postTodoForm(t, client, baseURL, "/todos", token, url.Values{
+		"description": {description2},
+		"todo_date":   {"2026-09-19T10:00"},
+		"recurrence":  {"daily"},
+	})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("POST /todos (invalid recurrence) status = %d, want 303", resp.StatusCode)
+	}
+	oneShot := &models.Todo{}
+	if err := models.DB.Where("description = ?", description2).First(oneShot); err != nil {
+		t.Fatalf("one-shot todo not persisted: %v", err)
+	}
+	if oneShot.Recurrence != "" {
+		t.Errorf("invalid recurrence must map to one-shot, got %q", oneShot.Recurrence)
+	}
+	resp = postTodoForm(t, client, baseURL, fmt.Sprintf("/todos/%s/done", oneShot.ID), token, url.Values{})
+	if resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("POST done (one-shot) status = %d, want 303", resp.StatusCode)
+	}
+	count, err := models.DB.Where("description = ?", description2).Count(&models.Todo{})
+	if err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("one-shot done must not spawn an occurrence, count = %d", count)
+	}
+}
+
 // TestTodosDestroyReopenAdminOnly: non-admin cannot delete or reopen (issue #147).
 func TestTodosDestroyReopenAdminOnly(t *testing.T) {
 	if models.DB == nil {

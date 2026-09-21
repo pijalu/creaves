@@ -24,6 +24,16 @@ const (
 	TodoOverdueAfter = 8 * time.Hour
 )
 
+// Recurrence values for recurring todos (issue #199-8). Empty means a
+// one-shot todo; the other values spawn the next occurrence when the
+// todo is marked done.
+const (
+	TodoRecurrenceNone    = ""
+	TodoRecurrenceWeekly  = "weekly"
+	TodoRecurrenceMonthly = "monthly"
+	TodoRecurrenceYearly  = "yearly"
+)
+
 // Todo is used by pop to map your todos database table to your go code.
 // TableName pins the table name: pop would otherwise pluralize to
 // "todoes" (issue #147 uses "todos").
@@ -33,6 +43,7 @@ type Todo struct {
 	TodoDate    time.Time  `json:"todo_date" db:"todo_date"`
 	DoneAt      nulls.Time `json:"done_at" db:"done_at"`
 	DoneByID    nulls.UUID `json:"done_by_id" db:"done_by_id"`
+	Recurrence  string     `json:"recurrence" db:"recurrence"`
 	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 }
@@ -67,6 +78,28 @@ func (t *Todo) Validate(tx *pop.Connection) (*validate.Errors, error) {
 // IsDone reports whether the todo has been confirmed done.
 func (t Todo) IsDone() bool {
 	return t.DoneAt.Valid
+}
+
+// NextOccurrence returns the follow-up todo to create when a recurring
+// todo is marked done (issue #199-8), or nil for one-shot todos.
+// The next todo date is shifted by +1 week/month/year.
+func (t Todo) NextOccurrence() *Todo {
+	var next time.Time
+	switch t.Recurrence {
+	case TodoRecurrenceWeekly:
+		next = t.TodoDate.AddDate(0, 0, 7)
+	case TodoRecurrenceMonthly:
+		next = t.TodoDate.AddDate(0, 1, 0)
+	case TodoRecurrenceYearly:
+		next = t.TodoDate.AddDate(1, 0, 0)
+	default:
+		return nil
+	}
+	return &Todo{
+		Description: t.Description,
+		TodoDate:    next,
+		Recurrence:  t.Recurrence,
+	}
 }
 
 // Status classifies the todo for the dashboard color code (issue #147):

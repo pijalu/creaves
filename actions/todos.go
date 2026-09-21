@@ -128,6 +128,7 @@ func TodosCreate(c buffalo.Context) error {
 	todo := &models.Todo{
 		Description: c.Param("description"),
 		TodoDate:    parseTodoDate(c.Param("todo_date")),
+		Recurrence:  todoRecurrenceParam(c),
 	}
 
 	verrs, err := tx.ValidateAndCreate(todo)
@@ -180,6 +181,7 @@ func TodosUpdate(c buffalo.Context) error {
 
 	todo.Description = c.Param("description")
 	todo.TodoDate = parseTodoDate(c.Param("todo_date"))
+	todo.Recurrence = todoRecurrenceParam(c)
 
 	verrs, err := tx.ValidateAndUpdate(todo)
 	if err != nil {
@@ -233,10 +235,27 @@ func TodosDone(c buffalo.Context) error {
 		if err := tx.Save(todo); err != nil {
 			return err
 		}
+		// Recurring todo (issue #199-8): spawn the next occurrence
+		// (todo_date + 1 week/month/year) alongside the closed one.
+		if next := todo.NextOccurrence(); next != nil {
+			if err := tx.Create(next); err != nil {
+				return err
+			}
+		}
 	}
 
 	c.Flash().Add("success", T.Translate(c, "todos.done.success"))
 	return c.Redirect(http.StatusSeeOther, "%s", todoSafeRedirect(c.Param("redirect")))
+}
+
+// todoRecurrenceParam returns the whitelisted recurrence form value
+// (issue #199-8); anything else maps to one-shot ("").
+func todoRecurrenceParam(c buffalo.Context) string {
+	switch c.Param("recurrence") {
+	case models.TodoRecurrenceWeekly, models.TodoRecurrenceMonthly, models.TodoRecurrenceYearly:
+		return c.Param("recurrence")
+	}
+	return models.TodoRecurrenceNone
 }
 
 // todoSafeRedirect returns target when it is a safe local path (starts with
