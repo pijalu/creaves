@@ -35,5 +35,30 @@ func TestMain(m *testing.M) {
 		}
 		models.DB = conn
 	}
-	os.Exit(m.Run())
+
+	// Bugs.md #10: the webhook worker is a process-global goroutine that
+	// queries the shared models.DB connection on every wake/tick. If a test
+	// starts it through a handler path (event publish, sync-target CRUD,
+	// DLQ reset), it keeps running for the rest of the package run and its
+	// DB access races with later tests' requests — the order-dependent
+	// "invalid connection" / i/o-timeout 500s. No test in the MySQL suite
+	// asserts live delivery (they all assert DB state directly), so implicit
+	// starts are disabled suite-wide here; tests that need the worker start
+	// it explicitly with StartWebhookWorker and stop it in their cleanup.
+	webhookWorkerAutoStartDisabled.Store(true)
+
+	// Drop delivery bookkeeping left over by earlier runs: stale
+	// event_streams/event_deliveries rows slow every listing endpoint the
+	// suite exercises (dashboard, exports) and skew DLQ assertions.
+	// creaves_test is disposable by contract; the dev database is untouched.
+	if models.DB != nil && models.DB.Dialect.Name() != "sqlite3" {
+		models.DB.RawQuery("DELETE FROM event_deliveries").Exec()
+		models.DB.RawQuery("DELETE FROM event_streams").Exec()
+	}
+
+	code := m.Run()
+
+	// Belt and braces: never leak the worker past the test binary.
+	StopWebhookWorker()
+	os.Exit(code)
 }

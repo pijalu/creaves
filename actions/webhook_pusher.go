@@ -956,12 +956,26 @@ func RegisterWebhookShutdown(app *buffalo.App) {
 	})
 }
 
+// webhookWorkerAutoStartDisabled keeps EnsureWebhookWorkerRunning from
+// implicitly starting the background worker. It exists for the test suites:
+// the worker is a process-global goroutine that queries the shared
+// models.DB connection every tick, so a test that wakes it through a
+// handler path (event publish, sync-target CRUD, DLQ reset) would leave it
+// running for the rest of the package run and make later tests
+// order-dependent (the bugs.md #10 flake). Production startup is unaffected:
+// the flag defaults to false and only the test bootstrap sets it; suites
+// that assert worker behaviour start the worker explicitly.
+var webhookWorkerAutoStartDisabled atomic.Bool
+
 // EnsureWebhookWorkerRunning starts the webhook worker if it is not
 // already running. The worker is started unconditionally (even when webhook
 // forwarding is disabled) because it also runs the hourly event purge;
 // delivery itself remains gated per-tick by the presence of deliverable
 // sync targets. It is safe to call repeatedly.
 func EnsureWebhookWorkerRunning() {
+	if webhookWorkerAutoStartDisabled.Load() {
+		return
+	}
 	if !IsWebhookWorkerRunning() {
 		StartWebhookWorker()
 	}

@@ -15,7 +15,14 @@ development:
 
 test:
   dialect: "mysql"
-  url: "mysql://creaves:creaves@(localhost:3306)/creaves_test?parseTime=true&multiStatements=true&readTimeout=3s"
+  # readTimeout must exceed the legitimately slow exports/dashboard queries
+  # the suite runs against production-scale fixture data (~10k animals):
+  # go-sql-driver kills a connection when a single read exceeds the deadline,
+  # and the killed connection then surfaces as "invalid connection"/500 in
+  # whichever request reuses it — the bugs.md #10 order-dependent failures.
+  # 3s was under water for the DISTINCT/ORDER BY export queries under -race;
+  # 60s only bounds a genuinely hung query, it is not a wait budget.
+  url: "mysql://creaves:creaves@(localhost:3306)/creaves_test?parseTime=true&multiStatements=true&readTimeout=60s"
 
 production:
   dialect: "mysql"

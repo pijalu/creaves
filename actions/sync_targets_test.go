@@ -52,6 +52,10 @@ func seedHandlerSyncTarget(t *testing.T, name, webhookURL string, enabled bool) 
 		// with the next test's requests (StopWebhookWorker is synchronous
 		// and waits for any in-flight delivery to exit).
 		StopWebhookWorker()
+		// Reset the "targets exist" short-circuit too: a stale true value
+		// makes any later implicit worker start query the DB (and, with a
+		// target still visible elsewhere, attempt deliveries) — bugs.md #10.
+		SetSyncTargetsKnown(false)
 		tx.RawQuery("DELETE FROM event_deliveries WHERE target_id = ?", target.ID.String()).Exec()
 		tx.RawQuery("DELETE FROM sync_targets WHERE id = ?", target.ID.String()).Exec()
 	})
