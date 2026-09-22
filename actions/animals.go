@@ -635,6 +635,46 @@ func (v AnimalsResource) New(c buffalo.Context) error {
 
 // Create adds a Animal to the DB. This function is mapped to the
 // path POST /animals
+// reusePickedDiscoverer implements issue #85: when the reception form picker
+// submitted Discovery.Discoverer.ID, the form values update that existing
+// discoverer record and the new discovery links to it instead of creating a
+// duplicate discoverer. Returns reuse=true when a picked discoverer was
+// applied; a non-nil error carries an already-rendered validation response.
+func reusePickedDiscoverer(c buffalo.Context, tx *pop.Connection, animal *models.Animal) (bool, error) {
+	if animal.Discovery.Discoverer.ID == uuid.Nil {
+		return false, nil
+	}
+	verrs, err := tx.ValidateAndUpdate(&animal.Discovery.Discoverer)
+	if err != nil {
+		return false, err
+	}
+	if verrs.HasAny() {
+		return false, responder.Wants("html", func(c buffalo.Context) error {
+			c.Set("errors", verrs)
+			c.Set("animal", animal)
+			return c.Render(http.StatusUnprocessableEntity, r.HTML("/animals/new.plush.html"))
+		}).Wants("json", func(c buffalo.Context) error {
+			return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
+		}).Wants("xml", func(c buffalo.Context) error {
+			return c.Render(http.StatusUnprocessableEntity, r.XML(verrs))
+		}).Respond(c)
+	}
+	animal.Discovery.DiscovererID = animal.Discovery.Discoverer.ID
+	return true, nil
+}
+
+// relinkPickedDiscoverer keeps the bound discoverer attached to the
+// discovery. Without a picker selection the form carries no ID: restore the
+// currently linked one. With a picker selection (issue #85) the bound ID
+// points to another existing discoverer: re-link the discovery to it.
+func relinkPickedDiscoverer(animal *models.Animal) {
+	if animal.Discovery.Discoverer.ID == uuid.Nil {
+		animal.Discovery.Discoverer.ID = animal.Discovery.DiscovererID
+	} else if animal.Discovery.Discoverer.ID != animal.Discovery.DiscovererID {
+		animal.Discovery.DiscovererID = animal.Discovery.Discoverer.ID
+	}
+}
+
 func (v AnimalsResource) Create(c buffalo.Context) error {
 	ac := struct {
 		AnimalCount int
@@ -713,9 +753,22 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 						ac.AnimalCount))
 		}
 
+		// Reuse an existing discoverer when the reception form picker
+		// (issue #85) submitted Discovery.Discoverer.ID.
+		reuseDiscoverer, rerr := reusePickedDiscoverer(c, tx, animal)
+		if rerr != nil {
+			return rerr
+		}
+
 		// Validate the data from the html form
 		// 2 steps
-		verrs, err := tx.Eager().ValidateAndCreate(&animal.Discovery)
+		var verrs *validate.Errors
+		var err error
+		if reuseDiscoverer {
+			verrs, err = tx.ValidateAndCreate(&animal.Discovery)
+		} else {
+			verrs, err = tx.Eager().ValidateAndCreate(&animal.Discovery)
+		}
 		if err != nil {
 			return err
 		}
@@ -902,8 +955,11 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	}
 	c.Logger().Debugf("Back: %v", backUrl)
 
-	// Fix link
-	animal.Discovery.Discoverer.ID = animal.Discovery.DiscovererID
+	// Fix link. When the discoverer picker (issue #85) selected an existing
+	// discoverer, the bound ID differs from the currently linked one:
+	// re-link the discovery to the selected record (its data is updated
+	// below with the prefilled, possibly edited form values).
+	relinkPickedDiscoverer(animal)
 
 	// Validate the data from the html form
 	updateModels := []interface{}{

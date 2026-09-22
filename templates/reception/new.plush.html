@@ -330,6 +330,58 @@
 
                 <div class="container p-3 my-3 border">
                     <h4>Discoverer</h4>
+                    <div class="form-row">
+                      <div class="form-group col-md-12">
+                        <label for="discoverer-lookup"><%= t("reports.discoverers.picker.label") %></label>
+                        <input type="text" id="discoverer-lookup" class="form-control" autocomplete="off" placeholder="<%= t("reports.discoverers.picker.hint") %>">
+                        <input type="hidden" name="Discovery.Discoverer.ID" id="discoverer-id">
+                      </div>
+                    </div>
+                    <script>
+                      (function() {
+                        var records = [];
+                        function fillDiscoverer(d) {
+                          $('#discoverer-id').val(d.id);
+                          $('input[name="Discovery.Discoverer.Firstname"]').val(d.firstname);
+                          $('input[name="Discovery.Discoverer.Lastname"]').val(d.lastname);
+                          $('input[name="Discovery.Discoverer.Address"]').val(d.address);
+                          $('input[name="Discovery.Discoverer.PostalCode"]').val(d.postal_code);
+                          $('input[name="Discovery.Discoverer.City"]').val(d.city);
+                          $('input[name="Discovery.Discoverer.Country"]').val(d.country);
+                          $('input[name="Discovery.Discoverer.Email"]').val(d.email);
+                          $('input[name="Discovery.Discoverer.Phone"]').val(d.phone);
+                          var don = $('input[name="Discovery.Discoverer.Donation"]');
+                          if (don.length) { don.val(d.donation); }
+                          $('input[name="Discovery.Discoverer.ReturnRequest"]').prop('checked', !!d.return_request);
+                        }
+                        // Any manual edit of a discoverer field detaches the
+                        // picked record so a new discoverer is created instead
+                        // of silently updating the existing one. Delegated:
+                        // the fields are rendered after this script runs.
+                        $(document).on('input', 'input[name^="Discovery.Discoverer."]:not(#discoverer-id)', function() {
+                          $('#discoverer-id').val('');
+                        });
+                        $('#discoverer-lookup').autoComplete({
+                          delay: 250,
+                          cache: 0,
+                          minChars: 2,
+                          renderItem: function(item, search) {
+                            return '<div class="autocomplete-suggestion" data-val="' + item.label + '" data-idx="' + records.indexOf(item) + '">' + item.label + '</div>';
+                          },
+                          onSelect: function(e, term, item) {
+                            var d = records[$(item).data('idx')];
+                            if (d) { fillDiscoverer(d); }
+                          },
+                          source: function(term, response) {
+                            $.getJSON('/suggestions/discoverer_lookup', { q: term }, function(data) {
+                              records = data;
+                              response(data.map(function(d) { return d; }));
+                            });
+                          }
+                        });
+                      })();
+                    </script>
+
                 
                     <div class="form-row">  
                     <%= f.InputTag("Discovery.Discoverer.Firstname", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"First Name"}) %>

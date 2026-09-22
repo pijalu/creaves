@@ -1,0 +1,65 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("reports.discoverers.title") %></h3>
+</div>
+
+<form>
+  <div class="form-group row">
+    <label for="year" class="col-2 col-form-label"><%= t("reports.annual.year") %></label>
+    <div class="col-1O">
+      <select id="year" name="year" class="form-control" onchange="this.form.submit()">
+        <%= for (y) in years { %>
+          <option
+          <%= if (y.Selected) {%>
+            selected
+          <% } %>
+          ><%=y.Year%></option>
+        <% } %>
+      </select>
+    </div>
+  </div>
+</form>
+
+<div class="text-right">
+  <a href="/reports/discoverers/export.csv?year=<%= selectedYear %>" target="_new" title="Export CSV"><i class="fas fa-cloud-download-alt"></i></a>
+</div>
+
+<%= if (len(discovererRows) > 0) { %>
+<table class="table table-hover table-bordered table-striped">
+  <thead class="thead-light">
+    <th><%= t("reports.discoverers.csv.lastname") %></th>
+    <th><%= t("reports.discoverers.csv.firstname") %></th>
+    <th><%= t("reports.discoverers.csv.address") %></th>
+    <th><%= t("reports.discoverers.csv.postal_code") %></th>
+    <th><%= t("reports.discoverers.csv.city") %></th>
+    <th><%= t("reports.discoverers.csv.country") %></th>
+    <th><%= t("reports.discoverers.csv.email") %></th>
+    <th><%= t("reports.discoverers.csv.phone") %></th>
+    <th><%= t("reports.discoverers.csv.animal") %></th>
+    <th><%= t("reports.discoverers.csv.species") %></th>
+  </thead>
+  <tbody>
+    <%= for (row) in discovererRows { %>
+      <tr>
+        <td class="align-middle"><a href="/discoverers/<%= row.DiscovererID %>"><%= row.Lastname %></a></td>
+        <td class="align-middle"><%= row.Firstname %></td>
+        <td class="align-middle"><%= row.Address %></td>
+        <td class="align-middle"><%= row.PostalCode %></td>
+        <td class="align-middle"><%= row.City %></td>
+        <td class="align-middle"><%= row.Country %></td>
+        <td class="align-middle"><%= row.Email %></td>
+        <td class="align-middle"><%= row.Phone %></td>
+        <td class="align-middle">
+          <%= if (row.AnimalID.Valid) { %>
+            <a class="btn btn-primary btn-sm" href="/animals/<%= row.AnimalID.Int %>"><%= row.AnimalNumber() %></a>
+          <% } %>
+        </td>
+        <td class="align-middle">
+          <%= if (row.Species.Valid) { %><%= tspecies(row.Species.String) %><% } %>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+<% } else { %>
+<p><%= t("reports.discoverers.none") %></p>
+<% } %>

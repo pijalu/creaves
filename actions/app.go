@@ -233,6 +233,10 @@ func App() *buffalo.App {
 		app.POST("/reports/corpses/unmark", ReportsCorpsesUnmark)
 		app.GET("/suggestions/corpse_destination", SuggestionsCorpseDestination)
 
+		app.GET("/reports/discoverers", ReportsDiscoverersIndex)
+		app.GET("/reports/discoverers/export.csv", ReportsDiscoverersExportCSV)
+		app.GET("/suggestions/discoverer_lookup", SuggestionsDiscovererLookup)
+
 		app.GET("/todos", TodosIndex)
 		app.GET("/todos/new", TodosNew)
 		app.POST("/todos", TodosCreate)
