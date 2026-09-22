@@ -108,4 +108,9 @@ rows; repeat one filtered view in `de` locale for label localization.
 
 ## Issues found during work
 
-_(appended as discovered)_
+- Bug 2: `templates/users/show.plush.html` has full locale variants
+  (`show.plush.fr.html`, `.de.html`, `.nl.html`) — the fix had to be applied to
+  all four files, not only the base template (all-language UI rule).
+- Bug 1: measured root cause was page-level horizontal overflow (scrollWidth
+  727px at 375px viewport), not width:auto shrink as first suspected; plan
+  updated (plan §Bug 1).

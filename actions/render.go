@@ -115,6 +115,17 @@ func uiLang(help plush.HelperContext) string {
 	return "fr"
 }
 
+// boolLabel renders a boolean as two caller-provided localized labels
+// (e.g. t("users.yes") / t("users.no")) instead of Go's raw true/false.
+// Used by templates where a yes/no answer reads better than the ✓/× icon of
+// bool2html.
+func boolLabel(s bool, yes, no string) string {
+	if s {
+		return yes
+	}
+	return no
+}
+
 // stayDurationHours renders an outtake stay duration (whole hours) in a
 // human-friendly way: plain hours up to 48h ("36 h"), days-hours above
 // ("5 d - 3 h"). Unit labels are provided by the localized templates.
@@ -158,6 +169,9 @@ func init() {
 					return "×"
 				}
 			},
+			// boolLabel renders a boolean as two caller-provided localized labels
+			// (e.g. t("users.yes") / t("users.no")) instead of Go's true/false.
+			"boolLabel": boolLabel,
 			"dbgDump": func(s any) string {
 				return fmt.Sprintf("%v", s)
 			},

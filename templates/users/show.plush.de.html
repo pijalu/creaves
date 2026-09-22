@@ -53,17 +53,17 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Administrator</label>
-    <p class="d-inline-block"><%= user.Admin %></p>
+    <p class="d-inline-block"><%= boolLabel(user.Admin, t("users.yes"), t("users.no")) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Genehmigt</label>
-    <p class="d-inline-block"><%= user.Approved %></p>
+    <p class="d-inline-block"><%= boolLabel(user.Approved, t("users.yes"), t("users.no")) %></p>
   </li>
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Geteiltes Konto</label>
-    <p class="d-inline-block"><%= user.Shared %></p>
+    <p class="d-inline-block"><%= boolLabel(user.Shared, t("users.yes"), t("users.no")) %></p>
   </li>
 
   <li class="list-group-item pb-1">

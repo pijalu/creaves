@@ -104,3 +104,7 @@
   translation: "Actif"
 - id: "users.index.status_pending"
   translation: "En attente d'approbation"
+- id: "users.yes"
+  translation: "Oui"
+- id: "users.no"
+  translation: "Non"
