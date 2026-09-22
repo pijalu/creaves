@@ -4,6 +4,7 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -146,9 +147,76 @@ func SuggestionsCorpseDestination(c buffalo.Context) error {
 	return suggest(c, "outtakes", "corpse_destination")
 }
 
-// SuggestionsDiscovererCity default implementation.
+// Discoverer city values in the production database sometimes merge the zip
+// code into the city ("67000 Strasbourg"). Stored rows are never rewritten
+// (production data); instead the search endpoints clean what they return so
+// searching still matches and autocomplete fill produces correct values
+// (bugs.md #9).
+var (
+	// leadingZipInCityRe matches "67000 Strasbourg" / "B-6700 Strasbourg".
+	leadingZipInCityRe = regexp.MustCompile(`(?i)^(?:[a-z]{1,3}-)?(\d{4,6})\s+(\S.*)$`)
+	// trailingZipInCityRe matches "Strasbourg 67000" / "Strasbourg B-6700".
+	trailingZipInCityRe = regexp.MustCompile(`^(.+?)\s+(?:[a-zA-Z]{1,3}-)?(\d{4,6})$`)
+)
+
+// splitPostalCity separates a postal code accidentally merged into the city
+// value. The extracted zip is adopted as the postal code when that field is
+// empty; the returned city is always the clean city name.
+func splitPostalCity(postal, city string) (string, string) {
+	city = strings.TrimSpace(city)
+	postal = strings.TrimSpace(postal)
+	if m := leadingZipInCityRe.FindStringSubmatch(city); m != nil {
+		if postal == "" {
+			postal = m[1]
+		}
+		return postal, strings.TrimSpace(m[2])
+	}
+	if m := trailingZipInCityRe.FindStringSubmatch(city); m != nil {
+		if postal == "" {
+			postal = m[2]
+		}
+		return postal, strings.TrimSpace(m[1])
+	}
+	return postal, city
+}
+
+// SuggestionsDiscovererCity returns the distinct discoverer city values for
+// the city autocomplete on the discoverer form. The LIKE filter runs on the
+// raw stored values — so a search for a zip still finds the merged entries —
+// but the returned suggestions are cleaned and de-duplicated so filling the
+// form yields a correct city (bugs.md #9).
 func SuggestionsDiscovererCity(c buffalo.Context) error {
-	return suggest(c, "discoverers", "city")
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+
+	q := c.Param("q")
+	query := "SELECT DISTINCT city FROM discoverers"
+	var args []interface{}
+	if len(q) > 0 {
+		query += " WHERE city LIKE ?"
+		args = append(args, "%"+q+"%")
+	}
+	query += " ORDER BY 1 LIMIT 25"
+
+	raw := []string{}
+	if err := tx.RawQuery(query, args...).All(&raw); err != nil {
+		return err
+	}
+
+	seen := map[string]bool{}
+	s := make([]string, 0, len(raw))
+	for _, v := range raw {
+		_, city := splitPostalCity("", v)
+		if city == "" || seen[city] {
+			continue
+		}
+		seen[city] = true
+		s = append(s, city)
+	}
+
+	return c.Render(200, r.JSON(s))
 }
 
 // SuggestionsDiscovererCountry default implementation.

@@ -235,7 +235,11 @@ func SuggestionsDiscovererLookup(c buffalo.Context) error {
 	}
 
 	discoverers := models.Discoverers{}
-	if err := tx.Where("firstname LIKE ? OR lastname LIKE ?", "%"+q+"%", "%"+q+"%").
+	// Search names, but also city / postal code: stored city values may
+	// merge the zip ("67000 Strasbourg") and users search by either part
+	// (bugs.md #9).
+	if err := tx.Where("firstname LIKE ? OR lastname LIKE ? OR city LIKE ? OR postal_code LIKE ?",
+		"%"+q+"%", "%"+q+"%", "%"+q+"%", "%"+q+"%").
 		Order("lastname asc, firstname asc").
 		Limit(10).
 		All(&discoverers); err != nil {
@@ -244,8 +248,11 @@ func SuggestionsDiscovererLookup(c buffalo.Context) error {
 
 	entries := make([]discovererLookupEntry, 0, len(discoverers))
 	for _, d := range discoverers {
+		// Fill must be correct: split a zip merged into the stored city
+		// before building the entry and its display label (bugs.md #9).
+		postalCode, city := splitPostalCity(d.PostalCode.String, d.City.String)
 		name := strings.TrimSpace(d.Firstname.String + " " + d.Lastname.String)
-		place := strings.Trim(strings.TrimSpace(d.Address.String+", "+d.PostalCode.String+" "+d.City.String), ", ")
+		place := strings.Trim(strings.TrimSpace(d.Address.String+", "+postalCode+" "+city), ", ")
 		label := name
 		if place != "" {
 			label = name + " — " + place
@@ -255,8 +262,8 @@ func SuggestionsDiscovererLookup(c buffalo.Context) error {
 			Firstname:     d.Firstname.String,
 			Lastname:      d.Lastname.String,
 			Address:       d.Address.String,
-			PostalCode:    d.PostalCode.String,
-			City:          d.City.String,
+			PostalCode:    postalCode,
+			City:          city,
 			Country:       d.Country.String,
 			Email:         d.Email.String,
 			Phone:         d.Phone.String,
