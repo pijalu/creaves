@@ -34,6 +34,8 @@ func TestSplitPostalCity(t *testing.T) {
 		{"leading zip, existing postal kept", "67000", "67000 Strasbourg", "67000", "Strasbourg"},
 		{"trailing zip", "", "Strasbourg 67000", "67000", "Strasbourg"},
 		{"country-prefixed zip", "", "B-6700 Sankt Vith", "6700", "Sankt Vith"},
+		{"underscore variant", "", "4280_Avin", "4280", "Avin"},
+		{"underscore variant with trailing space", "", "1300_Wavre ", "1300", "Wavre"},
 		{"already clean", "67000", "Strasbourg", "67000", "Strasbourg"},
 		{"empty city", "", "", "", ""},
 		{"city only", "", "Strasbourg", "", "Strasbourg"},
@@ -59,6 +61,8 @@ func seedMixedCityDiscoverer(t *testing.T, firstname, lastname, city string) *mo
 		Firstname: nulls.NewString(firstname),
 		Lastname:  nulls.NewString(lastname),
 		City:      nulls.NewString(city),
+		Email:     nulls.NewString("gaelle@example.org"),
+		Note:      nulls.NewString("seeded note for fill check"),
 	}
 	require.NoError(t, tx.Create(d))
 	t.Cleanup(func() {
@@ -98,6 +102,8 @@ func TestDiscovererLookupMatchesMixedCity(t *testing.T) {
 			require.NotNil(t, found, "discoverer must be returned for query %q", q)
 			assert.Equal(t, "Strasbourg", found.City, "city must be clean")
 			assert.Equal(t, "67000", found.PostalCode, "zip must move to the postal code")
+			assert.Equal(t, "seeded note for fill check", found.Note, "note must round-trip so the form can fill every discoverer field")
+			assert.Equal(t, "gaelle@example.org", found.Email, "email must round-trip")
 			assert.NotContains(t, found.Label, "67000 67000", "label must not duplicate the zip")
 			assert.Contains(t, found.Label, "Strasbourg", "label shows the details")
 		})

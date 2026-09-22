@@ -153,10 +153,11 @@ func SuggestionsCorpseDestination(c buffalo.Context) error {
 // searching still matches and autocomplete fill produces correct values
 // (bugs.md #9).
 var (
-	// leadingZipInCityRe matches "67000 Strasbourg" / "B-6700 Strasbourg".
-	leadingZipInCityRe = regexp.MustCompile(`(?i)^(?:[a-z]{1,3}-)?(\d{4,6})\s+(\S.*)$`)
+	// leadingZipInCityRe matches "67000 Strasbourg", "B-6700 Strasbourg"
+	// and the underscore variant "4280_Avin" found in production data.
+	leadingZipInCityRe = regexp.MustCompile(`(?i)^(?:[a-z]{1,3}-)?(\d{4,6})[_\s]+(\S.*)$`)
 	// trailingZipInCityRe matches "Strasbourg 67000" / "Strasbourg B-6700".
-	trailingZipInCityRe = regexp.MustCompile(`^(.+?)\s+(?:[a-zA-Z]{1,3}-)?(\d{4,6})$`)
+	trailingZipInCityRe = regexp.MustCompile(`^(.+?)[_\s]+(?:[a-zA-Z]{1,3}-)?(\d{4,6})$`)
 )
 
 // splitPostalCity separates a postal code accidentally merged into the city

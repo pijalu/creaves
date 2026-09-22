@@ -215,6 +215,7 @@ type discovererLookupEntry struct {
 	Country       string    `json:"country"`
 	Email         string    `json:"email"`
 	Phone         string    `json:"phone"`
+	Note          string    `json:"note"`
 	Donation      string    `json:"donation"`
 	ReturnRequest bool      `json:"return_request"`
 	Label         string    `json:"label"`
@@ -267,6 +268,7 @@ func SuggestionsDiscovererLookup(c buffalo.Context) error {
 			Country:       d.Country.String,
 			Email:         d.Email.String,
 			Phone:         d.Phone.String,
+			Note:          d.Note.String,
 			Donation:      d.Donation.String,
 			ReturnRequest: d.ReturnRequest,
 			Label:         label,
