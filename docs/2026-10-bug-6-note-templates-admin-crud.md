@@ -78,6 +78,30 @@ be admin-only; the care form must only consume templates.
      Delete all work (captured output).
    - Non-admin check (unit tests cover the 303 redirect; e2e optional).
 
+## E2E evidence (agent-browser, 2026-09-22, http://127.0.0.1:3000, admin/admin)
+
+1. **Care form select/insert only** — `/cares/new?animal_year_number=927/22`:
+   `get count "#careTemplateSave"` → **0**, `#careTemplateDelete` → **0**,
+   `#careTemplateInsert` → **1**, `#careTemplateSelect` → **1**. Setting
+   `#care-TypeID` to Monitoring (suivi) fires change → row unhidden
+   (`careTemplateRow` class `form-group`, no `d-none`).
+2. **Admin list** — `/care_templates`: heading "Note templates", button
+   "Create New Template", columns Name/Content/Owner.
+3. **Create** — new form filled (E2E-Test / "E2E content") → Save → 303 back
+   to `/care_templates`, row `E2E-Test | E2E content | admin` present.
+4. **Edit** — `/care_templates/{id}/edit/` pre-filled; renamed to
+   `E2E-Test-2` → back on list, row shows `E2E-Test-2`.
+5. **Delete** — Destroy link → JS confirm "Are you sure?" accepted → list
+   body empty.
+6. **Shared pool in care form** — after creating `E2E-Select`,
+   `/cares/new?animal_year_number=927/22` select options = `2 | ,E2E-Select`
+   (loaded from `GET /suggestions/care_templates`). E2E template deleted
+   afterwards (list empty again).
+
+Gates: `GO_ENV=test go test ./actions/ -run CareTemplates` ok; `go vet` ok;
+`staticcheck` ok; gocognit/gocyclo offender sets unchanged vs baseline; full
+`GO_ENV=test go test -count=1 -race -cover ./...` ok.
+
 ## Issues found during the work
 
 - **`buffalo.Context#Redirect` returns `nil` after writing the response**
