@@ -3,7 +3,6 @@ package actions
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 	"testing"
 	"time"
 
@@ -77,7 +76,9 @@ func TestEventStreamsResetAttempts(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/"+ev.ID.String()+"/reset_attempts", nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
-	req.URL.RawQuery = "authenticity_token=" + url.QueryEscape(token)
+	// buffalo v1.1.4 CSRF no longer reads the token from the query string:
+	// send it in the X-CSRF-Token header instead.
+	req.Header.Set("X-CSRF-Token", token)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -101,6 +102,7 @@ func TestEventStreamsResetAttempts(t *testing.T) {
 func TestEventStreamsResetAttempts404(t *testing.T) {
 	requireMySQLSuite(t)
 	client, baseURL := adminClientWithURL(t)
+	token := todoToken(t, client, baseURL, "/event_streams")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/"+uuid.Must(uuid.NewV4()).String()+"/reset_attempts", nil)
 	require.NoError(t, err)
@@ -108,6 +110,7 @@ func TestEventStreamsResetAttempts404(t *testing.T) {
 	// must be set so the request matches how the endpoint is consumed — and
 	// mw-csrf's HTML-form inspection path is not applicable to it.
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("X-CSRF-Token", token)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -141,7 +144,9 @@ func TestEventStreamsResetUndeliverable(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/reset_undeliverable", nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
-	req.URL.RawQuery = "authenticity_token=" + url.QueryEscape(token)
+	// buffalo v1.1.4 CSRF no longer reads the token from the query string:
+	// send it in the X-CSRF-Token header instead.
+	req.Header.Set("X-CSRF-Token", token)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()

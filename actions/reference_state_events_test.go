@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -83,16 +82,20 @@ func refStateDelete(t *testing.T, path, replacementID string) {
 }
 
 // refStatePost issues an admin POST with a replacement_id JSON body and
-// asserts the expected status. JSON content type bypasses the CSRF form
-// check so the helper works with or without GO_ENV=test.
+// asserts the expected status. Since the buffalo v1.1.4 upgrade the CSRF
+// middleware no longer exempts JSON requests and no longer reads the token
+// from the query string, so the token is fetched from a page and sent in
+// the X-CSRF-Token header.
 func refStatePost(t *testing.T, wantStatus int, path, replacementID string) {
 	t.Helper()
-	client := adminClient(t)
-	srv := httptest.NewServer(App())
-	t.Cleanup(srv.Close)
+	client, baseURL := adminClientWithURL(t)
+	token := todoToken(t, client, baseURL, "/")
 	body := fmt.Sprintf(`{"replacement_id": %q}`, replacementID)
-	resp, err := client.Post(srv.URL+path, "application/json",
-		strings.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, baseURL+path, strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-CSRF-Token", token)
+	resp, err := client.Do(req)
 	require.NoError(t, err)
 	respBody, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()

@@ -266,7 +266,9 @@ func TestSyncTargetRetryUndeliverable(t *testing.T) {
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/sync_targets/"+target.ID.String()+"/retry_undeliverable", nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "application/json")
-	req.URL.RawQuery = "authenticity_token=" + url.QueryEscape(token)
+	// buffalo v1.1.4 CSRF no longer reads the token from the query string:
+	// send it in the X-CSRF-Token header instead.
+	req.Header.Set("X-CSRF-Token", token)
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
