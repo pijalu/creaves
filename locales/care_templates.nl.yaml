@@ -1,0 +1,8 @@
+- id: "care_templates.admin.restricted"
+  translation: "Beheer van notitiesjablonen is voorbehouden aan beheerders."
+- id: "care_templates.created.success"
+  translation: "Notitiesjabloon succesvol aangemaakt."
+- id: "care_templates.updated.success"
+  translation: "Notitiesjabloon succesvol bijgewerkt."
+- id: "care_templates.destroyed.success"
+  translation: "Notitiesjabloon succesvol verwijderd."

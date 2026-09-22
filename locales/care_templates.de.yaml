@@ -1,0 +1,8 @@
+- id: "care_templates.admin.restricted"
+  translation: "Die Verwaltung der Notizvorlagen ist Administratoren vorbehalten."
+- id: "care_templates.created.success"
+  translation: "Notizvorlage erfolgreich erstellt."
+- id: "care_templates.updated.success"
+  translation: "Notizvorlage erfolgreich aktualisiert."
+- id: "care_templates.destroyed.success"
+  translation: "Notizvorlage erfolgreich gelöscht."

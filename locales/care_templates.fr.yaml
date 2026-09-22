@@ -1,0 +1,8 @@
+- id: "care_templates.admin.restricted"
+  translation: "La gestion des modèles de note est réservée aux administrateurs."
+- id: "care_templates.created.success"
+  translation: "Modèle de note créé avec succès."
+- id: "care_templates.updated.success"
+  translation: "Modèle de note mis à jour avec succès."
+- id: "care_templates.destroyed.success"
+  translation: "Modèle de note supprimé avec succès."

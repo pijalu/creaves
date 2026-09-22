@@ -2,8 +2,6 @@ package actions
 
 import (
 	"creaves/models"
-	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -109,69 +107,4 @@ func createAutoSupportCare(c buffalo.Context, tx *pop.Connection, care *models.C
 // already recorded on cares (issue #158).
 func SuggestionsHeatSource(c buffalo.Context) error {
 	return suggest(c, "cares", "heat_source")
-}
-
-// CareTemplatesIndex lists the current user's note templates (issue #158).
-func CareTemplatesIndex(c buffalo.Context) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-	user := GetCurrentUser(c)
-	if user == nil {
-		return c.Error(http.StatusUnauthorized, fmt.Errorf("not authenticated"))
-	}
-	templates := &models.CareTemplates{}
-	if err := tx.Where("user_id = ?", user.ID).Order("name asc").All(templates); err != nil {
-		return err
-	}
-	return c.Render(http.StatusOK, r.JSON(templates))
-}
-
-// CareTemplatesCreate stores a new note template for the current user.
-func CareTemplatesCreate(c buffalo.Context) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-	user := GetCurrentUser(c)
-	if user == nil {
-		return c.Error(http.StatusUnauthorized, fmt.Errorf("not authenticated"))
-	}
-
-	tpl := &models.CareTemplate{}
-	if err := c.Bind(tpl); err != nil {
-		return err
-	}
-	tpl.ID = uuid.Must(uuid.NewV4())
-	tpl.UserID = user.ID
-
-	if verrs, err := tx.ValidateAndCreate(tpl); err != nil || verrs.HasAny() {
-		return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
-	}
-	return c.Render(http.StatusCreated, r.JSON(tpl))
-}
-
-// CareTemplatesDestroy deletes a template; owner or admin only.
-func CareTemplatesDestroy(c buffalo.Context) error {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-	user := GetCurrentUser(c)
-	if user == nil {
-		return c.Error(http.StatusUnauthorized, fmt.Errorf("not authenticated"))
-	}
-
-	tpl := &models.CareTemplate{}
-	if err := tx.Find(tpl, c.Param("care_template_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
-	}
-	if tpl.UserID != user.ID && !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
-	}
-	if err := tx.Destroy(tpl); err != nil {
-		return err
-	}
-	return c.Render(http.StatusOK, r.JSON(map[string]string{"status": "deleted"}))
 }

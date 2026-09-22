@@ -1,0 +1,8 @@
+- id: "care_templates.admin.restricted"
+  translation: "Note template management is restricted to administrators."
+- id: "care_templates.created.success"
+  translation: "Note template created successfully."
+- id: "care_templates.updated.success"
+  translation: "Note template updated successfully."
+- id: "care_templates.destroyed.success"
+  translation: "Note template deleted successfully."

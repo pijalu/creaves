@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
+	"net/url"
 	"testing"
 	"time"
 
@@ -197,101 +197,151 @@ func TestSuggestionsHeatSource158(t *testing.T) {
 	require.NoError(t, json.Unmarshal(body, &got), "body: %s", body)
 	require.Contains(t, got, heat)
 }
-
-func TestCareTemplatesLifecycle158(t *testing.T) {
+// TestCareTemplatesAdminCRUD158 (bugs.md bug 6): note templates are an
+// admin-managed shared pool. Admin HTML flow: list, create, 422 on invalid,
+// edit, update, delete — the created template is owned by the admin.
+func TestCareTemplatesAdminCRUD158(t *testing.T) {
 	login, password := feedingGuideUser(t, true)
 	client, baseURL := feedingGuideLogin(t, login, password)
 
-	// create
-	req, err := http.NewRequest("POST", baseURL+"/care_templates",
-		strings.NewReader(`{"Name":"TPL note","Content":"Animal calme, à surveiller."}`))
+	cu := &models.User{}
+	require.NoError(t, models.DB.Where("login = ?", login).First(cu))
+
+	// create (form POST → 303 back to the list)
+	resp, err := client.PostForm(baseURL+"/care_templates", url.Values{
+		"Name":    {"TPL admin"},
+		"Content": {"Animal calme, à surveiller."},
+	})
 	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := client.Do(req)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	row := &models.CareTemplate{}
+	require.NoError(t, models.DB.Where("name = ?", "TPL admin").First(row))
+	require.Equal(t, cu.ID, row.UserID, "template must be owned by the creating admin")
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM care_templates WHERE id = ?", row.ID).Exec()
+	})
+
+	// list renders it with its owner
+	resp, err = client.Get(baseURL + "/care_templates")
 	require.NoError(t, err)
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.NoError(t, err)
-	require.Equal(t, http.StatusCreated, resp.StatusCode, "body: %s", body)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Contains(t, string(body), "TPL admin")
+	require.Contains(t, string(body), login)
 
-	var created models.CareTemplate
-	require.NoError(t, json.Unmarshal(body, &created))
-	require.NotEmpty(t, created.ID)
-	uid := created.ID
-	t.Cleanup(func() {
-		models.DB.RawQuery("DELETE FROM care_templates WHERE id = ?", uid).Exec()
+	// invalid create → 422 re-render
+	resp, err = client.PostForm(baseURL+"/care_templates", url.Values{
+		"Name": {" "}, "Content": {""},
 	})
-
-	// created for the logged-in user
-	row := &models.CareTemplate{}
-	require.NoError(t, models.DB.Find(row, uid))
-	cu := &models.User{}
-	require.NoError(t, models.DB.Where("login = ?", login).First(cu))
-	require.Equal(t, cu.ID, row.UserID)
-
-	// invalid payload → 422
-	req, err = http.NewRequest("POST", baseURL+"/care_templates", strings.NewReader(`{"Name":"","Content":""}`))
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err = client.Do(req)
 	require.NoError(t, err)
 	resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode)
 
-	// index lists it
-	resp, err = client.Get(baseURL + "/care_templates")
+	// edit form renders the template
+	resp, err = client.Get(baseURL+"/care_templates/"+row.ID.String()+"/edit")
 	require.NoError(t, err)
 	body, err = io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	require.Contains(t, string(body), "TPL note")
+	require.Contains(t, string(body), "TPL admin")
 
-	// delete
-	req, err = http.NewRequest("POST", baseURL+"/care_templates/"+uid.String()+"/delete", nil)
-	require.NoError(t, err)
-	resp, err = client.Do(req)
+	// update via _method=PUT (buffalo method override)
+	resp, err = client.PostForm(baseURL+"/care_templates/"+row.ID.String(), url.Values{
+		"_method": {"PUT"},
+		"Name":    {"TPL admin renamed"},
+		"Content": {"updated content"},
+	})
 	require.NoError(t, err)
 	resp.Body.Close()
-	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
 
-	cnt, err := models.DB.Where("id = ?", uid).Count(&models.CareTemplate{})
+	updated := &models.CareTemplate{}
+	require.NoError(t, models.DB.Find(updated, row.ID))
+	require.Equal(t, "TPL admin renamed", updated.Name)
+	require.Equal(t, "updated content", updated.Content)
+	require.Equal(t, cu.ID, updated.UserID, "owner must be preserved on update")
+
+	// delete via _method=DELETE
+	resp, err = client.PostForm(baseURL+"/care_templates/"+row.ID.String(), url.Values{
+		"_method": {"DELETE"},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	cnt, err := models.DB.Where("id = ?", row.ID).Count(&models.CareTemplate{})
 	require.NoError(t, err)
 	require.Equal(t, 0, cnt, "template must be deleted")
 }
 
-func TestCareTemplatesOwnership158(t *testing.T) {
+// TestCareTemplatesAdminOnly158 (bugs.md bug 6): non-admin users cannot manage
+// templates (every management verb redirects home, data untouched) but the
+// care-form suggestion endpoint serves them the full shared pool.
+func TestCareTemplatesAdminOnly158(t *testing.T) {
 	tx := searchTestDB(t)
 
+	// a template owned by another user (the shared pool)
 	owner := &models.User{ID: uuid.Must(uuid.NewV4()), Login: "TSCtOwner-" + uuid.Must(uuid.NewV4()).String()[:8], PasswordHash: "x"}
 	require.NoError(t, tx.Create(owner))
 	t.Cleanup(func() { tx.RawQuery("DELETE FROM users WHERE id = ?", owner.ID).Exec() })
 
-	tpl := &models.CareTemplate{ID: uuid.Must(uuid.NewV4()), UserID: owner.ID, Name: "OwnerTpl-" + owner.Login, Content: "x"}
+	tpl := &models.CareTemplate{ID: uuid.Must(uuid.NewV4()), UserID: owner.ID, Name: "SharedTpl-" + owner.Login, Content: "x"}
 	require.NoError(t, tx.Create(tpl))
 	t.Cleanup(func() { tx.RawQuery("DELETE FROM care_templates WHERE id = ?", tpl.ID).Exec() })
 
-	// a non-admin must be refused on somebody else's template
 	login, password := feedingGuideUser(t, false)
 	client, baseURL := feedingGuideLogin(t, login, password)
-	req, err := http.NewRequest("POST", baseURL+"/care_templates/"+tpl.ID.String()+"/delete", nil)
-	require.NoError(t, err)
-	resp, err := client.Do(req)
-	require.NoError(t, err)
-	resp.Body.Close()
-	require.Equal(t, http.StatusForbidden, resp.StatusCode)
 
-	// the admin may delete it
-	alogin, apassword := feedingGuideUser(t, true)
-	aclient, abaseURL := feedingGuideLogin(t, alogin, apassword)
-	req, err = http.NewRequest("POST", abaseURL+"/care_templates/"+tpl.ID.String()+"/delete", nil)
-	require.NoError(t, err)
-	resp, err = aclient.Do(req)
+	// remove stale rows from earlier failed runs so the create-assert is exact
+	require.NoError(t, tx.RawQuery("DELETE FROM care_templates WHERE name = ?", "Hax").Exec())
+
+	// GET list → redirect home
+	resp, err := client.Get(baseURL + "/care_templates")
 	require.NoError(t, err)
 	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	// POST create → redirect, nothing stored
+	resp, err = client.PostForm(baseURL+"/care_templates", url.Values{
+		"Name": {"Hax"}, "Content": {"Hax"},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	cnt, err := tx.Where("name = ?", "Hax").Count(&models.CareTemplate{})
+	require.NoError(t, err)
+	require.Equal(t, 0, cnt, "non-admin must not create templates")
+
+	// DELETE → redirect, template untouched
+	resp, err = client.PostForm(baseURL+"/care_templates/"+tpl.ID.String(), url.Values{
+		"_method": {"DELETE"},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	cnt, err = tx.Where("id = ?", tpl.ID).Count(&models.CareTemplate{})
+	require.NoError(t, err)
+	require.Equal(t, 1, cnt, "non-admin must not delete templates")
+
+	// the care form suggestion endpoint exposes the shared pool
+	resp, err = client.Get(baseURL + "/suggestions/care_templates")
+	require.NoError(t, err)
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	cnt, err := tx.Where("id = ?", tpl.ID).Count(&models.CareTemplate{})
-	require.NoError(t, err)
-	require.Equal(t, 0, cnt, "admin delete must remove the template")
+	var got []models.CareTemplate
+	require.NoError(t, json.Unmarshal(body, &got), "body: %s", body)
+	found := false
+	for _, g := range got {
+		if g.ID == tpl.ID {
+			found = true
+		}
+	}
+	require.True(t, found, "shared pool must contain other users' templates, body: %s", body)
 }

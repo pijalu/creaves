@@ -30,8 +30,6 @@
     <select class="form-control" id="careTemplateSelect"><option value=""></option></select>
     <div class="input-group-append">
       <button type="button" class="btn btn-outline-secondary" id="careTemplateInsert">Insert</button>
-      <button type="button" class="btn btn-outline-success" id="careTemplateSave">Save as template</button>
-      <button type="button" class="btn btn-outline-danger" id="careTemplateDelete">Delete</button>
     </div>
   </div>
 </div>
@@ -48,7 +46,7 @@ $( document ).ready(function(){
     var $sel = $('#careTemplateSelect');
 
     function refreshTemplates() {
-        $.getJSON('/care_templates', function(data){
+        $.getJSON('/suggestions/care_templates', function(data){
             $sel.find('option:not(:first)').remove();
             $.each(data, function(i, t){
                 $sel.append($('<option>', { value: t.id, text: t.name, 'data-content': t.content }));
@@ -67,29 +65,6 @@ $( document ).ready(function(){
     $('#careTemplateInsert').on('click', function(){
         var content = $sel.find('option:selected').data('content');
         if (content) { $('#care-Note').val(content); }
-    });
-
-    $('#careTemplateSave').on('click', function(){
-        var content = $('#care-Note').val();
-        if (!content) { return; }
-        var name = window.prompt('Template name');
-        if (!name) { return; }
-        $.ajax({
-            url: '/care_templates',
-            method: 'POST',
-            data: { Name: name, Content: content },
-            headers: { 'X-CSRF-Token': csrfToken }
-        }).done(function(){ refreshTemplates(); });
-    });
-
-    $('#careTemplateDelete').on('click', function(){
-        var id = $sel.val();
-        if (!id) { return; }
-        $.ajax({
-            url: '/care_templates/' + id + '/delete',
-            method: 'POST',
-            headers: { 'X-CSRF-Token': csrfToken }
-        }).done(function(){ refreshTemplates(); });
     });
 
     // ---- ±10% weight deviation warning (issue #158) ----
