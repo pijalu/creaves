@@ -210,10 +210,10 @@ func normalizeTemplate(t *testing.T, src string) string {
 	for {
 		i := strings.Index(s, "<%")
 		if i < 0 {
-			b.WriteString(normalizeQuotes(s))
+			b.WriteString(normalizeQuotesInTags(s))
 			break
 		}
-		b.WriteString(normalizeQuotes(s[:i]))
+		b.WriteString(normalizeQuotesInTags(s[:i]))
 		j := strings.Index(s[i:], "%>")
 		if j < 0 {
 			t.Fatalf("unterminated plush expression near %q", clip(s[i:], 60))
@@ -246,6 +246,7 @@ var tagGapRe = regexp.MustCompile(`(\x02|>)[^<\x01]*(\x01|<)`)
 
 // normalizeQuotes removes "..." and '...' literals so translated copy inside
 // attributes/JS cannot mask real structural drift (and vice versa).
+// Used for plush expressions, where every quote is a literal delimiter.
 func normalizeQuotes(s string) string {
 	var b strings.Builder
 	b.Grow(len(s))
@@ -262,6 +263,49 @@ func normalizeQuotes(s string) string {
 		case '\'':
 			end := strings.IndexByte(s[i+1:], '\'')
 			if end < 0 {
+				b.WriteByte(s[i])
+				continue
+			}
+			b.WriteString(`'·'`)
+			i += end + 1
+		default:
+			b.WriteByte(s[i])
+		}
+	}
+	return b.String()
+}
+
+// normalizeQuotesInTags is the tag-aware variant used for everything outside
+// plush expressions (raw HTML with text nodes). Quoted literals are erased
+// only inside tags (attribute values); apostrophes in TEXT nodes — French
+// copy is full of them ("l'instance") — are left alone: such a quote used to
+// pair with the next apostrophe across tag boundaries, swallowing real
+// structure and reporting phantom drift between a base template and its
+// translations. Text nodes are erased afterwards anyway (tagGapRe), so their
+// content is irrelevant.
+func normalizeQuotesInTags(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	inTag := false
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '<':
+			inTag = true
+			b.WriteByte(s[i])
+		case '>':
+			inTag = false
+			b.WriteByte(s[i])
+		case '"':
+			end := strings.IndexByte(s[i+1:], '"')
+			if !inTag || end < 0 {
+				b.WriteByte(s[i])
+				continue
+			}
+			b.WriteString(`"·"`)
+			i += end + 1
+		case '\'':
+			end := strings.IndexByte(s[i+1:], '\'')
+			if !inTag || end < 0 {
 				b.WriteByte(s[i])
 				continue
 			}

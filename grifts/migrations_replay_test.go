@@ -156,6 +156,13 @@ func TestMigrationsReplayOnEmptyDatabase(t *testing.T) {
 		t.Helper()
 		mustExec(t, c, "seed", q)
 	}
+	// The replay pass already ran 20261005160100_seed_canonical_outtaketypes,
+	// which inserted the canonical named rows. The legacy fixture below
+	// inserts rows with those same names (unique name index), so reset the
+	// reference rows first — on a genuine legacy center the canonical seed's
+	// INSERT ... WHERE NOT EXISTS would have skipped, which this mirrors.
+	seed(`DELETE FROM translations WHERE table_name = 'outtaketypes'`)
+	seed(`DELETE FROM outtaketypes`)
 	seed(`INSERT INTO outtaketypes (id, name, code, def, dead, error, rating, created_at, updated_at) VALUES
 		('a1000000-0000-4000-8000-000000000001', 'Relacher', NULL, 0, 0, 0, 0, NOW(), NOW()),
 		('a1000000-0000-4000-8000-000000000002', 'DCD', NULL, 0, 0, 0, 0, NOW(), NOW()),
