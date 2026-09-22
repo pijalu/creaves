@@ -21,7 +21,19 @@
   <% } else { %>
     <%= linkTo("/event_streams?delivery=delivered", {class: "btn btn-outline-success", body: t("event-streams.index.filter-delivered")}) %>
   <% } %>
+  <%= if (deliveryFilter == "undeliverable") { %>
+    <%= linkTo("/event_streams?delivery=undeliverable", {class: "btn btn-danger active", body: t("event-streams.index.filter-undeliverable") + " (" + dlqCount + ")"}) %>
+  <% } else { %>
+    <%= linkTo("/event_streams?delivery=undeliverable", {class: "btn btn-outline-danger", body: t("event-streams.index.filter-undeliverable") + " (" + dlqCount + ")"}) %>
+  <% } %>
 </div>
+
+<%= if (deliveryFilter == "undeliverable" && dlqCount > 0) { %>
+  <div class="alert alert-danger">
+    <i class="fa fa-exclamation-triangle"></i> <%= t("event-streams.index.dlq-hint") %>
+    <%= linkTo("/event_streams/reset_undeliverable", {class: "btn btn-danger btn-sm ml-2", "data-method": "POST", "data-confirm": t("event-streams.index.reset-dlq-confirm"), body: "<i class='fa fa-redo'></i> " + t("event-streams.index.reset-dlq")}) %>
+  </div>
+<% } %>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
@@ -44,12 +56,17 @@
         <td class="align-middle"><%= if (event.DeliveredAt) { %><span class="badge badge-success"><%= t("event-streams.yes") %></span><% } else { %><span class="badge badge-warning"><%= t("event-streams.no") %></span><% } %></td>
         <td class="align-middle"><%= event.CreatedAt.Format("2006-01-02 15:04:05") %></td>
         <td class="align-middle">
-          <%= if (event.DeliveryAttempts > 0) { %>
-            <span class="badge <%= if (!event.DeliveredAt && event.DeliveryAttempts >= 25) { %>badge-danger<% } else { %>badge-warning<% } %>" title="<%= event.LastDeliveryError %>"><%= event.DeliveryAttempts %><%= if (!event.DeliveredAt && event.DeliveryAttempts >= 25) { %> — <%= t("event-streams.index.blocked") %><% } %></span>
+          <%= if (event.Blocked) { %>
+            <span class="badge badge-danger" title="<%= event.LastDeliveryError %>"><%= event.Attempts %> — <%= t("event-streams.index.blocked") %></span>
+          <% } else if (event.Attempts > 0) { %>
+            <span class="badge badge-warning" title="<%= event.LastDeliveryError %>"><%= event.Attempts %></span>
           <% } %>
         </td>
         <td>
           <div class="float-right">
+            <%= if (event.Blocked) { %>
+              <%= linkTo("/event_streams/" + event.ID + "/reset_attempts", {class: "btn btn-warning", "data-method": "POST", "data-confirm": t("event-streams.index.reset-confirm"), title: t("event-streams.index.reset-attempts"), body: "<i class='fa fa-redo'></i>"}) %>
+            <% } %>
             <%= linkTo(eventStreamPath({ event_stream_id: event.ID }), {class: "btn btn-info", title: t("event-streams.view"), body: "<i class='fa fa-eye'></i>"}) %>
             <%= linkTo(eventStreamPath({ event_stream_id: event.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("event-streams.confirm"), title: t("event-streams.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>

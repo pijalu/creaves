@@ -136,6 +136,8 @@ func App() *buffalo.App {
 		app.PUT("/sync_targets/{sync_target_id}", SyncTargetsResource{}.Update)
 		app.DELETE("/sync_targets/{sync_target_id}", SyncTargetsResource{}.Destroy)
 		app.POST("/sync_targets/{sync_target_id}/retry_undeliverable", SyncTargetsResource{}.RetryUndeliverable)
+		app.POST("/event_streams/reset_undeliverable", EventStreamsResource{}.ResetUndeliverable)
+		app.POST("/event_streams/{event_stream_id}/reset_attempts", EventStreamsResource{}.ResetAttempts)
 		app.Resource("/event_streams", EventStreamsResource{})
 		app.DELETE("/event_streams", EventStreamsResource{}.ClearAll)
 		app.Resource("/translations", TranslationsResource{})

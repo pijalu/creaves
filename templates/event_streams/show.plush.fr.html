@@ -52,6 +52,50 @@
   </div>
   
   <div class="col-md-6">
+    <h5><%= t("event-streams.show.deliveries") %></h5>
+    <%= if (len(deliveries) > 0) { %>
+      <table class="table table-hover table-bordered">
+        <thead class="thead-light">
+          <th><%= t("event-streams.show.target") %></th>
+          <th><%= t("event-streams.show.attempts") %></th>
+          <th><%= t("event-streams.show.delivery-status") %></th>
+        </thead>
+        <tbody>
+          <%= for (d) in deliveries { %>
+            <tr>
+              <td class="align-middle"><%= d.TargetName %></td>
+              <td class="align-middle">
+                <%= if (d.Undeliverable()) { %>
+                  <span class="badge badge-danger" title="<%= d.LastError %>"><%= d.Attempts %> — <%= t("event-streams.index.blocked") %></span>
+                <% } else if (d.Attempts > 0) { %>
+                  <span class="badge badge-warning" title="<%= d.LastError %>"><%= d.Attempts %></span>
+                <% } else { %>
+                  <%= d.Attempts %>
+                <% } %>
+              </td>
+              <td class="align-middle">
+                <%= if (d.DeliveredAt) { %>
+                  <span class="badge badge-success"><%= t("event-streams.index.filter-delivered") %></span> <%= d.DeliveredAt.Format("2006-01-02 15:04:05") %>
+                  <%= if (d.AcknowledgedAt) { %>
+                    <span class="badge badge-info" title="<%= d.AcknowledgedAt.Format("2006-01-02 15:04:05") %>"><%= t("event-streams.show.acked") %></span>
+                  <% } %>
+                <% } else if (d.Undeliverable()) { %>
+                  <span class="badge badge-danger">DLQ</span>
+                <% } else { %>
+                  <span class="badge badge-warning"><%= t("event-streams.show.pending") %></span>
+                <% } %>
+              </td>
+            </tr>
+            <%= if (d.LastError) { %>
+              <tr class="table-danger"><td colspan="3"><small><code><%= d.LastError %></code></small></td></tr>
+            <% } %>
+          <% } %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <div class="alert alert-info"><i class="fa fa-info-circle"></i> <%= t("event-streams.show.no-deliveries") %></div>
+    <% } %>
+
     <h5><%= t("event-streams.show.audit-trail") %></h5>
     <%= if (payload.UserID != "") { %>
       <table class="table table-hover table-bordered">
@@ -91,6 +135,9 @@
 </div>
 
 <div class="float-right mt-3">
+  <%= if (!eventStream.DeliveredAt) { %>
+    <%= linkTo("/event_streams/" + eventStream.ID + "/reset_attempts", {class: "btn btn-warning", "data-method": "POST", "data-confirm": t("event-streams.index.reset-confirm"), body: "<i class='fa fa-redo'></i> " + t("event-streams.index.reset-attempts")}) %>
+  <% } %>
   <%= linkTo(eventStreamsPath(), {class: "btn btn-info", body: t("event-streams.show.back")}) %>
 </div>
 
