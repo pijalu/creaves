@@ -4,6 +4,8 @@
   translation: "Exports"
 - id: "export.index.lead"
   translation: "Selecteer een export, beperk hem eventueel tot een bepaald jaar, en bekijk hem online of download hem."
+- id: "export.excel.lead"
+  translation: "Selecteer een export, beperk hem eventueel tot een bepaald jaar, en download hem."
 - id: "export.col.export"
   translation: "Export"
 - id: "export.col.year"

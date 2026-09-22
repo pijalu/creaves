@@ -4,6 +4,8 @@
   translation: "Exporte"
 - id: "export.index.lead"
   translation: "Wählen Sie einen Export, beschränken Sie ihn bei Bedarf auf ein bestimmtes Jahr, und zeigen Sie ihn online an oder laden Sie ihn herunter."
+- id: "export.excel.lead"
+  translation: "Wählen Sie einen Export, beschränken Sie ihn bei Bedarf auf ein bestimmtes Jahr, und laden Sie ihn herunter."
 - id: "export.col.export"
   translation: "Export"
 - id: "export.col.year"
