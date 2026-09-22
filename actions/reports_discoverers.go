@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"creaves/models"
@@ -54,17 +55,71 @@ from discoverers d
 left join discoveries dis on dis.discoverer_id = d.id
 left join animals a on a.discovery_id = dis.id
 where (? = '' or a.year = ? or a.id is null)
+  and (? = '' or concat(coalesce(d.firstname, ''), ' ', coalesce(d.lastname, '')) like ?)
+  and (? = '' or d.city like ?)
+  and (? = '' or d.postal_code like ?)
 order by d.lastname asc, d.firstname asc, a.year desc, a.yearNumber asc`
 
-func listDiscovererRows(tx *pop.Connection, year string) ([]discovererRow, error) {
+// discovererFilters holds the optional discoverers register filters
+// (issue #202 bug 4): case-insensitive substring match on the discoverer
+// name (firstname + lastname), city and postal code. Empty filters are
+// ignored.
+type discovererFilters struct {
+	Name       string
+	City       string
+	PostalCode string
+}
+
+// discovererFiltersFrom reads and trims the filter params from the request.
+func discovererFiltersFrom(c buffalo.Context) discovererFilters {
+	return discovererFilters{
+		Name:       strings.TrimSpace(c.Param("name")),
+		City:       strings.TrimSpace(c.Param("city")),
+		PostalCode: strings.TrimSpace(c.Param("postal_code")),
+	}
+}
+
+// likeArgs builds the raw-query arguments for the three optional LIKE
+// conjuncts of SQL_DISCOVERER_ROWS (value and sentinel per conjunct).
+func (f discovererFilters) likeArgs() []interface{} {
+	like := func(s string) interface{} { return "%" + s + "%" }
+	return []interface{}{
+		f.Name, like(f.Name),
+		f.City, like(f.City),
+		f.PostalCode, like(f.PostalCode),
+	}
+}
+
+// query encodes the filters (plus the year) as URL query parameters, used to
+// carry the active filters over to the CSV export link.
+func (f discovererFilters) query(year string) string {
+	v := url.Values{}
+	if year != "" {
+		v.Set("year", year)
+	}
+	if f.Name != "" {
+		v.Set("name", f.Name)
+	}
+	if f.City != "" {
+		v.Set("city", f.City)
+	}
+	if f.PostalCode != "" {
+		v.Set("postal_code", f.PostalCode)
+	}
+	return v.Encode()
+}
+
+func listDiscovererRows(tx *pop.Connection, year string, filters discovererFilters) ([]discovererRow, error) {
 	rows := []discovererRow{}
-	if err := tx.RawQuery(SQL_DISCOVERER_ROWS, year, year).All(&rows); err != nil {
+	args := append([]interface{}{year, year}, filters.likeArgs()...)
+	if err := tx.RawQuery(SQL_DISCOVERER_ROWS, args...).All(&rows); err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-// ReportsDiscoverersIndex handles GET /reports/discoverers?year=YYYY.
+// ReportsDiscoverersIndex handles GET /reports/discoverers?year=YYYY with
+// optional name/city/postal_code filters (issue #202 bug 4).
 func ReportsDiscoverersIndex(c buffalo.Context) error {
 	years, selectedYear, err := selectAnnualYear(c)
 	if err != nil {
@@ -73,6 +128,10 @@ func ReportsDiscoverersIndex(c buffalo.Context) error {
 	c.Set("years", years)
 	c.Set("selectedYear", selectedYear)
 
+	filters := discovererFiltersFrom(c)
+	c.Set("filters", filters)
+	c.Set("csvQuery", filters.query(selectedYear))
+
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
@@ -80,7 +139,7 @@ func ReportsDiscoverersIndex(c buffalo.Context) error {
 
 	rows := []discovererRow{}
 	if selectedYear != "" {
-		if rows, err = listDiscovererRows(tx, selectedYear); err != nil {
+		if rows, err = listDiscovererRows(tx, selectedYear, filters); err != nil {
 			return err
 		}
 	}
@@ -89,7 +148,9 @@ func ReportsDiscoverersIndex(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("reports/discoverers.plush.html"))
 }
 
-// ReportsDiscoverersExportCSV handles GET /reports/discoverers/export.csv?year=YYYY.
+// ReportsDiscoverersExportCSV handles GET
+// /reports/discoverers/export.csv?year=YYYY, honouring the same optional
+// filters as the index view.
 func ReportsDiscoverersExportCSV(c buffalo.Context) error {
 	_, selectedYear, err := selectAnnualYear(c)
 	if err != nil {
@@ -98,13 +159,14 @@ func ReportsDiscoverersExportCSV(c buffalo.Context) error {
 	if selectedYear == "" {
 		return fmt.Errorf("year not provided")
 	}
+	filters := discovererFiltersFrom(c)
 
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
 
-	rows, err := listDiscovererRows(tx, selectedYear)
+	rows, err := listDiscovererRows(tx, selectedYear, filters)
 	if err != nil {
 		return err
 	}
