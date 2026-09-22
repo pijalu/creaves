@@ -50,6 +50,9 @@ func App() *buffalo.App {
 
 		// Register our datetime format
 		binding.RegisterTimeFormats(models.DateTimeFormat, models.DateFormat)
+		// Tolerate empty UUID form inputs (e.g. discoverer picker with no
+		// selection) instead of failing the request with a 500.
+		registerUUIDDecoder()
 		// Automatically redirect to SSL
 		// app.Use(forceSSL())
 
