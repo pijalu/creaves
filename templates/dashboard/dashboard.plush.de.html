@@ -1,5 +1,6 @@
 <h3 class="d-inline-block">Tiere in Alarmbereitschaft</h3>
 <%= if (len(openCares)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Datum</th>
@@ -30,6 +31,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
 <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -38,6 +40,7 @@
 
 <h3 class="d-inline-block">Tiere mit Gewichtsverlust</h3> <i class="fas fa-question-circle text-muted" title="Daten berechnet am <%= animalsWithWeightLossCachedAt.Format("02.01.2006 um 15:04") %> (bis zu 12h zwischengespeichert)"></i>
 <%= if (len(animalsWithWeightLoss)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th>Tier</th>
@@ -73,6 +76,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
   <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -107,6 +111,7 @@
 
 <h3 class="d-inline-block">Tiere mit Behandlung heute</h3>
 <%= if (len(animalsToTreat)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th>Nummer</th>
@@ -214,6 +219,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
 <script>
     const xhrUrl = "<%= treatmentschedulePath() %>";
     const re = /shed-btn_(.*)_(.*)/;
@@ -273,6 +279,7 @@
 
 <h3 class="d-inline-block">Heutige Tierarztbesuche</h3>
 <%= if (len(todaysVetVisits)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th>Zeit</th>
@@ -291,6 +298,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
   <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -299,6 +307,7 @@
 <h3 class="d-inline-block" id="todos">TODOs (<%= len(dashboardTodos) %>)</h3>
 <a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> Alle</a>
 <%= if (len(dashboardTodos)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th></th>
@@ -323,6 +332,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
 <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -331,6 +341,7 @@
 <h3 class="d-inline-block">Tiere zur Zwangsernährung (<%= len(animalsToForceFeed) %>)</h3>
 <a class="btn btn-success btn-sm ml-2" href="<%= feedingPath() %>" title="Fütterung"><i class="fas fa-utensils"></i> Fütterung</a>
 <%= if (len(animalsToForceFeed)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th>Nummer</th>
@@ -362,6 +373,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
   <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -369,6 +381,7 @@
 
 <h3 class="d-inline-block">Protokoll der letzten 24 Stunden</h3>
 <%= if (len(lastLogentries)>0) {%>
+<div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th>Erstellt</th>
@@ -393,6 +406,7 @@
     <% } %>
   </tbody>
 </table>
+</div>
 <%} else {%>
 <p>Keine</p>
 <%}%>
@@ -400,6 +414,7 @@
 <br/>
 <h3>Statistiken</h3>
 <h4 class="d-inline-block">Tiere in Pflege</h4>
+<div class="table-responsive">
 <table class="table table-sm">
 <thead>
     <th>Typ</th>
@@ -419,5 +434,6 @@
   <%}%>
   </tbody>
 </table>
+</div>
 
   
