@@ -4,11 +4,10 @@
   <thead class="thead-light">
     <th>Datum</th>
     <th>Dier</th>
-    <th>Gewicht</th>
+    <th>Zone</th>
+    <th>Kooi</th>
+    <th>Soort</th>
     <th>Notitie</th>
-    <th><i class="fa fa-soap" aria-hidden="true"></i></th>
-    <th>Type</th>
-    <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (care) in openCares { %>
@@ -23,19 +22,10 @@
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= care.AnimalID %>/#nav-care"><%= care.YearNumberFormatted() %></a>
         </td>
-        <td class="align-middle"><%= care.Weight %></td>
+        <td class="align-middle"><%= tbase("zones", "zone", care.Zone) %></td>
+        <td class="align-middle"><%= care.Cage %></td>
+        <td class="align-middle"><%= tspecies(care.Species) %></td>
         <td class="align-middle"><%= care.Note %></td>
-        <td class="align-middle">
-          <%= if (care.Clean.Value()==true) { %>
-            <i class="fa fa-check" aria-hidden="true"></i>
-          <% } %>
-        </td>
-        <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
-        <td>
-          <div class="float-right">
-            <%= linkTo("/animals/"+care.AnimalID.String()+"#nav-care", {class: "btn btn-info", title: "Dier bekijken", body:"<i class='fa fa-eye'></i>"}) %>
-          </div>
-        </td>
       </tr>
     <% } %>
   </tbody>

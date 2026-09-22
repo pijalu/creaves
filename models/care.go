@@ -51,8 +51,11 @@ type Care struct {
 
 type CareWithAnimalNumber struct {
 	Care
-	Year       int `json:"Year" db:"year"`
-	YearNumber int `json:"YearNumber" db:"yearNumber"`
+	Year       int          `json:"Year" db:"year"`
+	YearNumber int          `json:"YearNumber" db:"yearNumber"`
+	Zone       nulls.String `json:"zone" db:"zone"`
+	Cage       nulls.String `json:"cage" db:"cage"`
+	Species    string       `json:"species" db:"species"`
 }
 
 // YearNumberFormatted returns the year number formatted

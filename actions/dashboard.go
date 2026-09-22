@@ -17,7 +17,10 @@ const SQL_CARES_IN_WARNING = `
 SELECT
   c.*,
   a.year,
-  a.yearNumber
+  a.yearNumber,
+  a.zone,
+  a.cage,
+  a.species
 FROM
   cares c
 JOIN
