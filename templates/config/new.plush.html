@@ -3,7 +3,7 @@
 </div>
 
 <%= formFor(config, {action: "/config", method: "POST"}) { %>
-  <%= partial("config/form.html") %>
+  <%= partial("config/identity_form.html") %>
   <button class="btn btn-success" role="submit">Create</button>
   <%= linkTo("/config", {class: "btn btn-warning", body: "Cancel"}) %>
 <% } %>

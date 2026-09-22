@@ -70,19 +70,9 @@ func LoadConfig(tx *pop.Connection) (*models.Config, error) {
 	}
 
 	// No config exists, create one
-	instanceID := os.Getenv("INSTANCE_ID")
-	if instanceID == "" {
-		hostname, err := os.Hostname()
-		if err == nil && hostname != "" {
-			instanceID = hostname
-		} else {
-			instanceID = uuid.Must(uuid.NewV4()).String()
-		}
-	}
-
 	config := &models.Config{
 		ID:         uuid.Must(uuid.NewV4()),
-		InstanceID: instanceID,
+		InstanceID: defaultInstanceID(),
 		Name:       "Default Instance",
 		Active:     true,
 	}
@@ -103,6 +93,20 @@ func LoadConfig(tx *pop.Connection) (*models.Config, error) {
 
 	CurrentConfigSet(config)
 	return config, nil
+}
+
+// defaultInstanceID mirrors the boot-time default: the INSTANCE_ID env var,
+// else the hostname, else a random UUID. Used by LoadConfig and by Create
+// when the (identity-only) new-config form does not carry an instance ID —
+// the instance identity lives on the sync configuration page (bugs.md #8).
+func defaultInstanceID() string {
+	if id := os.Getenv("INSTANCE_ID"); id != "" {
+		return id
+	}
+	if hostname, err := os.Hostname(); err == nil && hostname != "" {
+		return hostname
+	}
+	return uuid.Must(uuid.NewV4()).String()
 }
 
 // GetInstanceID returns the current instance ID from the loaded config
@@ -374,25 +378,29 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 	}
 
 	config.ID = uuid.Must(uuid.NewV4())
-	// Bind fields manually to avoid formam parsing issues
+	// Bind fields manually to avoid formam parsing issues. The identity-only
+	// new-config form carries no instance ID (bugs.md #8): the instance
+	// identity belongs to the sync configuration, so fall back to the same
+	// default as LoadConfig.
 	config.InstanceID = c.Param("InstanceID")
+	if config.InstanceID == "" {
+		config.InstanceID = defaultInstanceID()
+		// instance_id is UNIQUE: the auto-generated default (hostname) may
+		// already be used by another config row — disambiguate with a short
+		// random suffix instead of failing the insert.
+		count, err := tx.Where("instance_id = ?", config.InstanceID).Count(&models.Config{})
+		if err == nil && count > 0 {
+			config.InstanceID += "-" + uuid.Must(uuid.NewV4()).String()[:8]
+		}
+	}
 	config.Name = c.Param("Name")
 	config.Description = c.Param("Description")
 	// Handle Active checkbox manually - it will be "true" if checked, missing if unchecked
 	config.Active = paramIsTrue(c, "Active")
 
-	// Build settings from form
-	settings := models.ConfigSettings{
-		EnableEventStream: paramIsTrue(c, "Settings.EnableEventStream"),
-		CenterName:        c.Param("Settings.CenterName"),
-		AsblName:          c.Param("Settings.AsblName"),
-		BceNumber:         c.Param("Settings.BceNumber"),
-		Address:           c.Param("Settings.Address"),
-		AccountNumber:     c.Param("Settings.AccountNumber"),
-		Website:           c.Param("Settings.Website"),
-		GuestText1:        c.Param("Settings.GuestText1"),
-		GuestText2:        c.Param("Settings.GuestText2"),
-	}
+	// Build settings from the identity form fields on top of the defaults:
+	// the event-stream flag is a sync setting and keeps its default (true).
+	settings := bindSettingsForScope(c, models.DefaultSettings(), "identity")
 	if err := config.SetSettings(settings); err != nil {
 		return errors.WithStack(err)
 	}
