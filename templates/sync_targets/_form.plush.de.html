@@ -21,8 +21,8 @@
 
 <div class="form-group">
   <label for="webhook_api_key">API-Schlüssel</label>
-  <input type="<%= if (current_user.Maintainer) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="WebhookAPIKey" value="<%= target.WebhookAPIKey %>" placeholder="API-Schlüssel eingeben (leer lassen, um den aktuellen zu behalten)" autocomplete="new-password">
-  <small class="form-text text-muted">API-Schlüssel, erzeugt in der Creaves Console. Maintainer können den gespeicherten Schlüssel sehen; andere Administratoren sehen ein Nur-Schreiben-Feld — neuen Schlüssel eingeben, um den gespeicherten zu ersetzen, oder das Feld leer lassen, um den aktuellen zu behalten.</small>
+  <input type="<%= if (current_user.Maintainer || current_user.Admin) { %>text<% } else { %>password<% } %>" class="form-control font-monospace" id="webhook_api_key" name="WebhookAPIKey" value="<%= target.WebhookAPIKey %>" placeholder="API-Schlüssel eingeben (leer lassen, um den aktuellen zu behalten)" autocomplete="new-password">
+  <small class="form-text text-muted">API-Schlüssel, erzeugt in der Creaves Console. Administratoren und Maintainer können den gespeicherten Schlüssel sehen; Feld leer lassen, um den aktuellen zu behalten.</small>
 </div>
 
 <div class="form-group">

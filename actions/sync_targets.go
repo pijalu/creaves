@@ -166,13 +166,11 @@ func (v SyncTargetsResource) Edit(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
-	// API-key policy: maintainers see the stored key, other admins get a
-	// write-only field (blank submit preserves the stored key in Update).
-	display := *target
-	if !GetCurrentUser(c).Maintainer {
-		display.WebhookAPIKey = ""
-	}
-	c.Set("target", &display)
+	// API-key policy: the form is admin/maintainer-only (requireAdmin) and
+	// the stored key must be visible to both roles (bug: admins could not
+	// verify the key against the Console-issued one). A blank submit still
+	// preserves the stored secret (see bindSyncTarget).
+	c.Set("target", target)
 	return c.Render(http.StatusOK, r.HTML("sync_targets/edit.plush.html"))
 }
 
