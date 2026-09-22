@@ -20,6 +20,8 @@
   translation: "All years"
 - id: "export.year.active"
   translation: "Year"
+- id: "export.year.label"
+  translation: "Year"
 - id: "export.year.all"
   translation: "All years"
 - id: "export.view"

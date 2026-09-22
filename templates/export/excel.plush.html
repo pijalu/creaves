@@ -4,29 +4,44 @@
 
 <p><%= t("export.excel.lead") %></p>
 
+<div class="form-group row">
+  <label for="exportYear" class="col-2 col-form-label"><%= t("export.year.label") %></label>
+  <div class="col-10 col-md-4">
+    <select id="exportYear" class="form-control">
+      <option value="" <%= if (selectedYear == "") { %>selected<% } %>><%= t("export.year.all") %></option>
+      <%= for (y) in years { %>
+        <option value="<%= y.Year %>" <%= if (y.Selected) { %>selected<% } %>><%= y.Year %></option>
+      <% } %>
+    </select>
+  </div>
+</div>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th><%= t("export.col.export") %></th>
-    <th style="width: 14rem;"><%= t("export.col.year") %></th>
-    <th style="width: 10rem;"><%= t("export.col.excel") %></th>
+    <th style="width: 14rem;"><%= t("export.download") %></th>
   </thead>
   <tbody>
     <%= for (q) in queries { %>
       <tr>
         <td class="align-middle"><i class="fas fa-file-excel text-success"></i> <%= q.Description %></td>
         <td class="align-middle">
-          <%= if (q.YearColumn != "") { %>
-            <form method="get" action="/export/excel" class="form-inline export-year-form">
-              <input type="hidden" name="query" value="<%= q.Name %>">
-              <input type="number" class="form-control form-control-sm mr-2" name="year" min="1900" max="2100" placeholder="<%= t("export.year.placeholder") %>" title="<%= t("export.year.placeholder") %>">
-              <button type="submit" class="btn btn-success btn-sm" title="<%= t("export.download") %> <%= q.Description %>"><i class="fas fa-download"></i> <%= t("export.download") %></button>
-            </form>
-          <% } %>
-        </td>
-        <td class="align-middle">
-          <a class="btn btn-secondary btn-sm" href="/export/excel?query=<%= q.Name %>" title="<%= t("export.download") %> <%= q.Description %> (<%= t("export.year.all") %>)"><i class="fas fa-download"></i> <%= t("export.year.all") %></a>
+          <a class="btn btn-success btn-sm export-link" data-base="/export/excel?query=<%= q.Name %>" href="/export/excel?query=<%= q.Name %>" title="<%= t("export.download") %> <%= q.Description %>"><i class="fas fa-download"></i> <%= t("export.download") %></a>
         </td>
       </tr>
     <% } %>
   </tbody>
 </table>
+
+<script>
+// Single year selection at the top of the page (bugs.md bug 5): clicking a
+// download button appends the currently selected year ("All years" = empty
+// selection = unfiltered export). Queries without a year column ignore the
+// parameter server-side.
+document.querySelectorAll("a.export-link").forEach(function (link) {
+  link.addEventListener("click", function () {
+    var y = document.getElementById("exportYear").value;
+    link.href = link.dataset.base + (y ? "&year=" + encodeURIComponent(y) : "");
+  });
+});
+</script>

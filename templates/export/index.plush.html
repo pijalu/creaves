@@ -4,10 +4,21 @@
 
 <p><%= t("export.index.lead") %></p>
 
+<div class="form-group row">
+  <label for="exportYear" class="col-2 col-form-label"><%= t("export.year.label") %></label>
+  <div class="col-10 col-md-4">
+    <select id="exportYear" class="form-control">
+      <option value="" <%= if (selectedYear == "") { %>selected<% } %>><%= t("export.year.all") %></option>
+      <%= for (y) in years { %>
+        <option value="<%= y.Year %>" <%= if (y.Selected) { %>selected<% } %>><%= y.Year %></option>
+      <% } %>
+    </select>
+  </div>
+</div>
+
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
     <th><%= t("export.col.export") %></th>
-    <th style="width: 10rem;"><%= t("export.col.year") %></th>
     <th style="width: 8rem;"><%= t("export.col.view") %></th>
     <th style="width: 8rem;"><%= t("export.col.csv") %></th>
   </thead>
@@ -15,11 +26,6 @@
     <%= for (q) in queries { %>
       <tr>
         <td class="align-middle"><%= q.Description %></td>
-        <td class="align-middle">
-          <%= if (q.YearColumn != "") { %>
-            <input type="number" class="form-control form-control-sm export-year" min="1900" max="2100" placeholder="<%= t("export.year.placeholder") %>" title="<%= t("export.year.placeholder") %>">
-          <% } %>
-        </td>
         <td class="align-middle">
           <a class="btn btn-primary btn-sm export-link" data-base="/export/view?query=<%= q.Name %>" href="/export/view?query=<%= q.Name %>" title="<%= t("export.view") %> <%= q.Description %>"><i class="fas fa-table"></i> <%= t("export.view") %></a>
         </td>
@@ -32,17 +38,13 @@
 </table>
 
 <script>
-  // Append the year entered in the row's year input to that row's View/CSV
-  // links when they are clicked. Empty year = all years (unmodified link).
-  document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".export-year").forEach(function (input) {
-      var row = input.closest("tr");
-      row.querySelectorAll("a.export-link").forEach(function (link) {
-        link.addEventListener("click", function () {
-          var y = input.value.trim();
-          link.href = link.dataset.base + (y ? "&year=" + encodeURIComponent(y) : "");
-        });
+    // Single year selection at the top of the page (bugs.md bug 5): the
+    // chosen year is appended to the View/CSV link when it is clicked.
+    // Empty selection = all years (unmodified link).
+    document.querySelectorAll("a.export-link").forEach(function (link) {
+      link.addEventListener("click", function () {
+        var y = document.getElementById("exportYear").value;
+        link.href = link.dataset.base + (y ? "&year=" + encodeURIComponent(y) : "");
       });
     });
-  });
 </script>

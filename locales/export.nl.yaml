@@ -20,6 +20,8 @@
   translation: "Alle jaren"
 - id: "export.year.active"
   translation: "Jaar"
+- id: "export.year.label"
+  translation: "Jaar"
 - id: "export.year.all"
   translation: "Alle jaren"
 - id: "export.view"

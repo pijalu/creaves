@@ -382,7 +382,9 @@ func TestExportViewYearFilter(t *testing.T) {
 		t.Errorf("year-filtered view has more rows (%d) than unfiltered (%d)", filtered, all)
 	}
 
-	// The active year must be visible and the CSV link must carry it.
+	// The year dropdown must be rendered with the requested year selected;
+	// the CSV sync reads the dropdown, so it always follows the user's
+	// in-view selection (bugs.md bug 5).
 	resp, err := client.Get(srv.URL + "/export/view?query=register&year=2024")
 	if err != nil {
 		t.Fatalf("GET view: %v", err)
@@ -390,8 +392,14 @@ func TestExportViewYearFilter(t *testing.T) {
 	bb, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	body := string(bb)
-	if !strings.Contains(body, `params.set("year", "2024")`) {
-		t.Error("view page CSV sync does not carry the year param")
+	if !strings.Contains(body, `<select id="viewYear" name="year"`) {
+		t.Error("view page lacks the in-view year dropdown")
+	}
+	if !strings.Contains(body, `<option value="2024" selected>`) {
+		t.Error("view page dropdown does not select the requested year")
+	}
+	if !strings.Contains(body, `yearSelect.value`) {
+		t.Error("view page CSV sync does not read the year dropdown")
 	}
 
 	// A garbage year is ignored (no filter, no crash).
@@ -487,7 +495,8 @@ func TestExportExcelYearFilter(t *testing.T) {
 }
 
 // TestExportExcelChooserUI proves the Excel chooser renders as a table with
-// per-query year inputs and an all-years download link (bug 4 UI).
+// one top-of-page year dropdown (DB years + "All years" default) and one
+// download button per query (bugs.md bug 5).
 func TestExportExcelChooserUI(t *testing.T) {
 	requireMySQLTestDB(t)
 	client := adminClient(t)
@@ -506,9 +515,9 @@ func TestExportExcelChooserUI(t *testing.T) {
 	body := string(bb)
 	for _, frag := range []string{
 		"<table",
-		`action="/export/excel"`,
-		`name="year"`,
-		`placeholder="All years"`,
+		`id="exportYear"`,
+		"All years",
+		`class="btn btn-success btn-sm export-link" data-base="/export/excel?query=registre_detail"`,
 		"/export/excel?query=registre_detail",
 		"/export/excel?query=stat_communes",
 	} {
@@ -518,5 +527,8 @@ func TestExportExcelChooserUI(t *testing.T) {
 	}
 	if strings.Contains(body, "<ul>") {
 		t.Error("Excel chooser still renders the old bare <ul> list")
+	}
+	if strings.Contains(body, `type="number"`) {
+		t.Error("Excel chooser still renders per-row year inputs")
 	}
 }
