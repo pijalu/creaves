@@ -10,8 +10,11 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/buffalo/render"
+	"github.com/gobuffalo/helpers"
+	"github.com/gobuffalo/helpers/forms"
+	"github.com/gobuffalo/helpers/forms/bootstrap"
 	"github.com/gobuffalo/nulls"
-	"github.com/gobuffalo/plush/v4"
+	"github.com/gobuffalo/plush/v5"
 )
 
 // uiLanguages lists all selectable UI languages (cookie value, native label).
@@ -143,6 +146,46 @@ func stayDurationHours(hours nulls.Int, dayUnit, hourUnit string) string {
 
 var r *render.Engine
 
+// defaultRenderHelpers replicates the helper set buffalo v0.18 injected via
+// render.New's defaultHelpers(): since buffalo v1.1.x, default helpers
+// (form_for, form, markdown, ...) are only applied when NO custom helpers are
+// configured, and plush v5 no longer bundles the form helpers globally.
+// We therefore seed the buffalo defaults explicitly and overlay our own.
+func defaultRenderHelpers() render.Helpers {
+	h := render.Helpers(helpers.ALL())
+	h[forms.FormKey] = bootstrap.Form
+	h[forms.FormForKey] = bootstrap.FormFor
+	h["form_for"] = bootstrap.FormFor
+	return h
+}
+
+// customRenderHelpers are the creaves-specific plush helpers.
+func customRenderHelpers() render.Helpers {
+	return render.Helpers{
+		"langLinks":       langLinks,
+		"langLinksAll":    langLinksAll,
+		"uiLang":          uiLang,
+		"sortLink":        sortLink,
+		"sortIcon":        sortIcon,
+		"userRoleName":    userRoleName,
+		"userAccountRole": userAccountRole,
+		"stayDuration":    stayDurationHours,
+		"bool2html": func(s bool) string {
+			if s {
+				return "✓"
+			} else {
+				return "×"
+			}
+		},
+		// boolLabel renders a boolean as two caller-provided localized labels
+		// (e.g. t("users.yes") / t("users.no")) instead of Go's true/false.
+		"boolLabel": boolLabel,
+		"dbgDump": func(s any) string {
+			return fmt.Sprintf("%v", s)
+		},
+	}
+}
+
 func init() {
 	r = render.New(render.Options{
 		// HTML layout to be used for all HTML requests:
@@ -153,28 +196,12 @@ func init() {
 		AssetsFS:    public.FS(),
 
 		// Add template helpers here:
-		Helpers: render.Helpers{
-			"langLinks":       langLinks,
-			"langLinksAll":    langLinksAll,
-			"uiLang":          uiLang,
-			"sortLink":        sortLink,
-			"sortIcon":        sortIcon,
-			"userRoleName":    userRoleName,
-			"userAccountRole": userAccountRole,
-			"stayDuration":    stayDurationHours,
-			"bool2html": func(s bool) string {
-				if s {
-					return "✓"
-				} else {
-					return "×"
-				}
-			},
-			// boolLabel renders a boolean as two caller-provided localized labels
-			// (e.g. t("users.yes") / t("users.no")) instead of Go's true/false.
-			"boolLabel": boolLabel,
-			"dbgDump": func(s any) string {
-				return fmt.Sprintf("%v", s)
-			},
-		},
+		Helpers: func() render.Helpers {
+			h := defaultRenderHelpers()
+			for k, v := range customRenderHelpers() {
+				h[k] = v
+			}
+			return h
+		}(),
 	})
 }

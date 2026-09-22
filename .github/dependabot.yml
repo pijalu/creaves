@@ -1,0 +1,14 @@
+# Dependabot configuration: keep Go modules and the webpack asset
+# toolchain current. The npm ecosystem tracks yarn.lock — the single
+# lockfile (package-lock.json was removed to avoid dependabot's
+# "multiple lockfiles" error; buffalo's asset pipeline drives yarn).
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"

@@ -18,11 +18,12 @@ import (
 // LibreOffice/openpyxl accept it, which is why only Excel users saw the bug.
 //
 // The fix replaces the serialized styles.xml in the final archive with the
-// template's original part, appending only the extra cellXfs <xf> entries
-// excelize legitimately created while writing cells (observed: the default
-// date style for time.Time values written into unstyled cells). All other
-// style sections are taken from the template verbatim — the export only ever
-// writes values into cells styled by the template, plus these extras.
+// template's original part, appending only the extra entries excelize
+// legitimately created while writing cells: cellXfs <xf> entries and —
+// since excelize v2.9 clones the font (and sometimes a border) when it
+// mints a date style for time.Time values — fonts/fills/borders entries
+// referenced by those xfs. Appended in serialized order, the extra
+// section entries keep every index the extra xfs reference valid.
 //
 // A near-identical copy of this logic lives in creaves-console/excel;
 // keep both in sync when changing the merge rules.
@@ -36,15 +37,21 @@ var (
 	cellXfsRe = regexp.MustCompile(`(?s)<cellXfs(?:\s+count="(\d+)")?\s*>(.*?)</cellXfs>`)
 	// numFmtsRe captures the optional numFmts section.
 	numFmtsRe = regexp.MustCompile(`(?s)<numFmts(?:\s+count="(\d+)")?\s*>(.*?)</numFmts>`)
-	// numFmtRe matches one numFmt element.
-	numFmtRe = regexp.MustCompile(`<numFmt\s+numFmtId="(\d+)"\s+formatCode="([^"]*)"\s*/>`)
+	// numFmtRe matches one numFmt element (self-closed or with a separate
+	// closing tag — excelize switched serialization style in v2.11).
+	numFmtRe = regexp.MustCompile(`<numFmt\s+numFmtId="(\d+)"\s+formatCode="([^"]*)"\s*(?:/>|></numFmt>)`)
 	// xfRe matches one xf element: either self-closed or with children.
 	xfRe = regexp.MustCompile(`(?s)<xf\b[^>]*/>|<xf\b[^>]*>.*?</xf>`)
-	// fontsRe/fillsRe/bordersRe capture the count attributes of the
-	// sections whose indices extra xfs must stay within.
-	fontsRe   = regexp.MustCompile(`<fonts\s+count="(\d+)"`)
-	fillsRe   = regexp.MustCompile(`<fills\s+count="(\d+)"`)
-	bordersRe = regexp.MustCompile(`<borders\s+count="(\d+)"`)
+	// fontsSectionRe/fillsSectionRe/bordersSectionRe capture one styles
+	// section as a whole (count attr in group 1, inner XML in group 2);
+	// fontElemRe/fillElemRe/borderElemRe match one child element of the
+	// respective section (self-closed or with children).
+	fontsSectionRe   = regexp.MustCompile(`(?s)<fonts(?:\s+count="(\d+)")?\s*>(.*?)</fonts>`)
+	fillsSectionRe   = regexp.MustCompile(`(?s)<fills(?:\s+count="(\d+)")?\s*>(.*?)</fills>`)
+	bordersSectionRe = regexp.MustCompile(`(?s)<borders(?:\s+count="(\d+)")?\s*>(.*?)</borders>`)
+	fontElemRe       = regexp.MustCompile(`(?s)<font\s*/>|<font\b[^>]*>.*?</font>`)
+	fillElemRe       = regexp.MustCompile(`(?s)<fill\s*/>|<fill\b[^>]*>.*?</fill>`)
+	borderElemRe     = regexp.MustCompile(`(?s)<border\s*/>|<border\b[^>]*>.*?</border>`)
 	// rootTagRe splits a styles document into prolog (1), root start
 	// tag (2) and everything after it (3).
 	rootTagRe = regexp.MustCompile(`(?s)^(.*?)(<styleSheet\b[^>]*>)(.*)$`)
@@ -124,13 +131,48 @@ func sectionSpan(re *regexp.Regexp, doc []byte, closeTag string) (start, openEnd
 	return loc[0], loc[0] + rel + 1, loc[1] - len(closeTag), true
 }
 
+// styleSection describes one indexed styles section (fonts, fills,
+// borders): the whole-section matcher, the single-element matcher and the
+// section name (also the XML tag name).
+type styleSection struct {
+	name     string
+	section  *regexp.Regexp
+	elements *regexp.Regexp
+}
+
+var styleSections = []styleSection{
+	{"fonts", fontsSectionRe, fontElemRe},
+	{"fills", fillsSectionRe, fillElemRe},
+	{"borders", bordersSectionRe, borderElemRe},
+}
+
+// appendSectionExtras splices the elements the serialized document added
+// to a fonts/fills/borders section into the template body, bumping the
+// section's count. Serialized order is preserved, so indices the extra
+// xfs reference remain valid without remapping.
+func appendSectionExtras(body []byte, sec styleSection, extras [][]byte) ([]byte, error) {
+	start, openEnd, innerEnd, ok := sectionSpan(sec.section, body, "</"+sec.name+">")
+	if !ok {
+		return nil, fmt.Errorf("template styles.xml %s section vanished", sec.name)
+	}
+	var out bytes.Buffer
+	out.Grow(len(body) + 64*len(extras))
+	out.Write(body[:start])
+	out.WriteString(`<` + sec.name + ` count="` + strconv.Itoa(countOf(sec.section, body)+len(extras)) + `">`)
+	out.Write(body[openEnd:innerEnd])
+	for _, e := range extras {
+		out.Write(e)
+	}
+	out.Write(body[innerEnd:])
+	return out.Bytes(), nil
+}
+
 // mergeStylesXML builds the styles.xml to ship in the export: the template
 // document (root element, namespaces, mc:Ignorable and every section)
-// verbatim, plus the cellXfs <xf> entries the serialized document carries
-// beyond the template count. It returns an error when the serialized
-// document added fonts, fills or borders (extra xfs would reference indices
-// the template does not define) — the caller then keeps the excelize
-// document rather than produce an invalid file.
+// verbatim, plus the entries the serialized document carries beyond the
+// template counts — cellXfs <xf> entries, and the fonts/fills/borders
+// entries those xfs reference (excelize v2.9+ clones them when minting a
+// date style). Appending in serialized order keeps every index valid.
 func mergeStylesXML(template, serialized []byte) ([]byte, error) {
 	tplRoot := rootTagRe.FindSubmatch(template)
 	if tplRoot == nil {
@@ -147,25 +189,38 @@ func mergeStylesXML(template, serialized []byte) ([]byte, error) {
 		return template, nil
 	}
 
-	// Safety check (plan step 4): extra xfs must not reference fonts,
-	// fills or borders beyond the template's — those sections are kept
-	// from the template verbatim.
-	for _, sec := range []struct {
-		name string
-		re   *regexp.Regexp
-	}{{"fonts", fontsRe}, {"fills", fillsRe}, {"borders", bordersRe}} {
-		if tplN, serN := countOf(sec.re, template), countOf(sec.re, serialized); serN > tplN {
-			return nil, fmt.Errorf("serialized styles.xml added %s (%d > template %d)", sec.name, serN, tplN)
-		}
-	}
-
 	serXfs := xfRe.FindAll(serCellXfs[2], -1)
 	if len(serXfs) <= tplCellXfsCount {
 		// excelize did not append any style: the template part is valid
-		// as-is.
+		// as-is (nothing references entries beyond the template's).
 		return template, nil
 	}
 	extras := serXfs[tplCellXfsCount:]
+
+	// Sections the extra xfs reference by index: entries the template
+	// defines stay verbatim, entries the serialized document added beyond
+	// them are appended (in serialized order) so index references of the
+	// extra xfs stay valid without remapping.
+	body := tplRoot[3]
+	var err error
+	for _, sec := range styleSections {
+		tplN := countOf(sec.section, template)
+		if tplN < 0 {
+			return nil, fmt.Errorf("template styles.xml has no %s section", sec.name)
+		}
+		serSec := sec.section.FindSubmatch(serialized)
+		if serSec == nil {
+			continue
+		}
+		serElems := sec.elements.FindAll(serSec[2], -1)
+		if len(serElems) <= tplN {
+			continue
+		}
+		body, err = appendSectionExtras(body, sec, serElems[tplN:])
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Remap custom numFmts referenced by the extras (plan step 3).
 	numFmtInsert, remap, err := resolveExtraNumFmts(template, serialized, extras)
@@ -180,8 +235,7 @@ func mergeStylesXML(template, serialized []byte) ([]byte, error) {
 
 	// Reassemble on the template bytes: prolog and root start tag are
 	// copied verbatim (this is what stops the Excel repair prompt), the
-	// cellXfs count is adjusted and the sanitized extras are appended.
-	body := tplRoot[3]
+	// merged sections, adjusted counts and sanitized extras are appended.
 	if len(numFmtInsert) > 0 {
 		body = appendNumFmts(body, numFmtInsert)
 	}
@@ -242,6 +296,9 @@ func resolveExtraNumFmts(template, serialized []byte, extras [][]byte) ([][]byte
 	var insert [][]byte
 	remap := map[int]int{}
 	for _, id := range extraNumFmtIDs(extras) {
+		if _, ok := tpl.byID[id]; ok {
+			continue // defined by the template part kept verbatim
+		}
 		code, ok := ser.byID[id]
 		if !ok {
 			return nil, nil, fmt.Errorf("extra xf references unknown numFmtId %d", id)
@@ -328,8 +385,9 @@ func sanitizeExtraXF(xf []byte, remap map[int]int) []byte {
 }
 
 // restoreStylesInZip replaces xl/styles.xml in the final archive with the
-// merged template document. It returns an error when the merge is unsafe —
-// the caller logs and ships the excelize output unchanged.
+// merged template document. It returns an error when the archive or the
+// template is malformed — the caller logs and ships the excelize output
+// unchanged.
 func restoreStylesInZip(xlsx, templateStyles []byte) ([]byte, error) {
 	parts, order, err := readZipParts(xlsx)
 	if err != nil {

@@ -61,6 +61,17 @@ var startupTranslatableFields = map[string][]string{
 	"species":      {"species", "class", "family", "creaves_species", "subside_group", "order", "agw_group", "native_status"},
 }
 
+// quotedColumns backtick-quotes column identifiers for raw INSERTs so that
+// reserved words (e.g. species.order) are always safe, regardless of the
+// MySQL/MariaDB server version or sql_mode.
+func quotedColumns(cols []string) string {
+	q := make([]string, len(cols))
+	for i, c := range cols {
+		q[i] = "`" + c + "`"
+	}
+	return strings.Join(q, ",")
+}
+
 // startupTableColumns records dump/schema order for INSERT statements without
 // column lists. Keep this beside startupTranslatableFields: parser and
 // inventory tests therefore share one authoritative startup definition.
@@ -322,7 +333,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 					newID := uuid.NewV5(startupRowNamespace, table+"|"+strings.TrimSpace(row[nameField])).String()
 					if !usedTargets[newID] {
 						raw = strings.Replace(raw, "'"+id+"'", "'"+newID+"'", 1)
-						if err := tx.RawQuery("INSERT INTO `" + table + "` (" + strings.Join(columns, ",") + ") VALUES " + raw).Exec(); err != nil {
+						if err := tx.RawQuery("INSERT INTO `" + table + "` (" + quotedColumns(columns) + ") VALUES " + raw).Exec(); err != nil {
 							return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s (renamed %s)", table, newID, id))
 						}
 						existingNames[newID] = row[nameField]
@@ -366,7 +377,7 @@ func syncStartupTable(tx *pop.Connection, table string, statements []string, fkM
 					raw = strings.Replace(raw, "'"+row[fk]+"'", "'"+target+"'", 1)
 				}
 			}
-			if err := tx.RawQuery("INSERT INTO `" + table + "` (" + strings.Join(columns, ",") + ") VALUES " + raw).Exec(); err != nil {
+			if err := tx.RawQuery("INSERT INTO `" + table + "` (" + quotedColumns(columns) + ") VALUES " + raw).Exec(); err != nil {
 				return nil, errors.WithStack(errors.Wrapf(err, "inserting %s row %s", table, id))
 			}
 			if nameField != "" {

@@ -713,7 +713,7 @@ $( document ).ready(function(){
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit#nav-care"}), {class: "btn btn-primary"}) { %>
           Create New Care
         <% } %>
       </div>
@@ -755,10 +755,10 @@ $( document ).ready(function(){
             <td class="align-middle"><%= tname("caretypes", care.Type.ID, care.Type.Name) %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID+"/edit#nav-care" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID+"/edit#nav-care" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"/edit#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID+"/edit#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
               </div>
             </td>
@@ -772,7 +772,7 @@ $( document ).ready(function(){
     <div class="py-4 mb-2">
       <h3 class="d-inline-block">Veterinary visits</h3>
       <div class="float-right">
-        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit#nav-vet" }), {class: "btn btn-primary"}) { %>
           Create New Veterinary visit
         <% } %>
       </div>
@@ -795,10 +795,10 @@ $( document ).ready(function(){
             <td class="align-middle"><%= veterinaryvisit.Diagnostic %></td>
             <td>
               <div class="float-right">
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"/edit#nav-vet" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"/edit#nav-vet" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"/edit#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <%  }%>
               </div>
             </td>
@@ -837,7 +837,7 @@ $( document ).ready(function(){
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Add New treatment
         <% } %>
       </div>
@@ -938,9 +938,9 @@ $( document ).ready(function(){
                     </div>
                     <div class="col-sm">
                       <div class="float-right">
-                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
-                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
-                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID.String()+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"/edit#nav-treatment" }), {class: "btn btn-info", title: "View", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"/edit#nav-treatment" }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"/edit#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                       </div>
                     </div>
                   </div>

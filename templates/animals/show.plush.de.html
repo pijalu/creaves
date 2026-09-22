@@ -297,7 +297,7 @@
     <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newCaresPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"#nav-care"}), {class: "btn btn-primary"}) { %>
           Neue Pflege erstellen
         <% } %>
       </div>
@@ -357,11 +357,11 @@
             <td>
               <div class="float-right">
                 <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
-                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care" }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID+"#nav-care" }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editCarePath({ care_id: care.ID, back: "/animals/"+animal.ID+"#nav-care" }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
                 <% } %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID.String()+"#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(carePath({ care_id: care.ID, back: "/animals/"+animal.ID+"#nav-care"}), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <% }%>
               </div>
             </td>
@@ -377,7 +377,7 @@
     <div class="py-4 mb-2">
       <h3 class="d-inline-block">Tierarztbesuche</h3>
       <div class="float-right">
-        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newVeterinaryvisitsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"#nav-vet" }), {class: "btn btn-primary"}) { %>
           Neuen Tierarztbesuch erstellen
         <% } %>
       </div>
@@ -402,11 +402,11 @@
             <td>
               <div class="float-right">
                 <%= if (!animal.OuttakeID.Valid  || current_user.Admin) {%>
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
-                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"#nav-vet" }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+                <%= linkTo(editVeterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"#nav-vet" }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
                 <% } %>
                 <%= if (current_user.Admin) {%>
-                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID.String()+"#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                <%= linkTo(veterinaryvisitPath({ veterinaryvisit_id: veterinaryvisit.ID,  back: "/animals/"+animal.ID+"#nav-vet" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
                 <%  }%>
               </div>
             </td>
@@ -445,7 +445,7 @@
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID.String()+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Neue Behandlung hinzufügen
         <% } %>
       </div>
@@ -612,7 +612,7 @@
   <div class="tab-pane fade" id="nav-media" role="tabpanel" aria-labelledby="nav-media-tab">
     <%= if (!animal.OuttakeID.Valid || current_user.Admin) { %>
     <div class="py-4 mb-2">
-      <form action="/animals/<%= animal.ID.String() %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
+      <form action="/animals/<%= animal.ID %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
         <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
         <div class="custom-file mr-2" style="max-width:360px">
           <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required onchange="var l=this.nextElementSibling; l.textContent = this.files.length ? this.files[0].name : l.dataset.placeholder; l.classList.toggle('text-muted', this.files.length === 0);">
@@ -853,7 +853,7 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       </div>
       <div class="modal-body text-center">
         <p>Scannen Sie diesen QR-Code, um die Gaststatus-Seite für Tier <%= animal.YearNumberFormatted() %> zu öffnen.</p>
-        <img src="/animals/<%= animal.ID.String() %>/qr.png" alt="QR-Code" width="256" height="256" />
+        <img src="/animals/<%= animal.ID %>/qr.png" alt="QR-Code" width="256" height="256" />
         <%= if (guestNoPhone) { %>
         <div class="alert alert-warning small mt-2 mb-0 text-left">
           F&uuml;r dieses Tier wurde bei der Abgabe keine Telefonnummer erfasst &mdash; die Telefonpr&uuml;fung kann nie erfolgreich sein.

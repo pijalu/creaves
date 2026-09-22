@@ -105,23 +105,35 @@ func TestMergeStylesXML_KeepsTemplateSectionsVerbatim(t *testing.T) {
 	assert.Contains(t, s, `<xf numFmtId="165" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>`)
 }
 
-func TestMergeStylesXML_ErrorsOnAddedFonts(t *testing.T) {
-	ser := strings.Replace(testSerializedStyles, `<fonts count="2">`, `<fonts count="3">`, 1)
-	_, err := mergeStylesXML([]byte(testTemplateStyles), []byte(ser))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "fonts")
+func TestMergeStylesXML_AppendsAddedFonts(t *testing.T) {
+	// excelize v2.9+ clones the font when minting a date style: the
+	// serialized document has one more font and the extra xf references
+	// it (fontId 2 = index beyond the template's 2).
+	ser := strings.Replace(testSerializedStyles,
+		`<fonts count="2"><font><sz val="10"/><name val="Arial"/></font><font><b val="1"/><sz val="10"/><name val="Arial"/></font></fonts>`,
+		`<fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b val="1"/><sz val="10"/><name val="Arial"/></font><font><sz val="11"/><name val="Calibri"/></font></fonts>`, 1)
+	ser = strings.Replace(ser, `<xf numFmtId="167" fontId="0"`, `<xf numFmtId="167" fontId="2"`, 1)
+	out, err := mergeStylesXML([]byte(testTemplateStyles), []byte(ser))
+	require.NoError(t, err)
+	s := string(out)
+	assert.Contains(t, s, `<fonts count="3"><font><sz val="10"/><name val="Arial"/></font><font><b val="1"/><sz val="10"/><name val="Arial"/></font><font><sz val="11"/><name val="Calibri"/></font></fonts>`)
+	assert.Contains(t, s, `<xf numFmtId="168" fontId="2" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>`)
 }
 
-func TestMergeStylesXML_ErrorsOnAddedBordersAndFills(t *testing.T) {
-	ser := strings.Replace(testSerializedStyles, `<fills count="2">`, `<fills count="4">`, 1)
-	_, err := mergeStylesXML([]byte(testTemplateStyles), []byte(ser))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "fills")
-
-	ser = strings.Replace(testSerializedStyles, `<borders count="1">`, `<borders count="2">`, 1)
-	_, err = mergeStylesXML([]byte(testTemplateStyles), []byte(ser))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "borders")
+func TestMergeStylesXML_AppendsAddedFillsAndBorders(t *testing.T) {
+	ser := strings.Replace(testSerializedStyles,
+		`<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>`,
+		`<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"/></fill></fills>`, 1)
+	ser = strings.Replace(ser, `<borders count="1"><border/></borders>`,
+		`<borders count="2"><border/><border><left style="thin"/></border></borders>`, 1)
+	ser = strings.Replace(ser, `<xf numFmtId="167" fontId="0" fillId="0" borderId="0"`,
+		`<xf numFmtId="167" fontId="0" fillId="2" borderId="1"`, 1)
+	out, err := mergeStylesXML([]byte(testTemplateStyles), []byte(ser))
+	require.NoError(t, err)
+	s := string(out)
+	assert.Contains(t, s, `<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"/></fill></fills>`)
+	assert.Contains(t, s, `<borders count="2"><border/><border><left style="thin"/></border></borders>`)
+	assert.Contains(t, s, `<xf numFmtId="168" fontId="0" fillId="2" borderId="1" xfId="0" applyNumberFormat="1"/>`)
 }
 
 func TestMergeStylesXML_ErrorsOnUnknownNumFmt(t *testing.T) {

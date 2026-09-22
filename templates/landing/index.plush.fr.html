@@ -68,10 +68,9 @@
  <%}%>
 
 <% 
+    let am = animalsByZone
     if (params["v"] == "type") {
-      let am = animalsByType
-    } else {
-      let am = animalsByZone 
+      am = animalsByType
     }
     let keys = am.OrderedKeys()
 %>
