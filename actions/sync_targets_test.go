@@ -162,9 +162,10 @@ func TestSyncTargetUpdateBlankKeyPreservesStored(t *testing.T) {
 	assert.Equal(t, 90, reloaded.WebhookMaxPerMin)
 }
 
-// The edit page must not echo the stored API key to a plain (non-maintainer)
-// admin.
-func TestSyncTargetEditHidesKeyFromPlainAdmin(t *testing.T) {
+// The edit page must show the stored API key to a plain (non-maintainer)
+// admin too: the form is requireAdmin-gated and bugs.md #7 requires the key
+// to be visible — not hidden — for admin/maintainer roles.
+func TestSyncTargetEditShowsKeyToPlainAdmin(t *testing.T) {
 	requireMySQLSuite(t)
 	target := seedHandlerSyncTarget(t, "TS-edit", "http://console.example.org/webhook/events", true)
 
@@ -174,7 +175,9 @@ func TestSyncTargetEditHidesKeyFromPlainAdmin(t *testing.T) {
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	body, _ := io.ReadAll(resp.Body)
-	assert.NotContains(t, string(body), "stored-secret-key", "plain admin must not see the stored API key")
+	html := string(body)
+	assert.Contains(t, html, "stored-secret-key", "plain admin must see the stored API key")
+	assert.Contains(t, html, `type="text"`, "the API key input must not be masked for admins")
 }
 
 // Destroy removes the target AND its per-target delivery rows.
