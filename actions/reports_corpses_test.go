@@ -148,6 +148,7 @@ func markCorpse(t *testing.T, client *http.Client, baseURL string, f *corpseFixt
 		t.Fatalf("new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	setCSRFHeader(t, client, baseURL, req)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("POST mark: %v", err)
@@ -179,6 +180,7 @@ func TestCorpseRegisterUnmark(t *testing.T) {
 	userLogin, userPass := feedingGuideUser(t, false)
 	uclient, ubaseURL := feedingGuideLogin(t, userLogin, userPass)
 	form := url.Values{"outtake_ids": {f.deadOuttakeID}, "year": {fmt.Sprint(corpseTestYear)}}
+	form.Set("authenticity_token", testCSRFToken(t, uclient, ubaseURL))
 	resp, err := uclient.PostForm(ubaseURL+"/reports/corpses/unmark", form)
 	if err != nil {
 		t.Fatalf("POST unmark (non-admin): %v", err)
@@ -228,6 +230,7 @@ func TestCorpseRegisterMarkBackRedirect(t *testing.T) {
 			t.Fatalf("new request: %v", err)
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		setCSRFHeader(t, client, baseURL, req)
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Fatalf("POST %s: %v", path, err)
@@ -336,6 +339,7 @@ func unmarkCorpse(t *testing.T, client *http.Client, baseURL string, ids ...stri
 		t.Fatalf("new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	setCSRFHeader(t, client, baseURL, req)
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("POST unmark: %v", err)

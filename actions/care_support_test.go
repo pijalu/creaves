@@ -197,6 +197,22 @@ func TestSuggestionsHeatSource158(t *testing.T) {
 	require.NoError(t, json.Unmarshal(body, &got), "body: %s", body)
 	require.Contains(t, got, heat)
 }
+// careTemplatesToken fetches a CSRF token for the current session from any
+// authenticated page (the layout renders it in the csrf-token meta tag).
+// Required because mw-csrf rejects form POSTs without authenticity_token.
+func careTemplatesToken(t *testing.T, client *http.Client, baseURL, path string) string {
+	t.Helper()
+	resp, err := client.Get(baseURL + path)
+	require.NoError(t, err)
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode, "GET %s for csrf token", path)
+	m := csrfTokenRe.FindSubmatch(body)
+	require.NotNil(t, m, "no csrf token on %s", path)
+	return string(m[1])
+}
+
 // TestCareTemplatesAdminCRUD158 (bugs.md bug 6): note templates are an
 // admin-managed shared pool. Admin HTML flow: list, create, 422 on invalid,
 // edit, update, delete — the created template is owned by the admin.
@@ -207,10 +223,13 @@ func TestCareTemplatesAdminCRUD158(t *testing.T) {
 	cu := &models.User{}
 	require.NoError(t, models.DB.Where("login = ?", login).First(cu))
 
+	token := careTemplatesToken(t, client, baseURL, "/care_templates")
+
 	// create (form POST → 303 back to the list)
 	resp, err := client.PostForm(baseURL+"/care_templates", url.Values{
-		"Name":    {"TPL admin"},
-		"Content": {"Animal calme, à surveiller."},
+		"Name":               {"TPL admin"},
+		"Content":            {"Animal calme, à surveiller."},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -235,7 +254,9 @@ func TestCareTemplatesAdminCRUD158(t *testing.T) {
 
 	// invalid create → 422 re-render
 	resp, err = client.PostForm(baseURL+"/care_templates", url.Values{
-		"Name": {" "}, "Content": {""},
+		"Name":               {" "},
+		"Content":            {""},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -252,9 +273,10 @@ func TestCareTemplatesAdminCRUD158(t *testing.T) {
 
 	// update via _method=PUT (buffalo method override)
 	resp, err = client.PostForm(baseURL+"/care_templates/"+row.ID.String(), url.Values{
-		"_method": {"PUT"},
-		"Name":    {"TPL admin renamed"},
-		"Content": {"updated content"},
+		"_method":            {"PUT"},
+		"Name":               {"TPL admin renamed"},
+		"Content":            {"updated content"},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -268,7 +290,8 @@ func TestCareTemplatesAdminCRUD158(t *testing.T) {
 
 	// delete via _method=DELETE
 	resp, err = client.PostForm(baseURL+"/care_templates/"+row.ID.String(), url.Values{
-		"_method": {"DELETE"},
+		"_method":            {"DELETE"},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -300,6 +323,10 @@ func TestCareTemplatesAdminOnly158(t *testing.T) {
 	// remove stale rows from earlier failed runs so the create-assert is exact
 	require.NoError(t, tx.RawQuery("DELETE FROM care_templates WHERE name = ?", "Hax").Exec())
 
+	// non-admin has no care_templates page (redirects home); take the CSRF
+	// token from the landing page of the same session instead.
+	token := careTemplatesToken(t, client, baseURL, "/")
+
 	// GET list → redirect home
 	resp, err := client.Get(baseURL + "/care_templates")
 	require.NoError(t, err)
@@ -308,7 +335,9 @@ func TestCareTemplatesAdminOnly158(t *testing.T) {
 
 	// POST create → redirect, nothing stored
 	resp, err = client.PostForm(baseURL+"/care_templates", url.Values{
-		"Name": {"Hax"}, "Content": {"Hax"},
+		"Name":               {"Hax"},
+		"Content":            {"Hax"},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()
@@ -319,7 +348,8 @@ func TestCareTemplatesAdminOnly158(t *testing.T) {
 
 	// DELETE → redirect, template untouched
 	resp, err = client.PostForm(baseURL+"/care_templates/"+tpl.ID.String(), url.Values{
-		"_method": {"DELETE"},
+		"_method":            {"DELETE"},
+		"authenticity_token": {token},
 	})
 	require.NoError(t, err)
 	resp.Body.Close()

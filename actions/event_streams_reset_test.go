@@ -101,11 +101,13 @@ func TestEventStreamsResetAttempts(t *testing.T) {
 func TestEventStreamsResetAttempts404(t *testing.T) {
 	requireMySQLSuite(t)
 	client, baseURL := adminClientWithURL(t)
-	token := todoToken(t, client, baseURL, "/event_streams")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/"+uuid.Must(uuid.NewV4()).String()+"/reset_attempts", nil)
 	require.NoError(t, err)
-	req.URL.RawQuery = "authenticity_token=" + url.QueryEscape(token)
+	// The endpoint is JSON (see the sibling reset tests); the Accept header
+	// must be set so the request matches how the endpoint is consumed — and
+	// mw-csrf's HTML-form inspection path is not applicable to it.
+	req.Header.Set("Accept", "application/json")
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
