@@ -1,11 +1,14 @@
 package actions
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"creaves/models"
 )
 
 // ---------------------------------------------------------------------------
@@ -285,12 +288,81 @@ func TestExportCsvChooserRedirects(t *testing.T) {
 	}
 }
 
+// seedRegisterViewFixtures inserts the full join graph the register export
+// query needs (animal + intake + discovery + discoverer + entry cause + age),
+// in a dedicated marker year so it cannot collide with other fixtures.
+// The register query INNER JOINs every one of these tables, so a creaves_test
+// database without seeded register data (fresh checkout, CI) yields a
+// header-only download and an empty year dropdown — the two failures this
+// seeding removes. Idempotent: deletes its own rows before inserting.
+func seedRegisterViewFixtures(t *testing.T) {
+	t.Helper()
+	const markerYear = 2024
+
+	const (
+		ageID = "aaaaaaa1-1111-1111-1111-111111111111"
+		typID = "aaaaaaa2-2222-2222-2222-222222222222"
+		ecID  = "aaaaaaa3-3333-3333-3333-333333333333"
+		dcvID = "aaaaaaa4-4444-4444-4444-444444444444"
+		dscID = "aaaaaaa5-5555-5555-5555-555555555555"
+		intID = "aaaaaaa6-6666-6666-6666-666666666666"
+	)
+	// Clean up any partial seed from a previous failed run.
+	cleanup := []string{
+		"DELETE FROM animals WHERE year = " + fmt.Sprint(markerYear) + " AND species = 'Export View Test'",
+		"DELETE FROM intakes WHERE id = '" + intID + "'",
+		"DELETE FROM discoveries WHERE id = '" + dscID + "'",
+		"DELETE FROM discoverers WHERE id = '" + dcvID + "'",
+		"DELETE FROM entry_causes WHERE id = '" + ecID + "'",
+		"DELETE FROM animalages WHERE id = '" + ageID + "'",
+		"DELETE FROM animaltypes WHERE id = '" + typID + "'",
+	}
+	for _, s := range cleanup {
+		if err := models.DB.RawQuery(s).Exec(); err != nil {
+			t.Fatalf("cleanup register fixture %q: %v", s, err)
+		}
+	}
+
+	stmts := []string{
+		"INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('" + ageID + "', 'exportviewtest', 0, NOW(), NOW())",
+		"INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES ('" + typID + "', 'exportviewtest', 0, NOW(), NOW())",
+		"INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES ('" + ecID + "', 'exportviewtest', 'd', 'n', 'i', NOW(), NOW(), 1)",
+		"INSERT INTO discoverers (id, firstname, lastname, created_at, updated_at) VALUES ('" + dcvID + "', 'export', 'viewtest', NOW(), NOW())",
+		"INSERT INTO discoveries (id, date, location, reason, discoverer_id, entry_cause_id, created_at, updated_at) VALUES ('" + dscID + "', '2024-06-01 10:00:00', 'Testville', 'test', '" + dcvID + "', '" + ecID + "', NOW(), NOW())",
+		"INSERT INTO intakes (id, date, created_at, updated_at) VALUES ('" + intID + "', '2024-06-01 11:00:00', NOW(), NOW())",
+		`INSERT INTO animals (year, yearNumber, species, gender, cage, IntakeDate,
+			animalage_id, animaltype_id, intake_id, discovery_id, created_at, updated_at)
+		 VALUES (?, 991, 'Export View Test', 'M', 'C1', '2024-06-01 11:00:00',
+			'` + ageID + `', '` + typID + `', '` + intID + `', '` + dscID + `', NOW(), NOW())`,
+	}
+	for _, s := range stmts {
+		var err error
+		if strings.Contains(s, "?") {
+			err = models.DB.RawQuery(s, markerYear).Exec()
+		} else {
+			err = models.DB.RawQuery(s).Exec()
+		}
+		if err != nil {
+			t.Fatalf("seed register fixture %q: %v", s, err)
+		}
+	}
+
+	// Remove the fixture row after the test so exact-count assertions in
+	// later tests are never skewed by this seed.
+	t.Cleanup(func() {
+		for _, s := range cleanup {
+			models.DB.RawQuery(s).Exec()
+		}
+	})
+}
+
 // TestExportCsvHonorsViewFilters is the regression test for the #197
 // sub-item 3 bug: the CSV download used to stream the raw query result,
 // ignoring the filters applied in the online view. With a global search
 // that matches nothing the download must contain only the header row.
 func TestExportCsvHonorsViewFilters(t *testing.T) {
 	requireMySQLTestDB(t)
+	seedRegisterViewFixtures(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
@@ -355,6 +427,7 @@ func TestExportCsvHonorsViewFilters(t *testing.T) {
 // requested year and that the page shows the active filter.
 func TestExportViewYearFilter(t *testing.T) {
 	requireMySQLTestDB(t)
+	seedRegisterViewFixtures(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
