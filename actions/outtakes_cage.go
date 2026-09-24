@@ -83,7 +83,7 @@ func OuttakeCageNew(c buffalo.Context) error {
 // species, location matching the type mode. Returns false (after flashing
 // the reason) when the batch must be rejected.
 func cageOuttakeAccepted(c buffalo.Context, tx *pop.Connection, first *models.Animal, outtake *models.Outtake) bool {
-	if outtake.Date.After(time.Now().Add(time.Minute)) {
+	if outtake.Date.After(models.FormWallClockNow().Add(time.Minute)) {
 		c.Flash().Add("danger", T.Translate(c, "outtake.date.future"))
 		return false
 	}

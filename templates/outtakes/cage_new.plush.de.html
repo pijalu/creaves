@@ -42,7 +42,7 @@
   </ul>
   <%= formFor(outtake, {action: "/outtakes/cage", method: "POST"}) { %>
     <input type="hidden" name="cage" value="<%= params["cage"] %>">
-    <%= partial("outtakes/form.html") %>
+    <%= partial("outtakes/form.plush.de.html") %>
     <%= linkTo("/outtakes/cage", {class: "btn btn-warning", body: "Abbrechen"}) %>
   <% } %>
 <% } %>

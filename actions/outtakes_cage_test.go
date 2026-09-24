@@ -178,3 +178,23 @@ func TestOuttakeCageSuggestions(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.Contains(t, string(body), cage)
 }
+
+// TestOuttakeCageCreateAcceptsCurrentWallClock verifies the cage flow compares
+// form-bound wall-clock time with the same frame as the single-outtake flow.
+func TestOuttakeCageCreateAcceptsCurrentWallClock(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	cage := "CAGE-NOW-" + uuid.Must(uuid.NewV4()).String()[:8]
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+	setCageOnFixture(t, tx, f.animalID, cage)
+
+	client, baseURL := adminClientWithURL(t)
+	date := models.FormWallClockNow().Format(models.DateTimeFormat)
+	resp := postOuttakeCage(t, client, baseURL, cage, date, f.outtakeTypeID)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	cnt, err := tx.Where("outtaketype_id = ?", f.outtakeTypeID).Count(&models.Outtake{})
+	require.NoError(t, err)
+	require.Equal(t, 1, cnt)
+}
