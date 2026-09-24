@@ -1,17 +1,17 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Care note templates</h3>
+  <h3 class="d-inline-block"><%= t("care_templates.index.title") %></h3>
   <div class="float-end">
     <%= linkTo(newCareTemplatesPath(), {class: "btn btn-primary"}) { %>
-      Create New Template
+      <%= t("care_templates.index.new") %>
     <% } %>
   </div>
 </div>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Name</th>
-    <th>Content</th>
-    <th>Owner</th>
+    <th><%= t("care_templates.field.name") %></th>
+    <th><%= t("care_templates.field.content") %></th>
+    <th><%= t("care_templates.field.owner") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -22,8 +22,8 @@
         <td class="align-middle"><%= tpl.Owner %></td>
         <td>
           <div class="float-end">
-            <%= linkTo(editCareTemplatePath({ care_template_id: tpl.ID }), {class: "btn btn-warning", title: "Edit", body: "<i class='fa fa-edit'></i>"}) %>
-            <%= linkTo(careTemplatePath({ care_template_id: tpl.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(editCareTemplatePath({ care_template_id: tpl.ID }), {class: "btn btn-warning", title: t("care_templates.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(careTemplatePath({ care_template_id: tpl.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("care_templates.action.confirm_delete"), title: t("care_templates.action.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         </td>
       </tr>

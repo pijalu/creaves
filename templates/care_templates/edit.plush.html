@@ -1,8 +1,8 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Edit Care Note Template</h3>
+  <h3 class="d-inline-block"><%= t("care_templates.edit.title") %></h3>
 </div>
 
 <%= formFor(tpl, {action: careTemplatePath({ care_template_id: tpl.ID }), method: "PUT"}) { %>
   <%= partial("care_templates/form.html") %>
-  <%= linkTo(careTemplatesPath(), {class: "btn btn-warning", body: "Cancel"}) %>
+  <%= linkTo(careTemplatesPath(), {class: "btn btn-warning", body: t("care_templates.action.cancel")}) %>
 <% } %>
