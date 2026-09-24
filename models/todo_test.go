@@ -84,6 +84,31 @@ func TestTodoIsDone(t *testing.T) {
 	}
 }
 
+// TestTodoDueSoon: the 8h look-ahead for the dashboard/index split
+// (bugs.md TODO item) — overdue or due within 8h → true; due further
+// out or done → false.
+func TestTodoDueSoon(t *testing.T) {
+	now := time.Date(2026, 10, 18, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name string
+		todo Todo
+		want bool
+	}{
+		{"overdue", Todo{Description: "x", TodoDate: now.Add(-48 * time.Hour)}, true},
+		{"due now", Todo{Description: "x", TodoDate: now}, true},
+		{"due in 2h", Todo{Description: "x", TodoDate: now.Add(2 * time.Hour)}, true},
+		{"due in exactly 8h", Todo{Description: "x", TodoDate: now.Add(8 * time.Hour)}, true},
+		{"due in 8h01", Todo{Description: "x", TodoDate: now.Add(8*time.Hour + time.Minute)}, false},
+		{"due in 48h", Todo{Description: "x", TodoDate: now.Add(48 * time.Hour)}, false},
+		{"done and overdue", Todo{Description: "x", TodoDate: now.Add(-48 * time.Hour), DoneAt: nulls.NewTime(now)}, false},
+	}
+	for _, tc := range cases {
+		if got := tc.todo.DueSoon(now); got != tc.want {
+			t.Errorf("%s: DueSoon = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestTodoNextOccurrence(t *testing.T) {
 	base := time.Date(2026, 9, 19, 10, 0, 0, 0, time.UTC)
 	cases := []struct {

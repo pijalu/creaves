@@ -22,6 +22,12 @@ const (
 	// TodoOverdueAfter is how long an open todo may pass its todo_date
 	// before it turns red.
 	TodoOverdueAfter = 8 * time.Hour
+
+	// TodoDueSoonWindow is the look-ahead window for the dashboard block
+	// and the /todos main list (bugs.md TODO item): only open todos due
+	// within the next 8 hours — or already overdue — are shown there;
+	// todos due further out live in the collapsed "later" section.
+	TodoDueSoonWindow = 8 * time.Hour
 )
 
 // Recurrence values for recurring todos (issue #199-8). Empty means a
@@ -78,6 +84,16 @@ func (t *Todo) Validate(tx *pop.Connection) (*validate.Errors, error) {
 // IsDone reports whether the todo has been confirmed done.
 func (t Todo) IsDone() bool {
 	return t.DoneAt.Valid
+}
+
+// DueSoon reports whether an open todo is due within TodoDueSoonWindow of
+// now — i.e. overdue already or due in the next 8 hours (bugs.md TODO
+// item). Done todos are never "due soon".
+func (t Todo) DueSoon(now time.Time) bool {
+	if t.IsDone() {
+		return false
+	}
+	return !t.TodoDate.After(now.Add(TodoDueSoonWindow))
 }
 
 // NextOccurrence returns the follow-up todo to create when a recurring

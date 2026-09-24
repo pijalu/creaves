@@ -199,14 +199,18 @@ func listLast24hLogEntries(c buffalo.Context) (models.Logentries, error) {
 }
 
 // listDashboardTodos returns the open todos for the dashboard block with
-// their status colors (issue #147).
+// their status colors (issue #147). Only todos due within the next
+// models.TodoDueSoonWindow — or already overdue — are listed (bugs.md TODO
+// item); todo_date values live in the UTC wall-clock frame (naive DATETIME
+// column, DSN without loc), so the cutoff uses models.FormWallClockNow.
 func listDashboardTodos(c buffalo.Context) ([]todoView, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return nil, fmt.Errorf("no transaction found")
 	}
+	cutoff := models.FormWallClockNow().Add(models.TodoDueSoonWindow)
 	todos := &models.Todos{}
-	if err := tx.Where("done_at IS NULL").Order("todo_date asc").All(todos); err != nil {
+	if err := tx.Where("done_at IS NULL AND todo_date <= ?", cutoff).Order("todo_date asc").All(todos); err != nil {
 		return nil, err
 	}
 	return todoViews(tx, *todos)

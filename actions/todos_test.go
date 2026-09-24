@@ -343,6 +343,98 @@ func TestTodosIndexOrderingAndDashboard(t *testing.T) {
 	}
 }
 
+// getPage fetches a page with the logged-in client and returns the body.
+func todoGetBody(t *testing.T, client *http.Client, url string) string {
+	t.Helper()
+	resp, err := client.Get(url)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("GET %s status = %d", url, resp.StatusCode)
+	}
+	return string(body)
+}
+
+// TestTodosDueSoonFiltering (bugs.md TODO item): the dashboard lists only
+// open todos due within the next 8h (or overdue); /todos splits open todos
+// into the main list and a collapsed "later" section for todos due further
+// out. Nothing is auto-marked done.
+func TestTodosDueSoonFiltering(t *testing.T) {
+	if models.DB == nil {
+		t.Fatal("models.DB is nil — run with GO_ENV=test")
+	}
+	descOverdue := "TS-todo-ov-" + uuid.Must(uuid.NewV4()).String()[:8]
+	descSoon := "TS-todo-so-" + uuid.Must(uuid.NewV4()).String()[:8]
+	descLater := "TS-todo-la-" + uuid.Must(uuid.NewV4()).String()[:8]
+	todoCleanup(t, descOverdue)
+	todoCleanup(t, descSoon)
+	todoCleanup(t, descLater)
+
+	now := models.FormWallClockNow()
+	seed := func(description string, date time.Time) {
+		t.Helper()
+		td := &models.Todo{Description: description, TodoDate: date}
+		if err := models.DB.Create(td); err != nil {
+			t.Fatalf("seed todo %q: %v", description, err)
+		}
+	}
+	seed(descOverdue, now.Add(-2*time.Hour))
+	seed(descSoon, now.Add(2*time.Hour))
+	seed(descLater, now.Add(48*time.Hour))
+
+	login, pass := feedingGuideUser(t, true)
+	client, baseURL := feedingGuideLogin(t, login, pass)
+
+	// dashboard: overdue + due-soon listed, later one hidden
+	s := todoGetBody(t, client, baseURL+"/dashboard")
+	for _, want := range []string{descOverdue, descSoon} {
+		if !strings.Contains(s, want) {
+			t.Errorf("dashboard missing due todo %q", want)
+		}
+	}
+	if strings.Contains(s, descLater) {
+		t.Errorf("dashboard must not list todo %q due in 48h", descLater)
+	}
+
+	// /todos: later todo present but inside the collapsed later section
+	assertTodosIndexSplit(t, todoGetBody(t, client, baseURL+"/todos"), descOverdue, descSoon, descLater)
+
+	// later todo must still be open in the DB (not auto-marked done)
+	td := &models.Todo{}
+	if err := models.DB.Where("description = ?", descLater).First(td); err != nil {
+		t.Fatalf("reload later todo: %v", err)
+	}
+	if td.IsDone() {
+		t.Error("later todo must NOT be auto-marked done")
+	}
+}
+
+// assertTodosIndexSplit checks the /todos page split: all three todos
+// listed, the due ones in the main section, the later one inside the
+// collapsed laterTodosCollapse section.
+func assertTodosIndexSplit(t *testing.T, s, descOverdue, descSoon, descLater string) {
+	t.Helper()
+	for _, want := range []string{descOverdue, descSoon, descLater} {
+		if !strings.Contains(s, want) {
+			t.Errorf("/todos missing %q", want)
+		}
+	}
+	laterIdx := strings.Index(s, "laterTodosCollapse")
+	if laterIdx < 0 {
+		t.Fatal("/todos missing the collapsed later section")
+	}
+	if strings.Index(s, descLater) < laterIdx {
+		t.Errorf("later todo %q must appear inside the collapsed later section", descLater)
+	}
+	// due todos must stay in the main (open) section, before the later section
+	if strings.Index(s, descOverdue) > laterIdx || strings.Index(s, descSoon) > laterIdx {
+		t.Error("due todos must stay in the main open section above the later collapse")
+	}
+}
+
 // TestTodosDoneRedirect: the done endpoint honors a safe local `redirect`
 // param (dashboard posts /#todos) and rejects absolute/protocol-relative
 // targets (open-redirect guard), defaulting to /todos.

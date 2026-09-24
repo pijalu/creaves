@@ -84,8 +84,11 @@ func todoViews(tx *pop.Connection, todos models.Todos) ([]todoView, error) {
 	return views, nil
 }
 
-// TodosIndex handles GET /todos: open todos first (todo_date ascending),
-// then the done section (most recently completed first).
+// TodosIndex handles GET /todos: open todos due within TodoDueSoonWindow
+// (or overdue) first (todo_date ascending), then a collapsed section with
+// the open todos due further out, then the done section (most recently
+// completed first). The due/later split is the bugs.md TODO item; both
+// sections stay open in the DB — nothing is auto-marked done.
 func TodosIndex(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -101,7 +104,24 @@ func TodosIndex(c buffalo.Context) error {
 		return err
 	}
 
-	openViews, err := todoViews(tx, *open)
+	// Split open todos: due within the next 8h (or overdue) vs later.
+	// todo_date lives in the UTC wall-clock frame (see listDashboardTodos).
+	now := models.FormWallClockNow()
+	due := models.Todos{}
+	later := models.Todos{}
+	for _, t := range *open {
+		if t.DueSoon(now) {
+			due = append(due, t)
+		} else {
+			later = append(later, t)
+		}
+	}
+
+	openViews, err := todoViews(tx, due)
+	if err != nil {
+		return err
+	}
+	laterViews, err := todoViews(tx, later)
 	if err != nil {
 		return err
 	}
@@ -111,6 +131,7 @@ func TodosIndex(c buffalo.Context) error {
 	}
 
 	c.Set("openTodos", openViews)
+	c.Set("laterTodos", laterViews)
 	c.Set("doneTodos", doneViews)
 	c.Set("isAdmin", GetCurrentUser(c).Admin)
 
