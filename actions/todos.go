@@ -17,15 +17,19 @@ import (
 // them done; only admins can delete or reopen.
 
 // parseTodoDate parses the datetime-local form value with tolerant layouts,
-// defaulting to now when empty or unparsable. Parsed in the server's local
-// timezone (time.Parse would assume UTC and shift dates by the UTC offset).
+// defaulting to now when empty or unparsable. Parsed in the UTC frame on
+// purpose: the MySQL DSN has no loc parameter, so the driver stores the UTC
+// wall clock into the naive DATETIME column (same convention as the buffalo
+// binder, which parses custom layouts with time.Parse — see
+// models.FormWallClockNow). Parsing in time.Local would shift the stored and
+// displayed time by the local UTC offset (bugs.md calendar item).
 func parseTodoDate(raw string) time.Time {
 	for _, layout := range []string{"2006-01-02T15:04", "2006-01-02T15:04:05", "2006-01-02 15:04", "2006-01-02"} {
-		if t, err := time.ParseInLocation(layout, raw, time.Local); err == nil {
+		if t, err := time.Parse(layout, raw); err == nil {
 			return t
 		}
 	}
-	return time.Now()
+	return models.FormWallClockNow()
 }
 
 // todoView carries the precomputed display fields for the templates:
@@ -66,7 +70,9 @@ func todoViews(tx *pop.Connection, todos models.Todos) ([]todoView, error) {
 			logins[u.ID] = u.Login
 		}
 	}
-	now := time.Now()
+	// TodoDate values live in the UTC wall-clock frame (naive DATETIME
+	// column, DSN without loc): classify against the same frame.
+	now := models.FormWallClockNow()
 	views := make([]todoView, 0, len(todos))
 	for _, t := range todos {
 		views = append(views, todoView{
@@ -113,7 +119,7 @@ func TodosIndex(c buffalo.Context) error {
 
 // TodosNew handles GET /todos/new: empty form, todo_date defaults to now.
 func TodosNew(c buffalo.Context) error {
-	todo := &models.Todo{TodoDate: time.Now()}
+	todo := &models.Todo{TodoDate: models.FormWallClockNow()}
 	c.Set("todo", todo)
 	return c.Render(http.StatusOK, r.HTML("todos/new.plush.html"))
 }
@@ -230,7 +236,7 @@ func TodosDone(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 	if !todo.IsDone() {
-		todo.DoneAt = nulls.NewTime(time.Now())
+		todo.DoneAt = nulls.NewTime(models.FormWallClockNow())
 		todo.DoneByID = nulls.NewUUID(GetCurrentUser(c).ID)
 		if err := tx.Save(todo); err != nil {
 			return err

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"creaves/models"
 
@@ -81,8 +82,11 @@ func TestTodosCreateDoneDelete(t *testing.T) {
 	if todo.DoneAt.Valid {
 		t.Error("fresh todo must not be done")
 	}
-	if todo.TodoDate.UTC().Format("2006-01-02 15:04") != "2026-09-19 08:00" {
-		// DSN stores UTC: 10:00 local (CEST) == 08:00 UTC
+	if todo.TodoDate.UTC().Format("2006-01-02 15:04") != "2026-09-19 10:00" {
+		// The picked wall clock must round-trip verbatim: the DSN stores the
+		// UTC wall clock in the naive DATETIME column, and parsing the form
+		// value in the UTC frame keeps the displayed time in local time
+		// (bugs.md calendar item: todos displayed 2h earlier in CEST).
 		t.Errorf("todo_date = %s", todo.TodoDate)
 	}
 
@@ -393,6 +397,29 @@ func TestTodosDoneRedirect(t *testing.T) {
 				t.Errorf("Location = %q, want %q", loc, tc.want)
 			}
 		})
+	}
+}
+
+// TestParseTodoDateWallClock: the picked wall clock must survive parsing
+// verbatim (bugs.md calendar item). The DSN has no loc parameter, so the
+// driver stores/loads the UTC wall clock of the naive DATETIME column;
+// parsing in the UTC frame keeps the displayed time equal to the picked
+// local time regardless of the server timezone.
+func TestParseTodoDateWallClock(t *testing.T) {
+	for _, raw := range []string{"2026-09-19T10:00", "2026-09-19T10:00:30", "2026-09-19 10:00", "2026-09-19"} {
+		got := parseTodoDate(raw)
+		if got.Location() != time.UTC {
+			t.Errorf("parseTodoDate(%q) location = %v, want UTC", raw, got.Location())
+		}
+	}
+	got := parseTodoDate("2026-09-19T10:00")
+	if got.Format("2006-01-02 15:04") != "2026-09-19 10:00" {
+		t.Errorf("parseTodoDate wall clock = %s, want 2026-09-19 10:00", got.Format("2006-01-02 15:04"))
+	}
+	// empty/unparsable falls back to the wall-clock "now" (UTC frame)
+	fallback := parseTodoDate("")
+	if fallback.Location() != time.UTC {
+		t.Errorf("fallback location = %v, want UTC", fallback.Location())
 	}
 }
 
