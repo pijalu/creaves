@@ -144,6 +144,24 @@ func stayDurationHours(hours nulls.Int, dayUnit, hourUnit string) string {
 	return fmt.Sprintf("%d %s - %d %s", h/24, dayUnit, h%24, hourUnit)
 }
 
+// stayDurationBucket returns the four stay-length labels used on animal and
+// outtake records. The labels are supplied by the localized template.
+func stayDurationBucket(hours nulls.Int, under12, h12to24, h24to48, gt48 string) string {
+	if !hours.Valid {
+		return ""
+	}
+	switch h := hours.Int; {
+	case h < 12:
+		return under12
+	case h < 24:
+		return h12to24
+	case h < 48:
+		return h24to48
+	default:
+		return gt48
+	}
+}
+
 var r *render.Engine
 
 // defaultRenderHelpers replicates the helper set buffalo v0.18 injected via
@@ -162,14 +180,15 @@ func defaultRenderHelpers() render.Helpers {
 // customRenderHelpers are the creaves-specific plush helpers.
 func customRenderHelpers() render.Helpers {
 	return render.Helpers{
-		"langLinks":       langLinks,
-		"langLinksAll":    langLinksAll,
-		"uiLang":          uiLang,
-		"sortLink":        sortLink,
-		"sortIcon":        sortIcon,
-		"userRoleName":    userRoleName,
-		"userAccountRole": userAccountRole,
-		"stayDuration":    stayDurationHours,
+		"langLinks":          langLinks,
+		"langLinksAll":       langLinksAll,
+		"uiLang":             uiLang,
+		"sortLink":           sortLink,
+		"sortIcon":           sortIcon,
+		"userRoleName":       userRoleName,
+		"userAccountRole":    userAccountRole,
+		"stayDuration":       stayDurationHours,
+		"stayDurationBucket": stayDurationBucket,
 		"bool2html": func(s bool) string {
 			if s {
 				return "✓"

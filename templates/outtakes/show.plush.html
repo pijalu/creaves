@@ -30,7 +30,7 @@
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Stay duration</label>
-    <p class="d-inline-block"><%= stayDuration(outtake.StayDuration, "d", "h") %></p>
+    <p class="d-inline-block"><%= stayDuration(outtake.StayDuration, "d", "h") %> <span class="badge badge-info"><%= stayDurationBucket(outtake.StayDuration, t("outtake.duration.bucket.under12"), t("outtake.duration.bucket.12to24"), t("outtake.duration.bucket.24to48"), t("outtake.duration.bucket.gt48")) %></span></p>
   </li>
 
 

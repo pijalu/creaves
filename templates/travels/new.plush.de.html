@@ -1,4 +1,4 @@
-<%= if (travel.AnimalID.Value() == 0 ) { %>
+<%= if (travel.AnimalID == 0 ) { %>
   <h4>Wählen Sie das mit der Reise verknüpfte Tier aus</h4>
   <%= formFor(travel, {action: newTravelsPath(), method: "GET"}) { %>
     <div class="form-group row">
