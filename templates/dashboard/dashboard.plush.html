@@ -338,47 +338,6 @@
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Animals to force feed (<%= len(animalsToForceFeed) %>)</h3>
-<a class="btn btn-success btn-sm ml-2" href="<%= feedingPath() %>" title="Gavage"><i class="fas fa-utensils"></i> Gavage</a>
-<%= if (len(animalsToForceFeed)>0) {%>
-<div class="table-responsive">
-<table class="table table-hover table-bordered table-striped">
-  <thead class="thead-light">
-    <th>Number</th>
-    <th>Cage</th>
-    <th>Species</th>
-    <th>Feeding</th>
-  </thead>
-  <tbody>
-    <%= for (animal) in animalsToForceFeedPreview { %>
-      <tr>
-        <td class="align-middle">
-          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Ready for release"><i class="fas fa-dove"></i></span><% } %>
-        </td>
-        <td class="align-middle"><%= animal.Cage %></td>
-        <td class="align-middle">
-          <%
-            let gender = "×"
-            if (animal.Gender.Value()=="M") {
-              gender = "♂"
-            } else if (animal.Gender.Value() == "F") {
-              gender = "♀"
-            }
-          %>
-          <%= tspecies(animal.Species) %> (<%= gender %>)
-        </td>
-        <td class="align-middle"><p><%= animal.Feeding %></p></td>
-      </tr>
-    <% } %>
-  </tbody>
-</table>
-</div>
-  <%} else {%>
-<p>None</p>
-<%}%>
-<br/>
-
 <h3 class="d-inline-block">Log entries (last 24h)</h3>
 <%= if (len(lastLogentries)>0) {%>
 <div class="table-responsive">

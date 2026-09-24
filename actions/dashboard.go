@@ -76,14 +76,6 @@ WHERE EXISTS(
 	  AND t.date < ?)
 `
 
-// SQL_ANIMAL_TOBE_FORCEFEED returns the animals than need force feeding
-const SQL_ANIMAL_TOBE_FORCEFEED = `
-SELECT a.*
-FROM animals a
-WHERE outtake_id is null
- AND force_feed is true
-`
-
 func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -121,25 +113,6 @@ func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
 	}
 	return EnrichAnimalsOptimized(animals, c)
 }
-
-func listAnimalWithForceFeed(c buffalo.Context) (*models.Animals, error) {
-	animals := &models.Animals{}
-
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	// Retrieve all animals with force feed requirement from the DB with optimized query
-	if err := tx.RawQuery(SQL_ANIMAL_TOBE_FORCEFEED).All(animals); err != nil {
-		return nil, err
-	}
-	return EnrichAnimalsOptimized(animals, c)
-}
-
-// forceFeedPreviewLimit caps the force-feed list shown on the dashboard; the
-// full list (the gavage function) lives on the Feeding page (issue #88).
-const forceFeedPreviewLimit = 5
 
 // listTodaysVetVisits returns the veterinary visits planned today with their
 // animal preloaded (issue #88).
@@ -238,20 +211,6 @@ func DashboardIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("animalsToTreat", animals)
-
-	animalsToForceFeed, err := listAnimalWithForceFeed(c)
-	if err != nil {
-		return err
-	}
-	c.Set("animalsToForceFeed", animalsToForceFeed)
-
-	// Dashboard only previews a few force-feed animals; the complete list and
-	// the gavage workflow live on the Feeding page (issue #88).
-	forceFeedPreview := *animalsToForceFeed
-	if len(forceFeedPreview) > forceFeedPreviewLimit {
-		forceFeedPreview = forceFeedPreview[:forceFeedPreviewLimit]
-	}
-	c.Set("animalsToForceFeedPreview", forceFeedPreview)
 
 	vvs, err := listTodaysVetVisits(c)
 	if err != nil {
