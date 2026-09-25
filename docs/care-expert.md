@@ -1474,7 +1474,7 @@ Grouped by zone (existing convention), sorted by `due_at` then rule `priority`:
 | 08:30 | 10455 · Pigeon biset (Volière 1) | grains pigeons eau | R3 | 🟡 **late** (now 09:40, grace 60 min) |
 | 09:00 | 223 animals | Nettoyage cage | R4 | 198 ✅ · 21 🟡 late · 4 🔴 missing |
 | 09:30 | 10472 · Hérisson (A12) | 🦔 gavage — Croquettes + VDF | R1 | ⚪ due (bouton **Apply** / Skip) |
-| 10:00 | 10433 · Merle (B07) | Pesée de contrôle | R5 | ⏭ skipped par *julie* — « animal stressé, reporté » |
+| 10:00 | 10433 · Merle (B07) | Pesée de contrôle | R5 | ⏭ skipped par *julie* — « animal trop stressé, pesée à risque » |
 | 12:30 | 10472 · Hérisson (A12) | 🦔 gavage | R1 | ⚪ scheduled |
 | demain 08:00 | 10398 · Renard (Enclos 2) | Ivomec — **jour 5/5, dernier** | R2 | ⚪ scheduled |
 
