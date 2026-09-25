@@ -2,7 +2,7 @@
 
 **Status**: Specification — **v2, open questions resolved** (no implementation yet)
 **Project**: `creaves/` (no Creaves Console impact — care data is deliberately excluded from webhooks)
-**Date**: 2026-09-20 (§10 decisions recorded 2026-09-21)
+**Date**: 2026-09-20 (§10 decisions recorded 2026-09-21; §10.5 review 2026-09-25)
 
 ---
 
@@ -25,15 +25,19 @@ care for each animal, based on the animal's condition:
    per-animal **day view** (treatment-style glimpse of the day). The day
    plan is first and foremost a **"what should I do next"** driver —
    like the existing feeding/landing screens, it must answer that question
-   at a glance, not merely list a chronological trace.
+   at a glance, not merely list a chronological trace. Animals are labeled
+   by **year/number + cage** (how caretakers actually find them, §10.5-N1),
+   and cage-sized actions (cleanup) aggregate **per cage — never coarser**
+   (§10.5-N2).
 7. Planning works at **two levels**: generic rules (admin, matcher-driven)
    **and** single-animal schedules created directly on the animal
    (caretaker, treatment-style — no matcher, no rule setup).
 8. Admin UI must be **clear to set up and navigate**, with **reuse**
    (e.g. one rule for multiple species/matchings).
 
-This **extends** the existing feeding/treatment/care features and **can replace
-their scheduling parts** once proven (see §8, Migration & Coexistence).
+This **extends** the existing feeding/treatment/care features and **replaces
+their scheduling parts at rollout** via a single-shot data conversion at
+startup (see §8, Migration).
 
 ---
 
@@ -76,6 +80,44 @@ unused for animals), `drugs` + `dosages` (per-animal-type posology),
 | Wounds in care | 85 | Wound-care actions already exist (`WoundCareDrugName`). |
 | Treatments | 57,459 rows; 281 open slots now; bitmaps mostly `2` (noon-only) or `5` | Row-per-day model scales badly; rule + application log replaces it cleanly. |
 | Weight records | 122k/371k cares | "Weigh weekly" is a plausible rule action type. |
+
+### 2.4 Seed evidence base — critical review of the full 2025/2026 cohort
+
+§2.3 is a **snapshot**: the 223 animals in care on 2026-09. That sample is
+season-biased (September) and stay-truncated (only the current, unfinished
+segment of each stay is visible). The seed library (§7.4) — the artifact that
+decides whether the system feels right on day one — must not be derived from
+that snapshot alone (§10.5-N5).
+
+**Pre-implementation task**: a critical review over **all animals admitted in
+2025 and 2026** (in care, released, dead — complete stays, intake→outtake,
+both annual cycles of seasonality). Real figures from the prod-like DB:
+
+| Cohort evidence (2025 + 2026 admissions) | Value | Implication for seeds |
+|---|---|---|
+| Animals admitted 2025 / 2026 | **2,525 / 1,923** | ≈4,400 real stays vs 223 in the snapshot — two full seasons of species mix. |
+| Cares logged per cohort animal | ≈ **51** (2026) / ≈ **49** (2025) | Full courses are visible end-to-end, not truncated. |
+| Top feeding periods | **240 (899), 600 (498), 300 (300), 480 (249), 360 (222)** | Confirms the period→fixed-times replacement (§4.3); seeds must cover the 240 min (≈4×/day) cases, not only 600. |
+| Top diet clusters (identical `feeding` text) | 🦔 Croquettes + 4 VDF family (279+170+154+82), NB 1/2 (89), Phospha+LAIT (86), grains pigeons eau (45) | Clustering identical diet texts (§8.1 step 1) is viable; hedgehog & pigeon diets dominate the seeds. |
+| Top drugs (distinct cohort animals) | Catosal+Réhydratation (876), Réhydratation (661), Citramox L.A. (583), Vitamines B (492), Ivomec (317), Sarnacuran (266) | Medication seeds must cover these protocols, not only Ivomec. |
+| `tiques`-like phrasings | 6 variants (`tiques`, `tiques - puces`, `puces - tiques`, `tiques, puces`, `myiases - tiques`, `tiques et puces`) | The seed regex `(?i)tiques` catches **all six** — validated on real text, not guessed. |
+| Distinct cages occupied (in care, 2026-09) | **107** | Per-cage cleanup aggregation yields ≈107 cards, not one 223-animal card (§6.2a). |
+
+Method (critical, not just statistical):
+
+1. Extract cares / treatments / feeding plans for the cohort; cluster diet
+   texts, feeding windows + periods, drug + course patterns, parasite/wound
+   phrasings, weighing cadence — per animal type × age.
+2. Frequency tables first, then **manual review of the outliers** — the long
+   tail is where the real cases live (a 2025-only species or protocol must
+   still be representable).
+3. Cross-check every draft seed (§7.4) against the cohort:
+   - patterns the seeds **don't cover** → new seed or explicit gap note;
+   - seeds that **match nothing** historically → rework or drop;
+   - matcher regexes validated against every real phrasing variant in the
+     cohort (e.g. all six 2025/2026 ways of writing "tiques", §7.4 SM7).
+4. Output: §7.4 updated with cohort counts per seed (not in-care counts), and
+   the conversion clustering thresholds for §8.1 calibrated on the same data.
 
 ---
 
@@ -150,6 +192,21 @@ feeding rule), surfaced as *"overridden"* in the why-explanation.
 Separately, an animal can be **excluded** from a rule (§4.1
 `care_rule_exclusions`).
 
+**Key design decision 5 — the cage is the coarsest action unit in the day
+plan.** Physical care is organized by cage: cleaning cage A12 is one chore no
+matter how many animals live in it, and caretakers walk rounds cage by cage.
+Cage-sized actions — `cleanup` is the canonical case — aggregate **per
+(source × cage)**: one card per cage, applied once, fulfilling every animal
+in it (§6.2a). **Never coarser**: no cross-cage or center-wide "clean
+everything" action exists anywhere in the UI (§10.5-N2). Fulfillment and
+late/missing tracking stay per animal (need #5): applying a cage card runs
+the standard per-item transaction for each animal in the cage, so each
+animal's care log gets its own `clean=1` row. Animals without a cage value
+group under a virtual « sans cage » bucket per source. Grouping is a
+**per-kind strategy** in the plan service (cage for cleanup, per-animal for
+the other kinds) — new kinds declare their grouping, the views stay generic
+(§9 SOLID).
+
 ---
 
 ## 4. Data Model (new tables)
@@ -214,13 +271,14 @@ Validation in model `Validate` per `action_kind`.
 // care (generic, incl. wound care, heat/oxygen check…)
 { "caretype_id": "<Soin uuid>", "note": "Changer bandage", "heat_source_check": true }
 
-// cleanup
+// cleanup — cage-sized (§6.2a): one card per cage in the day plan, and
+// on apply one cares.clean=1 row per animal in that cage
 { "note": "Nettoyage cage" }                    // fulfills via cares.clean=1
 
 // weighing
 { "note": "…" }                                  // fulfills via care row carrying a weight
 
-// observation — prompt with an alert outcome (§10.6: alert is v1)
+// observation — prompt with an alert outcome (§10.1-6: alert is v1)
 { "prompt": "Mange seul ?",                     // the question shown at apply time
   "note": "…",                                  // optional default note on the care row
   "alert_on": "no",                             // "no" | "yes" | null. On the alert outcome the apply
@@ -628,7 +686,7 @@ note/clean/etc. remain optional:
      **if the answer is the alert outcome (`alert_on`, §4.2), also write a
      second `cares` row of the Warning caretype** (`caretypes.warning=1`,
      "Alerte") in the same transaction, turning the animal's row red until a
-     "Réponse alerte" (`reset_warning=1`) care clears it (§10.6), **and
+     "Réponse alerte" (`reset_warning=1`) care clears it (§10.1-6), **and
      auto-create a single-occurrence follow-up observation animal-plan**
      (name `"Vérifier alerte: <prompt>"`, one occurrence at
      now + `alert_follow_up_hours`, `created_by` = applying user,
@@ -660,22 +718,41 @@ mandatory reason + `deferred_until` **clamped to before the next occurrence
 of the same source** (§10-A2/CP4); no fulfillment record. The defer dialog
 defaults `deferred_until` to **+1 h** (editable, still clamped) (§10-L3).
 
-**Batch apply (§10.5 — in v1, no kind restrictions per §10-CP2)**: `POST
-/care_plan/apply_batch` accepts a list of item keys (e.g. all currently-due
-items of one cleanup/feeding rule, or a cage-group feeding like *"POUR LES 8
-RENARDS"*). A **confirmation screen lists the N animals first**, with per-row
-opt-out — for medication items it shows **each animal's resolved dosage**
-(weight × dosages table) so per-animal dosing stays visible even in batch.
-The handler then applies the **same per-item transaction in a loop**
-(re-verify → create record → insert application), collecting per-item
-results; items that fail re-verification or the UNIQUE backstop are reported
-as already-done, not errors. One click → N care/treatment rows + N
-applications, each independently idempotent.
+**Batch apply — scoped to one cage (§10.1-5 in v1; no kind restrictions per
+§10-CP2; cage ceiling per §10.5-N2)**: `POST /care_plan/apply_batch` accepts
+a list of item keys **from a single (source × cage) group** — e.g. the due
+cleanup occurrences of cage A12, or a cage-group feeding like *"POUR LES 8
+RENARDS"* (one enclosure). The cage is the aggregation ceiling: no endpoint
+or UI path applies across cages (§3 decision 5). A **confirmation screen
+lists the cage's N animals first**, with per-row opt-out — for medication
+items it shows **each animal's resolved dosage** (weight × dosages table) so
+per-animal dosing stays visible even in batch. The handler then applies the
+**same per-item transaction in a loop** (re-verify → create record → insert
+application), collecting per-item results; items that fail re-verification or
+the UNIQUE backstop are reported as already-done, not errors. One click → N
+care/treatment rows + N applications, each independently idempotent.
 
 This is why "tracked at animal level": every application materializes as a
 **standard care/treatment record** → appears in the animal's existing care
 tab, treatment list, PDF/exports, plus the application row keeps the
 source-occurrence link for the plan.
+
+### 6.2a Cage-scoped aggregation (cleanup first)
+
+`cleanup` is a **cage-sized** chore: the day plan renders one **cage card**
+per (cleanup source × cage) instead of per-animal items — « Cage A12 · 3
+animaux · Nettoyage cage » with per-animal status dots inside. Applying the
+card = batch apply over that cage's animals (above): one `cares` row
+(`clean=1`) + one application **per animal**, so per-animal tracking and the
+care log are unchanged. The card's status rolls up from its animals'
+occurrences (all ✅ / partial / 🟡 / 🔴); header counters still count
+per-animal occurrences globally. Cage cards sort by **zone then cage** (round
+order), matching the timeline view's grouping. With 107 occupied cages in the
+2026-09 snapshot (§2.4), the cleanup rule yields ≈107 cage cards — a round
+list — instead of one unusable 223-animal "clean everything" card (§10.5-N2).
+Other kinds default to per-animal cards with the cage as their batch ceiling;
+a kind declares its grouping strategy in the plan service (§9 SOLID), no
+schema change.
 
 ### 6.3 Subsequent planning
 
@@ -743,9 +820,16 @@ every query is previewable before it drives a plan.
 
 Admin navigation: **Care plans** group added next to existing Cares/Treatments/Feeding.
 
+**Animal label convention (§10.5-N1)** — wherever the plan UI lists or references
+an animal (day-plan cards, timeline rows, preview lists, confirmation screens,
+reports), the primary label is `{{yearNumber}}/{{YY}} · species · cage`,
+e.g. `472/26 · Hérisson · A12` — built from `Animal.YearNumberFormatted()` plus
+the animal's current cage (`—` when cageless). Bare numeric IDs (10472…) never
+appear as labels; they remain internal keys (URLs, FKs, JSON).
+
 | Page | Route | Audience | Content |
 |---|---|---|---|
-| **Day plan** | `/care_plan` (also replaces/augments `/feeding`) | caretakers | **"What should I do next"** — primary work surface. Two view modes: **① Action-first** (default): items sorted by urgency — overdue/missing first, then due-now, then upcoming — each item is an actionable card with animal name + cage, action description, and status badge. **Apply is one tap** (no dialog) for kinds needing no input; kinds that require a value (weight, answer) open a **minimal dialog** (§10-L3/L1). **Defer**/**Skip** open a small reason dialog. **Past-window items are read-only 🔒** (§10-H2/A1). **② Timeline**: chronological trace grouped by zone (existing `AnimalByZoneMap` convention) then time — for review and shift handover. Status badges (due/late/missing/applied/skipped/deferred); filters by action kind, zone, animal; counts header. **Batch entry point (§10-M2/CP2)**: aggregate cards carry a per-card checkbox and a `[✅ Tout appliquer (N)]` button → §6.2 batch screen. **Auto-refresh ~60 s with a visible "updated at HH:MM" indicator** (§10-CP6c) — several caretakers work the same list during the 09:00–12:00 peak; refresh prevents double-work that the UNIQUE constraint would otherwise only catch after the fact. |
+| **Day plan** | `/care_plan` (also replaces/augments `/feeding`) | caretakers | **"What should I do next"** — primary work surface. Two view modes: **① Action-first** (default): items sorted by urgency — overdue/missing first, then due-now, then upcoming — each item is an actionable card labeled `{{yearNumber}}/{{YY}} · species · cage` (§10.5-N1) with action description and status badge. **Apply is one tap** (no dialog) for kinds needing no input; kinds that require a value (weight, answer) open a **minimal dialog** (§10-L3/L1). **Defer**/**Skip** open a small reason dialog. **Past-window items are read-only 🔒** (§10-H2/A1). **② Timeline**: chronological trace grouped by zone (existing `AnimalByZoneMap` convention), then cage, then time — for review and shift handover. Status badges (due/late/missing/applied/skipped/deferred); filters by action kind, zone, cage, animal; counts header. **Batch entry point (§10-M2/CP2)**: cleanup renders **one cage card per (source × cage)** (§6.2a) with a `[✅ Appliquer la cage (N)]` button → §6.2 batch screen scoped to that cage; other kinds apply per card. **No cross-cage apply** — the cage is the coarsest action unit (§10.5-N2). **Auto-refresh ~60 s with a visible "updated at HH:MM" indicator** (§10-CP6c) — several caretakers work the same list during the 09:00–12:00 peak; refresh prevents double-work that the UNIQUE constraint would otherwise only catch after the fact. |
 | **Animal plan tab** | `/animals/{id}` new tab "Plan" | caretakers | **Day glimpse** — treatment-grid-style per-animal day view: today's occurrences (rules + animal plans merged) as a time grid with apply/skip checkboxes, like the existing treatment schedule; plus: animal's own **animal plans** with **create/edit inline** (caretaker-level, no admin rights — action form + schedule chips, no matcher section); active rules for this animal + *why they match* (incl. overridden/excluded states); upcoming occurrences; history of applications (linked care/treatment rows). |
 | **Animal plan editor** | inline in the Plan tab (modal/partial), `POST/PUT /animals/{id}/care_animal_plans` | caretakers | One-animal schedule creation: name, action kind + payload (same sub-forms as rule editor ①), schedule (same widget as rule editor ②). No matcher, no preview panel — trivially scoped to the animal. "Promote to rule" button (admin only). |
 | **Rules list** | `/care_rules` | admin | Cards/table: name, kind, schedule summary ("5×/day, daily"), matcher as **readable sentence** (link to matcher), live match count, active toggle, duplicate button. |
@@ -778,7 +862,6 @@ buttons render only for users who may actually mutate (regular + admin), and
 "consultation" template is needed — the existing show page *is* the
 consultation view once its action buttons are role-gated; the plan always
 links to it in read-only intent (`back` set, no edit affordance promised).
-
 **Reuse mechanics**: named matcher library (§4.6, edit once → all rules
 updated); rule & matcher duplication; matcher on
 `species_agw_group`/`family`/`animal_type` for broad groups; action kinds
@@ -787,11 +870,12 @@ reference shared `caretypes`/`drugs` reference data.
 **Feeds/integrations**:
 - Landing page: per-animal badge "N due / M late" (single grouped query over
   plan service — watch performance, reuse `EnrichAnimalsOptimized` pass).
-- Existing `/feeding` page: keep during migration (§8), add banner linking to
-  `/care_plan?kind=feeding`.
-- Existing treatment schedule (`/treatmentschedule`) remains editable during
-  migration; the animal Plan tab's day glimpse is the same data plus rule
-  occurrences, and becomes the canonical per-animal day view in Phase 3.
+- Existing `/feeding` page: **retired at rollout** (§8.3) — single-shot
+  conversion replaces it; the route redirects to `/care_plan?kind=feeding`.
+- Existing treatment schedule (`/treatmentschedule`) becomes **read-only
+  history** at rollout (§8.3): series are converted to rules/animal plans at
+  startup (§8.1); the animal Plan tab's day glimpse is the same data plus
+  rule occurrences and is the canonical per-animal day view from day one.
 
 **I18n**: all new UI strings in `locales/*.yaml` for **en-US, fr, de, nl**
 (workspace all-language rule); templates via the standard `t()` helper.
@@ -819,11 +903,12 @@ first, one-click apply. Grouped by urgency tier, not by time.
 │  🔴 MANQUÉ (5) ─────────────────────────────────────────────────     │
 │                                                                      │
 │  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ 🦔 10472 · Hérisson (A12)    Gavage — Croquettes + 4 VDF     │  │
+│  │ 🦔 472/26 · Hérisson · A12   Gavage — Croquettes + 4 VDF     │  │
 │  │    Prévu hier 19:00 · R1 Hérisson bébé — gavage 5x/j         │  │
 │  │    🔒 Hors délai — historique (fenêtre dépassée, §6.1)          │  │
 │  ├────────────────────────────────────────────────────────────────┤  │
-│  │ 🧹 10502 · Merle (B07)       Nettoyage cage                   │  │
+│  │ 🧹 Cage B07 · 2 animaux      Nettoyage cage  (§6.2a)        │  │
+│  │    433/26 · Merle · 502/26 · Merle                          │  │
 │  │    Prévu hier 09:00 · R-Nettoyage quotidien                   │  │
 │  │    🔒 Hors délai — historique (fenêtre dépassée, §6.1)          │  │
 │  └────────────────────────────────────────────────────────────────┘  │
@@ -831,11 +916,11 @@ first, one-click apply. Grouped by urgency tier, not by time.
 │  🟡 EN RETARD (22) ────────────────────────────────────────────      │
 │                                                                      │
 │  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ 🐦 10455 · Pigeon biset (Volière 1)  Grains pigeons eau       │  │
+│  │ 🐦 455/26 · Pigeon biset · Volière 1  Grains pigeons eau    │  │
 │  │    Prévu 08:30 · R3 Colombidés — grains 2x/j · 70 min retard  │  │
 │  │    [✅ Fait] [⏭ Reporter] [🚫 Ignorer]                          │  │
 │  ├────────────────────────────────────────────────────────────────┤  │
-│  │ 💊 10398 · Renard (Enclos 2)   Ivomec 1% (SC) — 0.08 ml      │  │
+│  │ 💊 398/26 · Renard · Enclos 2   Ivomec 1% (SC) — 0.08 ml   │  │
 │  │    Prévu 08:00 · R2 Tiques → Ivomec 5 jours · jour 3/5       │  │
 │  │    [✅ Fait] [⏭ Reporter] [🚫 Ignorer]                          │  │
 │  └────────────────────────────────────────────────────────────────┘  │
@@ -843,23 +928,29 @@ first, one-click apply. Grouped by urgency tier, not by time.
 │  ⚪ À FAIRE MAINTENANT (8) ────────────────────────────────────      │
 │                                                                      │
 │  ┌────────────────────────────────────────────────────────────────┐  │
-│  │ 🦔 10472 · Hérisson (A12)    Gavage — Croquettes + 4 VDF     │  │
+│  │ 🦔 472/26 · Hérisson · A12   Gavage — Croquettes + 4 VDF     │  │
 │  │    Prévu 09:30 · R1 Hérisson bébé — gavage 5x/j              │  │
 │  │    [✅ Fait] [⏭ Reporter] [🚫 Ignorer]                          │  │
 │  ├────────────────────────────────────────────────────────────────┤  │
-│  │ 🧹 Tous les animaux (223)    Nettoyage cage                   │  │
-│  │    Prévu 09:00 · R-Nettoyage quotidien · 198 ✅ · 21 🟡 · 4 🔴│  │
-│  │    [✅ Tout appliquer (21)]  [Voir par animal ▸]                │  │
+│  │ 🧹 Cage A12 · 3 animaux     Nettoyage cage   (§6.2a)         │  │
+│  │    472/26 · Hérisson · 488/26 · Hérisson · 491/26 · Hérisson │  │
+│  │    Prévu 09:00 · R-Nettoyage quotidien · 0/3 appliqués       │  │
+│  │    [✅ Appliquer la cage (3)]  [Voir par animal ▸]             │  │
+│  ├────────────────────────────────────────────────────────────────┤  │
+│  │ 🧹 Cage B07 · 2 animaux     Nettoyage cage                   │  │
+│  │    433/26 · Merle · 502/26 · Merle · 0/2 appliqués           │  │
+│  │    [✅ Appliquer la cage (2)]  [Voir par animal ▸]             │  │
+│  │    … 19 autres cages — jamais d'action multi-cages (§10.5-N2)│  │
 │  └────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  ⏳ À VENIR AUJOURD'HUI (33) ──────────────────────────────────      │
 │  10:00  Pesée juvéniles (5 animaux) · R5                            │
-│  12:30  🦔 10472 Gavage · R1                                       │
-│  15:30  🦔 10472 Gavage · R1                                       │
+│  12:30  🦔 472/26 Gavage · R1                                    │
+│  15:30  🦔 472/26 Gavage · R1                                    │
 │  17:00  🐦 Colombidés grains PM (106 animaux) · R3                  │
-│  17:00  🐦 10420 Buse nourrissage · plan animal P1                  │
+│  17:00  🐦 420/26 Buse nourrissage · plan animal P1                 │
 │  18:00  💊 Médications soir (12 animaux) · divers                  │
-│  19:00  🦔 10472 Gavage · R1                                       │
+│  19:00  🦔 472/26 Gavage · R1                                    │
 │                                                                      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
@@ -877,11 +968,11 @@ Same data as §11.3 but generated from the same seed rule set. Grouped by
 zone (existing convention), sorted by `due_at`. This is the shift-handover
 and review view.
 
-#### 7.3.3 Animal page — Plan tab (Buse 10420)
+#### 7.3.3 Animal page — Plan tab (Buse 420/26)
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│  10420 · Buse variable ♀ · juvénile · Enclos 2 · C03            │
+│  420/26 · Buse variable ♀ · juvénile · Enclos 2 · cage C03      │
 │  [Infos] [Soins] [Traitements] [Plan] [Historique]               │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
@@ -914,7 +1005,7 @@ and review view.
 │  APPLICATIONS RÉCENTES                                           │
 │  08:15  Meloxicam 0.1 ml · par julie · traitement #8842          │
 │  08:12  Mélange viande 80 g · par julie · soin #15234            │
-│  09:05  Nettoyage cage · par admin · soin #15201                 │
+│  09:05  Nettoyage cage (cage C03) · par admin · soin #15201      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -997,12 +1088,12 @@ and review view.
 │                                                                  │
 │  ┌─ APERÇU EN DIRECT ──────────────────────────────────────────┐ │
 │  │  4 animaux correspondent actuellement :                      │ │
-│  │  ✓ 10398 · Renard · « puces ++++ - tiques » → regex ✓      │ │
-│  │  ✓ 10401 · Hérisson · « tiques, puces » → regex ✓          │ │
-│  │  ✓ 10415 · Buse · « Retirer une quinzaine de tiques » → ✓  │ │
-│  │  ✓ 10422 · Merle · « Myiases - Tique » → regex ✓           │ │
+│  │  ✓ 398/26 · Renard · « puces ++++ - tiques » → regex ✓      │ │
+│  │  ✓ 401/26 · Hérisson · « tiques, puces » → regex ✓          │ │
+│  │  ✓ 415/26 · Buse · « Retirer une quinzaine de tiques » → ✓  │ │
+│  │  ✓ 422/26 · Merle · « Myiases - Tique » → regex ✓           │ │
 │  │                                                              │ │
-│  │  ✗ 10405 · Hérisson · « Puces +++ » → pas de « tiques »    │ │
+│  │  ✗ 405/26 · Hérisson · « Puces +++ » → pas de « tiques »    │ │
 │  └──────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 │  [💾 Enregistrer]  [💾+ Activer]  [Annuler]                      │
@@ -1081,14 +1172,14 @@ and review view.
 │                                                                  │
 │  ┌─ APERÇU EN DIRECT ──────────────────────────────────────────┐ │
 │  │  6 animaux correspondent :                                   │ │
-│  │  ✓ 10472 · Hérisson · bébé · 240 g · il y a 3 jours        │ │
-│  │  ✓ 10488 · Hérisson · bébé · 185 g · il y a 1 jour         │ │
-│  │  ✓ 10491 · Hérisson · bébé · 290 g · il y a 5 jours        │ │
-│  │  ✓ 10495 · Hérisson · bébé · 210 g · il y a 2 jours        │ │
-│  │  ✓ 10499 · Hérisson · bébé · 275 g · il y a 4 jours        │ │
-│  │  ✓ 10503 · Hérisson · bébé · 260 g · il y a 1 jour         │ │
+│  │  ✓ 472/26 · Hérisson · bébé · 240 g · il y a 3 jours        │ │
+│  │  ✓ 488/26 · Hérisson · bébé · 185 g · il y a 1 jour         │ │
+│  │  ✓ 491/26 · Hérisson · bébé · 290 g · il y a 5 jours        │ │
+│  │  ✓ 495/26 · Hérisson · bébé · 210 g · il y a 2 jours        │ │
+│  │  ✓ 499/26 · Hérisson · bébé · 275 g · il y a 4 jours        │ │
+│  │  ✓ 503/26 · Hérisson · bébé · 260 g · il y a 1 jour         │ │
 │  │                                                              │ │
-│  │  ✗ 10501 · Hérisson · juvénile · 610 g → âge ✗ poids ✗    │ │
+│  │  ✗ 501/26 · Hérisson · juvénile · 610 g → âge ✗ poids ✗    │ │
 │  └──────────────────────────────────────────────────────────────┘ │
 │                                                                  │
 │  [💾 Enregistrer]  [Annuler]                                     │
@@ -1099,10 +1190,10 @@ and review view.
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│  Nouveau plan pour 10420 · Buse variable             │
+│  Nouveau plan pour 420/26 · Buse variable            │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
-│  Nom:    [Buse 10420 — nourrissage 2x/j            ] │
+│  Nom:    [Buse 420/26 — nourrissage 2x/j           ] │
 │  Type:   [🍽 Nourrissage ▾]                          │
 │                                                      │
 │  Repas:  [mélange viande 80 g                      ] │
@@ -1133,7 +1224,10 @@ open-ended is their normal case.
 ### 7.4 Seed Rules — Derived from Production Data
 
 The following seed rules are derived from actual patterns observed in the
-production database (§2.3, September 2026). They ship as **inactive drafts**
+production database (§2.3, September 2026) **and cross-validated against the
+full 2025/2026 cohort review (§2.4)** — each seed's rationale cites cohort
+counts, and patterns that the cohort review showed to be rare or ambiguous
+were dropped or narrowed (§10.5-N5). They ship as **inactive drafts**
 for the admin to review and activate.
 
 #### Seed matchers
@@ -1166,53 +1260,108 @@ for the admin to review and activate.
 | SR6 | Canidés bébé — nourrissage groupe | feeding | SM6 + SM11 | 08:00 daily | per diet text | "POUR LES 8 RENARDS" × 6 animals — group feeding note |
 | SR7 | Tiques → Ivomec 5j | medication | SM7 | 08:00 daily × 5 days | Ivomec 1% (SC), dosage from dosages table | 1,273 hedgehogs historically treated with Ivomec; 4 current in-care animals match tiques |
 | SR8 | Puces → Sarnacuran | medication | SM8 | 08:00 daily × 3 days | Sarnacuran spray | 14 current in-care treatments; 255 animals historically |
-| SR9 | Nettoyage quotidien | cleanup | NULL (all) | 09:00 daily | Nettoyage cage + eau fraîche | Formalizes the `clean=1` landing heuristic; grace 180 min |
+| SR9 | Nettoyage quotidien | cleanup | NULL (all) | 09:00 daily | Nettoyage cage + eau fraîche | Formalizes the `clean=1` landing heuristic; grace 180 min; day plan renders it as **one card per cage** (§6.2a) |
 | SR10 | Pesée hebdo juvéniles | weighing | SM12 | 10:00 every 7 days | Pesée de contrôle | Hedgehog juvéniles have 45% weight recording rate; weighing is the most common non-meal care |
 | SR11 | Blessés — contrôle quotidien | care | SM10 | 09:30 daily | Contrôle plaie + bandage | 85 in-care animals with wounds; "Remplacer bandage" × 268 hedgehogs historically |
 | SR12 | Hérisson — Catosal + Réhydratation | medication | SM1 OR SM2 | 08:00 daily × 3 days | Catosal 10% + Réhydratation (SC) | 1,372 hedgehogs historically — the most common hedgehog treatment protocol |
 
 ---
 
-## 8. Migration & Coexistence (replace path)
+## 8. Migration — single-shot conversion at startup (§10.5-N3)
 
-Phase-gated, reversible:
+There is **no phase-gated coexistence window**. The release ships the care
+plan engine **and** a one-shot data converter; the first boot after deploy
+converts legacy schedules into rules/animal plans and freezes the legacy
+generators, all before the app starts serving traffic. The four-phase plan
+from earlier drafts (and its L5 double-feed concern) is superseded — with no
+coexistence there is nothing to double-feed (§10.1-7, §10-L5).
 
-1. **Phase 1 — additive**: ship tables + rules + plan view; existing
-   feeding/treatment flows untouched. Seed a few **default rules reproducing
-   current implicit behaviors** for admins to copy:
-   - *Daily cleanup* (matches all in-care, cleanup @ 09:00) — formalizes the
-     `clean=1` landing heuristic.
-   - *Feeding ×5* on animaltypes where feeding_period≈600 (times 07/09:30/12:30/15:30/19:00).
-   - *Weigh weekly* on bébé.
-   
-      > ⚠️ **Coexistence (§10-L5)**: the *Feeding ×5* seed rule above stays
-      > **inactive** (`active=false`) until the Phase-2 `feeding_period` freeze.
-      > While the legacy `feeding_start/end/period` schedule is still generating
-      > the daily feeding rows, activating a feeding-kind rule would double-feed
-      > (rule occurrence + legacy row). Cleanup/weighing seeds have no legacy
-      > generator, so they can be activated immediately.
-2. **Phase 2 — replace feeding schedule**: for animals with
-   `feeding_start/end/period`, a grift generates equivalent entries — either
-   a **per-diet rule** (species+age matcher + times derived from
-   window/period; identical `feeding` texts cluster well in prod, e.g.
-   "grains pigeons eau" ×30) or, when the diet is unique to one animal, a
-   **per-animal plan** (`care_animal_plans`, no matcher needed — the
-   natural fit). Once `/care_plan` covers feeding, freeze `feeding_period`
-   editing (read-only), keep columns (backfill source + exports).
-3. **Phase 3 — replace treatment series**: `TreatmentTemplate` gains "create
-   as rule" (from=first date, duration=series length, times from bitmap
-   morning→08:00/noon→12:00/evening→18:00 mapping). Row-per-day treatments
-   stay for history; new series go through rules. Medication plan items
-   fulfill into `treatments` rows — **no rendering changes downstream**.
-4. **Phase 4 (optional)**: retire `/feeding` page → redirect to
-   `/care_plan?kind=feeding`.
+### 8.1 Startup converter (`CarePlanConverter`)
 
-Rollback at every phase: rules are additive rows; legacy paths untouched
-until explicitly frozen.
+Runs **on application boot, after migrations, before the HTTP server
+accepts requests** (same hook point Buffalo uses for `migrations.Migrate()`;
+fail = boot aborts, so a half-converted database can never serve).
+Idempotent: a completion marker row (`care_plan_conversion` table:
+`key='startup_v1', finished_at`) makes re-boots a no-op; deleting the marker
+re-runs the converter.
+
+Steps, in order, each in its own transaction:
+
+1. **Seed library** (§7.4): insert the seed matchers/rules as **inactive
+   drafts** — except feeding-kind seeds, which may ship **active** once
+   reviewed, because the legacy `feeding_period` generator is frozen in step
+   3 of the same boot (no double-feed window exists).
+2. **Feeding schedules → rules/plans**: for every in-care animal with
+   `feeding_start/end/period`, derive times (`start + n×period ≤ end`) and
+   cluster by normalized diet text. Clusters with ≥ threshold animals (≥5;
+   calibrated on §2.4 counts, e.g. "grains pigeons eau" ×45 cohort-wide)
+   become **one per-cluster rule** with a `species IN (...)` / animal-type
+   matcher; unique diets become **per-animal plans** (`care_animal_plans`).
+   All generated sources are **active immediately** — they are the only
+   feeding generator after this boot.
+3. **Freeze legacy feeding generator**: `feeding_start/end/period` become
+   read-only (columns kept as backfill source + for exports); the landing
+   `calculateFeeding` path is removed in the same release.
+4. **Treatment series → bounded plans**: each open `TreatmentTemplate` series
+   becomes a bounded animal plan: `from` = next scheduled date,
+   `duration_days` = remaining series length, `times[]` from the
+   morning/noon/evening bitmap via the fixed mapping (§10.1-3, §10-M1:
+   `<11:00→08:00`, `11:00–15:00→12:00`, `>15:00→18:00`; collisions set the
+   slot once and note the rest). New series creation through
+   `TreatmentTemplate` is removed in the same release; historical
+   row-per-day treatments stay untouched as history.
+5. **Conversion report**: per-animal lines — converted (rule/plan id),
+   skipped (reason: unparseable period, empty diet text, series already
+   ended, …). The report is persisted and surfaced in the EN9 data-hygiene
+   panel (§13) so the admin can resolve skips by hand.
+
+### 8.2 Rollback
+
+The converter is **insert-only** (creates rules/plans/marker; flips no
+legacy data, deletes nothing), so rollback = restore the pre-release DB
+dump taken before the first boot, or delete the marker and the generated
+rows (they are tagged `created_by='care_plan_converter'`). Operationally:
+dump the database immediately before the release boot; if the conversion
+report shows unacceptable skips, restore, fix data, boot again.
+
+### 8.3 Retired pages
+
+- `/feeding` → **redirects** to `/care_plan?kind=feeding` (route kept so
+  bookmarks don't 404; the page itself is removed).
+- `/treatmentschedule` → **read-only history view**; the animal Plan tab's
+  day glimpse replaces it as the editable per-animal schedule.
 
 ---
 
 ## 9. Non-Functional
+
+- **Design principles — SOLID (§10.5-N6)**: the careplan engine is decomposed
+  so each principle is exercised, not just cited:
+  - **SRP** — one reason to change per unit: field registry (what is
+    matchable), DSL parser (text→AST), evaluator (AST→bool over an animal),
+    occurrence generator (schedule→slots), override resolver (animal plan vs
+    rule), **per-kind fulfillment writers** (payload→cares/treatments row),
+    and the startup converter (§8.1) are separate types in
+    `models/careplan`; UI handlers only orchestrate.
+  - **OCP** — extension without modification: new matchable fields register
+    via the append-only `FieldProvider` registry (§5.1); a new action kind =
+    one payload validator + one fulfillment writer registered in a kind map;
+    the day-plan grouping is a **per-kind strategy** (`GroupingCage` for
+    cleanup, `GroupingAnimal` otherwise — §6.2a), so a future kind can pick
+    its grouping without touching the day-plan handler.
+  - **LSP** — rules and animal plans are interchangeable **PlanSources**:
+    both expose `SourceType()/SourceID()/Action()/Schedule()`; the generator,
+    override resolver, and applications table treat them uniformly via
+    `source_type`/`source_id` — any code that works on one works on the
+    other (§4.7, §6.1).
+  - **ISP** — narrow seams: consumers depend on small interfaces
+    (`Preview()` for the live-preview panel, the why-trace for
+    explanations, the plan-service read model for day plan/timeline/landing
+    badge) rather than on the whole engine.
+  - **DIP** — the evaluator depends on an `AnimalContext` abstraction
+    (current animal + last weight + flags), not on Pop models; fulfillment
+    writers depend on an interface satisfied by the real DB writers and by
+    test fakes, so engine tests run without MySQL.
 
 - **Performance**: evaluation in-memory over ≤ a few hundred in-care animals
   × tens of rules → sub-ms; applications query indexed by `(due_at,status)`.
@@ -1246,8 +1395,8 @@ until explicitly frozen.
   course after matcher fails); **override** tests (slot-level + `replaces_kind`
   kind-level, §10-A3); apply idempotency test (double submit → 1 application);
   **apply-window** test (occurrence not applicable once next occurrence is due,
-  §10-A1); **defer** test (§10-A2); **batch apply** test (§10.5); **observation
-  alert-on-no** writes a Warning caretype row (§10.6); handler tests per project
+  §10-A1); **defer** test (§10-A2); **batch apply** test (§10.1-5); **observation
+  alert-on-no** writes a Warning caretype row (§10.1-6); handler tests per project
   convention; E2E via Chrome DevTools MCP per AGENTS.md checklist.
 - **Locales**: en-US, fr, de, nl strings complete before UI ships.
 
@@ -1264,13 +1413,14 @@ cited inline throughout the spec as `§10-x`.
    `due_at` stays on the application row for adherence stats (§6.2, §6.3).
 2. **Feeding defaults accepted**: 60 min grace, 24 h miss (§4.3, §6.1).
 3. **Legacy slot mapping accepted**: morning=08:00 / noon=12:00 / evening=18:00
-   for Phase-2 treatment conversion (§8).
+   for the startup treatment conversion (§8.1).
 4. **Weight matcher without any weight record → no-match** (fail closed); the
    *why* panel shows "no weight on record" (§5.1, §5.5).
 5. **Multi-animal batch apply → v1** (§6.2 Batch apply; refined by CP2 below).
 6. **Observation alert-on-no → v1** (§4.2 observation payload; refined by CP3).
-7. **All four migration phases committed**, including eventually retiring
-   `/feeding` (§8).
+7. ~~**All four migration phases committed**~~ — **superseded by §10.5-N3**:
+   migration is a single-shot conversion at startup (§8); `/feeding` is
+   retired at rollout, not in a later phase.
 8. **Seed library built as proposed** (§7.4); adjusted after real-world use.
 
 ### 10.2 Review blockers (A = answers, B = assumptions confirmed)
@@ -1317,8 +1467,8 @@ cited inline throughout the spec as `§10-x`.
 - **Consultation view** (user request): applied items link to the existing
   record show pages reused as role-gated read-only views — see §7.2a.
 - **EN dispositions**: **EN3 (payload `instructions`) pulled into v1** (§4.2);
-  EN1, EN2, EN4–EN10 recorded in the v2 backlog — see **§13 Future
-  Directions**.
+  **EN1, EN4 (redefined), EN7, EN9 committed to v2** (§10.5-N4); EN2, EN5,
+  EN6, EN8, EN10 remain in the backlog — see **§13 Future Directions**.
 
 ### 10.4 End-user review resolutions (2026-09-21)
 
@@ -1342,9 +1492,10 @@ edits already applied inline (§4.2, §4.5, §6.1, §6.2, §7.1–§7.3, §8, §
   same-bucket collisions set the bit once and append later applies to the row
   `note`; editor warns on >1 slot/bucket; ≤3/day ceiling until the v2 treatment
   model (§6.2).
-- **M2 — Batch entry point.** Batch apply (§10.5/CP2) had a handler but no UI
-  entry. Resolved: aggregate cards carry a checkbox + `[✅ Tout appliquer (N)]`
-  button → §6.2 batch screen (§7.2 row, §7.3.1 mock-up).
+- **M2 — Batch entry point.** Batch apply (§10.1-5/CP2) had a handler but no UI
+  entry. Resolved: cleanup renders one **cage card per (source × cage)** with
+  a `[✅ Appliquer la cage (N)]` button → §6.2 batch screen scoped to that
+  cage; no cross-cage apply (§10.5-N2) (§7.2 row, §7.3.1 mock-up).
 - **M3 — Alert loop closure.** Applying an alert follow-up observation must
   resolve the open Warning. Resolved: OK answer → `ResetWarning` care in the
   same transaction; alert answer → new Warning + chained follow-up; skip leaves
@@ -1366,11 +1517,46 @@ edits already applied inline (§4.2, §4.5, §6.1, §6.2, §7.1–§7.3, §8, §
   poids 310 g ≥ 300 g »), not just "skipped" (§6.2).
 - **L5 — Feeding seed inactive until Phase-2 freeze.** Feeding-kind seed rules
   would double-feed alongside the legacy `feeding_period` generator; they stay
-  `active=false` until the Phase-2 freeze (§8).
+  `active=false` until the Phase-2 freeze (§8). **Superseded by §10.5-N3**:
+  with single-shot startup conversion there is no coexistence window — feeding
+  seeds may ship active once reviewed, since the legacy generator is frozen in
+  the same boot (§8.1).
 - **L6 — Skip-reason wording.** Skip reasons read as clinical/operational
   rationales, not "reporté" (which conflates skip with defer) (§11.3).
 - **L7 — Connectivity assumption.** Center LAN/wifi assumed; no offline v1;
   refresh is drop-tolerant; UNIQUE backstop catches races (§9).
+
+### 10.5 Follow-up review resolutions (2026-09-25)
+
+A second review pass focused on findability, action grouping, migration risk,
+v2 scope, seed evidence, and design rigor. Resolutions (cited inline as
+`§10.5-Nx`):
+
+- **N1 — Animal label = year/number + cage.** All plan UI surfaces label
+  animals as `{{yearNumber}}/{{YY}} · species · cage` (e.g. `472/26 · Hérisson
+  · A12`), reusing `Animal.YearNumberFormatted()` + the current cage; bare
+  numeric IDs are internal keys only (§7.2, mockups §7.3, examples §11).
+- **N2 — The cage is the coarsest action unit.** Cage-sized actions (cleanup)
+  aggregate **per (source × cage)** — one card per cage in the day plan,
+  applied via a cage-scoped batch; **no cross-cage grouping or apply** (§3
+  decision 5, §6.2a, §7.2, §7.3.1). Fulfillment stays per animal.
+- **N3 — Migration = single-shot conversion at startup.** The four-phase
+  coexistence plan (former §8, §10.1-7, L5) is replaced by an idempotent
+  startup converter with a completion marker and insert-only rollback (§8);
+  `/feeding` is retired at rollout and `/treatmentschedule` becomes read-only
+  history (§8.3). No coexistence window → no double-feed risk.
+- **N4 — v2 scope committed: EN1, EN4 (redefined), EN7, EN9.** EN4 is
+  redefined from "installable protocol bundles" to **protocol templates
+  applied to one animal**, managed in a dedicated admin view
+  (`/care_protocols`) — see §13. EN2, EN5, EN6, EN8, EN10 stay in the
+  backlog (§10.3, §13).
+- **N5 — Seed evidence = full 2025/2026 cohort.** Seed matchers/rules are
+  derived from and cross-checked against a critical review of **all** 2025 +
+  2026 intake animals (~4,400 stays), not just the current in-care snapshot —
+  this enlarges pattern matching to real cases and is the basis for the §7.4
+  seeds and the §8.1 clustering thresholds (§2.4, §7.1, §7.4).
+- **N6 — SOLID design review.** The engine decomposition is checked against
+  the five SOLID principles and documented where each is exercised (§9).
 
 ---
 
@@ -1411,7 +1597,7 @@ M1 is **also referenced by a second rule** — **R1b** *"Hérisson bébé — pe
 quotidienne"* (weighing @ 10:00) — demonstrating library reuse: one
 condition, two actions; tighten the threshold once and both rules follow.
 
-Matches: animal 10472 — *Hérisson*, bébé, last weight 240 g, intake 3 days ago.
+Matches: animal **472/26** — *Hérisson*, bébé, last weight 240 g, intake 3 days ago.
 Stops matching automatically when weight ≥ 300 g or age flips to juvénile.
 
 **R2 — Tick-positive intake → antiparasitic course (bounded)**
@@ -1475,7 +1661,8 @@ the admin picked 3 species in a dropdown, never typed the expression.
   "schedule": { "times": ["09:00"], "every_days": 1, "anchor": "intake",
                 "grace_minutes": 180, "miss_after_hours": 24 },
   "matcher_id": null }
-// NULL matcher → matches all in-care animals, UI badge "matches all animals"
+// NULL matcher → matches all in-care animals, UI badge "matches all animals";
+// day plan groups occurrences into one card per cage (§6.2a)
 ```
 
 **R5 — Weight watch on juveniles (weekly)**
@@ -1492,7 +1679,7 @@ the admin picked 3 species in a dropdown, never typed the expression.
 
 ### 11.2 Evaluation trace ("why")
 
-Matcher M1's expression evaluated against animal 10472 (trace from AST eval):
+Matcher M1's expression evaluated against animal **472/26** (trace from AST eval):
 
 | Predicate | Expected | Actual | Pass |
 |---|---|---|---|
@@ -1505,7 +1692,7 @@ In the UI this trace renders under the pretty-printed sentence
 « type = Hérissons / Insectivore ET âge = bébé ET poids < 300 g » — the
 same preview the admin saw when building M1.
 
-Same rule against animal 10501 (hérisson juvénile, 610 g): the age
+Same rule against animal **501/26** (hérisson juvénile, 610 g): the age
 predicate fails → no match → no plan items. The animal page shows R1 under
 "not matching" with the failed predicates if the caretaker opens the
 explanation — useful when a rule *should* have applied (e.g. weight never
@@ -1514,21 +1701,22 @@ recorded → `weight_g` predicate false with reason *"no value"*, shown as
 
 ### 11.3 Day plan rendering (`/care_plan`, window = yesterday → tomorrow)
 
-Grouped by zone (existing convention), sorted by `due_at` then rule `priority`:
+Grouped by zone (existing convention), then cage, then sorted by `due_at` then rule `priority`:
 
 | Time | Animal | Action | Rule | Status |
 |---|---|---|---|---|
-| hier 19:00 | 10472 · Hérisson (A12) | 🦔 gavage — Croquettes + VDF | R1 | 🔴 **missing** (>12h, never applied) |
-| 07:00 | 10472 · Hérisson (A12) | 🦔 gavage — Croquettes + VDF | R1 | ✅ applied 07:12 par *julie* |
-| 08:00 | 10398 · Renard (Enclos 2) | Ivomec 1% (SC) — 0.08 ml | R2 | ✅ applied 08:03 par *admin* |
-| 08:00 | 10420 · Buse (C03) | Mélange viande 80 g | *animal plan* P1 « nourrissage 2x/j » | ⚪ due (**Apply** / Skip) |
-| 08:00 | 10420 · Buse (C03) | ~~Rapaces — nourrissage standard~~ | R6 feeding | ⃠ **overridden** by animal plan P1 (same kind, same slot) — greyed, not actionable |
-| 08:30 | 10455 · Pigeon biset (Volière 1) | grains pigeons eau | R3 | 🟡 **late** (now 09:40, grace 60 min) |
-| 09:00 | 223 animals | Nettoyage cage | R4 | 198 ✅ · 21 🟡 late · 4 🔴 missing |
-| 09:30 | 10472 · Hérisson (A12) | 🦔 gavage — Croquettes + VDF | R1 | ⚪ due (bouton **Apply** / Skip) |
-| 10:00 | 10433 · Merle (B07) | Pesée de contrôle | R5 | ⏭ skipped par *julie* — « animal trop stressé, pesée à risque » |
-| 12:30 | 10472 · Hérisson (A12) | 🦔 gavage | R1 | ⚪ scheduled |
-| demain 08:00 | 10398 · Renard (Enclos 2) | Ivomec — **jour 5/5, dernier** | R2 | ⚪ scheduled |
+| hier 19:00 | 472/26 · Hérisson · A12 | 🦔 gavage — Croquettes + VDF | R1 | 🔴 **missing** (>12h, never applied) |
+| 07:00 | 472/26 · Hérisson · A12 | 🦔 gavage — Croquettes + VDF | R1 | ✅ applied 07:12 par *julie* |
+| 08:00 | 398/26 · Renard · Enclos 2 | Ivomec 1% (SC) — 0.08 ml | R2 | ✅ applied 08:03 par *admin* |
+| 08:00 | 420/26 · Buse · C03 | Mélange viande 80 g | *animal plan* P1 « nourrissage 2x/j » | ⚪ due (**Apply** / Skip) |
+| 08:00 | 420/26 · Buse · C03 | ~~Rapaces — nourrissage standard~~ | R6 feeding | ⃠ **overridden** by animal plan P1 (same kind, same slot) — greyed, not actionable |
+| 08:30 | 455/26 · Pigeon biset · Volière 1 | grains pigeons eau | R3 | 🟡 **late** (now 09:40, grace 60 min) |
+| 09:00 | cage A12 · 3 animaux | Nettoyage cage (§6.2a) | R4 | ✅ applied 09:05 par *admin* (cage batch) |
+| 09:00 | cage B07 · 2 animaux | Nettoyage cage (§6.2a) | R4 | 🟡 **late** 0/2 |
+| 09:30 | 472/26 · Hérisson · A12 | 🦔 gavage — Croquettes + VDF | R1 | ⚪ due (bouton **Apply** / Skip) |
+| 10:00 | 433/26 · Merle · B07 | Pesée de contrôle | R5 | ⏭ skipped par *julie* — « animal trop stressé, pesée à risque » |
+| 12:30 | 472/26 · Hérisson · A12 | 🦔 gavage | R1 | ⚪ scheduled |
+| demain 08:00 | 398/26 · Renard · Enclos 2 | Ivomec — **jour 5/5, dernier** | R2 | ⚪ scheduled |
 
 Header counters: `🔴 5 missing · 🟡 22 late · ⚪ 41 due today · ✅ 96 applied`.
 Filters: action kind, zone, status. Clicking a status badge on an animal
@@ -1536,11 +1724,11 @@ row opens its Plan tab (§7).
 
 ### 11.4 Apply flow (feeding occurrence, 09:30 slot)
 
-1. Caretaker clicks **Apply** on the R1/10472 09:30 item; optional note +
+1. Caretaker clicks **Apply** on the R1/472/26 09:30 item; optional note +
    weight field offered (weighing during gavage is common — 122k cares in
    prod carry a weight).
 2. `POST /care_plan/{item}/apply` in transaction:
-   - re-check R1 still matches 10472 (weight now 245 g — still < 300 ✅);
+   - re-check R1 still matches 472/26 (weight now 245 g — still < 300 ✅);
    - insert `cares` row: `date=now`, `type=Repas`, `note="🦔 Croquettes +
      4 VDF - Eau"`, `weight="245"`;
    - insert `care_plan_applications`:
@@ -1558,7 +1746,7 @@ row opens its Plan tab (§7).
 
 ### 11.5 Dynamic membership in practice
 
-- Day 0: hérisson bébé 240 g admitted with *"puces ++++ - tiques"* → R1 +
+- Day 0: hérisson bébé 472/26, 240 g, admitted with *"puces ++++ - tiques"* → R1 +
   R2 + R4 + R5 all start generating occurrences from intake.
 - Day 5: R2 course ends (`duration_days`) — Ivomec disappears from plan;
   history kept in applications.
@@ -1575,7 +1763,7 @@ per-animal schedules by hand.
 
 ### 11.6 Animal plan + kind-keyed override in practice
 
-Buse 10420 is admitted with a fractured wing; the generic rule set includes:
+Buse 420/26 is admitted with a fractured wing; the generic rule set includes:
 
 ```jsonc
 // R6 — generic raptor feeding rule (admin)
@@ -1592,7 +1780,7 @@ admin involved, no matcher, created in 30 s from the animal's Plan tab:
 ```jsonc
 // P1 — animal-level plan (caretaker), care_animal_plans
 { "animal_id": 10420,
-  "name": "Buse 10420 — nourrissage 2x/j",
+  "name": "Buse 420/26 — nourrissage 2x/j",
   "action_kind": "feeding",
   "action_payload": { "caretype_id": "<Repas uuid>", "food": "mélange viande 80 g", "force_feed": true },
   "schedule": { "times": ["08:00", "17:00"], "every_days": 1, "anchor": "intake" },
@@ -1600,7 +1788,7 @@ admin involved, no matcher, created in 30 s from the animal's Plan tab:
   "active": true, "created_by": "julie" }
 ```
 
-Occurrence resolution for 10420 at 08:00:
+Occurrence resolution for 420/26 at 08:00:
 
 | Source | Kind | Slot | Result |
 |---|---|---|---|
@@ -1624,14 +1812,16 @@ actionable again automatically (dynamic membership, §5.4). Admin can
 **promote P1 to a rule** if the 2×/day hand-feeding pattern proves useful
 for other birds (§4.7).
 
-### 11.7 Migration example (Phase 2)
+### 11.7 Startup-conversion example (§8.1)
 
 Animal with `feeding="grains pigeons eau"`, `feeding_start=07:00`,
 `feeding_end=22:00`, `feeding_period=600` (101 animals in prod share a 600
-min period). Grift generates either:
-- **per-diet rule** (preferred — 30 animals share the exact text): one rule
-  *"Colombidés — grains 2x/j"* (R3 above) matched by type/species, per-animal
-  feeding columns then frozen read-only; or
+min period). The startup converter generates either:
+- **per-diet rule** (preferred — the cohort review (§2.4) shows 45 animals
+  share this exact text): one rule
+  *"Colombidés — grains 2x/j"* (R3 above) matched by `species IN (...)` of
+  the cluster members / animal type; the legacy feeding columns are frozen
+  read-only in the same boot; or
 - **per-animal plan** when the diet text is unique: a `care_animal_plans`
   row for that animal, times derived: 07:00 + n×600 min ≤ 22:00 →
   `[07:00, 17:00]` — no matcher scaffold needed (§4.7).
@@ -1643,7 +1833,10 @@ min period). Grift generates either:
 `CareRule`, `CareMatcher` (named DSL query), `CareAnimalPlan` (animal-level
 schedule), `CareRuleExclusion` (per-animal rule opt-out),
 `CareRuleSchedule` / `CareRuleAction` (JSON value objects, shared by rules
-and animal plans), `CarePlanItem` (virtual), `CarePlanApplication`;
+and animal plans), `CarePlanItem` (virtual), `CarePlanApplication`,
+`CarePlanConverter` (idempotent startup converter + completion marker, §8.1);
+per-kind day-plan grouping strategy (`GroupingCage` / `GroupingAnimal`,
+§6.2a, §9 OCP);
 engine package `models/careplan` (field registry, DSL parser + evaluator,
 occurrence generator + override resolution); models `models/care_rule*.go`,
 `models/care_matcher*.go`, `models/care_animal_plan*.go`; handlers
@@ -1654,34 +1847,55 @@ occurrence generator + override resolution); models `models/care_rule*.go`,
 
 ---
 
-## 13. Future Directions (v2 backlog)
+## 13. Future Directions (v2)
 
-Enhancement proposals recorded for post-v1 consideration (§10-EN). All are
-**additive** to the v1 schema — none requires a migration of v1 data. **EN3
-(payload `instructions`) was pulled into v1** — see §4.2.
+Enhancement proposals recorded for post-v1 (§10-EN). All are **additive** to
+the v1 schema — none requires a migration of v1 data. **EN3 (payload
+`instructions`) was pulled into v1** — see §4.2. Per §10.5-N4, **EN1, EN4
+(redefined), EN7 and EN9 are committed to v2**; the rest stay in the
+backlog.
+
+### Committed to v2
 
 1. **EN1 — Shift-handover digest**: end-of-shift summary card (what was
    applied late/missing/skipped + open alerts) on the day plan's timeline
    view; printable.
-2. **EN2 — Point-of-action context**: the apply dialog shows last weight +
+2. **EN4 — Protocol templates applied per animal** (redefined, §10.5-N4):
+   a **protocol** is a named, versioned template bundling action + schedule
+   definitions (e.g. « protocole gavage hérisson » = gavage 5×/j × 10 j + 3
+   medication doses + daily weighing). It is **applied to one animal** from
+   its Plan tab (« Appliquer un protocole »), materializing the template's
+   items as ordinary `care_animal_plans` rows for that animal, each stamped
+   with the protocol name + version so the bundle can be reported on (and
+   later re-based when a new version exists). Protocols are managed in a
+   **dedicated admin view `/care_protocols`**: list, create/edit (same
+   action/schedule sub-forms as the rule editor), version history, and an
+   application preview (which items would be created for a chosen animal).
+   This replaces the earlier "protocol bundles — installable rule packs"
+   idea: application is per-animal and produces animal plans, not rules.
+3. **EN7 — Zone "round mode"**: per-zone filtered day plan optimized for
+   walking a round, with per-zone batch apply. Builds directly on the
+   per-cage aggregation of §6.2a — a zone round is an ordered walk through
+   the zone's cage cards (still no cross-cage apply, §10.5-N2; the round
+   just sequences the cages).
+4. **EN9 — Data-hygiene panel**: admin report of stale matchers (0 matches
+   for 30 days), rules never applied, animals with overdue weights — keeps
+   the rule base healthy. Also surfaces the §8.1 conversion report's
+   **skipped** lines until the admin resolves them.
+
+### Backlog (uncommitted)
+
+5. **EN2 — Point-of-action context**: the apply dialog shows last weight +
    ±10 % trend arrow, the resolved dosage computation, and the current diet
    text inline — decisions without leaving the plan.
-3. **EN4 — Protocol bundles**: named packs of rules + matchers (e.g.
-   "hérisson gavage protocol") installable in one action; versioning of
-   bundles.
-4. **EN5 — Criticality escalation**: a per-rule `critical` flag; N consecutive
+6. **EN5 — Criticality escalation**: a per-rule `critical` flag; N consecutive
    critical misses raise a landing-page banner (beyond the existing row
    highlight).
-5. **EN6 — Vet-visit → plan suggestion**: after a veterinary visit is logged,
+7. **EN6 — Vet-visit → plan suggestion**: after a veterinary visit is logged,
    suggest creating a bounded animal plan (medication course / observation
    follow-up) prefilled from the visit.
-6. **EN7 — Zone "round mode"**: per-zone filtered day plan optimized for
-   walking a round, with per-zone batch apply.
-7. **EN8 — QR cage cards**: QR code per cage linking straight to the animal's
+8. **EN8 — QR cage cards**: QR code per cage linking straight to the animal's
    Plan tab (phone at the cage).
-8. **EN9 — Data-hygiene panel**: admin report of stale matchers (0 matches for
-   30 days), rules never applied, animals with overdue weights — keeps the
-   rule base healthy.
 9. **EN10 — Adherence report for read-only roles**: a `/reports`-style
    adherence page whitelisted for `spw`/`scientifique` (plan adherence only,
    no care-detail exposure beyond what their role already sees).
