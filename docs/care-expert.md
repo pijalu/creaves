@@ -659,6 +659,7 @@ defaults `deferred_until` to **+1 h** (editable, still clamped) (§10-L3).
 
 **Batch apply (§10.5 — in v1, no kind restrictions per §10-CP2)**: `POST
 /care_plan/apply_batch` accepts a list of item keys (e.g. all currently-due
+items of one cleanup/feeding rule, or a cage-group feeding like *"POUR LES 8
 RENARDS"*). A **confirmation screen lists the N animals first**, with per-row
 opt-out — for medication items it shows **each animal's resolved dosage**
 (weight × dosages table) so per-animal dosing stays visible even in batch.
