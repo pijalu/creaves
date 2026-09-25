@@ -845,7 +845,7 @@ first, one-click apply. Grouped by urgency tier, not by time.
 │  ├────────────────────────────────────────────────────────────────┤  │
 │  │ 🧹 Tous les animaux (223)    Nettoyage cage                   │  │
 │  │    Prévu 09:00 · R-Nettoyage quotidien · 198 ✅ · 21 🟡 · 4 🔴│  │
-│  │    [Voir par animal ▸]                                        │  │
+│  │    [✅ Tout appliquer (21)]  [Voir par animal ▸]                │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  ⏳ À VENIR AUJOURD'HUI (33) ──────────────────────────────────      │
