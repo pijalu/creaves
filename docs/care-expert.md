@@ -1184,6 +1184,13 @@ Phase-gated, reversible:
      `clean=1` landing heuristic.
    - *Feeding ×5* on animaltypes where feeding_period≈600 (times 07/09:30/12:30/15:30/19:00).
    - *Weigh weekly* on bébé.
+   
+      > ⚠️ **Coexistence (§10-L5)**: the *Feeding ×5* seed rule above stays
+      > **inactive** (`active=false`) until the Phase-2 `feeding_period` freeze.
+      > While the legacy `feeding_start/end/period` schedule is still generating
+      > the daily feeding rows, activating a feeding-kind rule would double-feed
+      > (rule occurrence + legacy row). Cleanup/weighing seeds have no legacy
+      > generator, so they can be activated immediately.
 2. **Phase 2 — replace feeding schedule**: for animals with
    `feeding_start/end/period`, a grift generates equivalent entries — either
    a **per-diet rule** (species+age matcher + times derived from
