@@ -235,6 +235,9 @@ Validation in model `Validate` per `action_kind`.
                                                  // the alert loop so no Warning stays unreviewed.
 ```
 
+**Follow-up resolution** — what applying an alert follow-up does to the open
+Warning — is defined in §6.2 (§10-M3).
+
 **`instructions` key on every payload (EN3, pulled into v1)**: any
 `action_payload` may carry an optional `"instructions"` rich-text string
 (+ optional attachment references, e.g. photos of the gavage technique),
@@ -325,7 +328,7 @@ fulfillment, prevents double-apply from two browser tabs. Indexes:
 truly forgotten, not consciously waived. **Two distinct actions (§10-A2):**
 **Skip** (`skipped`) permanently waives the occurrence; **Defer** (`deferred` +
 `deferred_until`) snoozes it — the item leaves the actionable list and
-resurfaces when `now ≥ deferred_until`. A defer is an application row (so the
+resurfaces when `now ≥ deferred_until` (status recomputed from `due_at` — see **Defer expiry**, §6.1, §10-H1). A defer is an application row (so the
 UNIQUE key still blocks a concurrent apply), but creates **no** fulfillment
 record.
 
