@@ -817,11 +817,11 @@ first, one-click apply. Grouped by urgency tier, not by time.
 │  ┌────────────────────────────────────────────────────────────────┐  │
 │  │ 🦔 10472 · Hérisson (A12)    Gavage — Croquettes + 4 VDF     │  │
 │  │    Prévu hier 19:00 · R1 Hérisson bébé — gavage 5x/j         │  │
-│  │    [✅ Fait] [⏭ Reporter] [🚫 Ignorer]                          │  │
+│  │    🔒 Hors délai — historique (fenêtre dépassée, §6.1)          │  │
 │  ├────────────────────────────────────────────────────────────────┤  │
 │  │ 🧹 10502 · Merle (B07)       Nettoyage cage                   │  │
 │  │    Prévu hier 09:00 · R-Nettoyage quotidien                   │  │
-│  │    [✅ Fait] [⏭ Reporter] [🚫 Ignorer]                          │  │
+│  │    🔒 Hors délai — historique (fenêtre dépassée, §6.1)          │  │
 │  └────────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  🟡 EN RETARD (22) ────────────────────────────────────────────      │
