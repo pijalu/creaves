@@ -1229,6 +1229,11 @@ until explicitly frozen.
   RE2 for regex safety; payload JSON validated server-side per kind.
 - **Audit**: `source_snapshot` on every application; rules and animal plans
   can hook `animal_audits`-style logging later (not v1).
+- **Connectivity (§10-L7)**: the day plan assumes center **LAN/wifi** — **no
+  offline mode in v1**. Auto-refresh (~60 s, CP6c) is tolerant of transient
+  drops (a failed refresh just retries); a concurrent apply lost to a refresh
+  race is caught by the UNIQUE backstop and reported as already-done, not an
+  error. True offline/field capture is a v2 concern.
 - **Webhook/console**: **no impact** — care entries are excluded from event
   payloads by design (AGENTS.md §Event Types); applications create
   cares/treatments which also emit nothing.
