@@ -1119,6 +1119,15 @@ and review view.
 └──────────────────────────────────────────────────────┘
 ```
 
+**Duration guardrail (§10-M4)**: when a **medication/treatment** plan is saved
+with `Durée: illimitée`, the editor shows a **warning** (same warn-but-allow
+pattern as CP6b) — open-ended medication courses are usually a bounded-course
+antibiotic/anti-parasitic that someone forgot to bound. The caretaker can still
+save (a genuine lifelong treatment exists), but the warning names the risk:
+*"Durée illimitée pour un traitement — voulez-vous fixer une durée (ex. 5
+jours) ?"*. Non-medication kinds (cleanup, feeding, weighing) are not warned —
+open-ended is their normal case.
+
 ---
 
 ### 7.4 Seed Rules — Derived from Production Data
