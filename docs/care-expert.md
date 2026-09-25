@@ -734,6 +734,10 @@ every query is previewable before it drives a plan.
    on the plan; **save warns (but allows) when any `times[]` slot falls
    outside 07:00–23:00** — the observed care-activity window (§2.3) — so a
    typo'd `03:00` can't silently generate daily misses (§10-CP6b).
+   **Save also validates per-kind required fields** (§10-L1): a `weighing`
+   action must collect a weight, an `observation` action must collect an answer —
+   the editor blocks save if the chosen kind's required input is not wired into
+   the apply dialog.
 
 ### 7.2 Pages
 
