@@ -1320,6 +1320,58 @@ cited inline throughout the spec as `§10-x`.
   EN1, EN2, EN4–EN10 recorded in the v2 backlog — see **§13 Future
   Directions**.
 
+### 10.4 End-user review resolutions (2026-09-21)
+
+A full end-user walkthrough of the mock-ups and apply flow surfaced one
+consistency defect and a set of usability gaps. All were resolved by the
+edits already applied inline (§4.2, §4.5, §6.1, §6.2, §7.1–§7.3, §8, §9,
+§11.3); this log records each finding and where it landed.
+
+- **H1 — Defer expiry semantics.** A `deferred` item past its `deferred_until`
+  was ambiguous: is it still "deferred" or back to actionable? Resolved: the
+  defer row is ignored for status after `deferred_until`; status is recomputed
+  from `due_at` (§6.1 "Defer expiry", §4.5).
+- **H2 — Past-window items must be read-only.** The §7.3.1 mock-up showed
+  Apply/Defer/Skip buttons on *manqué* (yesterday) items, contradicting A1
+  (applicable until the next occurrence of the same source becomes due) and
+  risking double-feeding. Resolved: past-window items render buttonless with a
+  🔒 *hors délai* badge (§6.1, §7.2 row, §7.3.1 mock-up).
+- **M1 — Treatment bitmap bucket mapping.** Rule `times[]` are arbitrary HH:MM,
+  but treatments use the 3-slot morning/noon/evening bitmap. Resolved: fixed
+  mapping `<11:00→morning(1)`, `11:00–15:00→noon(2)`, `>15:00→evening(4)`;
+  same-bucket collisions set the bit once and append later applies to the row
+  `note`; editor warns on >1 slot/bucket; ≤3/day ceiling until the v2 treatment
+  model (§6.2).
+- **M2 — Batch entry point.** Batch apply (§10.5/CP2) had a handler but no UI
+  entry. Resolved: aggregate cards carry a checkbox + `[✅ Tout appliquer (N)]`
+  button → §6.2 batch screen (§7.2 row, §7.3.1 mock-up).
+- **M3 — Alert loop closure.** Applying an alert follow-up observation must
+  resolve the open Warning. Resolved: OK answer → `ResetWarning` care in the
+  same transaction; alert answer → new Warning + chained follow-up; skip leaves
+  the Warning open with the landing red row as backstop; chaining stops at
+  outtake (§4.2, §6.2).
+- **M4 — Medication-duration guardrail.** Open-ended (`Durée: illimitée`)
+  medication plans are usually an un-bounded course. Resolved: warn-but-allow
+  on save (CP6b pattern), non-medication kinds not warned (§7.3.8).
+- **L1 — Per-kind required fields.** `weighing` requires a weight, `observation`
+  requires an answer. Resolved: enforced in the apply dialog and validated at
+  plan-editor save (§6.2, §7.1).
+- **L2 — Last weight in dosage warning.** The medication dosage-failure warning
+  (B6) now includes the animal's last recorded weight and its date (§4.2).
+- **L3 — One-tap apply / minimal dialogs / defer default.** Apply is one tap
+  for no-input kinds; required-input kinds open a minimal dialog; the defer
+  dialog defaults `deferred_until` to **+1 h** (still clamped) (§6.2, §7.2).
+- **L4 — Why-trace on re-verify failure.** When a batch item fails
+  re-verification, the caretaker sees the reason (« règle ne s'applique plus :
+  poids 310 g ≥ 300 g »), not just "skipped" (§6.2).
+- **L5 — Feeding seed inactive until Phase-2 freeze.** Feeding-kind seed rules
+  would double-feed alongside the legacy `feeding_period` generator; they stay
+  `active=false` until the Phase-2 freeze (§8).
+- **L6 — Skip-reason wording.** Skip reasons read as clinical/operational
+  rationales, not "reporté" (which conflates skip with defer) (§11.3).
+- **L7 — Connectivity assumption.** Center LAN/wifi assumed; no offline v1;
+  refresh is drop-tolerant; UNIQUE backstop catches races (§9).
+
 ---
 
 ## 11. Worked Examples
