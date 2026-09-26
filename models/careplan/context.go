@@ -44,10 +44,10 @@ type AnimalContext struct {
 	SpeciesHuntable     bool
 
 	// intake condition
-	HasParasites bool
-	Parasites    string
-	HasWounds    bool
-	Wounds       string
+	HasParasites  bool
+	Parasites     string
+	HasWounds     bool
+	Wounds        string
 	IntakeGeneral string
 	IntakeRemarks string
 

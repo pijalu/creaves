@@ -130,16 +130,17 @@ func TestRegistryResolve(t *testing.T) {
 func TestRegistryResolveMissingValues(t *testing.T) {
 	r := DefaultRegistry()
 	ctx := testContext()
-	ctx.LastWeightG = nil // no weight on record
-	ctx.Wounds = ""       // empty free text
+	ctx.LastWeightG = nil  // no weight on record
+	ctx.Wounds = ""        // empty free text
+	ctx.VetDiagnostic = "" // no veterinary visit on record
 
-	if v := r.MustGet("weight_g").Resolve(ctx); v.Missing {
+	if v := r.MustGet("weight_g").Resolve(ctx); !v.Missing {
 		t.Errorf("weight_g with nil pointer should report Missing")
 	}
-	if v := r.MustGet("wounds").Resolve(ctx); v.Missing {
+	if v := r.MustGet("wounds").Resolve(ctx); !v.Missing {
 		t.Errorf("wounds with empty text should report Missing (fail-closed)")
 	}
-	if v := r.MustGet("vet_diagnostic").Resolve(ctx); v.Missing {
+	if v := r.MustGet("vet_diagnostic").Resolve(ctx); !v.Missing {
 		t.Errorf("vet_diagnostic empty should report Missing")
 	}
 	// §3 decision 5: animals without a cage value still expose "" so

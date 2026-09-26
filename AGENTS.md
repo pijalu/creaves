@@ -149,6 +149,7 @@ cd test && docker-compose up --build
 - **CSRF**: Enabled globally via `mw-csrf`
 - **DB transactions**: Every request wrapped in Pop transaction (`popmw.Transaction`)
 - **Time formats**: Custom formats registered in `models.DateTimeFormat` and `models.DateFormat`
+- **Generated code (careplan DSL)**: `models/careplan/dsl.y` is the source of truth for the matcher grammar; the parser `dsl_yacc.go` is goyacc-generated via `go generate ./models/careplan` (requires `golang.org/x/tools/cmd/goyacc`) and is **not committed**. If the careplan package fails to compile with undefined `Node`/`lexer`/`T_*` symbols — or after any `dsl.y` edit — run the generate step.
 - **Environment**: Controlled by `GO_ENV` (not `NODE_ENV` — webpack uses `GO_ENV` override)
 - **Assets**: Webpack outputs to `public/assets/` with content hashing; `manifest.json` tracks filenames
 

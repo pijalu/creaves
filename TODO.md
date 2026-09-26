@@ -110,6 +110,28 @@ This document tracks all pending TODOs and their implementation status. Items ar
    - Then TODO-PERF-002 (cache current user)
    - Then TODO-PERF-003 (pagination)
 
+## Care Expert System Engine (`models/careplan`)
+
+Pure-Go engine per [docs/care-expert.md](./docs/care-expert.md). Key research/decision record (2026-09):
+
+- [x] **CARE-PLAN-001**: Matcher field registry + AnimalContext (§5.1) — COMPLETED
+  - `models/careplan/matcher_registry.go` — 25 default fields, append-only `FieldProvider` registration, op/type contract (`opsByType`)
+  - `models/careplan/context.go` — DB-free DIP abstraction (`AnimalContext`), `days_in_care`, in-care flag
+  - Tests: `registry_test.go`
+
+- [x] **CARE-PLAN-002**: Matcher DSL parser via codegen (§5.2) — COMPLETED
+  - Grammar `models/careplan/dsl.y` (source of truth) → **goyacc** (`golang.org/x/tools/cmd/goyacc`, x/tools extension)
+  - Generated `dsl_yacc.go` is a **build artifact, NOT committed** — regenerate with `go generate ./models/careplan` (goyacc on PATH; easy build-phase generation ⇒ stays out of VCS)
+  - Lexer = thin adapter over stdlib **`text/scanner`** (no bespoke scanning engine): two-char ops (`<=`, `>=`, `!=`, `!~`), case-insensitive keywords, negative-number folding, regex-safe unquote (`\"`/`\\` are the only escapes; other backslashes pass through so RE2 patterns like `"\d{3}"` need no double-escaping)
+  - AST with 1-based byte-column token positions; `ParseError{Msg, Column}` for inline admin UI
+  - Save-time semantic validation (`ValidateNode`): unknown field, undeclared op, literal/type mismatch, empty `IN ()`, BETWEEN bounds order, RE2 compile cached on node
+  - Tests: `dsl_test.go` — grammar, precedence NOT>AND>OR, BETWEEN-AND ownership, syntax errors, semantic errors with exact columns, escapes
+
+- [ ] **CARE-PLAN-003**: Evaluator with why-trace + Preview (§5.3–5.5) — PENDING
+- [ ] **CARE-PLAN-004**: Schedule value object + occurrence generator (§4.3/§6.1: day-1 intake anchoring, `[intake, outtake)` clamp, `duration_days` counts generated days, DST boundary test) — PENDING
+- [ ] **CARE-PLAN-005**: Action payload validation per kind (§4.2: feeding/medication/care/cleanup/weighing/observation + `instructions`) — PENDING
+- [ ] **CARE-PLAN-006**: PlanSource interface + override resolver + status computation (§4.7/§6.1: slot-level & `replaces_kind` overrides, 8 statuses, apply window §10-A1, defer expiry §10-H1, per-kind grouping §6.2a, course latch §10-A4) — PENDING
+
 ## References
 
 - [PLAN.md](./PLAN.md) - Detailed implementation plan

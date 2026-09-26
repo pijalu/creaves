@@ -30,3 +30,7 @@ test/db_data
 
 .goa
 attachments-storage/
+
+# Generated careplan DSL parser (go generate ./models/careplan — do not commit)
+models/careplan/dsl_yacc.go
+y.output
