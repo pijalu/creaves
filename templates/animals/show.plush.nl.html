@@ -721,7 +721,7 @@
           active: document.getElementById('CarePlanActive').checked
         };
       } catch (e) {
-        showErr("<%= t("care_plan.animal_plans.invalid_json") %>");
+        showErr("<%= raw(t("care_plan.animal_plans.invalid_json")) %>");
         return;
       }
       var reqUrl = url, method = 'POST';
@@ -730,10 +730,22 @@
         .then(function (r) {
           if (r.ok) { window.location.reload(); return; }
           return r.json().then(function (j) {
-            showErr("<%= t("care_plan.animal_plans.error") %>");
+            var detail = '';
+            if (j && j.errors) {
+              var parts = [];
+              for (var k in j.errors) {
+                if (Object.prototype.hasOwnProperty.call(j.errors, k) && j.errors[k] && j.errors[k].length) {
+                  parts.push(j.errors[k].join(' '));
+                }
+              }
+              detail = parts.join(' ');
+            } else if (j && j.error) {
+              detail = j.error;
+            }
+            showErr("<%= raw(t("care_plan.animal_plans.error")) %>" + (detail ? ' — ' + detail : ''));
           });
         })
-        .catch(function () { showErr("<%= t("care_plan.animal_plans.error") %>"); });
+        .catch(function () { showErr("<%= raw(t("care_plan.animal_plans.error")) %>"); });
     }
     function del(id) {
       if (!window.confirm("<%= t("care_plan.action.confirm_delete") %>")) { return; }

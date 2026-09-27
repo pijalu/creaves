@@ -188,6 +188,11 @@ func CarePlanApply(c buffalo.Context) error {
 	if err != nil {
 		return c.Error(http.StatusConflict, err)
 	}
+	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
+		// §4.5: the occurrence already has a recorded application — the
+		// generic hors-délai message would be misleading here.
+		return c.Error(http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
+	}
 	if !item.Applicable {
 		return c.Error(http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
 	}

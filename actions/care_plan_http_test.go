@@ -396,9 +396,11 @@ func TestCarePlanDayPlanApplyIdempotent(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, napps)
 
-	// double submit → 409 conflict, still exactly one care/application
+	// double submit → 409 conflict (idempotent message, §4.5), still exactly one care/application
 	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req)
 	require.Equal(t, http.StatusConflict, code, "body: %s", raw)
+	require.Contains(t, string(raw), "already recorded (idempotent",
+		"double apply must report idempotency, not the hors-délai window: %s", raw)
 	ncares, err = models.DB.Where("animal_id = ? AND type_id = ?", f.animalIDs[0], f.feedCare).Count(&models.Care{})
 	require.NoError(t, err)
 	require.Equal(t, 1, ncares, "apply must be idempotent (§4.5 UNIQUE)")
