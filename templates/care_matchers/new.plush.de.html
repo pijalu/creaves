@@ -1,0 +1,172 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.matchers.new_title") %></h3>
+</div>
+
+<%= if (verrs && verrs.Count() > 0) { %>
+  <div class="alert alert-danger">
+    <%= for (field, msgs) in verrs.Errors { %>
+      <%= for (m) in msgs { %>
+        <div><strong><%= field %></strong>: <%= m %></div>
+      <% } %>
+    <% } %>
+  </div>
+<% } %>
+
+<form action="/care_matchers" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="MatcherName"><%= t("care_plan.field.name") %></label>
+      <input class="form-control" type="text" id="MatcherName" name="Name" value="<%= matcher.Name %>" required>
+    </div>
+    <div class="form-group col-md-6">
+      <label for="MatcherDescription"><%= t("care_plan.field.description") %></label>
+      <input class="form-control" type="text" id="MatcherDescription" name="Description" value="<%= matcher.Description %>">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="MatcherExpression"><%= t("care_plan.field.expression") %></label>
+    <textarea class="form-control" id="MatcherExpression" name="Expression" rows="3" data-role="expression"><%= expressionStr %></textarea>
+    <small class="text-muted"><%= t("care_plan.field.expression_hint") %></small>
+  </div>
+
+  <div class="card mb-3" id="matcher-builder">
+    <div class="card-body py-2">
+      <h6 class="mt-1"><%= t("care_plan.builder.title") %></h6>
+      <div class="form-row align-items-end" data-fields='<%= raw(fieldsJSON) %>' id="builder-controls">
+        <div class="form-group col-md-4">
+          <label for="BuilderField"><%= t("care_plan.builder.field") %></label>
+          <select class="form-control" id="BuilderField">
+            <%= for (field) in fields { %>
+              <option value="<%= field.Key %>" data-type="<%= field.Type %>" data-ops="<%= for (op) in field.Ops { %><%= op %>,<% } %>"><%= t(field.Label) %> (<%= field.Key %>)</option>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-3">
+          <label for="BuilderOp"><%= t("care_plan.builder.op") %></label>
+          <select class="form-control" id="BuilderOp"></select>
+        </div>
+        <div class="form-group col-md-3">
+          <label for="BuilderValue"><%= t("care_plan.builder.value") %></label>
+          <input class="form-control" type="text" id="BuilderValue">
+        </div>
+        <div class="form-group col-md-2">
+          <button type="button" class="btn btn-outline-primary btn-block" id="BuilderInsert"><%= t("care_plan.builder.insert") %></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-success"><%= t("care_plan.action.save") %></button>
+  <%= linkTo("/care_matchers", {class: "btn btn-warning", body: t("care_plan.action.cancel")}) %>
+</form>
+
+<div class="card mt-3" id="matcher-preview-card">
+  <div class="card-body">
+    <h5><%= t("care_plan.preview.title") %></h5>
+    <button type="button" class="btn btn-primary" id="matcher-preview-btn">
+      <%= t("care_plan.preview.run") %>
+    </button>
+    <span class="ml-2" id="matcher-preview-count"></span>
+    <table class="table table-sm table-bordered mt-2 d-none" id="matcher-preview-table">
+      <thead class="thead-light">
+        <th><%= t("care_plan.preview.animal") %></th>
+        <th><%= t("care_plan.preview.cage") %></th>
+        <th><%= t("care_plan.preview.zone") %></th>
+        <th><%= t("care_plan.preview.match") %></th>
+        <th><%= t("care_plan.preview.why") %></th>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  var fieldSel = document.getElementById('BuilderField');
+  var opSel = document.getElementById('BuilderOp');
+  var valIn = document.getElementById('BuilderValue');
+  var expr = document.getElementById('MatcherExpression');
+  var previewBtn = document.getElementById('matcher-preview-btn');
+  var table = document.getElementById('matcher-preview-table');
+  var count = document.getElementById('matcher-preview-count');
+  var yes = "<%= t("care_plan.preview.match_yes") %>";
+  var no = "<%= t("care_plan.preview.match_no") %>";
+
+  function currentOps() {
+    var opt = fieldSel.options[fieldSel.selectedIndex];
+    return (opt.getAttribute('data-ops') || '').split(',').filter(Boolean);
+  }
+  function currentType() {
+    var opt = fieldSel.options[fieldSel.selectedIndex];
+    return opt.getAttribute('data-type') || 'string';
+  }
+  function fillOps() {
+    opSel.innerHTML = '';
+    currentOps().forEach(function (op) {
+      var o = document.createElement('option');
+      o.value = op; o.textContent = op;
+      opSel.appendChild(o);
+    });
+  }
+  fieldSel.addEventListener('change', fillOps);
+  fillOps();
+
+  document.getElementById('BuilderInsert').addEventListener('click', function () {
+    var field = fieldSel.value;
+    var op = opSel.value;
+    var raw = valIn.value.trim();
+    if (!raw) { return; }
+    var lit = raw;
+    if (currentType() === 'string') {
+      lit = '"' + raw.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+    }
+    var predicate = field + ' ' + op + ' ' + lit;
+    var cur = expr.value.trim();
+    expr.value = cur ? cur + ' AND ' + predicate : predicate;
+  });
+
+  previewBtn.addEventListener('click', function () {
+    fetch('/care_matchers/preview', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+      },
+      credentials: 'same-origin',
+      body: JSON.stringify({expression: expr.value})
+    })
+      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          count.textContent = (res.body && res.body.error) || "<%= t("care_plan.preview.error") %>";
+          return;
+        }
+        table.classList.remove('d-none');
+        var body = table.tBodies[0];
+        body.innerHTML = '';
+        var animals = res.body.animals || [];
+        var shown = 0;
+        for (var i = 0; i < animals.length; i++) {
+          var a = animals[i];
+          if (a.match) { shown++; }
+          var tr = document.createElement('tr');
+          var trace = (a.trace || []).join('; ');
+          tr.innerHTML = '<td>' + (a.label || a.animal_id) + '</td>' +
+            '<td>' + (a.cage || '') + '</td>' +
+            '<td>' + (a.zone || '') + '</td>' +
+            '<td>' + (a.match ? yes : no) + '</td>' +
+            '<td>' + trace + '</td>';
+          body.appendChild(tr);
+        }
+        count.textContent = "<%= t("care_plan.preview.match_count") %>: " + (res.body.match_count || 0) + " (" + shown + " shown)";
+      })
+      .catch(function () {
+        count.textContent = "<%= t("care_plan.preview.error") %>";
+      });
+  });
+})();
+</script>

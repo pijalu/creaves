@@ -1,0 +1,32 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.matchers.title") %></h3>
+  <div class="float-end">
+    <%= linkTo(newCareMatchersPath(), {class: "btn btn-primary"}) { %>
+      <%= t("care_plan.action.new") %>
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th><%= t("care_plan.field.name") %></th>
+    <th><%= t("care_plan.field.description") %></th>
+    <th><%= t("care_plan.field.expression") %></th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (matcher) in matchers { %>
+      <tr>
+        <td class="align-middle"><%= matcher.Name %></td>
+        <td class="align-middle"><%= matcher.Description %></td>
+        <td class="align-middle"><code><%= matcher.Expression %></code></td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(editCareMatcherPath({ care_matcher_id: matcher.ID }), {class: "btn btn-warning", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(careMatcherPath({ care_matcher_id: matcher.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

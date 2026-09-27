@@ -1,0 +1,92 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.rules.new_title") %></h3>
+</div>
+
+<%= if (verrs && verrs.Count() > 0) { %>
+  <div class="alert alert-danger">
+    <%= for (field, msgs) in verrs.Errors { %>
+      <%= for (m) in msgs { %>
+        <div><strong><%= field %></strong>: <%= m %></div>
+      <% } %>
+    <% } %>
+  </div>
+<% } %>
+
+<form action="/care_rules" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+
+  <div class="form-row">
+    <div class="form-group col-md-4">
+      <label for="RuleName"><%= t("care_plan.field.name") %></label>
+      <input class="form-control" type="text" id="RuleName" name="Name" value="<%= rule.Name %>" required>
+    </div>
+    <div class="form-group col-md-4">
+      <label for="RuleActionKind"><%= t("care_plan.field.action_kind") %></label>
+      <select class="form-control" id="RuleActionKind" name="ActionKind">
+        <%= for (k) in actionKinds { %>
+          <option value="<%= k %>" <%= if (k == rule.ActionKind) { %>selected<% } %>><%= t("care_plan.kind." + k) %></option>
+        <% } %>
+      </select>
+    </div>
+    <div class="form-group col-md-4">
+      <label for="RuleMatcherID"><%= t("care_plan.field.matcher") %></label>
+      <select class="form-control" id="RuleMatcherID" name="MatcherID">
+        <option value=""><%= t("care_plan.matcher.none") %></option>
+        <%= for (m) in matchers { %>
+          <option value="<%= m.ID %>" <%= if (rule.MatcherID.Valid && rule.MatcherID.UUID.String() == m.ID.String()) { %>selected<% } %>><%= m.Name %></option>
+        <% } %>
+      </select>
+      <small class="text-muted"><%= t("care_plan.matcher.none_hint") %></small>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label for="RuleDescription"><%= t("care_plan.field.description") %></label>
+    <textarea class="form-control" id="RuleDescription" name="Description" rows="2"><%= rule.Description %></textarea>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="RuleActionPayload"><%= t("care_plan.field.action_payload") %></label>
+      <textarea class="form-control" id="RuleActionPayload" name="ActionPayload" rows="6" data-role="action-payload"><%= payloadStr %></textarea>
+      <small class="text-muted"><%= t("care_plan.field.action_payload_hint") %></small>
+    </div>
+    <div class="form-group col-md-6">
+      <label for="RuleSchedule"><%= t("care_plan.field.schedule") %></label>
+      <textarea class="form-control" id="RuleSchedule" name="Schedule" rows="6" data-role="schedule"><%= scheduleStr %></textarea>
+      <small class="text-muted"><%= t("care_plan.field.schedule_hint") %></small>
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group col-md-2">
+      <label for="RulePriority"><%= t("care_plan.field.priority") %></label>
+      <input class="form-control" type="number" id="RulePriority" name="Priority" value="<%= rule.Priority %>">
+    </div>
+    <div class="form-group col-md-3">
+      <label for="RuleValidFrom"><%= t("care_plan.field.valid_from") %></label>
+      <input class="form-control" type="text" id="RuleValidFrom" name="ValidFrom" placeholder="2006-01-02T08:00" value="<%= validFromStr %>">
+    </div>
+    <div class="form-group col-md-3">
+      <label for="RuleValidTo"><%= t("care_plan.field.valid_to") %></label>
+      <input class="form-control" type="text" id="RuleValidTo" name="ValidTo" placeholder="2006-01-02T18:00" value="<%= validToStr %>">
+    </div>
+    <div class="form-group col-md-4 pt-4">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="RuleActive" name="Active" value="true" <%= if (rule.Active) { %>checked<% } %>>
+        <label class="form-check-label" for="RuleActive"><%= t("care_plan.field.active") %></label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="RuleStopOnOuttake" name="StopOnOuttake" value="true" <%= if (rule.StopOnOuttake) { %>checked<% } %>>
+        <label class="form-check-label" for="RuleStopOnOuttake"><%= t("care_plan.field.stop_on_outtake") %></label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="RuleLatchMembership" name="LatchMembership" value="true" <%= if (rule.LatchMembership) { %>checked<% } %>>
+        <label class="form-check-label" for="RuleLatchMembership"><%= t("care_plan.field.latch_membership") %></label>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-success"><%= t("care_plan.action.save") %></button>
+  <%= linkTo("/care_rules", {class: "btn btn-warning", body: t("care_plan.action.cancel")}) %>
+</form>

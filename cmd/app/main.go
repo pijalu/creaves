@@ -23,6 +23,15 @@ func main() {
 	// forwarded once the webhook is configured.
 	actions.InitWebhookAtBoot()
 
+	// Care-plan startup converter (docs/care-expert.md §8.1): one-shot,
+	// idempotent legacy→care-plan conversion. Runs after migrations (the
+	// deploy entrypoint executes `/bin/app migrate` before this binary)
+	// and before the HTTP server accepts traffic; a failure aborts the
+	// boot so a half-converted database can never serve.
+	if err := actions.RunCarePlanConverterAtBoot(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

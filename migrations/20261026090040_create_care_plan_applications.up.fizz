@@ -1,0 +1,27 @@
+create_table("care_plan_applications") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("source_type", "string", {size: 8})
+	t.Column("source_id", "uuid", {})
+	t.Column("source_snapshot", "json", {})
+	t.Column("animal_id", "int", {})
+	t.Column("due_at", "datetime", {})
+	t.Column("applied_at", "datetime", {})
+	t.Column("user_id", "uuid", {})
+	t.Column("fulfillment_type", "string", {size: 16})
+	t.Column("fulfillment_id", "string", {size: 36})
+	t.Column("status", "string", {size: 16})
+	t.Column("deferred_until", "datetime", {null: true})
+	t.Column("fulfillment_deleted", "bool", {default: false})
+	t.Column("note", "text", {null: true})
+	t.Timestamps()
+
+	t.ForeignKey("animal_id", {"animals": ["id"]}, {
+		"on_delete": "CASCADE"
+	})
+	t.ForeignKey("user_id", {"users": ["id"]}, {
+		"on_delete": "RESTRICT"
+	})
+}
+add_index("care_plan_applications", ["source_type", "source_id", "animal_id", "due_at"], {unique: true, name: "uq_care_plan_applications_occurrence"})
+add_index("care_plan_applications", ["due_at", "status"], {})
+add_index("care_plan_applications", ["animal_id", "due_at"], {})

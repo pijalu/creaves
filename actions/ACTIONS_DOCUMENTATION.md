@@ -32,10 +32,9 @@
 | GET | `/export/csv` | ExportCsv | CSV download (redirects to `/export/view` without `?query=`) |
 | GET | `/export/view` | ExportView | Online export chooser / HTML table view |
 | GET | `/export/excel` | ExportExcel | Excel export |
-| GET | `/feeding` | FeedingIndex | Feeding schedule |
+| GET | `/feeding` | FeedingIndex | **Retired (§8.3)**: redirects to `/care_plan?kind=feeding` |
 | GET | `/feeding/close` | FeedingClose | Close feeding |
 | GET | `/crash` | Anonymous func | Intentional crash for testing |
-| PUT | `/treatmentschedule` | TreatmentUpdateSchedule | Update treatment schedule (AJAX) |
 
 **AJAX Endpoints**:
 - `/suggestions/animal_species` - Species suggestions
@@ -288,10 +287,11 @@
 | GET | `/treatments/{id}/edit` | Edit | All |
 | PUT | `/treatments/{id}` | Update | All |
 | DELETE | `/treatments/{id}` | Destroy | All |
-| PUT | `/treatmentschedule` | TreatmentUpdateSchedule | All (AJAX) |
 
-**AJAX Endpoint**:
-- `TreatmentUpdateSchedule` - Updates treatment `Timedonebitmap` via JSON
+**Read-only since the care-plan migration (§8.3)**: the
+`PUT /treatmentschedule` AJAX endpoint (Timedonebitmap flips) was removed;
+treatment rows are history. Done-ticks live on the day plan
+(`/care_plan/apply`) and the animal Plan tab.
 
 **Business Logic**:
 - Create supports multi-date creation via comma-separated dates
@@ -633,6 +633,39 @@ test database is unavailable).
 - Renumber: Resets and recalculates `year` and `yearNumber` for all animals
 
 ---
+
+## Care Plan (Care Expert System)
+
+Handlers: `actions/care_plan.go`, `care_plan_dayplan.go`, `care_plan_fulfillment.go`,
+`care_rules.go`, `care_matchers.go`, `care_animal_plans.go`, `care_plan_converter.go`,
+`care_plan_service.go`, `care_plan_seeds.go`, `care_plan_support.go`,
+`care_plan_convert_data.go`. Spec: `docs/care-expert.md`.
+
+**Routes & Handlers**:
+| Method | Route | Handler | Description |
+|--------|-------|---------|-------------|
+| GET | `/care_plan` | CarePlanIndex | Day plan (`?kind=feeding\|care\|medication\|cleanup`), also absorbs retired `/feeding` |
+| POST | `/care_plan/apply` | CarePlanApply | Apply one due item (creates care row / treatment fulfillment + application record) |
+| POST | `/care_plan/unapply` | CarePlanUnapply | Undo an application |
+| POST | `/care_plan/apply_batch` | CarePlanApplyBatch | Cage-sized batch apply |
+| POST | `/care_matchers/preview` | CareMatcherPreview | Match-count preview for a matcher expression |
+| GET | `/care_rules/{care_rule_id}/preview` | CareRulePreview | Per-rule preview with per-animal DSL evaluation traces |
+| — | `/care_rules` | CareRulesResource | Admin CRUD (with `Create` seeding rule actions) |
+| — | `/care_matchers` | CareMatchersResource | Admin CRUD |
+| GET | `/animals/{animal_id}/care_animal_plans` | CareAnimalPlanList | Per-animal plan tab (caretaker schedules) |
+| POST | `/animals/{animal_id}/care_animal_plans` | CareAnimalPlanCreate | Create single-animal plan |
+| PUT | `/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}` | CareAnimalPlanUpdate | Update single-animal plan |
+| DELETE | `/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}` | CareAnimalPlanDestroy | Delete single-animal plan |
+
+**Business Logic**:
+- `BuildDayPlan(tx, now, from, to)` evaluates active rules + animal plans via the
+  `models/careplan` DSL engine, expands occurrences, subtracts applications, and
+  buckets items Late / Scheduled / Replaced (`DefaultPlanWindow` = today window).
+- `GroupCageCards` aggregates cleanup items per cage (never coarser, §10.5-N2).
+- Apply creates the fulfillment (feeding → new `cares` rows; medication →
+  treatment fulfillment per spec §10) plus an immutable `care_plan_applications` row.
+- `RunCarePlanConverterAtBoot()` runs the one-shot legacy conversion on boot
+  (ledger key `startup_v1` in `care_plan_conversions`); boot aborts on failure.
 
 ## Utilities
 

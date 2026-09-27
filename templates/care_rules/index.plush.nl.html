@@ -1,0 +1,44 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.rules.title") %></h3>
+  <div class="float-end">
+    <%= linkTo(newCareRulesPath(), {class: "btn btn-primary"}) { %>
+      <%= t("care_plan.action.new") %>
+    <% } %>
+  </div>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th><%= t("care_plan.field.name") %></th>
+    <th><%= t("care_plan.field.description") %></th>
+    <th><%= t("care_plan.field.action_kind") %></th>
+    <th><%= t("care_plan.field.matcher") %></th>
+    <th><%= t("care_plan.field.priority") %></th>
+    <th><%= t("care_plan.field.active") %></th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (rule) in rules { %>
+      <tr>
+        <td class="align-middle"><%= rule.Name %></td>
+        <td class="align-middle"><%= rule.Description %></td>
+        <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + rule.ActionKind) %></span></td>
+        <td class="align-middle"><%= matcherNames[rule.MatcherID.UUID] %></td>
+        <td class="align-middle"><%= rule.Priority %></td>
+        <td class="align-middle">
+          <%= if (rule.Active) { %>
+            <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+          <% } else { %>
+            <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
+          <% } %>
+        </td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(editCareRulePath({ care_rule_id: rule.ID }), {class: "btn btn-warning", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(careRulePath({ care_rule_id: rule.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

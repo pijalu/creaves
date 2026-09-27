@@ -1,0 +1,5 @@
+create_table("care_plan_conversion") {
+	t.Column("key", "string", {size: 64, primary: true})
+	t.Column("finished_at", "datetime", {})
+	t.Timestamps()
+}

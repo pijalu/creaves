@@ -32,6 +32,7 @@
     <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Care</a>
     <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Veterinary</a>
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
+    <a class="nav-item nav-link" id="nav-plan-tab" data-toggle="tab" href="#nav-plan" role="tab" aria-controls="nav-plan" aria-selected="false"><%= t("care_plan.animal_plans.tab") %></a>
     <a class="nav-item nav-link" id="nav-media-tab" data-toggle="tab" href="#nav-media" role="tab" aria-controls="nav-media" aria-selected="false">Media</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
@@ -556,57 +557,199 @@
       <%}%>
     </div>
   </div>
+<script>
+  // /treatmentschedule is read-only since the care-plan migration
+  // (docs/care-expert.md §8.3): treatment rows are history. Ticks live on
+  // the day plan (/care_plan) and the animal Plan tab.
+  $(".btn-schedule").css("pointer-events", "none").css("opacity", "0.75");
+</script>
+
+  <div class="tab-pane fade" id="nav-plan" role="tabpanel" aria-labelledby="nav-plan-tab">
+    <div class="p-3">
+      <div class="d-flex align-items-center mb-2">
+        <h5 class="mb-0"><%= t("care_plan.animal_plans.title") %></h5>
+        <button type="button" class="btn btn-primary ml-auto" data-toggle="modal" data-target="#carePlanModal" id="carePlanNewBtn"><%= t("care_plan.animal_plans.new") %></button>
+      </div>
+      <table class="table table-hover table-bordered" id="careAnimalPlansTable"
+             data-animal-id="<%= animal.ID %>"
+             data-url="/animals/<%= animal.ID %>/care_animal_plans">
+        <thead class="thead-light">
+          <th><%= t("care_plan.field.name") %></th>
+          <th><%= t("care_plan.field.action_kind") %></th>
+          <th><%= t("care_plan.field.active") %></th>
+          <th><%= t("care_plan.field.replaces_kind") %></th>
+          <th><%= t("care_plan.field.schedule") %></th>
+          <th>&nbsp;</th>
+        </thead>
+        <tbody>
+          <%= for (p) in careAnimalPlans { %>
+            <tr data-id="<%= p.ID %>">
+              <td class="align-middle"><%= p.Name %></td>
+              <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + p.ActionKind) %></span></td>
+              <td class="align-middle">
+                <%= if (p.Active) { %>
+                  <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+                <% } else { %>
+                  <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
+                <% } %>
+              </td>
+              <td class="align-middle"><%= if (p.ReplacesKind) { %><i class="fas fa-check"></i><% } else { %><i class="fas fa-times"></i><% } %></td>
+              <td class="align-middle"><code><%= p.Schedule %></code></td>
+              <td>
+                <div class="float-right">
+                  <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= p.ID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
+                  <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= p.ID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
+                </div>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="modal fade" id="carePlanModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="carePlanModalTitle"><%= t("care_plan.animal_plans.new") %></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger d-none" id="carePlanModalError"></div>
+          <div class="form-group">
+            <label for="CarePlanName"><%= t("care_plan.field.name") %></label>
+            <input class="form-control" type="text" id="CarePlanName">
+          </div>
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="CarePlanKind"><%= t("care_plan.field.action_kind") %></label>
+              <select class="form-control" id="CarePlanKind">
+                <%= for (k) in planActionKinds { %>
+                  <option value="<%= k %>"><%= t("care_plan.kind." + k) %></option>
+                <% } %>
+              </select>
+            </div>
+            <div class="form-group col-md-6 pt-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="CarePlanActive" value="true" checked>
+                <label class="form-check-label" for="CarePlanActive"><%= t("care_plan.field.active") %></label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="CarePlanReplacesKind" value="true">
+                <label class="form-check-label" for="CarePlanReplacesKind"><%= t("care_plan.field.replaces_kind") %></label>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="CarePlanPayload"><%= t("care_plan.field.action_payload") %></label>
+            <textarea class="form-control" id="CarePlanPayload" rows="5"></textarea>
+            <small class="text-muted"><%= t("care_plan.field.action_payload_hint") %></small>
+          </div>
+          <div class="form-group">
+            <label for="CarePlanSchedule"><%= t("care_plan.field.schedule") %></label>
+            <textarea class="form-control" id="CarePlanSchedule" rows="5"></textarea>
+            <small class="text-muted"><%= t("care_plan.field.schedule_hint") %></small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal"><%= t("care_plan.action.cancel") %></button>
+          <button type="button" class="btn btn-success" id="carePlanSaveBtn"><%= t("care_plan.action.save") %></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const xhrUrl = "<%= treatmentschedulePath() %>";
-    const re = /shed-btn_(.*)_(.*)/;
-    $(".btn-schedule").each(function(){
-      var tk=function(key) {
-        switch(key) {
-         case "morning": return 1; 
-         case "noon": return 2;
-         case "evening": return 4;
-        }
-      };
+  (function () {
+    var table = document.getElementById('careAnimalPlansTable');
+    if (!table) { return; }
+    var url = table.getAttribute('data-url');
+    var csrf = document.querySelector('meta[name="csrf-token"]').content;
+    var editingId = null;
 
-      const matches=$(this).attr("id").match(re);
-      const key=tk(matches[1]);
-      const rid=matches[2];
-      const payload=JSON.stringify({"treatment_id":rid, "key": key});
-      const elm=$(this);
-
-      elm.on("click", function(){
-        elm.prop('disabled', true);
-
-        elm.addClass("btn-light")
-        elm.removeClass("btn-success btn-warning btn-danger")
-        
-        $.ajax({
-          type: 'PUT',
-          url: xhrUrl,
-          contentType: 'application/json',
-          data: payload
-        }).done(function(data){
-          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
-          if ((data.key & key) === key) {
-            elm.addClass("btn-success");
-          } else {
-            if (elm.attr("past")==="true") {
-              elm.addClass("btn-danger");
-            } else {
-              elm.addClass("btn-warning");
-            }
-          }
-        }).fail(function(data){
-          alert("Failed to update status");
-          console.log("Request failure:", data)
-        }).always(function(){
-          elm.removeClass("btn-light");
-          elm.prop('disabled', false);
+    function planHeaders() {
+      return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf};
+    }
+    function showErr(msg) {
+      var box = document.getElementById('carePlanModalError');
+      box.textContent = msg;
+      box.classList.remove('d-none');
+    }
+    function hideErr() {
+      document.getElementById('carePlanModalError').classList.add('d-none');
+    }
+    function openNew() {
+      editingId = null;
+      document.getElementById('carePlanModalTitle').textContent = "<%= t("care_plan.animal_plans.new") %>";
+      document.getElementById('CarePlanName').value = '';
+      document.getElementById('CarePlanPayload').value = '';
+      document.getElementById('CarePlanSchedule').value = '';
+      document.getElementById('CarePlanActive').checked = true;
+      document.getElementById('CarePlanReplacesKind').checked = false;
+      hideErr();
+      $('#carePlanModal').modal('show');
+    }
+    function openEdit(id) {
+      fetch(url, {headers: {'Accept': 'application/json'}})
+        .then(function (r) { return r.json(); })
+        .then(function (list) {
+          var p = null;
+          for (var i = 0; i < list.length; i++) { if (list[i].id === id) { p = list[i]; break; } }
+          if (!p) { return; }
+          editingId = id;
+          document.getElementById('carePlanModalTitle').textContent = "<%= t("care_plan.animal_plans.edit") %>";
+          document.getElementById('CarePlanName').value = p.name || '';
+          document.getElementById('CarePlanKind').value = p.action_kind || 'feeding';
+          document.getElementById('CarePlanPayload').value = p.action_payload ? JSON.stringify(p.action_payload) : '';
+          document.getElementById('CarePlanSchedule').value = p.schedule ? JSON.stringify(p.schedule) : '';
+          document.getElementById('CarePlanActive').checked = !!p.active;
+          document.getElementById('CarePlanReplacesKind').checked = !!p.replaces_kind;
+          hideErr();
+          $('#carePlanModal').modal('show');
         });
-        
-        console.log("Clicked on button: Change key "+key+" for "+rid);  
-      });
+    }
+    function save() {
+      var body;
+      try {
+        body = {
+          name: document.getElementById('CarePlanName').value,
+          action_kind: document.getElementById('CarePlanKind').value,
+          action_payload: JSON.parse(document.getElementById('CarePlanPayload').value || '{}'),
+          schedule: JSON.parse(document.getElementById('CarePlanSchedule').value || '{}'),
+          replaces_kind: document.getElementById('CarePlanReplacesKind').checked,
+          active: document.getElementById('CarePlanActive').checked
+        };
+      } catch (e) {
+        showErr("<%= t("care_plan.animal_plans.invalid_json") %>");
+        return;
+      }
+      var reqUrl = url, method = 'POST';
+      if (editingId) { reqUrl = url + '/' + editingId; method = 'PUT'; }
+      fetch(reqUrl, {method: method, headers: planHeaders(), credentials: 'same-origin', body: JSON.stringify(body)})
+        .then(function (r) {
+          if (r.ok) { window.location.reload(); return; }
+          return r.json().then(function (j) {
+            showErr("<%= t("care_plan.animal_plans.error") %>");
+          });
+        })
+        .catch(function () { showErr("<%= t("care_plan.animal_plans.error") %>"); });
+    }
+    function del(id) {
+      if (!window.confirm("<%= t("care_plan.action.confirm_delete") %>")) { return; }
+      fetch(url + '/' + id, {method: 'DELETE', headers: planHeaders(), credentials: 'same-origin'})
+        .then(function (r) { if (r.ok) { window.location.reload(); } });
+    }
+
+    document.getElementById('carePlanNewBtn').addEventListener('click', openNew);
+    document.getElementById('carePlanSaveBtn').addEventListener('click', save);
+    Array.prototype.forEach.call(document.querySelectorAll('.carePlanEditBtn'), function (b) {
+      b.addEventListener('click', function () { openEdit(b.getAttribute('data-id')); });
     });
+    Array.prototype.forEach.call(document.querySelectorAll('.carePlanDeleteBtn'), function (b) {
+      b.addEventListener('click', function () { del(b.getAttribute('data-id')); });
+    });
+  })();
   </script>
 
   <div class="tab-pane fade" id="nav-media" role="tabpanel" aria-labelledby="nav-media-tab">

@@ -163,7 +163,26 @@ func App() *buffalo.App {
 		app.Resource("/cares", CaresResource{})
 		app.Resource("/veterinaryvisits", VeterinaryvisitsResource{})
 		app.Resource("/treatments", TreatmentsResource{})
-		app.PUT("/treatmentschedule", TreatmentUpdateSchedule)
+		// PUT /treatmentschedule removed (§8.3): treatment rows are
+		// read-only history since the care-plan migration; ticks live on
+		// the day plan (/care_plan/apply) and the animal Plan tab.
+
+		// Care Expert System (docs/care-expert.md): day plan + fulfillment
+		// endpoints. Static paths BEFORE any resource registration so they
+		// are not swallowed by parameterized routes (outtakes/cage pattern).
+		app.GET("/care_plan", CarePlanIndex)
+		app.POST("/care_plan/apply", CarePlanApply)
+		app.POST("/care_plan/unapply", CarePlanUnapply)
+		app.POST("/care_plan/apply_batch", CarePlanApplyBatch)
+		app.POST("/care_matchers/preview", CareMatcherPreview)
+		app.GET("/care_rules/{care_rule_id}/preview", CareRulePreview)
+		app.Resource("/care_rules", CareRulesResource{})
+		app.Resource("/care_matchers", CareMatchersResource{})
+		// Animal-level plans: caretaker CRUD on the Plan tab (§4.7).
+		app.GET("/animals/{animal_id}/care_animal_plans", CareAnimalPlanList)
+		app.POST("/animals/{animal_id}/care_animal_plans", CareAnimalPlanCreate)
+		app.PUT("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanUpdate)
+		app.DELETE("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanDestroy)
 
 		app.GET("/landing/index", LandingIndex)
 		app.GET("/suggestions/animal_species", SuggestionsAnimalSpecies)
@@ -268,6 +287,8 @@ func App() *buffalo.App {
 
 		app.Resource("/localities", LocalitiesResource{})
 		app.Resource("/zones", ZonesResource{})
+		// /feeding retired (§8.3): redirects to the day plan filtered on
+		// feeding; the legacy feeding_period page is gone.
 		app.GET("/feeding", FeedingIndex)
 		app.GET("/feeding/close", FeedingClose)
 

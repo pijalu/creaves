@@ -221,57 +221,11 @@
 </table>
 </div>
 <script>
-    const xhrUrl = "<%= treatmentschedulePath() %>";
-    const re = /shed-btn_(.*)_(.*)/;
-    $(".btn-schedule").each(function(){
-      var tk=function(key) {
-        switch(key) {
-         case "morning": return 1; 
-         case "noon": return 2;
-         case "evening": return 4;
-        }
-      };
-
-      const matches=$(this).attr("id").match(re);
-      const key=tk(matches[1]);
-      const rid=matches[2];
-      const payload=JSON.stringify({"treatment_id":rid, "key": key});
-      const elm=$(this);
-
-      elm.on("click", function(){
-        elm.prop('disabled', true);
-
-        elm.addClass("btn-light")
-        elm.removeClass("btn-success btn-warning btn-danger")
-        
-        $.ajax({
-          type: 'PUT',
-          url: xhrUrl,
-          contentType: 'application/json',
-          data: payload
-        }).done(function(data){
-          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
-          if ((data.key & key) === key) {
-            elm.addClass("btn-success");
-          } else {
-            if (elm.attr("past")==="true") {
-              elm.addClass("btn-danger");
-            } else {
-              elm.addClass("btn-warning");
-            }
-          }
-        }).fail(function(data){
-          alert("Status konnte nicht aktualisiert werden");
-          console.log("Request failure:", data)
-        }).always(function(){
-          elm.removeClass("btn-light");
-          elm.prop('disabled', false);
-        });
-        
-        console.log("Clicked on button: Change key "+key+" for "+rid);  
-      });
-    });
-  </script>
+  // /treatmentschedule is read-only since the care-plan migration
+  // (docs/care-expert.md §8.3): treatment rows are history. Ticks live on
+  // the day plan (/care_plan) and the animal Plan tab.
+  $(".btn-schedule").css("pointer-events", "none").css("opacity", "0.75");
+</script>
   <%} else {%>
 <p>Keine</p>
 <%}%>

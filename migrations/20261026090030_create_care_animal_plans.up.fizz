@@ -1,0 +1,20 @@
+create_table("care_animal_plans") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("animal_id", "int", {})
+	t.Column("name", "string", {size: 200})
+	t.Column("action_kind", "string", {size: 32})
+	t.Column("action_payload", "json", {})
+	t.Column("schedule", "json", {})
+	t.Column("replaces_kind", "bool", {default: false})
+	t.Column("active", "bool", {default: true})
+	t.Column("created_by", "uuid", {null: true})
+	t.Timestamps()
+
+	t.ForeignKey("animal_id", {"animals": ["id"]}, {
+		"on_delete": "CASCADE"
+	})
+	t.ForeignKey("created_by", {"users": ["id"]}, {
+		"on_delete": "RESTRICT"
+	})
+}
+add_index("care_animal_plans", ["animal_id", "active"], {})

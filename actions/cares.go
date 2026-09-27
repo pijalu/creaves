@@ -564,6 +564,12 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 		return err
 	}
 
+	// Care-plan hook (§10-CP1): a destroyed fulfillment row is reported on
+	// its care_plan_applications link instead of dangling.
+	if err := MarkPlanApplicationFulfillmentDeleted(tx, models.ApplicationFulfillmentCare, care.ID.String()); err != nil {
+		c.Logger().Warnf("care plan fulfillment_deleted hook: %v", err)
+	}
+
 	// Audit log: care deletion (best effort)
 	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionDelete, auditCareProjection(*care), nil)
 

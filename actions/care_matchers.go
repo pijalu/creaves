@@ -1,0 +1,353 @@
+package actions
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"sort"
+	"time"
+
+	"creaves/models"
+	"creaves/models/careplan"
+
+	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/buffalo/render"
+	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/x/responder"
+	"github.com/gofrs/uuid"
+)
+
+// Care rules + matcher library HTTP layer (§7.2): admin-only CRUD plus the
+// §7.1-3 live preview (match count + animals + per-animal why-trace) that
+// every editor surface embeds. Restricted roles fall through RoleGuard and
+// are rejected here — rule/matcher authoring stays an admin capability.
+
+// requireAdminForPlan denies non-admin accounts on the plan admin surfaces.
+func requireAdminForPlan(c buffalo.Context) error {
+	if u := GetCurrentUser(c); u == nil || !u.Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin only"))
+	}
+	return nil
+}
+
+// ---------------------------------------------------------------------------
+// Matcher preview (§7.1-3)
+// ---------------------------------------------------------------------------
+
+// matcherPreviewItem is one preview row: label + pass/fail + why-trace.
+type matcherPreviewItem struct {
+	AnimalID int      `json:"animal_id"`
+	Label    string   `json:"label"`
+	Cage     string   `json:"cage"`
+	Zone     string   `json:"zone"`
+	Match    bool     `json:"match"`
+	Trace    []string `json:"trace,omitempty"`
+}
+
+// previewMatcherExpression evaluates a DSL expression against every
+// in-care animal (§7.1-3) returning the full annotated set (count +
+// per-animal why). Broken expressions fail with the parser's token-level
+// error, never a 500.
+func previewMatcherExpression(tx *pop.Connection, expression string, limit int) ([]matcherPreviewItem, int, error) {
+	node, err := careplan.ParseValidatedWith(expression, careplan.DefaultRegistry())
+	if err != nil {
+		return nil, 0, err
+	}
+	pa, err := loadAnimalContexts(tx, time.Now())
+	if err != nil {
+		return nil, 0, err
+	}
+	reg := careplan.DefaultRegistry()
+
+	ids := make([]int, 0, len(pa.ctxs))
+	for id := range pa.ctxs {
+		ids = append(ids, id)
+	}
+	sort.Ints(ids)
+
+	items := make([]matcherPreviewItem, 0, len(ids))
+	matches := 0
+	for _, id := range ids {
+		ctx := pa.ctxs[id]
+		ok, trace := careplan.EvalTrace(reg, node, ctx)
+		if ok {
+			matches++
+		}
+		if limit > 0 && len(items) >= limit && !ok {
+			continue
+		}
+		item := matcherPreviewItem{AnimalID: id, Match: ok}
+		if a, present := pa.rows[id]; present {
+			item.Label = animalLabel(a)
+			item.Cage = a.Cage.String
+			item.Zone = a.Zone.String
+		}
+		for _, step := range trace {
+			item.Trace = append(item.Trace, fmt.Sprintf("%s %s %s: %s", step.Field, step.Op, step.Expected, step.Reason))
+		}
+		items = append(items, item)
+	}
+	return items, matches, nil
+}
+
+// CareMatcherPreview handles POST /care_matchers/preview (§7.1-3): body
+// {expression} → {match_count, animals:[…]}.
+func CareMatcherPreview(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	in := struct {
+		Expression string `json:"expression"`
+	}{}
+	if err := c.Bind(&in); err != nil {
+		return err
+	}
+	items, matches, err := previewMatcherExpression(tx, in.Expression, 50)
+	if err != nil {
+		return c.Error(http.StatusUnprocessableEntity, err)
+	}
+	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
+		"match_count": matches,
+		"animals":     items,
+	}))
+}
+
+// renderJSON wraps the JSON renderer used by the plan endpoints.
+func renderJSON(v interface{}) render.Renderer {
+	return r.JSON(v)
+}
+
+// matcherFieldOption is one registry entry surfaced in the editors' visual
+// builder dropdowns (§5.1): key, localized label key, type and legal ops.
+type matcherFieldOption struct {
+	Key   string   `json:"key"`
+	Label string   `json:"label"`
+	Type  string   `json:"type"`
+	Ops   []string `json:"ops"`
+}
+
+// matcherFieldOptions exposes the §5.1 field registry for the editors.
+func matcherFieldOptions() []matcherFieldOption {
+	providers := careplan.DefaultRegistry().Fields()
+	out := make([]matcherFieldOption, 0, len(providers))
+	for _, p := range providers {
+		ops := make([]string, len(p.Ops))
+		copy(ops, p.Ops)
+		out = append(out, matcherFieldOption{Key: p.Key, Label: p.LabelKey, Type: p.Type, Ops: ops})
+	}
+	return out
+}
+
+// planActionKinds lists the §4.2 action kinds for the editors' selects.
+func planActionKinds() []string {
+	return []string{
+		careplan.KindFeeding,
+		careplan.KindMedication,
+		careplan.KindCare,
+		careplan.KindCleanup,
+		careplan.KindWeighing,
+		careplan.KindObservation,
+	}
+}
+
+// matcherNamesByID loads id → name for every matcher (rules list + editor
+// selects). Empty set is not an error: rules may exist before matchers.
+func matcherNamesByID(tx *pop.Connection) (map[uuid.UUID]string, error) {
+	matchers := &models.CareMatchers{}
+	if err := tx.All(matchers); err != nil {
+		return nil, err
+	}
+	names := make(map[uuid.UUID]string, len(*matchers))
+	for _, m := range *matchers {
+		names[m.ID] = m.Name
+	}
+	return names, nil
+}
+
+// ---------------------------------------------------------------------------
+// CareMatchersResource — admin-only CRUD (§7.2)
+// ---------------------------------------------------------------------------
+
+// CareMatchersResource is the named-matcher library resource.
+type CareMatchersResource struct {
+	buffalo.Resource
+}
+
+// List gets all matchers. GET /care_matchers — JSON API plus the HTML
+// matcher library page (§7.2), content-negotiated like the rules list.
+func (v CareMatchersResource) List(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matchers := &models.CareMatchers{}
+	if err := tx.All(matchers); err != nil {
+		return err
+	}
+	return responder.Wants("html", func(c buffalo.Context) error {
+		c.Set("matchers", []models.CareMatcher(*matchers))
+		return c.Render(http.StatusOK, r.HTML("care_matchers/index.plush.html"))
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, renderJSON(matchers))
+	}).Respond(c)
+}
+
+// Show gets one matcher. GET /care_matchers/{care_matcher_id}
+func (v CareMatchersResource) Show(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matcher := &models.CareMatcher{}
+	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	return c.Render(http.StatusOK, renderJSON(matcher))
+}
+
+// setMatcherContext loads everything the matcher editor page needs (§5.1
+// builder fields as JSON for the visual builder, expression textarea).
+func setMatcherContext(c buffalo.Context, matcher *models.CareMatcher) {
+	c.Set("matcher", matcher)
+	c.Set("fields", matcherFieldOptions())
+	if b, err := json.Marshal(matcherFieldOptions()); err == nil {
+		c.Set("fieldsJSON", string(b))
+	} else {
+		c.Set("fieldsJSON", "[]")
+	}
+	c.Set("expressionStr", matcher.Expression)
+}
+
+// New renders the matcher editor (visual builder + live preview) for a new
+// matcher. GET /care_matchers/new — HTML only.
+func (v CareMatchersResource) New(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	matcher := &models.CareMatcher{}
+	setMatcherContext(c, matcher)
+	return c.Render(http.StatusOK, r.HTML("care_matchers/new.plush.html"))
+}
+
+// Edit renders the matcher editor for an existing matcher.
+// GET /care_matchers/{care_matcher_id}/edit — HTML only.
+func (v CareMatchersResource) Edit(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matcher := &models.CareMatcher{}
+	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	setMatcherContext(c, matcher)
+	return c.Render(http.StatusOK, r.HTML("care_matchers/edit.plush.html"))
+}
+
+// Create adds a matcher. POST /care_matchers
+func (v CareMatchersResource) Create(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matcher := &models.CareMatcher{}
+	if err := c.Bind(matcher); err != nil {
+		return err
+	}
+	verrs, err := tx.ValidateAndCreate(matcher)
+	if err != nil {
+		return err
+	}
+	if verrs.HasAny() {
+		return responder.Wants("html", func(c buffalo.Context) error {
+			setMatcherContext(c, matcher)
+			c.Set("verrs", verrs)
+			return c.Render(http.StatusUnprocessableEntity, r.HTML("care_matchers/new.plush.html"))
+		}).Wants("json", func(c buffalo.Context) error {
+			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+		}).Respond(c)
+	}
+	return responder.Wants("html", func(c buffalo.Context) error {
+		return c.Redirect(http.StatusSeeOther, "/care_matchers")
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusCreated, renderJSON(matcher))
+	}).Respond(c)
+}
+
+// Update changes a matcher. PUT /care_matchers/{care_matcher_id}
+func (v CareMatchersResource) Update(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matcher := &models.CareMatcher{}
+	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	if err := c.Bind(matcher); err != nil {
+		return err
+	}
+	// ID drift guard: the bound body may carry a foreign id.
+	if id, err := uuid.FromString(c.Param("care_matcher_id")); err == nil {
+		matcher.ID = id
+	}
+	verrs, err := tx.ValidateAndUpdate(matcher)
+	if err != nil {
+		return err
+	}
+	if verrs.HasAny() {
+		return responder.Wants("html", func(c buffalo.Context) error {
+			setMatcherContext(c, matcher)
+			c.Set("verrs", verrs)
+			return c.Render(http.StatusUnprocessableEntity, r.HTML("care_matchers/edit.plush.html"))
+		}).Wants("json", func(c buffalo.Context) error {
+			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+		}).Respond(c)
+	}
+	return responder.Wants("html", func(c buffalo.Context) error {
+		return c.Redirect(http.StatusSeeOther, "/care_matchers")
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, renderJSON(matcher))
+	}).Respond(c)
+}
+
+// Destroy deletes a matcher. DELETE /care_matchers/{care_matcher_id}
+func (v CareMatchersResource) Destroy(c buffalo.Context) error {
+	if err := requireAdminForPlan(c); err != nil {
+		return err
+	}
+	tx := planTx(c)
+	matcher := &models.CareMatcher{}
+	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	// usage guard (§7.1-5): a matcher referenced by rules cannot be deleted
+	used, err := tx.Where("matcher_id = ?", matcher.ID).Count(&models.CareRule{})
+	if err != nil {
+		return err
+	}
+	if used > 0 {
+		return c.Error(http.StatusConflict, fmt.Errorf("matcher used by %d rule(s)", used))
+	}
+	if err := tx.Destroy(matcher); err != nil {
+		return err
+	}
+	return responder.Wants("html", func(c buffalo.Context) error {
+		return c.Redirect(http.StatusSeeOther, "/care_matchers")
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, renderJSON(map[string]string{"status": "deleted"}))
+	}).Respond(c)
+}
+
+// planTx extracts the per-request transaction.
+func planTx(c buffalo.Context) *pop.Connection {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return models.DB
+	}
+	return tx
+}

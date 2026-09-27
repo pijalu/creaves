@@ -186,7 +186,13 @@ func TestRoleAllowsMatrix(t *testing.T) {
 		{"spw post attachment delete", models.UserRoleSPW, "POST", "/attachments/" + otherID.String() + "/delete", false, false},
 		{"spw post todos", models.UserRoleSPW, "POST", "/todos", false, false},
 		{"spw get vetvisits", models.UserRoleSPW, "GET", "/veterinaryvisits", false, false},
-		{"spw get cares", models.UserRoleSPW, "GET", "/cares", false, false},
+		// §7.2a/§10-A5: spw may consult care/treatment show pages (GET only)
+		{"spw get cares", models.UserRoleSPW, "GET", "/cares", false, true},
+		{"spw get care show", models.UserRoleSPW, "GET", "/cares/9f83d380-2ee4-4d3f-9b41-" + otherID.String()[:12], false, true},
+		{"spw get treatments", models.UserRoleSPW, "GET", "/treatments", false, true},
+		{"spw get treatment show", models.UserRoleSPW, "GET", "/treatments/9f83d380-2ee4-4d3f-9b41-" + otherID.String()[:12], false, true},
+		{"spw post care", models.UserRoleSPW, "POST", "/cares", false, false},
+		{"spw delete care", models.UserRoleSPW, "DELETE", "/cares/1", false, false},
 		{"spw get reception", models.UserRoleSPW, "GET", "/reception/new", false, false},
 		{"spw post users", models.UserRoleSPW, "POST", "/users", false, false},
 		{"spw post vetvisit", models.UserRoleSPW, "POST", "/veterinaryvisits", false, false},
@@ -274,7 +280,7 @@ func TestUsersListSearchSort(t *testing.T) {
 	// default order: first_name asc → Alice, Bob, Celine
 	// per_page keeps all fixture rows on page 1 regardless of how many
 	// users accumulate in the shared test database.
-	code, body := roleTestGetBody(t, client, baseURL, "/users?per_page=100")
+	code, body := roleTestGetBody(t, client, baseURL, "/users?per_page=500")
 	require.Equal(t, http.StatusOK, code)
 	pa, pb, pc := pos(body, ua.login), pos(body, ub.login), pos(body, uc.login)
 	require.GreaterOrEqual(t, pa, 0)
@@ -282,28 +288,28 @@ func TestUsersListSearchSort(t *testing.T) {
 	require.Greater(t, pc, pb, "Celine after Bob (default name asc)")
 
 	// explicit desc reverses
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&sort=name&dir=desc")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=500&sort=name&dir=desc")
 	require.Equal(t, http.StatusOK, code)
 	pa, pb, pc = pos(body, ua.login), pos(body, ub.login), pos(body, uc.login)
 	require.Greater(t, pa, pb, "Alice after Bob (name desc)")
 	require.Greater(t, pb, pc, "Bob after Celine (name desc)")
 
 	// sort by city: Liège < Namur
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&sort=city")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=500&sort=city")
 	require.Equal(t, http.StatusOK, code)
 	pb = pos(body, ub.login)
 	pn := pos(body, ua.login)
 	require.Greater(t, pn, pb, "Namur rows after Liège row (city asc)")
 
 	// search by last name matches only Beta
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&q=Beta")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=500&q=Beta")
 	require.Equal(t, http.StatusOK, code)
 	require.GreaterOrEqual(t, pos(body, ub.login), 0, "Beta found")
 	require.Equal(t, -1, pos(body, ua.login), "Alpha not in search results")
 	require.Equal(t, -1, pos(body, uc.login), "Gamma not in search results")
 
 	// search by city matches both Namur rows
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&q=Namur")
+	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=500&q=Namur")
 	require.Equal(t, http.StatusOK, code)
 	require.GreaterOrEqual(t, pos(body, ua.login), 0)
 	require.GreaterOrEqual(t, pos(body, uc.login), 0)

@@ -1,8 +1,8 @@
 # Care Expert System — Specification
 
-**Status**: Specification — **v2, open questions resolved** (no implementation yet)
+**Status**: Implemented — v2 realized on branch `feature/care-expert` (startup conversion + day plan live; see `docs/care-plan-validation-2026-09-27.md`)
 **Project**: `creaves/` (no Creaves Console impact — care data is deliberately excluded from webhooks)
-**Date**: 2026-09-20 (§10 decisions recorded 2026-09-21; §10.5 review 2026-09-25)
+**Date**: 2026-09-20 (§10 decisions recorded 2026-09-21; §10.5 review 2026-09-25; implemented 2026-10-26)
 
 ---
 

@@ -1,0 +1,57 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
+</div>
+
+<%= if (cards) { %>
+  <h5><%= t("care_plan.cage_cards") %></h5>
+  <div class="row mb-3">
+    <%= for (card) in cards { %>
+      <div class="col-md-3">
+        <div class="card mb-2 plan-cage-card">
+          <div class="card-body p-2">
+            <strong><%= card.Cage %></strong>
+            <span class="text-muted"><%= card.Zone %></span>
+            <span class="badge badge-secondary"><%= len(card.Items) %></span>
+          </div>
+        </div>
+      </div>
+    <% } %>
+  </div>
+<% } %>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <th><%= t("care_plan.col.animal") %></th>
+    <th><%= t("care_plan.col.plan") %></th>
+    <th><%= t("care_plan.col.due") %></th>
+    <th><%= t("care_plan.col.status") %></th>
+  </thead>
+  <tbody>
+    <%= for (item) in items { %>
+      <tr class="plan-item plan-item-<%= item.Status %>">
+        <td><%= item.AnimalLabel %></td>
+        <td><%= item.SourceName %></td>
+        <td><%= item.DueAt.Format("15:04") %></td>
+        <td>
+          <%= if (item.Status == "applied") { %>
+            <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
+          <% } else if (item.Status == "skipped") { %>
+            <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
+          <% } else if (item.Status == "deferred") { %>
+            <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
+          <% } else if (item.Status == "late") { %>
+            <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+          <% } else if (item.Status == "missing") { %>
+            <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+          <% } else if (item.Status == "overridden") { %>
+            <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
+          <% } else if (item.Status == "due") { %>
+            <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
+          <% } else { %>
+            <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
+          <% } %>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

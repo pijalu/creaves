@@ -1,0 +1,1 @@
+add_column("care_plan_conversion", "report", "text", {})

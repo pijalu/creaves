@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.4.11, for macos27.0 (arm64)
 --
--- Host: localhost    Database: creaves_test
+-- Host: localhost    Database: creaves
 -- ------------------------------------------------------
 -- Server version	8.4.11
 
@@ -98,7 +98,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10233 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10272 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -159,6 +159,158 @@ CREATE TABLE `attachments` (
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_attachments_animal` (`animal_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_animal_plans`
+--
+
+DROP TABLE IF EXISTS `care_animal_plans`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_animal_plans` (
+  `id` char(36) NOT NULL,
+  `animal_id` int NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `action_kind` varchar(32) NOT NULL,
+  `action_payload` json NOT NULL,
+  `schedule` json NOT NULL,
+  `replaces_kind` tinyint(1) NOT NULL DEFAULT '0',
+  `active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_by` char(36) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `created_by` (`created_by`),
+  KEY `care_animal_plans_animal_id_active_idx` (`animal_id`,`active`),
+  CONSTRAINT `care_animal_plans_ibfk_1` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `care_animal_plans_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_matchers`
+--
+
+DROP TABLE IF EXISTS `care_matchers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_matchers` (
+  `id` char(36) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `description` text,
+  `expression` text NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `care_matchers_name_idx` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_plan_applications`
+--
+
+DROP TABLE IF EXISTS `care_plan_applications`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_plan_applications` (
+  `id` char(36) NOT NULL,
+  `source_type` varchar(8) NOT NULL,
+  `source_id` char(36) NOT NULL,
+  `source_snapshot` json NOT NULL,
+  `animal_id` int NOT NULL,
+  `due_at` datetime NOT NULL,
+  `applied_at` datetime NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `fulfillment_type` varchar(16) NOT NULL,
+  `fulfillment_id` varchar(36) NOT NULL,
+  `status` varchar(16) NOT NULL,
+  `deferred_until` datetime DEFAULT NULL,
+  `fulfillment_deleted` tinyint(1) NOT NULL DEFAULT '0',
+  `note` text,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_care_plan_applications_occurrence` (`source_type`,`source_id`,`animal_id`,`due_at`),
+  KEY `user_id` (`user_id`),
+  KEY `care_plan_applications_due_at_status_idx` (`due_at`,`status`),
+  KEY `care_plan_applications_animal_id_due_at_idx` (`animal_id`,`due_at`),
+  CONSTRAINT `care_plan_applications_ibfk_1` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `care_plan_applications_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_plan_conversion`
+--
+
+DROP TABLE IF EXISTS `care_plan_conversion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_plan_conversion` (
+  `key` varchar(64) NOT NULL,
+  `finished_at` datetime NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  `report` text NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_rule_exclusions`
+--
+
+DROP TABLE IF EXISTS `care_rule_exclusions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_rule_exclusions` (
+  `id` char(36) NOT NULL,
+  `rule_id` char(36) NOT NULL,
+  `animal_id` int NOT NULL,
+  `reason` varchar(500) DEFAULT NULL,
+  `created_by` char(36) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `care_rule_exclusions_rule_id_animal_id_idx` (`rule_id`,`animal_id`),
+  KEY `animal_id` (`animal_id`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `care_rule_exclusions_ibfk_1` FOREIGN KEY (`rule_id`) REFERENCES `care_rules` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `care_rule_exclusions_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `care_rule_exclusions_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `care_rules`
+--
+
+DROP TABLE IF EXISTS `care_rules`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `care_rules` (
+  `id` char(36) NOT NULL,
+  `name` varchar(200) NOT NULL,
+  `description` text,
+  `action_kind` varchar(32) NOT NULL,
+  `action_payload` json NOT NULL,
+  `schedule` json NOT NULL,
+  `matcher_id` char(36) DEFAULT NULL,
+  `active` tinyint(1) NOT NULL DEFAULT '1',
+  `priority` int NOT NULL DEFAULT '100',
+  `valid_from` date DEFAULT NULL,
+  `valid_to` date DEFAULT NULL,
+  `stop_on_outtake` tinyint(1) NOT NULL DEFAULT '1',
+  `latch_membership` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `care_rules_matcher_id_idx` (`matcher_id`),
+  KEY `care_rules_active_action_kind_idx` (`active`,`action_kind`),
+  CONSTRAINT `care_rules_ibfk_1` FOREIGN KEY (`matcher_id`) REFERENCES `care_matchers` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -965,4 +1117,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-22 20:58:45
+-- Dump completed on 2026-09-27  2:51:24

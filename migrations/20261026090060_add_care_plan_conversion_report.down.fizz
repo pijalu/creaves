@@ -1,0 +1,1 @@
+remove_column("care_plan_conversion", "report")

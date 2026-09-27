@@ -1,0 +1,346 @@
+package actions
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"creaves/models"
+	"creaves/models/careplan"
+
+	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/x/responder"
+)
+
+// Day plan HTTP layer (§6, §7.2): the caretaker work surface plus the
+// fulfillment endpoints (apply/skip/defer, un-apply, batch apply).
+
+// planItemRef locates one occurrence of the day plan (the applications
+// UNIQUE key, §4.5).
+type planItemRef struct {
+	SourceType string    `json:"source_type"`
+	SourceID   string    `json:"source_id"`
+	AnimalID   int       `json:"animal_id"`
+	DueAt      time.Time `json:"due_at"`
+}
+
+// findItem locates the referenced occurrence in the assembled day plan and
+// verifies the source still produces it (§6.2 step 1).
+func findItem(plan *DayPlan, ref planItemRef) (*careplan.PlanItem, error) {
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil {
+			continue
+		}
+		if string(src.SourceType()) == ref.SourceType &&
+			src.SourceID() == ref.SourceID &&
+			it.Occurrence.AnimalID == ref.AnimalID &&
+			it.Occurrence.DueAt.Equal(ref.DueAt) {
+			return it, nil
+		}
+	}
+	return nil, fmt.Errorf("occurrence not found or no longer produced by its source (§6.2)")
+}
+
+// planApplyRequest binds POST /care_plan/apply bodies.
+type planApplyRequest struct {
+	planItemRef
+	Status        string `json:"status"` // applied | skipped | deferred
+	Note          string `json:"note"`
+	DeferredUntil string `json:"deferred_until"` // RFC3339, defer only
+	Weight        string `json:"weight"`
+	Answer        string `json:"answer"`
+}
+
+// CarePlanIndex handles GET /care_plan (§7.2): the day plan. JSON returns
+// the read model; HTML renders the work surface.
+func CarePlanIndex(c buffalo.Context) error {
+	tx := planTx(c)
+	now := time.Now()
+	from, to := planWindowParams(c, now)
+
+	plan, err := BuildDayPlan(tx, now, from, to)
+	if err != nil {
+		return err
+	}
+	// ?kind=<action_kind> narrows the day plan to one kind (§8.3: the
+	// retired /feeding page redirects here with kind=feeding).
+	if kind := c.Param("kind"); kind != "" {
+		if err := careplan.ValidateActionKind(kind); err != nil {
+			return c.Error(http.StatusUnprocessableEntity, err)
+		}
+		narrowed := *plan
+		narrowed.Items = make([]careplan.PlanItem, 0, len(plan.Items))
+		for _, it := range plan.Items {
+			if src := it.Occurrence.Source; src != nil && src.ActionKind() == kind {
+				narrowed.Items = append(narrowed.Items, it)
+			}
+		}
+		plan = &narrowed
+		c.Set("kindFilter", kind)
+	}
+	rows := planJSONRows(plan)
+	c.Set("items", rows)
+	c.Set("cards", GroupCageCards(plan.Items, plan))
+	return responder.Wants("html", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, r.JSON(map[string]interface{}{
+			"from": plan.From, "to": plan.To, "items": rows,
+		}))
+	}).Respond(c)
+}
+
+// planWindowParams parses the ?from=&to= query overrides (§6.1).
+func planWindowParams(c buffalo.Context, now time.Time) (time.Time, time.Time) {
+	from, to := DefaultPlanWindow(now)
+	if raw := c.Param("from"); raw != "" {
+		if t, err := time.ParseInLocation("2006-01-02", raw, now.Location()); err == nil {
+			from = t
+		}
+	}
+	if raw := c.Param("to"); raw != "" {
+		if t, err := time.ParseInLocation("2006-01-02", raw, now.Location()); err == nil {
+			to = t.Add(24*time.Hour - time.Nanosecond)
+		}
+	}
+	return from, to
+}
+
+// planItemJSON is the JSON projection of one plan item.
+type planItemJSON struct {
+	SourceType   string    `json:"source_type"`
+	SourceID     string    `json:"source_id"`
+	SourceName   string    `json:"source_name"`
+	ActionKind   string    `json:"action_kind"`
+	AnimalID     int       `json:"animal_id"`
+	AnimalLabel  string    `json:"animal_label"`
+	Zone         string    `json:"zone"`
+	Cage         string    `json:"cage"`
+	DueAt        time.Time `json:"due_at"`
+	Status       string    `json:"status"`
+	Applicable   bool      `json:"applicable"`
+	OverriddenBy string    `json:"overridden_by,omitempty"`
+}
+
+func planJSONRows(plan *DayPlan) []planItemJSON {
+	items := make([]planItemJSON, 0, len(plan.Items))
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil {
+			continue
+		}
+		row := planItemJSON{
+			SourceType:   string(src.SourceType()),
+			SourceID:     src.SourceID(),
+			SourceName:   src.Name(),
+			ActionKind:   src.ActionKind(),
+			AnimalID:     it.Occurrence.AnimalID,
+			DueAt:        it.Occurrence.DueAt,
+			Status:       string(it.Status),
+			Applicable:   it.Applicable,
+			OverriddenBy: it.OverriddenBy,
+		}
+		if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
+			row.AnimalLabel = animalLabel(a)
+			row.Zone = a.Zone.String
+			row.Cage = a.Cage.String
+		}
+		items = append(items, row)
+	}
+	return items
+}
+
+// CarePlanApply handles POST /care_plan/apply (§6.2): applied fulfillment,
+// skip (mandatory reason) or defer (mandatory reason + clamped target).
+func CarePlanApply(c buffalo.Context) error {
+	tx := planTx(c)
+	in := &planApplyRequest{}
+	if err := c.Bind(in); err != nil {
+		return err
+	}
+	u := GetCurrentUser(c)
+	if u == nil {
+		return c.Error(http.StatusUnauthorized, fmt.Errorf("authentication required"))
+	}
+
+	status := in.Status
+	if status == "" {
+		status = models.ApplicationStatusApplied
+	}
+	if status != models.ApplicationStatusApplied &&
+		status != models.ApplicationStatusSkipped &&
+		status != models.ApplicationStatusDeferred {
+		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("status must be applied, skipped or deferred"))
+	}
+	if status != models.ApplicationStatusApplied && strings.TrimSpace(in.Note) == "" {
+		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
+	}
+
+	plan, err := BuildDayPlan(tx, time.Now(), time.Time{}, time.Time{})
+	if err != nil {
+		return err
+	}
+	item, err := findItem(plan, in.planItemRef)
+	if err != nil {
+		return c.Error(http.StatusConflict, err)
+	}
+	if !item.Applicable {
+		return c.Error(http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
+	}
+	if item.Status == careplan.StatusOverridden {
+		return c.Error(http.StatusConflict, fmt.Errorf("occurrence is overridden by animal plan %q", item.OverriddenBy))
+	}
+
+	input := PlanApplyInput{
+		Status: status,
+		Note:   strings.TrimSpace(in.Note),
+		Weight: in.Weight,
+		Answer: in.Answer,
+	}
+	if status == models.ApplicationStatusDeferred {
+		requested := time.Now().Add(time.Hour) // §10-L3 default +1h
+		if in.DeferredUntil != "" {
+			t, err := time.Parse(time.RFC3339, in.DeferredUntil)
+			if err != nil {
+				return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("deferred_until must be RFC3339"))
+			}
+			requested = t
+		}
+		clamped := ClampDeferredUntil(item.Occurrence.Source, plan.ContextOf(item.Occurrence.AnimalID), item.Occurrence.AnimalID, item.Occurrence.DueAt, requested)
+		input.DeferredUntil = &clamped
+	}
+
+	// observation alert outcome (§10.1-6): computed from the source payload
+	if status == models.ApplicationStatusApplied && item.Occurrence.Source.ActionKind() == careplan.KindObservation {
+		payload := parsePlanPayload(item.Occurrence.Source)
+		input.AnswerIsAlert = payload.AlertOn != nil && in.Answer == *payload.AlertOn
+	}
+
+	app, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
+	if err != nil {
+		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
+			return c.Error(http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
+		}
+		return c.Error(http.StatusUnprocessableEntity, err)
+	}
+	return c.Render(http.StatusCreated, renderJSON(app))
+}
+
+// CarePlanUnapply handles POST /care_plan/unapply (§10-CP1): admin-only
+// correction path. Body: item ref + optional delete_fulfillment.
+func CarePlanUnapply(c buffalo.Context) error {
+	u := GetCurrentUser(c)
+	if u == nil || !u.Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("admin only (§10-CP1)"))
+	}
+	tx := planTx(c)
+	in := &struct {
+		planItemRef
+		DeleteFulfillment bool `json:"delete_fulfillment"`
+	}{}
+	if err := c.Bind(in); err != nil {
+		return err
+	}
+	deleted, err := UnapplyPlanItem(tx, in.SourceType, in.SourceID, in.AnimalID, in.DueAt, in.DeleteFulfillment)
+	if err != nil {
+		return c.Error(http.StatusNotFound, err)
+	}
+	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
+		"status":              "unapplied",
+		"deleted_fulfillment": deleted,
+	}))
+}
+
+// CarePlanApplyBatch handles POST /care_plan/apply_batch (§6.2): applies a
+// list of item keys from a SINGLE (source × cage) group. Each item runs the
+// same per-item transaction path — failures (re-verify, UNIQUE) are
+// reported per item, never abort the batch.
+func CarePlanApplyBatch(c buffalo.Context) error {
+	tx := planTx(c)
+	u := GetCurrentUser(c)
+	if u == nil {
+		return c.Error(http.StatusUnauthorized, fmt.Errorf("authentication required"))
+	}
+	in := &struct {
+		Items []planApplyRequest `json:"items"`
+	}{}
+	if err := c.Bind(in); err != nil {
+		return err
+	}
+	if len(in.Items) == 0 {
+		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("no items"))
+	}
+
+	// §10.1-5/N2: the cage is the aggregation ceiling — every item must
+	// belong to the same source and the same cage.
+	first := in.Items[0]
+	cageRef := ""
+	for _, ref := range in.Items {
+		if ref.SourceID != first.SourceID || ref.SourceType != first.SourceType {
+			return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("batch must stay within one source (§10.1-5)"))
+		}
+	}
+
+	plan, err := BuildDayPlan(tx, time.Now(), time.Time{}, time.Time{})
+	if err != nil {
+		return err
+	}
+	results := make([]map[string]interface{}, 0, len(in.Items))
+	applied := 0
+	for _, ref := range in.Items {
+		res := map[string]interface{}{
+			"animal_id": ref.AnimalID,
+		}
+		item, err := findItem(plan, ref.planItemRef)
+		if err != nil {
+			res["status"] = "already_done"
+			results = append(results, res)
+			continue
+		}
+		a, ok := plan.AnimalRow(ref.AnimalID)
+		cage := ""
+		if ok {
+			cage = a.Cage.String
+		}
+		if cageRef == "" {
+			cageRef = cage
+		}
+		if cage != cageRef {
+			res["status"] = "error"
+			res["error"] = "batch must stay within one cage (§10.1-5)"
+			results = append(results, res)
+			continue
+		}
+		input := PlanApplyInput{
+			Status: ref.Status,
+			Note:   ref.Note,
+			Weight: ref.Weight,
+			Answer: ref.Answer,
+		}
+		if input.Status == "" {
+			input.Status = models.ApplicationStatusApplied
+		}
+		_, err = writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
+		if err != nil {
+			if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
+				res["status"] = "already_done"
+			} else {
+				res["status"] = "error"
+				res["error"] = err.Error()
+			}
+		} else {
+			res["status"] = "applied"
+			applied++
+		}
+		results = append(results, res)
+	}
+	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
+		"applied": applied,
+		"cage":    cageRef,
+		"results": results,
+	}))
+}

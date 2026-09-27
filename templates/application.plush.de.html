@@ -53,6 +53,8 @@
             <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Pflegetypen</a>
             <a class="dropdown-item" href="/feeding_guides"><i class="fas fa-utensils"></i> Fütterungsleitfäden</a>
             <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Pflegenotizvorlagen</a>
+            <a class="dropdown-item" href="/care_rules"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_rules") %></a>
+            <a class="dropdown-item" href="/care_matchers"><i class="fas fa-filter"></i> <%= t("nav.care_plan_matchers") %></a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reisetypen</a>
             <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Ortschaften</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zonen</a>
@@ -113,7 +115,11 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="<%= feedingPath() %>" title="Fütterung"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Fütterung</span></a>
+          <a class="nav-link" href="/care_plan?kind=feeding" title="Fütterung"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Fütterung</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/care_plan" title="Day plan"><i class="fas fa-calendar-check"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.care_plan_dayplan") %></span></a>
         </li>
 
         <li class="nav-item">

@@ -1,0 +1,22 @@
+create_table("care_rules") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("name", "string", {size: 200})
+	t.Column("description", "text", {null: true})
+	t.Column("action_kind", "string", {size: 32})
+	t.Column("action_payload", "json", {})
+	t.Column("schedule", "json", {})
+	t.Column("matcher_id", "uuid", {null: true})
+	t.Column("active", "bool", {default: true})
+	t.Column("priority", "int", {default: 100})
+	t.Column("valid_from", "date", {null: true})
+	t.Column("valid_to", "date", {null: true})
+	t.Column("stop_on_outtake", "bool", {default: true})
+	t.Column("latch_membership", "bool", {default: false})
+	t.Timestamps()
+
+	t.ForeignKey("matcher_id", {"care_matchers": ["id"]}, {
+		"on_delete": "RESTRICT"
+	})
+}
+add_index("care_rules", ["matcher_id"], {})
+add_index("care_rules", ["active", "action_kind"], {})

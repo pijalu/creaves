@@ -1,0 +1,8 @@
+create_table("care_matchers") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("name", "string", {size: 200})
+	t.Column("description", "text", {null: true})
+	t.Column("expression", "text", {})
+	t.Timestamps()
+}
+add_index("care_matchers", ["name"], {unique: true})

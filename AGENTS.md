@@ -13,6 +13,8 @@ This project has comprehensive agentic documentation split across multiple files
 | **MIGRATIONS_DOCUMENTATION.md** | Database schema, migrations, indexes, triggers | `/MIGRATIONS_DOCUMENTATION.md` |
 | **ASSETS_DOCUMENTATION.md** | Frontend assets, libraries, build process | `/ASSETS_DOCUMENTATION.md` |
 | **UTILITIES_DOCUMENTATION.md** | Helper functions, utilities, patterns | `/UTILITIES_DOCUMENTATION.md` |
+| **docs/care-expert.md** | Care Expert System specification (v2, implemented) | `/docs/care-expert.md` |
+| **docs/care-plan-validation-2026-09-27.md** | Care-plan migration/conversion + E2E validation report | `/docs/care-plan-validation-2026-09-27.md` |
 
 **Event Forwarding**: This project pushes animal lifecycle events to **Creaves Console** via webhooks.
 See the [Event Forwarding to Creaves Console](#event-forwarding-to-creaves-console) section below and the

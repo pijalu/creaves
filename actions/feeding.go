@@ -14,13 +14,9 @@ import (
 	"github.com/gobuffalo/pop/v6"
 )
 
-const FEEDING_SQL = `
-SELECT a.id, a.year, a.yearNumber, a.species, a.cage, a.zone, a.feeding, a.force_feed, a.feeding_start, a.feeding_end, a.feeding_period, MAX(c.date) AS last_feeding
-FROM animals a
-LEFT JOIN cares c ON (a.id = c.animal_id and c.type_id in (select id from caretypes where type=1))
-WHERE a.outtake_id IS NULL and a.feeding_start IS NOT NULL and a.feeding_end IS NOT NULL
-AND a.feeding_period > 0
-GROUP BY a.id;`
+// FEEDING_SQL and generateAnimalFeedings (the retired /feeding page's
+// loader) were removed with the page (§8.3); guest.go keeps the per-animal
+// calculateFeeding display path.
 
 const HIGHTIMELIMIT = 2 * time.Hour
 const NEARTIMELIMIT = 15 * time.Minute
@@ -188,38 +184,11 @@ func calculateFeedings(afRaw []AnimalFeeding) (FeedingByZoneMap, error) {
 	return feedingByZone, nil
 }
 
-func generateAnimalFeedings(c buffalo.Context) (FeedingByZoneMap, error) {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	// Retrieve info from the DB
-	afRaw := []AnimalFeeding{}
-	if err := tx.Eager().RawQuery(FEEDING_SQL).All(&afRaw); err != nil {
-		return nil, err
-	}
-
-	// Calculate results
-	return calculateFeedings(afRaw)
-}
-
 // FeedingFeeding default implementation.
 func FeedingIndex(c buffalo.Context) error {
-	zm, err := zonesMap(c)
-	if err != nil {
-		return err
-	}
-	c.Set("zoneMap", zm)
-
-	af, err := generateAnimalFeedings(c)
-	if err != nil {
-		return err
-	}
-	c.Set("feedingByZone", af)
-	c.Logger().Debugf("Feeding: %v", af)
-
-	return c.Render(http.StatusOK, r.HTML("feeding/index.html"))
+	// Retired (§8.3): the legacy feeding_period page is replaced by the
+	// day plan; the route is kept so bookmarks don't 404.
+	return c.Redirect(http.StatusFound, "/care_plan?kind=feeding")
 }
 
 // FeedingFeeding default implementation.

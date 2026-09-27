@@ -2,8 +2,10 @@ package actions
 
 import (
 	"creaves/models"
+	"creaves/models/careplan"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -93,6 +95,23 @@ func LandingIndex(c buffalo.Context) error {
 		return err
 	}
 	c.Set("zoneMap", zm)
+
+	// Care plan badge (§7.2): open items (due/late/missing) on today's
+	// plan. A planning failure degrades to zero — the badge is decorative.
+	dayOpen, dayLate := 0, 0
+	from, to := DefaultPlanWindow(time.Now())
+	if plan, perr := BuildDayPlan(tx, time.Now(), from, to); perr == nil {
+		for _, it := range plan.Items {
+			switch it.Status {
+			case careplan.StatusDue, careplan.StatusMissing:
+				dayOpen++
+			case careplan.StatusLate:
+				dayLate++
+			}
+		}
+	}
+	c.Set("dayPlanOpen", dayOpen)
+	c.Set("dayPlanLate", dayLate)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// Add clean cage flag

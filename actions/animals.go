@@ -562,6 +562,14 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
 
+			// Plan tab (§4.7): the animal's own care plans, caretaker-editable.
+			plans := &models.CareAnimalPlans{}
+			if err := tx.Where("animal_id = ?", animal.ID).Order("created_at desc").All(plans); err != nil {
+				return err
+			}
+			c.Set("careAnimalPlans", plans)
+			c.Set("planActionKinds", planActionKinds())
+
 			// Corpse register info for the outtake tab (issue #199-6): when the
 			// outtake type is Dead=true, expose the corpse destination fields and
 			// the login of the user who marked it (if any).
