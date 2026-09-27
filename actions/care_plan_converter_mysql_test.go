@@ -319,6 +319,77 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, plansAfter, count("SELECT count(*) as c FROM care_animal_plans"))
 }
 
+// TestCarePlanConverterCaseVariantSeries guards the no-loss mandate (§8.1)
+// against collation traps: prod tables use utf8mb4_0900_ai_ci, so a
+// case/accent-insensitive guard would treat "ProdiplasT-T" and
+// "Prodiplast-T" as the same plan name and silently skip the second
+// series. Found during the 2026-09-27 production cutover test on animal
+// 10053 (3 future dates lost). Both series must be converted.
+func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
+	requireMySQLTestDB(t)
+	db := models.DB
+	cleanupConverterRows(t)
+
+	fx := setupPlanFixture(t)
+	defer fx.cleanup()
+	defer cleanupConverterRows(t)
+
+	animalID := fx.mkAnimal(t, db, "Hérisson")
+	base := time.Now().Truncate(24*time.Hour).AddDate(0, 0, 2)
+
+	// Two series, same animal/dosage/bitmap, drug names differing only by
+	// case — two DISTINCT groups in the converter, two DISTINCT plan names
+	// that utf8mb4_0900_ai_ci would wrongly consider equal.
+	for i, drug := range []string{"ProdiplasT-T", "Prodiplast-T"} {
+		for j := 0; j < 2; j++ {
+			tr := models.Treatment{
+				Date:       base.AddDate(0, 0, i*7+j),
+				AnimalID:   animalID,
+				Drug:       drug,
+				Dosage:     "oreille",
+				Timebitmap: models.Treatement_MORNING,
+			}
+			require.NoError(t, db.Create(&tr))
+		}
+	}
+	defer func() {
+		db.RawQuery("DELETE FROM treatments WHERE animal_id = ? AND drug LIKE 'Prodiplas%'", animalID).Exec()
+	}()
+
+	report, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NotNil(t, report)
+
+	var names []struct {
+		Name string `db:"name"`
+	}
+	require.NoError(t, db.RawQuery(
+		"SELECT name FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Traitement — Prodiplas%'",
+		animalID).All(&names))
+	require.Len(t, names, 2,
+		"both case-variant series must convert to distinct plans (utf8mb4_0900_ai_ci collision)")
+	got := map[string]bool{}
+	for _, n := range names {
+		got[n.Name] = true
+	}
+	require.True(t, got["Traitement — ProdiplasT-T (à vérifier)"])
+	require.True(t, got["Traitement — Prodiplast-T (à vérifier)"])
+
+	// Re-run after marker wipe: still exactly two plans (idempotency holds
+	// with the binary collation too).
+	require.NoError(t, db.RawQuery("DELETE FROM care_plan_conversion").Exec())
+	report2, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NotNil(t, report2)
+	var c []struct {
+		C int64 `db:"c"`
+	}
+	require.NoError(t, db.RawQuery(
+		"SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Traitement — Prodiplas%'",
+		animalID).All(&c))
+	require.Equal(t, int64(2), c[0].C, "idempotent re-run must not duplicate either plan")
+}
+
 // parseScheduleForTest extracts the validated times list of a schedule doc.
 func parseScheduleForTest(raw []byte) ([]string, error) {
 	s, err := careplan.ParseScheduleJSON(raw)

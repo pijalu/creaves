@@ -277,10 +277,14 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 		name += " (à vérifier)"
 	}
 	// Idempotent re-run guard: one converted plan per animal+regime.
+	// COLLATE utf8mb4_bin: prod tables use utf8mb4_0900_ai_ci, which would
+	// treat names differing only by case/accents as identical (e.g. legacy
+	// drug spellings "ProdiplasT-T" vs "Prodiplast-T") and silently skip
+	// a series — violating the no-loss mandate (§8.1).
 	var n []struct {
 		C int64 `db:"c"`
 	}
-	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name = ? AND created_by IS NULL",
+	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name = ? COLLATE utf8mb4_bin AND created_by IS NULL",
 		e.AnimalID, name).All(&n); err != nil {
 		return err
 	}
@@ -472,10 +476,12 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 			CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
 		}
 		// Idempotent re-run guard: one converted plan per animal+name.
+		// COLLATE utf8mb4_bin: see feeding guard above — case/accent-only
+		// differences in legacy drug names must NOT dedupe distinct series.
 		var n []struct {
 			C int64 `db:"c"`
 		}
-		if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name = ? AND created_by IS NULL",
+		if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name = ? COLLATE utf8mb4_bin AND created_by IS NULL",
 			s.animalID, name).All(&n); err != nil {
 			return err
 		}

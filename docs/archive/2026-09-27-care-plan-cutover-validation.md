@@ -167,3 +167,36 @@ gone with it, app process stopped, `tmp/creaves-p7-app` binary and
 `/tmp/database_p7.yml` removed. No repository files touched (`database.yml`
 unchanged; `migrations/schema.sql` restored after the migrate dump-header
 rewrite; working tree clean except this document).
+
+## 10. Addendum — second cutover run (same day, fresh rig) found + fixed a no-loss violation
+
+A second full cutover test (fresh `creaves_cutover` DB, same dump, same
+procedure) re-verified all Phase-7 numbers **and** ran an additional
+date-exact treatment cross-check that Phase 7 had not done: every legacy
+`(animal, date)` future treatment pair must appear as a day-plan occurrence.
+
+**Finding (bug, fixed)**: animal 10053 had two legacy series differing only by
+drug-name case — `ProdiplasT-T` (09-26/09-28) and `Prodiplast-T`
+(09-30/10-02/10-04). The converter's idempotency guard
+(`… WHERE animal_id = ? AND name = ? AND created_by IS NULL`) ran under the
+prod table collation `utf8mb4_0900_ai_ci`, which compares
+case/accent-insensitively: the second series matched the first series' plan
+name and was **silently skipped while counted `TreatmentOK`** — 3 future
+dates (09-30, 10-02, 10-04) lost, reconciliation still reporting
+`uncovered=0`. A dataset-wide sweep confirmed this was the only collision
+(86 legacy groups, 1 missing plan).
+
+**Fix**: both converter guards (feeding + treatment) now compare with
+`COLLATE utf8mb4_bin`; regression test
+`TestCarePlanConverterCaseVariantSeries` (RED without the fix, green with it;
+also asserts idempotent re-run does not duplicate either plan).
+
+**Re-run after fix** (fresh restore → migrate → boot): converter log
+`treatments 86 plans` (was 85); report `series=86 plans=86`;
+reconciliation `feeding_ok=195, feeding_degraded=0, feeding_uncovered=0,
+treatment_ok=86, treatment_uncovered=0`, 0 complaint lines; day-plan default
+window 5,642 items, all 195 legacy-feeding animals covered (0 gaps); all 134
+legacy future `(animal,date)` treatment pairs covered — including the two
+10-12 pairs previously flagged (they were outside the day-plan horizon cap,
+not missing: both verified present when queried in-window). Full suites green
+(`actions`, `models`, `models/careplan`).
