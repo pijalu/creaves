@@ -87,10 +87,8 @@ func GenerateOccurrences(src PlanSource, a *AnimalContext, windowStart, windowEn
 				if due.Before(windowStart) || due.After(windowEnd) {
 					continue
 				}
-				if s.Anchor == AnchorIntake || !intake.IsZero() {
-					if due.Before(intake) {
-						continue // pre-intake slot (§4.3 clamp, fixed anchor)
-					}
+				if !intake.IsZero() && due.Before(intake) {
+					continue // pre-intake slot (§4.3 clamp, fixed anchor)
 				}
 				if a.OuttakeDate != nil && !due.Before(*a.OuttakeDate) {
 					continue // [intake, outtake): post-outtake slot dropped

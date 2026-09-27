@@ -554,11 +554,13 @@ field      := [a-z_][a-z0-9_]*         -- registry key (§5.1)
   (ident/number/string recognition + byte positions) that only adds the
   DSL's two-char operators (`<=`, `>=`, `!=`, `!~`), case-insensitive
   keywords, negative-number folding and the regex-safe `\"`/`\\` unquote.
-  The generated `dsl_yacc.go` is a **build artifact, not committed** — it
-  regenerates in one step (`go generate ./models/careplan`; goyacc is one
-  `go install` away), so VCS carries only the grammar. The generated file
-  is self-contained (no x/tools runtime import at build time). AST cached
-  by expression hash.
+  The generated `dsl_yacc.go` **is committed** alongside the grammar — the
+  project pins Go 1.18 and committing the generated parser keeps builds
+  reproducible without requiring a goyacc install. It can still be
+  regenerated in one step after a grammar change
+  (`go generate ./models/careplan`; goyacc is one `go install` away). The
+  generated file is self-contained (no x/tools runtime import at build
+  time). AST cached by expression hash.
 
 Examples:
 

@@ -31,6 +31,6 @@ test/db_data
 .goa
 attachments-storage/
 
-# Generated careplan DSL parser (go generate ./models/careplan — do not commit)
-models/careplan/dsl_yacc.go
+# Generated careplan DSL parser: dsl_yacc.go IS committed (Go 1.18 build
+# reproducibility — regenerate with `go generate ./models/careplan`).
 y.output
