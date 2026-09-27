@@ -32,10 +32,18 @@ type feedingEntry struct {
 	Times    []careplan.TimeOfDay
 	Force    bool
 	Species  string
+	Diet     string
+	// Fallback marks best-effort conversions (incomplete legacy data): the
+	// plan is still created — the no-loss rule — but flagged "à vérifier".
+	Fallback bool
 }
 
 // DeriveFeedingTimes expands a legacy feeding_start/feeding_end/period row
-// into fixed daily slots (§8.1 step 2): start + n×period ≤ end, n ≥ 1.
+// into fixed daily slots (§8.1 step 2, §11.7): start + n×period ≤ end,
+// n ≥ 0 — the start slot itself is a feeding time (legacy calculateFeeding
+// semantics). start == end yields the single daily slot [start]; end < start
+// is an overnight window (legacy UI adds 24 h). Degenerate inputs (period
+// ≤ 0) yield nothing — the caller falls back to [start].
 func DeriveFeedingTimes(start, end time.Time, periodMinutes int) []careplan.TimeOfDay {
 	if periodMinutes <= 0 {
 		return nil
@@ -43,11 +51,14 @@ func DeriveFeedingTimes(start, end time.Time, periodMinutes int) []careplan.Time
 	startMin := start.Hour()*60 + start.Minute()
 	endMin := end.Hour()*60 + end.Minute()
 	if endMin < startMin {
-		return nil
+		endMin += 24 * 60 // overnight window (legacy feeding.go: end + 24h)
 	}
 	var out []careplan.TimeOfDay
-	for m := startMin + periodMinutes; m <= endMin; m += periodMinutes {
-		out = append(out, careplan.TimeOfDay{Hour: m / 60, Minute: m % 60})
+	for m := startMin; m <= endMin; m += periodMinutes {
+		if len(out) >= 24 { // sanity cap: fail loudly on pathological rows
+			break
+		}
+		out = append(out, careplan.TimeOfDay{Hour: (m % (24 * 60)) / 60, Minute: m % 60})
 	}
 	return out
 }
@@ -73,34 +84,6 @@ func timesKey(times []careplan.TimeOfDay) string {
 	return strings.Join(parts, ",")
 }
 
-// modalTimes picks the most frequent derived slot set of a cluster
-// (ties → lexicographically smallest, deterministic).
-func modalTimes(entries []feedingEntry) []careplan.TimeOfDay {
-	counts := map[string]int{}
-	seen := map[string][]careplan.TimeOfDay{}
-	for _, e := range entries {
-		k := timesKey(e.Times)
-		counts[k]++
-		seen[k] = e.Times
-	}
-	best := ""
-	for k, n := range counts {
-		if best == "" || n > counts[best] || (n == counts[best] && k < best) {
-			best = k
-		}
-	}
-	return seen[best]
-}
-
-func majorityForce(entries []feedingEntry) bool {
-	n := 0
-	for _, e := range entries {
-		if e.Force {
-			n++
-		}
-	}
-	return n*2 > len(entries)
-}
 
 func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedCareID string) error {
 	if feedCareID == "" {
@@ -113,7 +96,11 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 		return err
 	}
 	report.Feeding.AnimalsConsidered = len(animals)
+	report.coverage = map[int][]careplan.TimeOfDay{}
 
+	// Cluster key (§8.1 step 2, H2 fix): diet × exact slot set × force_feed.
+	// Same-diet animals with different times or force flags get separate
+	// rules — never a modal/averaged schedule that matches nobody's reality.
 	clusters := map[string][]feedingEntry{}
 	for _, a := range animals {
 		entry := feedingEntry{
@@ -123,40 +110,55 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			Species:  strings.TrimSpace(a.Species),
 		}
 		if !a.FeedingStart.Valid || !a.FeedingEnd.Valid {
-			report.addSkip("feeding", ConversionLine{entry.AnimalID, entry.Label, "horaires d'alimentation incomplets"})
-			continue
-		}
-		entry.Times = DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod)
-		if len(entry.Times) == 0 {
-			report.addSkip("feeding", ConversionLine{entry.AnimalID, entry.Label, "période non dérivable (start/end/période)"})
-			continue
+			// No-loss fallback (§8.1): keep the animal covered with what we
+			// have — a single daily slot at the legacy start when present.
+			if a.FeedingStart.Valid {
+				s := a.FeedingStart.Time
+				entry.Times = []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}
+			} else {
+				entry.Times = []careplan.TimeOfDay{{Hour: 9, Minute: 0}}
+			}
+			entry.Fallback = true
+		} else {
+			entry.Times = DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod)
+			if len(entry.Times) == 0 {
+				// No-loss fallback: at minimum the legacy start slot.
+				s := a.FeedingStart.Time
+				entry.Times = []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}
+				entry.Fallback = true
+			}
 		}
 		diet := NormalizeDiet(a.Feeding.String)
 		if diet == "" {
-			report.addSkip("feeding", ConversionLine{entry.AnimalID, entry.Label, "texte de régime vide"})
-			continue
+			diet = "(régime non spécifié)"
+			entry.Fallback = true
 		}
-		clusters[diet] = append(clusters[diet], entry)
+		entry.Diet = diet
+		key := diet + "|" + timesKey(entry.Times)
+		if entry.Force {
+			key += "|F"
+		}
+		clusters[key] = append(clusters[key], entry)
 	}
 
-	// Deterministic cluster order (by diet text).
-	diets := make([]string, 0, len(clusters))
-	for d := range clusters {
-		diets = append(diets, d)
+	// Deterministic cluster order.
+	keys := make([]string, 0, len(clusters))
+	for k := range clusters {
+		keys = append(keys, k)
 	}
-	sort.Strings(diets)
+	sort.Strings(keys)
 
-	for _, diet := range diets {
-		entries := clusters[diet]
+	for _, key := range keys {
+		entries := clusters[key]
 		report.Feeding.Clusters++
 		if len(entries) >= FeedingClusterThreshold {
-			converted, err := convertFeedingCluster(tx, report, diet, entries, feedCareID)
+			converted, err := convertFeedingCluster(tx, report, entries, feedCareID)
 			if err != nil {
 				return err
 			}
 			for _, e := range entries {
 				if !converted[e.AnimalID] {
-					if err := createConvertedFeedingPlan(tx, report, e, diet, feedCareID); err != nil {
+					if err := createConvertedFeedingPlan(tx, report, e, feedCareID); err != nil {
 						return err
 					}
 				}
@@ -164,20 +166,23 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			continue
 		}
 		for _, e := range entries {
-			if err := createConvertedFeedingPlan(tx, report, e, diet, feedCareID); err != nil {
+			if err := createConvertedFeedingPlan(tx, report, e, feedCareID); err != nil {
 				return err
 			}
 		}
 	}
+	reconcileFeeding(report, animals)
 	return nil
 }
 
-// convertFeedingCluster turns one ≥threshold diet cluster into a rule whose
-// matcher is `species IN (...)` over the cluster's non-empty species names
-// (§8.1 step 2). Returns the animal ids covered by the rule; members whose
-// species name is empty (or otherwise not in the matcher) must be converted
-// as per-animal plans by the caller.
-func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet string, entries []feedingEntry, feedCareID string) (map[int]bool, error) {
+// convertFeedingCluster turns one ≥threshold (diet × slots × force) cluster
+// into a rule whose matcher is `species IN (...)` over the cluster's
+// non-empty species names (§8.1 step 2). All members share the exact same
+// slot set and force flag (cluster key) — the rule's schedule is the first
+// entry's. Returns the animal ids covered by the rule; members whose species
+// name is empty must be converted as per-animal plans by the caller.
+func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries []feedingEntry, feedCareID string) (map[int]bool, error) {
+	diet := entries[0].Diet
 	species := map[string]bool{}
 	for _, e := range entries {
 		if e.Species != "" {
@@ -213,7 +218,6 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet st
 	if err != nil {
 		return nil, err
 	}
-	food := diet
 	title := diet
 	if len(title) > 60 {
 		title = title[:60]
@@ -228,6 +232,7 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet st
 		// mark its members converted (no duplicate).
 		for _, e := range entries {
 			if covered[e.AnimalID] {
+				report.coverage[e.AnimalID] = e.Times
 				report.Feeding.Lines = append(report.Feeding.Lines,
 					ConversionLine{e.AnimalID, e.Label, "règle cluster (existante)"})
 			}
@@ -238,8 +243,8 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet st
 		Name:          ruleName,
 		Description:   fmt.Sprintf("Cluster alimentation ×%d [source: %s]", len(entries), ConverterTag),
 		ActionKind:    careplan.KindFeeding,
-		ActionPayload: buildSeedPayload(seedRuleDef{Kind: careplan.KindFeeding, PayloadFood: food, ForceFeed: majorityForce(entries)}, feedCareID),
-		Schedule:      []byte(buildConvertedScheduleJSON(modalTimes(entries))),
+		ActionPayload: buildSeedPayload(seedRuleDef{Kind: careplan.KindFeeding, PayloadFood: diet, ForceFeed: entries[0].Force}, feedCareID),
+		Schedule:      []byte(buildConvertedScheduleJSON(entries[0].Times)),
 		MatcherID:     matcherID,
 		Active:        true,
 		StopOnOuttake: true,
@@ -254,6 +259,7 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet st
 	report.Feeding.RulesCreated++
 	for _, e := range entries {
 		if covered[e.AnimalID] {
+			report.coverage[e.AnimalID] = e.Times
 			report.Feeding.Lines = append(report.Feeding.Lines,
 				ConversionLine{e.AnimalID, e.Label, fmt.Sprintf("règle cluster #%s", rule.ID)})
 		}
@@ -261,12 +267,15 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, diet st
 	return covered, nil
 }
 
-func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, diet string, feedCareID string) error {
-	title := diet
+func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, feedCareID string) error {
+	title := e.Diet
 	if len(title) > 60 {
 		title = title[:60]
 	}
 	name := fmt.Sprintf("Alimentation — %s (conversion)", title)
+	if e.Fallback {
+		name += " (à vérifier)"
+	}
 	// Idempotent re-run guard: one converted plan per animal+regime.
 	var n []struct {
 		C int64 `db:"c"`
@@ -276,6 +285,7 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 		return err
 	}
 	if len(n) > 0 && n[0].C > 0 {
+		report.coverage[e.AnimalID] = e.Times
 		return nil
 	}
 	p := &models.CareAnimalPlan{
@@ -283,12 +293,12 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 		Name:       name,
 		ActionKind: careplan.KindFeeding,
 		ActionPayload: buildSeedPayload(seedRuleDef{
-			Kind: careplan.KindFeeding, PayloadFood: diet, ForceFeed: e.Force,
+			Kind: careplan.KindFeeding, PayloadFood: e.Diet, ForceFeed: e.Force,
 		}, feedCareID),
 		Schedule:     []byte(buildConvertedScheduleJSON(e.Times)),
 		ReplacesKind: true,
 		Active:       true,
-		CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
+		CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK); §8.2 rollback targets name "(conversion)" + NULL author
 	}
 	verrs, err := tx.ValidateAndCreate(p)
 	if err != nil {
@@ -298,9 +308,38 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 		return fmt.Errorf("converted feeding plan invalid (animal %d): %v", e.AnimalID, verrs)
 	}
 	report.Feeding.PlansCreated++
+	report.coverage[e.AnimalID] = e.Times
+	reason := fmt.Sprintf("plan individuel #%s", p.ID)
+	if e.Fallback {
+		reason += " (fallback — à vérifier)"
+	}
 	report.Feeding.Lines = append(report.Feeding.Lines,
-		ConversionLine{e.AnimalID, e.Label, fmt.Sprintf("plan individuel #%s", p.ID)})
+		ConversionLine{e.AnimalID, e.Label, reason})
 	return nil
+}
+
+// reconcileFeeding compares, per legacy feeding animal, the slot list the
+// legacy generator would have produced (same DeriveFeedingTimes semantics)
+// with the slot list actually converted, and records OK / DEGRADED /
+// UNCOVERED in the report (§8.1 no-loss gate).
+func reconcileFeeding(report *ConversionReport, animals []models.Animal) {
+	for _, a := range animals {
+		converted, ok := report.coverage[a.ID]
+		if !ok {
+			report.Reconciliation.FeedingUncovered++
+			report.Reconciliation.Lines = append(report.Reconciliation.Lines,
+				ConversionLine{a.ID, animalLabel(a), "UNCOVERED: aucune règle/plan converti"})
+			continue
+		}
+		legacy := DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod)
+		if timesKey(legacy) == timesKey(converted) {
+			report.Reconciliation.FeedingOK++
+			continue
+		}
+		report.Reconciliation.FeedingDegraded++
+		report.Reconciliation.Lines = append(report.Reconciliation.Lines,
+			ConversionLine{a.ID, animalLabel(a), fmt.Sprintf("DEGRADED: legacy [%s] → converti [%s]", timesKey(legacy), timesKey(converted))})
+	}
 }
 
 // buildConvertedScheduleJSON renders the §4.3 schedule of a converted row.
@@ -335,6 +374,10 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 	today := time.Now().Truncate(24 * time.Hour)
 	var rows []models.Treatment
 	if err := tx.Where("date >= ?", today).Order("date").All(&rows); err != nil {
+		return err
+	}
+	known, err := knownDrugNames(tx)
+	if err != nil {
 		return err
 	}
 	type series struct {
@@ -373,28 +416,54 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 
 	for _, key := range order {
 		s := groups[key]
-		if s.drug == models.WoundCareDrugName {
-			report.addSkip("treatment", ConversionLine{s.animalID, fmt.Sprintf("animal %d", s.animalID), "série soin de plaie (sans posologie)"})
-			continue
-		}
 		times := BitmapToTimes(s.bitmap)
 		if len(times) == 0 {
-			report.addSkip("treatment", ConversionLine{s.animalID, fmt.Sprintf("animal %d", s.animalID), "série " + s.drug + " sans créneau"})
-			continue
-		}
-		if strings.TrimSpace(s.dosage) == "" {
-			report.addSkip("treatment", ConversionLine{s.animalID, fmt.Sprintf("animal %d", s.animalID), "série " + s.drug + " sans posologie"})
-			continue
+			times = []careplan.TimeOfDay{{Hour: 8, Minute: 0}} // no-loss: keep the reminder alive
 		}
 		duration := int(s.last.Sub(s.first).Hours()/24) + 1
-		name := "Traitement — " + s.drug
-		p := &models.CareAnimalPlan{
-			AnimalID:   s.animalID,
-			Name:       name,
-			ActionKind: careplan.KindMedication,
-			ActionPayload: []byte(buildSeedPayload(seedRuleDef{
+		label := fmt.Sprintf("animal %d", s.animalID)
+
+		// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped.
+		// Known drug + dosage → medication plan (verbatim dosage).
+		// Wound care, unknown drug, or empty dosage → observation plan
+		// flagged "(à vérifier)" so the workflow survives without inventing
+		// a posology.
+		_, knownDrug := known[NormalizeDiet(s.drug)]
+		asMedication := s.drug != models.WoundCareDrugName && knownDrug && strings.TrimSpace(s.dosage) != ""
+
+		var name, kind string
+		var payload []byte
+		var reason string
+		switch {
+		case asMedication:
+			name = "Traitement — " + s.drug
+			kind = careplan.KindMedication
+			payload = []byte(buildSeedPayload(seedRuleDef{
 				Kind: careplan.KindMedication, Drug: s.drug, Dosage: s.dosage, Note: s.remarks,
-			}, "")),
+			}, ""))
+			reason = fmt.Sprintf("série %s → plan médication", s.drug)
+		case s.drug == models.WoundCareDrugName:
+			name = "Soin de plaie (conversion) (à vérifier)"
+			kind = careplan.KindObservation
+			payload = observationPayload("Soin de plaie — contrôle", s.remarks)
+			reason = "série soin de plaie → plan observation (à vérifier)"
+		case !knownDrug:
+			name = "Traitement — " + s.drug + " (à vérifier)"
+			kind = careplan.KindObservation
+			payload = observationPayload(s.drug, s.remarks)
+			reason = fmt.Sprintf("drug inconnu — converti en observation, à vérifier (%s)", s.drug)
+		default: // known drug, empty dosage
+			name = "Traitement — " + s.drug + " (à vérifier)"
+			kind = careplan.KindObservation
+			payload = observationPayload(s.drug, s.remarks)
+			reason = fmt.Sprintf("série %s sans posologie — converti en observation, à vérifier", s.drug)
+		}
+
+		p := &models.CareAnimalPlan{
+			AnimalID:      s.animalID,
+			Name:          name,
+			ActionKind:    kind,
+			ActionPayload: payload,
 			Schedule: []byte(fmt.Sprintf(
 				`{"times":[%s],"every_days":1,"anchor":"fixed","anchor_date":"%s","duration_days":%d}`,
 				timesJSON(times), s.first.Format("2006-01-02"), duration)),
@@ -402,7 +471,7 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 			Active:       true,
 			CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
 		}
-		// Idempotent re-run guard: one converted plan per animal+drug.
+		// Idempotent re-run guard: one converted plan per animal+name.
 		var n []struct {
 			C int64 `db:"c"`
 		}
@@ -411,6 +480,7 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 			return err
 		}
 		if len(n) > 0 && n[0].C > 0 {
+			report.Reconciliation.TreatmentOK++
 			continue
 		}
 		verrs, err := tx.ValidateAndCreate(p)
@@ -421,11 +491,34 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 			return fmt.Errorf("converted treatment plan invalid (animal %d): %v", s.animalID, verrs)
 		}
 		report.Treatments.PlansCreated++
+		report.Reconciliation.TreatmentOK++
 		report.Treatments.Lines = append(report.Treatments.Lines,
-			ConversionLine{s.animalID, fmt.Sprintf("animal %d", s.animalID),
-				fmt.Sprintf("série %s → plan #%s (%d j)", s.drug, p.ID, duration)})
+			ConversionLine{s.animalID, label, fmt.Sprintf("%s → #%s (%d j)", reason, p.ID, duration)})
 	}
 	return nil
+}
+
+// knownDrugNames loads the drugs table once, case-folded for comparison.
+func knownDrugNames(tx *pop.Connection) (map[string]struct{}, error) {
+	var drugs []models.Drug
+	if err := tx.All(&drugs); err != nil {
+		return nil, err
+	}
+	out := make(map[string]struct{}, len(drugs))
+	for _, d := range drugs {
+		out[NormalizeDiet(d.Name)] = struct{}{}
+	}
+	return out, nil
+}
+
+// observationPayload builds the §4.2 observation payload of a converted
+// review-flagged plan: a yes/no question, no alert outcome.
+func observationPayload(prompt, note string) []byte {
+	m := map[string]any{"prompt": prompt}
+	if strings.TrimSpace(note) != "" {
+		m["note"] = note
+	}
+	return []byte(marshalSeed(m))
 }
 
 func timesJSON(times []careplan.TimeOfDay) string {

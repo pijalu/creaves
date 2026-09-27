@@ -29,11 +29,6 @@ import (
 // ConversionMarkerKey is the §8.1 marker primary key.
 const ConversionMarkerKey = "startup_v1"
 
-// ConverterUserUUID is the synthetic author recorded on converted animal
-// plans (care_animal_plans.created_by is a required UUID; the converter is
-// not a user).
-var ConverterUserUUID = uuid.Must(uuid.FromString("00000000-0000-4000-8000-000000000001"))
-
 // FeedingClusterThreshold is the §8.1 step-2 cluster size at which a shared
 // diet becomes a generic rule instead of per-animal plans (≥5; calibrated
 // on §2.4 cohort counts).
@@ -73,6 +68,20 @@ type ConversionReport struct {
 		PlansCreated int              `json:"plans_created"`
 		Lines        []ConversionLine `json:"lines,omitempty"`
 	} `json:"treatments"`
+	// Reconciliation is the §8.1 no-loss gate: per-animal comparison of the
+	// legacy schedule vs the converted rule/plan. UNCOVERED must be 0 before
+	// the rollout is approved (bugs.md Phase 1.6).
+	Reconciliation struct {
+		FeedingOK          int              `json:"feeding_ok"`
+		FeedingDegraded    int              `json:"feeding_degraded"`
+		FeedingUncovered   int              `json:"feeding_uncovered"`
+		TreatmentOK        int              `json:"treatment_ok"`
+		TreatmentUncovered int              `json:"treatment_uncovered"`
+		Lines              []ConversionLine `json:"lines,omitempty"`
+	} `json:"reconciliation"`
+	// coverage maps animal_id → converted slot list (in-memory only, used by
+	// the reconciliation step; not serialized).
+	coverage map[int][]careplan.TimeOfDay
 }
 
 func (r *ConversionReport) addSkip(kind string, l ConversionLine) {

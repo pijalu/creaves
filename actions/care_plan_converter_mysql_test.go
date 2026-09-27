@@ -71,12 +71,24 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 		fx.setFeeding(t, db, id, d, "09:00", "15:00", 180)
 		fx.animalIDs = append(fx.animalIDs, id)
 	}
-	// 1 skipped animal: empty diet text.
-	idSkip := fx.f.mkAnimal(t, db, "Pigeon biset")
-	fx.setFeeding(t, db, idSkip, "  ", "08:00", "18:00", 120)
-	fx.animalIDs = append(fx.animalIDs, idSkip)
+	// 1 fallback animal: empty diet text → converted to a flagged
+	// "(à vérifier)" plan instead of being dropped (§1.5 no-skip rule).
+	idFallback := fx.f.mkAnimal(t, db, "Pigeon biset")
+	fx.setFeeding(t, db, idFallback, "  ", "08:00", "18:00", 120)
+	fx.animalIDs = append(fx.animalIDs, idFallback)
+	// 1 same-diet animal on a DIFFERENT schedule (H2: no modal collapse —
+	// distinct slot sets must never merge into one cluster rule).
+	idVariant := fx.f.mkAnimal(t, db, "Pigeon biset")
+	fx.setFeeding(t, db, idVariant, diet, "07:00", "19:00", 360)
+	fx.animalIDs = append(fx.animalIDs, idVariant)
 
-	// One open treatment series (3 future days, morning+noon).
+	// One open treatment series (3 future days, morning+noon). The drug is
+	// seeded in the drugs table so the series converts as a MEDICATION plan.
+	drug := models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "Ivomec 1%"}
+	require.NoError(t, db.Create(&drug))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug.ID).Exec()
+	})
 	idTr := fx.f.mkAnimal(t, db, "Faucon crécerelle")
 	fx.animalIDs = append(fx.animalIDs, idTr)
 	base := time.Now().Truncate(24*time.Hour).AddDate(0, 0, 1)
@@ -94,6 +106,43 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 			fx.treatment = tr
 		}
 	}
+
+	// M5 routing fixtures — same animal, three edge series:
+	// (a) unknown drug (not in drugs table) with dosage → observation plan,
+	//     never an invented-dosage medication plan;
+	idTr2 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	fx.animalIDs = append(fx.animalIDs, idTr2)
+	trUnknown := models.Treatment{
+		Date:       base,
+		AnimalID:   idTr2,
+		Drug:       "Produit inconnu XYZ",
+		Dosage:     "1 cp",
+		Timebitmap: models.Treatement_MORNING,
+	}
+	require.NoError(t, db.Create(&trUnknown))
+	// (b) wound-care pseudo-drug → observation plan;
+	idTr3 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	fx.animalIDs = append(fx.animalIDs, idTr3)
+	trWound := models.Treatment{
+		Date:       base,
+		AnimalID:   idTr3,
+		Drug:       models.WoundCareDrugName,
+		Dosage:     "",
+		Timebitmap: models.Treatement_NOON,
+	}
+	require.NoError(t, db.Create(&trWound))
+	// (c) known drug but empty dosage → observation plan (§1.5, M1-adjacent:
+	// a medication payload without dosage fails validation).
+	idTr4 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	fx.animalIDs = append(fx.animalIDs, idTr4)
+	trNoDose := models.Treatment{
+		Date:       base,
+		AnimalID:   idTr4,
+		Drug:       "Ivomec 1%",
+		Dosage:     "",
+		Timebitmap: models.Treatement_MORNING,
+	}
+	require.NoError(t, db.Create(&trNoDose))
 	return fx
 }
 
@@ -155,11 +204,22 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, 12, report.Seeds.RulesInserted+report.Seeds.RulesSkipped, "SR1–SR12 accounted")
 	require.Equal(t, 12, report.Seeds.RulesInserted, "all 12 seeds insert on a clean run")
 
-	// Feeding: one cluster rule (5 animals), two unique-diet plans, one skip.
+	// Feeding: one cluster rule (5 identical-schedule animals), three
+	// per-animal plans (2 unique diets + 1 empty-diet fallback + 1
+	// schedule variant — variants must NOT collapse into the cluster, H2).
+	// The empty-diet fallback also lands as a plan (no-skip §1.5), so:
+	// plans = Mixture A, Mixture B, fallback, variant = 4.
 	require.Equal(t, 1, report.Feeding.RulesCreated)
-	require.Equal(t, 2, report.Feeding.PlansCreated)
-	require.Equal(t, 8, report.Feeding.AnimalsConsidered)
-	require.Len(t, report.Feeding.Lines, 8) // 5 cluster + 2 unique-diet plans + 1 empty-diet skip
+	require.Equal(t, 4, report.Feeding.PlansCreated)
+	require.Equal(t, 9, report.Feeding.AnimalsConsidered)
+	require.Len(t, report.Feeding.Lines, 9)
+
+	// Reconciliation (§1.6): every animal accounted for, nothing uncovered.
+	require.Equal(t, 0, report.Reconciliation.FeedingUncovered,
+		"no feeding animal may be left without a covering plan")
+	require.Equal(t, 9, report.Reconciliation.FeedingOK+
+		report.Reconciliation.FeedingDegraded)
+	require.Equal(t, 0, report.Reconciliation.TreatmentUncovered)
 
 	// Treatments: the 3-day series becomes one bounded plan. The test DB
 	// may carry unrelated open series from other tests, so only spot-check
@@ -174,7 +234,8 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, plansBefore+int64(report.Feeding.PlansCreated+report.Treatments.PlansCreated),
 		count("SELECT count(*) as c FROM care_animal_plans"))
 
-	// Cluster rule: species IN matcher + derived modal slots, active.
+	// Cluster rule: species IN matcher + slots INCLUDING the start slot
+	// (B1 fix: legacy semantics + spec §11.7, 08:00 + n×120 ≤ 18:00).
 	var clusterRule models.CareRule
 	require.NoError(t, db.Where("name LIKE ?", "Alimentation — grains pigeons eau%").First(&clusterRule))
 	require.True(t, clusterRule.Active, "converted cluster rule must be active immediately")
@@ -183,7 +244,20 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Contains(t, clusterMatcher.Expression, `species IN ("Pigeon biset")`)
 	sched, err := parseScheduleForTest(clusterRule.Schedule)
 	require.NoError(t, err)
-	require.Equal(t, []string{"10:00", "12:00", "14:00", "16:00", "18:00"}, sched)
+	require.Equal(t, []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}, sched)
+
+	// H2: the 07:00/360min schedule variant got its own plan — the cluster
+	// rule must NOT have silently swallowed it via modal slots.
+	var variantPlan models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[8], "%grains pigeons eau%").First(&variantPlan))
+	vSched, err := parseScheduleForTest(variantPlan.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, []string{"07:00", "13:00", "19:00"}, vSched)
+
+	// t5: the empty-diet animal got a flagged fallback plan, not a skip.
+	var fbPlan models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[7], "%(à vérifier)").First(&fbPlan))
+	require.Contains(t, fbPlan.Name, "(conversion)")
 
 	// Treatment plan: 08:00/12:00 × 3 days from the bitmap, fixed anchor.
 	var trPlan models.CareAnimalPlan
@@ -191,6 +265,28 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	trSched, err := parseScheduleForTest(trPlan.Schedule)
 	require.NoError(t, err)
 	require.Equal(t, []string{"08:00", "12:00"}, trSched)
+
+	// M5 routing: the three edge series became flagged OBSERVATION plans
+	// (observation payload requires a "prompt"; medication requires dosage).
+	assertObservationPlan := func(animalID int, nameLike string) models.CareAnimalPlan {
+		var p models.CareAnimalPlan
+		require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", animalID, nameLike).First(&p))
+		require.Contains(t, p.Name, "(à vérifier)")
+		var payload struct {
+			Prompt string `json:"prompt"`
+		}
+		require.NoError(t, json.Unmarshal(p.ActionPayload, &payload))
+		require.NotEmpty(t, payload.Prompt, "observation plan must carry a prompt")
+		return p
+	}
+	assertObservationPlan(fx.animalIDs[10], "Traitement — Produit inconnu XYZ%")
+	assertObservationPlan(fx.animalIDs[11], "Soin de plaie (conversion)%")
+	assertObservationPlan(fx.animalIDs[12], "Traitement — Ivomec 1% (à vérifier)")
+
+	// No medication plan may exist for the unknown drug (invented dosage).
+	n, err := db.Where("animal_id = ? AND name = ?", fx.animalIDs[10], "Traitement — Produit inconnu XYZ").Count(&models.CareAnimalPlan{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n)
 
 	// Marker + persisted report.
 	var marker models.CarePlanConversion

@@ -8,6 +8,7 @@ import (
 	"creaves/models"
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -120,8 +121,10 @@ func matcherIDForTest() uuid.NullUUID {
 	return uuid.NullUUID{UUID: uuid.Must(uuid.NewV4()), Valid: true}
 }
 
-// TestDeriveFeedingTimes covers §8.1 step 2 slot derivation: start+n×period
-// while ≤ end, no partial slots, degenerate inputs yield nothing.
+// TestDeriveFeedingTimes covers §8.1 step 2 slot derivation (§11.7): the
+// start slot is included (n ≥ 0, legacy calculateFeeding semantics),
+// start == end yields the single daily slot, overnight windows wrap, and
+// degenerate inputs yield nothing.
 func TestDeriveFeedingTimes(t *testing.T) {
 	at := func(h, m int) [2]int { return [2]int{h, m} }
 	cases := []struct {
@@ -130,10 +133,12 @@ func TestDeriveFeedingTimes(t *testing.T) {
 		period     int
 		want       [][2]int
 	}{
-		{"normal", [2]int{8, 0}, [2]int{18, 0}, 120, [][2]int{at(10, 0), at(12, 0), at(14, 0), at(16, 0), at(18, 0)}},
-		{"single", [2]int{8, 0}, [2]int{18, 0}, 600, [][2]int{at(18, 0)}},
-		{"no slot fits", [2]int{8, 0}, [2]int{9, 0}, 120, nil},
-		{"end before start", [2]int{18, 0}, [2]int{8, 0}, 120, nil},
+		{"normal incl. start", [2]int{8, 0}, [2]int{18, 0}, 120, [][2]int{at(8, 0), at(10, 0), at(12, 0), at(14, 0), at(16, 0), at(18, 0)}},
+		{"spec §11.7 example", [2]int{7, 0}, [2]int{22, 0}, 600, [][2]int{at(7, 0), at(17, 0)}},
+		{"start==end single slot", [2]int{10, 0}, [2]int{10, 0}, 600, [][2]int{at(10, 0)}},
+		{"single at end", [2]int{8, 0}, [2]int{18, 0}, 600, [][2]int{at(8, 0), at(18, 0)}},
+		{"overnight", [2]int{22, 0}, [2]int{6, 0}, 240, [][2]int{at(22, 0), at(2, 0), at(6, 0)}},
+		{"no slot fits beyond start", [2]int{8, 0}, [2]int{9, 0}, 120, [][2]int{at(8, 0)}},
 		{"zero period", [2]int{8, 0}, [2]int{18, 0}, 0, nil},
 		{"negative period", [2]int{8, 0}, [2]int{18, 0}, -5, nil},
 	}
@@ -207,20 +212,45 @@ func TestBuildConvertedScheduleJSON(t *testing.T) {
 	}
 }
 
-// TestModalTimes: most frequent slot set wins; ties resolve lexicographically
-// for determinism.
-func TestModalTimes(t *testing.T) {
-	a := []careplan.TimeOfDay{{Hour: 8}, {Hour: 18}}
-	b := []careplan.TimeOfDay{{Hour: 9}}
-	entries := []feedingEntry{
-		{Times: a}, {Times: a},
-		{Times: b},
+// TestReconcileFeeding covers the §1.6 no-loss gate: OK when converted
+// slots equal legacy, DEGRADED when they differ, UNCOVERED when no
+// rule/plan was recorded for the animal.
+func TestReconcileFeeding(t *testing.T) {
+	mk := func(id int, start, end string, period int) models.Animal {
+		base := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+		at, _ := time.Parse("15:04", start)
+		bt, _ := time.Parse("15:04", end)
+		return models.Animal{
+			ID:            id,
+			FeedingStart:  nulls.NewTime(base.Add(time.Duration(at.Hour())*time.Hour + time.Duration(at.Minute())*time.Minute)),
+			FeedingEnd:    nulls.NewTime(base.Add(time.Duration(bt.Hour())*time.Hour + time.Duration(bt.Minute())*time.Minute)),
+			FeedingPeriod: period,
+		}
 	}
-	if got := timesKey(modalTimes(entries)); got != timesKey(a) {
-		t.Errorf("modal = %s, want %s", got, timesKey(a))
+	exact := []careplan.TimeOfDay{{Hour: 8}, {Hour: 14}} // == derive(08:00,14:00,360)
+	other := []careplan.TimeOfDay{{Hour: 9}}
+
+	report := &ConversionReport{coverage: map[int][]careplan.TimeOfDay{
+		1: exact,
+		2: other,
+		// 3: no coverage entry → UNCOVERED
+	}}
+	animals := []models.Animal{
+		mk(1, "08:00", "14:00", 360),
+		mk(2, "08:00", "14:00", 360),
+		mk(3, "08:00", "14:00", 360),
 	}
-	tie := []feedingEntry{{Times: b}, {Times: a}}
-	if got := timesKey(modalTimes(tie)); got != timesKey(a) {
-		t.Errorf("tie modal = %s, want lexicographic first %s", got, timesKey(a))
+	reconcileFeeding(report, animals)
+	if report.Reconciliation.FeedingOK != 1 {
+		t.Errorf("FeedingOK = %d, want 1", report.Reconciliation.FeedingOK)
+	}
+	if report.Reconciliation.FeedingDegraded != 1 {
+		t.Errorf("FeedingDegraded = %d, want 1", report.Reconciliation.FeedingDegraded)
+	}
+	if report.Reconciliation.FeedingUncovered != 1 {
+		t.Errorf("FeedingUncovered = %d, want 1", report.Reconciliation.FeedingUncovered)
+	}
+	if len(report.Reconciliation.Lines) != 2 {
+		t.Errorf("reconciliation lines = %d, want 2 (DEGRADED + UNCOVERED)", len(report.Reconciliation.Lines))
 	}
 }

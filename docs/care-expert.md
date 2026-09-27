@@ -1335,9 +1335,13 @@ Steps, in order, each in its own transaction:
 The converter is **insert-only** (creates rules/plans/marker; flips no
 legacy data, deletes nothing), so rollback = restore the pre-release DB
 dump taken before the first boot, or delete the marker and the generated
-rows (they are tagged `created_by='care_plan_converter'`). Operationally:
-dump the database immediately before the release boot; if the conversion
-report shows unacceptable skips, restore, fix data, boot again.
+rows. Generated rows are identifiable without any synthetic user:
+`care_animal_plans.created_by` is a real `users` FK, so converter plans
+carry `created_by IS NULL` and the literal `"(conversion)"` in their name;
+generated rules/matchers carry the `care-plan-converter` tag in their
+`description`. Operationally: dump the database immediately before the
+release boot; if the conversion report shows unacceptable skips, restore,
+fix data, boot again.
 
 ### 8.3 Retired pages
 
