@@ -43,6 +43,9 @@ type PlanApplyInput struct {
 	// AnswerIsAlert: the answer equals the payload's alert_on outcome
 	// (§10.1-6) — computed by the handler from the source payload.
 	AnswerIsAlert bool
+	// Dosage: manual dosage override for medication (§10-B6) — mandatory
+	// when automatic resolution warns (no weight, no dosages-table row…).
+	Dosage string
 }
 
 // planPayload is the merged read view of the §4.2 payload documents (the
@@ -123,7 +126,7 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 	app := &models.CarePlanApplication{
 		SourceType:      string(src.SourceType()),
 		SourceID:        sourceIDUUID(src),
-		SourceSnapshot:  sourceSnapshot(src),
+		SourceSnapshot:  sourceSnapshotWithDosage(src, in),
 		AnimalID:        animalID,
 		DueAt:           dueAt,
 		AppliedAt:       now,
@@ -393,12 +396,29 @@ func treatmentBucketBit(due time.Time) int {
 	}
 }
 
+// medicationDosage decides the dosage for one medication apply (§10-B6): a
+// manual dosage wins verbatim; otherwise the automatic path must resolve —
+// a warning without manual dosage becomes the 422 dosage_required flow.
+func medicationDosage(tx *pop.Connection, payload planPayload, animalID int, in PlanApplyInput) (string, error) {
+	if strings.TrimSpace(in.Dosage) != "" {
+		return strings.TrimSpace(in.Dosage), nil
+	}
+	dosage, warn, err := resolvePlanDosage(tx, payload, animalID)
+	if err != nil {
+		return "", err
+	}
+	if warn != nil {
+		return "", &DosageRequiredError{Warning: warn}
+	}
+	return dosage, nil
+}
+
 // writeMedicationFulfillment creates (or completes) the treatments row for
 // the bucket of dueAt (§10-M1). Same-bucket collision: the bit is set by
 // the first apply; later same-bucket applies append to the row's remarks —
 // both application rows are still recorded.
 func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalID int, dueAt, now time.Time, in PlanApplyInput) (string, error) {
-	dosage, err := resolvePlanDosage(tx, payload, animalID)
+	dosage, err := medicationDosage(tx, payload, animalID, in)
 	if err != nil {
 		return "", err
 	}
@@ -426,7 +446,7 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 		// same-bucket collision (§10-M1): append, keep both applications
 		appendum := fmt.Sprintf("; %s", now.Format("15:04"))
 		if in.Note != "" {
-			appendum = fmt.Sprintf(" (%s)", in.Note)
+			appendum += fmt.Sprintf(" (%s)", in.Note) // bugs.md M2: +=, not =
 		}
 		t.Remarks = nulls.NewString(t.Remarks.String + appendum)
 		if err := tx.Update(t); err != nil {
@@ -457,58 +477,101 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 	return treatment.ID.String(), nil
 }
 
+// ---------------------------------------------------------------------------
+// Dosage resolution (§4.2, §10-B6, §10-L2)
+// ---------------------------------------------------------------------------
+
+// DosageWarning reports a §10-B6 dosage-resolution failure. It never blocks
+// the apply: the caretaker resubmits with a manual dosage. §10-L2: the
+// warning carries the animal's last recorded weight and its date.
+type DosageWarning struct {
+	Reason       string `json:"reason"` // machine key: no_dosage_path | drug_not_found | no_dosage_row | dosage_no_per_grams | no_weight
+	Detail       string `json:"detail"` // human explanation
+	LastWeight   string `json:"last_weight,omitempty"`
+	LastWeightAt string `json:"last_weight_at,omitempty"` // RFC3339
+}
+
+// DosageRequiredError is returned by the medication fulfillment when the
+// automatic dosage resolution warned and no manual dosage was supplied.
+// The HTTP layer renders it as the structured 422 dosage_required body.
+type DosageRequiredError struct {
+	Warning *DosageWarning
+}
+
+func (e *DosageRequiredError) Error() string {
+	return "dosage_required: " + e.Warning.Detail
+}
+
 // resolvePlanDosage resolves the §4.2 dosage path: literal dosage, or the
-// dosages-table path (drugs × animaltype × last weight, §10-B6).
-func resolvePlanDosage(tx *pop.Connection, payload planPayload, animalID int) (string, error) {
+// dosages-table path (drugs × animaltype × last weight, §10-B6). Resolution
+// failures are warnings (never block apply, §10-B6); err is reserved for
+// unexpected DB failures.
+func resolvePlanDosage(tx *pop.Connection, payload planPayload, animalID int) (string, *DosageWarning, error) {
 	if payload.Dosage != "" {
-		return payload.Dosage, nil
+		return payload.Dosage, nil, nil
+	}
+	lw := lastWeight(tx, animalID)
+	warn := func(reason, detail string) (string, *DosageWarning, error) {
+		w := &DosageWarning{Reason: reason, Detail: detail}
+		if lw.ok {
+			w.LastWeight = lw.raw
+			w.LastWeightAt = lw.at.Format(time.RFC3339)
+		}
+		return "", w, nil
 	}
 	if payload.DosageFromTable == nil || !*payload.DosageFromTable {
-		return "", fmt.Errorf("medication payload has no dosage path")
+		return warn("no_dosage_path", "medication payload has no dosage path")
 	}
 
 	var drug models.Drug
 	if err := tx.Where("name = ?", payload.Drug).First(&drug); err != nil {
-		return "", fmt.Errorf("drug %q not found", payload.Drug)
+		return warn("drug_not_found", fmt.Sprintf("drug %q not found in the drugs table", payload.Drug))
 	}
 	animal := &models.Animal{}
 	if err := tx.Find(animal, animalID); err != nil {
-		return "", err
+		return "", nil, err // unexpected: the animal of an occurrence must exist
 	}
 	var dosage models.Dosage
 	if err := tx.Where("drug_id = ? AND animaltype_id = ? AND enabled = ?",
 		drug.ID, animal.AnimaltypeID, true).First(&dosage); err != nil {
-		return "", fmt.Errorf("no dosage for drug %q and animal type", payload.Drug)
+		return warn("no_dosage_row", fmt.Sprintf("no dosage row for drug %q and this animal type", payload.Drug))
 	}
 	perKilo := dosage.PerKilo()
 	if !perKilo.Valid {
-		return "", fmt.Errorf("dosage for drug %q carries no per-grams value", payload.Drug)
+		return warn("dosage_no_per_grams", fmt.Sprintf("dosage row for drug %q carries no per-grams value", payload.Drug))
 	}
-	weight := lastWeightGrams(tx, animalID)
-	if weight <= 0 {
-		return "", fmt.Errorf("no weight on record — cannot resolve table dosage for animal %d", animalID)
+	if !lw.ok || lw.grams <= 0 {
+		return warn("no_weight", "no weight on record — cannot compute the table dosage")
 	}
-	dose := perKilo.Float64 * weight / 1000.0
+	dose := perKilo.Float64 * lw.grams / 1000.0
 	unit := dosage.DosagePerGramsUnit.String
 	if unit == "" {
 		unit = "ml"
 	}
-	return fmt.Sprintf("%.2f %s", dose, unit), nil
+	return fmt.Sprintf("%.2f %s", dose, unit), nil, nil
 }
 
-// lastWeightGrams reads the latest care weight (grams) of an animal.
-func lastWeightGrams(tx *pop.Connection, animalID int) float64 {
+// lastWeightInfo is the animal's latest recorded care weight (§10-L2).
+type lastWeightInfo struct {
+	raw   string
+	grams float64
+	at    time.Time
+	ok    bool
+}
+
+// lastWeight reads the latest care weight of an animal (raw string, grams
+// when parseable, and the recording date).
+func lastWeight(tx *pop.Connection, animalID int) lastWeightInfo {
 	var rows []struct {
 		Weight nulls.String `db:"weight"`
+		Date   time.Time    `db:"date"`
 	}
-	q := `SELECT weight FROM cares WHERE animal_id = ? AND weight IS NOT NULL AND weight <> ''
+	q := `SELECT weight, date FROM cares WHERE animal_id = ? AND weight IS NOT NULL AND weight <> ''
 	      ORDER BY date DESC LIMIT 1`
 	if err := tx.RawQuery(q, animalID).All(&rows); err != nil || len(rows) == 0 {
-		return 0
+		return lastWeightInfo{}
 	}
-	var g float64
-	if _, err := fmtSscan(rows[0].Weight.String, &g); err != nil {
-		return 0
-	}
-	return g
+	info := lastWeightInfo{raw: rows[0].Weight.String, at: rows[0].Date, ok: true}
+	_, _ = fmtSscan(rows[0].Weight.String, &info.grams)
+	return info
 }

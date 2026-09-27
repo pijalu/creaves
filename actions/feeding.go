@@ -6,12 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
-	"github.com/gobuffalo/pop/v6"
 )
 
 // FEEDING_SQL and generateAnimalFeedings (the retired /feeding page's
@@ -191,56 +189,6 @@ func FeedingIndex(c buffalo.Context) error {
 	return c.Redirect(http.StatusFound, "/care_plan?kind=feeding")
 }
 
-// FeedingFeeding default implementation.
-func FeedingClose(c buffalo.Context) error {
-	animalIDStr := c.Param("ID")
-	timeToCloseSTR := c.Param("time")
-	note := c.Param("note")
-
-	care := &models.Care{}
-	var err error
-	if care.AnimalID, err = strconv.Atoi(animalIDStr); err != nil {
-		return err
-	}
-	if care.Date, err = time.Parse(feeding_dateFormat, timeToCloseSTR); err != nil {
-		return err
-	}
-	now := time.Now().Format(models.DateTimeFormat)
-	if len(note) > 0 {
-		note = fmt.Sprintf("%s - %s", now, note)
-	} else {
-		note = now
-	}
-	care.Note = nulls.NewString(note)
-
-	// Set care type
-	ct, err := caretypes(c)
-	if err != nil {
-		return err
-	}
-
-	// get feeding caretype
-	for i := 0; i < len(*ct); i++ {
-		c := (*ct)[i]
-		if c.Type == models.CareTypeFeed {
-			care.Type = c
-			break
-		}
-	}
-	c.Logger().Debugf("Closing feeding for animalID %d with date at %s", care.AnimalID, care.Date)
-
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-	if err = tx.Create(care); err != nil {
-		return err
-	}
-
-	c.Flash().Add("success", T.Translate(c, "feeding.close.success"))
-	if back := safeBackParam(c); back != "/" {
-		return c.Redirect(http.StatusSeeOther, back)
-	}
-	return c.Redirect(http.StatusSeeOther, "/feeding")
-}
+// FeedingClose was removed (bugs.md M4): a GET with side effects that wrote
+// a care without a care_plan_applications row, leaving the plan occurrence
+// open (double-feed risk). Feeding closes via POST /care_plan/apply only.

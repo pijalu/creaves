@@ -1,11 +1,13 @@
 package actions
 
 import (
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/gobuffalo/nulls"
+	"github.com/stretchr/testify/require"
 )
 
 const ft_dateFormat = "2006-01-02 15:04" // Date and 24-hour time format
@@ -200,4 +202,14 @@ func TestCalculateFeeding(t *testing.T) {
 		}
 
 	}
+}
+
+// TestFeedingCloseRouteRemoved guards bugs.md M4: the legacy GET
+// /feeding/close endpoint (state-mutating, plan-bypassing) is gone.
+func TestFeedingCloseRouteRemoved(t *testing.T) {
+	client, baseURL := adminClientWithURL(t)
+	resp, err := client.Get(baseURL + "/feeding/close?ID=1&time=2026-01-01+08%3A00")
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusNotFound, resp.StatusCode, "GET /feeding/close must be unmounted")
 }

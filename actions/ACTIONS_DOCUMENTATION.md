@@ -33,7 +33,6 @@
 | GET | `/export/view` | ExportView | Online export chooser / HTML table view |
 | GET | `/export/excel` | ExportExcel | Excel export |
 | GET | `/feeding` | FeedingIndex | **Retired (§8.3)**: redirects to `/care_plan?kind=feeding` |
-| GET | `/feeding/close` | FeedingClose | Close feeding |
 | GET | `/crash` | Anonymous func | Intentional crash for testing |
 
 **AJAX Endpoints**:
@@ -544,7 +543,6 @@ test database is unavailable).
 | Method | Route | Handler |
 |--------|-------|---------|
 | GET | `/feeding` | FeedingIndex |
-| GET | `/feeding/close` | FeedingClose |
 
 **Business Logic**:
 - Calculates next feeding times based on schedule

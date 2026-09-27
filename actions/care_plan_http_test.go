@@ -10,6 +10,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"sort"
 	"testing"
 	"time"
 
@@ -1056,4 +1057,249 @@ func TestCareMedicationApplyCreatesTreatment(t *testing.T) {
 	require.Len(t, *treatments, 1)
 	require.Equal(t, wantBit, (*treatments)[0].Timedonebitmap&wantBit, "slot bucket marked done")
 	require.Equal(t, "0.5 ml", (*treatments)[0].Dosage)
+}
+
+// TestCareMedicationSameBucketAppends guards bugs.md M2: a second same-bucket
+// apply (same drug, same day, same slot bitmap) must CONCATENATE
+// "; HH:MM (note)" onto the treatment remarks — never overwrite the time.
+func TestCareMedicationSameBucketAppends(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+	token := planToken(t, client, baseURL)
+
+	drug := "CP-Drug-" + f.marker
+	// two occurrences inside the same §10-M1 bucket, both due today (the
+	// fulfillment lookup keys the treatments row on the due day while the
+	// row is dated at click time — same day is what makes them collide)
+	now := time.Now()
+	var slot1, slot2 time.Time
+	found := false
+	for off := 30; off <= 300 && !found; off += 15 {
+		slot1 = now.Add(time.Duration(off) * time.Minute).Truncate(time.Minute)
+		slot2 = slot1.Add(20 * time.Minute)
+		if slot1.Year() == slot2.Year() && slot1.YearDay() == slot2.YearDay() &&
+			treatmentBucketBit(slot1) == treatmentBucketBit(slot2) {
+			found = true
+		}
+	}
+	if !found {
+		t.Skip("no two same-day, same-bucket future slots left today")
+	}
+	sched, err := json.Marshal(map[string]interface{}{
+		"times":       []string{slot1.Format("15:04"), slot2.Format("15:04")},
+		"anchor":      "fixed",
+		"anchor_date": slot1.Format("2006-01-02"),
+	})
+	require.NoError(t, err)
+	payload, err := json.Marshal(map[string]interface{}{"drug": drug, "dosage": "0.5 ml"})
+	require.NoError(t, err)
+	rule := &models.CareRule{
+		ID: uuid.Must(uuid.NewV4()), Name: "Med-" + f.marker,
+		ActionKind: "medication", ActionPayload: payload, Schedule: sched, Active: true,
+	}
+	require.NoError(t, models.DB.Create(rule))
+
+	// apply the first occurrence → creates the treatments row
+	_, body := planGetJSON(t, client, baseURL, "/care_plan")
+	items := planItemsOf(t, body)
+	occ := []map[string]interface{}{}
+	for _, it := range items {
+		if int(it["animal_id"].(float64)) == f.animalIDs[0] && it["action_kind"] == "medication" &&
+			it["source_id"] == rule.ID.String() {
+			occ = append(occ, it)
+		}
+	}
+	require.GreaterOrEqual(t, len(occ), 2, "today's two occurrences expected (window also renders tomorrow's)")
+	sort.Slice(occ, func(i, j int) bool {
+		return occ[i]["due_at"].(string) < occ[j]["due_at"].(string)
+	})
+
+	req1 := itemRef(occ[0])
+	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req1)
+	require.Equal(t, http.StatusCreated, code, "first apply: %s", raw)
+
+	// second occurrence, same bucket, with a note → appends "; HH:MM (note)"
+	req2 := itemRef(occ[1])
+	req2["note"] = "notedose"
+	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req2)
+	require.Equal(t, http.StatusCreated, code, "second apply: %s", raw)
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug).All(treatments))
+	require.Len(t, *treatments, 1, "same-bucket applies share one treatments row")
+	remarks := (*treatments)[0].Remarks.String
+	require.Regexp(t, `; \d{2}:\d{2}`, remarks, "appendum keeps the apply time: %q", remarks)
+	require.Contains(t, remarks, "(notedose)", "appendum keeps the note: %q", remarks)
+
+	napps, err := models.DB.Where("source_id = ? AND animal_id = ?", rule.ID, f.animalIDs[0]).Count(&models.CarePlanApplication{})
+	require.NoError(t, err)
+	require.Equal(t, 2, napps, "both applications recorded")
+}
+
+// ---------------------------------------------------------------------------
+// §10-B6 / §10-L2 — manual dosage path (bugs.md M1)
+// ---------------------------------------------------------------------------
+
+// TestCareMedicationDosageRequiredFlow proves the §10-B6 contract end-to-end:
+// dosage resolution failure (table path, no weight on record) → 422
+// structured dosage_required body carrying the last-weight fields (§10-L2) →
+// resubmit with a manual dosage → 201, the treatment row carries the manual
+// dosage and the application snapshot records dosage_source="manual".
+func TestCareMedicationDosageRequiredFlow(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+	token := planToken(t, client, baseURL)
+
+	// table-driven dosage: drug + dosages row exist, but the animal has a
+	// (stale) weight only — resolution fails via a MISSING dosage row would
+	// also warn; here the drug has no dosage row for this animal type.
+	drug := &models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "CP-DrugT-" + f.marker}
+	require.NoError(t, models.DB.Create(drug))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug.ID).Exec()
+	})
+
+	// §10-L2: the animal has a weighed care on record → the warning must
+	// carry its value and date.
+	weighedAt := time.Now().Add(-48 * time.Hour)
+	require.NoError(t, models.DB.Create(&models.Care{
+		Date: weighedAt, AnimalID: f.animalIDs[0], TypeID: f.defCare, Weight: nulls.NewString("310"),
+	}))
+
+	due := itemDueSoon(time.Now())
+	sched := careScheduleJSON(t, due)
+	payload, err := json.Marshal(map[string]interface{}{
+		"drug": drug.Name, "dosage_from_dosages_table": true,
+	})
+	require.NoError(t, err)
+	rule := &models.CareRule{
+		ID: uuid.Must(uuid.NewV4()), Name: "MedT-" + f.marker,
+		ActionKind: "medication", ActionPayload: payload, Schedule: sched, Active: true,
+	}
+	require.NoError(t, models.DB.Create(rule))
+
+	_, body := planGetJSON(t, client, baseURL, "/care_plan")
+	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "medication")
+
+	// 1st attempt, no dosage → 422 dosage_required with §10-L2 weight fields
+	req := itemRef(item)
+	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req)
+	require.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", raw)
+	var errBody map[string]interface{}
+	require.NoError(t, json.Unmarshal(raw, &errBody))
+	require.Equal(t, "dosage_required", errBody["error"])
+	require.Equal(t, "no_dosage_row", errBody["reason"])
+	require.NotEmpty(t, errBody["detail"], "human detail for the dialog")
+	require.Equal(t, "310", errBody["last_weight"], "§10-L2 last weight value")
+	require.NotEmpty(t, errBody["last_weight_at"], "§10-L2 last weight date")
+
+	// nothing written yet
+	napps, err := models.DB.Where("source_id = ?", rule.ID).Count(&models.CarePlanApplication{})
+	require.NoError(t, err)
+	require.Equal(t, 0, napps, "422 must not record an application")
+
+	// resubmit with a manual dosage → 201, treatment carries it verbatim
+	req["dosage"] = "0.12 ml"
+	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req)
+	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug.Name).All(treatments))
+	require.Len(t, *treatments, 1)
+	require.Equal(t, "0.12 ml", (*treatments)[0].Dosage, "manual dosage stored verbatim")
+
+	// application snapshot flags the manual source (audit trail)
+	app := &models.CarePlanApplication{}
+	require.NoError(t, models.DB.Where("source_id = ? AND animal_id = ?", rule.ID, f.animalIDs[0]).First(app))
+	var snap map[string]interface{}
+	require.NoError(t, json.Unmarshal(app.SourceSnapshot, &snap))
+	require.Equal(t, "manual", snap["dosage_source"])
+	require.Equal(t, "0.12 ml", snap["manual_dosage"])
+}
+
+// TestCareMedicationDosageRequiredNoWeight covers the no-weight-on-record
+// branch (§10-L2: weight fields absent) plus the batch path reporting
+// dosage_required per item.
+func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+	token := planToken(t, client, baseURL)
+
+	drug := &models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "CP-DrugW-" + f.marker}
+	require.NoError(t, models.DB.Create(drug))
+	at := models.Animaltype{}
+	require.NoError(t, models.DB.Where("name = ?", "CPType-"+f.marker).First(&at))
+	dosRow := &models.Dosage{
+		ID: uuid.Must(uuid.NewV4()), DrugID: drug.ID, AnimaltypeID: at.ID,
+		Enabled: true, DosagePerGrams: nulls.NewFloat64(0.005), DosagePerGramsUnit: nulls.NewString("ml"),
+	}
+	require.NoError(t, models.DB.Create(dosRow))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM dosages WHERE id = ?", dosRow.ID).Exec()
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug.ID).Exec()
+	})
+
+	due := itemDueSoon(time.Now())
+	sched := careScheduleJSON(t, due)
+	payload, err := json.Marshal(map[string]interface{}{
+		"drug": drug.Name, "dosage_from_dosages_table": true,
+	})
+	require.NoError(t, err)
+	rule := &models.CareRule{
+		ID: uuid.Must(uuid.NewV4()), Name: "MedW-" + f.marker,
+		ActionKind: "medication", ActionPayload: payload, Schedule: sched, Active: true,
+	}
+	require.NoError(t, models.DB.Create(rule))
+
+	_, body := planGetJSON(t, client, baseURL, "/care_plan")
+	items := planItemsOf(t, body)
+	it1 := mustItem(t, items, f.animalIDs[0], "medication")
+
+	// single apply: no weight anywhere → 422, no weight fields
+	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, itemRef(it1))
+	require.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", raw)
+	var errBody map[string]interface{}
+	require.NoError(t, json.Unmarshal(raw, &errBody))
+	require.Equal(t, "dosage_required", errBody["error"])
+	require.Equal(t, "no_weight", errBody["reason"])
+	require.Empty(t, errBody["last_weight"], "no weight on record → field empty")
+
+	// batch path: per-item dosage_required, then per-item manual resubmit
+	it2 := mustItem(t, items, f.animalIDs[1], "medication")
+	batch := map[string]interface{}{"items": []map[string]interface{}{itemRef(it1), itemRef(it2)}}
+	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, batch)
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	var batchBody struct {
+		Applied  int                      `json:"applied"`
+		Results  []map[string]interface{} `json:"results"`
+	}
+	require.NoError(t, json.Unmarshal(raw, &batchBody))
+	require.Equal(t, 0, batchBody.Applied)
+	require.Len(t, batchBody.Results, 2)
+	for _, r := range batchBody.Results {
+		require.Equal(t, "dosage_required", r["status"], "batch item: %v", r)
+		require.Equal(t, "no_weight", r["reason"])
+	}
+
+	// resubmit the batch with manual dosages → both applied
+	b1, b2 := itemRef(it1), itemRef(it2)
+	b1["dosage"], b2["dosage"] = "0.1 ml", "0.2 ml"
+	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token,
+		map[string]interface{}{"items": []map[string]interface{}{b1, b2}})
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	require.NoError(t, json.Unmarshal(raw, &batchBody))
+	require.Equal(t, 2, batchBody.Applied, "body: %s", raw)
+	for _, r := range batchBody.Results {
+		require.Equal(t, "applied", r["status"], "batch item: %v", r)
+	}
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("drug = ?", drug.Name).All(treatments))
+	require.Len(t, *treatments, 2)
+	byAnimal := map[int]string{}
+	for _, tr := range *treatments {
+		byAnimal[tr.AnimalID] = tr.Dosage
+	}
+	require.Equal(t, "0.1 ml", byAnimal[f.animalIDs[0]])
+	require.Equal(t, "0.2 ml", byAnimal[f.animalIDs[1]])
 }

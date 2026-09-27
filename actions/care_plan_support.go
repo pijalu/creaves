@@ -49,6 +49,30 @@ func sourceSnapshot(src careplan.PlanSource) []byte {
 	return b
 }
 
+// sourceSnapshotWithDosage annotates the snapshot with
+// dosage_source="manual" when the caretaker typed the dosage at apply time
+// (§10-B6) — the audit trail must show the number did not come from the
+// payload / dosages table.
+func sourceSnapshotWithDosage(src careplan.PlanSource, in PlanApplyInput) []byte {
+	snap := sourceSnapshot(src)
+	if in.Status != models.ApplicationStatusApplied ||
+		src.ActionKind() != careplan.KindMedication ||
+		strings.TrimSpace(in.Dosage) == "" {
+		return snap
+	}
+	var doc map[string]interface{}
+	if err := json.Unmarshal(snap, &doc); err != nil {
+		return snap
+	}
+	doc["dosage_source"] = "manual"
+	doc["manual_dosage"] = strings.TrimSpace(in.Dosage)
+	b, err := json.Marshal(doc)
+	if err != nil {
+		return snap
+	}
+	return b
+}
+
 // jsonUnmarshalStrictish decodes a stored payload document leniently
 // (unknown keys tolerated — the authoritative per-kind validation runs at
 // save time, §4.2).

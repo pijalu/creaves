@@ -290,7 +290,8 @@ func App() *buffalo.App {
 		// /feeding retired (§8.3): redirects to the day plan filtered on
 		// feeding; the legacy feeding_period page is gone.
 		app.GET("/feeding", FeedingIndex)
-		app.GET("/feeding/close", FeedingClose)
+		// /feeding/close removed (bugs.md M4): GET-with-side-effects bypassed
+		// the day plan (no care_plan_applications row → double-feed risk).
 
 		app.Resource("/native_statuses", NativeStatusesResource{})
 		app.GET("/native_statuses/{native_status_id}/delete", NativeStatusDeleteNew)

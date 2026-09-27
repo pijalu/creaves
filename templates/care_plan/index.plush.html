@@ -50,8 +50,112 @@
           <% } else { %>
             <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
           <% } %>
+          <%= if (item.Applicable) { %>
+            <button type="button" class="btn btn-sm btn-outline-primary ml-1 plan-apply-btn"
+              data-source-type="<%= item.SourceType %>"
+              data-source-id="<%= item.SourceID %>"
+              data-animal-id="<%= item.AnimalID %>"
+              data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+              data-kind="<%= item.ActionKind %>">
+              <%= t("care_plan.apply.action") %>
+            </button>
+          <% } %>
         </td>
       </tr>
     <% } %>
   </tbody>
 </table>
+
+<!-- §10-B6: dosage resolution failure never blocks apply — the dialog warns
+     (with the last recorded weight, §10-L2) and asks for a manual dosage. -->
+<div class="modal fade" id="planDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><%= t("care_plan.apply.dosage_required_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning" id="planDosageDetail"></div>
+        <p class="text-muted d-none" id="planDosageWeight"></p>
+        <input type="text" class="form-control" id="planDosageInput" placeholder="0.1 ml" autocomplete="off">
+        <div class="alert alert-danger d-none mt-2" id="planDosageError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="planDosageSubmit"><%= t("care_plan.apply.dosage_submit") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var pending = null; // item ref awaiting a manual dosage (§10-B6)
+
+  function applyItem(ref, dosage) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (dosage) { body.dosage = dosage; }
+    return fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
+    });
+  }
+
+  function showDosageDialog(ref, warn) {
+    pending = ref;
+    document.getElementById('planDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('planDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = "<%= t("care_plan.apply.last_weight") %>: " + warn.last_weight + " g (" + when + ")";
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('planDosageInput').value = '';
+    document.getElementById('planDosageError').classList.add('d-none');
+    $('#planDosageModal').modal('show');
+  }
+
+  function handleResponse(ref, res) {
+    if (res.status === 201) { window.location.reload(); return; }
+    if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+      showDosageDialog(ref, res.body);
+      return;
+    }
+    window.alert((res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      var ref = {
+        sourceType: btn.getAttribute('data-source-type'),
+        sourceId: btn.getAttribute('data-source-id'),
+        animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+        dueAt: btn.getAttribute('data-due-at')
+      };
+      applyItem(ref, '').then(function (res) { handleResponse(ref, res); });
+    });
+  });
+
+  document.getElementById('planDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('planDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending;
+    applyItem(ref, dosage).then(function (res) {
+      if (res.status === 201) { window.location.reload(); return; }
+      var box = document.getElementById('planDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
+    });
+  });
+})();
+</script>

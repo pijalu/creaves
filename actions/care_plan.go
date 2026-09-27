@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -52,6 +53,7 @@ type planApplyRequest struct {
 	DeferredUntil string `json:"deferred_until"` // RFC3339, defer only
 	Weight        string `json:"weight"`
 	Answer        string `json:"answer"`
+	Dosage        string `json:"dosage"` // manual medication dosage (§10-B6)
 }
 
 // CarePlanIndex handles GET /care_plan (§7.2): the day plan. JSON returns
@@ -205,6 +207,7 @@ func CarePlanApply(c buffalo.Context) error {
 		Note:   strings.TrimSpace(in.Note),
 		Weight: in.Weight,
 		Answer: in.Answer,
+		Dosage: in.Dosage,
 	}
 	if status == models.ApplicationStatusDeferred {
 		requested := time.Now().Add(time.Hour) // §10-L3 default +1h
@@ -227,6 +230,18 @@ func CarePlanApply(c buffalo.Context) error {
 
 	app, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
 	if err != nil {
+		var dre *DosageRequiredError
+		if errors.As(err, &dre) {
+			// §10-B6: never blocks — the client resubmits with a manual dosage.
+			return c.Render(http.StatusUnprocessableEntity, renderJSON(map[string]interface{}{
+				"error":          "dosage_required",
+				"detail":         dre.Warning.Detail,
+				"reason":         dre.Warning.Reason,
+				"last_weight":    dre.Warning.LastWeight,
+				"last_weight_at": dre.Warning.LastWeightAt,
+				"code":           http.StatusUnprocessableEntity,
+			}))
+		}
 		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
 			return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
 		}
@@ -325,13 +340,22 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 			Note:   ref.Note,
 			Weight: ref.Weight,
 			Answer: ref.Answer,
+			Dosage: ref.Dosage,
 		}
 		if input.Status == "" {
 			input.Status = models.ApplicationStatusApplied
 		}
 		_, err = writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
 		if err != nil {
-			if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
+			var dre *DosageRequiredError
+			if errors.As(err, &dre) {
+				// §10-B6: not an error — the row comes back with a manual dosage.
+				res["status"] = "dosage_required"
+				res["detail"] = dre.Warning.Detail
+				res["reason"] = dre.Warning.Reason
+				res["last_weight"] = dre.Warning.LastWeight
+				res["last_weight_at"] = dre.Warning.LastWeightAt
+			} else if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
 				res["status"] = "already_done"
 			} else {
 				res["status"] = "error"

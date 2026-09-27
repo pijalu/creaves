@@ -73,6 +73,15 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 		},
 	}
 
+	// §10-B6 dialog strings on the day-plan page (fixture renders a due,
+	// applicable item → apply button + dosage modal).
+	applyStrings := map[string][]string{
+		"fr":    {"Appliquer", "Le dosage ne peut pas être calculé automatiquement", "Dernier poids enregistré", "Appliquer avec ce dosage"},
+		"en-US": {"Apply", "Dosage cannot be computed automatically", "Last recorded weight", "Apply with this dosage"},
+		"de":    {"Anwenden", "Die Dosierung kann nicht automatisch berechnet werden", "Zuletzt erfasstes Gewicht", "Mit dieser Dosierung anwenden"},
+		"nl":    {"Toepassen", "De dosering kan niet automatisch worden berekend", "Laatst geregistreerde gewicht", "Met deze dosering toepassen"},
+	}
+
 	paths := []string{
 		"/care_plan", "/care_rules", "/care_rules/new",
 		"/care_matchers", "/care_matchers/new",
@@ -99,6 +108,12 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 					require.NotEmpty(t, want)
 					require.Contains(t, string(raw), want,
 						"%s %s must show the localized title %q", lang, path, want)
+					if path == "/care_plan" {
+						for _, s := range applyStrings[lang] {
+							require.Contains(t, string(raw), s,
+								"%s /care_plan must render the §10-B6 apply string %q", lang, s)
+						}
+					}
 				})
 			}
 		})
