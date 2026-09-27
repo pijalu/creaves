@@ -26,25 +26,6 @@ type planItemRef struct {
 	DueAt      time.Time `json:"due_at"`
 }
 
-// findItem locates the referenced occurrence in the assembled day plan and
-// verifies the source still produces it (§6.2 step 1).
-func findItem(plan *DayPlan, ref planItemRef) (*careplan.PlanItem, error) {
-	for i := range plan.Items {
-		it := &plan.Items[i]
-		src := it.Occurrence.Source
-		if src == nil {
-			continue
-		}
-		if string(src.SourceType()) == ref.SourceType &&
-			src.SourceID() == ref.SourceID &&
-			it.Occurrence.AnimalID == ref.AnimalID &&
-			it.Occurrence.DueAt.Equal(ref.DueAt) {
-			return it, nil
-		}
-	}
-	return nil, fmt.Errorf("occurrence not found or no longer produced by its source (§6.2)")
-}
-
 // planApplyRequest binds POST /care_plan/apply bodies.
 type planApplyRequest struct {
 	planItemRef
@@ -182,14 +163,14 @@ func CarePlanApply(c buffalo.Context) error {
 		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
 	}
 
-	plan, err := BuildDayPlan(tx, time.Now(), time.Time{}, time.Time{})
+	rev, err := ReverifyItem(tx, in.planItemRef, time.Now())
 	if err != nil {
+		if errors.Is(err, errItemNotReproduced) {
+			return planError(c, http.StatusConflict, err)
+		}
 		return err
 	}
-	item, err := findItem(plan, in.planItemRef)
-	if err != nil {
-		return planError(c, http.StatusConflict, err)
-	}
+	item := rev.Item
 	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
 		// §4.5: the occurrence already has a recorded application — the
 		// generic hors-délai message would be misleading here.
@@ -218,7 +199,7 @@ func CarePlanApply(c buffalo.Context) error {
 			}
 			requested = t
 		}
-		clamped := ClampDeferredUntil(item.Occurrence.Source, plan.ContextOf(item.Occurrence.AnimalID), item.Occurrence.AnimalID, item.Occurrence.DueAt, requested)
+		clamped := ClampDeferredUntil(item.Occurrence.Source, rev.Ctx, item.Occurrence.AnimalID, item.Occurrence.DueAt, requested)
 		input.DeferredUntil = &clamped
 	}
 
@@ -305,27 +286,25 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 		}
 	}
 
-	plan, err := BuildDayPlan(tx, time.Now(), time.Time{}, time.Time{})
-	if err != nil {
-		return err
-	}
 	results := make([]map[string]interface{}, 0, len(in.Items))
 	applied := 0
 	for _, ref := range in.Items {
 		res := map[string]interface{}{
 			"animal_id": ref.AnimalID,
 		}
-		item, err := findItem(plan, ref.planItemRef)
-		if err != nil {
-			res["status"] = "already_done"
+		rev, rerr := ReverifyItem(tx, ref.planItemRef, time.Now())
+		if rerr != nil {
+			if errors.Is(rerr, errItemNotReproduced) {
+				res["status"] = "already_done"
+			} else {
+				res["status"] = "error"
+				res["error"] = rerr.Error()
+			}
 			results = append(results, res)
 			continue
 		}
-		a, ok := plan.AnimalRow(ref.AnimalID)
-		cage := ""
-		if ok {
-			cage = a.Cage.String
-		}
+		item := rev.Item
+		cage := rev.Animal.Cage.String
 		if cageRef == "" {
 			cageRef = cage
 		}
@@ -345,7 +324,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 		if input.Status == "" {
 			input.Status = models.ApplicationStatusApplied
 		}
-		_, err = writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
+		_, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
 		if err != nil {
 			var dre *DosageRequiredError
 			if errors.As(err, &dre) {

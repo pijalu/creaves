@@ -2,7 +2,9 @@ package actions
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -127,8 +129,19 @@ type planAnimals struct {
 // in-care animal (§5: rules match against in-care animals). Missing
 // enrichments stay empty and make predicates fail closed (§5.2).
 func loadAnimalContexts(tx *pop.Connection, now time.Time) (*planAnimals, error) {
+	return loadAnimalContextsScoped(tx, now, nil)
+}
+
+// loadAnimalContextsScoped is loadAnimalContexts restricted to the given
+// animal ids (nil = all in-care animals). Same fill pipeline — contexts
+// are identical for the scoped ids (ReverifyItem, §6.2).
+func loadAnimalContextsScoped(tx *pop.Connection, now time.Time, ids []int) (*planAnimals, error) {
 	var animals []models.Animal
-	if err := tx.Where("outtake_id IS NULL").All(&animals); err != nil {
+	q := tx.Where("outtake_id IS NULL")
+	if ids != nil {
+		q = q.Where("id in (?)", ids)
+	}
+	if err := q.All(&animals); err != nil {
 		return nil, err
 	}
 	pa := &planAnimals{
@@ -225,18 +238,28 @@ func (pa *planAnimals) fillSpeciesFields(tx *pop.Connection) error {
 }
 
 // fillIntakeCondition resolves the intake condition fields
-// (parasites/wounds/general) through animals.intake_id.
+// (parasites/wounds/general) through animals.intake_id — one bulk query
+// over the referenced intakes (§9: no N+1).
 func (pa *planAnimals) fillIntakeCondition(tx *pop.Connection) error {
-	intakes := make(map[uuid.UUID]models.Intake)
+	ids := make([]uuid.UUID, 0, len(pa.rows))
+	seen := make(map[uuid.UUID]bool, len(pa.rows))
 	for _, row := range pa.rows {
-		if row.IntakeID == (uuid.UUID{}) {
+		if row.IntakeID == (uuid.UUID{}) || seen[row.IntakeID] {
 			continue
 		}
-		var in models.Intake
-		if err := tx.Find(&in, row.IntakeID); err != nil {
-			continue // dangling intake_id — fields stay empty (fail closed)
-		}
-		intakes[row.IntakeID] = in
+		seen[row.IntakeID] = true
+		ids = append(ids, row.IntakeID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	var rows []models.Intake
+	if err := tx.Where("id in (?)", ids).All(&rows); err != nil {
+		return err
+	}
+	intakes := make(map[uuid.UUID]models.Intake, len(rows))
+	for _, in := range rows {
+		intakes[in.ID] = in
 	}
 	for id, row := range pa.rows {
 		in, ok := intakes[row.IntakeID]
@@ -254,8 +277,36 @@ func (pa *planAnimals) fillIntakeCondition(tx *pop.Connection) error {
 	return nil
 }
 
-// fillLastWeights resolves the latest recorded weight (grams) per animal.
+// animalIDSet returns the in-care animal ids (sorted) for IN-set queries.
+func (pa *planAnimals) animalIDSet() []int {
+	ids := make([]int, 0, len(pa.ctxs))
+	for id := range pa.ctxs {
+		ids = append(ids, id)
+	}
+	sort.Ints(ids)
+	return ids
+}
+
+// inSet renders a (?,?,…) placeholder list and the matching args for an
+// IN-set raw query. Callers must no-op when ids is empty.
+func inSet(ids []int) (string, []interface{}) {
+	ph := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		ph[i] = "?"
+		args[i] = id
+	}
+	return "(" + strings.Join(ph, ",") + ")", args
+}
+
+// fillLastWeights resolves the latest recorded weight (grams) per animal —
+// one JOIN/MAX query over the in-care IN-set (M3: no full-history scan).
 func (pa *planAnimals) fillLastWeights(tx *pop.Connection) error {
+	ids := pa.animalIDSet()
+	if len(ids) == 0 {
+		return nil
+	}
+	set, args := inSet(ids)
 	var rows []struct {
 		AnimalID int          `db:"animal_id"`
 		Weight   nulls.String `db:"weight"`
@@ -263,10 +314,10 @@ func (pa *planAnimals) fillLastWeights(tx *pop.Connection) error {
 	q := `SELECT c.animal_id AS animal_id, c.weight AS weight
 	      FROM cares c
 	      JOIN (SELECT animal_id, MAX(date) AS md FROM cares
-	            WHERE weight IS NOT NULL AND weight <> '' GROUP BY animal_id) x
+	            WHERE animal_id IN ` + set + ` AND weight IS NOT NULL AND weight <> '' GROUP BY animal_id) x
 	            ON x.animal_id = c.animal_id AND x.md = c.date
 	      WHERE c.weight IS NOT NULL AND c.weight <> ''`
-	if err := tx.RawQuery(q).All(&rows); err != nil {
+	if err := tx.RawQuery(q, args...).All(&rows); err != nil {
 		return err
 	}
 	for _, r := range rows {
@@ -282,17 +333,24 @@ func (pa *planAnimals) fillLastWeights(tx *pop.Connection) error {
 	return nil
 }
 
-// fillVetDiagnostics resolves the latest veterinaryvisit diagnostic.
+// fillVetDiagnostics resolves the latest veterinaryvisit diagnostic — one
+// JOIN/MAX query over the in-care IN-set (M3).
 func (pa *planAnimals) fillVetDiagnostics(tx *pop.Connection) error {
+	ids := pa.animalIDSet()
+	if len(ids) == 0 {
+		return nil
+	}
+	set, args := inSet(ids)
 	var rows []struct {
 		AnimalID   int          `db:"animal_id"`
 		Diagnostic nulls.String `db:"diagnostic"`
 	}
 	q := `SELECT v.animal_id AS animal_id, v.diagnostic AS diagnostic
 	      FROM veterinaryvisits v
-	      JOIN (SELECT animal_id, MAX(date) AS md FROM veterinaryvisits GROUP BY animal_id) x
+	      JOIN (SELECT animal_id, MAX(date) AS md FROM veterinaryvisits
+	            WHERE animal_id IN ` + set + ` GROUP BY animal_id) x
 	            ON x.animal_id = v.animal_id AND x.md = v.date`
-	if err := tx.RawQuery(q).All(&rows); err != nil {
+	if err := tx.RawQuery(q, args...).All(&rows); err != nil {
 		return err
 	}
 	for _, r := range rows {

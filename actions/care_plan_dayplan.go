@@ -55,7 +55,7 @@ func BuildDayPlan(tx *pop.Connection, now, from, to time.Time) (*DayPlan, error)
 	if err != nil {
 		return nil, err
 	}
-	members, err := buildMemberships(tx, sources, pa)
+	members, err := buildMemberships(tx, sources, pa, from)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,9 @@ func sourceAnimals(src careplan.PlanSource, planAnimal map[string]int, members m
 // buildMemberships resolves which animals each active rule covers (§5):
 // matcher DSL evaluation per in-care animal, minus per-animal exclusions,
 // plus the §5.4 course-latch (matched once → stays until course end).
-func buildMemberships(tx *pop.Connection, sources []careplan.PlanSource, pa *planAnimals) (map[string]map[int]bool, error) {
+// from is the plan window start: the latch query only reads applications
+// within the longest possible course horizon before it (M3).
+func buildMemberships(tx *pop.Connection, sources []careplan.PlanSource, pa *planAnimals, from time.Time) (map[string]map[int]bool, error) {
 	members := map[string]map[int]bool{}
 	var ruleIDs []uuid.UUID
 	for _, src := range sources {
@@ -178,17 +180,32 @@ func buildMemberships(tx *pop.Connection, sources []careplan.PlanSource, pa *pla
 		excluded[e.RuleID][e.AnimalID] = true
 	}
 
-	// course latch (§5.4): applications prove past membership
-	latched := map[uuid.UUID]map[int]bool{}
-	var latchApps []models.CarePlanApplication
-	if err := tx.Where("source_type = ?", models.ApplicationSourceRule).Where("source_id in (?)", ruleIDs).All(&latchApps); err != nil {
-		return nil, err
-	}
-	for _, a := range latchApps {
-		if latched[a.SourceID] == nil {
-			latched[a.SourceID] = map[int]bool{}
+	// course latch (§5.4): applications prove past membership. The query is
+	// bounded by the longest possible course horizon (M3): an application
+	// older than from − horizon belongs to a course whose last generated
+	// day precedes the window — it cannot produce in-window occurrences.
+	maxCourseDays := 0
+	for i := range rules {
+		if !rules[i].LatchMembership {
+			continue
 		}
-		latched[a.SourceID][a.AnimalID] = true
+		if d := courseHorizonDays(&rules[i]); d > maxCourseDays {
+			maxCourseDays = d
+		}
+	}
+	latched := map[uuid.UUID]map[int]bool{}
+	if maxCourseDays > 0 {
+		latchFrom := from.AddDate(0, 0, -maxCourseDays)
+		var latchApps []models.CarePlanApplication
+		if err := tx.Where("source_type = ?", models.ApplicationSourceRule).Where("source_id in (?)", ruleIDs).Where("due_at >= ?", latchFrom).All(&latchApps); err != nil {
+			return nil, err
+		}
+		for _, a := range latchApps {
+			if latched[a.SourceID] == nil {
+				latched[a.SourceID] = map[int]bool{}
+			}
+			latched[a.SourceID][a.AnimalID] = true
+		}
 	}
 
 	reg := careplan.DefaultRegistry()
@@ -226,6 +243,27 @@ func hasDuration(r *models.CareRule) bool {
 	return err == nil && sched.DurationDays > 0
 }
 
+// courseHorizonDays returns the longest calendar span a course of this
+// rule can cover, first to last generated day (§10-B3): duration_days
+// counts generated days stepping every_days; a weekday filter can stretch
+// the calendar span up to 7× (worst case 1 passing day per week). Broken
+// or open-ended schedules report 0 (no latch possible, §7.1-6).
+func courseHorizonDays(r *models.CareRule) int {
+	sched, err := careplan.ParseScheduleJSON(r.Schedule)
+	if err != nil || sched.DurationDays <= 0 {
+		return 0
+	}
+	every := sched.EveryDays
+	if every < 1 {
+		every = 1
+	}
+	span := (sched.DurationDays - 1) * every
+	if len(sched.Weekdays) > 0 {
+		span *= 7
+	}
+	return span + 1
+}
+
 // loadApplications loads the window's application rows keyed by occurrence
 // key (§6.1 step 3 — one query).
 func loadApplications(tx *pop.Connection, from, to time.Time) (map[string]*careplan.ApplicationView, error) {
@@ -251,9 +289,222 @@ func occurrenceKeyParts(sourceType, sourceID string, animalID int, dueAt time.Ti
 	return fmt.Sprintf("%s|%s|%d|%d", sourceType, sourceID, animalID, dueAt.UnixNano())
 }
 
+// CountOpenItems computes the landing badge counters (§7.2): open (due or
+// missing) and late items at `now`. It runs the same membership/occurrence
+// pipeline as BuildDayPlan but only materializes occurrences up to the
+// badge horizon — no occurrence due after now+lookahead can be open or
+// late, so the +2 day display window is never generated (M3).
+func CountOpenItems(tx *pop.Connection, now time.Time) (open, late int, err error) {
+	from, to := DefaultPlanWindow(now)
+	pa, err := loadAnimalContexts(tx, now)
+	if err != nil {
+		return 0, 0, err
+	}
+	sources, planAnimal, err := loadPlanSources(tx)
+	if err != nil {
+		return 0, 0, err
+	}
+	members, err := buildMemberships(tx, sources, pa, from)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// badge horizon: statuses due/late/missing all require
+	// due_at ≤ now + lookahead (§10-CP6a).
+	maxLookahead := time.Duration(0)
+	for _, src := range sources {
+		if l := time.Duration(src.Schedule().LookaheadMinutes) * time.Minute; l > maxLookahead {
+			maxLookahead = l
+		}
+	}
+	horizon := now.Add(maxLookahead)
+	if to.Before(horizon) {
+		horizon = to
+	}
+
+	var occs []careplan.Occurrence
+	for _, src := range sources {
+		for _, animalID := range sourceAnimals(src, planAnimal, members, pa) {
+			occs = append(occs, careplan.GenerateOccurrences(src, pa.ctxs[animalID], from, horizon)...)
+		}
+	}
+	apps, err := loadApplications(tx, from, horizon)
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, it := range careplan.BuildPlanItems(occs, apps, now, horizon) {
+		switch it.Status {
+		case careplan.StatusDue, careplan.StatusMissing:
+			open++
+		case careplan.StatusLate:
+			late++
+		}
+	}
+	return open, late, nil
+}
+
 // ---------------------------------------------------------------------------
-// Cage-scoped aggregation (§6.2a): cleanup renders one card per (source × cage)
+// Single-item re-verification (§6.2 step 1, M3): O(1) sources instead of a
+// full plan rebuild on the apply paths.
 // ---------------------------------------------------------------------------
+
+// ReverifiedItem is the result of ReverifyItem: the plan item plus the
+// animal context/row the apply paths need (defer clamp, cage checks).
+type ReverifiedItem struct {
+	Item   *careplan.PlanItem
+	Ctx    *careplan.AnimalContext
+	Animal models.Animal
+}
+
+// errItemNotReproduced mirrors findItem's "not found" failure: the
+// referenced occurrence is not (or no longer) produced by its source.
+var errItemNotReproduced = fmt.Errorf("occurrence not found or no longer produced by its source (§6.2)")
+
+// ReverifyItem recomputes the day-plan item for ONE occurrence reference
+// (§6.2): it loads just the referenced source, the referenced animal's
+// matcher context, the same-kind animal plans of that animal (override
+// resolution, §4.7) and the animal's in-window applications, then runs the
+// same engine pipeline BuildDayPlan runs — the result is identical to the
+// full-plan item for the reference.
+func ReverifyItem(tx *pop.Connection, ref planItemRef, now time.Time) (*ReverifiedItem, error) {
+	from, to := DefaultPlanWindow(now)
+
+	pa, err := loadAnimalContextsScoped(tx, now, []int{ref.AnimalID})
+	if err != nil {
+		return nil, err
+	}
+	ctx := pa.ctxs[ref.AnimalID]
+	if ctx == nil {
+		return nil, errItemNotReproduced // animal out of care — nothing to plan
+	}
+
+	var occs []careplan.Occurrence
+	switch ref.SourceType {
+	case models.ApplicationSourceRule:
+		var r models.CareRule
+		if err := tx.Where("id = ? AND active = ?", ref.SourceID, true).First(&r); err != nil {
+			return nil, errItemNotReproduced
+		}
+		src, err := careRuleSource(&r)
+		if err != nil {
+			return nil, errItemNotReproduced
+		}
+		member, err := ruleCoversAnimal(tx, &r, ctx, from)
+		if err != nil {
+			return nil, err
+		}
+		if !member {
+			return nil, errItemNotReproduced
+		}
+		occs = careplan.GenerateOccurrences(src, ctx, from, to)
+		// §4.7: same-kind animal plans of this animal can suppress the rule
+		// occurrences — feed them to the override resolution.
+		var plans []models.CareAnimalPlan
+		if err := tx.Where("active = ? AND animal_id = ? AND action_kind = ?", true, ref.AnimalID, src.ActionKind()).All(&plans); err != nil {
+			return nil, err
+		}
+		for i := range plans {
+			if ps, err := careAnimalPlanSource(&plans[i]); err == nil {
+				occs = append(occs, careplan.GenerateOccurrences(ps, ctx, from, to)...)
+			}
+		}
+	case models.ApplicationSourceAnimal:
+		var p models.CareAnimalPlan
+		if err := tx.Where("id = ? AND active = ?", ref.SourceID, true).First(&p); err != nil {
+			return nil, errItemNotReproduced
+		}
+		if p.AnimalID != ref.AnimalID {
+			return nil, errItemNotReproduced
+		}
+		src, err := careAnimalPlanSource(&p)
+		if err != nil {
+			return nil, errItemNotReproduced
+		}
+		// plans never suppress plans and rules never suppress plans (§4.7):
+		// no other source can affect this item.
+		occs = careplan.GenerateOccurrences(src, ctx, from, to)
+	default:
+		return nil, errItemNotReproduced
+	}
+
+	var appRows []models.CarePlanApplication
+	if err := tx.Where("animal_id = ? AND due_at >= ? AND due_at <= ?", ref.AnimalID, from, to).All(&appRows); err != nil {
+		return nil, err
+	}
+	apps := make(map[string]*careplan.ApplicationView, len(appRows))
+	for i := range appRows {
+		a := &appRows[i]
+		apps[occurrenceKeyParts(a.SourceType, a.SourceID.String(), a.AnimalID, a.DueAt)] = &careplan.ApplicationView{
+			Status:             a.Status,
+			AppliedAt:          a.AppliedAt,
+			DeferredUntil:      a.DeferredUntil,
+			FulfillmentDeleted: a.FulfillmentDeleted,
+		}
+	}
+
+	items := careplan.BuildPlanItems(occs, apps, now, to)
+	for i := range items {
+		it := &items[i]
+		s := it.Occurrence.Source
+		if s == nil {
+			continue
+		}
+		if string(s.SourceType()) == ref.SourceType &&
+			s.SourceID() == ref.SourceID &&
+			it.Occurrence.AnimalID == ref.AnimalID &&
+			it.Occurrence.DueAt.Equal(ref.DueAt) {
+			return &ReverifiedItem{Item: it, Ctx: ctx, Animal: pa.rows[ref.AnimalID]}, nil
+		}
+	}
+	return nil, errItemNotReproduced
+}
+
+// ruleCoversAnimal reproduces the buildMemberships membership decision of
+// one rule for one animal (§5): matcher evaluation (a missing/broken
+// matcher expression matches everything, as in buildMemberships), minus
+// per-animal exclusion (§4.1), plus the §5.4 course latch — the latch
+// union runs AFTER exclusions, exactly like the bulk path.
+func ruleCoversAnimal(tx *pop.Connection, r *models.CareRule, ctx *careplan.AnimalContext, from time.Time) (bool, error) {
+	matched := true
+	if r.MatcherID.Valid {
+		var node careplan.Node
+		var m models.CareMatcher
+		if err := tx.Find(&m, r.MatcherID.UUID); err == nil {
+			if parsed, perr := careplan.ParseValidatedWith(m.Expression, careplan.DefaultRegistry()); perr == nil {
+				node = parsed
+			}
+		}
+		if node != nil {
+			matched = careplan.Eval(careplan.DefaultRegistry(), node, ctx)
+		}
+	}
+	if matched {
+		var ex []models.CareRuleExclusion
+		if err := tx.Where("rule_id = ? AND animal_id = ?", r.ID, ctx.ID).All(&ex); err != nil {
+			return false, err
+		}
+		if len(ex) > 0 {
+			matched = false
+		}
+	}
+	if matched {
+		return true, nil
+	}
+	// §5.4 latch union (overrides matcher/exclusion misses).
+	if r.LatchMembership && hasDuration(r) {
+		latchFrom := from.AddDate(0, 0, -courseHorizonDays(r))
+		var apps []models.CarePlanApplication
+		if err := tx.Where("source_type = ? AND source_id = ? AND animal_id = ? AND due_at >= ?",
+			models.ApplicationSourceRule, r.ID, ctx.ID, latchFrom).All(&apps); err != nil {
+			return false, err
+		}
+		if len(apps) > 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 
 // CageCard is one (cleanup source × cage) group of the day plan.
 type CageCard struct {
