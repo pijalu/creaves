@@ -37,6 +37,9 @@ func landingBackTarget(c buffalo.Context, animal *models.Animal) string {
 	return "/" + landingTabAnchor(animal.Zone.String)
 }
 
+// timeToNullTime parses the legacy "15:04" feeding-time format. Legacy
+// feeding columns are frozen read-only (bugs.md H3) — kept for the guest
+// page conversion semantics and its tests.
 func timeToNullTime(s string) nulls.Time {
 	t, err := time.Parse("15:04", s)
 	if err != nil {

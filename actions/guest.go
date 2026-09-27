@@ -427,6 +427,11 @@ GROUP BY a.id`, a.ID).All(&afRaw)
 	}
 	nextFeeding := ""
 	if len(afRaw) == 1 {
+		// bugs.md Phase 4.1 (option a): the guest page still renders the
+		// next feeding from the legacy feeding_start/end/period columns,
+		// which are frozen read-only at their migration values (H3). It
+		// may diverge from the rule-driven day plan; deriving it from
+		// BuildDayPlan is a backlog item (same perf cost as M3).
 		calc := calculateFeeding(afRaw[0], now)
 		if calc.NextFeeding.Valid {
 			// code 0: the planned feeding is overdue by more than half a period

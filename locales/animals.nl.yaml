@@ -67,3 +67,5 @@
   translation: "Negatief"
 - id: "animals.exit_status.neutral"
   translation: "Neutraal"
+- id: "animals.feeding.legacy_frozen"
+  translation: "Historisch voedingsschema (alleen-lezen) — het schema wordt beheerd in het tabblad Plan van het dier."

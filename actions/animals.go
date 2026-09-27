@@ -939,19 +939,11 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusUnprocessableEntity, err)
 	}
 
-	// Decode Feeding times
-	feedingTimes := struct {
-		AnimalFeedingStartTime        string
-		AnimalFeedingEndTime          string
-		AnimalFeedingPeriodHourMinute string
-	}{}
-	if err := c.Bind(&feedingTimes); err != nil {
-		return err
-	}
-	c.Logger().Debugf("feedingTimes: %v", feedingTimes)
-	animal.FeedingStart = timeToNullTime(feedingTimes.AnimalFeedingStartTime)
-	animal.FeedingEnd = timeToNullTime(feedingTimes.AnimalFeedingEndTime)
-	animal.FeedingPeriod = timeToMinutes(feedingTimes.AnimalFeedingPeriodHourMinute)
+	// Legacy feeding schedule columns (feeding_start/end/period) are frozen
+	// (bugs.md H3 / Phase 4): the day plan is driven by care rules/plans, the
+	// form renders them read-only, and Update ignores any crafted
+	// AnimalFeedingStartTime/EndTime/PeriodHourMinute params so the freeze
+	// cannot be bypassed by POST.
 
 	// Decode additonal form param
 	backUrl := struct {

@@ -66,3 +66,5 @@
   translation: "Negative"
 - id: "animals.exit_status.neutral"
   translation: "Neutral"
+- id: "animals.feeding.legacy_frozen"
+  translation: "Historic feeding schedule (read-only) — the schedule is now managed in the animal's Plan tab."

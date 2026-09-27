@@ -66,3 +66,5 @@
   translation: "Négative"
 - id: "animals.exit_status.neutral"
   translation: "Neutre"
+- id: "animals.feeding.legacy_frozen"
+  translation: "Horaire historique (lecture seule) — le plan se gère dans l'onglet Plan de l'animal."
