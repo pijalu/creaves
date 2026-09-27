@@ -10,9 +10,21 @@ import (
 	"creaves/models"
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 )
+
+// planError renders a 4xx JSON error body for the care-plan API with the
+// real message — buffalo's default error handler masks err.Error() to
+// http.StatusText outside development, which would strip the detail the
+// UI toasts and API clients rely on (bugs.md H1).
+func planError(c buffalo.Context, status int, err error) error {
+	return c.Render(status, renderJSON(map[string]interface{}{
+		"error": err.Error(),
+		"code":  status,
+	}))
+}
 
 // Plan service support helpers (§4.5/§6.2): source projection, defer
 // clamping (§10-A2/CP4), un-apply (§10-CP1) and the fulfillment-destroy

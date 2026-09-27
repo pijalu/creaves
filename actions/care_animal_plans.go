@@ -21,7 +21,7 @@ func CareAnimalPlanList(c buffalo.Context) error {
 	tx := planTx(c)
 	animal := &models.Animal{}
 	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	plans := &models.CareAnimalPlans{}
 	if err := tx.Where("animal_id = ?", animal.ID).All(plans); err != nil {
@@ -36,7 +36,7 @@ func CareAnimalPlanCreate(c buffalo.Context) error {
 	tx := planTx(c)
 	animal := &models.Animal{}
 	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	plan := &models.CareAnimalPlan{}
 	if err := c.Bind(plan); err != nil {
@@ -64,14 +64,14 @@ func CareAnimalPlanUpdate(c buffalo.Context) error {
 	tx := planTx(c)
 	animal := &models.Animal{}
 	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	plan := &models.CareAnimalPlan{}
 	if err := tx.Find(plan, c.Param("care_animal_plan_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if plan.AnimalID != animal.ID {
-		return c.Error(http.StatusNotFound, fmt.Errorf("plan does not belong to animal"))
+		return planError(c, http.StatusNotFound, fmt.Errorf("plan does not belong to animal"))
 	}
 	if err := c.Bind(plan); err != nil {
 		return err
@@ -97,14 +97,14 @@ func CareAnimalPlanDestroy(c buffalo.Context) error {
 	tx := planTx(c)
 	animal := &models.Animal{}
 	if err := tx.Find(animal, c.Param("animal_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	plan := &models.CareAnimalPlan{}
 	if err := tx.Find(plan, c.Param("care_animal_plan_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if plan.AnimalID != animal.ID {
-		return c.Error(http.StatusNotFound, fmt.Errorf("plan does not belong to animal"))
+		return planError(c, http.StatusNotFound, fmt.Errorf("plan does not belong to animal"))
 	}
 	if err := tx.Destroy(plan); err != nil {
 		return err

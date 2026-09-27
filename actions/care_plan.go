@@ -69,7 +69,7 @@ func CarePlanIndex(c buffalo.Context) error {
 	// retired /feeding page redirects here with kind=feeding).
 	if kind := c.Param("kind"); kind != "" {
 		if err := careplan.ValidateActionKind(kind); err != nil {
-			return c.Error(http.StatusUnprocessableEntity, err)
+			return planError(c, http.StatusUnprocessableEntity, err)
 		}
 		narrowed := *plan
 		narrowed.Items = make([]careplan.PlanItem, 0, len(plan.Items))
@@ -164,7 +164,7 @@ func CarePlanApply(c buffalo.Context) error {
 	}
 	u := GetCurrentUser(c)
 	if u == nil {
-		return c.Error(http.StatusUnauthorized, fmt.Errorf("authentication required"))
+		return planError(c, http.StatusUnauthorized, fmt.Errorf("authentication required"))
 	}
 
 	status := in.Status
@@ -174,10 +174,10 @@ func CarePlanApply(c buffalo.Context) error {
 	if status != models.ApplicationStatusApplied &&
 		status != models.ApplicationStatusSkipped &&
 		status != models.ApplicationStatusDeferred {
-		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("status must be applied, skipped or deferred"))
+		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("status must be applied, skipped or deferred"))
 	}
 	if status != models.ApplicationStatusApplied && strings.TrimSpace(in.Note) == "" {
-		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
+		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
 	}
 
 	plan, err := BuildDayPlan(tx, time.Now(), time.Time{}, time.Time{})
@@ -186,18 +186,18 @@ func CarePlanApply(c buffalo.Context) error {
 	}
 	item, err := findItem(plan, in.planItemRef)
 	if err != nil {
-		return c.Error(http.StatusConflict, err)
+		return planError(c, http.StatusConflict, err)
 	}
 	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
 		// §4.5: the occurrence already has a recorded application — the
 		// generic hors-délai message would be misleading here.
-		return c.Error(http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
+		return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
 	}
 	if !item.Applicable {
-		return c.Error(http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
+		return planError(c, http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
 	}
 	if item.Status == careplan.StatusOverridden {
-		return c.Error(http.StatusConflict, fmt.Errorf("occurrence is overridden by animal plan %q", item.OverriddenBy))
+		return planError(c, http.StatusConflict, fmt.Errorf("occurrence is overridden by animal plan %q", item.OverriddenBy))
 	}
 
 	input := PlanApplyInput{
@@ -211,7 +211,7 @@ func CarePlanApply(c buffalo.Context) error {
 		if in.DeferredUntil != "" {
 			t, err := time.Parse(time.RFC3339, in.DeferredUntil)
 			if err != nil {
-				return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("deferred_until must be RFC3339"))
+				return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("deferred_until must be RFC3339"))
 			}
 			requested = t
 		}
@@ -228,9 +228,9 @@ func CarePlanApply(c buffalo.Context) error {
 	app, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
 	if err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
-			return c.Error(http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
+			return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
 		}
-		return c.Error(http.StatusUnprocessableEntity, err)
+		return planError(c, http.StatusUnprocessableEntity, err)
 	}
 	return c.Render(http.StatusCreated, renderJSON(app))
 }
@@ -240,7 +240,7 @@ func CarePlanApply(c buffalo.Context) error {
 func CarePlanUnapply(c buffalo.Context) error {
 	u := GetCurrentUser(c)
 	if u == nil || !u.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin only (§10-CP1)"))
+		return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1)"))
 	}
 	tx := planTx(c)
 	in := &struct {
@@ -252,7 +252,7 @@ func CarePlanUnapply(c buffalo.Context) error {
 	}
 	deleted, err := UnapplyPlanItem(tx, in.SourceType, in.SourceID, in.AnimalID, in.DueAt, in.DeleteFulfillment)
 	if err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"status":              "unapplied",
@@ -268,7 +268,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 	tx := planTx(c)
 	u := GetCurrentUser(c)
 	if u == nil {
-		return c.Error(http.StatusUnauthorized, fmt.Errorf("authentication required"))
+		return planError(c, http.StatusUnauthorized, fmt.Errorf("authentication required"))
 	}
 	in := &struct {
 		Items []planApplyRequest `json:"items"`
@@ -277,7 +277,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 		return err
 	}
 	if len(in.Items) == 0 {
-		return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("no items"))
+		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("no items"))
 	}
 
 	// §10.1-5/N2: the cage is the aggregation ceiling — every item must
@@ -286,7 +286,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 	cageRef := ""
 	for _, ref := range in.Items {
 		if ref.SourceID != first.SourceID || ref.SourceType != first.SourceType {
-			return c.Error(http.StatusUnprocessableEntity, fmt.Errorf("batch must stay within one source (§10.1-5)"))
+			return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("batch must stay within one source (§10.1-5)"))
 		}
 	}
 

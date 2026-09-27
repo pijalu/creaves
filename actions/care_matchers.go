@@ -23,11 +23,14 @@ import (
 // are rejected here — rule/matcher authoring stays an admin capability.
 
 // requireAdminForPlan denies non-admin accounts on the plan admin surfaces.
-func requireAdminForPlan(c buffalo.Context) error {
+// It renders the 403 body itself (planError keeps the detail in every env,
+// bugs.md H1) and reports whether the request may proceed.
+func requireAdminForPlan(c buffalo.Context) bool {
 	if u := GetCurrentUser(c); u == nil || !u.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin only"))
+		_ = planError(c, http.StatusForbidden, fmt.Errorf("admin only"))
+		return false
 	}
-	return nil
+	return true
 }
 
 // ---------------------------------------------------------------------------
@@ -93,8 +96,8 @@ func previewMatcherExpression(tx *pop.Connection, expression string, limit int) 
 // CareMatcherPreview handles POST /care_matchers/preview (§7.1-3): body
 // {expression} → {match_count, animals:[…]}.
 func CareMatcherPreview(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -108,7 +111,7 @@ func CareMatcherPreview(c buffalo.Context) error {
 	}
 	items, matches, err := previewMatcherExpression(tx, in.Expression, 50)
 	if err != nil {
-		return c.Error(http.StatusUnprocessableEntity, err)
+		return planError(c, http.StatusUnprocessableEntity, err)
 	}
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"match_count": matches,
@@ -180,8 +183,8 @@ type CareMatchersResource struct {
 // List gets all matchers. GET /care_matchers — JSON API plus the HTML
 // matcher library page (§7.2), content-negotiated like the rules list.
 func (v CareMatchersResource) List(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matchers := &models.CareMatchers{}
@@ -198,13 +201,13 @@ func (v CareMatchersResource) List(c buffalo.Context) error {
 
 // Show gets one matcher. GET /care_matchers/{care_matcher_id}
 func (v CareMatchersResource) Show(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matcher := &models.CareMatcher{}
 	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	return c.Render(http.StatusOK, renderJSON(matcher))
 }
@@ -225,8 +228,8 @@ func setMatcherContext(c buffalo.Context, matcher *models.CareMatcher) {
 // New renders the matcher editor (visual builder + live preview) for a new
 // matcher. GET /care_matchers/new — HTML only.
 func (v CareMatchersResource) New(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	matcher := &models.CareMatcher{}
 	setMatcherContext(c, matcher)
@@ -236,13 +239,13 @@ func (v CareMatchersResource) New(c buffalo.Context) error {
 // Edit renders the matcher editor for an existing matcher.
 // GET /care_matchers/{care_matcher_id}/edit — HTML only.
 func (v CareMatchersResource) Edit(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matcher := &models.CareMatcher{}
 	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	setMatcherContext(c, matcher)
 	return c.Render(http.StatusOK, r.HTML("care_matchers/edit.plush.html"))
@@ -250,8 +253,8 @@ func (v CareMatchersResource) Edit(c buffalo.Context) error {
 
 // Create adds a matcher. POST /care_matchers
 func (v CareMatchersResource) Create(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matcher := &models.CareMatcher{}
@@ -280,13 +283,13 @@ func (v CareMatchersResource) Create(c buffalo.Context) error {
 
 // Update changes a matcher. PUT /care_matchers/{care_matcher_id}
 func (v CareMatchersResource) Update(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matcher := &models.CareMatcher{}
 	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if err := c.Bind(matcher); err != nil {
 		return err
@@ -317,13 +320,13 @@ func (v CareMatchersResource) Update(c buffalo.Context) error {
 
 // Destroy deletes a matcher. DELETE /care_matchers/{care_matcher_id}
 func (v CareMatchersResource) Destroy(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	matcher := &models.CareMatcher{}
 	if err := tx.Find(matcher, c.Param("care_matcher_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	// usage guard (§7.1-5): a matcher referenced by rules cannot be deleted
 	used, err := tx.Where("matcher_id = ?", matcher.ID).Count(&models.CareRule{})
@@ -331,7 +334,7 @@ func (v CareMatchersResource) Destroy(c buffalo.Context) error {
 		return err
 	}
 	if used > 0 {
-		return c.Error(http.StatusConflict, fmt.Errorf("matcher used by %d rule(s)", used))
+		return planError(c, http.StatusConflict, fmt.Errorf("matcher used by %d rule(s)", used))
 	}
 	if err := tx.Destroy(matcher); err != nil {
 		return err

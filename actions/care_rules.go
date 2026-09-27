@@ -106,8 +106,8 @@ type CareRulesResource struct {
 // List gets all rules. GET /care_rules — JSON API plus the HTML rules
 // list page (§7.2), content-negotiated like the other admin surfaces.
 func (v CareRulesResource) List(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rules := &models.CareRules{}
@@ -129,13 +129,13 @@ func (v CareRulesResource) List(c buffalo.Context) error {
 
 // Show gets one rule. GET /care_rules/{care_rule_id}
 func (v CareRulesResource) Show(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	return c.Render(http.StatusOK, renderJSON(rule))
 }
@@ -169,8 +169,8 @@ func setRuleContext(c buffalo.Context, tx *pop.Connection, rule *models.CareRule
 // New renders the rule editor (visual builder + live preview) for a new
 // rule. GET /care_rules/new — HTML only.
 func (v CareRulesResource) New(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{Active: true}
@@ -184,13 +184,13 @@ func (v CareRulesResource) New(c buffalo.Context) error {
 // calls GET /care_rules/{id}/preview (§7.1-3) from the page JS.
 // GET /care_rules/{care_rule_id}/edit — HTML only.
 func (v CareRulesResource) Edit(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if err := setRuleContext(c, tx, rule); err != nil {
 		return err
@@ -200,8 +200,8 @@ func (v CareRulesResource) Edit(c buffalo.Context) error {
 
 // Create adds a rule. POST /care_rules
 func (v CareRulesResource) Create(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
@@ -233,13 +233,13 @@ func (v CareRulesResource) Create(c buffalo.Context) error {
 
 // Update changes a rule. PUT /care_rules/{care_rule_id}
 func (v CareRulesResource) Update(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if err := bindCareRule(c, rule); err != nil {
 		return err
@@ -273,13 +273,13 @@ func (v CareRulesResource) Update(c buffalo.Context) error {
 
 // Destroy deletes a rule. DELETE /care_rules/{care_rule_id}
 func (v CareRulesResource) Destroy(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if err := tx.Destroy(rule); err != nil {
 		return err
@@ -294,13 +294,13 @@ func (v CareRulesResource) Destroy(c buffalo.Context) error {
 // CareRulePreview handles GET /care_rules/{care_rule_id}/preview (§7.1-3):
 // live evaluation of the rule's matcher over the in-care animals.
 func CareRulePreview(c buffalo.Context) error {
-	if err := requireAdminForPlan(c); err != nil {
-		return err
+	if !requireAdminForPlan(c) {
+		return nil
 	}
 	tx := planTx(c)
 	rule := &models.CareRule{}
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
+		return planError(c, http.StatusNotFound, err)
 	}
 	if !rule.MatcherID.Valid {
 		// §7.1-6 guardrail: no matcher matches ALL animals — say so.
@@ -311,11 +311,11 @@ func CareRulePreview(c buffalo.Context) error {
 	}
 	matcher := &models.CareMatcher{}
 	if err := tx.Find(matcher, rule.MatcherID.UUID); err != nil {
-		return c.Error(http.StatusNotFound, fmt.Errorf("rule matcher missing: %w", err))
+		return planError(c, http.StatusNotFound, fmt.Errorf("rule matcher missing: %w", err))
 	}
 	items, matches, err := previewMatcherExpression(tx, matcher.Expression, 50)
 	if err != nil {
-		return c.Error(http.StatusUnprocessableEntity, err)
+		return planError(c, http.StatusUnprocessableEntity, err)
 	}
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"match_count": matches,

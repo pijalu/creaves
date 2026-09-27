@@ -413,6 +413,64 @@ func TestCarePlanDayPlanApplyIdempotent(t *testing.T) {
 	require.Equal(t, "applied", it["status"])
 }
 
+// TestCarePlanErrorContractDetail proves the 4xx bodies keep the server's
+// real message in a NON-development env (buffalo's default error handler
+// masks err.Error() to http.StatusText outside development — bugs.md H1).
+// This test runs under GO_ENV=test, i.e. exactly the masked path.
+func TestCarePlanErrorContractDetail(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+	token := planToken(t, client, baseURL)
+
+	now := time.Now()
+
+	// --- 422: skip without note keeps the §10-CP4 reason -------------------
+	due := itemDueSoon(now)
+	f.feedRule(t, models.DB, due)
+	_, body := planGetJSON(t, client, baseURL, "/care_plan")
+	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	require.NotNil(t, it)
+
+	req := itemRef(it)
+	req["status"] = "skipped"
+	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req)
+	require.Equal(t, http.StatusUnprocessableEntity, code, "body: %s", raw)
+	require.Contains(t, string(raw), "reason is mandatory",
+		"422 body must carry the real validation message, not 'Unprocessable Entity': %s", raw)
+	require.Contains(t, string(raw), `"code":422`)
+
+	// --- 409: out-of-window apply keeps the hors-délai message -------------
+	// two slots 2h/1h ago: the earlier occurrence's window closed when the
+	// later one became due (§10-A1) — both lie inside the plan window.
+	t1 := now.Add(-2 * time.Hour).Truncate(time.Minute)
+	t2 := now.Add(-1 * time.Hour).Truncate(time.Minute)
+	f.feedRule(t, models.DB, t1, t1, t2)
+	_, body = planGetJSON(t, client, baseURL, "/care_plan")
+	var locked map[string]interface{}
+	for _, cand := range planItemsOf(t, body) {
+		if int(cand["animal_id"].(float64)) == f.animalIDs[0] &&
+			cand["action_kind"] == "feeding" && cand["applicable"] == false {
+			locked = cand
+			break
+		}
+	}
+	require.NotNil(t, locked, "plan must expose a hors-délai occurrence")
+
+	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, itemRef(locked))
+	require.Equal(t, http.StatusConflict, code, "body: %s", raw)
+	require.Contains(t, string(raw), "hors délai",
+		"409 body must carry the real hors-délai message, not 'Conflict': %s", raw)
+	require.Contains(t, string(raw), `"code":409`)
+
+	// --- 403: non-admin on an admin plan endpoint keeps the message --------
+	reg, regURL := planRegularClient(t)
+	regToken := planToken(t, reg, regURL)
+	code, raw = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, itemRef(it))
+	require.Equal(t, http.StatusForbidden, code, "body: %s", raw)
+	require.Contains(t, string(raw), "admin only",
+		"403 body must carry the real authz message, not 'Forbidden': %s", raw)
+}
+
 func TestCarePlanDayPlanHTMLRender(t *testing.T) {
 	f := setupPlanFixture(t)
 	client, baseURL := planAdminClient(t)
@@ -931,7 +989,7 @@ func TestCareObservationAlertLoopAndFollowUp(t *testing.T) {
 	_, body = planGetJSON(t, client, baseURL, "/care_plan")
 	var followItem map[string]interface{}
 	for _, it := range planItemsOf(t, body) {
-		if it["source_type"] == "animal" && it["action_kind"] == "observation" {
+		if it["source_type"] == "animal" && it["source_id"] == followUp.ID.String() {
 			followItem = it
 			break
 		}
