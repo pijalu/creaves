@@ -45,6 +45,25 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 			c.Set("tfield", func(table, field string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, field, table, id, baseString(base), cache, &mu)
 			})
+			// humanSchedule renders a §4.3 schedule JSON document as a
+			// localized sentence (bugs.md U12); displayPlanName strips
+			// conversion markers from a plan/rule name (bugs.md U15).
+			c.Set("humanSchedule", func(raw string) string {
+				return humanizeSchedule(c, raw)
+			})
+			// humanMatcher renders a matcher DSL expression as a localized
+			// readable sentence (bugs.md U18).
+			c.Set("humanMatcher", func(expr string) string {
+				return humanizeMatcher(c, expr)
+			})
+			c.Set("displayPlanName", func(name string) string {
+				return DisplayName(name)
+			})
+			// richPlanName = DisplayName + payload content when the stored
+			// name is content-free (bugs.md U15).
+			c.Set("richPlanName", func(name, kind string, payload interface{}) string {
+				return richPlanName(name, kind, []byte(baseString(payload)))
+			})
 			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
 			})

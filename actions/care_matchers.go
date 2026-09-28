@@ -37,14 +37,26 @@ func requireAdminForPlan(c buffalo.Context) bool {
 // Matcher preview (§7.1-3)
 // ---------------------------------------------------------------------------
 
+// matcherTraceStep is one predicate of the why-trace in structured form so
+// the preview UI can color matched clauses green, failed ones red and show
+// the actual value on hover (bugs.md U19) instead of a flat string.
+type matcherTraceStep struct {
+	Field    string `json:"field"`
+	Op       string `json:"op"`
+	Expected string `json:"expected"`
+	Actual   string `json:"actual"`
+	Pass     bool   `json:"pass"`
+	Reason   string `json:"reason,omitempty"`
+}
+
 // matcherPreviewItem is one preview row: label + pass/fail + why-trace.
 type matcherPreviewItem struct {
-	AnimalID int      `json:"animal_id"`
-	Label    string   `json:"label"`
-	Cage     string   `json:"cage"`
-	Zone     string   `json:"zone"`
-	Match    bool     `json:"match"`
-	Trace    []string `json:"trace,omitempty"`
+	AnimalID int                `json:"animal_id"`
+	Label    string             `json:"label"`
+	Cage     string             `json:"cage"`
+	Zone     string             `json:"zone"`
+	Match    bool               `json:"match"`
+	Trace    []matcherTraceStep `json:"trace,omitempty"`
 }
 
 // previewMatcherExpression evaluates a DSL expression against every
@@ -76,9 +88,6 @@ func previewMatcherExpression(tx *pop.Connection, expression string, limit int) 
 		if ok {
 			matches++
 		}
-		if limit > 0 && len(items) >= limit && !ok {
-			continue
-		}
 		item := matcherPreviewItem{AnimalID: id, Match: ok}
 		if a, present := pa.rows[id]; present {
 			item.Label = animalLabel(a)
@@ -86,9 +95,23 @@ func previewMatcherExpression(tx *pop.Connection, expression string, limit int) 
 			item.Zone = a.Zone.String
 		}
 		for _, step := range trace {
-			item.Trace = append(item.Trace, fmt.Sprintf("%s %s %s: %s", step.Field, step.Op, step.Expected, step.Reason))
+			item.Trace = append(item.Trace, matcherTraceStep{
+				Field: step.Field, Op: step.Op, Expected: step.Expected,
+				Actual: step.Actual, Pass: step.Pass, Reason: step.Reason,
+			})
 		}
 		items = append(items, item)
+	}
+	// Matched animals first (bugs.md U19): the caretaker wants to see what
+	// the matcher selects before the misses.
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].Match != items[j].Match {
+			return items[i].Match
+		}
+		return items[i].AnimalID < items[j].AnimalID
+	})
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
 	}
 	return items, matches, nil
 }

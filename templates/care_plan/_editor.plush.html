@@ -1,0 +1,417 @@
+<%# Structured plan editor (bugs.md U17): turns the schedule and action
+     payload JSON documents into real form fields. The textareas stay as
+     the transport format (server contract unchanged) inside an "Advanced"
+     disclosure; every structured edit re-serializes into them. JSON the
+     editor cannot parse stays editable in raw mode — never silently lost.
+
+     Usage: planEditor.attach({kind: <select el>, payload: <textarea>,
+     schedule: <textarea>, mount: <container el>}). Kind changes re-render
+     the payload field set. %>
+
+<template id="planEditorTpl" style="display:none">
+<div class="plan-editor">
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="card-title"><%= t("care_plan.field.schedule") %></h6>
+      <div class="form-group">
+        <label><%= t("care_plan.editor.slots") %></label>
+        <div data-pe="slots"></div>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-pe-add-slot><%= t("care_plan.editor.add_slot") %></button>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          <label><%= t("care_plan.editor.every_days") %></label>
+          <input type="number" class="form-control" min="1" step="1" value="1" data-pe="everyDays">
+        </div>
+        <div class="form-group col-md-4">
+          <label><%= t("care_plan.editor.anchor") %></label>
+          <select class="form-control" data-pe="anchor">
+            <option value="intake"><%= t("care_plan.editor.anchor_intake") %></option>
+            <option value="fixed"><%= t("care_plan.editor.anchor_fixed") %></option>
+          </select>
+        </div>
+        <div class="form-group col-md-4 d-none" data-pe-anchor-date-group>
+          <label><%= t("care_plan.editor.anchor_date") %></label>
+          <input type="date" class="form-control" data-pe="anchorDate">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          <label><%= t("care_plan.editor.duration_days") %></label>
+          <input type="number" class="form-control" min="0" step="1" value="0" data-pe="durationDays">
+        </div>
+      </div>
+      <details>
+        <summary class="text-muted"><%= t("care_plan.editor.advanced") %></summary>
+        <div class="form-row mt-2">
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.from_offset") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="0" data-pe="fromOffset">
+          </div>
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.grace_minutes") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="60" data-pe="graceMinutes">
+          </div>
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.miss_after_hours") %></label>
+            <input type="number" class="form-control" min="1" step="1" value="24" data-pe="missAfterHours">
+          </div>
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.lookahead_minutes") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="60" data-pe="lookaheadMinutes">
+          </div>
+        </div>
+        <div class="form-group">
+          <label><%= t("care_plan.editor.weekdays") %></label>
+          <div data-pe="weekdays">
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="1" data-pe-weekday="1">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_1") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="2" data-pe-weekday="2">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_2") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="3" data-pe-weekday="3">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_3") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="4" data-pe-weekday="4">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_4") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="5" data-pe-weekday="5">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_5") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="6" data-pe-weekday="6">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_6") %></label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="checkbox" value="0" data-pe-weekday="0">
+              <label class="form-check-label"><%= t("care_plan.schedule_human.weekday_0") %></label>
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="card-title"><%= t("care_plan.editor.content") %></h6>
+
+      <div data-pe-kind="feeding">
+        <div class="form-group">
+          <label><%= t("care_plan.editor.caretype") %></label>
+          <select class="form-control" data-pe="caretype">
+            <%= for (ct) in planCaretypes { %>
+              <option value="<%= ct.ID %>"><%= tname("caretypes", ct.ID, ct.Name) %></option>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label><%= t("care_plan.editor.food") %></label>
+          <input type="text" class="form-control" data-pe="food">
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" data-pe="forceFeed">
+          <label class="form-check-label"><%= t("care_plan.editor.force_feed") %></label>
+        </div>
+      </div>
+
+      <div data-pe-kind="medication" class="d-none">
+        <div class="form-group">
+          <label><%= t("care_plan.editor.drug") %></label>
+          <input type="text" class="form-control" list="planEditorDrugs" data-pe="drug">
+          <datalist id="planEditorDrugs">
+            <%= for (dn) in planDrugs { %>
+              <option value="<%= dn %>"></option>
+            <% } %>
+          </datalist>
+        </div>
+        <div class="form-row">
+          <div class="form-group col-md-6">
+            <label><%= t("care_plan.editor.dosage") %></label>
+            <input type="text" class="form-control" data-pe="dosage">
+          </div>
+          <div class="form-group col-md-6 pt-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" data-pe="dosageFromTable">
+              <label class="form-check-label"><%= t("care_plan.editor.dosage_from_table") %></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label><%= t("care_plan.editor.remarks") %></label>
+          <input type="text" class="form-control" data-pe="remarks">
+        </div>
+      </div>
+
+      <div data-pe-kind="care" class="d-none">
+        <div class="form-group">
+          <label><%= t("care_plan.editor.caretype") %></label>
+          <select class="form-control" data-pe="caretypeCare">
+            <%= for (ct) in planCaretypes { %>
+              <option value="<%= ct.ID %>"><%= tname("caretypes", ct.ID, ct.Name) %></option>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" data-pe="heatSourceCheck">
+          <label class="form-check-label"><%= t("care_plan.editor.heat_source") %></label>
+        </div>
+      </div>
+
+      <div data-pe-kind="observation" class="d-none">
+        <div class="form-group">
+          <label><%= t("care_plan.editor.prompt") %></label>
+          <input type="text" class="form-control" data-pe="prompt">
+        </div>
+      </div>
+
+      <div class="form-group" data-pe-common>
+        <label><%= t("care_plan.editor.instructions") %></label>
+        <input type="text" class="form-control" data-pe="instructions">
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+
+<script>
+window.planEditor = (function () {
+  "use strict";
+
+  function $(root, sel) { return root.querySelector(sel); }
+  function $all(root, sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); }
+
+  // --- Schedule <-> fields -------------------------------------------------
+
+  function readSchedule(root) {
+    var times = $all(root, '[data-pe-slot]').map(function (i) { return i.value; })
+      .filter(function (v) { return /^\d{2}:\d{2}$/.test(v); });
+    times.sort();
+    var s = { times: times };
+    var every = parseInt($(root, '[data-pe="everyDays"]').value, 10);
+    if (every > 1) { s.every_days = every; }
+    var anchor = $(root, '[data-pe="anchor"]').value;
+    if (anchor === 'fixed') {
+      s.anchor = 'fixed';
+      var d = $(root, '[data-pe="anchorDate"]').value;
+      if (d) { s.anchor_date = d; }
+    }
+    var dur = parseInt($(root, '[data-pe="durationDays"]').value, 10);
+    if (dur > 0) { s.duration_days = dur; }
+    var off = parseInt($(root, '[data-pe="fromOffset"]').value, 10);
+    if (off > 0) { s.from_offset_days = off; }
+    var grace = parseInt($(root, '[data-pe="graceMinutes"]').value, 10);
+    if (grace !== 60 && grace >= 0 && !isNaN(grace)) { s.grace_minutes = grace; }
+    var miss = parseInt($(root, '[data-pe="missAfterHours"]').value, 10);
+    if (miss !== 24 && miss > 0 && !isNaN(miss)) { s.miss_after_hours = miss; }
+    var look = parseInt($(root, '[data-pe="lookaheadMinutes"]').value, 10);
+    if (look !== 60 && look >= 0 && !isNaN(look)) { s.lookahead_minutes = look; }
+    var wd = $all(root, '[data-pe-weekday]:checked').map(function (i) { return parseInt(i.value, 10); });
+    if (wd.length) { s.weekdays = wd.sort(function (a, b) { return a - b; }); }
+    return s;
+  }
+
+  function addSlotRow(root, value) {
+    var wrap = $(root, '[data-pe="slots"]');
+    var row = document.createElement('div');
+    row.className = 'input-group input-group-sm mb-1';
+    row.style.maxWidth = '12rem';
+    var input = document.createElement('input');
+    input.type = 'time'; input.className = 'form-control';
+    input.setAttribute('data-pe-slot', '1');
+    if (value) { input.value = value; }
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'btn btn-outline-danger';
+    del.textContent = '×'; del.title = '×';
+    del.addEventListener('click', function () { row.remove(); sync(root); });
+    var ig = document.createElement('div');
+    ig.className = 'input-group-append';
+    ig.appendChild(del);
+    row.appendChild(input); row.appendChild(ig);
+    wrap.appendChild(row);
+    input.addEventListener('change', function () { sync(root); });
+  }
+
+  function writeSchedule(root, s) {
+    $(root, '[data-pe="slots"]').innerHTML = '';
+    (s.times && s.times.length ? s.times : ['']).forEach(function (t) { addSlotRow(root, t); });
+    $(root, '[data-pe="everyDays"]').value = s.every_days || 1;
+    $(root, '[data-pe="anchor"]').value = s.anchor === 'fixed' ? 'fixed' : 'intake';
+    $(root, '[data-pe="anchorDate"]').value = s.anchor_date || '';
+    $(root, '[data-pe-anchor-date-group]').classList.toggle('d-none', s.anchor !== 'fixed');
+    $(root, '[data-pe="durationDays"]').value = s.duration_days || 0;
+    $(root, '[data-pe="fromOffset"]').value = s.from_offset_days || 0;
+    $(root, '[data-pe="graceMinutes"]').value = s.grace_minutes != null ? s.grace_minutes : 60;
+    $(root, '[data-pe="missAfterHours"]').value = s.miss_after_hours != null ? s.miss_after_hours : 24;
+    $(root, '[data-pe="lookaheadMinutes"]').value = s.lookahead_minutes != null ? s.lookahead_minutes : 60;
+    $all(root, '[data-pe-weekday]').forEach(function (cb) {
+      cb.checked = !!(s.weekdays && s.weekdays.indexOf(parseInt(cb.value, 10)) >= 0);
+    });
+  }
+
+  // --- Payload <-> fields --------------------------------------------------
+
+  function readPayload(root, kind) {
+    var p = {};
+    var v = function (name) { var el = $(root, '[data-pe="' + name + '"]'); return el ? el.value.trim() : ''; };
+    var b = function (name) { var el = $(root, '[data-pe="' + name + '"]'); return el ? el.checked : false; };
+    switch (kind) {
+      case 'feeding':
+        p.caretype_id = v('caretype');
+        if (v('food')) { p.food = v('food'); }
+        if (b('forceFeed')) { p.force_feed = true; }
+        break;
+      case 'medication':
+        p.drug = v('drug');
+        if (b('dosageFromTable')) { p.dosage_from_dosages_table = true; }
+        else if (v('dosage')) { p.dosage = v('dosage'); }
+        if (v('remarks')) { p.remarks = v('remarks'); }
+        break;
+      case 'care':
+        p.caretype_id = v('caretypeCare');
+        if (b('heatSourceCheck')) { p.heat_source_check = true; }
+        break;
+      case 'observation':
+        p.prompt = v('prompt');
+        break;
+    }
+    if (v('instructions')) { p.instructions = v('instructions'); }
+    return p;
+  }
+
+  function writePayload(root, kind, p) {
+    var set = function (name, val) { var el = $(root, '[data-pe="' + name + '"]'); if (el) { el.value = val == null ? '' : val; } };
+    var setb = function (name, val) { var el = $(root, '[data-pe="' + name + '"]'); if (el) { el.checked = !!val; } };
+    p = p || {};
+    set('caretype', p.caretype_id || '');
+    set('food', p.food || '');
+    setb('forceFeed', p.force_feed);
+    set('drug', p.drug || '');
+    set('dosage', p.dosage || '');
+    setb('dosageFromTable', p.dosage_from_dosages_table);
+    set('remarks', p.remarks || '');
+    set('caretypeCare', p.caretype_id || '');
+    setb('heatSourceCheck', p.heat_source_check);
+    set('prompt', p.prompt || '');
+    set('instructions', p.instructions || '');
+  }
+
+  // --- Wiring ---------------------------------------------------------------
+
+  var sync;
+  sync = function (root) {
+    var st = root._peState;
+    if (st.rawMode) { return; } // raw JSON is authoritative in raw mode
+    st.scheduleEl.value = JSON.stringify(readSchedule(root));
+    st.payloadEl.value = JSON.stringify(readPayload(root, st.kindEl.value));
+  };
+
+  function refreshKind(root) {
+    var kind = root._peState.kindEl.value;
+    $all(root, '[data-pe-kind]').forEach(function (g) {
+      g.classList.toggle('d-none', g.getAttribute('data-pe-kind') !== kind);
+    });
+    // Instructions are meaningless for weighing (its value IS the answer).
+    $(root, '[data-pe-common]').classList.toggle('d-none', kind === 'weighing');
+    sync(root);
+  }
+
+  function tryParse(el) {
+    var raw = (el.value || '').trim();
+    if (!raw) { return { ok: true, v: {} }; }
+    try { return { ok: true, v: JSON.parse(raw) }; }
+    catch (e) { return { ok: false }; }
+  }
+
+  // attach wires the structured editor onto an existing (kind select,
+  // payload textarea, schedule textarea) triple. The textareas are moved
+  // into an "advanced" disclosure — the server contract is unchanged.
+  function attach(opts) {
+    var tpl = document.getElementById('planEditorTpl');
+    if (!tpl) { return; }
+    var root = tpl.content.firstElementChild.cloneNode(true);
+    opts.mount.parentNode.insertBefore(root, opts.mount);
+    opts.mount.classList.add('d-none'); // legacy label/textarea block hidden
+
+    // Raw JSON fallback: move the original textareas into a disclosure so
+    // unparseable documents stay editable and nothing is ever lost.
+    var det = document.createElement('details');
+    det.className = 'mb-3';
+    var sum = document.createElement('summary');
+    sum.className = 'text-muted';
+    sum.textContent = opts.rawLabel || 'JSON';
+    det.appendChild(sum);
+    det.appendChild(opts.mount);
+    root.parentNode.insertBefore(det, root.nextSibling);
+    opts.mount.classList.remove('d-none');
+
+    var st = root._peState = {
+      kindEl: opts.kind, payloadEl: opts.payload, scheduleEl: opts.schedule, rawMode: false
+    };
+
+    // (Re)populate the structured fields from the textarea values. Called
+    // once on attach, and again by host pages each time the modal/form is
+    // (re)loaded with a different record.
+    function load() {
+      var w = root.querySelector('.alert-warning');
+      if (w) { w.remove(); }
+      det.open = false;
+      var ps = tryParse(opts.schedule), pp = tryParse(opts.payload);
+      if (ps.ok && pp.ok) {
+        st.rawMode = false;
+        writeSchedule(root, ps.v);
+        writePayload(root, st.kindEl.value, pp.v);
+        refreshKind(root);
+      } else {
+        // Keep the raw textareas as the source of truth; warn the user.
+        st.rawMode = true;
+        var warn = document.createElement('div');
+        warn.className = 'alert alert-warning';
+        warn.textContent = opts.rawWarn || 'Raw JSON editing.';
+        root.insertBefore(warn, root.firstChild);
+        det.open = true;
+      }
+    }
+    load();
+
+    root.addEventListener('change', function (e) {
+      if (e.target === st.kindEl) { return; }
+      if (e.target.getAttribute('data-pe') === 'anchor') {
+        root.querySelector('[data-pe-anchor-date-group]').classList.toggle('d-none', e.target.value !== 'fixed');
+      }
+      sync(root);
+    });
+    root.querySelector('[data-pe-add-slot]').addEventListener('click', function () {
+      addSlotRow(root, ''); sync(root);
+    });
+    st.kindEl.addEventListener('change', function () {
+      writePayload(root, st.kindEl.value, {});
+      refreshKind(root);
+    });
+    // Raw edits by advanced users flow back if they parse cleanly.
+    [opts.schedule, opts.payload].forEach(function (el) {
+      el.addEventListener('change', function () {
+        var a = tryParse(opts.schedule), b = tryParse(opts.payload);
+        if (a.ok && b.ok) {
+          var w = root.querySelector('.alert-warning');
+          if (w) { w.remove(); }
+          st.rawMode = false;
+          writeSchedule(root, a.v);
+          writePayload(root, st.kindEl.value, b.v);
+          sync(root);
+        }
+      });
+    });
+    refreshKind(root);
+    return { refresh: load, sync: function () { sync(root); } };
+  }
+
+  return { attach: attach };
+})();
+</script>

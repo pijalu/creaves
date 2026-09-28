@@ -17,9 +17,15 @@
   <tbody>
     <%= for (matcher) in matchers { %>
       <tr>
-        <td class="align-middle"><%= matcher.Name %></td>
+        <td class="align-middle"><%= displayPlanName(matcher.Name) %></td>
         <td class="align-middle"><%= matcher.Description %></td>
-        <td class="align-middle"><code><%= matcher.Expression %></code></td>
+        <td class="align-middle">
+          <%= humanMatcher(matcher.Expression) %>
+          <details class="mt-1">
+            <summary class="text-muted small"><%= t("care_plan.builder.raw_dsl") %></summary>
+            <code class="small"><%= matcher.Expression %></code>
+          </details>
+        </td>
         <td>
           <div class="float-end">
             <%= linkTo(editCareMatcherPath({ care_matcher_id: matcher.ID }), {class: "btn btn-warning", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>

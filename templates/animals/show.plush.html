@@ -7,7 +7,7 @@
 
   <div class="float-right mb-2">
     <%= linkTo(landingBack, {class: "btn btn-info"}) { %>
-      Back to animals in care
+      <%= t(landingBackLabel) %>
     <% } %>
     <button type="button" class="btn btn-secondary" data-toggle="modal" data-target="#guestQRModal" title="Guest QR code">
       <i class="fa fa-qrcode"></i>
@@ -578,7 +578,7 @@
         <tbody>
           <%= for (p) in careAnimalPlans { %>
             <tr data-id="<%= p.ID %>">
-              <td class="align-middle"><%= p.Name %></td>
+              <td class="align-middle"><%= richPlanName(p.Name, p.ActionKind, p.ActionPayload) %></td>
               <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + p.ActionKind) %></span></td>
               <td class="align-middle">
                 <%= if (p.Active) { %>
@@ -588,7 +588,8 @@
                 <% } %>
               </td>
               <td class="align-middle"><%= if (p.ReplacesKind) { %><i class="fas fa-check"></i><% } else { %><i class="fas fa-times"></i><% } %></td>
-              <td class="align-middle"><code><%= p.Schedule %></code></td>
+              <td class="align-middle"><%= humanSchedule(p.Schedule) %>
+                <details class="mt-1"><summary class="text-muted small"><%= t("care_plan.schedule_human.raw_json") %></summary><code class="small"><%= p.Schedule %></code></details></td>
               <td>
                 <div class="float-right">
                   <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= p.ID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
@@ -601,6 +602,8 @@
       </table>
     </div>
   </div>
+
+  <%= partial("care_plan/editor.html") %>
 
   <div class="modal fade" id="carePlanModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -635,15 +638,17 @@
               </div>
             </div>
           </div>
-          <div class="form-group">
-            <label for="CarePlanPayload"><%= t("care_plan.field.action_payload") %></label>
-            <textarea class="form-control" id="CarePlanPayload" rows="5"></textarea>
-            <small class="text-muted"><%= t("care_plan.field.action_payload_hint") %></small>
-          </div>
-          <div class="form-group">
-            <label for="CarePlanSchedule"><%= t("care_plan.field.schedule") %></label>
-            <textarea class="form-control" id="CarePlanSchedule" rows="5"></textarea>
-            <small class="text-muted"><%= t("care_plan.field.schedule_hint") %></small>
+          <div id="carePlanEditorMount">
+            <div class="form-group">
+              <label for="CarePlanPayload"><%= t("care_plan.field.action_payload") %></label>
+              <textarea class="form-control" id="CarePlanPayload" rows="5"></textarea>
+              <small class="text-muted"><%= t("care_plan.field.action_payload_hint") %></small>
+            </div>
+            <div class="form-group">
+              <label for="CarePlanSchedule"><%= t("care_plan.field.schedule") %></label>
+              <textarea class="form-control" id="CarePlanSchedule" rows="5"></textarea>
+              <small class="text-muted"><%= t("care_plan.field.schedule_hint") %></small>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -661,6 +666,14 @@
     var url = table.getAttribute('data-url');
     var csrf = document.querySelector('meta[name="csrf-token"]').content;
     var editingId = null;
+    var planEd = window.planEditor ? window.planEditor.attach({
+      kind: document.getElementById('CarePlanKind'),
+      payload: document.getElementById('CarePlanPayload'),
+      schedule: document.getElementById('CarePlanSchedule'),
+      mount: document.getElementById('carePlanEditorMount'),
+      rawLabel: "<%= t("care_plan.editor.raw_json") %>",
+      rawWarn: "<%= raw(t("care_plan.editor.raw_json_warn")) %>"
+    }) : null;
 
     function planHeaders() {
       return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf};
@@ -682,6 +695,7 @@
       document.getElementById('CarePlanActive').checked = true;
       document.getElementById('CarePlanReplacesKind').checked = false;
       hideErr();
+      if (planEd) { planEd.refresh(); }
       $('#carePlanModal').modal('show');
     }
     function openEdit(id) {
@@ -700,10 +714,12 @@
           document.getElementById('CarePlanActive').checked = !!p.active;
           document.getElementById('CarePlanReplacesKind').checked = !!p.replaces_kind;
           hideErr();
+          if (planEd) { planEd.refresh(); }
           $('#carePlanModal').modal('show');
         });
     }
     function save() {
+      if (planEd) { planEd.sync(); }
       var body;
       try {
         body = {

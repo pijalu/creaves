@@ -1,3 +1,5 @@
+<%= partial("care_plan/editor.html") %>
+
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.rules.new_title") %></h3>
 </div>
@@ -45,7 +47,7 @@
     <textarea class="form-control" id="RuleDescription" name="Description" rows="2"><%= rule.Description %></textarea>
   </div>
 
-  <div class="form-row">
+  <div class="form-row" id="ruleEditorMount">
     <div class="form-group col-md-6">
       <label for="RuleActionPayload"><%= t("care_plan.field.action_payload") %></label>
       <textarea class="form-control" id="RuleActionPayload" name="ActionPayload" rows="6" data-role="action-payload"><%= payloadStr %></textarea>
@@ -90,3 +92,21 @@
   <button type="submit" class="btn btn-success"><%= t("care_plan.action.save") %></button>
   <%= linkTo("/care_rules", {class: "btn btn-warning", body: t("care_plan.action.cancel")}) %>
 </form>
+
+<script>
+(function () {
+  if (!window.planEditor) { return; }
+  var pe = window.planEditor.attach({
+    kind: document.getElementById('RuleActionKind'),
+    payload: document.getElementById('RuleActionPayload'),
+    schedule: document.getElementById('RuleSchedule'),
+    mount: document.getElementById('ruleEditorMount'),
+    rawLabel: "<%= t("care_plan.editor.raw_json") %>",
+    rawWarn: "<%= raw(t("care_plan.editor.raw_json_warn")) %>"
+  });
+  if (pe) {
+    var f = document.getElementById('RuleActionKind');
+    if (f && f.form) { f.form.addEventListener('submit', function () { pe.sync(); }); }
+  }
+})();
+</script>

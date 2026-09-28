@@ -1,3 +1,5 @@
+<%= partial("care_matchers/builder.html") %>
+
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.matchers.new_title") %></h3>
 </div>
@@ -26,36 +28,11 @@
     </div>
   </div>
 
-  <div class="form-group">
-    <label for="MatcherExpression"><%= t("care_plan.field.expression") %></label>
-    <textarea class="form-control" id="MatcherExpression" name="Expression" rows="3" data-role="expression"><%= expressionStr %></textarea>
-    <small class="text-muted"><%= t("care_plan.field.expression_hint") %></small>
-  </div>
-
-  <div class="card mb-3" id="matcher-builder">
-    <div class="card-body py-2">
-      <h6 class="mt-1"><%= t("care_plan.builder.title") %></h6>
-      <div class="form-row align-items-end" data-fields='<%= raw(fieldsJSON) %>' id="builder-controls">
-        <div class="form-group col-md-4">
-          <label for="BuilderField"><%= t("care_plan.builder.field") %></label>
-          <select class="form-control" id="BuilderField">
-            <%= for (field) in fields { %>
-              <option value="<%= field.Key %>" data-type="<%= field.Type %>" data-ops="<%= for (op) in field.Ops { %><%= op %>,<% } %>"><%= t(field.Label) %> (<%= field.Key %>)</option>
-            <% } %>
-          </select>
-        </div>
-        <div class="form-group col-md-3">
-          <label for="BuilderOp"><%= t("care_plan.builder.op") %></label>
-          <select class="form-control" id="BuilderOp"></select>
-        </div>
-        <div class="form-group col-md-3">
-          <label for="BuilderValue"><%= t("care_plan.builder.value") %></label>
-          <input class="form-control" type="text" id="BuilderValue">
-        </div>
-        <div class="form-group col-md-2">
-          <button type="button" class="btn btn-outline-primary btn-block" id="BuilderInsert"><%= t("care_plan.builder.insert") %></button>
-        </div>
-      </div>
+  <div id="matcherExprMount">
+    <div class="form-group">
+      <label for="MatcherExpression"><%= t("care_plan.field.expression") %></label>
+      <textarea class="form-control" id="MatcherExpression" name="Expression" rows="3" data-role="expression"><%= expressionStr %></textarea>
+      <small class="text-muted"><%= t("care_plan.field.expression_hint") %></small>
     </div>
   </div>
 
@@ -66,10 +43,19 @@
 <div class="card mt-3" id="matcher-preview-card">
   <div class="card-body">
     <h5><%= t("care_plan.preview.title") %></h5>
-    <button type="button" class="btn btn-primary" id="matcher-preview-btn">
-      <%= t("care_plan.preview.run") %>
-    </button>
-    <span class="ml-2" id="matcher-preview-count"></span>
+    <div class="form-inline flex-wrap">
+      <button type="button" class="btn btn-primary" id="matcher-preview-btn">
+        <%= t("care_plan.preview.run") %>
+      </button>
+      <select class="form-control form-control-sm ml-2 d-none" id="matcher-preview-filter">
+        <option value=""><%= t("care_plan.preview.filter_all") %></option>
+        <option value="match"><%= t("care_plan.preview.filter_match") %></option>
+        <option value="nomatch"><%= t("care_plan.preview.filter_nomatch") %></option>
+      </select>
+      <input type="search" class="form-control form-control-sm ml-2 d-none" id="matcher-preview-search"
+             placeholder="<%= t("care_plan.preview.search") %>">
+      <span class="ml-2" id="matcher-preview-count"></span>
+    </div>
     <table class="table table-sm table-bordered mt-2 d-none" id="matcher-preview-table">
       <thead class="thead-light">
         <th><%= t("care_plan.preview.animal") %></th>
@@ -85,48 +71,84 @@
 
 <script>
 (function () {
-  var fieldSel = document.getElementById('BuilderField');
-  var opSel = document.getElementById('BuilderOp');
-  var valIn = document.getElementById('BuilderValue');
   var expr = document.getElementById('MatcherExpression');
+  var mount = document.getElementById('matcherExprMount');
   var previewBtn = document.getElementById('matcher-preview-btn');
   var table = document.getElementById('matcher-preview-table');
   var count = document.getElementById('matcher-preview-count');
-  var yes = "<%= t("care_plan.preview.match_yes") %>";
-  var no = "<%= t("care_plan.preview.match_no") %>";
+  var filterSel = document.getElementById('matcher-preview-filter');
+  var searchIn = document.getElementById('matcher-preview-search');
 
-  function currentOps() {
-    var opt = fieldSel.options[fieldSel.selectedIndex];
-    return (opt.getAttribute('data-ops') || '').split(',').filter(Boolean);
-  }
-  function currentType() {
-    var opt = fieldSel.options[fieldSel.selectedIndex];
-    return opt.getAttribute('data-type') || 'string';
-  }
-  function fillOps() {
-    opSel.innerHTML = '';
-    currentOps().forEach(function (op) {
-      var o = document.createElement('option');
-      o.value = op; o.textContent = op;
-      opSel.appendChild(o);
-    });
-  }
-  fieldSel.addEventListener('change', fillOps);
-  fillOps();
+  var fields = [
+    <%= for (field) in fields { %>
+      {
+        key: "<%= field.Key %>",
+        label: <%= toJSON(t(field.Label)) %>,
+        type: "<%= field.Type %>",
+        ops: [<%= for (op) in field.Ops { %>"<%= op %>",<% } %>]
+      },
+    <% } %>
+  ];
+  var fieldNames = {};
+  fields.forEach(function (f) { fieldNames[f.key] = f.label; });
 
-  document.getElementById('BuilderInsert').addEventListener('click', function () {
-    var field = fieldSel.value;
-    var op = opSel.value;
-    var raw = valIn.value.trim();
-    if (!raw) { return; }
-    var lit = raw;
-    if (currentType() === 'string') {
-      lit = '"' + raw.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  var builder = window.matcherBuilder ? window.matcherBuilder.attach({
+    expression: expr,
+    mount: mount,
+    fields: fields,
+    i18n: {
+      rawLabel: <%= toJSON(t("care_plan.builder.raw_dsl")) %>,
+      rawWarn: <%= toJSON(t("care_plan.builder.raw_dsl_warn")) %>,
+      combinatorLabel: <%= toJSON(t("care_plan.builder.combinator")) %>,
+      combAll: <%= toJSON(t("care_plan.builder.comb_all")) %>,
+      combAny: <%= toJSON(t("care_plan.builder.comb_any")) %>,
+      noClauses: <%= toJSON(t("care_plan.builder.no_clauses")) %>,
+      addClause: <%= toJSON(t("care_plan.builder.add_clause")) %>,
+      notLabel: <%= toJSON(t("care_plan.builder.not")) %>,
+      remove: <%= toJSON(t("care_plan.builder.remove")) %>,
+      drag: <%= toJSON(t("care_plan.builder.drag")) %>,
+      boolTrue: <%= toJSON(t("care_plan.builder.bool_true")) %>,
+      boolFalse: <%= toJSON(t("care_plan.builder.bool_false")) %>,
+      inHint: <%= toJSON(t("care_plan.builder.in_hint")) %>,
+      betweenMin: <%= toJSON(t("care_plan.builder.between_min")) %>,
+      betweenMax: <%= toJSON(t("care_plan.builder.between_max")) %>,
+      ops: {
+        "=": <%= toJSON(t("care_plan.builder.op.eq")) %>,
+        "!=": <%= toJSON(t("care_plan.builder.op.neq")) %>,
+        "<": <%= toJSON(t("care_plan.builder.op.lt")) %>,
+        "<=": <%= toJSON(t("care_plan.builder.op.lte")) %>,
+        ">": <%= toJSON(t("care_plan.builder.op.gt")) %>,
+        ">=": <%= toJSON(t("care_plan.builder.op.gte")) %>,
+        "IN": <%= toJSON(t("care_plan.builder.op.in")) %>,
+        "BETWEEN": <%= toJSON(t("care_plan.builder.op.between")) %>,
+        "~": <%= toJSON(t("care_plan.builder.op.regex")) %>,
+        "!~": <%= toJSON(t("care_plan.builder.op.notregex")) %>,
+        "CONTAINS": <%= toJSON(t("care_plan.builder.op.contains")) %>
+      }
     }
-    var predicate = field + ' ' + op + ' ' + lit;
-    var cur = expr.value.trim();
-    expr.value = cur ? cur + ' AND ' + predicate : predicate;
-  });
+  }) : null;
+
+  var previewLabels = {
+    yes: <%= toJSON(t("care_plan.preview.match_yes")) %>,
+    no: <%= toJSON(t("care_plan.preview.match_no")) %>,
+    actual: <%= toJSON(t("care_plan.preview.actual", {value: "{{.value}}"})) %>,
+    noValue: <%= toJSON(t("care_plan.preview.no_value")) %>,
+    fieldNames: fieldNames,
+    reasons: {
+      "no value": <%= toJSON(t("care_plan.preview.no_value")) %>,
+      "unknown field": <%= toJSON(t("care_plan.preview.unknown_field")) %>,
+      "type mismatch": <%= toJSON(t("care_plan.preview.type_mismatch")) %>,
+      "invalid pattern": <%= toJSON(t("care_plan.preview.invalid_pattern")) %>
+    }
+  };
+
+  function refreshShown() {
+    var res = window.matcherBuilder.applyPreviewFilters(table.tBodies[0], filterSel.value, searchIn.value);
+    count.textContent = count.dataset.base + " " +
+      <%= toJSON(t("care_plan.preview.shown", {shown: "{{.shown}}", total: "{{.total}}"})) %>.replace("{{.shown}}", res.shown).replace("{{.total}}", res.total);
+  }
+  filterSel.addEventListener('change', refreshShown);
+  searchIn.addEventListener('input', refreshShown);
 
   previewBtn.addEventListener('click', function () {
     fetch('/care_matchers/preview', {
@@ -142,30 +164,20 @@
       .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
       .then(function (res) {
         if (!res.ok) {
-          count.textContent = (res.body && res.body.error) || "<%= t("care_plan.preview.error") %>";
+          count.dataset.base = "";
+          count.textContent = (res.body && res.body.error) || <%= toJSON(t("care_plan.preview.error")) %>;
           return;
         }
         table.classList.remove('d-none');
-        var body = table.tBodies[0];
-        body.innerHTML = '';
-        var animals = res.body.animals || [];
-        var shown = 0;
-        for (var i = 0; i < animals.length; i++) {
-          var a = animals[i];
-          if (a.match) { shown++; }
-          var tr = document.createElement('tr');
-          var trace = (a.trace || []).join('; ');
-          tr.innerHTML = '<td>' + (a.label || a.animal_id) + '</td>' +
-            '<td>' + (a.cage || '') + '</td>' +
-            '<td>' + (a.zone || '') + '</td>' +
-            '<td>' + (a.match ? yes : no) + '</td>' +
-            '<td>' + trace + '</td>';
-          body.appendChild(tr);
-        }
-        count.textContent = "<%= t("care_plan.preview.match_count") %>: " + (res.body.match_count || 0) + " (" + shown + " shown)";
+        filterSel.classList.remove('d-none');
+        searchIn.classList.remove('d-none');
+        window.matcherBuilder.renderPreview(table.tBodies[0], res.body.animals || [], previewLabels);
+        count.dataset.base = <%= toJSON(t("care_plan.preview.match_count")) %> + ": " + (res.body.match_count || 0);
+        refreshShown();
       })
       .catch(function () {
-        count.textContent = "<%= t("care_plan.preview.error") %>";
+        count.dataset.base = "";
+        count.textContent = <%= toJSON(t("care_plan.preview.error")) %>;
       });
   });
 })();

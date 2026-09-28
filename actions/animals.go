@@ -555,8 +555,11 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
-		// "Back to animals in care" target (issue #199-9).
-		c.Set("landingBack", landingBackTarget(c, animal))
+		// "Back" target + label (issue #199-9, bugs.md U16): the label must
+		// name the destination the target actually points to.
+		target := landingBackTarget(c, animal)
+		c.Set("landingBack", target)
+		c.Set("landingBackLabel", landingBackLabelKey(target))
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
 			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
 			// Photo/video gallery (issue #34).
@@ -569,6 +572,10 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			}
 			c.Set("careAnimalPlans", plans)
 			c.Set("planActionKinds", planActionKinds())
+			// Structured editors (bugs.md U17): caretype/drug dropdown data.
+			if err := setPlanEditorData(c, tx); err != nil {
+				return err
+			}
 
 			// Corpse register info for the outtake tab (issue #199-6): when the
 			// outtake type is Dead=true, expose the corpse destination fields and

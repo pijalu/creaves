@@ -1,0 +1,547 @@
+<%# Visual matcher builder + live preview (bugs.md U18/U19).
+
+     U18 — the expression DSL is edited as a visual clause list: one row per
+     condition (field with a FRIENDLY label, operator in words, type-aware
+     value input), one global combinator (ALL = AND / ANY = OR), optional NOT
+     per clause, drag-to-reorder rows. The DSL textarea stays the transport
+     format inside an "Advanced" disclosure. Expressions the visual model
+     cannot represent (nested parenthesized groups) fall back to raw mode —
+     never silently rewritten (Postel).
+
+     U19 — the preview sorts matches first, filters by verdict and free text,
+     and renders each clause of the why-trace as a green/red badge whose
+     hover reveals the actual (non-)matching value.
+
+     Usage: matcherBuilder.attach({
+       expression: <textarea>,   // transport, moved into the disclosure
+       mount: <container>,       // its parent receives the visual editor
+       fields: <array>,          // [{key,label,type,ops}] — label is the
+                                 // already-localized friendly name
+       i18n: {...}               // localized UI strings
+     }) %>
+
+<template id="matcherBuilderTpl" style="display:none">
+  <div class="matcher-builder">
+    <div class="form-row align-items-end mb-2">
+      <div class="form-group col-md-6 mb-1">
+        <label data-mb="combinatorLabel"></label>
+        <select class="form-control" data-mb="combinator"></select>
+      </div>
+    </div>
+    <div data-mb="clauses"></div>
+    <div class="text-muted small mb-2" data-mb="emptyHint"></div>
+    <button type="button" class="btn btn-outline-primary btn-sm mb-3" data-mb="add"></button>
+    <div class="alert alert-warning d-none" data-mb="warn"></div>
+  </div>
+</template>
+
+<style>
+.mb-clause { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; padding: .4rem .5rem; border: 1px solid #dee2e6; border-radius: .25rem; margin-bottom: .4rem; background: #fff; }
+.mb-clause.mb-drag-over { border-color: #007bff; box-shadow: 0 0 0 .15rem rgba(0,123,255,.2); }
+.mb-clause.dragging { opacity: .5; }
+.mb-handle { cursor: grab; color: #6c757d; user-select: none; padding: 0 .25rem; font-weight: bold; }
+.mb-not-btn.active { background: #dc3545; border-color: #dc3545; color: #fff; }
+.mb-clause select, .mb-clause input { width: auto; flex: 0 1 auto; }
+.mb-clause .mb-field { min-width: 11rem; }
+.mb-clause .mb-op { min-width: 8rem; }
+.mb-clause .mb-value { min-width: 9rem; }
+.mb-clause .mb-min, .mb-clause .mb-max { width: 5.5rem; }
+.mb-clause .mb-range { display: inline-flex; gap: .35rem; align-items: center; }
+tr.mb-row-match td:first-child { border-left: 4px solid #28a745; }
+tr.mb-row-nomatch td:first-child { border-left: 4px solid #dc3545; }
+.mb-trace-badge { display: inline-block; margin: 0 .25rem .25rem 0; padding: .2rem .45rem; border-radius: .25rem; font-size: 85%; cursor: help; }
+.mb-trace-pass { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.mb-trace-fail { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+</style>
+
+<script>
+window.matcherBuilder = (function () {
+  'use strict';
+
+  // --- DSL tokenizer + flat-chain parser -----------------------------------
+  // Mirrors models/careplan/dsl.y for the subset the visual editor can
+  // represent: a flat chain of predicates (field op literal | BETWEEN |
+  // IN (…)) joined by ONE combinator (AND or OR), each optionally negated.
+  // Anything else (parenthesized groups, mixed combinators) is reported as
+  // not-representable and the caller keeps raw mode.
+
+  var OPS2 = ['<=', '>=', '!=', '!~'];
+  var OPS1 = ['=', '<', '>', '~'];
+
+  function tokenize(src) {
+    var toks = [], i = 0, n = src.length;
+    while (i < n) {
+      var c = src[i];
+      if (c === ' ' || c === '\t' || c === '\n' || c === '\r') { i++; continue; }
+      if (c === '(') { toks.push({ t: '(' }); i++; continue; }
+      if (c === ')') { toks.push({ t: ')' }); i++; continue; }
+      if (c === ',') { toks.push({ t: ',' }); i++; continue; }
+      if (c === '"') {
+        var s = '', j = i + 1;
+        while (j < n && src[j] !== '"') {
+          if (src[j] === '\\' && j + 1 < n && (src[j + 1] === '"' || src[j + 1] === '\\')) {
+            s += src[j + 1]; j += 2;
+          } else { s += src[j]; j++; }
+        }
+        if (j >= n) { throw new Error('unterminated string'); }
+        toks.push({ t: 'str', v: s }); i = j + 1; continue;
+      }
+      var two = src.substr(i, 2);
+      if (OPS2.indexOf(two) >= 0) { toks.push({ t: 'op', v: two }); i += 2; continue; }
+      if (OPS1.indexOf(c) >= 0) { toks.push({ t: 'op', v: c }); i++; continue; }
+      var m = /^-?\d+(\.\d+)?/.exec(src.substr(i));
+      if (m) { toks.push({ t: 'num', v: parseFloat(m[0]) }); i += m[0].length; continue; }
+      var w = /^[A-Za-z_][A-Za-z0-9_]*/.exec(src.substr(i));
+      if (w) {
+        var word = w[0], up = word.toUpperCase();
+        if (up === 'AND' || up === 'OR') { toks.push({ t: up }); }
+        else if (up === 'NOT') { toks.push({ t: 'NOT' }); }
+        else if (up === 'IN' || up === 'BETWEEN' || up === 'CONTAINS') { toks.push({ t: 'op', v: up }); }
+        else if (up === 'TRUE') { toks.push({ t: 'bool', v: true }); }
+        else if (up === 'FALSE') { toks.push({ t: 'bool', v: false }); }
+        else { toks.push({ t: 'ident', v: word }); }
+        i += word.length; continue;
+      }
+      throw new Error('unexpected character ' + c);
+    }
+    return toks;
+  }
+
+  // parseFlat parses src into {combinator:'AND'|'OR', clauses:[…]} or
+  // returns null when the expression is not visual-representable.
+  function parseFlat(src) {
+    var toks;
+    try { toks = tokenize(src); } catch (e) { return null; }
+    if (!toks.length) { return { combinator: 'AND', clauses: [] }; }
+    var pos = 0;
+    function peek() { return toks[pos]; }
+    function next() { return toks[pos++]; }
+
+    function parseLiteral() {
+      var tk = next();
+      if (!tk) { return null; }
+      if (tk.t === 'str') { return { kind: 'string', v: tk.v }; }
+      if (tk.t === 'num') { return { kind: 'number', v: tk.v }; }
+      if (tk.t === 'bool') { return { kind: 'bool', v: tk.v }; }
+      return null;
+    }
+
+    function parseClause() {
+      var negated = false;
+      if (peek() && peek().t === 'NOT') { next(); negated = true; }
+      var f = next();
+      if (!f || f.t !== 'ident') { return null; }
+      var o = next();
+      if (!o || o.t !== 'op') { return null; }
+      var clause = { field: f.v, op: o.v, negated: negated };
+      if (o.v === 'BETWEEN') {
+        var lo = parseLiteral();
+        var and = next();
+        var hi = parseLiteral();
+        if (!lo || lo.kind !== 'number' || !and || and.t !== 'AND' || !hi || hi.kind !== 'number') { return null; }
+        clause.min = lo.v; clause.max = hi.v;
+        return clause;
+      }
+      if (o.v === 'IN') {
+        var open = next();
+        if (!open || open.t !== '(') { return null; }
+        clause.values = [];
+        var lit = parseLiteral();
+        if (!lit) { return null; }
+        clause.values.push(lit);
+        while (peek() && peek().t === ',') {
+          next();
+          lit = parseLiteral();
+          if (!lit) { return null; }
+          clause.values.push(lit);
+        }
+        var close = next();
+        if (!close || close.t !== ')') { return null; }
+        return clause;
+      }
+      var v = parseLiteral();
+      if (!v) { return null; }
+      clause.value = v;
+      return clause;
+    }
+
+    var first = parseClause();
+    if (!first) { return null; }
+    var clauses = [first], comb = null;
+    while (pos < toks.length) {
+      var tk = next();
+      if (!tk || (tk.t !== 'AND' && tk.t !== 'OR')) { return null; }
+      if (comb && comb !== tk.t) { return null; } // mixed AND/OR → nested semantics
+      comb = tk.t;
+      var c = parseClause();
+      if (!c) { return null; }
+      clauses.push(c);
+    }
+    return { combinator: comb || 'AND', clauses: clauses };
+  }
+
+  // --- DSL serializer -------------------------------------------------------
+
+  function quoteStr(s) { return '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'; }
+
+  function serializeClause(c) {
+    var out = '';
+    if (c.negated) { out += 'NOT '; }
+    out += c.field + ' ' + c.op + ' ';
+    if (c.op === 'BETWEEN') {
+      out += c.min + ' AND ' + c.max;
+    } else if (c.op === 'IN') {
+      out += '(' + (c.values || []).map(function (v) {
+        return v.kind === 'string' ? quoteStr(v.v) : String(v.v);
+      }).join(', ') + ')';
+    } else if (c.value && c.value.kind === 'string') {
+      out += quoteStr(c.value.v);
+    } else if (c.value && c.value.kind === 'bool') {
+      out += c.value.v ? 'true' : 'false';
+    } else if (c.value) {
+      out += String(c.value.v);
+    } else {
+      out += '""';
+    }
+    return out;
+  }
+
+  // --- attach ---------------------------------------------------------------
+
+  function attach(opts) {
+    var tpl = document.getElementById('matcherBuilderTpl');
+    if (!tpl) { return null; }
+    var root = tpl.content.firstElementChild.cloneNode(true);
+    var exprEl = opts.expression;
+    var i18n = opts.i18n || {};
+    var fields = opts.fields || [];
+
+    // Mount: editor UI goes where the mount placeholder sits; the mount
+    // (which holds the expression textarea) then moves into an "Advanced"
+    // disclosure right after the editor.
+    opts.mount.parentNode.insertBefore(root, opts.mount);
+    var det = document.createElement('details');
+    det.className = 'mb-3';
+    var sum = document.createElement('summary');
+    sum.className = 'text-muted';
+    sum.textContent = i18n.rawLabel || 'DSL';
+    det.appendChild(sum);
+    det.appendChild(opts.mount);
+    root.parentNode.insertBefore(det, root.nextSibling);
+
+    var combSel = root.querySelector('[data-mb="combinator"]');
+    var clausesEl = root.querySelector('[data-mb="clauses"]');
+    var warnEl = root.querySelector('[data-mb="warn"]');
+    var emptyEl = root.querySelector('[data-mb="emptyHint"]');
+    var rawMode = false;
+
+    root.querySelector('[data-mb="combinatorLabel"]').textContent = i18n.combinatorLabel || 'Animals must match';
+    [['AND', i18n.combAll || 'ALL conditions (AND)'], ['OR', i18n.combAny || 'ANY condition (OR)']].forEach(function (pair) {
+      var o = document.createElement('option');
+      o.value = pair[0]; o.textContent = pair[1];
+      combSel.appendChild(o);
+    });
+    emptyEl.textContent = i18n.noClauses || '';
+    var addBtn = root.querySelector('[data-mb="add"]');
+    addBtn.textContent = i18n.addClause || '+';
+
+    function fieldDef(key) {
+      for (var i = 0; i < fields.length; i++) { if (fields[i].key === key) { return fields[i]; } }
+      return null;
+    }
+
+    function opLabel(op) { return i18n.ops && i18n.ops[op] ? i18n.ops[op] : op; }
+
+    function makeValueControl(def, op) {
+      // Returns the single-value control for (field type, op): a yes/no
+      // select for bools, a number input for numeric comparisons, text
+      // otherwise (IN lists stay free text with a hint).
+      var el;
+      if (def.type === 'bool' && op !== 'IN') {
+        el = document.createElement('select');
+        [['true', i18n.boolTrue || 'yes'], ['false', i18n.boolFalse || 'no']].forEach(function (pair) {
+          var o = document.createElement('option');
+          o.value = pair[0]; o.textContent = pair[1];
+          el.appendChild(o);
+        });
+      } else {
+        el = document.createElement('input');
+        el.type = (def.type === 'number' && op !== 'IN') ? 'number' : 'text';
+        if (op === 'IN') { el.placeholder = i18n.inHint || ''; }
+      }
+      el.className = 'form-control form-control-sm mb-value';
+      return el;
+    }
+
+    function currentClauses() {
+      var out = [];
+      clausesEl.querySelectorAll('.mb-clause').forEach(function (row) {
+        var field = row.querySelector('.mb-field').value;
+        var op = row.querySelector('.mb-op').value;
+        var def = fieldDef(field) || { type: 'string' };
+        var c = { field: field, op: op, negated: row.querySelector('.mb-not-btn').classList.contains('active') };
+        if (op === 'BETWEEN') {
+          c.min = parseFloat(row.querySelector('.mb-min').value) || 0;
+          c.max = parseFloat(row.querySelector('.mb-max').value) || 0;
+        } else if (op === 'IN') {
+          c.values = row.querySelector('.mb-value').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean).map(function (s) {
+            return def.type === 'number' ? { kind: 'number', v: parseFloat(s) || 0 } : { kind: 'string', v: s };
+          });
+        } else if (def.type === 'bool') {
+          c.value = { kind: 'bool', v: row.querySelector('.mb-value').value === 'true' };
+        } else if (def.type === 'number') {
+          c.value = { kind: 'number', v: parseFloat(row.querySelector('.mb-value').value) || 0 };
+        } else {
+          c.value = { kind: 'string', v: row.querySelector('.mb-value').value };
+        }
+        out.push(c);
+      });
+      return out;
+    }
+
+    function sync() {
+      if (rawMode) { return; }
+      var clauses = currentClauses();
+      exprEl.value = clauses.map(serializeClause).join(' ' + combSel.value + ' ');
+      emptyEl.classList.toggle('d-none', clauses.length > 0);
+    }
+
+    function rebuildValueCell(row, keepValue) {
+      var def = fieldDef(row.querySelector('.mb-field').value) || { type: 'string' };
+      var op = row.querySelector('.mb-op').value;
+      var holder = row.querySelector('.mb-value-holder');
+      var prev = row.querySelector('.mb-value');
+      var prevVal = keepValue && prev ? prev.value : null;
+      holder.innerHTML = '';
+      if (op === 'BETWEEN') {
+        var range = document.createElement('span');
+        range.className = 'mb-range';
+        var minIn = document.createElement('input');
+        minIn.type = 'number'; minIn.className = 'form-control form-control-sm mb-min';
+        minIn.placeholder = i18n.betweenMin || 'Min';
+        var maxIn = document.createElement('input');
+        maxIn.type = 'number'; maxIn.className = 'form-control form-control-sm mb-max';
+        maxIn.placeholder = i18n.betweenMax || 'Max';
+        if (keepValue && row._range) { minIn.value = row._range.min; maxIn.value = row._range.max; }
+        [minIn, maxIn].forEach(function (el) { el.addEventListener('input', sync); el.addEventListener('change', sync); });
+        range.appendChild(minIn);
+        range.appendChild(maxIn);
+        holder.appendChild(range);
+      } else {
+        var vc = makeValueControl(def, op);
+        if (prevVal != null && vc.tagName !== 'SELECT') { vc.value = prevVal; }
+        vc.addEventListener('input', sync);
+        vc.addEventListener('change', sync);
+        holder.appendChild(vc);
+      }
+    }
+
+    function fillOps(row, wanted) {
+      var def = fieldDef(row.querySelector('.mb-field').value) || { ops: ['='] };
+      var opSel = row.querySelector('.mb-op');
+      opSel.innerHTML = '';
+      (def.ops || ['=']).forEach(function (op) {
+        var o = document.createElement('option');
+        o.value = op; o.textContent = opLabel(op);
+        if (wanted === op) { o.selected = true; }
+        opSel.appendChild(o);
+      });
+      rebuildValueCell(row, true);
+    }
+
+    function addClause(c) {
+      c = c || {};
+      var row = document.createElement('div');
+      row.className = 'mb-clause';
+      row.draggable = true;
+      if (c.op === 'BETWEEN') { row._range = { min: c.min, max: c.max }; }
+
+      var handle = document.createElement('span');
+      handle.className = 'mb-handle';
+      handle.textContent = '↕';
+      handle.title = i18n.drag || '';
+      row.appendChild(handle);
+
+      var notBtn = document.createElement('button');
+      notBtn.type = 'button';
+      notBtn.className = 'btn btn-outline-secondary btn-sm mb-not-btn' + (c.negated ? ' active' : '');
+      notBtn.textContent = i18n.notLabel || 'NOT';
+      notBtn.addEventListener('click', function () {
+        notBtn.classList.toggle('active');
+        sync();
+      });
+      row.appendChild(notBtn);
+
+      var fieldSel = document.createElement('select');
+      fieldSel.className = 'form-control form-control-sm mb-field';
+      fields.forEach(function (f) {
+        var o = document.createElement('option');
+        o.value = f.key;
+        o.textContent = f.label; // friendly label only — no raw DSL key (U18)
+        if (c.field === f.key) { o.selected = true; }
+        fieldSel.appendChild(o);
+      });
+      row.appendChild(fieldSel);
+
+      var opSel = document.createElement('select');
+      opSel.className = 'form-control form-control-sm mb-op';
+      row.appendChild(opSel);
+
+      var holder = document.createElement('span');
+      holder.className = 'mb-value-holder';
+      holder.style.display = 'contents';
+      row.appendChild(holder);
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'btn btn-outline-danger btn-sm ml-auto';
+      del.textContent = i18n.remove || '×';
+      del.title = i18n.remove || '';
+      del.addEventListener('click', function () { row.remove(); sync(); });
+      row.appendChild(del);
+
+      fieldSel.addEventListener('change', function () { fillOps(row, null); sync(); });
+      opSel.addEventListener('change', function () { rebuildValueCell(row, false); sync(); });
+
+      // drag-to-reorder (U18)
+      row.addEventListener('dragstart', function (e) {
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      row.addEventListener('dragend', function () {
+        row.classList.remove('dragging');
+        clausesEl.querySelectorAll('.mb-clause').forEach(function (r) { r.classList.remove('mb-drag-over'); });
+        sync();
+      });
+      row.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        var dragging = clausesEl.querySelector('.dragging');
+        if (!dragging || dragging === row) { return; }
+        var rect = row.getBoundingClientRect();
+        var before = (e.clientY - rect.top) < rect.height / 2;
+        row.classList.add('mb-drag-over');
+        clausesEl.insertBefore(dragging, before ? row : row.nextSibling);
+      });
+      row.addEventListener('dragleave', function () { row.classList.remove('mb-drag-over'); });
+      row.addEventListener('drop', function (e) { e.preventDefault(); });
+
+      clausesEl.appendChild(row);
+      fillOps(row, c.op);
+
+      // initial values from a parsed clause
+      var vc = row.querySelector('.mb-value');
+      if (c.op === 'IN') {
+        vc.value = (c.values || []).map(function (v) { return String(v.v); }).join(', ');
+      } else if (c.value && c.value.kind === 'bool' && vc && vc.tagName === 'SELECT') {
+        vc.value = c.value.v ? 'true' : 'false';
+      } else if (c.value && vc) {
+        vc.value = String(c.value.v);
+      }
+      return row;
+    }
+
+    // load parses the textarea into the visual editor (or enters raw mode).
+    function load() {
+      rawMode = false;
+      warnEl.classList.add('d-none');
+      det.open = false;
+      clausesEl.innerHTML = '';
+      var parsed = parseFlat(exprEl.value || '');
+      if (!parsed) {
+        rawMode = true;
+        warnEl.textContent = i18n.rawWarn || '';
+        warnEl.classList.remove('d-none');
+        det.open = true;
+        emptyEl.classList.add('d-none');
+        return;
+      }
+      combSel.value = parsed.combinator;
+      parsed.clauses.forEach(function (c) { addClause(c); });
+      emptyEl.classList.toggle('d-none', parsed.clauses.length > 0);
+    }
+
+    addBtn.addEventListener('click', function () {
+      addClause({});
+      sync();
+    });
+    combSel.addEventListener('change', sync);
+
+    // Raw edits by advanced users flow back: clean + representable input
+    // reloads the visual editor; anything else switches to raw mode with
+    // the warning so the raw text is never silently overwritten (U18).
+    exprEl.addEventListener('change', function () {
+      load();
+    });
+
+    load();
+    return { refresh: load };
+  }
+
+  // --- Preview renderer (U19) -----------------------------------------------
+  // renderPreview(tbody, items, labels) builds the match rows: matched first
+  // (server-sorted), a green/red verdict cell and one badge per trace clause
+  // — green when the clause matched, red when it did not, hover shows the
+  // animal's actual value. labels = {yes, no, actual, fieldNames}.
+  function renderPreview(tbody, items, labels) {
+    tbody.innerHTML = '';
+    (items || []).forEach(function (a) {
+      var tr = document.createElement('tr');
+      tr.className = a.match ? 'mb-row-match' : 'mb-row-nomatch';
+      tr.setAttribute('data-match', a.match ? '1' : '0');
+      tr.setAttribute('data-search', ((a.label || '') + ' ' + (a.cage || '') + ' ' + (a.zone || '')).toLowerCase());
+
+      var tdAnimal = document.createElement('td');
+      tdAnimal.textContent = a.label || a.animal_id;
+      tr.appendChild(tdAnimal);
+      var tdCage = document.createElement('td');
+      tdCage.textContent = a.cage || '';
+      tr.appendChild(tdCage);
+      var tdZone = document.createElement('td');
+      tdZone.textContent = a.zone || '';
+      tr.appendChild(tdZone);
+      var tdMatch = document.createElement('td');
+      var badge = document.createElement('span');
+      badge.className = 'badge ' + (a.match ? 'badge-success' : 'badge-danger');
+      badge.textContent = a.match ? labels.yes : labels.no;
+      tdMatch.appendChild(badge);
+      tr.appendChild(tdMatch);
+
+      var tdWhy = document.createElement('td');
+      (a.trace || []).forEach(function (step) {
+        var b = document.createElement('span');
+        b.className = 'mb-trace-badge ' + (step.pass ? 'mb-trace-pass' : 'mb-trace-fail');
+        var fname = (labels.fieldNames && labels.fieldNames[step.field]) || step.field;
+        b.textContent = fname + ' ' + step.op + ' ' + step.expected;
+        var actual = step.actual === '' ? labels.noValue : step.actual;
+        var tip = (labels.actual || 'Actual: {{.value}}').replace('{{.value}}', actual || labels.noValue);
+        if (step.reason) {
+          var reasonText = labels.reasons && labels.reasons[step.reason] ? labels.reasons[step.reason] : step.reason;
+          tip += ' — ' + reasonText;
+        }
+        b.title = tip;
+        tdWhy.appendChild(b);
+      });
+      tr.appendChild(tdWhy);
+      tbody.appendChild(tr);
+    });
+  }
+
+  // applyPreviewFilters hides/shows rows by verdict filter + free text (U19).
+  function applyPreviewFilters(tbody, filterValue, searchValue) {
+    var q = (searchValue || '').toLowerCase();
+    var shown = 0, total = 0;
+    tbody.querySelectorAll('tr').forEach(function (tr) {
+      total++;
+      var ok = true;
+      if (filterValue === 'match' && tr.getAttribute('data-match') !== '1') { ok = false; }
+      if (filterValue === 'nomatch' && tr.getAttribute('data-match') !== '0') { ok = false; }
+      if (ok && q && tr.getAttribute('data-search').indexOf(q) < 0) { ok = false; }
+      tr.classList.toggle('d-none', !ok);
+      if (ok) { shown++; }
+    });
+    return { shown: shown, total: total };
+  }
+
+  return { attach: attach, renderPreview: renderPreview, applyPreviewFilters: applyPreviewFilters };
+})();
+</script>

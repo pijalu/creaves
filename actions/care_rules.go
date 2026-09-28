@@ -153,6 +153,10 @@ func setRuleContext(c buffalo.Context, tx *pop.Connection, rule *models.CareRule
 	c.Set("actionKinds", planActionKinds())
 	c.Set("payloadStr", string(rule.ActionPayload))
 	c.Set("scheduleStr", string(rule.Schedule))
+	// Structured editors (bugs.md U17): caretype/drug dropdown data.
+	if err := setPlanEditorData(c, tx); err != nil {
+		return err
+	}
 	if rule.ValidFrom != nil {
 		c.Set("validFromStr", rule.ValidFrom.Format("2006-01-02T15:04"))
 	} else {

@@ -3,6 +3,7 @@ package actions
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -35,6 +36,21 @@ func landingBackTarget(c buffalo.Context, animal *models.Animal) string {
 		return safeBackParam(c)
 	}
 	return "/" + landingTabAnchor(animal.Zone.String)
+}
+
+// landingBackLabelKey picks the back-button label i18n key for a resolved
+// target (bugs.md U16): the label must say where the button actually goes —
+// "Back to the day plan" when the user came from /care_plan — instead of a
+// static "Back to animals in care" that lies about the destination.
+func landingBackLabelKey(target string) string {
+	switch {
+	case strings.HasPrefix(target, "/care_plan"):
+		return "animals.back.to_day_plan"
+	case strings.HasPrefix(target, "/reports/care_schedule"):
+		return "animals.back.to_care_schedule"
+	default:
+		return "animals.back.to_in_care"
+	}
 }
 
 // timeToNullTime parses the legacy "15:04" feeding-time format. Legacy
