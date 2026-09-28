@@ -50,10 +50,12 @@ func CarePlanIndex(c buffalo.Context) error {
 	}
 	// ?kind=<action_kind> narrows the day plan to one kind (§8.3: the
 	// retired /feeding page redirects here with kind=feeding).
+	kindFilter := ""
 	if kind := c.Param("kind"); kind != "" {
 		if err := careplan.ValidateActionKind(kind); err != nil {
 			return planError(c, http.StatusUnprocessableEntity, err)
 		}
+		kindFilter = kind
 		narrowed := *plan
 		narrowed.Items = make([]careplan.PlanItem, 0, len(plan.Items))
 		for _, it := range plan.Items {
@@ -65,8 +67,19 @@ func CarePlanIndex(c buffalo.Context) error {
 		c.Set("kindFilter", kind)
 	}
 	rows := planJSONRows(plan)
+	// Work screen (Phase 2, U2): compact/detailed view + zone filter
+	// (kind already narrowed above). HTML only — the JSON read model is
+	// unchanged (backward compatible).
+	view := c.Param("view")
+	if view != ViewDetailed {
+		view = ViewCompact
+	}
+	zone := c.Param("zone")
 	c.Set("items", rows)
-	c.Set("cards", GroupCageCards(plan.Items, plan))
+	cageCards, feedingCards := GroupCards(plan.Items, plan)
+	c.Set("cards", cageCards)
+	c.Set("feedingCards", feedingCards)
+	c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now))
 	return responder.Wants("html", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
@@ -105,7 +118,11 @@ type planItemJSON struct {
 	DueAt        time.Time `json:"due_at"`
 	Status       string    `json:"status"`
 	Applicable   bool      `json:"applicable"`
+	Detail       string    `json:"detail,omitempty"`
 	OverriddenBy string    `json:"overridden_by,omitempty"`
+	// bugs.md U3: done-tier link to the fulfillment record (additive).
+	FulfillmentType string `json:"fulfillment_type,omitempty"`
+	FulfillmentID   string `json:"fulfillment_id,omitempty"`
 }
 
 func planJSONRows(plan *DayPlan) []planItemJSON {
@@ -119,18 +136,23 @@ func planJSONRows(plan *DayPlan) []planItemJSON {
 		row := planItemJSON{
 			SourceType:   string(src.SourceType()),
 			SourceID:     src.SourceID(),
-			SourceName:   src.Name(),
+			SourceName:   DisplayName(src.Name()),
 			ActionKind:   src.ActionKind(),
 			AnimalID:     it.Occurrence.AnimalID,
 			DueAt:        it.Occurrence.DueAt,
 			Status:       string(it.Status),
 			Applicable:   it.Applicable,
+			Detail:       planDetail(src),
 			OverriddenBy: it.OverriddenBy,
 		}
 		if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 			row.AnimalLabel = animalLabel(a)
 			row.Zone = a.Zone.String
 			row.Cage = a.Cage.String
+		}
+		if app := it.Application; app != nil && !app.FulfillmentDeleted {
+			row.FulfillmentType = app.FulfillmentType
+			row.FulfillmentID = app.FulfillmentID
 		}
 		items = append(items, row)
 	}

@@ -54,6 +54,8 @@ type planPayload struct {
 	Instructions       string  `json:"instructions"`
 	Note               string  `json:"note"`
 	CaretypeID         string  `json:"caretype_id"`
+	Food               string  `json:"food"`
+	ForceFeed          bool    `json:"force_feed"`
 	Drug               string  `json:"drug"`
 	Dosage             string  `json:"dosage"`
 	DosageFromTable    *bool   `json:"dosage_from_dosages_table"`

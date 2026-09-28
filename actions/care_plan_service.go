@@ -369,3 +369,54 @@ func animalLabel(a models.Animal) string {
 	}
 	return fmt.Sprintf("%s · %s · %s", a.YearNumberFormatted(), a.Species, cage)
 }
+
+// conversionMarkers are the display-only suffixes conversion stamps on
+// source names (bugs.md U5): kept in the DB for rollback identification,
+// stripped from every UI/JSON projection.
+var conversionMarkers = []string{" (conversion)", " (à vérifier)"}
+
+// DisplayName strips the conversion markers from a plan/rule name for
+// display (bugs.md U5). The stored name is never altered.
+func DisplayName(name string) string {
+	n := name
+	for _, m := range conversionMarkers {
+		n = strings.ReplaceAll(n, m, "")
+	}
+	return strings.TrimSpace(n)
+}
+
+// planDetail is the per-kind content line of one source (bugs.md U5):
+// feeding → food (+ force-feed flag), medication → drug — dosage,
+// care/cleanup/weighing → note (falling back to instructions),
+// observation → prompt. Empty when the payload carries nothing displayable.
+func planDetail(src careplan.PlanSource) string {
+	p := parsePlanPayload(src)
+	switch src.ActionKind() {
+	case careplan.KindFeeding:
+		if p.ForceFeed {
+			if p.Food == "" {
+				return "🍼"
+			}
+			return p.Food + " 🍼"
+		}
+		return p.Food
+	case careplan.KindMedication:
+		if p.Drug == "" {
+			return ""
+		}
+		if p.Dosage != "" {
+			return p.Drug + " — " + p.Dosage
+		}
+		if p.DosageFromTable != nil && *p.DosageFromTable {
+			return p.Drug + " — ⧗ auto" // resolution stays at apply time (§10-B6)
+		}
+		return p.Drug
+	case careplan.KindObservation:
+		return p.Prompt
+	}
+	// care / cleanup / weighing / unknown kinds
+	if p.Note != "" {
+		return p.Note
+	}
+	return p.Instructions
+}

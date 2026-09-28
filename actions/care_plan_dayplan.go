@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -274,14 +275,25 @@ func loadApplications(tx *pop.Connection, from, to time.Time) (map[string]*carep
 	apps := make(map[string]*careplan.ApplicationView, len(rows))
 	for i := range rows {
 		a := &rows[i]
-		apps[occurrenceKeyParts(a.SourceType, a.SourceID.String(), a.AnimalID, a.DueAt)] = &careplan.ApplicationView{
-			Status:             a.Status,
-			AppliedAt:          a.AppliedAt,
-			DeferredUntil:      a.DeferredUntil,
-			FulfillmentDeleted: a.FulfillmentDeleted,
-		}
+		apps[occurrenceKeyParts(a.SourceType, a.SourceID.String(), a.AnimalID, a.DueAt)] = applicationViewOf(a)
 	}
 	return apps, nil
+}
+
+// applicationViewOf projects one stored application row into the engine
+// read model (bugs.md U3: fulfillment link included).
+func applicationViewOf(a *models.CarePlanApplication) *careplan.ApplicationView {
+	v := &careplan.ApplicationView{
+		Status:             a.Status,
+		AppliedAt:          a.AppliedAt,
+		DeferredUntil:      a.DeferredUntil,
+		FulfillmentDeleted: a.FulfillmentDeleted,
+	}
+	if a.FulfillmentID != "" && a.FulfillmentID != planFulfillmentNone {
+		v.FulfillmentType = a.FulfillmentType
+		v.FulfillmentID = a.FulfillmentID
+	}
+	return v
 }
 
 // occurrenceKeyParts mirrors careplan.OccurrenceKey for stored rows.
@@ -434,12 +446,7 @@ func ReverifyItem(tx *pop.Connection, ref planItemRef, now time.Time) (*Reverifi
 	apps := make(map[string]*careplan.ApplicationView, len(appRows))
 	for i := range appRows {
 		a := &appRows[i]
-		apps[occurrenceKeyParts(a.SourceType, a.SourceID.String(), a.AnimalID, a.DueAt)] = &careplan.ApplicationView{
-			Status:             a.Status,
-			AppliedAt:          a.AppliedAt,
-			DeferredUntil:      a.DeferredUntil,
-			FulfillmentDeleted: a.FulfillmentDeleted,
-		}
+		apps[occurrenceKeyParts(a.SourceType, a.SourceID.String(), a.AnimalID, a.DueAt)] = applicationViewOf(a)
 	}
 
 	items := careplan.BuildPlanItems(occs, apps, now, to)
@@ -514,41 +521,124 @@ type CageCard struct {
 	Items  []careplan.PlanItem
 }
 
-// GroupCageCards groups the plan items whose kind uses cage grouping
-// (§6.2a — registry-driven, GroupingByKind). Cards sort by zone then cage
-// (round order, §6.2a). Items of animal-grouped kinds are returned as-is.
-func GroupCageCards(items []careplan.PlanItem, d *DayPlan) []*CageCard {
-	type key struct {
+// FeedingChip is the per-animal in-card chip of a feeding card
+// (bugs.md U1): year-number label plus the item's status (dot) and the
+// occurrence reference the apply loop needs.
+type FeedingChip struct {
+	AnimalID   int
+	Label      string // `472/26` (§10.5-N1 year number)
+	Status     string
+	SourceType string
+	SourceID   string
+	DueAt      time.Time
+	Applicable bool
+}
+
+// FeedingCard is one (cage × normalized food) group of the day plan
+// (bugs.md U1): the animals of a cage eat the same ration, so one card
+// per diet — possibly spanning several feeding sources (rule + animal
+// plans). Batch apply stays source×cage-scoped (§10.5-N2): the client
+// loops one batch call per source.
+type FeedingCard struct {
+	Zone      string
+	Cage      string
+	Food      string
+	ForceFeed bool
+	Chips     []FeedingChip
+	Items     []careplan.PlanItem
+}
+
+// GroupCards groups the plan items whose kind uses a cage-level grouping
+// strategy (§6.2a + bugs.md U1 — registry-driven, GroupingByKind):
+// cleanup → one card per (source × cage); feeding → one card per
+// (cage × normalized food). Both sorts by zone then cage (round order).
+func GroupCards(items []careplan.PlanItem, d *DayPlan) ([]*CageCard, []*FeedingCard) {
+	type cageKey struct {
 		sourceID, zone, cage string
 	}
-	groups := map[key]*CageCard{}
-	var cards []*CageCard
+	type dietKey struct {
+		zone, cage, food string
+	}
+	cageGroups := map[cageKey]*CageCard{}
+	dietGroups := map[dietKey]*FeedingCard{}
+	var cages []*CageCard
+	var feedings []*FeedingCard
 	for i := range items {
 		it := items[i]
 		if it.Occurrence.Source == nil {
 			continue
 		}
-		if careplan.GroupingFor(it.Occurrence.Source.ActionKind()) != careplan.GroupingCage {
-			continue
-		}
-		zone, cage := "", ""
+		src := it.Occurrence.Source
+		zone, cage, label := "", "", ""
 		if a, ok := d.AnimalRow(it.Occurrence.AnimalID); ok {
 			zone, cage = a.Zone.String, a.Cage.String
+			label = a.YearNumberFormatted()
 		}
-		k := key{it.Occurrence.Source.SourceID(), zone, cage}
-		card, ok := groups[k]
-		if !ok {
-			card = &CageCard{Source: it.Occurrence.Source, Zone: zone, Cage: cage}
-			groups[k] = card
-			cards = append(cards, card)
+		if cage == "" {
+			cage = "—" // uncaged animals still group (§10.5-N1 dash convention)
 		}
-		card.Items = append(card.Items, it)
+		switch careplan.GroupingFor(src.ActionKind()) {
+		case careplan.GroupingCage:
+			k := cageKey{src.SourceID(), zone, cage}
+			card, ok := cageGroups[k]
+			if !ok {
+				card = &CageCard{Source: src, Zone: zone, Cage: cage}
+				cageGroups[k] = card
+				cages = append(cages, card)
+			}
+			card.Items = append(card.Items, it)
+		case careplan.GroupingCageDiet:
+			p := parsePlanPayload(src)
+			food := normalizeFood(p.Food)
+			k := dietKey{zone, cage, food}
+			card, ok := dietGroups[k]
+			if !ok {
+				card = &FeedingCard{Zone: zone, Cage: cage, Food: food, ForceFeed: p.ForceFeed}
+				dietGroups[k] = card
+				feedings = append(feedings, card)
+			} else if p.ForceFeed {
+				card.ForceFeed = true // any force-fed member flags the card
+			}
+			card.Chips = append(card.Chips, FeedingChip{
+				AnimalID:   it.Occurrence.AnimalID,
+				Label:      label,
+				Status:     string(it.Status),
+				SourceType: string(src.SourceType()),
+				SourceID:   src.SourceID(),
+				DueAt:      it.Occurrence.DueAt,
+				Applicable: it.Applicable,
+			})
+			card.Items = append(card.Items, it)
+		}
 	}
-	sort.SliceStable(cards, func(i, j int) bool {
-		if cards[i].Zone != cards[j].Zone {
-			return cards[i].Zone < cards[j].Zone
+	byZoneCage := func(zoneAt, cageAt func(int) string) func(int, int) bool {
+		return func(i, j int) bool {
+			if zoneAt(i) != zoneAt(j) {
+				return zoneAt(i) < zoneAt(j)
+			}
+			return cageAt(i) < cageAt(j)
 		}
-		return cards[i].Cage < cards[j].Cage
-	})
-	return cards
+	}
+	sort.SliceStable(cages, byZoneCage(
+		func(i int) string { return cages[i].Zone },
+		func(i int) string { return cages[i].Cage }))
+	sort.SliceStable(feedings, byZoneCage(
+		func(i int) string { return feedings[i].Zone },
+		func(i int) string { return feedings[i].Cage }))
+	return cages, feedings
+}
+
+// normalizeFood is the diet grouping key (bugs.md U1): case- and
+// whitespace-insensitive — "Croquettes  + VDF" and "croquettes + vdf"
+// are the same ration.
+func normalizeFood(food string) string {
+	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(food)), " "))
+}
+
+// GroupCageCards groups the plan items whose kind uses cage grouping
+// (§6.2a — registry-driven, GroupingByKind). Cards sort by zone then cage
+// (round order, §6.2a). Kept for callers that only need cleanup cards.
+func GroupCageCards(items []careplan.PlanItem, d *DayPlan) []*CageCard {
+	cages, _ := GroupCards(items, d)
+	return cages
 }

@@ -1,0 +1,218 @@
+<% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+<% } %>
+
+<% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+<% } %>
+
+<% contentFor("noonSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+<% } %>
+
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.report.title") %></h3>
+</div>
+
+<!-- Read-only report (bugs.md U9/U10): no apply/skip/defer controls. -->
+<form method="GET" action="/reports/care_schedule" class="mb-3">
+  <input type="hidden" name="group" value="<%= view.Group %>">
+  <div class="form-row align-items-end">
+    <div class="col-auto">
+      <label class="small mb-0" for="from"><%= t("care_plan.report.from") %></label>
+      <input type="date" class="form-control" id="from" name="from" value="<%= view.From %>">
+    </div>
+    <div class="col-auto">
+      <label class="small mb-0" for="to"><%= t("care_plan.report.to") %></label>
+      <input type="date" class="form-control" id="to" name="to" value="<%= view.To %>">
+    </div>
+    <div class="col-auto">
+      <button type="submit" class="btn btn-primary"><%= t("care_plan.report.filter") %></button>
+    </div>
+  </div>
+</form>
+
+<div class="btn-group btn-group-sm mb-3" role="group" id="reportGroupSwitch">
+  <%= for (g) in ["zone", "cage", "animal"] { %>
+    <%= if (view.Group == g) { %>
+      <a class="btn btn-secondary" href="?group=<%= g %>&from=<%= view.From %>&to=<%= view.To %>"><%= t("care_plan.report.group." + g) %></a>
+    <% } else { %>
+      <a class="btn btn-outline-secondary" href="?group=<%= g %>&from=<%= view.From %>&to=<%= view.To %>"><%= t("care_plan.report.group." + g) %></a>
+    <% } %>
+  <% } %>
+</div>
+
+<%= if (view.Empty) { %>
+  <div class="alert alert-light border"><%= t("care_plan.report.empty") %></div>
+<% } %>
+
+<%= if (view.Group == "zone") { %>
+  <%= for (sec) in view.Zones { %>
+    <h5 class="mt-3">
+      <%= if (sec.Zone != "") { %><%= sec.Zone %><% } else { %><%= t("care_plan.report.no_zone") %><% } %>
+      <span class="badge badge-pill badge-secondary"><%= sec.Count %></span>
+    </h5>
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th><%= t("care_plan.report.col.time") %></th>
+        <th><%= t("care_plan.report.col.animal") %></th>
+        <th><%= t("care_plan.report.col.care") %></th>
+        <th><%= t("care_plan.report.col.status") %></th>
+      </thead>
+      <tbody>
+        <%= for (row) in sec.Rows { %>
+          <tr class="plan-item plan-item-<%= row.Status %> <%= row.RowClass %>">
+            <td class="align-middle<%= if (row.Date == view.Today) { %> table-primary font-weight-bold<% } %>">
+              <%= row.Time %>
+              <%= if (row.ClockSlot == "morning") { %><%= contentOf("morningSVG") %><% } %>
+              <%= if (row.ClockSlot == "noon") { %><%= contentOf("noonSVG") %><% } %>
+              <%= if (row.ClockSlot == "evening") { %><%= contentOf("eveningSVG") %><% } %>
+            </td>
+            <td class="align-middle">
+              <%= if (row.AnimalLink != "") { %>
+                <a href="<%= row.AnimalLink %>"><%= row.AnimalLabel %></a>
+              <% } else { %>
+                <%= row.AnimalLabel %>
+              <% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-light"><%= t("care_plan.kind." + row.Kind) %></span>
+              <%= if (row.Detail != "") { %>
+                <strong><%= row.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= row.SourceLink %>"><%= row.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= row.SourceLink %>"><%= row.SourceName %></a>
+              <% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-secondary"><%= t("care_plan.status." + row.Status) %></span>
+              <%= if (row.Fulfillment != "") { %>
+                <a class="btn btn-outline-success btn-sm ml-1" href="<%= row.Fulfillment %>"><%= t("care_plan.fulfillment.view") %></a>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+<% } %>
+
+<%= if (view.Group == "cage") { %>
+  <%= for (blk) in view.Cages { %>
+    <h5 class="mt-3">
+      <%= blk.Cage %>
+      <%= if (blk.Zone != "") { %><span class="text-muted"><%= blk.Zone %></span><% } %>
+      <span class="badge badge-pill badge-secondary"><%= blk.Count %></span>
+    </h5>
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th><%= t("care_plan.report.col.time") %></th>
+        <th><%= t("care_plan.report.col.animals") %></th>
+        <th><%= t("care_plan.report.col.care") %></th>
+        <th><%= t("care_plan.report.col.status") %></th>
+      </thead>
+      <tbody>
+        <%= for (row) in blk.Rows { %>
+          <tr class="plan-item plan-item-<%= row.Status %> <%= row.RowClass %>">
+            <td class="align-middle<%= if (row.Date == view.Today) { %> table-primary font-weight-bold<% } %>">
+              <%= row.Time %>
+              <%= if (row.ClockSlot == "morning") { %><%= contentOf("morningSVG") %><% } %>
+              <%= if (row.ClockSlot == "noon") { %><%= contentOf("noonSVG") %><% } %>
+              <%= if (row.ClockSlot == "evening") { %><%= contentOf("eveningSVG") %><% } %>
+            </td>
+            <td class="align-middle">
+              <%= if (row.AnimalCount > 1) { %>
+                <span class="badge badge-info"><%= blk.Cage %> · <%= row.AnimalCount %> <%= t("care_plan.report.animals") %></span>
+              <% } else { %>
+                <%= if (row.AnimalLink != "") { %>
+                  <a href="<%= row.AnimalLink %>"><%= row.AnimalLabel %></a>
+                <% } else { %>
+                  <%= row.AnimalLabel %>
+                <% } %>
+              <% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-light"><%= t("care_plan.kind." + row.Kind) %></span>
+              <%= if (row.Detail != "") { %>
+                <strong><%= row.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= row.SourceLink %>"><%= row.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= row.SourceLink %>"><%= row.SourceName %></a>
+              <% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-secondary"><%= t("care_plan.status." + row.Status) %></span>
+              <%= if (row.Fulfillment != "") { %>
+                <a class="btn btn-outline-success btn-sm ml-1" href="<%= row.Fulfillment %>"><%= t("care_plan.fulfillment.view") %></a>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+<% } %>
+
+<%= if (view.Group == "animal") { %>
+  <%= for (sec) in view.Animals { %>
+    <h5 class="mt-3">
+      <%= if (sec.AnimalLink != "") { %>
+        <a href="<%= sec.AnimalLink %>"><%= sec.AnimalLabel %></a>
+      <% } else { %>
+        <%= sec.AnimalLabel %>
+      <% } %>
+      <%= if (sec.Zone != "") { %><span class="text-muted"><%= sec.Zone %></span><% } %>
+      <span class="badge badge-pill badge-secondary"><%= sec.Count %></span>
+    </h5>
+    <table class="table table-hover table-bordered">
+      <thead class="thead-light">
+        <th><%= t("care_plan.report.col.date") %></th>
+        <th><%= t("care_plan.report.col.time") %></th>
+        <th><%= t("care_plan.report.col.care") %></th>
+        <th><%= t("care_plan.report.col.status") %></th>
+      </thead>
+      <tbody>
+        <%= for (row) in sec.Rows { %>
+          <tr class="plan-item plan-item-<%= row.Status %> <%= row.RowClass %>">
+            <td class="align-middle<%= if (row.Date == view.Today) { %> table-primary font-weight-bold<% } %>"><%= row.Date %></td>
+            <td class="align-middle">
+              <%= row.Time %>
+              <%= if (row.ClockSlot == "morning") { %><%= contentOf("morningSVG") %><% } %>
+              <%= if (row.ClockSlot == "noon") { %><%= contentOf("noonSVG") %><% } %>
+              <%= if (row.ClockSlot == "evening") { %><%= contentOf("eveningSVG") %><% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-light"><%= t("care_plan.kind." + row.Kind) %></span>
+              <%= if (row.Detail != "") { %>
+                <strong><%= row.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= row.SourceLink %>"><%= row.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= row.SourceLink %>"><%= row.SourceName %></a>
+              <% } %>
+            </td>
+            <td class="align-middle">
+              <span class="badge badge-secondary"><%= t("care_plan.status." + row.Status) %></span>
+              <%= if (row.Fulfillment != "") { %>
+                <a class="btn btn-outline-success btn-sm ml-1" href="<%= row.Fulfillment %>"><%= t("care_plan.fulfillment.view") %></a>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+<% } %>

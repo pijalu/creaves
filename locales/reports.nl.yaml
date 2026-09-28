@@ -128,3 +128,5 @@
   translation: "Bestaande vinder zoeken"
 - id: "reports.discoverers.picker.hint"
   translation: "Typ een naam om het formulier in te vullen met een bestaande vinder"
+- id: "nav.reports_care_schedule"
+  translation: "Zorgplanning"

@@ -74,12 +74,13 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 	}
 
 	// §10-B6 dialog strings on the day-plan page (fixture renders a due,
-	// applicable item → apply button + dosage modal).
+	// applicable FEEDING item → bugs.md U1 feeding card with the apply-group
+	// button + dosage modal).
 	applyStrings := map[string][]string{
-		"fr":    {"Appliquer", "Le dosage ne peut pas être calculé automatiquement", "Dernier poids enregistré", "Appliquer avec ce dosage"},
-		"en-US": {"Apply", "Dosage cannot be computed automatically", "Last recorded weight", "Apply with this dosage"},
-		"de":    {"Anwenden", "Die Dosierung kann nicht automatisch berechnet werden", "Zuletzt erfasstes Gewicht", "Mit dieser Dosierung anwenden"},
-		"nl":    {"Toepassen", "De dosering kan niet automatisch worden berekend", "Laatst geregistreerde gewicht", "Met deze dosering toepassen"},
+		"fr":    {"Appliquer le groupe", "Le dosage ne peut pas être calculé automatiquement", "Dernier poids enregistré", "Appliquer avec ce dosage"},
+		"en-US": {"Apply group", "Dosage cannot be computed automatically", "Last recorded weight", "Apply with this dosage"},
+		"de":    {"Gruppe anwenden", "Die Dosierung kann nicht automatisch berechnet werden", "Zuletzt erfasstes Gewicht", "Mit dieser Dosierung anwenden"},
+		"nl":    {"Groep toepassen", "De dosering kan niet automatisch worden berekend", "Laatst geregistreerde gewicht", "Met deze dosering toepassen"},
 	}
 
 	paths := []string{

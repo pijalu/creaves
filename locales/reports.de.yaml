@@ -128,3 +128,5 @@
   translation: "Vorhandenen Finder suchen"
 - id: "reports.discoverers.picker.hint"
   translation: "Namen eingeben, um das Formular mit einem vorhandenen Finder auszufüllen"
+- id: "nav.reports_care_schedule"
+  translation: "Pflegeplan"

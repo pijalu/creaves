@@ -1,17 +1,329 @@
+<style>
+  /* Feeding chip status dots (bugs.md U1) — bootstrap contextual palette. */
+  .plan-dot-applied { color: #28a745; }
+  .plan-dot-due { color: #007bff; }
+  .plan-dot-late { color: #e0a800; }
+  .plan-dot-missing { color: #dc3545; }
+  .plan-dot-scheduled { color: #6c757d; }
+  .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
+</style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
+  <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
+  <div class="float-right">
+    <div class="btn-group btn-group-sm" role="group">
+      <%= if (view.View == "compact") { %>
+        <a class="btn btn-primary" href="?view=compact<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.compact") %></a>
+        <a class="btn btn-outline-primary" href="?view=detailed<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.detailed") %></a>
+      <% } else { %>
+        <a class="btn btn-outline-primary" href="?view=compact<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.compact") %></a>
+        <a class="btn btn-primary" href="?view=detailed<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.detailed") %></a>
+      <% } %>
+    </div>
+  </div>
 </div>
 
-<%= if (cards) { %>
-  <h5><%= t("care_plan.cage_cards") %></h5>
+<ul class="nav nav-tabs mb-2" id="planZoneTabs">
+  <li class="nav-item">
+    <a class="nav-link position-relative<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="?view=<%= view.View %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
+      <%= t("care_plan.zone.all") %>
+      <span class="badge badge-pill badge-primary position-absolute" style="top:-0.5em;right:-0.8em;"><%= view.ZoneAllCap %></span>
+    </a>
+  </li>
+  <%= for (zt) in view.Zones { %>
+    <li class="nav-item">
+      <a class="nav-link position-relative<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?view=<%= view.View %>&zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
+        <%= zt.Name %>
+        <%= if (zt.Count > 0) { %>
+          <span class="badge badge-pill badge-primary position-absolute" style="top:-0.5em;right:-0.8em;"><%= zt.CountCap %></span>
+        <% } %>
+      </a>
+    </li>
+  <% } %>
+</ul>
+
+<div class="mb-3" id="planKindChips">
+  <a class="btn btn-sm position-relative<%= if (view.Kind == "") { %> btn-secondary<% } else { %> btn-outline-secondary<% } %> mr-1" href="?view=<%= view.View %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
+    <%= t("care_plan.zone.all") %>
+    <span class="badge badge-pill badge-dark position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.KindAllCap %></span>
+  </a>
+  <%= for (kc) in view.Kinds { %>
+    <a class="btn btn-sm position-relative<%= if (view.Kind == kc.Kind) { %> btn-secondary<% } else { %> btn-outline-secondary<% } %> mr-1" href="?view=<%= view.View %>&kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
+      <%= t("care_plan.kind." + kc.Kind) %>
+      <%= if (kc.Count > 0) { %>
+        <span class="badge badge-pill badge-dark position-absolute" style="top:-0.6em;right:-0.6em;"><%= kc.CountCap %></span>
+      <% } %>
+    </a>
+  <% } %>
+</div>
+
+<div class="mb-2">
+  <button class="btn btn-outline-danger position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-late" aria-expanded="true">
+    <%= t("care_plan.tier.late") %>
+    <span class="badge badge-pill badge-danger position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[0].CountCap %></span>
+  </button>
+  <div class="collapse show" id="tier-late">
+    <table class="table table-hover table-bordered">
+      <tbody>
+        <%= for (card) in view.Tiers[0].Cards { %>
+          <tr class="plan-item plan-item-<%= card.Status %> table-danger">
+            <td>
+              <%= if (card.AnimalLink != "") { %>
+                <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+              <% } else { %>
+                <%= card.AnimalLabel %>
+              <% } %>
+            </td>
+            <td>
+              <%= if (card.Detail != "") { %>
+                <strong><%= card.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+              <% } %>
+              <%= if (card.Remaining > 0) { %>
+                <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+              <% } %>
+            </td>
+            <td><%= card.DueAt.Format("15:04") %></td>
+            <td>
+              <%= if (card.Status == "late") { %>
+                <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+              <% } else { %>
+                <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+              <% } %>
+              <%= if (card.Applicable) { %>
+                <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-kind="<%= card.ActionKind %>">
+                  <%= t("care_plan.apply.action") %>
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="skip">⏭</button>
+                <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="defer">🚫</button>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mb-2">
+  <button class="btn btn-outline-warning position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-now" aria-expanded="true">
+    <%= t("care_plan.tier.now") %>
+    <span class="badge badge-pill badge-warning position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[1].CountCap %></span>
+  </button>
+  <div class="collapse show" id="tier-now">
+    <table class="table table-hover table-bordered">
+      <tbody>
+        <%= for (card) in view.Tiers[1].Cards { %>
+          <tr class="plan-item plan-item-<%= card.Status %> table-warning">
+            <td>
+              <%= if (card.AnimalLink != "") { %>
+                <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+              <% } else { %>
+                <%= card.AnimalLabel %>
+              <% } %>
+            </td>
+            <td>
+              <%= if (card.Detail != "") { %>
+                <strong><%= card.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+              <% } %>
+              <%= if (card.Remaining > 0) { %>
+                <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+              <% } %>
+            </td>
+            <td><%= card.DueAt.Format("15:04") %></td>
+            <td>
+              <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
+              <%= if (card.Applicable) { %>
+                <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-kind="<%= card.ActionKind %>">
+                  <%= t("care_plan.apply.action") %>
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="skip">⏭</button>
+                <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="defer">🚫</button>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mb-2">
+  <button class="btn btn-outline-primary position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-later" aria-expanded="false">
+    <%= t("care_plan.tier.later") %>
+    <span class="badge badge-pill badge-primary position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[2].CountCap %></span>
+  </button>
+  <%= if (len(view.Hours) > 0) { %>
+    <span class="ml-2">
+      <%= for (hc) in view.Hours { %>
+        <a class="badge badge-pill badge-light" href="#<%= hc.Anchor %>"><%= hc.Hour %> <span class="text-muted">×<%= hc.Count %></span></a>
+      <% } %>
+    </span>
+  <% } %>
+  <div class="collapse" id="tier-later">
+    <table class="table table-hover table-bordered">
+      <tbody>
+        <%= for (card) in view.Tiers[2].Cards { %>
+          <tr class="plan-item plan-item-<%= card.Status %>" id="h-<%= card.HourKey %>">
+            <td>
+              <%= if (card.AnimalLink != "") { %>
+                <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+              <% } else { %>
+                <%= card.AnimalLabel %>
+              <% } %>
+            </td>
+            <td>
+              <%= if (card.Detail != "") { %>
+                <strong><%= card.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+              <% } %>
+              <%= if (card.Remaining > 0) { %>
+                <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+              <% } %>
+            </td>
+            <td><%= card.DueAt.Format("15:04") %></td>
+            <td>
+              <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
+              <%= if (card.Applicable) { %>
+                <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-kind="<%= card.ActionKind %>">
+                  <%= t("care_plan.apply.action") %>
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="skip">⏭</button>
+                <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                  data-source-type="<%= card.SourceType %>"
+                  data-source-id="<%= card.SourceID %>"
+                  data-animal-id="<%= card.AnimalID %>"
+                  data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                  data-mode="defer">🚫</button>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="mb-2">
+  <button class="btn btn-outline-success position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-done" aria-expanded="false">
+    <%= t("care_plan.tier.done") %>
+    <span class="badge badge-pill badge-success position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[3].CountCap %></span>
+  </button>
+  <div class="collapse" id="tier-done">
+    <table class="table table-hover table-bordered">
+      <tbody>
+        <%= for (card) in view.Tiers[3].Cards { %>
+          <tr class="plan-item plan-item-<%= card.Status %>">
+            <td>
+              <%= if (card.AnimalLink != "") { %>
+                <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+              <% } else { %>
+                <%= card.AnimalLabel %>
+              <% } %>
+            </td>
+            <td>
+              <%= if (card.Detail != "") { %>
+                <strong><%= card.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+              <% } else { %>
+                <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+              <% } %>
+            </td>
+            <td><%= card.DueAt.Format("15:04") %></td>
+            <td>
+              <%= if (card.Status == "applied") { %>
+                <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
+                <%= if (card.FulfillmentLink != "") { %>
+                  <a class="btn btn-outline-success btn-sm ml-1" href="<%= card.FulfillmentLink %>"><%= t("care_plan.fulfillment.view") %></a>
+                <% } %>
+              <% } else if (card.Status == "skipped") { %>
+                <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
+              <% } else if (card.Status == "deferred") { %>
+                <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
+              <% } else { %>
+                <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%= if (len(view.Feedings) > 0) { %>
+  <h5><%= t("care_plan.feeding.title") %></h5>
   <div class="row mb-3">
-    <%= for (card) in cards { %>
-      <div class="col-md-3">
-        <div class="card mb-2 plan-cage-card">
+    <%= for (fcard) in view.Feedings { %>
+      <div class="col-md-4">
+        <div class="card mb-2 plan-feeding-card">
           <div class="card-body p-2">
-            <strong><%= card.Cage %></strong>
-            <span class="text-muted"><%= card.Zone %></span>
-            <span class="badge badge-secondary"><%= len(card.Items) %></span>
+            <strong><%= fcard.Cage %></strong>
+            <span class="text-muted"><%= fcard.Zone %></span>
+            <span class="badge badge-info"><%= fcard.Food %></span>
+            <%= if (fcard.ForceFeed) { %>
+              <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
+            <% } %>
+            <div class="mt-1">
+              <%= for (chip) in fcard.Chips { %>
+                <span class="badge badge-pill badge-light plan-feeding-chip" title="<%= chip.Label %> · <%= t("care_plan.status." + chip.Status) %>">
+                  <span class="plan-dot plan-dot-<%= chip.Status %>">●</span> <%= chip.Label %>
+                </span>
+              <% } %>
+            </div>
+            <%= if (fcard.ApplicableCount > 0) { %>
+              <button type="button" class="btn btn-success mt-2 plan-feeding-apply"
+                data-items="<%= fcard.ChipRefsJSON %>">
+                <%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)
+              </button>
+            <% } %>
           </div>
         </div>
       </div>
@@ -19,52 +331,56 @@
   </div>
 <% } %>
 
-<table class="table table-hover table-bordered">
-  <thead class="thead-light">
-    <th><%= t("care_plan.col.animal") %></th>
-    <th><%= t("care_plan.col.plan") %></th>
-    <th><%= t("care_plan.col.due") %></th>
-    <th><%= t("care_plan.col.status") %></th>
-  </thead>
-  <tbody>
-    <%= for (item) in items { %>
-      <tr class="plan-item plan-item-<%= item.Status %>">
-        <td><%= item.AnimalLabel %></td>
-        <td><%= item.SourceName %></td>
-        <td><%= item.DueAt.Format("15:04") %></td>
-        <td>
-          <%= if (item.Status == "applied") { %>
-            <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
-          <% } else if (item.Status == "skipped") { %>
-            <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
-          <% } else if (item.Status == "deferred") { %>
-            <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
-          <% } else if (item.Status == "late") { %>
-            <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
-          <% } else if (item.Status == "missing") { %>
-            <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-          <% } else if (item.Status == "overridden") { %>
-            <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
-          <% } else if (item.Status == "due") { %>
-            <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
-          <% } else { %>
-            <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
-          <% } %>
-          <%= if (item.Applicable) { %>
-            <button type="button" class="btn btn-sm btn-outline-primary ml-1 plan-apply-btn"
-              data-source-type="<%= item.SourceType %>"
-              data-source-id="<%= item.SourceID %>"
-              data-animal-id="<%= item.AnimalID %>"
-              data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-              data-kind="<%= item.ActionKind %>">
-              <%= t("care_plan.apply.action") %>
-            </button>
-          <% } %>
-        </td>
-      </tr>
+<%= if (len(view.Cares) > 0) { %>
+  <h5><%= t("care_plan.cage_cards") %></h5>
+  <div class="row mb-3">
+    <%= for (ccard) in view.Cares { %>
+      <div class="col-md-3">
+        <div class="card mb-2 plan-cage-card">
+          <div class="card-body p-2">
+            <strong><%= ccard.Cage %></strong>
+            <span class="text-muted"><%= ccard.Zone %></span>
+            <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+            <div>
+              <button type="button" class="btn btn-success mt-2 plan-cage-apply"
+                data-items="<%= ccard.ChipRefsJSON %>">
+                <%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     <% } %>
-  </tbody>
-</table>
+  </div>
+<% } %>
+
+<!-- Shared skip/defer modal (§7.3.1, bugs.md U6): one modal, reason
+     mandatory; defer adds an hours input (default +1h, §10-L3) converted
+     client-side to an RFC3339 deferred_until. -->
+<div class="modal fade" id="planSkipDeferModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="planSkipDeferTitle"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="planSkipDeferReason"><%= t("care_plan.modal.reason") %></label>
+          <input type="text" class="form-control" id="planSkipDeferReason" autocomplete="off">
+        </div>
+        <div class="form-group d-none" id="planSkipDeferHoursGroup">
+          <label for="planSkipDeferHours"><%= t("care_plan.modal.defer_hours") %></label>
+          <input type="number" class="form-control" id="planSkipDeferHours" min="1" step="1" value="1">
+        </div>
+        <div class="alert alert-danger d-none" id="planSkipDeferError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="planSkipDeferSubmit"></button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- §10-B6: dosage resolution failure never blocks apply — the dialog warns
      (with the last recorded weight, §10-L2) and asks for a manual dosage. -->
@@ -90,6 +406,16 @@
 
 <script>
 (function () {
+  // Auto-refresh (§10-CP6c): reload every 60 s unless a modal is open —
+  // refreshing away an in-progress dosage entry would lose work.
+  function scheduleReload() {
+    setTimeout(function () {
+      if (jQuery('.modal').is(':visible')) { scheduleReload(); return; }
+      window.location.reload();
+    }, 60000);
+  }
+  scheduleReload();
+
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var pending = null; // item ref awaiting a manual dosage (§10-B6)
 
@@ -145,6 +471,120 @@
     });
   });
 
+  // Batch apply of one card's item refs (feeding cage × diet card, care
+  // cage card). §10.1-5/N2: a batch stays source×cage-scoped — one batch
+  // call per source, sequentially, then one reload (bugs.md U1/U6).
+  function applyBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    btn.disabled = true;
+    var bySource = {};
+    refs.forEach(function (r) {
+      var k = r.source_type + '|' + r.source_id;
+      (bySource[k] = bySource[k] || []).push(r);
+    });
+    var failures = [];
+    var chain = Promise.resolve();
+    Object.keys(bySource).forEach(function (k) {
+      var items = bySource[k];
+      chain = chain.then(function () {
+        return fetch('/care_plan/apply_batch', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({items: items})
+        }).then(function (r) {
+          return r.json().then(function (j) {
+            if (r.status !== 200) {
+              failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
+              return;
+            }
+            (j.results || []).forEach(function (it) {
+              if (it.status === 'error') {
+                failures.push(it.animal_id + ': ' + (it.error || ''));
+              }
+            });
+          });
+        });
+      });
+    });
+    chain.then(function () {
+      if (failures.length) {
+        btn.disabled = false;
+        window.alert(failures.join('\n'));
+      } else {
+        window.location.reload();
+      }
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
+    btn.addEventListener('click', function () { applyBatch(btn); });
+  });
+
+  // Shared skip/defer modal (§7.3.1): skip = reason only; defer = reason +
+  // hours (default +1h, §10-L3 → RFC3339 now+Nh). Empty reason stays
+  // client-side — the server enforces 422 too (§10-CP4).
+  var sdRef = null;
+  var sdMode = 'skip';
+  var sdLabels = {
+    skip: {title: "<%= t("care_plan.modal.skip_title") %>", submit: "<%= t("care_plan.modal.skip") %>"},
+    defer: {title: "<%= t("care_plan.modal.defer_title") %>", submit: "<%= t("care_plan.modal.defer") %>"}
+  };
+
+  function openSkipDefer(btn) {
+    sdMode = btn.getAttribute('data-mode');
+    sdRef = {
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at')
+    };
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels[sdMode].title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels[sdMode].submit;
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.toggle('d-none', sdMode !== 'defer');
+    $('#planSkipDeferModal').modal('show');
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-skip-btn, .plan-defer-btn'), function (btn) {
+    btn.addEventListener('click', function () { openSkipDefer(btn); });
+  });
+
+  document.getElementById('planSkipDeferSubmit').addEventListener('click', function () {
+    if (!sdRef) { return; }
+    var reason = document.getElementById('planSkipDeferReason').value.trim();
+    var errBox = document.getElementById('planSkipDeferError');
+    if (!reason) {
+      errBox.textContent = "<%= t("care_plan.modal.reason_required") %>";
+      errBox.classList.remove('d-none');
+      return;
+    }
+    var body = {
+      source_type: sdRef.sourceType, source_id: sdRef.sourceId,
+      animal_id: sdRef.animalId, due_at: sdRef.dueAt,
+      status: sdMode === 'defer' ? 'deferred' : 'skipped',
+      note: reason
+    };
+    if (sdMode === 'defer') {
+      var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+      if (!hours || hours < 1) { hours = 1; }
+      body.deferred_until = new Date(Date.now() + hours * 3600000).toISOString();
+    }
+    fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 201) { window.location.reload(); return; }
+      r.json().then(function (j) {
+        errBox.textContent = (j && (j.detail || j.error)) || ('HTTP ' + r.status);
+        errBox.classList.remove('d-none');
+      });
+    });
+  });
+
   document.getElementById('planDosageSubmit').addEventListener('click', function () {
     if (!pending) { return; }
     var dosage = document.getElementById('planDosageInput').value.trim();
@@ -157,5 +597,27 @@
       box.classList.remove('d-none');
     });
   });
+
+  // Zone tab memory (bugs.md U3): the legacy feeding screen remembered its
+  // tab in location.hash — replicate with a z- prefix so hour anchors
+  // (#h-15) never collide. A remembered zone only applies when the URL
+  // carries no explicit ?zone= filter.
+  var zoneTabs = document.querySelectorAll('#planZoneTabs a[data-zone]');
+  Array.prototype.forEach.call(zoneTabs, function (tab) {
+    tab.addEventListener('click', function () {
+      var z = tab.getAttribute('data-zone');
+      try { history.replaceState(null, '', z ? '#z-' + z : window.location.pathname + window.location.search); }
+      catch (e) { /* older browsers: ignore */ }
+    });
+  });
+  var zoneParam = new URLSearchParams(window.location.search).get('zone');
+  if (!zoneParam && window.location.hash.indexOf('#z-') === 0) {
+    var remembered = decodeURIComponent(window.location.hash.substring(3));
+    var match = null;
+    Array.prototype.forEach.call(zoneTabs, function (tab) {
+      if (tab.getAttribute('data-zone') === remembered) { match = tab; }
+    });
+    if (match) { window.location.replace(match.getAttribute('href')); }
+  }
 })();
 </script>

@@ -2,12 +2,16 @@ package careplan
 
 import "testing"
 
-// §6.2a: cleanup is cage-sized; every other kind is per-animal.
+// §6.2a: cleanup is cage-sized; feeding is cage×diet-sized (bugs.md U1);
+// every other kind is per-animal.
 func TestGroupingFor(t *testing.T) {
 	if g := GroupingFor(KindCleanup); g != GroupingCage {
 		t.Errorf("cleanup grouping = %q, want %q (§6.2a)", g, GroupingCage)
 	}
-	for _, k := range []string{KindFeeding, KindMedication, KindCare, KindWeighing, KindObservation} {
+	if g := GroupingFor(KindFeeding); g != GroupingCageDiet {
+		t.Errorf("feeding grouping = %q, want %q (bugs.md U1)", g, GroupingCageDiet)
+	}
+	for _, k := range []string{KindMedication, KindCare, KindWeighing, KindObservation} {
 		if g := GroupingFor(k); g != GroupingAnimal {
 			t.Errorf("%s grouping = %q, want %q", k, g, GroupingAnimal)
 		}

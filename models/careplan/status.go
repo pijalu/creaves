@@ -35,6 +35,11 @@ type ApplicationView struct {
 	// deleted; the application stays for audit and renders "record
 	// deleted". Kept as a flag — status remains applied.
 	FulfillmentDeleted bool
+	// Fulfillment link (bugs.md U3): the care/treatment record created by
+	// the apply. Additive — empty when the application carries no
+	// fulfillment ("none" placeholder, §4.5).
+	FulfillmentType string
+	FulfillmentID   string
 }
 
 // PlanItem is one row of the day plan / animal Plan tab: an occurrence

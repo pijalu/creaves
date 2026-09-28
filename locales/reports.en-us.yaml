@@ -128,3 +128,5 @@
   translation: "Search an existing discoverer"
 - id: "reports.discoverers.picker.hint"
   translation: "Type a name to prefill the form with an existing discoverer"
+- id: "nav.reports_care_schedule"
+  translation: "Care schedule"

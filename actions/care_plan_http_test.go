@@ -487,7 +487,11 @@ func TestCarePlanDayPlanHTMLRender(t *testing.T) {
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode, "html: %.300s", raw)
-	require.Contains(t, string(raw), "plan-item-due", "template renders items with status classes")
+	// bugs.md U1: feeding items render as one cage × diet card, not tier
+	// rows — the card carries the apply-group button and per-animal chips.
+	require.Contains(t, string(raw), "plan-feeding-card", "template renders the feeding card")
+	require.Contains(t, string(raw), "plan-dot-due", "feeding chips carry the per-animal status dot")
+	require.Contains(t, string(raw), "plan-feeding-apply", "feeding card carries the apply-group button")
 }
 
 // ---------------------------------------------------------------------------
