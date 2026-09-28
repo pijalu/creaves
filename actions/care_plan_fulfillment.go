@@ -440,6 +440,12 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 		}
 		if t.Timedonebitmap&bit == 0 {
 			t.Timedonebitmap |= bit
+			// bugs.md U11: a manual dosage (§10-B6) wins verbatim — the
+			// caretaker explicitly supplied it, so the operational record
+			// must carry it even when completing a pre-existing row.
+			if manual := strings.TrimSpace(in.Dosage); manual != "" {
+				t.Dosage = manual
+			}
 			if err := tx.Update(t); err != nil {
 				return "", err
 			}
@@ -451,6 +457,10 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 			appendum += fmt.Sprintf(" (%s)", in.Note) // bugs.md M2: +=, not =
 		}
 		t.Remarks = nulls.NewString(t.Remarks.String + appendum)
+		// bugs.md U11: same verbatim-manual-dosage rule on the collision path.
+		if manual := strings.TrimSpace(in.Dosage); manual != "" {
+			t.Dosage = manual
+		}
 		if err := tx.Update(t); err != nil {
 			return "", err
 		}

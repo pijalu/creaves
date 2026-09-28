@@ -1300,7 +1300,14 @@ accepts requests** (same hook point Buffalo uses for `migrations.Migrate()`;
 fail = boot aborts, so a half-converted database can never serve).
 Idempotent: a completion marker row (`care_plan_conversion` table:
 `key='startup_v1', finished_at`) makes re-boots a no-op; deleting the marker
-re-runs the converter.
+re-runs the converter. **Rollout note**: the fixed converter (n ≥ 0 slots,
+diet × slot-set clustering, no-skip fallback, unknown-drug review flag)
+shipped under the same `startup_v1` key — v1 conversion never reached
+production (only throwaway review rigs), so pre-prod databases must be
+dropped/re-migrated rather than re-converted in place; if a v1-converted
+database ever reaches production, the cleanup path is deleting the
+generated rows (identifiable per §8.2) plus the marker before booting the
+fixed binary.
 
 Steps, in order, each in its own transaction:
 
@@ -1309,13 +1316,25 @@ Steps, in order, each in its own transaction:
    reviewed, because the legacy `feeding_period` generator is frozen in step
    3 of the same boot (no double-feed window exists).
 2. **Feeding schedules → rules/plans**: for every in-care animal with
-   `feeding_start/end/period`, derive times (`start + n×period ≤ end`) and
-   cluster by normalized diet text. Clusters with ≥ threshold animals (≥5;
+   `feeding_start/end/period`, derive times (`start + n×period ≤ end`,
+   **n ≥ 0 — the start slot is itself a feeding time**, cf. §11.7;
+   `start == end` yields the single daily slot `[start]`; `end < start` is
+   an overnight window, slots emitted modulo 24 h; derivation is capped at
+   24 slots/day so pathological rows fail loudly) and cluster by
+   **normalized diet text × derived slot set** — one rule per (diet ×
+   slots), never a modal average that would fold minority time variants
+   into the wrong schedule. Clusters with ≥ threshold animals (≥5;
    calibrated on §2.4 counts, e.g. "grains pigeons eau" ×45 cohort-wide)
    become **one per-cluster rule** with a `species IN (...)` / animal-type
    matcher; unique diets become **per-animal plans** (`care_animal_plans`).
-   All generated sources are **active immediately** — they are the only
-   feeding generator after this boot.
+   **No-skip guarantee (no-loss rule)**: any feeding animal whose slots
+   cannot be derived still gets a best-effort per-animal plan — at minimum
+   `[feeding_start]` with diet/force_feed verbatim — flagged
+   "(fallback — à vérifier)" in the report; "skipped" never means
+   "uncovered". Unknown-drug series convert as observation/à-vérifier
+   plans rather than being dropped (see step 4). All generated sources
+   are **active immediately** — they are the only feeding generator after
+   this boot.
 3. **Freeze legacy feeding generator**: `feeding_start/end/period` become
    read-only (columns kept as backfill source + for exports); the landing
    `calculateFeeding` path is removed in the same release.

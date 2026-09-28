@@ -167,13 +167,13 @@
                               <i class="fas fa-minus" ></i>
                             </button>
                           <% } else if (morning.Bool) {%>
-                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <span class="badge badge-success py-2 px-2">
                               <%= contentOf("morningSVG") %>
-                            </button>
+                            </span>
                           <% } else { %>
-                              <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                              <span class="badge badge-warning py-2 px-2">
                               <%= contentOf("morningSVG") %>
-                            </button>
+                            </span>
                           <% }%>
                           
                           &nbsp;
@@ -183,13 +183,13 @@
                               <i class="fas fa-minus"></i>
                             </button>
                           <% } else if (noon.Bool) {%>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <span class="badge badge-success py-2 px-2">
                               <%= contentOf("noonSVG") %>
-                            </button>
+                            </span>
                           <% } else { %>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                            <span class="badge badge-warning py-2 px-2">
                               <%= contentOf("noonSVG") %>
-                            </button>
+                            </span>
                           <% }%>
 
                           &nbsp;
@@ -198,13 +198,13 @@
                               <i class="fas fa-minus" ></i>
                             </button>
                           <% } else if (evening.Bool) {%>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
+                            <span class="badge badge-success py-2 px-2">
                               <%= contentOf("eveningSVG") %>
-                            </button>
+                            </span>
                           <% } else { %>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
+                            <span class="badge badge-warning py-2 px-2">
                               <%= contentOf("eveningSVG") %>
-                            </button>
+                            </span>
                           <% }%>
                         </p>
                       </div>
@@ -220,12 +220,6 @@
   </tbody>
 </table>
 </div>
-<script>
-  // /treatmentschedule is read-only since the care-plan migration
-  // (docs/care-expert.md §8.3): treatment rows are history. Ticks live on
-  // the day plan (/care_plan) and the animal Plan tab.
-  $(".btn-schedule").css("pointer-events", "none").css("opacity", "0.75");
-</script>
   <%} else {%>
 <p>Geen</p>
 <%}%>

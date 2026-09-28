@@ -814,18 +814,18 @@ $( document ).ready(function(){
                             <i class="fas fa-minus" ></i>
                           </button>
                         <% } else if (morning.Bool) {%>
-                          <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                          <span class="badge badge-success py-2 px-2">
                             <%= contentOf("morningSVG") %>
-                          </button>
+                          </span>
                         <% } else { %>
                           
                           <%= if (dateKey.Past) { %>
-                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-danger py-2 px-2">
                           <% } else { %>
-                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-warning py-2 px-2">
                           <% } %>
                             <%= contentOf("morningSVG") %>
-                          </button>
+                          </span>
                         <% }%>
                         
                         &nbsp;
@@ -835,17 +835,17 @@ $( document ).ready(function(){
                             <i class="fas fa-minus"></i>
                           </button>
                         <% } else if (noon.Bool) {%>
-                          <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                          <span class="badge badge-success py-2 px-2">
                             <%= contentOf("noonSVG") %>
-                          </button>
+                          </span>
                         <% } else { %>
                           <%= if (dateKey.Past) { %>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-danger py-2 px-2">
                           <% } else { %>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-warning py-2 px-2">
                           <% } %>
                             <%= contentOf("noonSVG") %>
-                          </button>
+                          </span>
                         <% }%>
 
                         &nbsp;
@@ -854,17 +854,17 @@ $( document ).ready(function(){
                             <i class="fas fa-minus" ></i>
                           </button>
                         <% } else if (evening.Bool) {%>
-                          <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule" past="<%= dateKey.Past %>">
+                          <span class="badge badge-success py-2 px-2">
                             <%= contentOf("eveningSVG") %>
-                          </button>
+                          </span>
                         <% } else { %>
                           <%= if (dateKey.Past) { %>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-danger btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-danger py-2 px-2">
                           <% } else { %>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule" past="<%= dateKey.Past %>">
+                            <span class="badge badge-warning py-2 px-2">
                           <% } %>
                             <%= contentOf("eveningSVG") %>
-                          </button>
+                          </span>
                         <% }%>
                       </p>
                     </div>
@@ -887,12 +887,6 @@ $( document ).ready(function(){
       <%}%>
     </div>
   </div>
-<script>
-  // /treatmentschedule is read-only since the care-plan migration
-  // (docs/care-expert.md §8.3): treatment rows are history. Ticks live on
-  // the day plan (/care_plan) and the animal Plan tab.
-  $(".btn-schedule").css("pointer-events", "none").css("opacity", "0.75");
-</script>
 
   <%= if (animal.OuttakeID.Value() != nil) {%>
   <div class="tab-pane fade" id="nav-release" role="tabpanel" aria-labelledby="nav-release-tab">

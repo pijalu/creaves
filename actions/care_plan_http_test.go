@@ -1221,6 +1221,64 @@ func TestCareMedicationDosageRequiredFlow(t *testing.T) {
 	require.Equal(t, "0.12 ml", snap["manual_dosage"])
 }
 
+// TestCareMedicationManualDosageSameBucket covers bugs.md U11: when a
+// treatment row for the same animal/drug/day/bucket already exists (e.g.
+// pre-created by a converted series) and the apply supplies a manual dosage,
+// the operational row must carry the manual dosage verbatim — not keep the
+// stale plan dosage.
+func TestCareMedicationManualDosageSameBucket(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+	token := planToken(t, client, baseURL)
+
+	drug := &models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "CP-DrugB-" + f.marker}
+	require.NoError(t, models.DB.Create(drug))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug.ID).Exec()
+	})
+
+	due := itemDueSoon(time.Now())
+	sched := careScheduleJSON(t, due)
+	payload, err := json.Marshal(map[string]interface{}{
+		"drug": drug.Name, "dosage": "0.05 ml",
+	})
+	require.NoError(t, err)
+	rule := &models.CareRule{
+		ID: uuid.Must(uuid.NewV4()), Name: "MedB-" + f.marker,
+		ActionKind: "medication", ActionPayload: payload, Schedule: sched, Active: true,
+	}
+	require.NoError(t, models.DB.Create(rule))
+
+	_, body := planGetJSON(t, client, baseURL, "/care_plan")
+	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "medication")
+
+	// Pre-existing same-bucket row, not yet done, carrying the plan dosage —
+	// the shape converted treatment series produce.
+	dueAt, err := time.Parse(time.RFC3339, item["due_at"].(string))
+	require.NoError(t, err)
+	bit := treatmentBucketBit(dueAt)
+	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
+	pre := &models.Treatment{
+		Date: dayStart, AnimalID: f.animalIDs[0], Drug: drug.Name,
+		Dosage: "0.05 ml", Timebitmap: bit, Timedonebitmap: 0,
+	}
+	require.NoError(t, models.DB.Create(pre))
+
+	// Apply with a manual dosage → 201, the same row is completed AND the
+	// dosage is corrected verbatim (§10-B6 / U11).
+	req := itemRef(item)
+	req["dosage"] = "0.12 ml (manuel)"
+	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req)
+	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug.Name).All(treatments))
+	require.Len(t, *treatments, 1, "same-bucket apply completes the existing row, no duplicate")
+	require.Equal(t, pre.ID, (*treatments)[0].ID)
+	require.Equal(t, "0.12 ml (manuel)", (*treatments)[0].Dosage, "U11: manual dosage stored verbatim")
+	require.NotZero(t, (*treatments)[0].Timedonebitmap&bit, "bucket marked done")
+}
+
 // TestCareMedicationDosageRequiredNoWeight covers the no-weight-on-record
 // branch (§10-L2: weight fields absent) plus the batch path reporting
 // dosage_required per item.
