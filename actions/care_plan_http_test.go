@@ -1365,3 +1365,139 @@ func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
 	require.Equal(t, "0.1 ml", byAnimal[f.animalIDs[0]])
 	require.Equal(t, "0.2 ml", byAnimal[f.animalIDs[1]])
 }
+
+// ---------------------------------------------------------------------------
+// §10-CP1 rework: a non-admin may undo an APPLIED MEDICATION only (the slot
+// toggle is designed to be reversible); every other kind stays admin-only.
+// ---------------------------------------------------------------------------
+
+// TestCarePlanUnapplyMedicationNonAdmin: regular user applies a medication
+// (slot toggle), then undoes it with delete_fulfillment → application row
+// gone, treatments row destroyed. A second unapply (nothing applied) → 403.
+func TestCarePlanUnapplyMedicationNonAdmin(t *testing.T) {
+	f := setupPlanFixture(t)
+	reg, regURL := planRegularClient(t)
+	regToken := planToken(t, reg, regURL)
+
+	now := time.Now()
+	due := itemDueSoon(now)
+	ruleWithoutMatcher(t, models.DB, "RMED-UNDO-"+f.marker, "medication",
+		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrug-" + f.marker, "dosage": "0.5 ml"}),
+		careScheduleJSON(t, due))
+
+	_, body := planGetJSON(t, reg, regURL, "/care_plan")
+	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "medication")
+	require.NotNil(t, it)
+	req := itemRef(it)
+
+	// apply (no confirm needed for medication toggles — server side unchanged)
+	code, raw := planDoJSON(t, reg, regURL, "POST", "/care_plan/apply", regToken, req)
+	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+
+	app := &models.CarePlanApplication{}
+	require.NoError(t, models.DB.Where("fulfillment_type = ? AND animal_id = ?", "treatment", f.animalIDs[0]).First(app))
+	require.Equal(t, "applied", app.Status)
+	treatmentID := app.FulfillmentID
+
+	// non-admin undo WITH delete_fulfillment → allowed for medication
+	req["delete_fulfillment"] = true
+	code, raw = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	n, err := models.DB.Where("id = ?", app.ID).Count(&models.CarePlanApplication{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n, "application row removed by undo")
+	n, err = models.DB.Where("id = ?", treatmentID).Count(&models.Treatments{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n, "treatments row destroyed with delete_fulfillment")
+
+	// nothing applied anymore → unapply again must be the uniform 403 (no
+	// information leak about which refs ever had an application row)
+	delete(req, "delete_fulfillment")
+	code, _ = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
+	require.Equal(t, http.StatusForbidden, code)
+}
+
+// TestCarePlanUnapplyNonMedicationNonAdminDenied: feeding stays admin-only
+// for regular users even when applied.
+func TestCarePlanUnapplyNonMedicationNonAdminDenied(t *testing.T) {
+	f := setupPlanFixture(t)
+	admin, adminURL := planAdminClient(t)
+	token := planToken(t, admin, adminURL)
+
+	rule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
+	_, body := planGetJSON(t, admin, adminURL, "/care_plan")
+	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	require.NotNil(t, it)
+	req := itemRef(it)
+	code, raw := planDoJSON(t, admin, adminURL, "POST", "/care_plan/apply", token, req)
+	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+	require.NoError(t, models.DB.Where("source_id = ?", rule.ID).First(&models.CarePlanApplication{}))
+
+	reg, regURL := planRegularClient(t)
+	regToken := planToken(t, reg, regURL)
+	code, _ = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
+	require.Equal(t, http.StatusForbidden, code, "feeding undo must stay admin-only for regular users")
+}
+
+// TestCarePlanUnapplyMedicationSiblingGuard (§10-M1): two medication
+// applications sharing ONE treatments row (same bucket collision) — undoing
+// one with delete_fulfillment must NOT destroy the shared row while the
+// sibling application still points at it.
+func TestCarePlanUnapplyMedicationSiblingGuard(t *testing.T) {
+	f := setupPlanFixture(t)
+	admin, adminURL := planAdminClient(t)
+	token := planToken(t, admin, adminURL)
+
+	now := time.Now()
+	due := itemDueSoon(now) // same bucket for both rules
+	ruleWithoutMatcher(t, models.DB, "RMED-S1-"+f.marker, "medication",
+		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrugA-" + f.marker, "dosage": "0.5 ml"}),
+		careScheduleJSON(t, due))
+	ruleWithoutMatcher(t, models.DB, "RMED-S2-"+f.marker, "medication",
+		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrugA-" + f.marker, "dosage": "0.5 ml"}),
+		careScheduleJSON(t, due))
+
+	_, body := planGetJSON(t, admin, adminURL, "/care_plan")
+	items := planItemsOf(t, body)
+	var meds []map[string]interface{}
+	for _, it := range items {
+		if int(it["animal_id"].(float64)) == f.animalIDs[0] && it["action_kind"] == "medication" && it["source_type"] == "rule" && it["status"] == "due" {
+			meds = append(meds, it)
+		}
+	}
+	require.Len(t, meds, 2, "both medication rules must produce an occurrence")
+
+	// apply both → §10-M1: both applications share one treatments row
+	var apps []models.CarePlanApplication
+	for _, it := range meds {
+		code, raw := planDoJSON(t, admin, adminURL, "POST", "/care_plan/apply", token, itemRef(it))
+		require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+		app := &models.CarePlanApplication{}
+		require.NoError(t, models.DB.Where("source_id = ? AND animal_id = ?", it["source_id"], f.animalIDs[0]).First(app))
+		apps = append(apps, *app)
+	}
+	require.Equal(t, apps[0].FulfillmentID, apps[1].FulfillmentID, "same-bucket medications must share one treatments row (§10-M1)")
+	require.Equal(t, "treatment", apps[0].FulfillmentType)
+	sharedTreatmentID := apps[0].FulfillmentID
+
+	// undo the first WITH delete_fulfillment → sibling guard keeps the row
+	req1 := itemRef(meds[0])
+	req1["delete_fulfillment"] = true
+	code, raw := planDoJSON(t, admin, adminURL, "POST", "/care_plan/unapply", token, req1)
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	n, err := models.DB.Where("id = ?", apps[0].ID).Count(&models.CarePlanApplication{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n, "first application row removed")
+	n, err = models.DB.Where("id = ?", sharedTreatmentID).Count(&models.Treatments{})
+	require.NoError(t, err)
+	require.Equal(t, 1, n, "§10-M1: shared treatments row must survive while the sibling application uses it")
+
+	// undo the second → last reference gone → row destroyed
+	req2 := itemRef(meds[1])
+	req2["delete_fulfillment"] = true
+	code, raw = planDoJSON(t, admin, adminURL, "POST", "/care_plan/unapply", token, req2)
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	n, err = models.DB.Where("id = ?", sharedTreatmentID).Count(&models.Treatments{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n, "treatments row destroyed once the last application releases it")
+}

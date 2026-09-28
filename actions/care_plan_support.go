@@ -149,6 +149,18 @@ func UnapplyPlanItem(tx *pop.Connection, sourceType, sourceID string, animalID i
 			}
 			deleted = app.FulfillmentType
 		case models.ApplicationFulfillmentTreatment:
+			// Same-bucket collisions (§10-M1) share ONE treatments row
+			// between several applications — destroying it would silently
+			// drop the other applications' record. Refuse; un-apply still
+			// succeeds (the record is kept, as without delete_fulfillment).
+			var siblings []models.CarePlanApplication
+			if err := tx.Where("fulfillment_type = ? AND fulfillment_id = ? AND id != ?",
+				app.FulfillmentType, app.FulfillmentID, app.ID).All(&siblings); err != nil {
+				return "", err
+			}
+			if len(siblings) > 0 {
+				break
+			}
 			if err := tx.Destroy(&models.Treatment{ID: uuid.FromStringOrNil(app.FulfillmentID)}); err != nil {
 				return "", err
 			}

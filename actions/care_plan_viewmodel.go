@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"net/url"
 	"sort"
 	"time"
 
@@ -46,7 +47,7 @@ type CardView struct {
 	Remaining    int    // compact: other open occurrences of the group ("+n")
 	RemainingCap string // BadgeCap(Remaining)
 	OverriddenBy string // detailed view only
-	// bugs.md U3/U6 (Phase 4): fast-action links, all with back=/care_plan.
+	// bugs.md U3/U6 (Phase 4): fast-action links, all with back=<self>.
 	AnimalLink      string // /animals/{id}#nav-plan — empty without an animal row
 	SourceLink      string // /care_rules/{id} (rule) or /animals/{id}#nav-plan (animal plan)
 	FulfillmentLink string // done tier: /cares|/treatments/{fid} — empty otherwise
@@ -76,9 +77,9 @@ type KindChip struct {
 
 // HourChip jumps to one hour anchor of the later tier (no reload).
 type HourChip struct {
-	Hour  string // "15:00"
+	Hour   string // "15:00"
 	Anchor string // "h-15"
-	Count int
+	Count  int
 }
 
 // FeedingGroupView is one rendered feeding card (cage × diet, bugs.md U1).
@@ -90,6 +91,41 @@ type FeedingGroupView struct {
 	Chips           []FeedingChip
 	ApplicableCount int    // chips still applicable (apply-group button)
 	ChipRefsJSON    string // JSON item refs of the applicable chips (data-items)
+}
+
+// MedSlotView is one medication occurrence inside a per-animal medication
+// card: the slot (morning/noon/evening) toggle state plus everything the
+// toggle/undo/detail UI needs.
+type MedSlotView struct {
+	Slot            string // "morning" | "noon" | "evening" (i18n key suffix)
+	Detail          string // drug — dosage
+	SourceName      string
+	SourceType      string
+	SourceID        string
+	DueAt           time.Time
+	DueAtRFC        string
+	DueAtHM         string // "15:04"
+	Status          string
+	Done            bool // applied/skipped/deferred (has an application row)
+	Applied         bool
+	Applicable      bool
+	CanUndo         bool // applied + fulfillment treatment row still exists
+	Overridden      bool
+	SourceLink      string
+	FulfillmentLink string
+}
+
+// MedGroupView is one rendered per-animal medication card: all medication
+// occurrences of the day for one animal, in slot order — the single view
+// of what the animal must receive.
+type MedGroupView struct {
+	AnimalID    int
+	AnimalLabel string
+	AnimalLink  string
+	Zone        string
+	Cage        string
+	Slots       []MedSlotView
+	OpenCount   int // applicable, not yet recorded
 }
 
 // CareView is one rendered cage (cleanup) card — one card per
@@ -106,19 +142,21 @@ type CareView struct {
 
 // DayPlanView is the full work-screen context value.
 type DayPlanView struct {
-	Tiers     [4]TierView
-	Feedings  []FeedingGroupView
-	Cares     []CareView
-	Zones     []ZoneTab // without the "all" entry (rendered by the template)
-	Kinds     []KindChip
-	Hours     []HourChip
-	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
-	View      string
-	Zone      string
-	Kind      string
-	ZoneAll   int    // open count across all zones
+	Tiers      [4]TierView
+	Feedings   []FeedingGroupView
+	Meds       []MedGroupView
+	Cares      []CareView
+	Zones      []ZoneTab // without the "all" entry (rendered by the template)
+	Kinds      []KindChip
+	Hours      []HourChip
+	UpdatedAt  string // HH:MM of render (auto-refresh indicator, §10-CP6c)
+	View       string
+	Zone       string
+	Kind       string
+	SelfPath   string // /care_plan?view=…&zone=…&kind=… — back target of every card link
+	ZoneAll    int    // open count across all zones
 	ZoneAllCap string
-	KindAll   int // open count across all kinds
+	KindAll    int // open count across all kinds
 	KindAllCap string
 }
 
@@ -168,6 +206,7 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 		Zone:      zone,
 		Kind:      kind,
 		UpdatedAt: now.Format("15:04"),
+		SelfPath:  planSelfPath(view, zone, kind),
 	}
 
 	zoneCount := map[string]int{}
@@ -226,6 +265,16 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 				}
 				continue
 			}
+			if src.ActionKind() == careplan.KindMedication {
+				// Medication leaves the per-occurrence tiers: one card per
+				// animal with slot toggles (see meds build below). Open
+				// counters still count it; no hour anchor (outside tiers).
+				if openStatusAction(n.Item.Status) {
+					zoneCount[cv.Zone]++
+					kindCount[src.ActionKind()]++
+				}
+				continue
+			}
 			cv.Remaining = n.Remaining
 			cv.RemainingCap = BadgeCap(n.Remaining)
 			seen[gkey{string(src.SourceType()), src.SourceID(), n.Item.Occurrence.AnimalID}] = true
@@ -255,6 +304,13 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 			}
 		}
 
+		// Medication cards: one per animal, every medication occurrence of
+		// the window as a slot row — applied slots stay visible (state
+		// visible, undoable) instead of vanishing into the done tier.
+		if kind == "" || kind == careplan.KindMedication {
+			v.Meds = v.buildMedGroups(plan, zone)
+		}
+
 		// Feeding cards (bugs.md U1): one per cage × diet, OPEN work only
 		// (a scheduled future slot is not actionable — the work screen shows
 		// what remains). Overridden occurrences stay off (chip filter).
@@ -265,12 +321,36 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 					continue
 				}
 				fv := FeedingGroupView{Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed}
-				var refs []map[string]interface{}
+				// Dedupe "pure duplicated" chips (bugs.md rework): several OPEN
+				// occurrences of the same animal × same source (e.g. a missed
+				// morning slot + the noon slot) render as identical rows and
+				// would make one click apply N records for the same feeding.
+				// Keep the earliest open occurrence; the others stay visible in
+				// their urgency tiers (state visible, no invisible work).
+				type chipKey struct {
+					animalID             int
+					sourceType, sourceID string
+				}
+				win := map[chipKey]int{} // key → index in fc.Items of the earliest open occurrence
+				var order []chipKey      // first-seen order keeps the row order stable
 				for i := range fc.Items {
 					if !openStatusAction(fc.Items[i].Status) || fc.Items[i].Status == careplan.StatusScheduled {
 						continue
 					}
-					chip := fc.Chips[i]
+					k := chipKey{fc.Chips[i].AnimalID, fc.Chips[i].SourceType, fc.Chips[i].SourceID}
+					if at, dup := win[k]; dup {
+						if fc.Items[i].Occurrence.DueAt.Before(fc.Items[at].Occurrence.DueAt) {
+							win[k] = i
+						}
+						continue
+					}
+					win[k] = i
+					order = append(order, k)
+				}
+				var refs []map[string]interface{}
+				for _, k := range order {
+					chip := fc.Chips[win[k]]
+					chip.AnimalLink = cardAnimalLink(chip.AnimalID, v.SelfPath)
 					fv.Chips = append(fv.Chips, chip)
 					if chip.Applicable {
 						fv.ApplicableCount++
@@ -302,7 +382,7 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 					Zone:       cc.Zone,
 					Cage:       cc.Cage,
 					SourceName: DisplayName(cc.Source.Name()),
-					SourceLink: cardSourceLink(string(cc.Source.SourceType()), cc.Source.SourceID(), 0),
+					SourceLink: cardSourceLink(string(cc.Source.SourceType()), cc.Source.SourceID(), 0, v.SelfPath),
 				}
 				var refs []map[string]interface{}
 				for i := range cc.Items {
@@ -373,6 +453,93 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 	return v
 }
 
+// buildMedGroups projects every medication plan item into per-animal
+// cards (compact view only). Slot = morning/noon/evening from the due
+// hour (same buckets as the treatments bitmap, §6.2).
+func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string) []MedGroupView {
+	order := map[string]int{"morning": 0, "noon": 1, "evening": 2}
+	groups := map[int]*MedGroupView{}
+	var ids []int
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || src.ActionKind() != careplan.KindMedication {
+			continue
+		}
+		a, ok := plan.AnimalRow(it.Occurrence.AnimalID)
+		if !ok {
+			continue
+		}
+		if zone != "" && a.Zone.String != zone {
+			continue
+		}
+		g, ok := groups[it.Occurrence.AnimalID]
+		if !ok {
+			g = &MedGroupView{
+				AnimalID:    it.Occurrence.AnimalID,
+				AnimalLabel: animalLabel(a),
+				AnimalLink:  cardAnimalLink(it.Occurrence.AnimalID, v.SelfPath),
+				Zone:        a.Zone.String,
+				Cage:        a.Cage.String,
+			}
+			groups[it.Occurrence.AnimalID] = g
+			ids = append(ids, it.Occurrence.AnimalID)
+		}
+		slot := MedSlotView{
+			Slot:       medSlotOf(it.Occurrence.DueAt),
+			Detail:     planDetail(src),
+			SourceName: DisplayName(src.Name()),
+			SourceType: string(src.SourceType()),
+			SourceID:   src.SourceID(),
+			DueAt:      it.Occurrence.DueAt,
+			DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
+			DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
+			Status:     string(it.Status),
+			Applied:    it.Status == careplan.StatusApplied,
+			Applicable: it.Applicable,
+			Overridden: it.Status == careplan.StatusOverridden,
+			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, v.SelfPath),
+		}
+		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
+		if app := it.Application; app != nil {
+			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
+				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
+			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, v.SelfPath)
+		}
+		if slot.Applicable && !slot.Done {
+			g.OpenCount++
+		}
+		g.Slots = append(g.Slots, slot)
+	}
+	sort.Ints(ids)
+	out := make([]MedGroupView, 0, len(ids))
+	for _, id := range ids {
+		g := groups[id]
+		sort.SliceStable(g.Slots, func(i, j int) bool {
+			if g.Slots[i].DueAt.Equal(g.Slots[j].DueAt) {
+				return order[g.Slots[i].Slot] < order[g.Slots[j].Slot]
+			}
+			return g.Slots[i].DueAt.Before(g.Slots[j].DueAt)
+		})
+		out = append(out, *g)
+	}
+	return out
+}
+
+// medSlotOf buckets a due time into morning/noon/evening — the same
+// boundaries as treatmentBucketBit (§6.2) so the card toggle matches the
+// treatments bitmap written at apply time.
+func medSlotOf(due time.Time) string {
+	switch {
+	case due.Hour() < 11:
+		return "morning"
+	case due.Hour() <= 15:
+		return "noon"
+	default:
+		return "evening"
+	}
+}
+
 // cardFor builds the base card of one plan item (labels via §10.5-N1,
 // conversion markers stripped, per-kind detail line — bugs.md U5).
 func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
@@ -394,43 +561,62 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		cv.Zone = a.Zone.String
 		cv.Cage = a.Cage.String
 	}
-	cv.AnimalLink = cardAnimalLink(cv.AnimalID)
-	cv.SourceLink = cardSourceLink(cv.SourceType, cv.SourceID, cv.AnimalID)
+	cv.AnimalLink = cardAnimalLink(cv.AnimalID, v.SelfPath)
+	cv.SourceLink = cardSourceLink(cv.SourceType, cv.SourceID, cv.AnimalID, v.SelfPath)
 	if app := it.Application; app != nil {
-		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted)
+		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, v.SelfPath)
 	}
 	return cv
 }
 
+// planSelfPath is the canonical URL of the work screen with its current
+// filters — the back target propagated to every card link so a round trip
+// (animal page, rule page, record page) returns to the same view/zone/kind.
+func planSelfPath(view, zone, kind string) string {
+	q := url.Values{}
+	if view != "" {
+		q.Set("view", view)
+	}
+	if zone != "" {
+		q.Set("zone", zone)
+	}
+	if kind != "" {
+		q.Set("kind", kind)
+	}
+	return "/care_plan?" + q.Encode()
+}
+
 // cardAnimalLink points at the animal's Plan tab (spec §7.2a, bugs.md U3).
-func cardAnimalLink(animalID int) string {
+// The back param goes BEFORE the hash — after "#" it would be part of the
+// fragment and never reach the server.
+func cardAnimalLink(animalID int, back string) string {
 	if animalID == 0 {
 		return ""
 	}
-	return fmt.Sprintf("/animals/%d#nav-plan?back=/care_plan", animalID)
+	return fmt.Sprintf("/animals/%d?back=%s#nav-plan", animalID, url.QueryEscape(back))
 }
 
 // cardSourceLink: rule → rule show; animal plan → the animal's Plan tab
 // (§7.2a). The back param returns to the work screen.
-func cardSourceLink(sourceType, sourceID string, animalID int) string {
+func cardSourceLink(sourceType, sourceID string, animalID int, back string) string {
 	if sourceType == string(careplan.SourceRule) {
-		return fmt.Sprintf("/care_rules/%s?back=/care_plan", sourceID)
+		return fmt.Sprintf("/care_rules/%s?back=%s", sourceID, url.QueryEscape(back))
 	}
-	return cardAnimalLink(animalID)
+	return cardAnimalLink(animalID, back)
 }
 
 // cardFulfillmentLink targets the care/treatment record of an applied
 // item (done tier, bugs.md U3). Empty when the application carries no
 // fulfillment or the record was deleted (§10-CP1).
-func cardFulfillmentLink(fulfillmentType, fulfillmentID string, deleted bool) string {
+func cardFulfillmentLink(fulfillmentType, fulfillmentID string, deleted bool, back string) string {
 	if deleted || fulfillmentID == "" || fulfillmentID == planFulfillmentNone {
 		return ""
 	}
 	switch fulfillmentType {
 	case models.ApplicationFulfillmentCare:
-		return fmt.Sprintf("/cares/%s?back=/care_plan", fulfillmentID)
+		return fmt.Sprintf("/cares/%s?back=%s", fulfillmentID, url.QueryEscape(back))
 	case models.ApplicationFulfillmentTreatment:
-		return fmt.Sprintf("/treatments/%s?back=/care_plan", fulfillmentID)
+		return fmt.Sprintf("/treatments/%s?back=%s", fulfillmentID, url.QueryEscape(back))
 	}
 	return ""
 }

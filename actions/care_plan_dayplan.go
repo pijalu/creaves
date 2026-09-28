@@ -512,7 +512,6 @@ func ruleCoversAnimal(tx *pop.Connection, r *models.CareRule, ctx *careplan.Anim
 	return false, nil
 }
 
-
 // CageCard is one (cleanup source × cage) group of the day plan.
 type CageCard struct {
 	Source careplan.PlanSource
@@ -532,6 +531,7 @@ type FeedingChip struct {
 	SourceID   string
 	DueAt      time.Time
 	Applicable bool
+	AnimalLink string // set by the view-model layer (back-aware)
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,6 +84,16 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 		"nl":    {"Groep toepassen", "De dosering kan niet automatisch worden berekend", "Laatst geregistreerde gewicht", "Met deze dosering toepassen"},
 	}
 
+	// planUXStrings — new-UX labels that must appear in the static care_plan
+	// HTML for every language: kind-filter chip + confirm/undo/detail/error
+	// modal titles (mirrors locales/care_plan.<lang>.yaml).
+	planUXStrings := map[string][]string{
+		"fr":    {"Filtre", "Confirmer l'application", "Annuler une médication", "Détails de l'entrée", "Une erreur est survenue"},
+		"en-US": {"Filter", "Confirm application", "Undo a medication", "Entry details", "Something went wrong"},
+		"de":    {"Filter", "Anwendung bestätigen", "Medikation rückgängig machen", "Eintragsdetails", "Etwas ist schiefgelaufen"},
+		"nl":    {"Filter", "Toepassing bevestigen", "Medicatie ongedaan maken", "Details van de invoer", "Er is iets misgegaan"},
+	}
+
 	paths := []string{
 		"/care_plan", "/care_rules", "/care_rules/new",
 		"/care_matchers", "/care_matchers/new",
@@ -113,6 +124,16 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 						for _, s := range applyStrings[lang] {
 							require.Contains(t, string(raw), s,
 								"%s /care_plan must render the §10-B6 apply string %q", lang, s)
+						}
+						// New-UX strings always present in the static template
+						// (kind filter chip, confirm / undo / detail / error modal
+						// labels). Slot labels only render when medication items
+						// exist, so they are not asserted here.
+						for _, s := range planUXStrings[lang] {
+							// Plush HTML-escapes apostrophes (l&#39;...).
+							esc := strings.ReplaceAll(s, "'", "&#39;")
+							require.Contains(t, string(raw), esc,
+								"%s /care_plan must render the new-UX string %q", lang, s)
 						}
 					}
 				})
@@ -181,3 +202,42 @@ func TestCarePlanEditorsAllLocales(t *testing.T) {
 // planTxForTests keeps the pop import anchored if the fixtures above ever
 // move to a shared helper file.
 var _ = func() *pop.Connection { return models.DB }
+
+// TestDashboardMedicationSectionAllLocales renders /dashboard/ in all four
+// UI languages (the dashboard templates are hardcoded per-locale variants,
+// NOT t()-driven — a parse error in one variant 500s only that language)
+// and asserts the new "Medication today" heading is present (the old
+// animals-to-treat table must be gone).
+func TestDashboardMedicationSectionAllLocales(t *testing.T) {
+	_ = setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+
+	wantHeading := map[string]string{
+		"fr":    "Médication aujourd'hui",
+		"en-US": "Medication today",
+		"de":    "Medikation heute",
+		"nl":    "Medicatie vandaag",
+	}
+	for _, lang := range []string{"fr", "en-US", "de", "nl"} {
+		lang := lang
+		t.Run(lang, func(t *testing.T) {
+			req, err := http.NewRequest("GET", baseURL+"/dashboard/", nil)
+			require.NoError(t, err)
+			req.Header.Set("Accept", "text/html")
+			req.AddCookie(&http.Cookie{Name: "lang", Value: lang})
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			raw, _ := io.ReadAll(resp.Body)
+			require.Equal(t, http.StatusOK, resp.StatusCode,
+				"%s /dashboard/ rendered: %s", lang, raw[:min(len(raw), 2000)])
+			require.Contains(t, string(raw), wantHeading[lang],
+				"%s /dashboard/ must show the localized medication heading %q", lang, wantHeading[lang])
+			require.NotContains(t, string(raw), "animalsToTreat",
+				"%s /dashboard/ must not render the old animals-to-treat table", lang)
+			// slot buttons show the actual due time (any number of slots),
+			// not the 3 fixed bucket names
+			require.Contains(t, string(raw), "dash-med-", "medication card markup present")
+		})
+	}
+}

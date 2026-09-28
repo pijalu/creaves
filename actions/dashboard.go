@@ -2,6 +2,7 @@ package actions
 
 import (
 	"creaves/models"
+	"creaves/models/careplan"
 	"fmt"
 	"net/http"
 	"time"
@@ -63,19 +64,6 @@ GROUP BY at.name
 ORDER by at.name
 `
 
-// SQL_ANIMAL_WITH_TODAY_TREATMENTS returns the animals with today treatments
-const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
-SELECT a.*
-FROM animals a
-WHERE EXISTS(
-	SELECT *
-	FROM treatments t
-	WHERE t.animal_id = a.id
-	  AND t.timebitmap <> t.timedonebitmap
-	  AND t.date >= ?
-	  AND t.date < ?)
-`
-
 func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -93,25 +81,6 @@ func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	}
 
 	return cares, nil
-}
-
-func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
-	now := time.Now()
-	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	tmrDt := nowDt.AddDate(0, 0, 1)
-
-	animals := &models.Animals{}
-
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	// Retrieve all animals with today treatments from the DB with optimized query
-	if err := tx.RawQuery(SQL_ANIMAL_WITH_TODAY_TREATMENTS, nowDt, tmrDt).All(animals); err != nil {
-		return nil, err
-	}
-	return EnrichAnimalsOptimized(animals, c)
 }
 
 // listTodaysVetVisits returns the veterinary visits planned today with their
@@ -206,11 +175,21 @@ func DashboardIndex(c buffalo.Context) error {
 	}
 	c.Set("openCares", oc)
 
-	animals, err := listAnimalWithTodayTreatments(c)
+	// "Animals with treatments today": the NEW care-plan medication view —
+	// per-animal medication cards (slot toggles), same view model as the
+	// /care_plan work screen, embedded. Replaces the legacy per-treatment
+	// table (animalsToTreat).
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	now := time.Now()
+	plan, err := BuildDayPlan(tx, now, time.Time{}, time.Time{})
 	if err != nil {
 		return err
 	}
-	c.Set("animalsToTreat", animals)
+	c.Set("medicationCards", BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now).Meds)
+	c.Set("currentUser", GetCurrentUser(c))
 
 	vvs, err := listTodaysVetVisits(c)
 	if err != nil {

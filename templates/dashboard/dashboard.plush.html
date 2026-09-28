@@ -81,148 +81,198 @@
 <p>None</p>
 <%}%>
 <br/>
-
-
-<% contentFor("eveningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
+<h3 class="d-inline-block">Medication today</h3>
+<a class="btn btn-outline-primary btn-sm ml-2" href="/care_plan?view=compact&amp;kind=medication" title="Open the day plan"><i class="fas fa-external-link-alt"></i> Day plan</a>
+<%= if (len(medicationCards) > 0) { %>
+<div class="row mb-3" id="dashMedCards">
+  <%= for (mg) in medicationCards { %>
+    <div class="col-md-6">
+      <div class="card mb-2 plan-med-card">
+        <div class="card-body p-2">
+          <div class="d-flex align-items-center">
+            <strong><a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a></strong>
+            <%= if (mg.Cage != "") { %><span class="text-muted ml-2"><%= mg.Cage %></span><% } %>
+            <%= if (mg.OpenCount > 0) { %>
+              <span class="badge badge-pill badge-warning ml-2"><%= mg.OpenCount %> to give</span>
+            <% } else { %>
+              <span class="badge badge-pill badge-success ml-2">✓</span>
+            <% } %>
+          </div>
+          <%= for (slot) in mg.Slots { %>
+            <div class="d-flex align-items-center justify-content-between border-top mt-1 pt-1">
+              <div>
+                <strong><%= slot.Detail %></strong>
+                <br><small class="text-muted"><a href="<%= slot.SourceLink %>"><%= slot.SourceName %></a> · <%= slot.DueAtHM %></small>
+              </div>
+              <div class="text-nowrap">
+                <%= if (slot.Applied) { %>
+                  <button type="button" class="btn btn-success btn-sm" disabled
+                      title="<%= if (slot.Slot == "morning") { %>Morning<% } else if (slot.Slot == "noon") { %>Noon<% } else { %>Evening<% } %>">
+                      ✓ <%= slot.DueAtHM %>
+                    </button>
+                  <%= if (slot.CanUndo) { %>
+                    <button type="button" class="btn btn-outline-danger btn-sm dash-med-undo"
+                      data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                      data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                      data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+                      title="Undo">↩</button>
+                  <% } %>
+                  <%= if (slot.FulfillmentLink != "") { %>
+                    <a class="btn btn-outline-success btn-sm" href="<%= slot.FulfillmentLink %>" title="View record"><i class="fa fa-eye"></i></a>
+                  <% } %>
+                <% } else if (slot.Status == "skipped" || slot.Status == "deferred") { %>
+                  <span class="badge badge-secondary py-2"><%= slot.Status %></span>
+                <% } else if (slot.Applicable) { %>
+                  <button type="button" class="btn btn-warning btn-sm dash-med-apply"
+                    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                    data-kind="medication"
+                    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+                    data-source-name="<%= slot.SourceName %>"
+                    title="Apply — <%= if (slot.Slot == "morning") { %>Morning<% } else if (slot.Slot == "noon") { %>Noon<% } else { %>Evening<% } %>">
+                      ○ <%= slot.DueAtHM %>
+                    </button>
+                <% } else { %>
+                  <button type="button" class="btn btn-light btn-sm" disabled
+                      title="<%= if (slot.Slot == "morning") { %>Morning<% } else if (slot.Slot == "noon") { %>Noon<% } else { %>Evening<% } %>">
+                      – <%= slot.DueAtHM %>
+                    </button>
+                <% } %>
+                <button type="button" class="btn btn-outline-secondary btn-sm dash-med-detail" title="Details"
+                  data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
+                  data-detail="<%= slot.Detail %>" data-source-name="<%= slot.SourceName %>" data-source-link="<%= slot.SourceLink %>"
+                  data-kind="medication" data-due="<%= slot.DueAtHM %>"
+                  data-status="<%= slot.Status %>">ℹ</button>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>
+<% } else { %>
+<p>None</p>
 <% } %>
 
-<% contentFor("morningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
- <% } %>
-
- <% contentFor("noonSVG") { %>
-        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-    </g>
- <%}%>
-
-<h3 class="d-inline-block">Animals with treatment today</h3>
-<%= if (len(animalsToTreat)>0) {%>
-<div class="table-responsive">
-<table class="table table-hover table-bordered table-striped">
-  <thead class="thead-light">
-    <th>Number</th>
-    <th>Cage</th>
-    <th>Species</th>
-    <th>Treatments</th>
-  </thead>
-  <tbody>
-    <%= for (animal) in animalsToTreat { %>
-      <%= if (animal.OuttakeID.Value() != nil) { %>
-      <tr class="outtaken">
-      <% } else { %>
-      <tr>
-      <% } %>
-        <td class="align-middle">
-          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-treatment"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Ready for release"><i class="fas fa-dove"></i></span><% } %>
-        </td>
-        <td class="align-middle"><%= animal.Cage %></td>
-        <td class="align-middle">
-          <%
-            let gender = "×"
-            if (animal.Gender.Value()=="M") {
-              gender = "♂"
-            } else if (animal.Gender.Value() == "F") {
-              gender = "♀"
-            }
-          %>
-          <%= tspecies(animal.Species) %> (<%= gender %>)
-        </td>
-        <td class="align-middle">
-        <ul class="list-group list-group-flush">
-              <%= for (t) in animal.Treatments {%>
-                <%= if (t.Timedonebitmap != t.Timebitmap) {%>
-                <li class="list-group-item">
-                  <div class="container">
-                    <div class="row">
-                      <div class="col-sm">
-                        <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
-                          <%= if (t.Remarks.Value() != "") {%>
-                          <p><em><%= t.Remarks %></em></p>
-                        <%}%>
-                      </div>
-                      <div class="col-sm">
-                        <% 
-                          let morning = t.ScheduleStatusMorning() 
-                          let noon = t.ScheduleStatusNoon() 
-                          let evening = t.ScheduleStatusEvening()
-                        %>
-                        <p class="d-inline-block">
-                          <%= if (!morning.Valid) { %>   
-                            <button type="button" class="btn btn-light disabled" title="Not required on the morning">                       
-                              <i class="fas fa-minus" ></i>
-                            </button>
-                          <% } else if (morning.Bool) {%>
-                            <span class="badge badge-success py-2 px-2">
-                              <%= contentOf("morningSVG") %>
-                            </span>
-                          <% } else { %>
-                              <span class="badge badge-warning py-2 px-2">
-                              <%= contentOf("morningSVG") %>
-                            </span>
-                          <% }%>
-                          
-                          &nbsp;
-
-                          <%= if (!noon.Valid) { %>
-                            <button type="button" class="btn btn-light disabled" title="Not required at noon">     
-                              <i class="fas fa-minus"></i>
-                            </button>
-                          <% } else if (noon.Bool) {%>
-                            <span class="badge badge-success py-2 px-2">
-                              <%= contentOf("noonSVG") %>
-                            </span>
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                              <%= contentOf("noonSVG") %>
-                            </span>
-                          <% }%>
-
-                          &nbsp;
-                          <%= if (!evening.Valid) { %>
-                            <button type="button" class="btn btn-light disabled">
-                              <i class="fas fa-minus" ></i>
-                            </button>
-                          <% } else if (evening.Bool) {%>
-                            <span class="badge badge-success py-2 px-2">
-                              <%= contentOf("eveningSVG") %>
-                            </span>
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                              <%= contentOf("eveningSVG") %>
-                            </span>
-                          <% }%>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-                <%}%>
-              <%}%>
-            </ul>
-        </td>
-      </tr>
-    <% } %>
-  </tbody>
-</table>
+<!-- Medication detail modal -->
+<div class="modal fade" id="dashMedDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Entry details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Animal</dt><dd class="col-sm-8" id="dashMedDetailAnimal"></dd>
+          <dt class="col-sm-4">Plan</dt><dd class="col-sm-8" id="dashMedDetailDetail"></dd>
+          <dt class="col-sm-4">Source</dt><dd class="col-sm-8" id="dashMedDetailSource"></dd>
+          <dt class="col-sm-4">Due</dt><dd class="col-sm-8" id="dashMedDetailDue"></dd>
+          <dt class="col-sm-4">Status</dt><dd class="col-sm-8" id="dashMedDetailStatus"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
 </div>
-  <%} else {%>
-<p>None</p>
-<%}%>
+
+<!-- Medication undo confirm modal -->
+<div class="modal fade" id="dashMedUndoModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Undo a medication</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p id="dashMedUndoSummary"></p>
+        <div class="alert alert-info small">The entry will become open again and the treatment record will be removed. The entry stays visible — nothing is hidden.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="dashMedUndoConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  var csrfParam = document.querySelector('meta[name="csrf-param"]').getAttribute('content');
+
+  function post(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (!r.ok) { return r.json().catch(function(){return {};}).then(function(j){ throw new Error(j.error || ('HTTP ' + r.status)); }); }
+      return r.json().catch(function(){ return {}; });
+    });
+  }
+
+  function reload() { window.location.reload(); }
+
+  // Apply (mark given) — medication toggles are easily undoable, no confirm.
+  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-apply'), function (btn) {
+    btn.addEventListener('click', function () {
+      var body = {
+        source_type: btn.getAttribute('data-source-type'),
+        source_id: btn.getAttribute('data-source-id'),
+        animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+        due_at: btn.getAttribute('data-due-at')
+      };
+      btn.disabled = true;
+      post('/care_plan/apply', body).then(reload).catch(function (e) { alert(e.message); btn.disabled = false; });
+    });
+  });
+
+  // Undo — with a confirm modal.
+  var undoTarget = null;
+  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-undo'), function (btn) {
+    btn.addEventListener('click', function () {
+      undoTarget = btn;
+      document.getElementById('dashMedUndoSummary').textContent =
+        'Undo ' + btn.getAttribute('data-detail') + ' (' + btn.getAttribute('data-animal-label') + ')?';
+      $('#dashMedUndoModal').modal('show');
+    });
+  });
+  document.getElementById('dashMedUndoConfirm').addEventListener('click', function () {
+    if (!undoTarget) { return; }
+    var btn = undoTarget;
+    var body = {
+      source_type: btn.getAttribute('data-source-type'),
+      source_id: btn.getAttribute('data-source-id'),
+      animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+      due_at: btn.getAttribute('data-due-at'),
+      delete_fulfillment: true
+    };
+    this.disabled = true;
+    var self = this;
+    post('/care_plan/unapply', body).then(reload).catch(function (e) { alert(e.message); self.disabled = false; $('#dashMedUndoModal').modal('hide'); });
+  });
+
+  // Detail modal.
+  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-detail'), function (btn) {
+    btn.addEventListener('click', function () {
+      var al = btn.getAttribute('data-animal-label');
+      var alink = btn.getAttribute('data-animal-link');
+      document.getElementById('dashMedDetailAnimal').innerHTML = alink ? ('<a href="' + alink + '"></a>') : '';
+      if (alink) { document.querySelector('#dashMedDetailAnimal a').textContent = al; }
+      document.getElementById('dashMedDetailDetail').textContent = btn.getAttribute('data-detail');
+      var slink = btn.getAttribute('data-source-link');
+      var sname = btn.getAttribute('data-source-name');
+      document.getElementById('dashMedDetailSource').innerHTML = slink ? ('<a href="' + slink + '"></a>') : '';
+      if (slink) { document.querySelector('#dashMedDetailSource a').textContent = sname; } else { document.getElementById('dashMedDetailSource').textContent = sname; }
+      document.getElementById('dashMedDetailDue').textContent = btn.getAttribute('data-due');
+      document.getElementById('dashMedDetailStatus').textContent = btn.getAttribute('data-status');
+      $('#dashMedDetailModal').modal('show');
+    });
+  });
+})();
+</script>
+
 <br/>
 
 <h3 class="d-inline-block">Veterinary visits today</h3>

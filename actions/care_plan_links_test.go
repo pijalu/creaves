@@ -22,23 +22,24 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestCardLinks(t *testing.T) {
-	require.Equal(t, "/animals/42#nav-plan?back=/care_plan", cardAnimalLink(42))
-	require.Empty(t, cardAnimalLink(0))
+	const back = "/care_plan"
+	require.Equal(t, "/animals/42?back=%2Fcare_plan#nav-plan", cardAnimalLink(42, back))
+	require.Empty(t, cardAnimalLink(0, back))
 
 	// Rule source → rule show; animal-plan source → the animal's Plan tab.
-	require.Equal(t, "/care_rules/abc-123?back=/care_plan",
-		cardSourceLink(string(careplan.SourceRule), "abc-123", 42))
-	require.Equal(t, "/animals/42#nav-plan?back=/care_plan",
-		cardSourceLink(string(careplan.SourceAnimal), "plan-1", 42))
+	require.Equal(t, "/care_rules/abc-123?back=%2Fcare_plan",
+		cardSourceLink(string(careplan.SourceRule), "abc-123", 42, back))
+	require.Equal(t, "/animals/42?back=%2Fcare_plan#nav-plan",
+		cardSourceLink(string(careplan.SourceAnimal), "plan-1", 42, back))
 
 	// Fulfillment links by type; deleted/none/none-id never link (§10-CP1).
-	require.Equal(t, "/cares/fid-1?back=/care_plan",
-		cardFulfillmentLink(models.ApplicationFulfillmentCare, "fid-1", false))
-	require.Equal(t, "/treatments/fid-2?back=/care_plan",
-		cardFulfillmentLink(models.ApplicationFulfillmentTreatment, "fid-2", false))
-	require.Empty(t, cardFulfillmentLink(models.ApplicationFulfillmentCare, "fid-1", true))
-	require.Empty(t, cardFulfillmentLink(models.ApplicationFulfillmentCare, planFulfillmentNone, false))
-	require.Empty(t, cardFulfillmentLink("unknown", "fid", false))
+	require.Equal(t, "/cares/fid-1?back=%2Fcare_plan",
+		cardFulfillmentLink(models.ApplicationFulfillmentCare, "fid-1", false, back))
+	require.Equal(t, "/treatments/fid-2?back=%2Fcare_plan",
+		cardFulfillmentLink(models.ApplicationFulfillmentTreatment, "fid-2", false, back))
+	require.Empty(t, cardFulfillmentLink(models.ApplicationFulfillmentCare, "fid-1", true, back))
+	require.Empty(t, cardFulfillmentLink(models.ApplicationFulfillmentCare, planFulfillmentNone, false, back))
+	require.Empty(t, cardFulfillmentLink("unknown", "fid", false, back))
 }
 
 // TestBuildDayPlanViewLinks: cardFor wires the three link types from the
@@ -57,9 +58,9 @@ func TestBuildDayPlanViewLinks(t *testing.T) {
 	v := BuildDayPlanView(plan, ViewDetailed, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
 	require.Len(t, v.Tiers[3].Cards, 1, "applied item lands in the done tier")
 	card := v.Tiers[3].Cards[0]
-	require.Equal(t, "/animals/1#nav-plan?back=/care_plan", card.AnimalLink)
-	require.Equal(t, "/care_rules/src-obs?back=/care_plan", card.SourceLink)
-	require.Equal(t, "/cares/fid-9?back=/care_plan", card.FulfillmentLink)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Ddetailed#nav-plan", card.AnimalLink)
+	require.Equal(t, "/care_rules/src-obs?back=%2Fcare_plan%3Fview%3Ddetailed", card.SourceLink)
+	require.Equal(t, "/cares/fid-9?back=%2Fcare_plan%3Fview%3Ddetailed", card.FulfillmentLink)
 }
 
 // TestBuildDayPlanViewCareCards (bugs.md U6): cleanup items leave the
@@ -81,7 +82,7 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	require.Equal(t, "C1", cc.Cage)
 	require.Equal(t, "Z1", cc.Zone)
 	require.Equal(t, "Clean", cc.SourceName, "conversion markers stripped")
-	require.Equal(t, "/care_rules/src-clean?back=/care_plan", cc.SourceLink)
+	require.Equal(t, "/care_rules/src-clean?back=%2Fcare_plan%3Fview%3Dcompact", cc.SourceLink)
 	require.Equal(t, 2, cc.ApplicableCount)
 	var refs []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(cc.ChipRefsJSON), &refs))
@@ -210,5 +211,5 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	raw, _ = io.ReadAll(resp2.Body)
 	require.Equal(t, http.StatusOK, resp2.StatusCode)
 	html = string(raw)
-	require.Contains(t, html, "?back=/care_plan", "fast-action links carry back=/care_plan")
+	require.Contains(t, html, "back=%2Fcare_plan", "fast-action links carry an escaped back=/care_plan")
 }

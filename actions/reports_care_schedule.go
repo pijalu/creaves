@@ -33,20 +33,20 @@ const (
 
 // ScheduleRowView is one rendered occurrence row of the report.
 type ScheduleRowView struct {
-	Time         string // "15:04"
-	Date         string // "2006-01-02" (animal trace: multi-day)
-	AnimalID     int
-	AnimalLabel  string
-	AnimalLink   string
-	AnimalCount  int    // grouped cage rows: animals collapsed into the row
-	Kind         string // action kind (i18n anchor: t("care_plan.kind."+Kind))
-	Detail       string
-	SourceName   string
-	SourceLink   string
-	Status       string // i18n anchor: t("care_plan.status."+Status)
-	RowClass     string // table-danger|table-warning|table-info|table-success|""
-	Fulfillment  string // link of an applied item (empty otherwise)
-	ClockSlot    string // medication: "morning"|"noon"|"evening" — "" otherwise
+	Time        string // "15:04"
+	Date        string // "2006-01-02" (animal trace: multi-day)
+	AnimalID    int
+	AnimalLabel string
+	AnimalLink  string
+	AnimalCount int    // grouped cage rows: animals collapsed into the row
+	Kind        string // action kind (i18n anchor: t("care_plan.kind."+Kind))
+	Detail      string
+	SourceName  string
+	SourceLink  string
+	Status      string // i18n anchor: t("care_plan.status."+Status)
+	RowClass    string // table-danger|table-warning|table-info|table-success|""
+	Fulfillment string // link of an applied item (empty otherwise)
+	ClockSlot   string // medication: "morning"|"noon"|"evening" — "" otherwise
 }
 
 // ScheduleZoneSection is one zone of the zone grouping.
@@ -77,15 +77,15 @@ type ScheduleAnimalSection struct {
 
 // CareScheduleView is the report template context.
 type CareScheduleView struct {
-	Group    string
-	From     string // ISO date (form value)
-	To       string
-	Today    string // ISO date of `now` (today highlight)
-	Zones    []ScheduleZoneSection
-	Cages    []ScheduleCageBlock
-	Animals  []ScheduleAnimalSection
-	Empty    bool
-	Total    int
+	Group   string
+	From    string // ISO date (form value)
+	To      string
+	Today   string // ISO date of `now` (today highlight)
+	Zones   []ScheduleZoneSection
+	Cages   []ScheduleCageBlock
+	Animals []ScheduleAnimalSection
+	Empty   bool
+	Total   int
 }
 
 // ReportsCareScheduleIndex handles GET /reports/care_schedule (Phase 5).
@@ -144,10 +144,13 @@ func BuildCareScheduleView(plan *DayPlan, group string, now time.Time) *CareSche
 		if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 			row.AnimalLabel = animalLabel(a)
 		}
-		row.AnimalLink = cardAnimalLink(row.AnimalID)
-		row.SourceLink = cardSourceLink(string(src.SourceType()), src.SourceID(), row.AnimalID)
+		// The report is not a work screen: no back-propagation — the
+		// generic back target is the report itself.
+		back := "/reports/care_schedule"
+		row.AnimalLink = cardAnimalLink(row.AnimalID, back)
+		row.SourceLink = cardSourceLink(string(src.SourceType()), src.SourceID(), row.AnimalID, back)
 		if app := it.Application; app != nil {
-			row.Fulfillment = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted)
+			row.Fulfillment = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
 		}
 		rows = append(rows, row)
 	}

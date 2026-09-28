@@ -253,12 +253,14 @@ func CarePlanApply(c buffalo.Context) error {
 	return c.Render(http.StatusCreated, renderJSON(app))
 }
 
-// CarePlanUnapply handles POST /care_plan/unapply (§10-CP1): admin-only
-// correction path. Body: item ref + optional delete_fulfillment.
+// CarePlanUnapply handles POST /care_plan/unapply (§10-CP1): correction
+// path. Admins can un-apply anything; non-admins can only undo an APPLIED
+// MEDICATION occurrence (the per-animal slot toggle, easily reversible by
+// design) — the medication fulfillment stays fully under their control.
 func CarePlanUnapply(c buffalo.Context) error {
 	u := GetCurrentUser(c)
-	if u == nil || !u.Admin {
-		return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1)"))
+	if u == nil {
+		return planError(c, http.StatusUnauthorized, fmt.Errorf("authentication required"))
 	}
 	tx := planTx(c)
 	in := &struct {
@@ -267,6 +269,23 @@ func CarePlanUnapply(c buffalo.Context) error {
 	}{}
 	if err := c.Bind(in); err != nil {
 		return err
+	}
+	if !u.Admin {
+		// Non-admin correction path: only an APPLIED MEDICATION occurrence may
+		// be undone (the per-animal slot toggle, easily reversible by design).
+		// Anything else — missing application, other kind, other status — is
+		// admin-only. We deliberately return the same 403 for "not found" so
+		// the endpoint does not leak which refs have an application row.
+		rev, err := ReverifyItem(tx, in.planItemRef, time.Now())
+		if err != nil || rev.Item.Occurrence.Source.ActionKind() != careplan.KindMedication {
+			return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1) — only an applied medication can be undone"))
+		}
+		app := &models.CarePlanApplication{}
+		q := tx.Where("source_type = ? AND source_id = ? AND animal_id = ? AND due_at = ?",
+			in.SourceType, in.SourceID, in.AnimalID, in.DueAt)
+		if err := q.First(app); err != nil || app.Status != models.ApplicationStatusApplied {
+			return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1) — only an applied medication can be undone"))
+		}
 	}
 	deleted, err := UnapplyPlanItem(tx, in.SourceType, in.SourceID, in.AnimalID, in.DueAt, in.DeleteFulfillment)
 	if err != nil {
