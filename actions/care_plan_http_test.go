@@ -1173,6 +1173,40 @@ func TestCareMedicationSameSlotKeepsDistinctEntries(t *testing.T) {
 	require.Equal(t, 2, napps, "both applications recorded")
 }
 
+// TestCareMedicationMidnightDueDaySharesRow pins the §10-M1 boundary the
+// same-slot test above can only hit late at night: rows are dated at click
+// time while the fulfillment lookup keys the due day — applies made today
+// for slots just past midnight (due day = tomorrow) must still share one
+// treatments row instead of duplicating it (bugs.md U25 follow-up).
+func TestCareMedicationMidnightDueDaySharesRow(t *testing.T) {
+	f := setupPlanFixture(t)
+
+	now := time.Now()
+	tom := now.AddDate(0, 0, 1)
+	day := time.Date(tom.Year(), tom.Month(), tom.Day(), 0, 0, 0, 0, now.Location())
+	due1 := day.Add(10 * time.Minute) // 00:10 tomorrow — due day ≠ click day
+	due2 := day.Add(30 * time.Minute)
+	payload := planPayload{Drug: "CP-Drug-" + f.marker, Dosage: "0.5 ml"}
+	in := PlanApplyInput{Dosage: "0.5 ml"}
+
+	for i, due := range []time.Time{due1, due2} {
+		_, err := writeMedicationFulfillment(models.DB, nil, payload, f.animalIDs[0], due, now, uuid.Nil, uuid.Nil, in)
+		require.NoError(t, err, "apply %d", i)
+	}
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], payload.Drug).All(treatments))
+	require.Len(t, *treatments, 1, "due-day applies made on the same click day share one treatments row")
+
+	entries := models.TreatmentTimeEntries{}
+	require.NoError(t, models.DB.Where("treatment_id = ?", (*treatments)[0].ID).Order("due_at asc").All(&entries))
+	require.Len(t, entries, 2, "one entry per due slot, both anchored on the due day")
+	require.Equal(t, "00:10", entries[0].TimeLabel)
+	require.Equal(t, "00:30", entries[1].TimeLabel)
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[0].Status)
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[1].Status)
+}
+
 // ---------------------------------------------------------------------------
 // §10-B6 / §10-L2 — manual dosage path (bugs.md M1)
 // ---------------------------------------------------------------------------

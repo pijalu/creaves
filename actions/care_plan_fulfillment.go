@@ -529,9 +529,24 @@ func writeMedicationFulfillment(tx *pop.Connection, src careplan.PlanSource, pay
 	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
 	dayEnd := dayStart.Add(24 * time.Hour)
 
+	// §10-M1 dedup keys the row on the due day while rows are dated at click
+	// time — near midnight the two diverge (apply 23:50 for a 00:10 slot) and
+	// a due-day-only lookup would create a second row for the same care
+	// record. Look across BOTH days; entry dating below stays anchored on
+	// the due day.
+	lookupStart, lookupEnd := dayStart, dayEnd
+	clickStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	clickEnd := clickStart.Add(24 * time.Hour)
+	if clickStart.Before(dayStart) {
+		lookupStart = clickStart
+	}
+	if clickEnd.After(dayEnd) {
+		lookupEnd = clickEnd
+	}
+
 	var treatments []models.Treatment
 	if err := tx.Where("animal_id = ? AND drug = ? AND date >= ? AND date < ?",
-		animalID, payload.Drug, dayStart, dayEnd).All(&treatments); err != nil {
+		animalID, payload.Drug, lookupStart, lookupEnd).All(&treatments); err != nil {
 		return "", err
 	}
 
