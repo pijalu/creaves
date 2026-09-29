@@ -446,6 +446,8 @@
   translation: "n'est pas (casse ignorée)"
 - id: "care_plan.builder.op.inci"
   translation: "est l'un de (casse ignorée)"
+- id: "care_plan.builder.case_ignore"
+  translation: "Ignorer la casse"
 - id: "care_plan.preview.filter_all"
   translation: "Tous"
 - id: "care_plan.preview.filter_match"

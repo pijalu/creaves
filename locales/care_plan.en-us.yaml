@@ -446,6 +446,8 @@
   translation: "is not (any case)"
 - id: "care_plan.builder.op.inci"
   translation: "is one of (any case)"
+- id: "care_plan.builder.case_ignore"
+  translation: "Ignore case"
 - id: "care_plan.preview.filter_all"
   translation: "All"
 - id: "care_plan.preview.filter_match"

@@ -113,6 +113,7 @@
       inHint: <%= toJSON(t("care_plan.builder.in_hint")) %>,
       betweenMin: <%= toJSON(t("care_plan.builder.between_min")) %>,
       betweenMax: <%= toJSON(t("care_plan.builder.between_max")) %>,
+      caseIgnore: <%= toJSON(t("care_plan.builder.case_ignore")) %>,
       ops: {
         "=": <%= toJSON(t("care_plan.builder.op.eq")) %>,
         "!=": <%= toJSON(t("care_plan.builder.op.neq")) %>,
@@ -124,7 +125,10 @@
         "BETWEEN": <%= toJSON(t("care_plan.builder.op.between")) %>,
         "~": <%= toJSON(t("care_plan.builder.op.regex")) %>,
         "!~": <%= toJSON(t("care_plan.builder.op.notregex")) %>,
-        "CONTAINS": <%= toJSON(t("care_plan.builder.op.contains")) %>
+        "CONTAINS": <%= toJSON(t("care_plan.builder.op.contains")) %>,
+        "=*": <%= toJSON(t("care_plan.builder.op.eqci")) %>,
+        "!=*": <%= toJSON(t("care_plan.builder.op.neqci")) %>,
+        "INCI": <%= toJSON(t("care_plan.builder.op.inci")) %>
       }
     }
   }) : null;

@@ -41,6 +41,8 @@
 .mb-clause.dragging { opacity: .5; }
 .mb-handle { cursor: grab; color: #6c757d; user-select: none; padding: 0 .25rem; font-weight: bold; }
 .mb-not-btn.active { background: #dc3545; border-color: #dc3545; color: #fff; }
+.mb-ci-btn { font-size: 80%; padding: .15rem .4rem; }
+.mb-ci-btn.active { background: #17a2b8; border-color: #17a2b8; color: #fff; }
 .mb-clause select, .mb-clause input { width: auto; flex: 0 1 auto; }
 .mb-clause .mb-field { min-width: 11rem; }
 .mb-clause .mb-op { min-width: 8rem; }
@@ -65,8 +67,15 @@ window.matcherBuilder = (function () {
   // Anything else (parenthesized groups, mixed combinators) is reported as
   // not-representable and the caller keeps raw mode.
 
-  var OPS2 = ['<=', '>=', '!=', '!~'];
+  var OPS3 = ['!=*'];
+  var OPS2 = ['<=', '>=', '!=', '!~', '=*'];
   var OPS1 = ['=', '<', '>', '~'];
+  // Explicit case-insensitive operators (bugs.md U26/U27 R5-1b): the visual
+  // editor represents them as the CS op + the per-clause "ignore case"
+  // toggle; parse/serialize keep the exact DSL spelling.
+  var CI_OF = { '=': '=*', '!=': '!=*', 'IN': 'INCI' };
+  var CS_OF = { '=*': '=', '!=*': '!=', 'INCI': 'IN' };
+  function isCIOp(op) { return !!CS_OF[op]; }
 
   function tokenize(src) {
     var toks = [], i = 0, n = src.length;
@@ -86,6 +95,8 @@ window.matcherBuilder = (function () {
         if (j >= n) { throw new Error('unterminated string'); }
         toks.push({ t: 'str', v: s }); i = j + 1; continue;
       }
+      var three = src.substr(i, 3);
+      if (OPS3.indexOf(three) >= 0) { toks.push({ t: 'op', v: three }); i += 3; continue; }
       var two = src.substr(i, 2);
       if (OPS2.indexOf(two) >= 0) { toks.push({ t: 'op', v: two }); i += 2; continue; }
       if (OPS1.indexOf(c) >= 0) { toks.push({ t: 'op', v: c }); i++; continue; }
@@ -96,7 +107,7 @@ window.matcherBuilder = (function () {
         var word = w[0], up = word.toUpperCase();
         if (up === 'AND' || up === 'OR') { toks.push({ t: up }); }
         else if (up === 'NOT') { toks.push({ t: 'NOT' }); }
-        else if (up === 'IN' || up === 'BETWEEN' || up === 'CONTAINS') { toks.push({ t: 'op', v: up }); }
+        else if (up === 'IN' || up === 'INCI' || up === 'BETWEEN' || up === 'CONTAINS') { toks.push({ t: 'op', v: up }); }
         else if (up === 'TRUE') { toks.push({ t: 'bool', v: true }); }
         else if (up === 'FALSE') { toks.push({ t: 'bool', v: false }); }
         else { toks.push({ t: 'ident', v: word }); }
@@ -142,7 +153,7 @@ window.matcherBuilder = (function () {
         clause.min = lo.v; clause.max = hi.v;
         return clause;
       }
-      if (o.v === 'IN') {
+      if (o.v === 'IN' || o.v === 'INCI') {
         var open = next();
         if (!open || open.t !== '(') { return null; }
         clause.values = [];
@@ -190,7 +201,7 @@ window.matcherBuilder = (function () {
     out += c.field + ' ' + c.op + ' ';
     if (c.op === 'BETWEEN') {
       out += c.min + ' AND ' + c.max;
-    } else if (c.op === 'IN') {
+    } else if (c.op === 'IN' || c.op === 'INCI') {
       out += '(' + (c.values || []).map(function (v) {
         return v.kind === 'string' ? quoteStr(v.v) : String(v.v);
       }).join(', ') + ')';
@@ -266,8 +277,8 @@ window.matcherBuilder = (function () {
         });
       } else {
         el = document.createElement('input');
-        el.type = (def.type === 'number' && op !== 'IN') ? 'number' : 'text';
-        if (op === 'IN') { el.placeholder = i18n.inHint || ''; }
+        el.type = (def.type === 'number' && op !== 'IN' && op !== 'INCI') ? 'number' : 'text';
+        if (op === 'IN' || op === 'INCI') { el.placeholder = i18n.inHint || ''; }
       }
       el.className = 'form-control form-control-sm mb-value';
       return el;
@@ -283,7 +294,7 @@ window.matcherBuilder = (function () {
         if (op === 'BETWEEN') {
           c.min = parseFloat(row.querySelector('.mb-min').value) || 0;
           c.max = parseFloat(row.querySelector('.mb-max').value) || 0;
-        } else if (op === 'IN') {
+        } else if (op === 'IN' || op === 'INCI') {
           c.values = row.querySelector('.mb-value').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean).map(function (s) {
             return def.type === 'number' ? { kind: 'number', v: parseFloat(s) || 0 } : { kind: 'string', v: s };
           });
@@ -336,6 +347,17 @@ window.matcherBuilder = (function () {
       }
     }
 
+    function updateCiBtn(row) {
+      var op = row.querySelector('.mb-op').value;
+      var def = fieldDef(row.querySelector('.mb-field').value) || { ops: [] };
+      var ops = def.ops || [];
+      var show = isCIOp(op) || (CI_OF[op] && ops.indexOf(CI_OF[op]) >= 0);
+      var btn = row.querySelector('.mb-ci-btn');
+      if (!btn) { return; }
+      btn.classList.toggle('d-none', !show);
+      btn.classList.toggle('active', isCIOp(op));
+    }
+
     function fillOps(row, wanted) {
       var def = fieldDef(row.querySelector('.mb-field').value) || { ops: ['='] };
       var opSel = row.querySelector('.mb-op');
@@ -347,6 +369,7 @@ window.matcherBuilder = (function () {
         opSel.appendChild(o);
       });
       rebuildValueCell(row, true);
+      updateCiBtn(row);
     }
 
     function addClause(c) {
@@ -386,6 +409,26 @@ window.matcherBuilder = (function () {
       var opSel = document.createElement('select');
       opSel.className = 'form-control form-control-sm mb-op';
       row.appendChild(opSel);
+
+      // Per-clause "ignore case" toggle (bugs.md U26/U27 R5-1b): swaps the
+      // clause op to its explicit CI twin (=* / !=* / INCI) and back.
+      var ciBtn = document.createElement('button');
+      ciBtn.type = 'button';
+      ciBtn.className = 'btn btn-outline-secondary btn-sm mb-ci-btn';
+      ciBtn.textContent = 'Aa';
+      ciBtn.title = i18n.caseIgnore || '';
+      ciBtn.addEventListener('click', function () {
+        var opSel = row.querySelector('.mb-op');
+        var cur = opSel.value;
+        var target = isCIOp(cur) ? CS_OF[cur] : CI_OF[cur];
+        if (!target) { return; }
+        var def = fieldDef(row.querySelector('.mb-field').value) || { ops: [] };
+        if ((def.ops || []).indexOf(target) < 0) { return; }
+        opSel.value = target;
+        updateCiBtn(row);
+        sync();
+      });
+      row.appendChild(ciBtn);
 
       var holder = document.createElement('span');
       holder.className = 'mb-value-holder';
@@ -430,7 +473,7 @@ window.matcherBuilder = (function () {
 
       // initial values from a parsed clause
       var vc = row.querySelector('.mb-value');
-      if (c.op === 'IN') {
+      if (c.op === 'IN' || c.op === 'INCI') {
         vc.value = (c.values || []).map(function (v) { return String(v.v); }).join(', ');
       } else if (c.value && c.value.kind === 'bool' && vc && vc.tagName === 'SELECT') {
         vc.value = c.value.v ? 'true' : 'false';
@@ -542,6 +585,11 @@ window.matcherBuilder = (function () {
     return { shown: shown, total: total };
   }
 
-  return { attach: attach, renderPreview: renderPreview, applyPreviewFilters: applyPreviewFilters };
+  // serialize renders a parsed flat chain back to DSL (canonical spelling).
+  function serialize(parsed) {
+    return (parsed.clauses || []).map(serializeClause).join(' ' + parsed.combinator + ' ');
+  }
+
+  return { attach: attach, renderPreview: renderPreview, applyPreviewFilters: applyPreviewFilters, parseFlat: parseFlat, serialize: serialize };
 })();
 </script>

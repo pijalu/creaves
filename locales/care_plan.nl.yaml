@@ -446,6 +446,8 @@
   translation: "is niet (hoofdlettergebruik negeren)"
 - id: "care_plan.builder.op.inci"
   translation: "is een van (hoofdlettergebruik negeren)"
+- id: "care_plan.builder.case_ignore"
+  translation: "Hoofdlettergebruik negeren"
 - id: "care_plan.preview.filter_all"
   translation: "Alle"
 - id: "care_plan.preview.filter_match"

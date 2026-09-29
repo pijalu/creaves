@@ -446,6 +446,8 @@
   translation: "ist nicht (Groß-/Kleinschreibung egal)"
 - id: "care_plan.builder.op.inci"
   translation: "ist einer von (Groß-/Kleinschreibung egal)"
+- id: "care_plan.builder.case_ignore"
+  translation: "Groß-/Kleinschreibung ignorieren"
 - id: "care_plan.preview.filter_all"
   translation: "Alle"
 - id: "care_plan.preview.filter_match"
