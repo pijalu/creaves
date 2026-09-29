@@ -206,3 +206,34 @@ func TestToggleEntryHTMLRedirect(t *testing.T) {
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
 	require.Equal(t, "/treatments/"+tr.ID.String(), resp.Header.Get("Location"))
 }
+
+// TestTreatmentsShowRendersEntryRows guards the R5-3c read path (bugs.md
+// U25/D-e): the show page renders one row per expected time from the
+// eager-loaded entries. Regression: a plush for-loop written as
+// `for (entry in treatment.Entries)` (instead of `for (entry) in ...`)
+// compiled fine and only blew up at render time — "entry: unknown
+// identifier" — so the page must actually be rendered in a test.
+func TestTreatmentsShowRendersEntryRows(t *testing.T) {
+	_, tr, entries := toggleEntryFixture(t)
+	client, baseURL := planAdminClient(t)
+
+	req, err := http.NewRequest("GET", baseURL+"/treatments/"+tr.ID.String(), nil)
+	require.NoError(t, err)
+	req.Header.Set("Accept", "text/html")
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	html := string(body)
+
+	require.NotContains(t, html, "unknown identifier", "plush render error page leaked")
+	require.NotContains(t, html, "Error Trace", "debug error page leaked")
+	for _, e := range entries {
+		require.Contains(t, html, `data-entry-id="`+e.ID.String()+`"`, "missing entry row for %s", e.TimeLabel)
+		require.Contains(t, html, "<strong>"+e.TimeLabel+"</strong>")
+	}
+	require.Contains(t, html, "entry-toggle", "per-entry toggle buttons missing")
+	require.NotContains(t, html, "Schedule (Morning", "legacy 3-bucket schedule block must stay removed (R5-3c)")
+}

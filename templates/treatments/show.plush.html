@@ -44,7 +44,7 @@
     <label class="small d-block"><%= t("treatment.entries.title") %></label>
     <table class="table table-sm mb-0 treatment-entries">
       <tbody>
-        <%= for (entry in treatment.Entries) { %>
+        <%= for (entry) in treatment.Entries { %>
           <tr data-entry-id="<%= entry.ID %>">
             <td class="text-nowrap"><strong><%= entry.TimeLabel %></strong></td>
             <td class="text-nowrap">
