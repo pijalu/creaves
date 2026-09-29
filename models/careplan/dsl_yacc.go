@@ -33,15 +33,18 @@ const T_GE = 57356
 const T_TILDE = 57357
 const T_NTILDE = 57358
 const T_CONTAINS = 57359
-const T_AND = 57360
-const T_OR = 57361
-const T_NOT = 57362
-const T_BETWEEN = 57363
-const T_IN = 57364
-const T_LPAREN = 57365
-const T_RPAREN = 57366
-const T_COMMA = 57367
-const T_EOF = 57368
+const T_EQCI = 57360
+const T_NEQCI = 57361
+const T_AND = 57362
+const T_OR = 57363
+const T_NOT = 57364
+const T_BETWEEN = 57365
+const T_IN = 57366
+const T_INCI = 57367
+const T_LPAREN = 57368
+const T_RPAREN = 57369
+const T_COMMA = 57370
+const T_EOF = 57371
 
 var yyToknames = [...]string{
 	"$end",
@@ -61,11 +64,14 @@ var yyToknames = [...]string{
 	"T_TILDE",
 	"T_NTILDE",
 	"T_CONTAINS",
+	"T_EQCI",
+	"T_NEQCI",
 	"T_AND",
 	"T_OR",
 	"T_NOT",
 	"T_BETWEEN",
 	"T_IN",
+	"T_INCI",
 	"T_LPAREN",
 	"T_RPAREN",
 	"T_COMMA",
@@ -87,78 +93,83 @@ var yyExca = [...]int8{
 
 const yyPrivate = 57344
 
-const yyLast = 108
+const yyLast = 127
 
 var yyAct = [...]int8{
-	42, 44, 45, 46, 47, 18, 30, 31, 32, 33,
-	34, 35, 27, 28, 29, 68, 53, 19, 25, 26,
-	75, 77, 76, 49, 48, 50, 51, 17, 66, 44,
-	45, 46, 47, 6, 69, 70, 67, 4, 20, 17,
-	17, 17, 24, 9, 52, 74, 10, 16, 71, 39,
-	43, 15, 14, 36, 73, 9, 9, 9, 10, 10,
-	10, 3, 37, 22, 44, 45, 46, 47, 19, 17,
-	7, 5, 78, 40, 13, 41, 12, 11, 79, 8,
-	21, 2, 23, 72, 1, 9, 0, 0, 10, 0,
-	0, 38, 44, 45, 46, 47, 62, 63, 64, 65,
-	58, 59, 60, 61, 54, 55, 56, 57,
+	77, 75, 31, 32, 35, 36, 37, 38, 28, 29,
+	30, 33, 34, 18, 57, 72, 25, 26, 27, 47,
+	48, 49, 50, 56, 19, 45, 47, 48, 49, 50,
+	70, 52, 51, 53, 54, 20, 17, 73, 74, 71,
+	6, 85, 83, 86, 47, 48, 49, 50, 81, 83,
+	82, 4, 17, 17, 9, 55, 19, 80, 10, 78,
+	39, 42, 43, 17, 44, 17, 24, 16, 46, 5,
+	9, 9, 15, 14, 10, 10, 84, 40, 3, 84,
+	23, 9, 13, 9, 87, 10, 12, 10, 22, 47,
+	48, 49, 50, 47, 48, 49, 50, 7, 47, 48,
+	49, 50, 66, 67, 68, 69, 11, 21, 8, 2,
+	1, 79, 0, 0, 0, 76, 0, 0, 41, 62,
+	63, 64, 65, 58, 59, 60, 61,
 }
 
 var yyPact = [...]int16{
-	35, -32768, -21, -32768, -32768, -2, 20, -32768, -32768, 37,
-	65, -32768, -32768, -32768, -32768, -32768, -3, -32768, -32768, 36,
-	23, -32768, -32768, 49, 24, 18, -7, 99, 95, 91,
-	-32768, -32768, -32768, -32768, -32768, -32768, 20, -32768, -32768, -32768,
-	-32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, 10, -32768,
-	-32768, -32768, -32768, 59, -32768, -32768, -32768, -32768, -32768, -32768,
-	-32768, -32768, -32768, -32768, -32768, -32768, 39, -32768, -32768, -32768,
-	-32768, -4, -32768, -32768, -32768, -32768, -32768, 87, -32768, -32768,
+	49, -32768, -16, -32768, -32768, 3, 15, -32768, -32768, 59,
+	61, -32768, -32768, -32768, -32768, -32768, -7, -32768, -32768, 48,
+	32, -32768, -32768, 35, 39, 26, -3, -12, 118, 114,
+	97, -32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, 15,
+	-32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768,
+	-32768, 10, -32768, -32768, -32768, -32768, 88, 84, -32768, -32768,
+	-32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768, -32768,
+	51, -32768, -32768, -32768, -32768, 21, -32768, -32768, 14, -32768,
+	-32768, -32768, -32768, 93, -32768, -32768, -32768, -32768,
 }
 
 var yyPgo = [...]int8{
-	0, 84, 81, 71, 33, 70, 79, 77, 76, 74,
-	52, 51, 48, 0, 47, 42,
+	0, 110, 109, 69, 40, 97, 108, 106, 86, 82,
+	73, 72, 1, 0, 67, 66,
 }
 
 var yyR1 = [...]int8{
 	0, 1, 1, 1, 2, 3, 3, 3, 4, 4,
 	4, 5, 5, 5, 5, 5, 6, 6, 6, 6,
 	6, 7, 7, 8, 8, 8, 8, 8, 8, 8,
-	8, 8, 9, 9, 9, 12, 12, 12, 10, 10,
-	10, 10, 10, 10, 10, 10, 11, 11, 11, 11,
-	14, 15, 15, 15, 15, 15, 15, 13, 13, 13,
-	13,
+	8, 8, 9, 9, 9, 9, 9, 9, 12, 12,
+	12, 10, 10, 10, 10, 10, 10, 10, 10, 11,
+	11, 11, 11, 14, 15, 15, 15, 15, 15, 15,
+	15, 15, 13, 13, 13, 13,
 }
 
 var yyR2 = [...]int8{
 	0, 2, 1, 1, 1, 1, 3, 3, 1, 3,
 	3, 1, 2, 2, 3, 3, 1, 1, 1, 1,
 	1, 3, 3, 5, 4, 4, 4, 4, 3, 3,
-	3, 3, 5, 4, 5, 1, 3, 2, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1,
+	3, 3, 5, 4, 5, 5, 4, 5, 1, 3,
+	2, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+	3, 3, 3, 1, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 1,
 }
 
 var yyChk = [...]int16{
-	-32768, -1, -2, 26, 2, -3, -4, -5, -6, 20,
-	23, -7, -8, -9, -10, -11, -14, 4, 26, 19,
-	18, -5, 26, -3, -15, 21, 22, 15, 16, 17,
-	9, 10, 11, 12, 13, 14, -4, 26, -5, 26,
-	24, 26, -13, 26, 5, 6, 7, 8, 6, 5,
-	7, 8, 26, 23, 5, 6, 7, 8, 5, 6,
-	7, 8, 5, 6, 7, 8, 18, 26, 5, 24,
-	25, -12, 24, -13, 6, 24, 26, 25, -13, -13,
+	-32768, -1, -2, 29, 2, -3, -4, -5, -6, 22,
+	26, -7, -8, -9, -10, -11, -14, 4, 29, 21,
+	20, -5, 29, -3, -15, 23, 24, 25, 15, 16,
+	17, 9, 10, 18, 19, 11, 12, 13, 14, -4,
+	29, -5, 29, 27, 29, -13, 29, 5, 6, 7,
+	8, 6, 5, 7, 8, 29, 26, 26, 5, 6,
+	7, 8, 5, 6, 7, 8, 5, 6, 7, 8,
+	20, 29, 5, 27, 28, -12, 27, -13, -12, 27,
+	6, 27, 29, 28, -13, 27, 29, -13,
 }
 
 var yyDef = [...]int8{
 	0, -2, 0, 2, 3, 4, 5, 8, 11, 0,
-	0, 16, 17, 18, 19, 20, 0, 50, 1, 0,
+	0, 16, 17, 18, 19, 20, 0, 53, 1, 0,
 	0, 12, 13, 0, 0, 0, 0, 0, 0, 0,
-	51, 52, 53, 54, 55, 56, 6, 7, 9, 10,
-	14, 15, 21, 22, 57, 58, 59, 60, 0, 28,
-	29, 30, 31, 0, 38, 40, 42, 44, 39, 41,
-	43, 45, 46, 47, 48, 49, 0, 24, 25, 26,
-	27, 0, 33, 35, 23, 32, 34, 0, 37, 36,
+	0, 54, 55, 56, 57, 58, 59, 60, 61, 6,
+	7, 9, 10, 14, 15, 21, 22, 62, 63, 64,
+	65, 0, 28, 29, 30, 31, 0, 0, 41, 43,
+	45, 47, 42, 44, 46, 48, 49, 50, 51, 52,
+	0, 24, 25, 26, 27, 0, 33, 38, 0, 36,
+	23, 32, 34, 0, 40, 35, 37, 39,
 }
 
 var yyTok1 = [...]int8{
@@ -168,7 +179,7 @@ var yyTok1 = [...]int8{
 var yyTok2 = [...]int8{
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
-	22, 23, 24, 25, 26,
+	22, 23, 24, 25, 26, 27, 28, 29,
 }
 
 var yyTok3 = [...]int8{
@@ -514,97 +525,97 @@ yydefault:
 
 	case 1:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line dsl.y:58
+//line dsl.y:59
 		{
 			yylex.(*lexer).ast = yyDollar[1].node
 		}
 	case 2:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:60
+//line dsl.y:61
 		{
 			yylex.(*lexer).errorAt(yyDollar[1].pos, "unexpected end of expression")
 		}
 	case 3:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:62
+//line dsl.y:63
 		{
 			yyVAL.node = nil
 		}
 	case 4:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:67
+//line dsl.y:68
 		{
 			yyVAL.node = yyDollar[1].node
 		}
 	case 5:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:72
+//line dsl.y:73
 		{
 			yyVAL.node = yyDollar[1].node
 		}
 	case 6:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:74
+//line dsl.y:75
 		{
 			yyVAL.node = &OrNode{Left: yyDollar[1].node, Right: yyDollar[3].node, pos: yyDollar[2].pos}
 		}
 	case 7:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:76
+//line dsl.y:77
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "unexpected end of expression")
 		}
 	case 8:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:81
+//line dsl.y:82
 		{
 			yyVAL.node = yyDollar[1].node
 		}
 	case 9:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:83
+//line dsl.y:84
 		{
 			yyVAL.node = &AndNode{Left: yyDollar[1].node, Right: yyDollar[3].node, pos: yyDollar[2].pos}
 		}
 	case 10:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:85
+//line dsl.y:86
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "unexpected end of expression")
 		}
 	case 11:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:90
+//line dsl.y:91
 		{
 			yyVAL.node = yyDollar[1].node
 		}
 	case 12:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line dsl.y:92
+//line dsl.y:93
 		{
 			yyVAL.node = &NotNode{Expr: yyDollar[2].node, pos: yyDollar[1].pos}
 		}
 	case 13:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line dsl.y:94
+//line dsl.y:95
 		{
 			yylex.(*lexer).errorAt(yyDollar[2].pos, "unexpected end of expression")
 		}
 	case 14:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:96
+//line dsl.y:97
 		{
 			yyVAL.node = yyDollar[2].node
 		}
 	case 15:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:98
+//line dsl.y:99
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "expected )")
 		}
 	case 21:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:111
+//line dsl.y:112
 		{
 			yyVAL.node = &PredicateNode{
 				Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos,
@@ -615,13 +626,13 @@ yydefault:
 		}
 	case 22:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:120
+//line dsl.y:121
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "unexpected end of expression")
 		}
 	case 23:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line dsl.y:125
+//line dsl.y:126
 		{
 			yyVAL.node = &BetweenNode{
 				Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos,
@@ -632,144 +643,168 @@ yydefault:
 		}
 	case 24:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line dsl.y:134
+//line dsl.y:135
 		{
 			yylex.(*lexer).errorAt(yyDollar[4].pos, "expected AND")
 		}
 	case 25:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line dsl.y:136
+//line dsl.y:137
 		{
 			yylex.(*lexer).errorAt(yyDollar[4].pos, "expected AND")
 		}
 	case 26:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line dsl.y:138
+//line dsl.y:139
 		{
 			yylex.(*lexer).errorAt(yyDollar[4].pos, "expected AND")
 		}
 	case 27:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line dsl.y:140
+//line dsl.y:141
 		{
 			yylex.(*lexer).errorAt(yyDollar[4].pos, "expected AND")
 		}
 	case 28:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:142
+//line dsl.y:143
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "BETWEEN expects number bounds")
 		}
 	case 29:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:144
+//line dsl.y:145
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "BETWEEN expects number bounds")
 		}
 	case 30:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:146
+//line dsl.y:147
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "BETWEEN expects number bounds")
 		}
 	case 31:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:148
+//line dsl.y:149
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].pos, "unexpected end of expression")
 		}
 	case 32:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line dsl.y:153
+//line dsl.y:154
 		{
 			yyVAL.node = &InNode{
 				Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos,
+				Op:       OpIn,
 				Literals: yyDollar[4].lits,
 				pos:      yyDollar[1].fp.pos,
 			}
 		}
 	case 33:
 		yyDollar = yyS[yypt-4 : yypt+1]
-//line dsl.y:161
+//line dsl.y:163
 		{
-			yyVAL.node = &InNode{Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos, pos: yyDollar[1].fp.pos}
+			yyVAL.node = &InNode{Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos, Op: OpIn, pos: yyDollar[1].fp.pos}
 		}
 	case 34:
 		yyDollar = yyS[yypt-5 : yypt+1]
-//line dsl.y:165
+//line dsl.y:167
 		{
 			yylex.(*lexer).errorAt(yyDollar[5].pos, "expected , or )")
 		}
 	case 35:
+		yyDollar = yyS[yypt-5 : yypt+1]
+//line dsl.y:169
+		{
+			yyVAL.node = &InNode{
+				Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos,
+				Op:       OpInCI,
+				Literals: yyDollar[4].lits,
+				pos:      yyDollar[1].fp.pos,
+			}
+		}
+	case 36:
+		yyDollar = yyS[yypt-4 : yypt+1]
+//line dsl.y:178
+		{
+			yyVAL.node = &InNode{Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos, opPos: yyDollar[2].pos, Op: OpInCI, pos: yyDollar[1].fp.pos}
+		}
+	case 37:
+		yyDollar = yyS[yypt-5 : yypt+1]
+//line dsl.y:182
+		{
+			yylex.(*lexer).errorAt(yyDollar[5].pos, "expected , or )")
+		}
+	case 38:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:170
+//line dsl.y:187
 		{
 			yyVAL.lits = []Literal{yyDollar[1].lit}
 		}
-	case 36:
+	case 39:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:172
+//line dsl.y:189
 		{
 			yyVAL.lits = append(yyDollar[1].lits, yyDollar[3].lit)
 		}
-	case 37:
+	case 40:
 		yyDollar = yyS[yypt-2 : yypt+1]
-//line dsl.y:174
+//line dsl.y:191
 		{
 			yylex.(*lexer).errorAt(yyDollar[2].lit.Pos, "expected , or )")
 			yyVAL.lits = yyDollar[1].lits
 		}
-	case 38:
+	case 41:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:179
+//line dsl.y:196
 		{
 			yyVAL.node = yylex.(*lexer).regexPred(yyDollar[1].fp, yyDollar[2].pos, OpRegex, yyDollar[3].lit)
 		}
-	case 39:
+	case 42:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:181
+//line dsl.y:198
 		{
 			yyVAL.node = yylex.(*lexer).regexPred(yyDollar[1].fp, yyDollar[2].pos, OpNotRegex, yyDollar[3].lit)
 		}
-	case 40:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:183
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
-		}
-	case 41:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:185
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
-		}
-	case 42:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:187
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
-		}
 	case 43:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:189
+//line dsl.y:200
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
 		}
 	case 44:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:191
+//line dsl.y:202
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
 		}
 	case 45:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:193
+//line dsl.y:204
 		{
 			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
 		}
 	case 46:
 		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:198
+//line dsl.y:206
+		{
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
+		}
+	case 47:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:208
+		{
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
+		}
+	case 48:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:210
+		{
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "regex patterns must be double-quoted strings")
+		}
+	case 49:
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:215
 		{
 			yyVAL.node = &PredicateNode{
 				Field: yyDollar[1].fp.name, fieldPos: yyDollar[1].fp.pos,
@@ -778,87 +813,99 @@ yydefault:
 				pos:     yyDollar[1].fp.pos,
 			}
 		}
-	case 47:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:207
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
-		}
-	case 48:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:209
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
-		}
-	case 49:
-		yyDollar = yyS[yypt-3 : yypt+1]
-//line dsl.y:211
-		{
-			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
-		}
 	case 50:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:216
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:224
 		{
-			yyVAL.fp = yyDollar[1].fp
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
 		}
 	case 51:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:221
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:226
 		{
-			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
 		}
 	case 52:
-		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:223
+		yyDollar = yyS[yypt-3 : yypt+1]
+//line dsl.y:228
 		{
-			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
+			yylex.(*lexer).errorAt(yyDollar[3].lit.Pos, "CONTAINS expects a double-quoted string")
 		}
 	case 53:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:225
+//line dsl.y:233
 		{
-			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
+			yyVAL.fp = yyDollar[1].fp
 		}
 	case 54:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:227
+//line dsl.y:238
 		{
 			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 55:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:229
+//line dsl.y:240
 		{
 			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 56:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:231
+//line dsl.y:242
 		{
 			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 57:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:236
+//line dsl.y:244
 		{
-			yyVAL.lit = yyDollar[1].lit
+			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 58:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:238
+//line dsl.y:246
 		{
-			yyVAL.lit = yyDollar[1].lit
+			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 59:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:240
+//line dsl.y:248
 		{
-			yyVAL.lit = yyDollar[1].lit
+			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
 		}
 	case 60:
 		yyDollar = yyS[yypt-1 : yypt+1]
-//line dsl.y:242
+//line dsl.y:250
+		{
+			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
+		}
+	case 61:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line dsl.y:252
+		{
+			yyVAL.fp = fieldPos{name: yyDollar[1].op, pos: yyDollar[1].pos}
+		}
+	case 62:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line dsl.y:257
+		{
+			yyVAL.lit = yyDollar[1].lit
+		}
+	case 63:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line dsl.y:259
+		{
+			yyVAL.lit = yyDollar[1].lit
+		}
+	case 64:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line dsl.y:261
+		{
+			yyVAL.lit = yyDollar[1].lit
+		}
+	case 65:
+		yyDollar = yyS[yypt-1 : yypt+1]
+//line dsl.y:263
 		{
 			yyVAL.lit = yyDollar[1].lit
 		}
