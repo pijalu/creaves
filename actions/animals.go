@@ -172,7 +172,8 @@ func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments
 		var allTreatments models.Treatments
 		// Parameterized placeholder expansion — string-building the list
 		// would interpolate values into SQL text.
-		if err := tx.Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
+		// Eager: per-time entries are the read model (bugs.md R5-3c, U25/D-e).
+		if err := tx.Eager().Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
 			return nil, err
 		}
 		// Group treatments by animal ID
@@ -321,7 +322,8 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	// Preload all today treatments
 	treaments := models.Treatments{}
 	tmap := map[int]models.Treatments{}
-	if err := tx.Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where(
+	// Eager: per-time entries are the read model (bugs.md R5-3c, U25/D-e).
+	if err := tx.Eager().Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where(
 		fmt.Sprintf("animal_id IN (%s)", strings.Join(animalsID, ","))).Order("animal_id desc").All(&treaments); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}

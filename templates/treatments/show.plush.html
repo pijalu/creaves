@@ -36,84 +36,43 @@
     <p class="d-inline-block"><%= treatment.DateFormated() %></p>
   </li>
 
-  <% contentFor("eveningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
-  <% } %>
-
-  <% contentFor("morningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
-  <% } %>
-
-  <% contentFor("noonSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-    </g>
-  <%}%>
-
-
-  <% 
-    let morning = treatment.ScheduleStatusMorning() 
-    let noon = treatment.ScheduleStatusNoon() 
-    let evening = treatment.ScheduleStatusEvening()
-  %>
-
+  <%# bugs.md R5-3c (U25/D-e): one row per expected time — the per-time
+      entries are the source of truth; works for more than 3 runs/day.
+      The legacy 3-bucket "Schedule (Morning - Noon - Evening)" block is
+      replaced by this list. %>
   <li class="list-group-item pb-1">
-    <label class="small d-block">Schedule (Morning - Noon - Evening)</label>
-    <p class="d-inline-block">
-      <%= if (!morning.Valid) { %>                          
-        <i class="fas fa-minus" title="Not required on the morning"></i>
-      <% } else if (morning.Bool) {%>
-        <span style="color:green;" title="Done on the morning">
-          <%= contentOf("morningSVG") %>
-        </span>
-      <% } else { %>
-        <span style="color:red;" title="To do on the morning">
-          <%= contentOf("morningSVG") %>
-        </span>
-      <% }%>
-      
-      &nbsp;
-
-      <%= if (!noon.Valid) { %>
-        <i class="fas fa-minus" title="Not required at noon"></i>
-      <% } else if (noon.Bool) {%>
-        <span style="color:green;" title="Done at noon">
-          <%= contentOf("noonSVG") %>
-        </span>
-      <% } else { %>
-        <span style="color:red;" title="To do at noon">
-          <%= contentOf("noonSVG") %>
-        </span>
-      <% }%>
-
-      &nbsp;
-
-      <%= if (!evening.Valid) { %>
-        <i class="fas fa-minus" title="Not required on the evening"></i>
-      <% } else if (evening.Bool) {%>
-        <span style="color:green;" title="Done in the evening">
-          <%= contentOf("eveningSVG") %>
-        </span>
-      <% } else { %>
-        <span style="color:red;" title="To do in the evening">
-          <%= contentOf("eveningSVG") %>
-        </span>
-      <% }%>
-    </p>
+    <label class="small d-block"><%= t("treatment.entries.title") %></label>
+    <table class="table table-sm mb-0 treatment-entries">
+      <tbody>
+        <%= for (entry in treatment.Entries) { %>
+          <tr data-entry-id="<%= entry.ID %>">
+            <td class="text-nowrap"><strong><%= entry.TimeLabel %></strong></td>
+            <td class="text-nowrap">
+              <%= if (entry.Status == "done") { %>
+                <span class="badge badge-success entry-status" title="<%= t("treatment.entries.status.done") %>"><i class="fas fa-check"></i> <%= t("treatment.entries.status.done") %><%= if (entry.AppliedAt.Valid) { %> · <%= entry.AppliedAt.Time.Format("15:04") %><% } %></span>
+              <% } else if (entry.Status == "skipped") { %>
+                <span class="badge badge-secondary entry-status" title="<%= t("treatment.entries.status.skipped") %>"><i class="fas fa-minus"></i> <%= t("treatment.entries.status.skipped") %></span>
+              <% } else { %>
+                <span class="badge badge-warning entry-status" title="<%= t("treatment.entries.status.pending") %>"><i class="far fa-clock"></i> <%= t("treatment.entries.status.pending") %></span>
+              <% } %>
+            </td>
+            <td class="text-nowrap">
+              <button type="button" class="btn btn-sm <%= if (entry.Status == "done") { %>btn-outline-warning<% } else { %>btn-outline-success<% } %> entry-toggle"
+                      data-entry-id="<%= entry.ID %>"
+                      data-status="<%= entry.Status %>"
+                      title="<%= if (entry.Status == "done") { %><%= t("treatment.entries.toggle.undo") %><% } else { %><%= t("treatment.entries.toggle.do") %><% } %>">
+                <%= if (entry.Status == "done") { %>○<% } else { %>✓<% } %>
+              </button>
+            </td>
+            <td><%= if (entry.Note.Valid) { %><%= entry.Note.String %><% } %></td>
+          </tr>
+        <% } %>
+        <%= if (len(treatment.Entries) == 0) { %>
+          <tr><td colspan="4" class="text-muted">—</td></tr>
+        <% } %>
+      </tbody>
+    </table>
   </li>
-
 
   <li class="list-group-item pb-1">
     <label class="small d-block">Drug</label>
@@ -134,3 +93,26 @@
     <p class="d-inline-block"><%= treatment.Remarks %></p>
   </li>
 </ul>
+
+<script>
+  // bugs.md R5-3c (U25/D-e): toggle a per-time entry done/pending; the
+  // endpoint flips the entry and the page reloads to re-render all rows.
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  document.querySelectorAll('button.entry-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var row = btn.closest('tr[data-entry-id]');
+      if (!row) { return; }
+      fetch('/treatments/<%= treatment.ID %>/entries/' + row.getAttribute('data-entry-id') + '/toggle', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrf
+        }
+      }).then(function (r) {
+        if (r.ok) { window.location.reload(); }
+      });
+    });
+  });
+</script>

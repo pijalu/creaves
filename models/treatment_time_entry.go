@@ -105,6 +105,12 @@ func (t TreatmentTimeEntries) HasDone() bool {
 	return false
 }
 
+// InBucket reports whether the entry's due hour falls in [minH, maxH).
+func (t *TreatmentTimeEntry) InBucket(minH, maxH int) bool {
+	h := t.DueAt.Hour()
+	return h >= minH && h < maxH
+}
+
 // Validate gets run every time you call a "pop.Validate*" method.
 func (t *TreatmentTimeEntry) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	return validate.Validate(

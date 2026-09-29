@@ -161,23 +161,70 @@ func (ts Treatments) TreatmentsMap() TreatmentsMap {
 	m := map[TreatmentKey]Treatments{}
 	for _, t := range ts {
 		k, present := mk[t.DateFormated()]
-		// Create key
 		if !present {
-			now := time.Now()
-			nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-			checkDt := time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, now.Location())
-			k = TreatmentKey{
-				Date:    checkDt,
-				DateFmt: t.DateFormated(),
-				Past:    checkDt.Before(nowDt),
-				Current: checkDt.Equal(nowDt),
-				Future:  checkDt.After(nowDt),
-			}
+			k = treatmentKeyFor(t)
 			mk[t.DateFormated()] = k
 		}
 		m[k] = append(m[k], t)
 	}
 	return m
+}
+
+// TreatmentEntryRow pairs a treatment with its per-time entries
+// (bugs.md R5-3c, U25/D-e) — the R5-4b animal-tab accordion data source.
+type TreatmentEntryRow struct {
+	Treatment *Treatment
+	Entries   TreatmentTimeEntries
+}
+
+// TreatmentEntriesMap organizes treatments (with their entries) per date —
+// same keying as TreatmentsMap, one accordion row per expected time.
+type TreatmentEntriesMap map[TreatmentKey][]TreatmentEntryRow
+
+// OrderedKeys returns the map keys ordered by descending date (same order
+// as TreatmentsMap.OrderedKeys — newest day first).
+func (m TreatmentEntriesMap) OrderedKeys() []TreatmentKey {
+	var keys []TreatmentKey
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].Date.After(keys[j].Date)
+	})
+	return keys
+}
+
+// TreatmentEntriesMap organizes the treatments and their per-time entries
+// per date (bugs.md R5-3c). Treatments must have their Entries association
+// loaded (tx.Eager()); rows without entries still appear, with empty
+// entries — the accordion renders the bitmap fallback for them.
+func (ts Treatments) TreatmentEntriesMap() TreatmentEntriesMap {
+	mk := map[string]TreatmentKey{}
+	m := TreatmentEntriesMap{}
+	for i := range ts {
+		t := &ts[i]
+		k, present := mk[t.DateFormated()]
+		if !present {
+			k = treatmentKeyFor(*t)
+			mk[t.DateFormated()] = k
+		}
+		m[k] = append(m[k], TreatmentEntryRow{Treatment: t, Entries: t.Entries})
+	}
+	return m
+}
+
+// treatmentKeyFor builds the per-date accordion key (past/current/future).
+func treatmentKeyFor(t Treatment) TreatmentKey {
+	now := time.Now()
+	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	checkDt := time.Date(t.Date.Year(), t.Date.Month(), t.Date.Day(), 0, 0, 0, 0, now.Location())
+	return TreatmentKey{
+		Date:    checkDt,
+		DateFmt: t.DateFormated(),
+		Past:    checkDt.Before(nowDt),
+		Current: checkDt.Equal(nowDt),
+		Future:  checkDt.After(nowDt),
+	}
 }
 
 // DateFormated returns a formated date
@@ -258,10 +305,59 @@ func (t *Treatment) ScheduleRequiredEvening() bool {
 }
 
 func (t *Treatment) ScheduleStatus(key int) nulls.Bool {
+	// bugs.md R5-3c (U25/D-e): entries are the source of truth when
+	// loaded; the dormant bitmap only serves un-migrated rows.
+	if s, ok := t.entryBucketStatus(key); ok {
+		return s
+	}
 	if t.ScheduleRequired(key) {
 		return nulls.NewBool((t.Timedonebitmap & key) > 0)
 	}
 	return nulls.Bool{Valid: false}
+}
+
+// entryBucketStatus derives the legacy 3-bucket status from the per-time
+// entries (bugs.md R5-3c): a bucket with entries reports done only when
+// ALL of its entries are done; buckets without entries report unknown.
+// Bucket bounds mirror the legacy §10-M1 mapping: <11:00 morning,
+// 11:00–15:59 noon, ≥16:00 evening.
+func (t *Treatment) entryBucketStatus(key int) (nulls.Bool, bool) {
+	if len(t.Entries) == 0 {
+		return nulls.Bool{}, false
+	}
+	bounds := entryBucketBounds(key)
+	if bounds == nil {
+		return nulls.Bool{}, false
+	}
+	found, allDone := false, true
+	for i := range t.Entries {
+		e := &t.Entries[i]
+		if !e.InBucket(bounds[0], bounds[1]) {
+			continue
+		}
+		found = true
+		if e.Status != TreatmentEntryStatusDone {
+			allDone = false
+		}
+	}
+	if !found {
+		return nulls.Bool{}, false
+	}
+	return nulls.NewBool(allDone), true
+}
+
+// entryBucketBounds returns the [minHour, maxHour) window of a legacy
+// bitmap bucket.
+func entryBucketBounds(key int) []int {
+	switch key {
+	case Treatement_MORNING:
+		return []int{0, 11}
+	case Treatement_NOON:
+		return []int{11, 16}
+	case Treatement_EVENING:
+		return []int{16, 24}
+	}
+	return nil
 }
 
 func (t *Treatment) ScheduleStatusMorning() nulls.Bool {
@@ -289,6 +385,11 @@ func (t *Treatment) SetAllScheduleRequired(m bool, n bool, e bool) {
 	}
 }
 
+// SetAllScheduleStatus writes the legacy Timedonebitmap.
+//
+// Deprecated: dormant since bugs.md R5-3 (U25/D-e) — the done state lives
+// in Treatment.Entries (treatment_time_entries). Kept only for the
+// rollback path; no live write path may call it.
 func (t *Treatment) SetAllScheduleStatus(m bool, n bool, e bool) {
 	t.Timedonebitmap = 0
 	if m {
