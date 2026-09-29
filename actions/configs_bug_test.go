@@ -112,6 +112,11 @@ func seedConfig(t *testing.T, name string, active bool) *models.Config {
 		Name:       name,
 		Active:     active,
 	}
+	// Self-healing: a previous run that crashed before its cleanup leaves an
+	// orphan row with the same instance_id — the unique index would 1062.
+	if err := models.DB.RawQuery("DELETE FROM config WHERE instance_id = ?", cfg.InstanceID).Exec(); err != nil {
+		t.Fatalf("pre-delete orphan config %q: %v", cfg.InstanceID, err)
+	}
 	if err := cfg.SetSettings(models.DefaultSettings()); err != nil {
 		t.Fatalf("SetSettings: %v", err)
 	}
