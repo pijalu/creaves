@@ -71,6 +71,8 @@
   translation: "Historisch voedingsschema (alleen-lezen) — het schema wordt beheerd in het tabblad Plan van het dier."
 - id: "animals.back.to_in_care"
   translation: "Terug naar dieren in zorg"
+- id: "animals.back.to_dashboard"
+  translation: "Terug naar het dashboard"
 - id: "animals.back.to_day_plan"
   translation: "Terug naar het dagplan"
 - id: "animals.back.to_care_schedule"

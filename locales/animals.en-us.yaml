@@ -70,6 +70,8 @@
   translation: "Historic feeding schedule (read-only) — the schedule is now managed in the animal's Plan tab."
 - id: "animals.back.to_in_care"
   translation: "Back to animals in care"
+- id: "animals.back.to_dashboard"
+  translation: "Back to dashboard"
 - id: "animals.back.to_day_plan"
   translation: "Back to the day plan"
 - id: "animals.back.to_care_schedule"

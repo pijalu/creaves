@@ -32,3 +32,17 @@ func safeRedirectTarget(target string) string {
 	}
 	return target
 }
+
+// localBackParam returns target when it is a safe local path, else "" —
+// for LINK BUILDING (bugs.md R5-2d): an invalid back target is dropped so
+// the link falls back to the plain self URL instead of silently chaining
+// to the dashboard ("/").
+func localBackParam(target string) string {
+	if target == "" || !strings.HasPrefix(target, "/") || strings.HasPrefix(target, "//") {
+		return ""
+	}
+	if strings.Contains(target, "\\") {
+		return ""
+	}
+	return target
+}

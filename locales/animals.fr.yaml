@@ -70,6 +70,8 @@
   translation: "Horaire historique (lecture seule) — le plan se gère dans l'onglet Plan de l'animal."
 - id: "animals.back.to_in_care"
   translation: "Retour aux animaux en cours de soin"
+- id: "animals.back.to_dashboard"
+  translation: "Retour au tableau de bord"
 - id: "animals.back.to_day_plan"
   translation: "Retour au plan de la journée"
 - id: "animals.back.to_care_schedule"

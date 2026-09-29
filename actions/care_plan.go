@@ -79,7 +79,7 @@ func CarePlanIndex(c buffalo.Context) error {
 	cageCards, feedingCards := GroupCards(plan.Items, plan)
 	c.Set("cards", cageCards)
 	c.Set("feedingCards", feedingCards)
-	c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now))
+	c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now, c.Param("back")))
 	return responder.Wants("html", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

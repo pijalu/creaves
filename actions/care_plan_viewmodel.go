@@ -206,13 +206,20 @@ var actionKinds = []string{
 // view/zone/kind are the (already validated) request params; now drives
 // UpdatedAt. Counters (zones, kinds, tiers) always reflect the UNFILTERED
 // work window — only the tier card lists are narrowed by zone/kind.
-func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *DayPlanView {
+// back (R5-2d, D-b, optional) is the page's own incoming back target
+// (sanitized); it is embedded in the self URL so every card link chains
+// the ORIGINAL origin (e.g. the dashboard's back=/) through the round trip.
+func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, back ...string) *DayPlanView {
+	backIn := ""
+	if len(back) > 0 {
+		backIn = back[0]
+	}
 	v := &DayPlanView{
 		View:      view,
 		Zone:      zone,
 		Kind:      kind,
 		UpdatedAt: now.Format("15:04"),
-		SelfPath:  planSelfPath(view, zone, kind),
+		SelfPath:  planSelfPath(view, zone, kind, backIn),
 	}
 
 	zoneCount := map[string]int{}
@@ -565,7 +572,7 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 func BuildDashboardMedView(plan *DayPlan, zone string) []MedGroupView {
 	v := &DayPlanView{
 		View:     ViewCompact,
-		SelfPath: planSelfPath(ViewCompact, "", ""),
+		SelfPath: planSelfPath(ViewCompact, "", "", "/"),
 	}
 	return v.buildMedGroups(plan, zone, true)
 }
@@ -617,7 +624,10 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 // planSelfPath is the canonical URL of the work screen with its current
 // filters — the back target propagated to every card link so a round trip
 // (animal page, rule page, record page) returns to the same view/zone/kind.
-func planSelfPath(view, zone, kind string) string {
+// R5-2d (D-b): an incoming back target is carried in the self URL (and
+// thus through every card link); invalid targets are dropped — the
+// fallback is the plain care_plan self URL.
+func planSelfPath(view, zone, kind, back string) string {
 	q := url.Values{}
 	if view != "" {
 		q.Set("view", view)
@@ -627,6 +637,9 @@ func planSelfPath(view, zone, kind string) string {
 	}
 	if kind != "" {
 		q.Set("kind", kind)
+	}
+	if b := localBackParam(back); b != "" {
+		q.Set("back", b)
 	}
 	return "/care_plan?" + q.Encode()
 }

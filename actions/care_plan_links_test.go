@@ -213,3 +213,57 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	html = string(raw)
 	require.Contains(t, html, "back=%2Fcare_plan", "fast-action links carry an escaped back=/care_plan")
 }
+
+// ---------------------------------------------------------------------------
+// R5-2d (D-b): back-link propagation, sanitization, labels
+// ---------------------------------------------------------------------------
+
+// TestPlanSelfPathBack: an incoming back target is carried in the work
+// screen's self URL — sanitized to same-origin paths; anything else is
+// dropped (fallback = the plain care_plan self URL).
+func TestPlanSelfPathBack(t *testing.T) {
+	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", ""))
+	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "//evil.com"))
+	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "javascript:alert(1)"))
+	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "/\\evil.example"))
+
+	require.Equal(t, "/care_plan?back=%2F&view=compact", planSelfPath(ViewCompact, "", "", "/"))
+	require.Equal(t, "/care_plan?back=%2Fdashboard&view=compact", planSelfPath(ViewCompact, "", "", "/dashboard"))
+}
+
+// TestBuildDayPlanViewBackChain: the dashboard origin (back=/) survives the
+// hop through the work screen — self URL AND card links carry it, so the
+// animal page's back button chains to the dashboard, not just the plan.
+func TestBuildDayPlanViewBackChain(t *testing.T) {
+	plan := testPlan()
+	src := testSource(careplan.KindObservation, "src-obs", "Obs", nil)
+	it := testItem(src, 1, careplan.StatusDue)
+	plan.Items = []careplan.PlanItem{it}
+	now := time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local)
+
+	v := BuildDayPlanView(plan, ViewCompact, "", "", now, "/")
+	require.Equal(t, "/care_plan?back=%2F&view=compact", v.SelfPath)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F%26view%3Dcompact#nav-plan",
+		v.Tiers[1].Cards[0].AnimalLink)
+
+	// No incoming back → cards fall back to the plain self URL.
+	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	require.Equal(t, "/care_plan?view=compact", v.SelfPath)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Dcompact#nav-plan",
+		v.Tiers[1].Cards[0].AnimalLink)
+}
+
+// TestLandingBackLabelKey: the U16 back label names the FINAL destination —
+// "/" and /dashboard* directly, or through a care_plan self URL carrying
+// back=/ (the R5-2d chain).
+func TestLandingBackLabelKey(t *testing.T) {
+	require.Equal(t, "animals.back.to_dashboard", landingBackLabelKey("/"))
+	require.Equal(t, "animals.back.to_dashboard", landingBackLabelKey("/dashboard/"))
+	require.Equal(t, "animals.back.to_dashboard", landingBackLabelKey("/care_plan?back=%2F&view=compact"))
+	require.Equal(t, "animals.back.to_dashboard", landingBackLabelKey("/care_plan?back=%2Fdashboard&view=compact"))
+	require.Equal(t, "animals.back.to_day_plan", landingBackLabelKey("/care_plan?view=compact"))
+	require.Equal(t, "animals.back.to_day_plan", landingBackLabelKey("/care_plan"))
+	require.Equal(t, "animals.back.to_care_schedule", landingBackLabelKey("/reports/care_schedule?from=2026-01-01"))
+	require.Equal(t, "animals.back.to_in_care", landingBackLabelKey("/animals/5"))
+	require.Equal(t, "animals.back.to_in_care", landingBackLabelKey("//evil.com"))
+}
