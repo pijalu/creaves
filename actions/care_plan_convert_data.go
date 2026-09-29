@@ -220,7 +220,9 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 		Name:       fmt.Sprintf("Régime « %.60s » (conversion)", diet),
 		Expression: expr,
 	})
-	matcherID, _, err := insertMatcherOnce(tx, matcher)
+	// R5-1e: on re-runs the existing matcher row is refreshed in place
+	// (same ID) unless hand-edited — see upsertClusterMatcher.
+	matcherID, err := upsertClusterMatcher(tx, report, matcher)
 	if err != nil {
 		return nil, err
 	}

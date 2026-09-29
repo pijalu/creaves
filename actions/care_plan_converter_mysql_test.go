@@ -327,6 +327,95 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, plansAfter, count("SELECT count(*) as c FROM care_animal_plans"))
 }
 
+// TestCarePlanConverterMarkerV2Refresh pins the R5-1e refresh pass: after
+// the marker bump v1→v2, a re-run updates the converter-owned cluster
+// matcher's expression IN PLACE (same row ID — rule/applications links
+// survive), skips hand-edited rows (updated_at ≠ created_at), records
+// action=updated|skipped in the report, keeps the v1 marker row (additive
+// history), and is a strict no-op once v2 is written.
+func TestCarePlanConverterMarkerV2Refresh(t *testing.T) {
+	fx := setupConverterFixture(t)
+	defer fx.f.cleanup()
+	db := models.DB
+
+	// Fresh v2 run: the cluster matcher already carries the cage clause.
+	report, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NotNil(t, report)
+	require.Equal(t, 1, report.Feeding.RulesCreated)
+
+	var rule models.CareRule
+	require.NoError(t, db.Where("name LIKE ?", "Alimentation — grains pigeons eau%").First(&rule))
+	var m models.CareMatcher
+	require.NoError(t, db.Find(&m, rule.MatcherID.UUID))
+	require.Contains(t, m.Expression, `AND cage =* "`)
+	matcherID := m.ID
+
+	// Simulate the v1 install: species-only expression, v1 marker only.
+	require.NoError(t, db.RawQuery(
+		"UPDATE care_matchers SET expression = ? WHERE id = ?",
+		`species IN ("Pigeon biset")`, matcherID).Exec())
+	require.NoError(t, db.RawQuery(
+		"DELETE FROM care_plan_conversion WHERE `key` = ?", ConversionMarkerKey).Exec())
+	require.NoError(t, db.RawQuery(
+		"INSERT INTO care_plan_conversion (`key`, finished_at, report, created_at, updated_at) VALUES (?, NOW(), '{}', NOW(), NOW())",
+		ConversionMarkerKeyV1).Exec())
+
+	// Re-run: in-place refresh, untouched row.
+	report2, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NotNil(t, report2)
+	require.Equal(t, 1, report2.ReRun.Considered)
+	require.Equal(t, 1, report2.ReRun.Updated)
+	require.Equal(t, 0, report2.ReRun.Skipped)
+	require.Len(t, report2.ReRun.Lines, 1)
+	require.Equal(t, "updated", report2.ReRun.Lines[0].Action)
+
+	// Same row ID, new expression, rule link intact.
+	var m2 models.CareMatcher
+	require.NoError(t, db.Find(&m2, matcherID))
+	require.Equal(t, matcherID, m2.ID)
+	require.Contains(t, m2.Expression, fmt.Sprintf(`AND cage =* "%s"`, fx.f.cage))
+	var rule2 models.CareRule
+	require.NoError(t, db.Where("name LIKE ?", "Alimentation — grains pigeons eau%").First(&rule2))
+	require.Equal(t, rule.MatcherID.UUID, rule2.MatcherID.UUID)
+
+	// v2 written, v1 kept (report history is additive).
+	for _, key := range []string{ConversionMarkerKey, ConversionMarkerKeyV1} {
+		var n []struct {
+			C int64 `db:"c"`
+		}
+		require.NoError(t, db.RawQuery(
+			"SELECT count(*) as c FROM care_plan_conversion WHERE `key` = ?", key).All(&n))
+		require.Equal(t, int64(1), n[0].C, "marker %s must exist exactly once", key)
+	}
+
+	// Hand-edited row (expression reverted + updated_at bumped): skipped,
+	// never clobbered.
+	require.NoError(t, db.RawQuery(
+		"UPDATE care_matchers SET expression = ?, updated_at = DATE_ADD(updated_at, INTERVAL 1 HOUR) WHERE id = ?",
+		`species IN ("Pigeon biset")`, matcherID).Exec())
+	require.NoError(t, db.RawQuery(
+		"DELETE FROM care_plan_conversion WHERE `key` = ?", ConversionMarkerKey).Exec())
+	report3, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NotNil(t, report3)
+	require.Equal(t, 1, report3.ReRun.Considered)
+	require.Equal(t, 0, report3.ReRun.Updated)
+	require.Equal(t, 1, report3.ReRun.Skipped)
+	require.Len(t, report3.ReRun.Lines, 1)
+	require.Equal(t, "skipped", report3.ReRun.Lines[0].Action)
+	require.Contains(t, report3.ReRun.Lines[0].Reason, "hand-edited")
+	var m3 models.CareMatcher
+	require.NoError(t, db.Find(&m3, matcherID))
+	require.Equal(t, `species IN ("Pigeon biset")`, m3.Expression)
+
+	// v2 present again → strict no-op.
+	report4, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.Nil(t, report4)
+}
+
 // TestCarePlanConverterCaseVariantSeries guards the no-loss mandate (§8.1)
 // against collation traps: prod tables use utf8mb4_0900_ai_ci, so a
 // case/accent-insensitive guard would treat "ProdiplasT-T" and

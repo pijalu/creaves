@@ -1,7 +1,9 @@
 package actions
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -20,14 +22,25 @@ import (
 // migrations, before the HTTP server accepts requests (see cmd/app/main.go);
 // a failure aborts the boot so a half-converted database can never serve.
 //
-// Idempotency: the care_plan_conversion row key='startup_v1' is written on
-// success; on later boots the converter is a no-op. Deleting the marker
-// re-runs it; generated rows are guarded by name-existence checks and all
-// carry the ConverterTag marker in their description so rollback (§8.2) can
-// identify them.
+// Idempotency: the care_plan_conversion row key=ConversionMarkerKey is
+// written on success; on later boots the converter is a no-op. Deleting
+// the marker re-runs it; generated rows are guarded by name-existence
+// checks and all carry the ConverterTag marker in their description so
+// rollback (§8.2) can identify them. On re-runs, converter-owned cluster
+// matchers are refreshed in place (same row IDs) unless hand-edited —
+// R5-1e below.
 
-// ConversionMarkerKey is the §8.1 marker primary key.
-const ConversionMarkerKey = "startup_v1"
+// ConversionMarkerKeyV1 is the pre-R5-1e marker key ("startup_v1"), kept
+// for reference: databases marked v1 re-run the converter once on boot
+// (marker v2 missing), which refreshes the converted cluster matchers
+// with the R5-1d cage clause. The v1 row itself is never deleted — the
+// report history stays additive.
+const ConversionMarkerKeyV1 = "startup_v1"
+
+// ConversionMarkerKey is the §8.1 marker primary key. Bumped v1→v2 with
+// R5-1d/R5-1e (cluster matchers gain the cage clause) so existing
+// installs re-run the converter exactly once.
+const ConversionMarkerKey = "startup_v2"
 
 // FeedingClusterThreshold is the §8.1 step-2 cluster size at which a shared
 // diet becomes a generic rule instead of per-animal plans (≥5; calibrated
@@ -43,6 +56,17 @@ type ConversionLine struct {
 	AnimalID int    `json:"animal_id"`
 	Label    string `json:"label"`
 	Reason   string `json:"reason"`
+}
+
+// ReRunLine is one marker-v2 refresh decision (R5-1e): a converter-owned
+// row either updated in place (action=updated) or left alone
+// (action=skipped) with the reason — hand-edited rows are never clobbered.
+type ReRunLine struct {
+	Kind   string `json:"kind"` // "matcher" | "rule"
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Action string `json:"action"` // "updated" | "skipped"
+	Reason string `json:"reason,omitempty"`
 }
 
 // ConversionReport aggregates the converter outcome; persisted as JSON in
@@ -79,18 +103,30 @@ type ConversionReport struct {
 		TreatmentUncovered int              `json:"treatment_uncovered"`
 		Lines              []ConversionLine `json:"lines,omitempty"`
 	} `json:"reconciliation"`
+	// ReRun records the one-shot marker-v2 refresh pass (R5-1e): converter-
+	// owned cluster matchers revisited on a re-run boot, updated in place
+	// (same IDs) when the re-derived expression differs, skipped when
+	// hand-edited. Additive to the v1 report shape — older readers ignore
+	// the unknown key.
+	ReRun struct {
+		Considered int         `json:"considered"`
+		Updated    int         `json:"updated"`
+		Skipped    int         `json:"skipped"`
+		Lines      []ReRunLine `json:"lines,omitempty"`
+	} `json:"re_run"`
 	// coverage maps animal_id → converted slot list (in-memory only, used by
 	// the reconciliation step; not serialized).
 	coverage map[int][]careplan.TimeOfDay
 }
 
-func (r *ConversionReport) addSkip(kind string, l ConversionLine) {
-	switch kind {
-	case "feeding":
-		r.Feeding.Lines = append(r.Feeding.Lines, l)
-	case "treatment":
-		r.Treatments.Lines = append(r.Treatments.Lines, l)
-	}
+// handEdited reports whether a converter-generated row was modified after
+// creation (R5-1e skip heuristic): UpdatedAt ≠ CreatedAt beyond the MySQL
+// DATETIME second-precision rounding counts as a hand edit. Converter
+// refreshes bump UpdatedAt too, so a refreshed row counts as hand-edited
+// on any later re-run — conservative: converter output is never clobbered
+// twice, and user edits always win.
+func handEdited(createdAt, updatedAt time.Time) bool {
+	return updatedAt.Sub(createdAt) > 2*time.Second
 }
 
 // ---------------------------------------------------------------------------
@@ -281,6 +317,58 @@ func insertMatcherOnce(tx *pop.Connection, m *models.CareMatcher) (uuid.NullUUID
 		return uuid.NullUUID{}, false, fmt.Errorf("matcher %q invalid: %v", m.Name, verrs)
 	}
 	return uuid.NullUUID{UUID: m.ID, Valid: true}, true, nil
+}
+
+// upsertClusterMatcher inserts the feeding-cluster matcher, or — on a
+// re-run (marker deleted / v1→v2 bump, R5-1e) — updates the existing
+// converter-owned, untouched row's Expression IN PLACE: same matcher ID so
+// care_rules.matcher_id and care_plan_applications.source_id links
+// survive. Hand-edited rows (updated_at ≠ created_at) and rows without
+// the converter tag are skipped and recorded in the report.
+func upsertClusterMatcher(tx *pop.Connection, report *ConversionReport, m *models.CareMatcher) (uuid.NullUUID, error) {
+	var existing models.CareMatcher
+	err := tx.Where("name = ?", m.Name).First(&existing)
+	if errors.Is(err, sql.ErrNoRows) {
+		verrs, err := tx.ValidateAndCreate(m)
+		if err != nil {
+			return uuid.NullUUID{}, err
+		}
+		if verrs.HasAny() {
+			return uuid.NullUUID{}, fmt.Errorf("matcher %q invalid: %v", m.Name, verrs)
+		}
+		return uuid.NullUUID{UUID: m.ID, Valid: true}, nil
+	}
+	if err != nil {
+		return uuid.NullUUID{}, err
+	}
+
+	report.ReRun.Considered++
+	line := ReRunLine{Kind: "matcher", ID: existing.ID.String(), Name: existing.Name}
+	if existing.Expression == m.Expression {
+		return uuid.NullUUID{UUID: existing.ID, Valid: true}, nil
+	}
+	switch {
+	case !strings.Contains(existing.Description, ConverterTag):
+		line.Action, line.Reason = "skipped", "not converter-owned"
+	case handEdited(existing.CreatedAt, existing.UpdatedAt):
+		line.Action, line.Reason = "skipped", "hand-edited (updated_at ≠ created_at)"
+	default:
+		existing.Expression = m.Expression
+		verrs, err := tx.ValidateAndUpdate(&existing)
+		if err != nil {
+			return uuid.NullUUID{}, err
+		}
+		if verrs.HasAny() {
+			return uuid.NullUUID{}, fmt.Errorf("matcher %q invalid: %v", m.Name, verrs)
+		}
+		line.Action = "updated"
+		report.ReRun.Updated++
+	}
+	if line.Action == "skipped" {
+		report.ReRun.Skipped++
+	}
+	report.ReRun.Lines = append(report.ReRun.Lines, line)
+	return uuid.NullUUID{UUID: existing.ID, Valid: true}, nil
 }
 
 // resolveFeedingCaretype returns the feeding caretype id used by converted

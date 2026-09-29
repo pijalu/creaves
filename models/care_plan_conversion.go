@@ -11,8 +11,10 @@ import (
 )
 
 // CarePlanConversion is the idempotency marker of the one-shot startup
-// conversion (§8.1): key='startup_v1' with a completion timestamp makes
-// re-boots a no-op; deleting the marker row re-runs the converter.
+// conversion (§8.1): key='startup_v2' with a completion timestamp makes
+// re-boots a no-op; deleting the marker row re-runs the converter. Rows
+// accumulate per marker generation (startup_v1 stays for history) — see
+// actions.ConversionMarkerKey (R5-1e).
 type CarePlanConversion struct {
 	Key        string    `json:"key" db:"key"`
 	FinishedAt time.Time `json:"finished_at" db:"finished_at"`
