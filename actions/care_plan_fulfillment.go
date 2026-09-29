@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -82,6 +83,11 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 
 	payload := parsePlanPayload(src)
 	fType, fID := models.ApplicationFulfillmentCare, planFulfillmentNone
+	// bugs.md R5-3b (U25/D-e): pre-generated application ID for medication
+	// — the per-time entries reference it before the application insert.
+	// Everything runs in one request transaction: a UNIQUE violation on the
+	// application (double submit) rolls the entries back.
+	var medicationAppID *uuid.UUID
 
 	if in.Status == models.ApplicationStatusApplied {
 		var err error
@@ -99,7 +105,11 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 			fID, err = writeObservationFulfillment(tx, src, payload, animalID, now, userID, in)
 		case careplan.KindMedication:
 			fType = models.ApplicationFulfillmentTreatment
-			fID, err = writeMedicationFulfillment(tx, payload, animalID, dueAt, now, in)
+			appID := uuid.Must(uuid.NewV4())
+			fID, err = writeMedicationFulfillment(tx, src, payload, animalID, dueAt, now, userID, appID, in)
+			if err == nil {
+				medicationAppID = &appID
+			}
 		default:
 			return nil, fmt.Errorf("unknown action kind %q", src.ActionKind())
 		}
@@ -111,21 +121,14 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 	// §10-M3: closing the alert loop — a non-alert answer on a follow-up
 	// observation writes the Réponse alerte care (reset_warning=1), which
 	// clears the animal's red landing row.
-	if in.Status == models.ApplicationStatusApplied &&
-		src.ActionKind() == careplan.KindObservation &&
-		src.SourceType() == careplan.SourceAnimal &&
-		strings.HasPrefix(src.Name(), followUpPlanPrefix) &&
-		!in.AnswerIsAlert {
-		typeID, err := resetWarningCareType(tx)
-		if err != nil {
-			return nil, err
-		}
-		if err := tx.Create(&models.Care{Date: now, AnimalID: animalID, TypeID: typeID, Note: nulls.NewString(in.Answer)}); err != nil {
+	if in.Status == models.ApplicationStatusApplied {
+		if err := maybeWriteResetWarningCare(tx, src, animalID, now, in); err != nil {
 			return nil, err
 		}
 	}
 
 	app := &models.CarePlanApplication{
+		ID:              applicationIDOrDefault(medicationAppID),
 		SourceType:      string(src.SourceType()),
 		SourceID:        sourceIDUUID(src),
 		SourceSnapshot:  sourceSnapshotWithDosage(src, in),
@@ -144,15 +147,44 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 	}
 
 	// §10-CP3: alert follow-up plans self-deactivate once closed.
-	if in.Status != models.ApplicationStatusDeferred &&
-		src.SourceType() == careplan.SourceAnimal &&
-		src.ActionKind() == careplan.KindObservation &&
-		strings.HasPrefix(src.Name(), followUpPlanPrefix) {
-		if id, err := uuid.FromString(src.SourceID()); err == nil {
-			tx.RawQuery("UPDATE care_animal_plans SET active = ? WHERE id = ?", false, id).Exec()
+	if in.Status != models.ApplicationStatusDeferred {
+		if err := maybeDeactivateFollowUpPlan(tx, src, in); err != nil {
+			return nil, err
 		}
 	}
 	return app, nil
+}
+
+// maybeWriteResetWarningCare implements §10-M3: a non-alert answer on a
+// follow-up observation plan writes the Réponse alerte care
+// (reset_warning=1), which clears the animal's red landing row.
+func maybeWriteResetWarningCare(tx *pop.Connection, src careplan.PlanSource, animalID int, now time.Time, in PlanApplyInput) error {
+	if src.ActionKind() != careplan.KindObservation ||
+		src.SourceType() != careplan.SourceAnimal ||
+		!strings.HasPrefix(src.Name(), followUpPlanPrefix) ||
+		in.AnswerIsAlert {
+		return nil
+	}
+	typeID, err := resetWarningCareType(tx)
+	if err != nil {
+		return err
+	}
+	return tx.Create(&models.Care{Date: now, AnimalID: animalID, TypeID: typeID, Note: nulls.NewString(in.Answer)})
+}
+
+// maybeDeactivateFollowUpPlan implements §10-CP3: alert follow-up plans
+// self-deactivate once their occurrence is applied or skipped.
+func maybeDeactivateFollowUpPlan(tx *pop.Connection, src careplan.PlanSource, in PlanApplyInput) error {
+	if src.SourceType() != careplan.SourceAnimal ||
+		src.ActionKind() != careplan.KindObservation ||
+		!strings.HasPrefix(src.Name(), followUpPlanPrefix) {
+		return nil
+	}
+	id, err := uuid.FromString(src.SourceID())
+	if err != nil {
+		return nil // not a uuid source id — nothing to deactivate
+	}
+	return tx.RawQuery("UPDATE care_animal_plans SET active = ? WHERE id = ?", false, id).Exec()
 }
 
 // reverifyPlanSource re-checks that the source still produces the
@@ -380,12 +412,13 @@ func createAlertFollowUpPlan(tx *pop.Connection, src careplan.PlanSource, payloa
 }
 
 // ---------------------------------------------------------------------------
-// Medication (§6.2, §10-M1): treatments row + slot bucket mapping
+// Medication (§6.2, §10-M1, bugs.md U25 R5-3b): per-time treatment entries
 // ---------------------------------------------------------------------------
 
 // treatmentBucketBit maps the occurrence's due time to the legacy treatment
 // slot bitmap (§10-M1): <11:00 → morning(1), 11:00–15:00 → noon(2),
-// >15:00 → evening(4).
+// >15:00 → evening(4). Since R5-3 the bitmap only feeds the legacy display
+// columns — the done state lives in treatment_time_entries (D-e dormant).
 func treatmentBucketBit(due time.Time) int {
 	h := due.Hour()
 	switch {
@@ -396,6 +429,16 @@ func treatmentBucketBit(due time.Time) int {
 	default:
 		return models.Treatement_EVENING
 	}
+}
+
+// applicationIDOrDefault returns the pre-generated medication application
+// ID, or a fresh nil UUID sentinel when absent (non-medication paths pass
+// nil — the applications row generates its own ID in that case).
+func applicationIDOrDefault(pre *uuid.UUID) uuid.UUID {
+	if pre != nil {
+		return *pre
+	}
+	return uuid.Nil
 }
 
 // medicationDosage decides the dosage for one medication apply (§10-B6): a
@@ -415,16 +458,74 @@ func medicationDosage(tx *pop.Connection, payload planPayload, animalID int, in 
 	return dosage, nil
 }
 
-// writeMedicationFulfillment creates (or completes) the treatments row for
-// the bucket of dueAt (§10-M1). Same-bucket collision: the bit is set by
-// the first apply; later same-bucket applies append to the row's remarks —
-// both application rows are still recorded.
-func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalID int, dueAt, now time.Time, in PlanApplyInput) (string, error) {
+// scheduleTimeLabels returns the ascending HH:MM labels of the source
+// schedule (bugs.md R5-3b): the day's expected times, always including the
+// occurrence's own label. Falls back to the single occurrence label when
+// the source carries no schedule times.
+func scheduleTimeLabels(src careplan.PlanSource, dueLabel string) []string {
+	set := map[string]bool{dueLabel: true}
+	if src != nil {
+		for _, t := range src.Schedule().Times {
+			set[fmt.Sprintf("%02d:%02d", t.Hour, t.Minute)] = true
+		}
+	}
+	labels := make([]string, 0, len(set))
+	for l := range set {
+		labels = append(labels, l)
+	}
+	sort.Strings(labels)
+	return labels
+}
+
+// entryDueAt resolves the day+HH:MM label to the entry's due timestamp.
+func entryDueAt(day time.Time, label string) time.Time {
+	t, err := time.Parse("15:04", label)
+	if err != nil {
+		return day
+	}
+	return time.Date(day.Year(), day.Month(), day.Day(), t.Hour(), t.Minute(), 0, 0, day.Location())
+}
+
+// applyEntryTo stamps one entry done for this application (bugs.md R5-3b):
+// click time, user, application link and the optional caretaker note.
+func applyEntryTo(e *models.TreatmentTimeEntry, now time.Time, userID, applicationID uuid.UUID, in PlanApplyInput) {
+	e.MarkDone(now, userID)
+	e.ApplicationID = nulls.NewUUID(applicationID)
+	if note := strings.TrimSpace(in.Note); note != "" {
+		e.Note = nulls.NewString(note)
+	}
+}
+
+// loadTreatmentEntries reads the per-time entries of one treatment ordered
+// by due time.
+func loadTreatmentEntries(tx *pop.Connection, treatmentID uuid.UUID) (models.TreatmentTimeEntries, error) {
+	entries := models.TreatmentTimeEntries{}
+	err := tx.Where("treatment_id = ?", treatmentID).Order("due_at asc").All(&entries)
+	return entries, err
+}
+
+// writeMedicationFulfillment realizes one medication occurrence as a
+// per-time entry (bugs.md R5-3b, U25/D-e — the legacy Timedonebitmap is
+// dormant). Two shapes:
+//
+//   - no same-day row for this animal+drug yet → create the treatments row
+//     and seed ONE ENTRY PER EXPECTED TIME of the source schedule; the due
+//     entry is done (click time, user, application), its siblings stay
+//     pending — the treatment page then shows the whole day (E2E-3 step 1).
+//   - a row exists → complete the pending entry matching the occurrence's
+//     time label; when none is pending (same-slot second administration,
+//     legacy rows), append a NEW done entry — per-time storage keeps every
+//     administration distinct (legacy appended "; HH:MM (note)" remarks).
+//
+// bugs.md U11 still applies verbatim: a manual dosage overrides the row
+// dosage. The row's Timebitmap keeps the legacy bucket for display
+// compatibility; Timedonebitmap is never written (dormant, D-e).
+func writeMedicationFulfillment(tx *pop.Connection, src careplan.PlanSource, payload planPayload, animalID int, dueAt, now time.Time, userID, applicationID uuid.UUID, in PlanApplyInput) (string, error) {
 	dosage, err := medicationDosage(tx, payload, animalID, in)
 	if err != nil {
 		return "", err
 	}
-	bit := treatmentBucketBit(dueAt)
+	timeLabel := dueAt.Format("15:04")
 	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
 	dayEnd := dayStart.Add(24 * time.Hour)
 
@@ -433,40 +534,22 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 		animalID, payload.Drug, dayStart, dayEnd).All(&treatments); err != nil {
 		return "", err
 	}
-	for i := range treatments {
-		t := &treatments[i]
-		if t.Timebitmap&bit == 0 {
-			continue
-		}
-		if t.Timedonebitmap&bit == 0 {
-			t.Timedonebitmap |= bit
-			// bugs.md U11: a manual dosage (§10-B6) wins verbatim — the
-			// caretaker explicitly supplied it, so the operational record
-			// must carry it even when completing a pre-existing row.
-			if manual := strings.TrimSpace(in.Dosage); manual != "" {
-				t.Dosage = manual
-			}
-			if err := tx.Update(t); err != nil {
-				return "", err
-			}
-			return t.ID.String(), nil
-		}
-		// same-bucket collision (§10-M1): append, keep both applications
-		appendum := fmt.Sprintf("; %s", now.Format("15:04"))
-		if in.Note != "" {
-			appendum += fmt.Sprintf(" (%s)", in.Note) // bugs.md M2: +=, not =
-		}
-		t.Remarks = nulls.NewString(t.Remarks.String + appendum)
-		// bugs.md U11: same verbatim-manual-dosage rule on the collision path.
-		if manual := strings.TrimSpace(in.Dosage); manual != "" {
-			t.Dosage = manual
-		}
-		if err := tx.Update(t); err != nil {
+
+	if len(treatments) == 0 {
+		treatment, err := createTreatmentWithEntries(tx, src, payload, dosage, animalID, dueAt, dayStart, timeLabel, now, userID, applicationID, in)
+		if err != nil {
 			return "", err
 		}
-		return t.ID.String(), nil
+		return treatment.ID.String(), nil
 	}
+	return completeTreatmentEntry(tx, treatments, animalID, dayStart, timeLabel, now, userID, applicationID, in)
+}
 
+// createTreatmentWithEntries creates the day's treatments row (§10-M1) and
+// seeds ONE ENTRY PER EXPECTED TIME of the source schedule; the due entry
+// is done (click time, user, application), its siblings stay pending — the
+// treatment page then shows the whole day (E2E-3 step 1).
+func createTreatmentWithEntries(tx *pop.Connection, src careplan.PlanSource, payload planPayload, dosage string, animalID int, dueAt, dayStart time.Time, timeLabel string, now time.Time, userID, applicationID uuid.UUID, in PlanApplyInput) (*models.Treatment, error) {
 	remarks := payload.Remarks
 	if payload.Instructions != "" {
 		if remarks != "" {
@@ -475,18 +558,87 @@ func writeMedicationFulfillment(tx *pop.Connection, payload planPayload, animalI
 		remarks += payload.Instructions
 	}
 	treatment := &models.Treatment{
-		Date:           now,
-		AnimalID:       animalID,
-		Drug:           payload.Drug,
-		Dosage:         dosage,
-		Remarks:        nulls.NewString(remarks),
-		Timebitmap:     bit,
-		Timedonebitmap: bit,
+		Date:       now,
+		AnimalID:   animalID,
+		Drug:       payload.Drug,
+		Dosage:     dosage,
+		Remarks:    nulls.NewString(remarks),
+		Timebitmap: treatmentBucketBit(dueAt),
 	}
 	if err := tx.Create(treatment); err != nil {
+		return nil, err
+	}
+	for _, label := range scheduleTimeLabels(src, timeLabel) {
+		entry := &models.TreatmentTimeEntry{
+			TreatmentID: treatment.ID,
+			AnimalID:    animalID,
+			DueAt:       entryDueAt(dayStart, label),
+			TimeLabel:   label,
+			Status:      models.TreatmentEntryStatusPending,
+			Source:      models.TreatmentEntrySourceProtocol,
+		}
+		if label == timeLabel {
+			applyEntryTo(entry, now, userID, applicationID, in)
+		}
+		if err := tx.Create(entry); err != nil {
+			return nil, err
+		}
+	}
+	return treatment, nil
+}
+
+// completeTreatmentEntry completes the pending entry matching the
+// occurrence's time label on the first row that carries one; when none is
+// pending (second same-slot administration or a legacy row without
+// entries) it appends a NEW done entry — per-time storage keeps every
+// administration distinct (legacy appended "; HH:MM (note)" remarks).
+// bugs.md U11: a manual dosage wins verbatim on the touched row.
+func completeTreatmentEntry(tx *pop.Connection, treatments []models.Treatment, animalID int, dayStart time.Time, timeLabel string, now time.Time, userID, applicationID uuid.UUID, in PlanApplyInput) (string, error) {
+	for i := range treatments {
+		t := &treatments[i]
+		entries, err := loadTreatmentEntries(tx, t.ID)
+		if err != nil {
+			return "", err
+		}
+		if e := entries.FindByLabel(timeLabel); e != nil && e.Status != models.TreatmentEntryStatusDone {
+			if err := overrideTreatmentDosage(tx, t, in.Dosage); err != nil {
+				return "", err
+			}
+			applyEntryTo(e, now, userID, applicationID, in)
+			if err := tx.Update(e); err != nil {
+				return "", err
+			}
+			return t.ID.String(), nil
+		}
+	}
+
+	first := &treatments[0]
+	if err := overrideTreatmentDosage(tx, first, in.Dosage); err != nil {
 		return "", err
 	}
-	return treatment.ID.String(), nil
+	entry := &models.TreatmentTimeEntry{
+		TreatmentID: first.ID,
+		AnimalID:    animalID,
+		DueAt:       entryDueAt(dayStart, timeLabel),
+		TimeLabel:   timeLabel,
+		Status:      models.TreatmentEntryStatusDone,
+		Source:      models.TreatmentEntrySourceProtocol,
+	}
+	applyEntryTo(entry, now, userID, applicationID, in)
+	if err := tx.Create(entry); err != nil {
+		return "", err
+	}
+	return first.ID.String(), nil
+}
+
+// overrideTreatmentDosage applies the bugs.md U11 verbatim-manual-dosage
+// rule: the caretaker's explicit dosage replaces the row's stale one.
+func overrideTreatmentDosage(tx *pop.Connection, t *models.Treatment, manualDosage string) error {
+	if manual := strings.TrimSpace(manualDosage); manual != "" {
+		t.Dosage = manual
+		return tx.Update(t)
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------

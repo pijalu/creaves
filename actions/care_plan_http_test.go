@@ -1044,29 +1044,40 @@ func TestCareMedicationApplyCreatesTreatment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
 
-	// treatments row with the §10-M1 slot bit marked done
-	bits := []int{1, 2, 4}
-	h := dueAt.Hour()
-	var wantBit int
-	switch {
-	case h < 11:
-		wantBit = bits[0]
-	case h <= 15:
-		wantBit = bits[1]
-	default:
-		wantBit = bits[2]
-	}
+	// treatments row with the occurrence's per-time entry done
+	// (bugs.md R5-3b, U25/D-e — the bitmap is dormant)
 	treatments := &models.Treatments{}
 	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug).All(treatments))
 	require.Len(t, *treatments, 1)
-	require.Equal(t, wantBit, (*treatments)[0].Timedonebitmap&wantBit, "slot bucket marked done")
-	require.Equal(t, "0.5 ml", (*treatments)[0].Dosage)
+	treatment := (*treatments)[0]
+	require.Equal(t, "0.5 ml", treatment.Dosage)
+
+	entries := models.TreatmentTimeEntries{}
+	require.NoError(t, models.DB.Where("treatment_id = ?", treatment.ID).Order("due_at asc").All(&entries))
+	require.NotEmpty(t, entries, "per-time entries seeded (U25/D-e)")
+	doneAt := dueAt.Format("15:04")
+	var done *models.TreatmentTimeEntry
+	for i := range entries {
+		e := &entries[i]
+		if e.TimeLabel == doneAt {
+			done = e
+		}
+	}
+	require.NotNil(t, done, "entry for the occurrence time %s", doneAt)
+	require.Equal(t, models.TreatmentEntryStatusDone, done.Status, "occurrence entry done")
+	require.True(t, done.AppliedAt.Valid, "applied_at stamped")
+	require.True(t, done.ApplicationID.Valid, "entry linked to the application")
+	require.Equal(t, models.TreatmentEntrySourceProtocol, done.Source)
+	// the dormant bitmap must NOT be written anymore (D-e)
+	require.Zero(t, treatment.Timedonebitmap, "Timedonebitmap dormant (U25/D-e)")
 }
 
-// TestCareMedicationSameBucketAppends guards bugs.md M2: a second same-bucket
-// apply (same drug, same day, same slot bitmap) must CONCATENATE
-// "; HH:MM (note)" onto the treatment remarks — never overwrite the time.
-func TestCareMedicationSameBucketAppends(t *testing.T) {
+// TestCareMedicationSameSlotKeepsDistinctEntries replaces the legacy
+// same-bucket remarks-appendum behavior (bugs.md R5-3b, U25/D-e): a second
+// same-slot apply gets its OWN done entry — per-time storage keeps every
+// administration distinct; both applications still share the treatments
+// row and are both recorded.
+func TestCareMedicationSameSlotKeepsDistinctEntries(t *testing.T) {
 	f := setupPlanFixture(t)
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
@@ -1122,7 +1133,7 @@ func TestCareMedicationSameBucketAppends(t *testing.T) {
 	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req1)
 	require.Equal(t, http.StatusCreated, code, "first apply: %s", raw)
 
-	// second occurrence, same bucket, with a note → appends "; HH:MM (note)"
+	// second occurrence, same slot, with a note → distinct done entry
 	req2 := itemRef(occ[1])
 	req2["note"] = "notedose"
 	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, req2)
@@ -1130,10 +1141,15 @@ func TestCareMedicationSameBucketAppends(t *testing.T) {
 
 	treatments := &models.Treatments{}
 	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug).All(treatments))
-	require.Len(t, *treatments, 1, "same-bucket applies share one treatments row")
-	remarks := (*treatments)[0].Remarks.String
-	require.Regexp(t, `; \d{2}:\d{2}`, remarks, "appendum keeps the apply time: %q", remarks)
-	require.Contains(t, remarks, "(notedose)", "appendum keeps the note: %q", remarks)
+	require.Len(t, *treatments, 1, "same-slot applies share one treatments row")
+
+	entries := models.TreatmentTimeEntries{}
+	require.NoError(t, models.DB.Where("treatment_id = ?", (*treatments)[0].ID).Order("due_at asc").All(&entries))
+	require.Len(t, entries, 2, "one entry per expected time (U25/D-e)")
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[0].Status)
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[1].Status)
+	require.True(t, entries[1].ApplicationID.Valid, "second entry linked to its application")
+	require.Equal(t, "notedose", entries[1].Note.String, "note carried on the entry")
 
 	napps, err := models.DB.Where("source_id = ? AND animal_id = ?", rule.ID, f.animalIDs[0]).Count(&models.CarePlanApplication{})
 	require.NoError(t, err)
@@ -1276,7 +1292,14 @@ func TestCareMedicationManualDosageSameBucket(t *testing.T) {
 	require.Len(t, *treatments, 1, "same-bucket apply completes the existing row, no duplicate")
 	require.Equal(t, pre.ID, (*treatments)[0].ID)
 	require.Equal(t, "0.12 ml (manuel)", (*treatments)[0].Dosage, "U11: manual dosage stored verbatim")
-	require.NotZero(t, (*treatments)[0].Timedonebitmap&bit, "bucket marked done")
+
+	// U25/D-e: the done state moved to the per-time entry.
+	entries := models.TreatmentTimeEntries{}
+	require.NoError(t, models.DB.Where("treatment_id = ?", pre.ID).All(&entries))
+	require.Len(t, entries, 1, "entry created on the legacy row")
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[0].Status, "bucket entry done")
+	require.True(t, entries[0].ApplicationID.Valid, "entry linked to the application")
+	require.Zero(t, (*treatments)[0].Timedonebitmap, "Timedonebitmap dormant (U25/D-e)")
 }
 
 // TestCareMedicationDosageRequiredNoWeight covers the no-weight-on-record
@@ -1332,8 +1355,8 @@ func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
 	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, batch)
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
 	var batchBody struct {
-		Applied  int                      `json:"applied"`
-		Results  []map[string]interface{} `json:"results"`
+		Applied int                      `json:"applied"`
+		Results []map[string]interface{} `json:"results"`
 	}
 	require.NoError(t, json.Unmarshal(raw, &batchBody))
 	require.Equal(t, 0, batchBody.Applied)

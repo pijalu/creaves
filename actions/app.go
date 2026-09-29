@@ -163,6 +163,9 @@ func App() *buffalo.App {
 		app.Resource("/cares", CaresResource{})
 		app.Resource("/veterinaryvisits", VeterinaryvisitsResource{})
 		app.Resource("/treatments", TreatmentsResource{})
+		// Per-time entry toggle (bugs.md R5-3b, U25/D-e): replaces the
+		// legacy bitmap toggle (PUT /treatmentschedule, removed §8.3).
+		app.POST("/treatments/{treatment_id}/entries/{entry_id}/toggle", TreatmentTimeEntryToggle)
 		// PUT /treatmentschedule removed (§8.3): treatment rows are
 		// read-only history since the care-plan migration; ticks live on
 		// the day plan (/care_plan/apply) and the animal Plan tab.

@@ -149,28 +149,74 @@ func UnapplyPlanItem(tx *pop.Connection, sourceType, sourceID string, animalID i
 			}
 			deleted = app.FulfillmentType
 		case models.ApplicationFulfillmentTreatment:
-			// Same-bucket collisions (§10-M1) share ONE treatments row
-			// between several applications — destroying it would silently
-			// drop the other applications' record. Refuse; un-apply still
-			// succeeds (the record is kept, as without delete_fulfillment).
-			var siblings []models.CarePlanApplication
-			if err := tx.Where("fulfillment_type = ? AND fulfillment_id = ? AND id != ?",
-				app.FulfillmentType, app.FulfillmentID, app.ID).All(&siblings); err != nil {
-				return "", err
+			d, derr := unapplyTreatmentFulfillment(tx, app)
+			if derr != nil {
+				return "", derr
 			}
-			if len(siblings) > 0 {
-				break
-			}
-			if err := tx.Destroy(&models.Treatment{ID: uuid.FromStringOrNil(app.FulfillmentID)}); err != nil {
-				return "", err
-			}
-			deleted = app.FulfillmentType
+			deleted = d
 		}
 	}
 	if err := tx.Destroy(app); err != nil {
 		return "", err
 	}
 	return deleted, nil
+}
+
+// unapplyTreatmentFulfillment releases one application's share of a
+// treatments row (bugs.md R5-3b, U25/D-e — per-time entries):
+//
+//   - sibling applications on the same row (§10-M1 same-slot collisions):
+//     only THIS application's entry is removed — the row stays for them.
+//   - apply-created row (exactly this application's entry): the row is
+//     destroyed with its entries (pre-R5-3 fulfillment destroy parity).
+//   - otherwise: the entry reverts to pending — the row keeps its sibling
+//     entries (the other expected times of the day, E2E-3 step 3).
+//   - legacy/migrated rows without an application-linked entry: the row is
+//     destroyed (pre-R5-3 behavior; entries cascade).
+func unapplyTreatmentFulfillment(tx *pop.Connection, app *models.CarePlanApplication) (string, error) {
+	// Same-bucket collisions (§10-M1) share ONE treatments row between
+	// several applications — the row must survive while a sibling exists.
+	var siblings []models.CarePlanApplication
+	if err := tx.Where("fulfillment_type = ? AND fulfillment_id = ? AND id != ?",
+		app.FulfillmentType, app.FulfillmentID, app.ID).All(&siblings); err != nil {
+		return "", err
+	}
+	treatmentID := uuid.FromStringOrNil(app.FulfillmentID)
+	entries, err := loadTreatmentEntries(tx, treatmentID)
+	if err != nil {
+		return "", err
+	}
+	own := entries.FindByApplication(app.ID)
+
+	if len(siblings) > 0 {
+		return "", destroyOwnEntry(tx, own)
+	}
+	if own == nil || len(entries) == 1 {
+		// own == nil: legacy/migrated row without an application-linked
+		// entry — pre-R5-3 behavior, destroy the row (entries cascade).
+		// one entry: apply-created row — destroy the row with its entry.
+		if err := tx.Destroy(&models.Treatment{ID: treatmentID}); err != nil {
+			return "", err
+		}
+		return app.FulfillmentType, nil
+	}
+	return "", revertOwnEntry(tx, own)
+}
+
+// destroyOwnEntry drops only this application's entry — the sibling's
+// record must stay intact.
+func destroyOwnEntry(tx *pop.Connection, own *models.TreatmentTimeEntry) error {
+	if own == nil {
+		return nil
+	}
+	return tx.Destroy(own)
+}
+
+// revertOwnEntry flips the application's entry back to pending; the row
+// keeps its sibling entries (the other expected times of the day).
+func revertOwnEntry(tx *pop.Connection, own *models.TreatmentTimeEntry) error {
+	own.Revert()
+	return tx.Update(own)
 }
 
 // ---------------------------------------------------------------------------

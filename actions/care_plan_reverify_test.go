@@ -23,9 +23,14 @@ func TestReverifyItemMatchesFullPlan(t *testing.T) {
 
 	// feeding rule with 3 slots today: one long past (late / hors-délai
 	// once a later slot is due), one due soon, one future (scheduled).
-	past := now.Add(-4 * time.Hour)
-	soon := now.Add(30 * time.Minute)
-	future := now.Add(4 * time.Hour)
+	// Fixed intraday slots (bugs.md R5-3e): now-relative slots broke the
+	// schedule's strictly-ascending-times rule once `now+4h` crossed
+	// midnight (test passed only before 20:00). The test asserts
+	// full-plan ⇄ reverify EQUIVALENCE — the actual statuses are computed
+	// identically by both paths, so wall-clock-independent slots suffice.
+	past := time.Date(now.Year(), now.Month(), now.Day(), 0, 15, 0, 0, time.Local)
+	soon := time.Date(now.Year(), now.Month(), now.Day(), 12, 0, 0, 0, time.Local)
+	future := time.Date(now.Year(), now.Month(), now.Day(), 23, 30, 0, 0, time.Local)
 	rule := f.feedRule(t, tx, now, past, soon, future)
 
 	// kind-level replacing plan on animal 1 → every rule feeding
