@@ -573,6 +573,11 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 				return err
 			}
 			c.Set("careAnimalPlans", plans)
+			// R5-4b (bugs.md U21/D-c): Treatment tab source-protocol backlinks
+			// (per-time entries are read in-template via TreatmentEntriesMap).
+			if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
+				return err
+			}
 			c.Set("planActionKinds", planActionKinds())
 			// Structured editors (bugs.md U17): caretype/drug dropdown data.
 			if err := setPlanEditorData(c, tx); err != nil {

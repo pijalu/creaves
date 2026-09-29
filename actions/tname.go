@@ -64,6 +64,16 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 			c.Set("richPlanName", func(name, kind string, payload interface{}) string {
 				return richPlanName(name, kind, []byte(baseString(payload)))
 			})
+			// R5-4b (bugs.md U21): Protocol tab completeness helpers —
+			// payload content line, active window and expired flag.
+			c.Set("planContentLabel", func(kind string, payload interface{}) string {
+				return contentLabel(kind, []byte(baseString(payload)))
+			})
+			c.Set("planWindow", planWindow)
+			c.Set("planExpired", planExpired)
+			// entryClock maps a per-time entry label ("11:30") to the
+			// accordion clock-dot SVG name (R5-4b).
+			c.Set("entryClock", entryClockSVG)
 			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
 			})

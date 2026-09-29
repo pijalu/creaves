@@ -455,12 +455,17 @@
       </div>
     </div>
     </br>
-    <% let treatmentsMap = animal.Treatments.TreatmentsMap() %>
-    <% let orderedTMKey = treatmentsMap.OrderedKeys() %>
+    <%# R5-4b (bugs.md U21/D-c) : l'onglet Traitement garde son aspect
+        d'origine (accordéon par date + pastilles horloge + Add New treatment)
+        mais est alimenté par le moteur de protocole : une pastille par horaire
+        (stockage R5-3), les lignes issues d'un protocole renvoient vers celui-ci,
+        et les lignes héritées sans entrées gardent le bloc 3 créneaux. %>
+    <% let entriesMap = animal.Treatments.TreatmentEntriesMap() %>
+    <% let orderedTMKey = entriesMap.OrderedKeys() %>
     <div id="accordion">
       <% let ct_id=1 %>
       <%= for (dateKey) in orderedTMKey {%>
-      <% let treatments = treatmentsMap[dateKey] %>
+      <% let treatmentRows = entriesMap[dateKey] %>
       <div class="card <%= if (dateKey.Future) { %>greyout<% }%>">
         <div class="card-header <%= if (dateKey.Current) {%>alert-info<%}%>" id="heading<%= ct_id %>">
           <h5 class="mb-0">
@@ -472,80 +477,109 @@
         <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
           <div class="card-body">
             <ul class="list-group list-group-flush">
-              <%= for (t) in treatments {%>
+              <%= for (row) in treatmentRows {%>
+              <% let trt = row.Treatment %>
               <li class="list-group-item">
                 <div class="container">
                   <div class="row">
                     <div class="col-sm">
-                      <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
-                        <%= if (t.Remarks.Value() != "") {%>
-                        <p><em><%= t.Remarks %></em></p>
+                      <%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)
+                        <%= if (trt.Remarks.Value() != "") {%>
+                        <p><em><%= trt.Remarks %></em></p>
                       <%}%>
+                      <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
+                        <p class="mb-0 small">
+                          <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
+                        </p>
+                      <% } %>
                     </div>
                     <div class="col-sm">
-                      <% 
-                        let morning = t.ScheduleStatusMorning() 
-                        let noon = t.ScheduleStatusNoon() 
-                        let evening = t.ScheduleStatusEvening()
-                      %>
                       <p class="d-inline-block">
-                        <%= if (!morning.Valid) { %>   
-                          <button type="button" class="btn btn-light disabled" title="Pas nécessaire le matin">                       
-                            <i class="fas fa-minus" ></i>
-                          </button>
-                        <% } else if (morning.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("morningSVG") %>
-                          </span>
+                      <%= if (len(row.Entries) == 0) { %>
+                        <%# Repli hérité : pas encore d'entrées par horaire
+                            (non migré) — on garde le bloc 3 créneaux. %>
+                      <%
+                        let morning = trt.ScheduleStatusMorning()
+                        let noon = trt.ScheduleStatusNoon()
+                        let evening = trt.ScheduleStatusEvening()
+                      %>
+                      <%= if (!morning.Valid) { %>
+                        <button type="button" class="btn btn-light disabled" title="Pas nécessaire le matin">
+                          <i class="fas fa-minus" ></i>
+                        </button>
+                      <% } else if (morning.Bool) {%>
+                        <span class="badge badge-success py-2 px-2">
+                          <%= contentOf("morningSVG") %>
+                        </span>
+                      <% } else { %>
+                        <%= if (dateKey.Past) { %>
+                          <span class="badge badge-danger py-2 px-2">
                         <% } else { %>
-                          
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                          <% } %>
-                            <%= contentOf("morningSVG") %>
-                          </span>
-                        <% }%>
-                        
-                        &nbsp;
-
-                        <%= if (!noon.Valid) { %>
-                          <button type="button" class="btn btn-light disabled" title="Non requis à midi">     
-                            <i class="fas fa-minus"></i>
-                          </button>
-                        <% } else if (noon.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("noonSVG") %>
-                          </span>
+                          <span class="badge badge-warning py-2 px-2">
+                        <% } %>
+                          <%= contentOf("morningSVG") %>
+                        </span>
+                      <% }%>
+                      &nbsp;
+                      <%= if (!noon.Valid) { %>
+                        <button type="button" class="btn btn-light disabled" title="Non requis à midi">
+                          <i class="fas fa-minus"></i>
+                        </button>
+                      <% } else if (noon.Bool) {%>
+                        <span class="badge badge-success py-2 px-2">
+                          <%= contentOf("noonSVG") %>
+                        </span>
+                      <% } else { %>
+                        <%= if (dateKey.Past) { %>
+                          <span class="badge badge-danger py-2 px-2">
                         <% } else { %>
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                          <% } %>
-                            <%= contentOf("noonSVG") %>
-                          </span>
-                        <% }%>
-
-                        &nbsp;
-                        <%= if (!evening.Valid) { %>
-                          <button type="button" class="btn btn-light disabled">
-                            <i class="fas fa-minus" ></i>
-                          </button>
-                        <% } else if (evening.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("eveningSVG") %>
-                          </span>
+                          <span class="badge badge-warning py-2 px-2">
+                        <% } %>
+                          <%= contentOf("noonSVG") %>
+                        </span>
+                      <% }%>
+                      &nbsp;
+                      <%= if (!evening.Valid) { %>
+                        <button type="button" class="btn btn-light disabled">
+                          <i class="fas fa-minus" ></i>
+                        </button>
+                      <% } else if (evening.Bool) {%>
+                        <span class="badge badge-success py-2 px-2">
+                          <%= contentOf("eveningSVG") %>
+                        </span>
+                      <% } else { %>
+                        <%= if (dateKey.Past) { %>
+                          <span class="badge badge-danger py-2 px-2">
                         <% } else { %>
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
+                          <span class="badge badge-warning py-2 px-2">
+                        <% } %>
+                          <%= contentOf("eveningSVG") %>
+                        </span>
+                      <% }%>
+                      <% } else { %>
+                        <%# R5-3/R5-4b : une pastille par horaire attendu — verte
+                            fait, orange à faire (rouge sur jour passé), grise passé. %>
+                        <%= for (entry) in row.Entries { %>
+                          <%= if (entry.Status == "done") { %>
+                            <span class="badge badge-success py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.done") %><%= if (entry.AppliedAt.Valid) { %> <%= entry.AppliedAt.Time.Format("15:04") %><% } %>">
+                              <%= contentOf(entryClock(entry.TimeLabel)) %>
+                            </span>
+                          <% } else if (entry.Status == "skipped") { %>
+                            <button type="button" class="btn btn-light disabled" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.skipped") %>">
+                              <i class="fas fa-minus" ></i>
+                            </button>
                           <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
+                            <%= if (dateKey.Past) { %>
+                              <span class="badge badge-danger py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
+                            <% } else { %>
+                              <span class="badge badge-warning py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
+                            <% } %>
+                              <%= contentOf(entryClock(entry.TimeLabel)) %>
+                            </span>
                           <% } %>
-                            <%= contentOf("eveningSVG") %>
-                          </span>
-                        <% }%>
+                          &nbsp;
+                        <% } %>
+                      <% } %>
                       </p>
                     </div>
                   </div>
@@ -573,7 +607,9 @@
         <thead class="thead-light">
           <th><%= t("care_plan.field.name") %></th>
           <th><%= t("care_plan.field.action_kind") %></th>
+          <th><%= t("care_plan.animal_plans.content") %></th>
           <th><%= t("care_plan.field.active") %></th>
+          <th><%= t("care_plan.animal_plans.window") %></th>
           <th><%= t("care_plan.field.replaces_kind") %></th>
           <th><%= t("care_plan.field.schedule") %></th>
           <th>&nbsp;</th>
@@ -583,13 +619,19 @@
             <tr data-id="<%= p.ID %>">
               <td class="align-middle"><%= richPlanName(p.Name, p.ActionKind, p.ActionPayload) %></td>
               <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + p.ActionKind) %></span></td>
+              <td class="align-middle"><%= planContentLabel(p.ActionKind, p.ActionPayload) %><%= if (planContentLabel(p.ActionKind, p.ActionPayload) == "") { %>—<% } %></td>
               <td class="align-middle">
                 <%= if (p.Active) { %>
-                  <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+                  <%= if (planExpired(animal, p.Schedule)) { %>
+                    <span class="badge badge-warning"><%= t("care_plan.status.expired") %></span>
+                  <% } else { %>
+                    <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+                  <% } %>
                 <% } else { %>
                   <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
                 <% } %>
               </td>
+              <td class="align-middle text-nowrap"><%= planWindow(animal, p.Schedule) %></td>
               <td class="align-middle"><%= if (p.ReplacesKind) { %><i class="fas fa-check"></i><% } else { %><i class="fas fa-times"></i><% } %></td>
               <td class="align-middle"><%= humanSchedule(p.Schedule) %>
                 <details class="mt-1"><summary class="text-muted small"><%= t("care_plan.schedule_human.raw_json") %></summary><code class="small"><%= p.Schedule %></code></details></td>
