@@ -204,10 +204,20 @@ func tallyMigrationEntry(report *MigrationReport, e *TreatmentTimeEntry) {
 // still relying on the legacy bitmap. Idempotent: rows owning entries are
 // skipped, so a second run is a no-op.
 func MigrateTreatmentTimes(tx *pop.Connection) (MigrationReport, error) {
+	return migrateTreatmentTimes(tx, nil)
+}
+
+// migrateTreatmentTimes runs the backfill; filter optionally restricts the
+// scanned rows (tests use it to stay off the shared fixture data).
+func migrateTreatmentTimes(tx *pop.Connection, filter func(*pop.Query) *pop.Query) (MigrationReport, error) {
 	report := MigrationReport{}
 
+	q := tx.Q()
+	if filter != nil {
+		q = filter(q)
+	}
 	var all Treatments
-	if err := tx.Order("date asc, animal_id asc").All(&all); err != nil {
+	if err := q.Order("date asc, animal_id asc").All(&all); err != nil {
 		return report, err
 	}
 
