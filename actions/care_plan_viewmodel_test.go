@@ -230,3 +230,30 @@ func TestBuildDayPlanViewFeedingDedup(t *testing.T) {
 	require.NotContains(t, fc.ChipRefsJSON, `"due_at":"2026-09-28T10:00:00`)
 	require.NotContains(t, fc.ChipRefsJSON, `"due_at":"2026-09-28T12:00:00+02:00","source_id":"src-A","animal_id":1`)
 }
+
+// TestCardNeedsInput (bugs.md R5-2c, D-a): the unified confirm policy —
+// a card opens the confirm dialog ONLY when applying it needs user input:
+// weighing → weight, observation → answer. Feeding, medication (dosage is
+// optional; a required dosage arrives as a 422 dosage_required), care and
+// cleanup apply instantly with no modal.
+func TestCardNeedsInput(t *testing.T) {
+	plan := testPlan()
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+
+	kinds := map[string]bool{
+		// kind → needs input
+		careplan.KindFeeding:     false,
+		careplan.KindMedication:  false,
+		careplan.KindCare:        false,
+		careplan.KindCleanup:     false,
+		careplan.KindWeighing:    true,
+		careplan.KindObservation: true,
+	}
+	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	for kind, want := range kinds {
+		src := testSource(kind, "src-"+kind, "S "+kind, map[string]interface{}{"food": "x"})
+		it := testItem(src, 1, careplan.StatusDue)
+		cv := v.cardFor(plan, &it)
+		require.Equal(t, want, cv.NeedsInput, "kind %s", kind)
+	}
+}

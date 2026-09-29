@@ -114,32 +114,33 @@
                 </div>
                 <div class="text-nowrap">
                   <%= if (slot.Applied) { %>
-                    <button type="button" class="btn btn-success btn-sm" disabled
-                        title="<%= if (slot.Slot == "morning") { %>Morgen<% } else if (slot.Slot == "noon") { %>Mittag<% } else { %>Abend<% } %>">
-                        ✓ <%= slot.DueAtHM %>
-                      </button>
-                    <%= if (slot.CanUndo) { %>
-                      <button type="button" class="btn btn-outline-danger btn-sm dash-med-undo"
-                        data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                        data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                        data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                        title="Rückgängig">↩</button>
-                    <% } %>
+                    <%# R5-2c (D-a): ONE toggle per slot — done state is a
+                        live button: re-click undoes instantly (no confirm,
+                        no reload). Undoable only when the fulfillment row
+                        still exists; otherwise the slot stays locked. %>
+                    <button type="button" class="btn btn-success btn-sm dash-med-slot<%= if (slot.CanUndo) { %> dash-med-unapply<% } %>"
+                      <%= if (!slot.CanUndo) { %>disabled <% } %>
+                      data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                      data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                      data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+                      title="<%= t("care_plan.slot." + slot.Slot) %>">
+                      ✓ <%= slot.DueAtHM %>
+                    </button>
                   <% } else if (slot.Status == "skipped" || slot.Status == "deferred") { %>
-                    <span class="badge badge-secondary py-2"><%= slot.Status %></span>
+                    <span class="badge badge-secondary py-2"><%= t("care_plan.status." + slot.Status) %></span>
                   <% } else if (slot.Applicable) { %>
-                    <button type="button" class="btn btn-warning btn-sm dash-med-apply"
+                    <button type="button" class="btn btn-warning btn-sm dash-med-slot dash-med-apply"
                       data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                       data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
                       data-kind="medication"
                       data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
                       data-source-name="<%= slot.SourceName %>"
-                      title="Anwenden — <%= if (slot.Slot == "morning") { %>Morgen<% } else if (slot.Slot == "noon") { %>Mittag<% } else { %>Abend<% } %>">
+                      title="<%= t("care_plan.slot." + slot.Slot) %>">
                         ○ <%= slot.DueAtHM %>
                       </button>
                   <% } else { %>
                     <button type="button" class="btn btn-light btn-sm" disabled
-                        title="<%= if (slot.Slot == "morning") { %>Morgen<% } else if (slot.Slot == "noon") { %>Mittag<% } else { %>Abend<% } %>">
+                        title="<%= t("care_plan.slot." + slot.Slot) %>">
                         – <%= slot.DueAtHM %>
                       </button>
                   <% } %>
@@ -157,42 +158,41 @@
 <p><%= t("dashboard.medication_today.none") %></p>
 <% } %>
 
-<!-- Medication detail modal -->
-<div class="modal fade" id="dashMedDetailModal" tabindex="-1" role="dialog" aria-hidden="true">
+<!-- R5-2c (D-a): dosage dialog — the ONLY confirm left on the dashboard.
+     It opens exclusively when the server answers 422 dosage_required. -->
+<div class="modal fade" id="dashMedDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Eintragsdetails</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Schließen"><span aria-hidden="true">&times;</span></button>
+        <h5 class="modal-title"><%= t("care_plan.apply.dosage_required_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
-        <dl class="row mb-0">
-          <dt class="col-sm-4">Tier</dt><dd class="col-sm-8" id="dashMedDetailAnimal"></dd>
-          <dt class="col-sm-4">Plan</dt><dd class="col-sm-8" id="dashMedDetailDetail"></dd>
-          <dt class="col-sm-4">Quelle</dt><dd class="col-sm-8" id="dashMedDetailSource"></dd>
-          <dt class="col-sm-4">Fällig</dt><dd class="col-sm-8" id="dashMedDetailDue"></dd>
-          <dt class="col-sm-4">Status</dt><dd class="col-sm-8" id="dashMedDetailStatus"></dd>
-        </dl>
+        <div class="alert alert-warning" id="dashMedDosageDetail"></div>
+        <p class="text-muted d-none" id="dashMedDosageWeight"></p>
+        <input type="text" class="form-control" id="dashMedDosageInput" placeholder="0.1 ml" autocomplete="off">
+        <div class="alert alert-danger d-none mt-2" id="dashMedDosageError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="dashMedDosageSubmit"><%= t("care_plan.apply.dosage_submit") %></button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Medication undo confirm modal -->
-<div class="modal fade" id="dashMedUndoModal" tabindex="-1" role="dialog" aria-hidden="true">
+<!-- Error message modal (R5-2c: replaces the uncontrolled browser alert). -->
+<div class="modal fade" id="dashMedMessageModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Medikation rückgängig machen</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Schließen"><span aria-hidden="true">&times;</span></button>
+        <h5 class="modal-title" id="dashMedMessageTitle"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
       </div>
       <div class="modal-body">
-        <p id="dashMedUndoSummary"></p>
-        <div class="alert alert-info small">Der Eintrag wird wieder offen und der Behandlungsdatensatz wird entfernt. Der Eintrag bleibt sichtbar — nichts wird verborgen.</div>
+        <pre class="mb-0" id="dashMedMessageBody" style="white-space:pre-wrap;font-family:inherit;"></pre>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Abbrechen</button>
-        <button type="button" class="btn btn-danger" id="dashMedUndoConfirm">Bestätigen</button>
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
       </div>
     </div>
   </div>
@@ -200,72 +200,170 @@
 
 <script>
 (function () {
-  var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  // R5-2c (D-a): ONE toggle per slot. The only confirm left is the dosage
+  // dialog, opened when the server answers 422 dosage_required. Everything
+  // else applies/undoes INSTANTLY — no confirm, no full reload; the button
+  // flips in place and the view link (its sibling) never moves.
+  var i18n = {
+    errorTitle: "<%= t("care_plan.message.error_title") %>",
+    lastWeight: "<%= t("care_plan.apply.last_weight") %>",
+    toGive: "<%= t("dashboard.medication_today.to_give") %>"
+  };
+  var pending = null;
 
-  function post(url, body) {
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+  function showMessage(title, body) {
+    document.getElementById('dashMedMessageTitle').textContent = title;
+    document.getElementById('dashMedMessageBody').textContent = body;
+    $('#dashMedMessageModal').modal('show');
+  }
+
+  function applyCall(ref, extra) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
+    }
+    return fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
       body: JSON.stringify(body)
     }).then(function (r) {
-      if (!r.ok) { return r.json().catch(function(){return {};}).then(function(j){ throw new Error(j.error || ('HTTP ' + r.status)); }); }
-      return r.json().catch(function(){ return {}; });
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
     });
   }
 
-  function reload() { window.location.reload(); }
-
-  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-apply'), function (btn) {
-    btn.addEventListener('click', function () {
-      var body = {
-        source_type: btn.getAttribute('data-source-type'),
-        source_id: btn.getAttribute('data-source-id'),
-        animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
-        due_at: btn.getAttribute('data-due-at')
-      };
-      btn.disabled = true;
-      post('/care_plan/apply', body).then(reload).catch(function (e) { alert(e.message); btn.disabled = false; });
-    });
-  });
-
-  var undoTarget = null;
-  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-undo'), function (btn) {
-    btn.addEventListener('click', function () {
-      undoTarget = btn;
-      document.getElementById('dashMedUndoSummary').textContent =
-        btn.getAttribute('data-detail') + ' (' + btn.getAttribute('data-animal-label') + ') rückgängig machen?';
-      $('#dashMedUndoModal').modal('show');
-    });
-  });
-  document.getElementById('dashMedUndoConfirm').addEventListener('click', function () {
-    if (!undoTarget) { return; }
-    var btn = undoTarget;
-    var body = {
-      source_type: btn.getAttribute('data-source-type'),
-      source_id: btn.getAttribute('data-source-id'),
-      animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
-      due_at: btn.getAttribute('data-due-at'),
-      delete_fulfillment: true
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      hm: btn.textContent.replace('○', '').replace('✓', '').trim()
     };
-    this.disabled = true;
-    var self = this;
-    post('/care_plan/unapply', body).then(reload).catch(function (e) { alert(e.message); self.disabled = false; $('#dashMedUndoModal').modal('hide'); });
+  }
+
+  // Per-row "N to give" badge stays honest without a reload (U22): applied
+  // decrements, undo increments; at zero it flips to the ✓ badge.
+  function bumpCount(btn, delta) {
+    var row = btn.closest('tr');
+    if (!row) { return; }
+    var badge = row.querySelector('.dash-med-count');
+    if (!badge) { return; }
+    var n = parseInt(badge.textContent, 10);
+    if (isNaN(n)) { n = 1; }
+    n += delta;
+    if (n <= 0) {
+      badge.classList.remove('badge-warning');
+      badge.classList.add('badge-success');
+      badge.textContent = '✓';
+    } else {
+      badge.classList.remove('badge-success');
+      badge.classList.add('badge-warning');
+      badge.textContent = n + ' ' + i18n.toGive;
+    }
+  }
+
+  // markApplied flips the toggle button to its done state IN PLACE — the
+  // button stays live (re-click undoes); the view link is untouched.
+  function markApplied(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.remove('btn-warning', 'dash-med-apply');
+    btn.classList.add('btn-success', 'dash-med-unapply');
+    btn.textContent = '✓ ' + ref.hm;
+    btn.disabled = false;
+    bumpCount(btn, -1);
+  }
+
+  function markOpen(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.remove('btn-success', 'dash-med-unapply');
+    btn.classList.add('btn-warning', 'dash-med-apply');
+    btn.textContent = '○ ' + ref.hm;
+    btn.disabled = false;
+    bumpCount(btn, +1);
+  }
+
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
+    document.getElementById('dashMedDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('dashMedDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = i18n.lastWeight + ': ' + warn.last_weight + ' g (' + when + ')';
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('dashMedDosageInput').value = '';
+    document.getElementById('dashMedDosageError').classList.add('d-none');
+    $('#dashMedDosageModal').modal('show');
+  }
+
+  function applySlot(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    applyCall(ref).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  function unapplySlot(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
+        delete_fulfillment: true
+      })
+    }).then(function (r) {
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
+  // One listener per node covers both states: the dispatch reads the
+  // CURRENT classes, so in-place flips keep working without rebinding.
+  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-slot'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.classList.contains('dash-med-unapply')) { unapplySlot(btn); return; }
+      if (btn.disabled) { return; }
+      applySlot(btn);
+    });
   });
 
-  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-detail'), function (btn) {
-    btn.addEventListener('click', function () {
-      var al = btn.getAttribute('data-animal-label');
-      var alink = btn.getAttribute('data-animal-link');
-      document.getElementById('dashMedDetailAnimal').innerHTML = alink ? ('<a href="' + alink + '"></a>') : '';
-      if (alink) { document.querySelector('#dashMedDetailAnimal a').textContent = al; }
-      document.getElementById('dashMedDetailDetail').textContent = btn.getAttribute('data-detail');
-      var slink = btn.getAttribute('data-source-link');
-      var sname = btn.getAttribute('data-source-name');
-      document.getElementById('dashMedDetailSource').innerHTML = slink ? ('<a href="' + slink + '"></a>') : '';
-      if (slink) { document.querySelector('#dashMedDetailSource a').textContent = sname; } else { document.getElementById('dashMedDetailSource').textContent = sname; }
-      document.getElementById('dashMedDetailDue').textContent = btn.getAttribute('data-due');
-      document.getElementById('dashMedDetailStatus').textContent = btn.getAttribute('data-status');
-      $('#dashMedDetailModal').modal('show');
+  document.getElementById('dashMedDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('dashMedDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending.ref;
+    applyCall(ref, {dosage: dosage}).then(function (res) {
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#dashMedDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
+      var box = document.getElementById('dashMedDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
     });
   });
 })();

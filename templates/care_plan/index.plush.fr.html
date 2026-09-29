@@ -389,17 +389,18 @@
                 </div>
                 <div class="text-nowrap">
                   <%= if (slot.Applied) { %>
-                    <button type="button" class="btn btn-success btn-sm plan-med-slot" disabled
+                    <%# R5-2c (D-a): ONE toggle per slot — done state is a
+                        live button: re-click undoes instantly (no confirm,
+                        no reload). Undoable only when the fulfillment row
+                        still exists; otherwise the slot stays locked. %>
+                    <button type="button" class="btn btn-success btn-sm plan-med-slot<%= if (slot.CanUndo) { %> plan-unapply-btn<% } %>"
+                      <%= if (!slot.CanUndo) { %>disabled <% } %>
+                      data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                      data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                      data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
                       title="<%= t("care_plan.slot." + slot.Slot) %>">
                       ✓ <%= slot.DueAtHM %>
                     </button>
-                    <%= if (slot.CanUndo) { %>
-                      <button type="button" class="btn btn-outline-danger btn-sm plan-med-undo"
-                        data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                        data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                        data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                        title="<%= t("care_plan.medication.undo") %>">↩</button>
-                    <% } %>
                     <%= if (slot.FulfillmentLink != "") { %>
                       <a class="btn btn-outline-success btn-sm" href="<%= slot.FulfillmentLink %>" title="<%= t("care_plan.fulfillment.view") %>"><i class="fa fa-eye"></i></a>
                     <% } %>
@@ -634,27 +635,6 @@
   </div>
 </div>
 
-<!-- Medication undo confirmation: the record is deleted again. -->
-<div class="modal fade" id="planUndoModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><%= t("care_plan.medication.undo_title") %></h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <p id="planUndoSummary"></p>
-        <div class="alert alert-warning small"><%= t("care_plan.medication.undo_expect") %></div>
-        <div class="alert alert-danger d-none" id="planUndoError"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal"><%= t("care_plan.action.cancel") %></button>
-        <button type="button" class="btn btn-danger" id="planUndoSubmit"><%= t("care_plan.medication.undo") %></button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- §10-B6: dosage resolution failure never blocks apply — the dialog warns
      (with the last recorded weight, §10-L2) and asks for a manual dosage. -->
 <div class="modal fade" id="planDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
@@ -709,7 +689,9 @@
   scheduleReload();
 
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  var pending = null; // item ref awaiting a manual dosage (§10-B6)
+  // {ref, btn} awaiting a manual dosage (§10-B6); btn is flipped in place
+  // once the dosage is recorded (R5-2c: no full reload).
+  var pending = null;
   var i18n = {
     errorTitle: "<%= t("care_plan.message.error_title") %>",
     expect: {
@@ -740,8 +722,7 @@
       weighing:   "<%= t("care_plan.kind.weighing") %>",
       observation:"<%= t("care_plan.kind.observation") %>"
     },
-    batchSummary: "<%= t("care_plan.apply.batch_summary") %>",
-    undoSummary:  "<%= t("care_plan.medication.undo_summary") %>"
+    batchSummary: "<%= t("care_plan.apply.batch_summary") %>"
   };
 
   function showMessage(title, body) {
@@ -767,8 +748,8 @@
     });
   }
 
-  function showDosageDialog(ref, warn) {
-    pending = ref;
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
     document.getElementById('planDosageDetail').textContent = warn.detail || '';
     var wBox = document.getElementById('planDosageWeight');
     if (warn.last_weight) {
@@ -783,11 +764,17 @@
     $('#planDosageModal').modal('show');
   }
 
-  // --- Apply confirmation -------------------------------------------------
+  // --- One-toggle apply/unapply (bugs.md R5-2c, D-a) -----------------------
+  // ONE policy for dashboard AND work screen: confirm only when fields are
+  // needed (weighing → weight, observation → answer); everything else
+  // toggles INSTANTLY — no confirm, no reload. The button flips in place;
+  // the view link is a sibling that never moves. Medication dosage stays
+  // optional: a 422 dosage_required opens the dosage dialog.
   var applyRef = null;
 
   function openApply(btn) {
     applyRef = {
+      btn: btn,
       sourceType: btn.getAttribute('data-source-type'),
       sourceId: btn.getAttribute('data-source-id'),
       animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
@@ -809,9 +796,73 @@
     $('#planApplyModal').modal('show');
   }
 
-  Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn, .plan-feeding-one'), function (btn) {
-    btn.addEventListener('click', function () { openApply(btn); });
+  // One-toggle dispatch (D-a): input kinds open the modal, everything
+  // else applies instantly and flips the button in place.
+  function isInputKind(kind) {
+    return kind === 'weighing' || kind === 'observation';
+  }
+
+  // R5-2c: med slots bind their own toggle handler below (they flip classes
+  // in place, so one per-node listener covers both states) — exclude them
+  // here to avoid a double POST.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn:not(.plan-med-slot), .plan-feeding-one'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
+      instantApply(btn);
+    });
   });
+
+  function instantApply(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    applyItem(ref).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind'),
+      hm: btn.textContent.replace('○', '').replace('✓', '').trim()
+    };
+  }
+
+  // markApplied flips a toggle button to its done state IN PLACE — med
+  // slots stay live (re-click undoes); card buttons just show ✓ (the next
+  // render moves the card to the done tier).
+  function markApplied(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    if (btn.classList.contains('plan-med-slot')) {
+      btn.classList.remove('btn-warning', 'plan-apply-btn');
+      btn.classList.add('btn-success', 'plan-unapply-btn');
+      btn.textContent = '✓ ' + ref.hm;
+      btn.disabled = false;
+    } else {
+      btn.textContent = '✓';
+      btn.disabled = true;
+    }
+  }
+
+  function markOpen(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.remove('btn-success', 'plan-unapply-btn');
+    btn.classList.add('btn-warning', 'plan-apply-btn');
+    btn.textContent = '○ ' + ref.hm;
+    btn.disabled = false;
+  }
 
   document.getElementById('planApplySubmit').addEventListener('click', function () {
     if (!applyRef) { return; }
@@ -841,10 +892,15 @@
     var submitBtn = this;
     applyItem(ref, extra).then(function (res) {
       submitBtn.disabled = false;
-      if (res.status === 201) { window.location.reload(); return; }
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planApplyModal').modal('hide');
+        markApplied(ref);
+        return;
+      }
       $('#planApplyModal').modal('hide');
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
-        showDosageDialog(ref, res.body);
+        showDosageDialog(ref, res.body, ref.btn);
         return;
       }
       showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
@@ -947,45 +1003,36 @@
     });
   });
 
-  // --- Medication undo (slot toggle) ----------------------------------------
-  var undoRef = null;
-  Array.prototype.forEach.call(document.querySelectorAll('.plan-med-undo'), function (btn) {
-    btn.addEventListener('click', function () {
-      undoRef = {
-        sourceType: btn.getAttribute('data-source-type'),
-        sourceId: btn.getAttribute('data-source-id'),
-        animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
-        dueAt: btn.getAttribute('data-due-at')
-      };
-      var summary = i18n.undoSummary
-        .replace('{animal}', btn.getAttribute('data-animal-label') || '')
-        .replace('{detail}', btn.getAttribute('data-detail') || '');
-      document.getElementById('planUndoSummary').textContent = summary;
-      document.getElementById('planUndoError').classList.add('d-none');
-      $('#planUndoModal').modal('show');
-    });
-  });
-
-  document.getElementById('planUndoSubmit').addEventListener('click', function () {
-    if (!undoRef) { return; }
-    this.disabled = true;
-    var submitBtn = this;
+  // --- Medication slot toggle (one-toggle, R5-2c, D-a) ----------------------
+  // Each slot keeps ONE live button for its whole life: todo → click
+  // applies instantly; done → click undoes instantly. No confirm, no
+  // reload. The listener is per node, so it keeps working after markApplied
+  // / markOpen flip the classes in place.
+  function unapplySlot(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
     fetch('/care_plan/unapply', {
       method: 'POST', credentials: 'same-origin',
       headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
       body: JSON.stringify({
-        source_type: undoRef.sourceType, source_id: undoRef.sourceId,
-        animal_id: undoRef.animalId, due_at: undoRef.dueAt,
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
         delete_fulfillment: true
       })
     }).then(function (r) {
-      submitBtn.disabled = false;
-      if (r.status === 200) { window.location.reload(); return; }
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
       r.json().then(function (j) {
-        var box = document.getElementById('planUndoError');
-        box.textContent = (j && (j.detail || j.error)) || ('HTTP ' + r.status);
-        box.classList.remove('d-none');
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
       });
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-med-slot'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
+      if (btn.disabled) { return; }
+      instantApply(btn);
     });
   });
 
@@ -1060,9 +1107,14 @@
     if (!pending) { return; }
     var dosage = document.getElementById('planDosageInput').value.trim();
     if (!dosage) { return; }
-    var ref = pending;
+    var ref = pending.ref;
     applyItem(ref, {dosage: dosage}).then(function (res) {
-      if (res.status === 201) { window.location.reload(); return; }
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
       var box = document.getElementById('planDosageError');
       box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
       box.classList.remove('d-none');

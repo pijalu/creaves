@@ -86,13 +86,14 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 	}
 
 	// planUXStrings — new-UX labels that must appear in the static care_plan
-	// HTML for every language: kind-filter chip + confirm/undo/detail/error
-	// modal titles (mirrors locales/care_plan.<lang>.yaml).
+	// HTML for every language: kind-filter chip + confirm/detail/error modal
+	// titles (mirrors locales/care_plan.<lang>.yaml). R5-2c (D-a) removed the
+	// undo modal — undo is an instant toggle, so its title is gone.
 	planUXStrings := map[string][]string{
-		"fr":    {"Filtre", "Confirmer l'application", "Annuler une médication", "Détails de l'entrée", "Une erreur est survenue"},
-		"en-US": {"Filter", "Confirm application", "Undo a medication", "Entry details", "Something went wrong"},
-		"de":    {"Filter", "Anwendung bestätigen", "Medikation rückgängig machen", "Eintragsdetails", "Etwas ist schiefgelaufen"},
-		"nl":    {"Filter", "Toepassing bevestigen", "Medicatie ongedaan maken", "Details van de invoer", "Er is iets misgegaan"},
+		"fr":    {"Filtre", "Confirmer l'application", "Détails de l'entrée", "Une erreur est survenue"},
+		"en-US": {"Filter", "Confirm application", "Entry details", "Something went wrong"},
+		"de":    {"Filter", "Anwendung bestätigen", "Eintragsdetails", "Etwas ist schiefgelaufen"},
+		"nl":    {"Filter", "Toepassing bevestigen", "Details van de invoer", "Er is iets misgegaan"},
 	}
 
 	paths := []string{
@@ -127,7 +128,7 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 								"%s /care_plan must render the §10-B6 apply string %q", lang, s)
 						}
 						// New-UX strings always present in the static template
-						// (kind filter chip, confirm / undo / detail / error modal
+						// (kind filter chip, confirm / detail / error modal
 						// labels). Slot labels only render when medication items
 						// exist, so they are not asserted here.
 						for _, s := range planUXStrings[lang] {

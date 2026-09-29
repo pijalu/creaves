@@ -47,6 +47,10 @@ type CardView struct {
 	Remaining    int    // compact: other open occurrences of the group ("+n")
 	RemainingCap string // BadgeCap(Remaining)
 	OverriddenBy string // detailed view only
+	// bugs.md R5-2c (D-a): confirm only when fields are needed — weighing
+	// (weight) and observation (answer) open the input modal; feeding,
+	// medication, care and cleanup toggle instantly.
+	NeedsInput bool
 	// bugs.md U3/U6 (Phase 4): fast-action links, all with back=<self>.
 	AnimalLink      string // /animals/{id}#nav-plan — empty without an animal row
 	SourceLink      string // /care_rules/{id} (rule) or /animals/{id}#nav-plan (animal plan)
@@ -595,6 +599,7 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		HourKey:    fmt.Sprintf("%02d", it.Occurrence.DueAt.Hour()),
 		Status:     string(it.Status),
 		Applicable: it.Applicable,
+		NeedsInput: src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
 	}
 	if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 		cv.AnimalLabel = animalLabel(a)
