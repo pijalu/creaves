@@ -49,6 +49,17 @@ func TestHumanizeMatcherExact(t *testing.T) {
 	require.Equal(t,
 		"Zone is one of “E”, “F”",
 		humanizeMatcherWith(`zone IN ("E", "F")`, tr))
+	// Explicit CI operators (bugs.md U26/U27 R5-1a) read as their CS label
+	// with an "any case" qualifier.
+	require.Equal(t,
+		"Cage is (any case) “Enclos renards”",
+		humanizeMatcherWith(`cage =* "Enclos renards"`, tr))
+	require.Equal(t,
+		"Cage is not (any case) “VE5”",
+		humanizeMatcherWith(`cage !=* "VE5"`, tr))
+	require.Equal(t,
+		"Zone is one of (any case) “E”, “F”",
+		humanizeMatcherWith(`zone INCI ("E", "F")`, tr))
 	// Nested groups keep parentheses so precedence stays visible.
 	require.Equal(t,
 		"(Force feed: yes and Weight (g) < 300) or Species is “Hedgehog”",
@@ -64,12 +75,13 @@ func TestHumanizeMatcherExact(t *testing.T) {
 // TestHumanizeMatcherAllLocales: every shipped locale resolves every field
 // label and connective (missing keys fail loudly via humanizerTestTranslate).
 func TestHumanizeMatcherAllLocales(t *testing.T) {
-	expr := `force_feed = true AND weight_g BETWEEN 100 AND 250 OR zone IN ("E", "F")`
+	expr := `force_feed = true AND weight_g BETWEEN 100 AND 250 OR zone INCI ("E", "F")`
 	for _, lang := range []string{"en-US", "fr", "de", "nl"} {
 		got := humanizeMatcherWith(expr, humanizerTestTranslate(t, lang))
 		require.NotContains(t, got, "careplan.field.", "lang %s leaks i18n key: %q", lang, got)
 		require.NotContains(t, got, "force_feed", "lang %s leaks DSL key: %q", lang, got)
 		require.NotContains(t, got, "weight_g", "lang %s leaks DSL key: %q", lang, got)
 		require.NotContains(t, got, "BETWEEN", "lang %s leaks DSL keyword: %q", lang, got)
+		require.NotContains(t, got, "INCI", "lang %s leaks DSL CI keyword: %q", lang, got)
 	}
 }

@@ -55,6 +55,15 @@ func fieldLabelResolver(tr func(id string, args map[string]interface{}) string) 
 	}
 }
 
+// inNodeOpLabel maps an InNode to its op label key: the node carries the
+// exact DSL spelling; legacy/programmatic nodes without one read as IN.
+func inNodeOpLabel(n *careplan.InNode) string {
+	if n.Op == "" {
+		return careplan.OpIn
+	}
+	return n.Op
+}
+
 // matcherOpLabel maps a DSL operator to its localized short label, reusing
 // the builder op translations.
 func matcherOpLabel(op string, tr func(id string, args map[string]interface{}) string) string {
@@ -70,6 +79,10 @@ func matcherOpLabel(op string, tr func(id string, args map[string]interface{}) s
 		"~":        "care_plan.builder.op.regex",
 		"!~":       "care_plan.builder.op.notregex",
 		"CONTAINS": "care_plan.builder.op.contains",
+		// Explicit case-insensitive operators (bugs.md U26/U27).
+		"=*":   "care_plan.builder.op.eqci",
+		"!=*":  "care_plan.builder.op.neqci",
+		"INCI": "care_plan.builder.op.inci",
 	}
 	if k, ok := keys[op]; ok {
 		return tr(k, nil)
@@ -121,7 +134,7 @@ func writeMatcherNode(b *strings.Builder, n careplan.Node, label func(string) st
 		b.WriteString(fmt.Sprintf("%v – %v", node.Min, node.Max))
 	case *careplan.InNode:
 		b.WriteString(label(node.Field))
-		b.WriteString(" " + matcherOpLabel("IN", tr) + " ")
+		b.WriteString(" " + matcherOpLabel(inNodeOpLabel(node), tr) + " ")
 		parts := make([]string, 0, len(node.Literals))
 		for _, lit := range node.Literals {
 			parts = append(parts, matcherLiteralText(lit, tr))

@@ -84,11 +84,11 @@ func evalPredicate(reg *Registry, n *PredicateNode, a *AnimalContext) (bool, boo
 	var pass bool
 	var reason string
 	switch n.Op {
-	case OpEq, OpNeq:
-		eq, typed := valuesEqual(rv.Value, n.Literal)
+	case OpEq, OpNeq, OpEqCI, OpNeqCI:
+		eq, typed := valuesEqualFor(rv.Value, n.Literal, n.Op == OpEqCI || n.Op == OpNeqCI)
 		if !typed {
 			reason = "type mismatch"
-		} else if n.Op == OpEq {
+		} else if n.Op == OpEq || n.Op == OpEqCI {
 			pass = eq
 		} else {
 			pass = !eq
@@ -165,11 +165,16 @@ func evalBetween(reg *Registry, n *BetweenNode, a *AnimalContext) (bool, bool, [
 }
 
 func evalIn(reg *Registry, n *InNode, a *AnimalContext) (bool, bool, []TraceStep) {
+	op := n.Op
+	if op == "" { // programmatically built nodes default to the CS IN
+		op = OpIn
+	}
+	ci := op == OpInCI
 	want := make([]string, 0, len(n.Literals))
 	for _, lit := range n.Literals {
 		want = append(want, lit.desc())
 	}
-	step := TraceStep{Field: n.Field, Op: OpIn, Pos: n.pos, Expected: strings.Join(want, ", ")}
+	step := TraceStep{Field: n.Field, Op: op, Pos: n.pos, Expected: strings.Join(want, ", ")}
 	p, ok := reg.Get(n.Field)
 	if !ok {
 		step.Reason = "unknown field"
@@ -182,12 +187,28 @@ func evalIn(reg *Registry, n *InNode, a *AnimalContext) (bool, bool, []TraceStep
 	}
 	step.Actual = describeValue(rv.Value)
 	for _, lit := range n.Literals {
-		if eq, typed := valuesEqual(rv.Value, lit); typed && eq {
+		if eq, typed := valuesEqualFor(rv.Value, lit, ci); typed && eq {
 			step.Pass = true
 			return true, false, []TraceStep{step}
 		}
 	}
 	return false, step.Reason != "", []TraceStep{step}
+}
+
+// valuesEqualFor compares a resolved field value with a literal, case-
+// insensitively when ci is set (bugs.md U26: the explicit CI operators).
+// CI only changes string comparison — non-string operands fall back to the
+// CS variant (case is meaningless for numbers/booleans). ok is false when
+// the types are incompatible (fail closed, never panic).
+func valuesEqualFor(v interface{}, lit Literal, ci bool) (eq, ok bool) {
+	if !ci {
+		return valuesEqual(v, lit)
+	}
+	if lit.Kind == LitString {
+		s, isStr := v.(string)
+		return isStr && strings.EqualFold(s, lit.Str), isStr
+	}
+	return valuesEqual(v, lit)
 }
 
 // valuesEqual compares a resolved field value with a literal; ok is false

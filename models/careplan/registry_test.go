@@ -194,3 +194,65 @@ func TestRegistryRejectsDuplicateAndInvalid(t *testing.T) {
 		t.Error("bool fields must not allow neq")
 	}
 }
+
+// TestRegistryCaseInsensitiveOps (bugs.md U26/U27 R5-1a): every string field
+// that allows eq/neq/in also allows its CI twins; fields without eq/neq/in
+// (free-text regex fields) and non-string types reject them.
+func TestRegistryCaseInsensitiveOps(t *testing.T) {
+	r := DefaultRegistry()
+
+	// eq/in-bearing string fields gain the CI eq/in twins.
+	for _, key := range []string{"cage", "species", "zone", "animal_type", "gender",
+		"species_class", "species_order", "species_family", "species_agw_group",
+		"species_subside_group", "species_native_status"} {
+		p, ok := r.Get(key)
+		if !ok {
+			t.Fatalf("field %q not registered", key)
+		}
+		for _, op := range []string{OpEqCI, OpInCI} {
+			if !p.Allows(op) {
+				t.Errorf("%s: op %q should be allowed", key, op)
+			}
+		}
+	}
+	// CI neq only mirrors plain neq — species is the only default field with !=.
+	sp, _ := r.Get("species")
+	if !sp.Allows(OpNeqCI) {
+		t.Errorf("species: op %q should be allowed", OpNeqCI)
+	}
+	for _, key := range []string{"cage", "animal_type", "gender", "zone"} {
+		p, _ := r.Get(key)
+		if p.Allows(OpNeqCI) {
+			t.Errorf("%s: op %q should NOT be allowed (no plain !=)", key, OpNeqCI)
+		}
+	}
+	for _, key := range []string{"parasites", "wounds", "feeding", "intake_general",
+		"intake_remarks", "vet_diagnostic"} {
+		p, _ := r.Get(key)
+		for _, op := range []string{OpEqCI, OpNeqCI, OpInCI} {
+			if p.Allows(op) {
+				t.Errorf("%s: op %q should NOT be allowed (no eq/in)", key, op)
+			}
+		}
+	}
+	for _, key := range []string{"weight_g", "days_in_care", "has_parasites", "has_wounds", "force_feed"} {
+		p, _ := r.Get(key)
+		for _, op := range []string{OpEqCI, OpNeqCI, OpInCI} {
+			if p.Allows(op) {
+				t.Errorf("%s: op %q should NOT be allowed (non-string field)", key, op)
+			}
+		}
+	}
+
+	// Register validates CI ops like any other op: legal on strings only.
+	r2 := NewRegistry()
+	if err := r2.Register(FieldProvider{Key: "s", LabelKey: "s", Type: TypeString, Ops: []string{OpEqCI}}); err != nil {
+		t.Errorf("string field with =* rejected: %v", err)
+	}
+	if err := r2.Register(FieldProvider{Key: "n", LabelKey: "n", Type: TypeNumber, Ops: []string{OpEqCI}}); err == nil {
+		t.Error("number field with =* must be rejected")
+	}
+	if err := r2.Register(FieldProvider{Key: "b", LabelKey: "b", Type: TypeBool, Ops: []string{OpInCI}}); err == nil {
+		t.Error("bool field with INCI must be rejected")
+	}
+}

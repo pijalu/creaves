@@ -42,7 +42,8 @@ package careplan
 %token <fp>  T_IDENT
 %token <lit> T_LSTR T_LNUM T_TRUE T_FALSE
 %token <op>  T_EQ T_NEQ T_LT T_LE T_GT T_GE T_TILDE T_NTILDE T_CONTAINS
-%token <pos> T_AND T_OR T_NOT T_BETWEEN T_IN
+%token <op>  T_EQCI T_NEQCI
+%token <pos> T_AND T_OR T_NOT T_BETWEEN T_IN T_INCI
 %token       T_LPAREN T_RPAREN T_COMMA T_EOF
 
 %type <node> start expr_top or_expr and_expr unary predicate
@@ -153,15 +154,31 @@ in_pred:
 		{
 			$$ = &InNode{
 				Field: $1.name, fieldPos: $1.pos, opPos: $<pos>2,
+				Op:     OpIn,
 				Literals: $4,
 				pos:   $1.pos,
 			}
 		}
 	| fieldname T_IN T_LPAREN T_RPAREN
 		{
-			$$ = &InNode{Field: $1.name, fieldPos: $1.pos, opPos: $<pos>2, pos: $1.pos}
+			$$ = &InNode{Field: $1.name, fieldPos: $1.pos, opPos: $<pos>2, Op: OpIn, pos: $1.pos}
 		}
 	| fieldname T_IN T_LPAREN in_items T_EOF
+		{ yylex.(*lexer).errorAt($<pos>5, "expected , or )") }
+	| fieldname T_INCI T_LPAREN in_items T_RPAREN
+		{
+			$$ = &InNode{
+				Field: $1.name, fieldPos: $1.pos, opPos: $<pos>2,
+				Op:     OpInCI,
+				Literals: $4,
+				pos:   $1.pos,
+			}
+		}
+	| fieldname T_INCI T_LPAREN T_RPAREN
+		{
+			$$ = &InNode{Field: $1.name, fieldPos: $1.pos, opPos: $<pos>2, Op: OpInCI, pos: $1.pos}
+		}
+	| fieldname T_INCI T_LPAREN in_items T_EOF
 		{ yylex.(*lexer).errorAt($<pos>5, "expected , or )") }
 	;
 
@@ -220,6 +237,10 @@ cmp:
 	T_EQ
 		{ $$ = fieldPos{name: $1, pos: $<pos>1} }
 	| T_NEQ
+		{ $$ = fieldPos{name: $1, pos: $<pos>1} }
+	| T_EQCI
+		{ $$ = fieldPos{name: $1, pos: $<pos>1} }
+	| T_NEQCI
 		{ $$ = fieldPos{name: $1, pos: $<pos>1} }
 	| T_LT
 		{ $$ = fieldPos{name: $1, pos: $<pos>1} }

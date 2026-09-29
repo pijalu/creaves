@@ -27,13 +27,22 @@ const (
 	OpRegex    = "~"
 	OpNotRegex = "!~"
 	OpContains = "CONTAINS"
+
+	// Explicit case-insensitive operators (bugs.md U26/U27, D-g): the CI
+	// twin of every =-family and IN-family op. The values are the exact
+	// DSL spellings so validation errors quote them verbatim.
+	OpEqCI  = "=*"
+	OpNeqCI = "!=*"
+	OpInCI  = "INCI"
 )
 
 // opsByType lists the operators each field type legally supports (§5.1):
 // strings match by equality/list/pattern, numbers by comparison/range, and
-// bools by equality only (NOT covers negation).
+// bools by equality only (NOT covers negation). The CI variants are legal
+// on strings only — case is meaningless for numbers and booleans.
 var opsByType = map[string]map[string]bool{
-	TypeString: {OpEq: true, OpNeq: true, OpIn: true, OpRegex: true, OpNotRegex: true, OpContains: true},
+	TypeString: {OpEq: true, OpNeq: true, OpIn: true, OpRegex: true, OpNotRegex: true, OpContains: true,
+		OpEqCI: true, OpNeqCI: true, OpInCI: true},
 	TypeNumber: {OpLt: true, OpLte: true, OpGt: true, OpGte: true, OpBetween: true},
 	TypeBool:   {OpEq: true},
 }
@@ -180,8 +189,26 @@ func buildDefaultFields() []FieldProvider {
 	text := []string{OpRegex, OpNotRegex, OpContains}
 	boolEq := []string{OpEq}
 
+	// withCIOps mirrors every =-family / IN-family op a string field
+	// already allows into its explicit CI twin (bugs.md U26/U27, D-g
+	// "for both"): fields that never allowed eq/neq/in (the free-text
+	// regex fields) stay CS-only.
+	withCIOps := func(ops []string) []string {
+		out := make([]string, 0, len(ops)+3)
+		out = append(out, ops...)
+		for _, pair := range [][2]string{{OpEq, OpEqCI}, {OpNeq, OpNeqCI}, {OpIn, OpInCI}} {
+			for _, op := range ops {
+				if op == pair[0] {
+					out = append(out, pair[1])
+					break
+				}
+			}
+		}
+		return out
+	}
+
 	strField := func(key string, ops []string, get func(a *AnimalContext) string) FieldProvider {
-		return FieldProvider{Key: key, LabelKey: "careplan.field." + key, Type: TypeString, Ops: ops,
+		return FieldProvider{Key: key, LabelKey: "careplan.field." + key, Type: TypeString, Ops: withCIOps(ops),
 			Resolve: func(a *AnimalContext) ResolvedValue { return strValue(get(a)) }}
 	}
 	numField := func(key string, get func(a *AnimalContext) float64) FieldProvider {
@@ -207,7 +234,7 @@ func buildDefaultFields() []FieldProvider {
 		strField("animal_age", eqIn, func(a *AnimalContext) string { return a.AnimalAge }),
 		strField("gender", eqIn, func(a *AnimalContext) string { return a.Gender }),
 		strField("zone", eqInRegex, func(a *AnimalContext) string { return a.Zone }),
-		{Key: "cage", LabelKey: "careplan.field.cage", Type: TypeString, Ops: eqInRegex,
+		{Key: "cage", LabelKey: "careplan.field.cage", Type: TypeString, Ops: withCIOps(eqInRegex),
 			Resolve: func(a *AnimalContext) ResolvedValue { return strValueKeepEmpty(a.Cage) }},
 		numField("days_in_care", func(a *AnimalContext) float64 { return float64(a.DaysInCare()) }),
 		boolField("has_parasites", func(a *AnimalContext) bool { return a.HasParasites }),

@@ -168,3 +168,85 @@ func TestDSLStringEscapes(t *testing.T) {
 		t.Fatalf("escape handling broken: %q", p.Literal.Str)
 	}
 }
+
+// TestDSLCaseInsensitiveOperators (bugs.md U26/U27 R5-1a): the explicit CI
+// operators =*, !=* and INCI(...) parse, keywords case-insensitively, and
+// carry the exact DSL spelling on the node.
+func TestDSLCaseInsensitiveOperators(t *testing.T) {
+	ast := parseValid(t, `cage =* "Enclos renards"`)
+	if p := ast.(*PredicateNode); p.Op != OpEqCI {
+		t.Fatalf("=* parsed as op %q", p.Op)
+	}
+	ast = parseValid(t, `cage !=* "VE5"`)
+	if p := ast.(*PredicateNode); p.Op != OpNeqCI {
+		t.Fatalf("!=* parsed as op %q", p.Op)
+	}
+	// INCI keyword is case-insensitive like IN/CONTAINS.
+	for _, expr := range []string{`zone INCI ("A", "b")`, `zone inci ("A", "b")`, `zone Inci ("A")`} {
+		ast = parseValid(t, expr)
+		in := ast.(*InNode)
+		if in.Op != OpInCI {
+			t.Fatalf("%s: parsed as op %q", expr, in.Op)
+		}
+		if len(in.Literals) == 0 {
+			t.Fatalf("%s: literals lost", expr)
+		}
+	}
+	// INCI () parses (validation, not the grammar, rejects empty lists).
+	parseValid(t, `zone INCI ()`)
+	// CS twins unchanged.
+	ast = parseValid(t, `cage = "A12"`)
+	if p := ast.(*PredicateNode); p.Op != OpEq {
+		t.Fatalf("CS = broken: op %q", p.Op)
+	}
+}
+
+// TestDSLCaseInsensitiveValidation: CI ops validate like their CS twins —
+// allowed on string fields that allow eq/neq/in, rejected elsewhere with
+// the exact DSL spelling quoted at the operator column.
+func TestDSLCaseInsensitiveValidation(t *testing.T) {
+	reg := DefaultRegistry()
+	// !=* is only legal where the plain != already is (species, not cage:
+	// NOT cage =* covers negation for eq-only fields).
+	for _, expr := range []string{
+		`species !=* "Renard Roux"`,
+		`cage =* "Enclos renards"`,
+		`cage INCI ("Enclos Renards", "enclos renards")`,
+		`species =* "renard roux" AND zone INCI ("salle 1")`,
+	} {
+		if _, err := ParseValidatedWith(expr, reg); err != nil {
+			t.Errorf("ParseValidated(%q) rejected: %v", expr, err)
+		}
+	}
+	cases := []struct {
+		expr   string
+		errSub string
+		col    int
+	}{
+		// cage allows eq/in but not neq — so no CI neq either
+		{`cage !=* "VE5"`, `does not allow "!=*"`, 6},
+		// free-text fields allow neither eq nor CI eq
+		{`parasites =* "x"`, `does not allow "=*"`, 11},
+		// numbers: CI is meaningless
+		{`weight_g =* 3`, `does not allow "=*"`, 10},
+		// bools: eq only, CS
+		{`force_feed =* true`, `does not allow "=*"`, 12},
+		// INCI literal type must match the field
+		{`cage INCI (3)`, `expects a string literal`, 12},
+		// empty list rejected like IN ()
+		{`cage INCI ()`, `needs at least one value`, 6},
+	}
+	for _, c := range cases {
+		_, err := ParseValidatedWith(c.expr, reg)
+		if err == nil {
+			t.Errorf("ParseValidated(%q): expected error containing %q", c.expr, c.errSub)
+			continue
+		}
+		if !strings.Contains(err.Error(), c.errSub) {
+			t.Errorf("ParseValidated(%q): error %q missing %q", c.expr, err.Error(), c.errSub)
+		}
+		if pe, ok := err.(*ParseError); ok && pe.Column != c.col {
+			t.Errorf("ParseValidated(%q): column = %d, want %d", c.expr, pe.Column, c.col)
+		}
+	}
+}

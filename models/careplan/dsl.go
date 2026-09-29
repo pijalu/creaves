@@ -144,11 +144,15 @@ type BetweenNode struct {
 
 func (n *BetweenNode) nodePos() Pos { return n.pos }
 
-// InNode is a membership test: Field IN (l1, …, ln).
+// InNode is a membership test: Field IN (l1, …, ln) or its case-insensitive
+// variant Field INCI (…) (OpInCI). Op carries the exact DSL spelling — the
+// trace and validation quote it; programmatic nodes may leave it empty (the
+// evaluator then treats it as the plain CS IN).
 type InNode struct {
 	Field    string
 	fieldPos Pos
 	opPos    Pos
+	Op       string
 	Literals []Literal
 	pos      Pos
 }
@@ -287,12 +291,16 @@ func validateBetween(n *BetweenNode, reg *Registry) error {
 }
 
 func validateIn(n *InNode, reg *Registry) error {
+	op := n.Op
+	if op == "" { // programmatically built nodes default to the CS IN
+		op = OpIn
+	}
 	p, ok := reg.Get(n.Field)
 	if !ok {
 		return &ParseError{Msg: fmt.Sprintf("unknown field %q", n.Field), Column: n.fieldPos.Column()}
 	}
-	if !p.Allows(OpIn) {
-		return &ParseError{Msg: fmt.Sprintf("field %q does not allow %q", n.Field, OpIn), Column: n.opPos.Column()}
+	if !p.Allows(op) {
+		return &ParseError{Msg: fmt.Sprintf("field %q does not allow %q", n.Field, op), Column: n.opPos.Column()}
 	}
 	if len(n.Literals) == 0 {
 		return &ParseError{Msg: "IN () needs at least one value", Column: n.opPos.Column()}
@@ -372,6 +380,11 @@ func (l *lexer) Lex(lval *yySymType) (tokOut int) {
 	case ',':
 		return T_COMMA
 	case '=':
+		if l.scan.Peek() == '*' {
+			l.scan.Next()
+			l.tokText = "=*"
+			return opTok(lval, OpEqCI, at, T_EQCI)
+		}
 		return opTok(lval, OpEq, at, T_EQ)
 	case '<':
 		if l.scan.Peek() == '=' {
@@ -393,6 +406,11 @@ func (l *lexer) Lex(lval *yySymType) (tokOut int) {
 		switch l.scan.Peek() {
 		case '=':
 			l.scan.Next()
+			if l.scan.Peek() == '*' { // !=* — case-insensitive inequality
+				l.scan.Next()
+				l.tokText = "!=*"
+				return opTok(lval, OpNeqCI, at, T_NEQCI)
+			}
 			l.tokText = "!="
 			return opTok(lval, OpNeq, at, T_NEQ)
 		case '~':
@@ -438,6 +456,9 @@ func (l *lexer) ident(lval *yySymType, w string, at Pos) int {
 	case strings.EqualFold(w, "IN"):
 		lval.pos = at
 		return T_IN
+	case strings.EqualFold(w, "INCI"):
+		lval.pos = at
+		return T_INCI
 	case strings.EqualFold(w, "CONTAINS"):
 		return opTok(lval, OpContains, at, T_CONTAINS)
 	case strings.EqualFold(w, "true"):

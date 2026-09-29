@@ -186,3 +186,49 @@ func TestPreviewReturnsMatchingWithTrace(t *testing.T) {
 		t.Errorf("hits = %d, want 0", len(hits))
 	}
 }
+
+// TestEvalCaseInsensitiveOperators (bugs.md U26 R5-1a): =* / !=* / INCI
+// match strings case-insensitively; CS twins stay exact; non-string
+// operands fall back to the CS comparison even under a CI op.
+func TestEvalCaseInsensitiveOperators(t *testing.T) {
+	reg := DefaultRegistry()
+	a := testContext()
+	a.Cage = "Enclos Renards"
+
+	cases := []struct {
+		expr string
+		want bool
+	}{
+		{`cage =* "enclos renards"`, true},
+		{`cage = "enclos renards"`, false},
+		{`cage =* "enclos renards "`, false},
+		{`cage !=* "enclos RENARDS"`, false},
+		{`cage !=* "VE5"`, true},
+		{`cage INCI ("VE5", "enclos renards")`, true},
+		{`cage INCI ("ve5")`, false},
+		{`zone INCI ("salle 1")`, true},
+		{`zone IN ("salle 1")`, false},
+	}
+	for _, c := range cases {
+		if got := Eval(reg, parseValid(t, c.expr), a); got != c.want {
+			t.Errorf("Eval(%q) = %v, want %v", c.expr, got, c.want)
+		}
+	}
+
+	// Non-string operands under a CI op behave exactly like the CS variant
+	// (unvalidated AST — the registry never allows CI on numbers).
+	n := &PredicateNode{Field: "weight_g", Op: OpEqCI, Literal: Literal{Kind: LitNumber, Num: 240}}
+	if !Eval(reg, n, a) {
+		t.Error("CI eq on numbers must fall back to exact comparison (240)")
+	}
+	n.Literal = Literal{Kind: LitNumber, Num: 241}
+	if Eval(reg, n, a) {
+		t.Error("CI eq on numbers must stay exact (241 must not match 240)")
+	}
+
+	// The why-trace quotes the explicit CI spelling.
+	_, tr := EvalTrace(reg, parseValid(t, `cage =* "enclos renards"`), a)
+	if len(tr) != 1 || tr[0].Op != OpEqCI {
+		t.Errorf("trace op = %+v, want %q", tr, OpEqCI)
+	}
+}
