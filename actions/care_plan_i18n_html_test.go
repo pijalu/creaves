@@ -43,7 +43,7 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 			"/care_rules/new":    "Nouvelle règle de soins",
 			"/care_matchers":     "Bibliothèque de sélecteurs",
 			"/care_matchers/new": "Nouveau sélecteur",
-			animalPath:           "Plans de cet animal",
+			animalPath:           "Protocoles de cet animal",
 			"/landing/index":     "Plan du jour",
 		},
 		"en-US": {
@@ -52,7 +52,7 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 			"/care_rules/new":    "New care rule",
 			"/care_matchers":     "Matcher library",
 			"/care_matchers/new": "New matcher",
-			animalPath:           "Plans for this animal",
+			animalPath:           "Protocols for this animal",
 			"/landing/index":     "Day plan",
 		},
 		"de": {
@@ -61,7 +61,7 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 			"/care_rules/new":    "Neue Pflegeregel",
 			"/care_matchers":     "Matcher-Bibliothek",
 			"/care_matchers/new": "Neuer Matcher",
-			animalPath:           "Pläne dieses Tieres",
+			animalPath:           "Protokolle dieses Tieres",
 			"/landing/index":     "Tagesplan",
 		},
 		"nl": {
@@ -70,9 +70,19 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 			"/care_rules/new":    "Nieuwe zorgregel",
 			"/care_matchers":     "Matcherbibliotheek",
 			"/care_matchers/new": "Nieuwe matcher",
-			animalPath:           "Plannen van dit dier",
+			animalPath:           "Protocollen van dit dier",
 			"/landing/index":     "Dagplan",
 		},
+	}
+
+	// R5-4a (U20/D-d): the animal-page protocol labels — tab + modal title
+	// buttons — renamed from "plan" to "protocol" (UI values only). Asserted
+	// explicitly per language on the animal page HTML.
+	protocolLabels := map[string][]string{
+		"fr":    {"Protocole", "Nouveau protocole", "Modifier le protocole"},
+		"en-US": {"Protocol", "New protocol", "Edit protocol"},
+		"de":    {"Protokoll", "Neues Protokoll", "Protokoll bearbeiten"},
+		"nl":    {"Protocol", "Nieuw protocol", "Protocol bewerken"},
 	}
 
 	// §10-B6 dialog strings on the day-plan page (fixture renders a due,
@@ -122,6 +132,20 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 					require.NotEmpty(t, want)
 					require.Contains(t, string(raw), want,
 						"%s %s must show the localized title %q", lang, path, want)
+					if path == animalPath {
+						// R5-4a (U20): protocol labels on the animal page.
+						for _, s := range protocolLabels[lang] {
+							require.Contains(t, string(raw), s,
+								"%s %s must render the protocol label %q", lang, path, s)
+						}
+						// The old wording must be gone (values-only rename, keys
+						// untouched — "Nouveau plan" etc. must not render).
+						for _, s := range []string{"New plan", "Nouveau plan", "Neuer Plan", "Nieuw plan",
+							"Plans for this animal", "Plans de cet animal", "Pläne dieses Tieres", "Plannen van dit dier"} {
+							require.NotContains(t, string(raw), s,
+								"%s %s must not render the legacy plan label %q", lang, path, s)
+						}
+					}
 					if path == "/care_plan" {
 						for _, s := range applyStrings[lang] {
 							require.Contains(t, string(raw), s,
