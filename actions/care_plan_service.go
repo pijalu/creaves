@@ -34,6 +34,15 @@ const (
 	planWindowMaxDays    = 14
 )
 
+// TodayPlanWindow returns the dashboard "Medication today" window
+// (bugs.md R5-2a): [today 00:00, today 24:00) — today only. The work
+// screen keeps its DefaultPlanWindow 4-day window; honest today-only
+// counts need a window that does not reach into yesterday or tomorrow.
+func TodayPlanWindow(now time.Time) (time.Time, time.Time) {
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	return start, start.Add(24*time.Hour - time.Nanosecond)
+}
+
 // followUpPlanPrefix marks the auto-created alert follow-up observation
 // plans (§6.2, §10-CP3): such plans self-deactivate once their occurrence
 // is applied or skipped.

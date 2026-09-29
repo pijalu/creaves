@@ -120,6 +120,56 @@ func TestBuildDayPlanViewMedGroups(t *testing.T) {
 	require.Len(t, v.Meds, 3)
 }
 
+// TestBuildDashboardMedViewTodayOnly: the dashboard mode (bugs.md R5-2a)
+// collapses a 4-day plan window to today's slots only — no yesterday, no
+// tomorrow — suppresses Overridden occurrences and counts only open
+// today slots (honest badge). The /care_plan projection is unchanged:
+// every window slot stays visible there, overridden included.
+func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+	from, to := TodayPlanWindow(now)
+	require.Equal(t, time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local), from)
+	require.Equal(t, time.Date(2026, 9, 28, 23, 59, 59, 999999999, time.Local), to)
+
+	med := testSource(careplan.KindMedication, "med-1", "Citramox", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
+	plan := testPlan()
+	plan.From, plan.To, plan.Now = from, to, now
+
+	todayDue := testItem(med, 1, careplan.StatusDue)
+	todayDue.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 30, 0, 0, time.Local)
+	todayApplied := testItem(med, 1, careplan.StatusApplied)
+	todayApplied.Occurrence.DueAt = time.Date(2026, 9, 28, 7, 0, 0, 0, time.Local)
+	yesterday := testItem(med, 1, careplan.StatusLate)
+	yesterday.Occurrence.DueAt = time.Date(2026, 9, 27, 18, 0, 0, 0, time.Local)
+	tomorrow := testItem(med, 1, careplan.StatusScheduled)
+	tomorrow.Occurrence.DueAt = time.Date(2026, 9, 29, 8, 30, 0, 0, time.Local)
+	overridden := testItem(med, 2, careplan.StatusOverridden)
+	overridden.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 30, 0, 0, time.Local)
+	plan.Items = []careplan.PlanItem{yesterday, todayApplied, todayDue, tomorrow, overridden}
+
+	// Dashboard mode: today only, overridden suppressed — one card
+	// (animal 1) with exactly two slots and OpenCount 1.
+	meds := BuildDashboardMedView(plan, "")
+	require.Len(t, meds, 1, "animal 2 card disappears (its only slot is overridden)")
+	require.Equal(t, 1, meds[0].AnimalID)
+	require.Len(t, meds[0].Slots, 2, "today slots only")
+	require.Equal(t, 1, meds[0].OpenCount, "honest today count: one open slot")
+	require.False(t, meds[0].Slots[1].Applied)
+	require.True(t, meds[0].Slots[0].Applied)
+
+	// /care_plan mode over the same plan: unchanged — every window slot
+	// stays visible, overridden included.
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	require.Len(t, v.Meds, 2, "animal 1 (3 slots) + animal 2 (overridden kept)")
+	g1 := v.Meds[0]
+	require.Len(t, g1.Slots, 4, "yesterday + 2 today + tomorrow slots (4-day window keeps everything)")
+	require.Equal(t, 3, g1.OpenCount, "work-screen count unchanged: late + due + scheduled open across the 4-day window")
+	g2 := v.Meds[1]
+	require.Equal(t, 2, g2.AnimalID)
+	require.Len(t, g2.Slots, 1, "overridden slot still surfaces on the work screen")
+	require.True(t, g2.Slots[0].Overridden)
+}
+
 // TestMedSlotOf: bucket boundaries match treatmentBucketBit (§6.2) so the
 // card toggle lines up with the treatments bitmap written at apply time.
 func TestMedSlotOf(t *testing.T) {

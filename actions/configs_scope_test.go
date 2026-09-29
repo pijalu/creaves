@@ -20,6 +20,12 @@ func seedScopeConfig(t *testing.T) *models.Config {
 	tx := searchTestDB(t)
 
 	cfg := &models.Config{ID: uuid.Must(uuid.NewV4()), InstanceID: "cfgtest-scope", Name: "scope", Active: true}
+	// Self-healing: an interrupted earlier run can leave its row behind
+	// (create succeeded, process died before the cleanup DELETE) and the
+	// UNIQUE index on instance_id then fails every future seed.
+	if err := tx.RawQuery("DELETE FROM config WHERE instance_id = ?", cfg.InstanceID).Exec(); err != nil {
+		t.Fatalf("pre-seed cleanup: %v", err)
+	}
 	s := models.DefaultSettings()
 	s.CenterName = "Original Center"
 	s.GuestText1 = "original guest text"

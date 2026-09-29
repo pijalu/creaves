@@ -2,7 +2,6 @@ package actions
 
 import (
 	"creaves/models"
-	"creaves/models/careplan"
 	"fmt"
 	"net/http"
 	"time"
@@ -184,11 +183,14 @@ func DashboardIndex(c buffalo.Context) error {
 		return fmt.Errorf("no transaction found")
 	}
 	now := time.Now()
-	plan, err := BuildDayPlan(tx, now, time.Time{}, time.Time{})
+	// bugs.md R5-2a: today-only window — the dashboard shows today's
+	// medication with honest counts, /care_plan keeps the 4-day window.
+	from, to := TodayPlanWindow(now)
+	plan, err := BuildDayPlan(tx, now, from, to)
 	if err != nil {
 		return err
 	}
-	c.Set("medicationCards", BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now).Meds)
+	c.Set("medicationCards", BuildDashboardMedView(plan, ""))
 	c.Set("currentUser", GetCurrentUser(c))
 
 	vvs, err := listTodaysVetVisits(c)

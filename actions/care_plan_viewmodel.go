@@ -308,7 +308,7 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 		// the window as a slot row — applied slots stay visible (state
 		// visible, undoable) instead of vanishing into the done tier.
 		if kind == "" || kind == careplan.KindMedication {
-			v.Meds = v.buildMedGroups(plan, zone)
+			v.Meds = v.buildMedGroups(plan, zone, false)
 		}
 
 		// Feeding cards (bugs.md U1): one per cage × diet, OPEN work only
@@ -455,8 +455,11 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 
 // buildMedGroups projects every medication plan item into per-animal
 // cards (compact view only). Slot = morning/noon/evening from the due
-// hour (same buckets as the treatments bitmap, §6.2).
-func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string) []MedGroupView {
+// hour (same buckets as the treatments bitmap, §6.2). todayOnly is the
+// dashboard mode (bugs.md R5-2a): only slots whose DueAt falls inside
+// the plan window's today are kept and Overridden occurrences are
+// suppressed — the badge stays an honest today count.
+func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool) []MedGroupView {
 	order := map[string]int{"morning": 0, "noon": 1, "evening": 2}
 	groups := map[int]*MedGroupView{}
 	var ids []int
@@ -465,6 +468,14 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string) []MedGroupView 
 		src := it.Occurrence.Source
 		if src == nil || src.ActionKind() != careplan.KindMedication {
 			continue
+		}
+		if todayOnly {
+			if it.Status == careplan.StatusOverridden {
+				continue // overridden occurrences stay off the dashboard
+			}
+			if it.Occurrence.DueAt.Before(plan.From) || it.Occurrence.DueAt.After(plan.To) {
+				continue // today-only window: no yesterday, no tomorrow
+			}
 		}
 		a, ok := plan.AnimalRow(it.Occurrence.AnimalID)
 		if !ok {
@@ -524,6 +535,20 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string) []MedGroupView 
 		out = append(out, *g)
 	}
 	return out
+}
+
+// BuildDashboardMedView projects the dashboard "Medication today"
+// medication section (bugs.md R5-2a): the same per-animal slot cards as
+// the compact work screen, but in dashboard mode — today-only slots,
+// Overridden occurrences suppressed, badge = honest today count. The
+// caller assembles the plan over TodayPlanWindow; /care_plan keeps its
+// 4-day DefaultPlanWindow.
+func BuildDashboardMedView(plan *DayPlan, zone string) []MedGroupView {
+	v := &DayPlanView{
+		View:     ViewCompact,
+		SelfPath: planSelfPath(ViewCompact, "", ""),
+	}
+	return v.buildMedGroups(plan, zone, true)
 }
 
 // medSlotOf buckets a due time into morning/noon/evening — the same

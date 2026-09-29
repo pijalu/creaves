@@ -86,11 +86,20 @@ func createAnimalSearchFixtures(t *testing.T, tx *pop.Connection) *animalSearchF
 
 	// unique (year, yearNumber) index: derive a fixture-unique base number
 	// from the marker (hex) so fixtures never collide, even leftover ones.
+	// The test DB carries production-like data whose yearNumbers reach into
+	// the same magnitude (a hashed 933690 once landed on an imported row —
+	// Error 1062 under the full -race suite), so the derived range floats
+	// strictly above every existing yearNumber.
 	ynBase := 900000
+	var maxYearNumber int
+	if err := tx.RawQuery("SELECT COALESCE(MAX(yearNumber), 0) FROM animals").First(&maxYearNumber); err == nil && maxYearNumber >= ynBase {
+		ynBase = maxYearNumber + 1
+	}
+	floor := ynBase
 	for _, b := range []byte(f.marker) {
 		ynBase = ynBase*31 + int(b)
 	}
-	ynBase = 900000 + ynBase%90000 // keep clear of small production-like numbers
+	ynBase = floor + ynBase%90000 // keep clear of small production-like numbers
 
 	must := func(err error) {
 		t.Helper()
