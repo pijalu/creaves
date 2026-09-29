@@ -448,6 +448,8 @@
   translation: "is een van (hoofdlettergebruik negeren)"
 - id: "care_plan.builder.case_ignore"
   translation: "Hoofdlettergebruik negeren"
+- id: "care_plan.builder.match_hint"
+  translation: "{{.count}} dieren komen nu overeen"
 - id: "care_plan.preview.filter_all"
   translation: "Alle"
 - id: "care_plan.preview.filter_match"

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -140,6 +141,113 @@ func CareMatcherPreview(c buffalo.Context) error {
 		"match_count": matches,
 		"animals":     items,
 	}))
+}
+
+// matcherSuggestCap bounds the suggestion list (bugs.md U27, D-f).
+const matcherSuggestCap = 50
+
+// matcherSuggestValue is one suggested distinct field value with the number
+// of prefix-matching animals carrying it.
+type matcherSuggestValue struct {
+	Value string `json:"value"`
+	Count int    `json:"count"`
+}
+
+// CareMatcherSuggest handles POST /care_matchers/suggest (bugs.md U27,
+// D-f "context-aware"): body {expression_prefix, field} →
+// {values:[{value,count}], matched_total}. The prefix is the serialization
+// of the clauses ABOVE the edited clause; it is evaluated over the same
+// in-care sampling the preview uses, and the distinct values of `field`
+// among the still-matching animals become the suggestions (capped). An
+// empty prefix means the first clause — every animal counts. Unknown
+// fields answer an empty list (the dropdown simply offers nothing);
+// a broken prefix fails with the parser's column-exact error.
+func CareMatcherSuggest(c buffalo.Context) error {
+	if !requireAdminForPlan(c) {
+		return nil
+	}
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	in := struct {
+		ExpressionPrefix string `json:"expression_prefix"`
+		Field            string `json:"field"`
+	}{}
+	if err := c.Bind(&in); err != nil {
+		return err
+	}
+
+	reg := careplan.DefaultRegistry()
+	empty := map[string]interface{}{"values": []matcherSuggestValue{}, "matched_total": 0}
+	prov, ok := reg.Get(in.Field)
+	if !ok || prov.Type != careplan.TypeString { // unknown / non-string field → nothing to suggest
+		return c.Render(http.StatusOK, renderJSON(empty))
+	}
+
+	pa, err := loadAnimalContexts(tx, time.Now())
+	if err != nil {
+		return err
+	}
+	matchedTotal, counts, perr := suggestCounts(reg, prov, pa, in.ExpressionPrefix)
+	if perr != nil {
+		return planError(c, http.StatusUnprocessableEntity, perr)
+	}
+
+	values := make([]matcherSuggestValue, 0, len(counts))
+	for v, n := range counts {
+		values = append(values, matcherSuggestValue{Value: v, Count: n})
+	}
+	sort.Slice(values, func(i, j int) bool {
+		if values[i].Count != values[j].Count {
+			return values[i].Count > values[j].Count
+		}
+		return values[i].Value < values[j].Value
+	})
+	if len(values) > matcherSuggestCap {
+		values = values[:matcherSuggestCap]
+	}
+	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
+		"values":        values,
+		"matched_total": matchedTotal,
+	}))
+}
+
+// suggestCounts evaluates the prefix over the in-care sampling and tallies
+// the distinct values of the field among the matching animals. An empty
+// prefix counts every animal (first-clause case, D-f). A broken prefix
+// returns the parser error.
+func suggestCounts(reg *careplan.Registry, prov careplan.FieldProvider, pa *planAnimals, prefix string) (int, map[string]int, error) {
+	matched := 0
+	counts := make(map[string]int)
+	countValue := func(ctx *careplan.AnimalContext) {
+		rv := prov.Resolve(ctx)
+		if rv.Missing {
+			return
+		}
+		if s, isStr := rv.Value.(string); isStr && s != "" {
+			counts[s]++
+		}
+	}
+	if strings.TrimSpace(prefix) == "" {
+		for _, ctx := range pa.ctxs {
+			matched++
+			countValue(ctx)
+		}
+		return matched, counts, nil
+	}
+	node, err := careplan.ParseValidatedWith(prefix, reg)
+	if err != nil {
+		return 0, nil, err
+	}
+	for _, ctx := range pa.ctxs {
+		if !careplan.Eval(reg, node, ctx) {
+			continue
+		}
+		matched++
+		countValue(ctx)
+	}
+	return matched, counts, nil
 }
 
 // renderJSON wraps the JSON renderer used by the plan endpoints.

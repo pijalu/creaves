@@ -96,6 +96,11 @@
     expression: expr,
     mount: mount,
     fields: fields,
+    suggest: {
+      url: '/care_matchers/suggest',
+      csrf: document.querySelector('meta[name="csrf-token"]').content,
+      hint: <%= toJSON(t("care_plan.builder.match_hint", {count: "{{.count}}"})) %>
+    },
     i18n: {
       rawLabel: <%= toJSON(t("care_plan.builder.raw_dsl")) %>,
       rawWarn: <%= toJSON(t("care_plan.builder.raw_dsl_warn")) %>,

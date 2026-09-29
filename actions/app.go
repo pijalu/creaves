@@ -175,6 +175,7 @@ func App() *buffalo.App {
 		app.POST("/care_plan/unapply", CarePlanUnapply)
 		app.POST("/care_plan/apply_batch", CarePlanApplyBatch)
 		app.POST("/care_matchers/preview", CareMatcherPreview)
+		app.POST("/care_matchers/suggest", CareMatcherSuggest)
 		app.GET("/care_rules/{care_rule_id}/preview", CareRulePreview)
 		app.Resource("/care_rules", CareRulesResource{})
 		app.Resource("/care_matchers", CareMatchersResource{})

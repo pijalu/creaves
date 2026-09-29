@@ -29,6 +29,7 @@
       </div>
     </div>
     <div data-mb="clauses"></div>
+    <div class="text-muted small mb-1" data-mb="matchHint"></div>
     <div class="text-muted small mb-2" data-mb="emptyHint"></div>
     <button type="button" class="btn btn-outline-primary btn-sm mb-3" data-mb="add"></button>
     <div class="alert alert-warning d-none" data-mb="warn"></div>
@@ -224,8 +225,12 @@ window.matcherBuilder = (function () {
     if (!tpl) { return null; }
     var root = tpl.content.firstElementChild.cloneNode(true);
     var exprEl = opts.expression;
-    var i18n = opts.i18n || {};
-    var fields = opts.fields || [];
+      var i18n = opts.i18n || {};
+      var fields = opts.fields || [];
+      // Context-aware value suggestions (bugs.md U27 R5-1c): the host page
+      // passes {url, csrf, hint} — hint carries the localized
+      // "{{.count}} animals currently match" template.
+      var suggestCfg = opts.suggest || null;
 
     // Mount: editor UI goes where the mount placeholder sits; the mount
     // (which holds the expression textarea) then moves into an "Advanced"
@@ -241,10 +246,11 @@ window.matcherBuilder = (function () {
     root.parentNode.insertBefore(det, root.nextSibling);
 
     var combSel = root.querySelector('[data-mb="combinator"]');
-    var clausesEl = root.querySelector('[data-mb="clauses"]');
-    var warnEl = root.querySelector('[data-mb="warn"]');
-    var emptyEl = root.querySelector('[data-mb="emptyHint"]');
-    var rawMode = false;
+      var clausesEl = root.querySelector('[data-mb="clauses"]');
+      var warnEl = root.querySelector('[data-mb="warn"]');
+      var emptyEl = root.querySelector('[data-mb="emptyHint"]');
+      var hintEl = root.querySelector('[data-mb="matchHint"]');
+      var rawMode = false;
 
     root.querySelector('[data-mb="combinatorLabel"]').textContent = i18n.combinatorLabel || 'Animals must match';
     [['AND', i18n.combAll || 'ALL conditions (AND)'], ['OR', i18n.combAny || 'ANY condition (OR)']].forEach(function (pair) {
@@ -315,6 +321,58 @@ window.matcherBuilder = (function () {
       var clauses = currentClauses();
       exprEl.value = clauses.map(serializeClause).join(' ' + combSel.value + ' ');
       emptyEl.classList.toggle('d-none', clauses.length > 0);
+      scheduleSuggestions();
+    }
+
+    // --- value suggestions (U27 R5-1c) ---------------------------------------
+    // The datalist of a value input is refreshed from POST /suggest with the
+    // serialization of the clauses ABOVE the edited row, so the author
+    // narrows progressively (D-f).
+    var suggestTimer = null;
+    function scheduleSuggestions() {
+      if (!suggestCfg || rawMode) { return; }
+      if (suggestTimer) { clearTimeout(suggestTimer); }
+      suggestTimer = setTimeout(refreshSuggestions, 250);
+    }
+    function refreshSuggestions() {
+      if (!suggestCfg || rawMode) { return; }
+      suggestTimer = null;
+      var rows = clausesEl.querySelectorAll('.mb-clause');
+      rows.forEach(function (row, idx) {
+        var def = fieldDef(row.querySelector('.mb-field').value);
+        if (!def || def.type !== 'string') { return; } // bool/number have nothing to suggest
+        var prefix = serialize({ combinator: combSel.value, clauses: currentClauses().slice(0, idx) });
+        var vc = row.querySelector('.mb-value');
+        if (!vc) { return; }
+        fetch(suggestCfg.url, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': suggestCfg.csrf || ''
+          },
+          credentials: 'same-origin',
+          body: JSON.stringify({ expression_prefix: prefix, field: def.key })
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) {
+            if (!j) { return; }
+            var dl = document.getElementById(vc.getAttribute('list'));
+            if (dl) {
+              dl.innerHTML = '';
+              (j.values || []).forEach(function (v) {
+                var o = document.createElement('option');
+                o.value = v.value;
+                o.label = v.value + ' (' + v.count + ')';
+                dl.appendChild(o);
+              });
+            }
+            if (idx === rows.length - 1) {
+              hintEl.textContent = (suggestCfg.hint || '').replace('{{.count}}', j.matched_total);
+            }
+          })
+          .catch(function () { /* suggestions are best-effort */ });
+      });
     }
 
     function rebuildValueCell(row, keepValue) {
@@ -343,6 +401,13 @@ window.matcherBuilder = (function () {
         if (prevVal != null && vc.tagName !== 'SELECT') { vc.value = prevVal; }
         vc.addEventListener('input', sync);
         vc.addEventListener('change', sync);
+        if (suggestCfg && def.type === 'string') {
+          var dl = document.createElement('datalist');
+          dl.id = 'mb-dl-' + Math.random().toString(36).slice(2);
+          holder.appendChild(dl);
+          vc.setAttribute('list', dl.id);
+          vc.addEventListener('focus', refreshSuggestions);
+        }
         holder.appendChild(vc);
       }
     }
