@@ -32,6 +32,7 @@ type feedingEntry struct {
 	Times    []careplan.TimeOfDay
 	Force    bool
 	Species  string
+	Cage     string
 	Diet     string
 	// Fallback marks best-effort conversions (incomplete legacy data): the
 	// plan is still created — the no-loss rule — but flagged "à vérifier".
@@ -108,6 +109,9 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			Label:    animalLabel(a),
 			Force:    a.ForceFeed,
 			Species:  strings.TrimSpace(a.Species),
+			// Cage kept raw (not trimmed): the matcher must reproduce the stored
+			// spelling so eval resolves the exact same value.
+			Cage: a.Cage.String,
 		}
 		if !a.FeedingStart.Valid || !a.FeedingEnd.Valid {
 			// No-loss fallback (§8.1): keep the animal covered with what we
@@ -176,11 +180,13 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 }
 
 // convertFeedingCluster turns one ≥threshold (diet × slots × force) cluster
-// into a rule whose matcher is `species IN (...)` over the cluster's
-// non-empty species names (§8.1 step 2). All members share the exact same
-// slot set and force flag (cluster key) — the rule's schedule is the first
-// entry's. Returns the animal ids covered by the rule; members whose species
-// name is empty must be converted as per-animal plans by the caller.
+// into a rule whose matcher is `species IN (...)` narrowed to the cages its
+// members actually live in (`AND cage …`, R5-1d) — a species-only matcher
+// would sweep same-species animals housed elsewhere into the rule. All
+// members share the exact same slot set and force flag (cluster key) — the
+// rule's schedule is the first entry's. Returns the animal ids covered by
+// the rule; members whose species name is empty must be converted as
+// per-animal plans by the caller.
 func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries []feedingEntry, feedCareID string) (map[int]bool, error) {
 	diet := entries[0].Diet
 	species := map[string]bool{}
@@ -207,7 +213,7 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 	for i, s := range names {
 		quoted[i] = fmt.Sprintf(`"%s"`, escapeDSLQuote(s))
 	}
-	expr := "species IN (" + strings.Join(quoted, ", ") + ")"
+	expr := "species IN (" + strings.Join(quoted, ", ") + ") AND " + cageClause(entries, covered)
 
 	matcher := buildSeedMatcher(seedMatcherDef{
 		Key: "CONV", Derived: true,
@@ -265,6 +271,35 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 		}
 	}
 	return covered, nil
+}
+
+// cageClause renders the cage narrowing of a cluster matcher (bugs.md
+// U26/U27 R5-1d). Values come from the covered members only (empty-species
+// members become per-animal plans and must not widen the clause). The CI
+// operators (=* for one enclosure, INCI for several) keep case-variant
+// cage spellings of the same enclosure matching; the empty string is a
+// real value (the « sans cage » bucket) — cage resolves keep-empty, so
+// `cage INCI ("", …)` still covers those members. Deterministic order.
+func cageClause(entries []feedingEntry, covered map[int]bool) string {
+	cages := map[string]bool{}
+	for _, e := range entries {
+		if covered[e.AnimalID] {
+			cages[e.Cage] = true
+		}
+	}
+	values := make([]string, 0, len(cages))
+	for c := range cages {
+		values = append(values, c)
+	}
+	sort.Strings(values)
+	quoted := make([]string, len(values))
+	for i, c := range values {
+		quoted[i] = fmt.Sprintf(`"%s"`, escapeDSLQuote(c))
+	}
+	if len(values) == 1 {
+		return fmt.Sprintf("cage =* %s", quoted[0])
+	}
+	return "cage INCI (" + strings.Join(quoted, ", ") + ")"
 }
 
 func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, feedCareID string) error {

@@ -5,6 +5,7 @@ package actions
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -242,6 +243,13 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	var clusterMatcher models.CareMatcher
 	require.NoError(t, db.Find(&clusterMatcher, clusterRule.MatcherID.UUID))
 	require.Contains(t, clusterMatcher.Expression, `species IN ("Pigeon biset")`)
+	// R5-1d: the cluster matcher narrows to the cages its members live in.
+	// All fixture animals share the fixture cage → single-cage `=*` form.
+	require.Contains(t, clusterMatcher.Expression,
+		fmt.Sprintf(`AND cage =* "%s"`, fx.f.cage))
+	// …and the emitted expression must remain valid matcher DSL.
+	_, perr := careplan.ParseValidatedWith(clusterMatcher.Expression, careplan.DefaultRegistry())
+	require.NoError(t, perr, "cluster expression: %s", clusterMatcher.Expression)
 	sched, err := parseScheduleForTest(clusterRule.Schedule)
 	require.NoError(t, err)
 	require.Equal(t, []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}, sched)
