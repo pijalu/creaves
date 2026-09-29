@@ -81,78 +81,80 @@
 <p>Geen</p>
 <%}%>
 <br/>
-<h3 class="d-inline-block">Medicatie vandaag</h3>
-<a class="btn btn-outline-primary btn-sm ml-2" href="/care_plan?view=compact&amp;kind=medication" title="Dagplan openen"><i class="fas fa-external-link-alt"></i> Dagplan</a>
+<h3 class="d-inline-block"><%= t("dashboard.medication_today.title") %></h3>
+<a class="btn btn-outline-primary btn-sm ml-2" href="/care_plan?view=compact&amp;kind=medication&amp;back=%2F" title="<%= t("dashboard.medication_today.day_plan_title") %>"><i class="fas fa-external-link-alt"></i> <%= t("dashboard.medication_today.day_plan") %></a>
 <%= if (len(medicationCards) > 0) { %>
-<div class="row mb-3" id="dashMedCards">
-  <%= for (mg) in medicationCards { %>
-    <div class="col-md-6">
-      <div class="card mb-2 plan-med-card">
-        <div class="card-body p-2">
-          <div class="d-flex align-items-center">
-            <strong><a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a></strong>
-            <%= if (mg.Cage != "") { %><span class="text-muted ml-2"><%= mg.Cage %></span><% } %>
+<div class="table-responsive" id="dashMedCards">
+  <table class="table table-hover table-bordered" id="dashMedTable">
+    <thead class="thead-light">
+      <th><%= t("dashboard.medication_today.col.number") %></th>
+      <th><%= t("dashboard.medication_today.col.cage") %></th>
+      <th><%= t("dashboard.medication_today.col.species") %></th>
+      <th><%= t("dashboard.medication_today.col.treatments") %></th>
+    </thead>
+    <tbody>
+      <%= for (mg) in medicationCards { %>
+        <tr class="plan-med-row">
+          <td class="align-middle">
+            <a class="btn btn-primary" href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
             <%= if (mg.OpenCount > 0) { %>
-              <span class="badge badge-pill badge-warning ml-2"><%= mg.OpenCount %> te geven</span>
+              <span class="badge badge-pill badge-warning ml-1 dash-med-count"><%= mg.OpenCount %> <%= t("dashboard.medication_today.to_give") %></span>
             <% } else { %>
-              <span class="badge badge-pill badge-success ml-2">✓</span>
+              <span class="badge badge-pill badge-success ml-1 dash-med-count">✓</span>
             <% } %>
-          </div>
-          <%= for (slot) in mg.Slots { %>
-            <div class="d-flex align-items-center justify-content-between border-top mt-1 pt-1">
-              <div>
-                <strong><%= slot.Detail %></strong>
-                <br><small class="text-muted"><a href="<%= slot.SourceLink %>"><%= slot.SourceName %></a> · <%= slot.DueAtHM %></small>
-              </div>
-              <div class="text-nowrap">
-                <%= if (slot.Applied) { %>
-                  <button type="button" class="btn btn-success btn-sm" disabled
-                      title="<%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
-                      ✓ <%= slot.DueAtHM %>
-                    </button>
-                  <%= if (slot.CanUndo) { %>
-                    <button type="button" class="btn btn-outline-danger btn-sm dash-med-undo"
+          </td>
+          <td class="align-middle"><%= mg.Cage %></td>
+          <td class="align-middle"><%= tspecies(mg.Species) %></td>
+          <td class="align-middle">
+            <%= for (slot) in mg.Slots { %>
+              <div class="d-flex align-items-center justify-content-between border-top py-1 plan-med-line">
+                <div>
+                  <strong><%= slot.Detail %></strong>
+                  <br><small class="text-muted"><a href="<%= slot.SourceLink %>"><%= slot.SourceName %></a> · <%= slot.DueAtHM %></small>
+                </div>
+                <div class="text-nowrap">
+                  <%= if (slot.Applied) { %>
+                    <button type="button" class="btn btn-success btn-sm" disabled
+                        title="<%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
+                        ✓ <%= slot.DueAtHM %>
+                      </button>
+                    <%= if (slot.CanUndo) { %>
+                      <button type="button" class="btn btn-outline-danger btn-sm dash-med-undo"
+                        data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                        data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                        data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+                        title="Ongedaan maken">↩</button>
+                    <% } %>
+                  <% } else if (slot.Status == "skipped" || slot.Status == "deferred") { %>
+                    <span class="badge badge-secondary py-2"><%= slot.Status %></span>
+                  <% } else if (slot.Applicable) { %>
+                    <button type="button" class="btn btn-warning btn-sm dash-med-apply"
                       data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                       data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                      data-kind="medication"
                       data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                      title="Ongedaan maken">↩</button>
+                      data-source-name="<%= slot.SourceName %>"
+                      title="Toepassen — <%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
+                        ○ <%= slot.DueAtHM %>
+                      </button>
+                  <% } else { %>
+                    <button type="button" class="btn btn-light btn-sm" disabled
+                        title="<%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
+                        – <%= slot.DueAtHM %>
+                      </button>
                   <% } %>
-                  <%= if (slot.FulfillmentLink != "") { %>
-                    <a class="btn btn-outline-success btn-sm" href="<%= slot.FulfillmentLink %>" title="Record bekijken"><i class="fa fa-eye"></i></a>
-                  <% } %>
-                <% } else if (slot.Status == "skipped" || slot.Status == "deferred") { %>
-                  <span class="badge badge-secondary py-2"><%= slot.Status %></span>
-                <% } else if (slot.Applicable) { %>
-                  <button type="button" class="btn btn-warning btn-sm dash-med-apply"
-                    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                    data-kind="medication"
-                    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                    data-source-name="<%= slot.SourceName %>"
-                    title="Toepassen — <%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
-                      ○ <%= slot.DueAtHM %>
-                    </button>
-                <% } else { %>
-                  <button type="button" class="btn btn-light btn-sm" disabled
-                      title="<%= if (slot.Slot == "morning") { %>Ochtend<% } else if (slot.Slot == "noon") { %>Middag<% } else { %>Avond<% } %>">
-                      – <%= slot.DueAtHM %>
-                    </button>
-                <% } %>
-                <button type="button" class="btn btn-outline-secondary btn-sm dash-med-detail" title="Details"
-                  data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
-                  data-detail="<%= slot.Detail %>" data-source-name="<%= slot.SourceName %>" data-source-link="<%= slot.SourceLink %>"
-                  data-kind="medication" data-due="<%= slot.DueAtHM %>"
-                  data-status="<%= slot.Status %>">ℹ</button>
+                  <a class="btn btn-outline-primary btn-sm dash-med-view" href="<%= slot.ViewLink %>" title="<%= t("dashboard.medication_today.view") %>"><i class="fa fa-eye"></i></a>
+                </div>
               </div>
-            </div>
-          <% } %>
-        </div>
-      </div>
-    </div>
-  <% } %>
+            <% } %>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
 </div>
 <% } else { %>
-<p>Geen</p>
+<p><%= t("dashboard.medication_today.none") %></p>
 <% } %>
 
 <!-- Medication detail modal -->

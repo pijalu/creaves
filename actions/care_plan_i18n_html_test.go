@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"strings"
@@ -204,12 +205,23 @@ func TestCarePlanEditorsAllLocales(t *testing.T) {
 var _ = func() *pop.Connection { return models.DB }
 
 // TestDashboardMedicationSectionAllLocales renders /dashboard/ in all four
-// UI languages (the dashboard templates are hardcoded per-locale variants,
-// NOT t()-driven — a parse error in one variant 500s only that language)
-// and asserts the new "Medication today" heading is present (the old
-// animals-to-treat table must be gone).
+// UI languages and asserts the "Medication today" section (bugs.md R5-2b):
+// t()-driven heading, the original table shape (Number|Cage|Species|
+// Treatments — localized headers ×4), one row per animal and NO card grid.
 func TestDashboardMedicationSectionAllLocales(t *testing.T) {
-	_ = setupPlanFixture(t)
+	f := setupPlanFixture(t)
+	// One medication slot due earlier today (R5-2a today-only window):
+	// without it the dashboard table renders zero rows and the row-level
+	// assertions below would pass vacuously.
+	now := time.Now()
+	due := now.Add(-time.Minute)
+	if due.Day() != now.Day() {
+		due = now // midnight edge: keep the slot inside today
+	}
+	med := ruleWithoutMatcher(t, models.DB, "RMED-"+f.marker, "medication",
+		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrug-" + f.marker, "dosage": "0.5 ml"}),
+		careScheduleJSON(t, due))
+	_ = med // cleanup via the fixture's marker-tagged care_rules delete
 	client, baseURL := planAdminClient(t)
 
 	wantHeading := map[string]string{
@@ -217,6 +229,13 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 		"en-US": "Medication today",
 		"de":    "Medikation heute",
 		"nl":    "Medicatie vandaag",
+	}
+	// Localized table headers (R5-2b): Number | Cage | Species | Treatments.
+	wantCols := map[string][]string{
+		"fr":    {"N°", "Cage", "Espèce", "Traitements"},
+		"en-US": {"Number", "Cage", "Species", "Treatments"},
+		"de":    {"Nr.", "Käfig", "Art", "Behandlungen"},
+		"nl":    {"Nr.", "Kooi", "Soort", "Behandelingen"},
 	}
 	for _, lang := range []string{"fr", "en-US", "de", "nl"} {
 		lang := lang
@@ -228,16 +247,32 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			raw, _ := io.ReadAll(resp.Body)
+			rawBytes, _ := io.ReadAll(resp.Body)
+			raw := string(rawBytes)
+			// t() output is HTML-escaped (FR "aujourd&#39;hui") — compare
+			// on the unescaped text.
 			require.Equal(t, http.StatusOK, resp.StatusCode,
 				"%s /dashboard/ rendered: %s", lang, raw[:min(len(raw), 2000)])
-			require.Contains(t, string(raw), wantHeading[lang],
+			unescaped := html.UnescapeString(raw)
+			require.Contains(t, unescaped, wantHeading[lang],
 				"%s /dashboard/ must show the localized medication heading %q", lang, wantHeading[lang])
 			require.NotContains(t, string(raw), "animalsToTreat",
 				"%s /dashboard/ must not render the old animals-to-treat table", lang)
+			// R5-2b: the original table shape — one row per animal, no cards
+			for _, col := range wantCols[lang] {
+				require.Contains(t, string(raw), ">"+col+"</th>",
+					"%s /dashboard/ medication table must carry the localized %q header", lang, col)
+			}
+			require.Contains(t, string(raw), "plan-med-row",
+				"%s /dashboard/ must render one table row per animal", lang)
+			require.NotContains(t, string(raw), "plan-med-card",
+				"%s /dashboard/ must not render the old card grid", lang)
 			// slot buttons show the actual due time (any number of slots),
 			// not the 3 fixed bucket names
-			require.Contains(t, string(raw), "dash-med-", "medication card markup present")
+			require.Contains(t, string(raw), "dash-med-", "medication toggle markup present")
+			// unconditional view link (R5-2b)
+			require.Contains(t, string(raw), "dash-med-view",
+				"%s /dashboard/ must carry the unconditional view link", lang)
 		})
 	}
 }

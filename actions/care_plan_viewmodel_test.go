@@ -156,6 +156,10 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.Equal(t, 1, meds[0].OpenCount, "honest today count: one open slot")
 	require.False(t, meds[0].Slots[1].Applied)
 	require.True(t, meds[0].Slots[0].Applied)
+	// R5-2b: unconditional view link — dashboard mode points back at /
+	require.Contains(t, meds[0].Slots[0].ViewLink, "back=%2F#nav-treatment",
+		"no fulfillment yet: view link targets the animal Treatment tab, back=dashboard")
+	require.Contains(t, meds[0].Slots[0].ViewLink, "/animals/1?")
 
 	// /care_plan mode over the same plan: unchanged — every window slot
 	// stays visible, overridden included.

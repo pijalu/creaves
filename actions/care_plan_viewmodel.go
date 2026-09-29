@@ -113,6 +113,7 @@ type MedSlotView struct {
 	Overridden      bool
 	SourceLink      string
 	FulfillmentLink string
+	ViewLink        string // unconditional record/treatment view (R5-2b)
 }
 
 // MedGroupView is one rendered per-animal medication card: all medication
@@ -122,6 +123,7 @@ type MedGroupView struct {
 	AnimalID    int
 	AnimalLabel string
 	AnimalLink  string
+	Species     string // raw species (template translates via tspecies)
 	Zone        string
 	Cage        string
 	Slots       []MedSlotView
@@ -460,6 +462,10 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time) *Da
 // the plan window's today are kept and Overridden occurrences are
 // suppressed — the badge stays an honest today count.
 func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool) []MedGroupView {
+	back := v.SelfPath
+	if todayOnly {
+		back = "/" // dashboard links return to the dashboard (R5-2b)
+	}
 	order := map[string]int{"morning": 0, "noon": 1, "evening": 2}
 	groups := map[int]*MedGroupView{}
 	var ids []int
@@ -490,6 +496,7 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 				AnimalID:    it.Occurrence.AnimalID,
 				AnimalLabel: animalLabel(a),
 				AnimalLink:  cardAnimalLink(it.Occurrence.AnimalID, v.SelfPath),
+				Species:     a.Species,
 				Zone:        a.Zone.String,
 				Cage:        a.Cage.String,
 			}
@@ -516,6 +523,14 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
 				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
 			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, v.SelfPath)
+		}
+		// Unconditional view link (bugs.md R5-2b): an existing fulfillment
+		// targets its care/treatment record, anything else the animal's
+		// Treatment tab — present before AND after the toggle, sibling of
+		// the toggle button, never moves.
+		slot.ViewLink = slot.FulfillmentLink
+		if slot.ViewLink == "" {
+			slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, back)
 		}
 		if slot.Applicable && !slot.Done {
 			g.OpenCount++
@@ -619,6 +634,16 @@ func cardAnimalLink(animalID int, back string) string {
 		return ""
 	}
 	return fmt.Sprintf("/animals/%d?back=%s#nav-plan", animalID, url.QueryEscape(back))
+}
+
+// animalTreatmentLink targets the animal's Treatment tab — the fallback
+// of the R5-2b unconditional view link (no fulfillment record yet). Like
+// cardAnimalLink the back param goes before the #nav-treatment fragment.
+func animalTreatmentLink(animalID int, back string) string {
+	if animalID == 0 {
+		return ""
+	}
+	return fmt.Sprintf("/animals/%d?back=%s#nav-treatment", animalID, url.QueryEscape(back))
 }
 
 // cardSourceLink: rule → rule show; animal plan → the animal's Plan tab
