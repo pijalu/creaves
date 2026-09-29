@@ -29,6 +29,26 @@ func landingTabAnchor(key string) string {
 	return "#t-" + sha256(key)
 }
 
+// unwrapBackChain collapses a back target that itself carries ?back=...
+// to the embedded origin (bugs.md R5-2d, D-b): dashboard → care_plan
+// (self URL carrying back=/) → animal page — the animal's back button
+// goes straight to the ORIGINAL origin (one click home) and the U16 label
+// names that same destination, so label and landing never diverge.
+func unwrapBackChain(target string) string {
+	for i := 0; i < 5; i++ {
+		u, err := url.Parse(target)
+		if err != nil {
+			return target
+		}
+		b := u.Query().Get("back")
+		if b == "" || b == target {
+			return target
+		}
+		target = b
+	}
+	return target
+}
+
 // landingBackTarget resolves the "Back to animals in care" target (issue
 // #199-9): honor a safe `back` param (landing passes its tab anchor through
 // it), else default to the animal's zone tab in the default landing view.
@@ -36,7 +56,7 @@ func landingTabAnchor(key string) string {
 // reserved for an explicit dashboard back (U16 label "Back to dashboard").
 func landingBackTarget(c buffalo.Context, animal *models.Animal) string {
 	if b := localBackParam(c.Param("back")); b != "" {
-		return b
+		return unwrapBackChain(b)
 	}
 	return "/" + landingTabAnchor(animal.Zone.String)
 }

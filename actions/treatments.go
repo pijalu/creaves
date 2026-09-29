@@ -106,8 +106,9 @@ func (v TreatmentsResource) Show(c buffalo.Context) error {
 		c.Set("treatment", treatment)
 		// Back control + U16 label (bugs.md R5-2d/D-b): the care-plan card
 		// links (dashboard + work screen) land here with ?back=... — the
-		// label must name the real destination (e.g. "Back to dashboard").
-		back := safeBackParam(c)
+		// chain collapses to the ORIGINAL origin so the label and the
+		// landing agree (e.g. "Back to dashboard" → /).
+		back := unwrapBackChain(safeBackParam(c))
 		c.Set("back", back)
 		c.Set("landingBackLabel", landingBackLabelKey(back))
 

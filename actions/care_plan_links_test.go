@@ -267,3 +267,18 @@ func TestLandingBackLabelKey(t *testing.T) {
 	require.Equal(t, "animals.back.to_in_care", landingBackLabelKey("/animals/5"))
 	require.Equal(t, "animals.back.to_in_care", landingBackLabelKey("//evil.com"))
 }
+
+// TestUnwrapBackChain (D-b): a back target carrying its own ?back=...
+// collapses to the embedded origin — the work screen's self URL chains the
+// dashboard through, and back buttons must land there directly so the U16
+// label and the actual landing never diverge.
+func TestUnwrapBackChain(t *testing.T) {
+	require.Equal(t, "/", unwrapBackChain("/care_plan?back=%2F&view=compact"))
+	require.Equal(t, "/", unwrapBackChain("/care_plan?view=compact&back=%2F"))
+	require.Equal(t, "/dashboard/", unwrapBackChain("/care_plan?back=%2Fdashboard%2F&view=compact"))
+	// No embedded back → unchanged.
+	require.Equal(t, "/care_plan?view=compact", unwrapBackChain("/care_plan?view=compact"))
+	require.Equal(t, "/", unwrapBackChain("/"))
+	// Only the first hop is collapsed for plain targets.
+	require.Equal(t, "/animals/5", unwrapBackChain("/animals/5"))
+}

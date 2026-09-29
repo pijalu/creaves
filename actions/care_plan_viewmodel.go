@@ -506,10 +506,13 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			g = &MedGroupView{
 				AnimalID:    it.Occurrence.AnimalID,
 				AnimalLabel: animalLabel(a),
-				AnimalLink:  cardAnimalLink(it.Occurrence.AnimalID, v.SelfPath),
-				Species:     a.Species,
-				Zone:        a.Zone.String,
-				Cage:        a.Cage.String,
+				// back (not v.SelfPath): the dashboard mode overrides the
+				// chain to "/" so EVERY card link returns to the dashboard
+				// (R5-2d/D-b); on the work screen back == v.SelfPath.
+				AnimalLink: cardAnimalLink(it.Occurrence.AnimalID, back),
+				Species:    a.Species,
+				Zone:       a.Zone.String,
+				Cage:       a.Cage.String,
 			}
 			groups[it.Occurrence.AnimalID] = g
 			ids = append(ids, it.Occurrence.AnimalID)
@@ -527,13 +530,13 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			Applied:    it.Status == careplan.StatusApplied,
 			Applicable: it.Applicable,
 			Overridden: it.Status == careplan.StatusOverridden,
-			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, v.SelfPath),
+			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
 		}
 		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
 		if app := it.Application; app != nil {
 			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
 				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
-			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, v.SelfPath)
+			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
 		}
 		// Unconditional view link (bugs.md R5-2b): an existing fulfillment
 		// targets its care/treatment record, anything else the animal's

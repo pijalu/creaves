@@ -247,15 +247,19 @@
   }
 
   // Per-row "N to give" badge stays honest without a reload (U22): applied
-  // decrements, undo increments; at zero it flips to the ✓ badge.
+  // decrements, undo increments; at zero it flips to the ✓ badge. The live
+  // count rides in data-count — the ✓ text parses to NaN, so the undo
+  // branch would double-count without it (E2E-2 finding).
   function bumpCount(btn, delta) {
     var row = btn.closest('tr');
     if (!row) { return; }
     var badge = row.querySelector('.dash-med-count');
     if (!badge) { return; }
-    var n = parseInt(badge.textContent, 10);
-    if (isNaN(n)) { n = 1; }
+    var n = parseInt(badge.dataset.count, 10);
+    if (isNaN(n)) { n = parseInt(badge.textContent, 10); }
+    if (isNaN(n)) { n = delta > 0 ? 0 : 1; }
     n += delta;
+    badge.dataset.count = String(n);
     if (n <= 0) {
       badge.classList.remove('badge-warning');
       badge.classList.add('badge-success');
