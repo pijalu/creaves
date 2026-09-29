@@ -504,8 +504,13 @@ func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 	token := planToken(t, client, baseURL)
 
 	now := time.Now()
-	due1 := now.Add(30 * time.Minute).Truncate(time.Minute)
-	due2 := now.Add(2*time.Hour + 30*time.Minute).Truncate(time.Minute)
+	// §4.3 requires strictly ascending slots. Fixed same-day late times keep
+	// the schedule valid whenever the suite runs: the previous now+30m /
+	// now+2h30 pair crossed midnight after 21:30 local ("22:17" then
+	// "00:17") — descending HH:MM — and ParseScheduleJSON rejected the whole
+	// rule, so /care_plan returned zero items (time-bomb flake).
+	due1 := time.Date(now.Year(), now.Month(), now.Day(), 20, 15, 0, 0, now.Location())
+	due2 := time.Date(now.Year(), now.Month(), now.Day(), 22, 45, 0, 0, now.Location())
 	sched, err := json.Marshal(map[string]interface{}{
 		"times":       []string{due1.Format("15:04"), due2.Format("15:04")},
 		"anchor":      "fixed",
