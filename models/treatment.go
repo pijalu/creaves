@@ -24,8 +24,12 @@ type Treatment struct {
 	Remarks        nulls.String `json:"remarks" db:"remarks"`
 	Timebitmap     int          `json:"timebitmap" db:"timebitmap"`
 	Timedonebitmap int          `json:"timedonebitmap" db:"timedonebitmap"`
-	CreatedAt      time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time    `json:"updated_at" db:"updated_at"`
+	// Entries are the per-time expected administrations (bugs.md R5-3a,
+	// U25/D-e) — the source of truth for done state since R5-3. The legacy
+	// Timedonebitmap above is dormant (no reads/writes in live paths).
+	Entries   TreatmentTimeEntries `json:"-" has_many:"treatment_time_entries" order_by:"due_at asc"`
+	CreatedAt time.Time            `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time            `json:"updated_at" db:"updated_at"`
 }
 
 // Helper structure for presentation

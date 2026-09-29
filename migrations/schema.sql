@@ -997,6 +997,33 @@ CREATE TABLE `traveltypes` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `treatment_time_entries`
+--
+
+DROP TABLE IF EXISTS `treatment_time_entries`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `treatment_time_entries` (
+  `id` char(36) NOT NULL,
+  `treatment_id` char(36) NOT NULL,
+  `animal_id` int NOT NULL,
+  `due_at` datetime NOT NULL,
+  `time_label` varchar(5) NOT NULL,
+  `status` varchar(16) NOT NULL,
+  `applied_at` datetime DEFAULT NULL,
+  `user_id` char(36) DEFAULT NULL,
+  `note` text,
+  `source` varchar(16) NOT NULL,
+  `application_id` char(36) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `treatment_time_entries_treatment_id_idx` (`treatment_id`),
+  CONSTRAINT `treatment_time_entries_ibfk_1` FOREIGN KEY (`treatment_id`) REFERENCES `treatments` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `treatments`
 --
 
@@ -1117,4 +1144,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-28  9:00:19
+-- Dump completed on 2026-09-29 19:26:07
