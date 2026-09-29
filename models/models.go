@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/fatih/color"
@@ -87,6 +88,19 @@ func configureConnectionPool(conn *pop.Connection) {
 	}
 }
 
+// QuietSQLLogs silences pop's per-statement SQL logging. pop v6.4.1 emits
+// logging.SQL for EVERY executed statement unconditionally (executors.go
+// `txlog(logging.SQL, ...)`; its Debug guard only filters levels ≤ Debug),
+// so a full-suite run formats and writes megabytes of SQL to stderr — under
+// -race that dominates the actions package runtime. TestMain flips this
+// before m.Run; dev/prod logging behavior is unchanged.
+var QuietSQLLogs atomic.Bool
+
+// sqlLogsMuted reports whether per-statement SQL logging is muted (tests).
+func sqlLogsMuted(lvl logging.Level) bool {
+	return QuietSQLLogs.Load() && lvl == logging.SQL
+}
+
 // installSafePopTxLogger replaces pop v6.1.0's default tx logger, which —
 // when the log target is a raw store (genericCreate/genericUpdate log calls)
 // — opens a REAL sql transaction just to read its ID and never closes it
@@ -98,6 +112,9 @@ func configureConnectionPool(conn *pop.Connection) {
 // fix without a dependency upgrade. Replicates the default log format.
 func installSafePopTxLogger() {
 	pop.SetTxLogger(func(lvl logging.Level, anon interface{}, s string, args ...interface{}) {
+		if sqlLogsMuted(lvl) {
+			return
+		}
 		if !pop.Debug && lvl <= logging.Debug {
 			return
 		}

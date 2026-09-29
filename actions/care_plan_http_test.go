@@ -84,6 +84,14 @@ func setupPlanFixture(t *testing.T) *planFixture {
 // cleanup removes every row the fixture created (FK-safe order).
 func (f *planFixture) cleanup() {
 	db := models.DB
+	// A test may have moved a fixture animal to another cage (the
+	// OTHER-<marker> "must not match" control in
+	// TestCarePlanBatchScopedToSingleCage) — every cage-keyed delete below
+	// would miss it AND its applications/cares, leaking one animal per
+	// suite run. Move recorded animals home before the cage-keyed deletes.
+	if len(f.animalIDs) > 0 {
+		db.RawQuery("UPDATE animals SET cage = ? WHERE id IN (?)", f.cage, f.animalIDs).Exec()
+	}
 	// applications referencing our cares/treatments/plans
 	db.RawQuery("DELETE cpa FROM care_plan_applications cpa JOIN animals a ON cpa.animal_id = a.id WHERE a.cage = ?", f.cage).Exec()
 	db.RawQuery("DELETE c FROM cares c JOIN animals a ON c.animal_id = a.id WHERE a.cage = ?", f.cage).Exec()
@@ -504,13 +512,16 @@ func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 	token := planToken(t, client, baseURL)
 
 	now := time.Now()
-	// §4.3 requires strictly ascending slots. Fixed same-day late times keep
-	// the schedule valid whenever the suite runs: the previous now+30m /
-	// now+2h30 pair crossed midnight after 21:30 local ("22:17" then
-	// "00:17") — descending HH:MM — and ParseScheduleJSON rejected the whole
-	// rule, so /care_plan returned zero items (time-bomb flake).
-	due1 := time.Date(now.Year(), now.Month(), now.Day(), 20, 15, 0, 0, now.Location())
-	due2 := time.Date(now.Year(), now.Month(), now.Day(), 22, 45, 0, 0, now.Location())
+	// The test needs two FUTURE, strictly ascending, same-day slots at any
+	// run time — impossible to derive from `now`: now+2h30 crosses midnight
+	// after 21:30 (descending HH:MM → §4.3 rejects the schedule → zero plan
+	// items), and any fixed same-day pair drifts into the past, where skips
+	// hit the §10-A1 hors-délai window (409). Anchoring the schedule on
+	// TOMORROW with fixed early slots makes both occurrences future,
+	// ascending and inside the 4-day window whenever the suite runs.
+	day1 := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, 1)
+	due1 := day1.Add(1 * time.Hour) // tomorrow 01:00
+	due2 := day1.Add(3 * time.Hour) // tomorrow 03:00
 	sched, err := json.Marshal(map[string]interface{}{
 		"times":       []string{due1.Format("15:04"), due2.Format("15:04")},
 		"anchor":      "fixed",
@@ -563,7 +574,8 @@ func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 	require.Equal(t, "none", app.FulfillmentID)
 
 	// defer with reason + far-future target → clamped before the NEXT
-	// occurrence after due2 (§10-CP4): tomorrow's first slot is due1+24h.
+	// occurrence after due2 (§10-CP4): the next slot is due1+24h (day+2
+	// 01:00), i.e. due2+22h with the 2h slot spread.
 	req = itemRef(second)
 	req["status"] = "deferred"
 	req["note"] = "patience"

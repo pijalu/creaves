@@ -97,9 +97,16 @@ func (u *User) DisplayName() string {
 	return name
 }
 
+// PasswordHashCost is the bcrypt cost used when hashing passwords.
+// Production keeps bcrypt.DefaultCost. Test suites may lower it (actions'
+// TestMain sets bcrypt.MinCost): hundreds of fixture users × ~70ms of
+// DefaultCost hashing is pure CPU that dominates the suite under -race;
+// every login is still a real bcrypt compare, so coverage is unchanged.
+var PasswordHashCost = bcrypt.DefaultCost
+
 // SetPasswordHash update password hash based on password
 func (u *User) SetPasswordHash() error {
-	ph, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	ph, err := bcrypt.GenerateFromPassword([]byte(u.Password), PasswordHashCost)
 	if err != nil {
 		return errors.WithStack(err)
 	}
