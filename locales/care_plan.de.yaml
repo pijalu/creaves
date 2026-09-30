@@ -551,3 +551,7 @@
   translation: "Trotzdem erfassen (verspätet)"
 - id: "care_plan.treatment.record_late_confirm"
   translation: "Diesen verpassten Termin nachträglich erfassen?"
+
+# Round-2 §7.2 (CP2): unknown zone whitelist reset
+- id: "care_plan.zone.unknown"
+  translation: "Unbekannte Zone — Filter zurückgesetzt."

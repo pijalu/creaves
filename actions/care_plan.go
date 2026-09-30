@@ -11,6 +11,7 @@ import (
 	"creaves/models/careplan"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 )
 
@@ -53,45 +54,72 @@ func CarePlanIndex(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
-	// ?kind=<action_kind> narrows the day plan to one kind (§8.3: the
-	// retired /feeding page redirects here with kind=feeding).
+
+	// ?kind=<action_kind> narrows the JSON read model to one kind (§8.3:
+	// the retired /feeding page redirects here with kind=feeding). The
+	// work screen keeps the FULL plan (CP2 root cause removed) — HTML
+	// narrowing is the view model's single zone×kind filter pass.
 	kindFilter := ""
 	if kind := c.Param("kind"); kind != "" {
 		if err := careplan.ValidateActionKind(kind); err != nil {
 			return planError(c, http.StatusUnprocessableEntity, err)
 		}
 		kindFilter = kind
-		narrowed := *plan
-		narrowed.Items = make([]careplan.PlanItem, 0, len(plan.Items))
-		for _, it := range plan.Items {
-			if src := it.Occurrence.Source; src != nil && src.ActionKind() == kind {
-				narrowed.Items = append(narrowed.Items, it)
-			}
-		}
-		plan = &narrowed
-		c.Set("kindFilter", kind)
 	}
-	rows := planJSONRows(plan)
-	// Work screen (Phase 2, U2): compact/detailed view + zone filter
-	// (kind already narrowed above). HTML only — the JSON read model is
-	// unchanged (backward compatible).
+
+	// Work screen (Phase 2, U2): compact/detailed view + zone filter.
 	view := c.Param("view")
 	if view != ViewDetailed {
 		view = ViewCompact
 	}
 	zone := c.Param("zone")
-	c.Set("items", rows)
-	cageCards, feedingCards := GroupCards(plan.Items, plan)
-	c.Set("cards", cageCards)
-	c.Set("feedingCards", feedingCards)
-	c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now, c.Param("back")))
+
 	return responder.Wants("html", func(c buffalo.Context) error {
+		// CP2: the screen renders the unfiltered plan; the view model
+		// narrows it in ONE zone×kind pass (§7.2 stage 3). An unknown
+		// zone is whitelist-validated against the zones table — a stale
+		// link flashes and resets instead of silently hiding every card.
+		if zone != "" {
+			exists, zerr := zoneExists(tx, zone)
+			if zerr != nil {
+				return zerr
+			}
+			if !exists {
+				c.Flash().Add("warning", T.Translate(c, "care_plan.zone.unknown"))
+				return c.Redirect(http.StatusFound, planSelfPath(view, "", kindFilter, c.Param("back")))
+			}
+		}
+		c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now, c.Param("back")))
 		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
+		rows := planJSONRows(narrowPlanByKind(plan, kindFilter))
 		return c.Render(http.StatusOK, r.JSON(map[string]interface{}{
 			"from": plan.From, "to": plan.To, "items": rows,
 		}))
 	}).Respond(c)
+}
+
+// narrowPlanByKind returns a shallow copy of plan with only the items of
+// the given action kind — the JSON read model's backward-compatible
+// narrowing (§8.3). An empty kind returns plan unchanged.
+func narrowPlanByKind(plan *DayPlan, kind string) *DayPlan {
+	if kind == "" {
+		return plan
+	}
+	narrowed := *plan
+	narrowed.Items = make([]careplan.PlanItem, 0, len(plan.Items))
+	for _, it := range plan.Items {
+		if src := it.Occurrence.Source; src != nil && src.ActionKind() == kind {
+			narrowed.Items = append(narrowed.Items, it)
+		}
+	}
+	return &narrowed
+}
+
+// zoneExists reports whether the zone name exists (work-screen whitelist).
+func zoneExists(tx *pop.Connection, name string) (bool, error) {
+	n, err := tx.Where("zone = ?", name).Count(&models.Zone{})
+	return n > 0, err
 }
 
 // planWindowParams parses the ?from=&to= query overrides (§6.1).

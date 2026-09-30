@@ -551,3 +551,7 @@
   translation: "Record anyway (late)"
 - id: "care_plan.treatment.record_late_confirm"
   translation: "Record this missed occurrence after the fact?"
+
+# Round-2 §7.2 (CP2): unknown zone whitelist reset
+- id: "care_plan.zone.unknown"
+  translation: "Unknown zone — filter reset."

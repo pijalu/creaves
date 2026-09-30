@@ -551,3 +551,7 @@
   translation: "Enregistrer quand même (en retard)"
 - id: "care_plan.treatment.record_late_confirm"
   translation: "Enregistrer cette occurrence manquée après coup ?"
+
+# Round-2 §7.2 (CP2): unknown zone whitelist reset
+- id: "care_plan.zone.unknown"
+  translation: "Zone inconnue — filtre réinitialisé."

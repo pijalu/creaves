@@ -551,3 +551,7 @@
   translation: "Toch registreren (te laat)"
 - id: "care_plan.treatment.record_late_confirm"
   translation: "Deze gemiste occurrence alsnog registreren?"
+
+# Round-2 §7.2 (CP2): unknown zone whitelist reset
+- id: "care_plan.zone.unknown"
+  translation: "Onbekende zone — filter hersteld."
