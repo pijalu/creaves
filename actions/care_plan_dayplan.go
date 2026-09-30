@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -48,7 +49,11 @@ func BuildDayPlan(tx *pop.Connection, now, from, to time.Time) (*DayPlan, error)
 		to = from.Add(planWindowMaxDays * 24 * time.Hour)
 	}
 
-	pa, err := loadAnimalContexts(tx, now)
+	// Round-2 §4b-A2 (bugs.md Dash-9): animals outtaken TODAY stay in the
+	// day-plan assemblies (same-day work remains visible + recordable via
+	// the late path); older outtakes never enter. Strict scopes keep their
+	// own rules (CountOpenItems, matcher previews).
+	pa, err := loadAnimalContextsIncludingTodayOuttaken(tx, now, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +386,10 @@ var errItemNotReproduced = fmt.Errorf("occurrence not found or no longer produce
 func ReverifyItem(tx *pop.Connection, ref planItemRef, now time.Time) (*ReverifiedItem, error) {
 	from, to := DefaultPlanWindow(now)
 
-	pa, err := loadAnimalContextsScoped(tx, now, []int{ref.AnimalID})
+	// Round-2 §4b-A2: today-outtaken animals stay reproducible (their past
+	// occurrences are recordable via the late path, §6.2-2); reproduction
+	// is not the apply window.
+	pa, err := loadAnimalContextsIncludingTodayOuttaken(tx, now, []int{ref.AnimalID})
 	if err != nil {
 		return nil, err
 	}
@@ -532,6 +540,14 @@ type FeedingChip struct {
 	DueAt      time.Time
 	Applicable bool
 	AnimalLink string // set by the view-model layer (back-aware)
+	// Round-2 §6.2-3/§9 (additive): chip dedupe + supersession info. The
+	// chip is the animal's earliest CURRENT occurrence; a fully superseded
+	// animal keeps a dimmed info chip pointing at the next due time.
+	Superseded            bool
+	SupersededBy          string // bare "15:04" of the replacing occurrence
+	SupersededByDayKey    string // care_plan.time.yesterday / .tomorrow ("" otherwise)
+	SupersededByShortDate string // "02/01" for gaps beyond one day
+	OuttakenToday         bool   // §4b-A2: animal outtaken today (depupdate outtaken row)
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan
@@ -546,6 +562,11 @@ type FeedingCard struct {
 	ForceFeed bool
 	Chips     []FeedingChip
 	Items     []careplan.PlanItem
+
+	// chipIndex maps (source × animal) → index into Chips (round-2 §6.2-3
+	// dedupe: "per (animal × source) the chip is the earliest current
+	// occurrence"); unexported, never rendered.
+	chipIndex map[string]int
 }
 
 // GroupCards groups the plan items whose kind uses a cage-level grouping
@@ -599,16 +620,9 @@ func GroupCards(items []careplan.PlanItem, d *DayPlan) ([]*CageCard, []*FeedingC
 			} else if p.ForceFeed {
 				card.ForceFeed = true // any force-fed member flags the card
 			}
-			card.Chips = append(card.Chips, FeedingChip{
-				AnimalID:   it.Occurrence.AnimalID,
-				Label:      label,
-				Status:     string(it.Status),
-				SourceType: string(src.SourceType()),
-				SourceID:   src.SourceID(),
-				DueAt:      it.Occurrence.DueAt,
-				Applicable: it.Applicable,
-			})
 			card.Items = append(card.Items, it)
+			// Round-2 §6.2-3 chip dedupe — see feedingCardChip.
+			feedingCardChip(card, &it, src, label, d)
 		}
 	}
 	byZoneCage := func(zoneAt, cageAt func(int) string) func(int, int) bool {
@@ -626,6 +640,58 @@ func GroupCards(items []careplan.PlanItem, d *DayPlan) ([]*CageCard, []*FeedingC
 		func(i int) string { return feedings[i].Zone },
 		func(i int) string { return feedings[i].Cage }))
 	return cages, feedings
+}
+
+// feedingCardChip maintains the round-2 §6.2-3 (fixes CP6) dedupe: ONE chip
+// per (animal × source) per card — the earliest CURRENT occurrence. A
+// non-current occurrence never takes the chip slot from a current one
+// (Jakob's: one next action per animal, like the old /feeding view). A fully
+// superseded animal keeps a dimmed fallback chip with the next due label —
+// the dead-end red "En retard" with no hint is gone by construction. Items
+// arrive chronologically, so the first current occurrence wins and stays.
+func feedingCardChip(card *FeedingCard, it *careplan.PlanItem, src careplan.PlanSource, label string, d *DayPlan) {
+	if card.chipIndex == nil {
+		card.chipIndex = map[string]int{}
+	}
+	cur := IsCurrent(it, d.Now)
+	out := false
+	if a, ok := d.AnimalRow(it.Occurrence.AnimalID); ok {
+		out = a.Outtake != nil // preloaded only by the §4b-A2 scope
+	}
+	chipKey := string(src.SourceType()) + "|" + src.SourceID() + "|" + strconv.Itoa(it.Occurrence.AnimalID)
+	if idx, seen := card.chipIndex[chipKey]; seen {
+		if cur && card.Chips[idx].Superseded {
+			card.Chips[idx] = feedingChipOf(it, src, label, out, d.Now)
+		}
+		return
+	}
+	card.Chips = append(card.Chips, feedingChipOf(it, src, label, out, d.Now))
+	card.chipIndex[chipKey] = len(card.Chips) - 1
+}
+
+// feedingChipOf builds one FeedingChip from a plan item, carrying the
+// supersession display info (round-2 §6.2-2): why the occurrence left the
+// work set and what replaced it (date-aware label parts, §6.2-5 — the
+// template localizes the day word).
+func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string, outtakenToday bool, now time.Time) FeedingChip {
+	chip := FeedingChip{
+		AnimalID:       it.Occurrence.AnimalID,
+		Label:          label,
+		Status:         string(it.Status),
+		SourceType:     string(src.SourceType()),
+		SourceID:       src.SourceID(),
+		DueAt:          it.Occurrence.DueAt,
+		Applicable:     it.Applicable,
+		OuttakenToday:  outtakenToday,
+	}
+	if reason := SupersededReason(it, now); reason != "" {
+		chip.Superseded = true
+		parts := DueLabelPartsOf(it.NextDue, now)
+		chip.SupersededBy = parts.TimeHM
+		chip.SupersededByDayKey = parts.DayKey
+		chip.SupersededByShortDate = parts.ShortDate
+	}
+	return chip
 }
 
 // normalizeFood is the diet grouping key (bugs.md U1): case- and

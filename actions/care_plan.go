@@ -35,6 +35,11 @@ type planApplyRequest struct {
 	Weight        string `json:"weight"`
 	Answer        string `json:"answer"`
 	Dosage        string `json:"dosage"` // manual medication dosage (§10-B6)
+	// Late (round-2 §6.2-2, §4b-A1): explicit acknowledgment that a
+	// PAST-DUE occurrence is being recorded after the fact. Bypasses ONLY
+	// the apply-window 409 — future-due, already-recorded and overridden
+	// occurrences still 409. Default (flag absent) byte-for-byte unchanged.
+	Late bool `json:"late"`
 }
 
 // CarePlanIndex handles GET /care_plan (§7.2): the day plan. JSON returns
@@ -159,6 +164,14 @@ func planJSONRows(plan *DayPlan) []planItemJSON {
 	return items
 }
 
+// lateRecordAllowed implements the §4b-A1 late-record bound: the flag
+// bypasses ONLY the hors-délai rejection for PAST-DUE occurrences — the
+// future stays unrecordable even with the flag (defense-in-depth; genuine
+// plan state cannot produce a non-applicable future item).
+func lateRecordAllowed(late bool, item *careplan.PlanItem, now time.Time) bool {
+	return late && !item.Occurrence.DueAt.After(now)
+}
+
 // CarePlanApply handles POST /care_plan/apply (§6.2): applied fulfillment,
 // skip (mandatory reason) or defer (mandatory reason + clamped target).
 func CarePlanApply(c buffalo.Context) error {
@@ -185,7 +198,8 @@ func CarePlanApply(c buffalo.Context) error {
 		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
 	}
 
-	rev, err := ReverifyItem(tx, in.planItemRef, time.Now())
+	now := time.Now()
+	rev, err := ReverifyItem(tx, in.planItemRef, now)
 	if err != nil {
 		if errors.Is(err, errItemNotReproduced) {
 			return planError(c, http.StatusConflict, err)
@@ -198,7 +212,13 @@ func CarePlanApply(c buffalo.Context) error {
 		// generic hors-délai message would be misleading here.
 		return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
 	}
-	if !item.Applicable {
+	// Round-2 §6.2-2 (§4b-A1): an explicit `late` acknowledgment lets a
+	// caretaker record a missed occurrence after the fact (depupdate
+	// parity). Bounded: past-due only (the future stays unrecordable),
+	// unapplied (checked above) and inside the plan window (ReverifyItem
+	// already 409s anything the window no longer produces). Without the
+	// flag the default is unchanged — hors délai 409.
+	if !item.Applicable && !lateRecordAllowed(in.Late, item, now) {
 		return planError(c, http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
 	}
 	if item.Status == careplan.StatusOverridden {
@@ -253,10 +273,12 @@ func CarePlanApply(c buffalo.Context) error {
 	return c.Render(http.StatusCreated, renderJSON(app))
 }
 
-// CarePlanUnapply handles POST /care_plan/unapply (§10-CP1): correction
-// path. Admins can un-apply anything; non-admins can only undo an APPLIED
-// MEDICATION occurrence (the per-animal slot toggle, easily reversible by
-// design) — the medication fulfillment stays fully under their control.
+// CarePlanUnapply handles POST /care_plan/unapply: correction path.
+// Round-2 §4b-A8 (user decision): widened to depupdate parity — any
+// authenticated user may undo any record (applied/skipped/deferred, any
+// kind). The round-1 admin gate was removed; every undo is audit-logged
+// (best-effort, depupdate pattern) with the deleted application row as the
+// change record.
 func CarePlanUnapply(c buffalo.Context) error {
 	u := GetCurrentUser(c)
 	if u == nil {
@@ -270,27 +292,21 @@ func CarePlanUnapply(c buffalo.Context) error {
 	if err := c.Bind(in); err != nil {
 		return err
 	}
-	if !u.Admin {
-		// Non-admin correction path: only an APPLIED MEDICATION occurrence may
-		// be undone (the per-animal slot toggle, easily reversible by design).
-		// Anything else — missing application, other kind, other status — is
-		// admin-only. We deliberately return the same 403 for "not found" so
-		// the endpoint does not leak which refs have an application row.
-		rev, err := ReverifyItem(tx, in.planItemRef, time.Now())
-		if err != nil || rev.Item.Occurrence.Source.ActionKind() != careplan.KindMedication {
-			return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1) — only an applied medication can be undone"))
-		}
-		app := &models.CarePlanApplication{}
-		q := tx.Where("source_type = ? AND source_id = ? AND animal_id = ? AND due_at = ?",
-			in.SourceType, in.SourceID, in.AnimalID, in.DueAt)
-		if err := q.First(app); err != nil || app.Status != models.ApplicationStatusApplied {
-			return planError(c, http.StatusForbidden, fmt.Errorf("admin only (§10-CP1) — only an applied medication can be undone"))
-		}
+	// Audit snapshot (§4b-A8): the exact application row being undone —
+	// the same row UnapplyPlanItem deletes. A missing ref 404s here, the
+	// same answer the endpoint gave admins before the gate removal.
+	auditApp := &models.CarePlanApplication{}
+	aq := tx.Where("source_type = ? AND source_id = ? AND animal_id = ? AND due_at = ?",
+		in.SourceType, in.SourceID, in.AnimalID, in.DueAt)
+	if err := aq.First(auditApp); err != nil {
+		return planError(c, http.StatusNotFound, fmt.Errorf("application not found"))
 	}
 	deleted, err := UnapplyPlanItem(tx, in.SourceType, in.SourceID, in.AnimalID, in.DueAt, in.DeleteFulfillment)
 	if err != nil {
 		return planError(c, http.StatusNotFound, err)
 	}
+	auditAnimalChange(c, tx, in.AnimalID, models.AuditEntityCarePlanApplication,
+		auditEntityID(auditApp.ID), models.AuditActionDelete, *auditApp, nil)
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"status":              "unapplied",
 		"deleted_fulfillment": deleted,

@@ -153,6 +153,35 @@ func loadAnimalContextsScoped(tx *pop.Connection, now time.Time, ids []int) (*pl
 	if err := q.All(&animals); err != nil {
 		return nil, err
 	}
+	return assemblePlanAnimals(tx, now, animals)
+}
+
+// loadAnimalContextsIncludingTodayOuttaken is the round-2 §4b-A2 scope
+// (bugs.md Dash-9): like loadAnimalContexts, but animals outtaken TODAY
+// stay in the assemblies (same-day work remains visible + recordable),
+// with their Outtake row preloaded so viewmodels can flag them
+// (OuttakenToday) and the UI can render depupdate's outtaken class + dove
+// badge. Animals outtaken before today never enter the assemblies — the
+// same-day semantics depupdate's "remaining today-treatments" SQL had.
+// ReverifyItem uses this too: a today-outtaken animal's occurrences stay
+// reproducible (their past items are recordable via the late path, §6.2-2).
+func loadAnimalContextsIncludingTodayOuttaken(tx *pop.Connection, now time.Time, ids []int) (*planAnimals, error) {
+	var animals []models.Animal
+	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	q := tx.Where("outtake_id IS NULL OR outtake_id IN (SELECT id FROM outtakes WHERE date >= ?)", todayStart).
+		Eager("Outtake")
+	if ids != nil {
+		q = q.Where("id in (?)", ids)
+	}
+	if err := q.All(&animals); err != nil {
+		return nil, err
+	}
+	return assemblePlanAnimals(tx, now, animals)
+}
+
+// assemblePlanAnimals builds the planAnimals fill pipeline over already
+// loaded animal rows (shared by both load scopes).
+func assemblePlanAnimals(tx *pop.Connection, now time.Time, animals []models.Animal) (*planAnimals, error) {
 	pa := &planAnimals{
 		ctxs: make(map[int]*careplan.AnimalContext, len(animals)),
 		rows: make(map[int]models.Animal, len(animals)),

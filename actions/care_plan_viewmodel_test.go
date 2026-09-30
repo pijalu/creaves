@@ -215,7 +215,10 @@ func TestBuildDayPlanViewFeedingDedup(t *testing.T) {
 	fc := v.Feedings[0]
 	require.Len(t, fc.Chips, 2, "one chip per animal — duplicates deduped")
 	require.Equal(t, 2, fc.ApplicableCount)
-	// animal 1's kept chip is the EARLIEST open occurrence (08:00 missing)
+	// animal 1's kept chip is the earliest CURRENT occurrence: the missed
+	// 08:00 slot is superseded by its open successors (§6.2-2/3), the due
+	// noon slot is the actionable work. Superseded ones resurface in the
+	// history section via the late-record path (WP4).
 	var c1 *FeedingChip
 	for i := range fc.Chips {
 		if fc.Chips[i].AnimalID == 1 {
@@ -223,12 +226,12 @@ func TestBuildDayPlanViewFeedingDedup(t *testing.T) {
 		}
 	}
 	require.NotNil(t, c1)
-	require.Equal(t, "missing", c1.Status)
-	require.Equal(t, time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local), c1.DueAt)
-	// exactly one ref for animal 1 in the batch payload (the 08:00 one)
-	require.Contains(t, fc.ChipRefsJSON, `"due_at":"2026-09-28T08:00:00`)
-	require.NotContains(t, fc.ChipRefsJSON, `"due_at":"2026-09-28T10:00:00`)
-	require.NotContains(t, fc.ChipRefsJSON, `"due_at":"2026-09-28T12:00:00+02:00","source_id":"src-A","animal_id":1`)
+	require.Equal(t, "due", c1.Status)
+	require.Equal(t, time.Date(2026, 9, 28, 12, 0, 0, 0, time.Local), c1.DueAt)
+	// exactly one ref for animal 1 in the batch payload (the 12:00 one)
+	require.Contains(t, fc.ChipRefsJSON, `"animal_id":1,"due_at":"2026-09-28T12:00:00`)
+	require.NotContains(t, fc.ChipRefsJSON, `"animal_id":1,"due_at":"2026-09-28T08:00:00`)
+	require.NotContains(t, fc.ChipRefsJSON, `"animal_id":1,"due_at":"2026-09-28T10:00:00`)
 }
 
 // TestCardNeedsInput (bugs.md R5-2c, D-a): the unified confirm policy —

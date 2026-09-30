@@ -130,8 +130,12 @@ type MedGroupView struct {
 	Species     string // raw species (template translates via tspecies)
 	Zone        string
 	Cage        string
-	Slots       []MedSlotView
-	OpenCount   int // applicable, not yet recorded
+	// Round-2 §4b-A2 (Dash-9): animal outtaken today — depupdate parity
+	// (outtaken row class + dove badge); set only by the today-outtaken
+	// assembly scope.
+	OuttakenToday bool
+	Slots         []MedSlotView
+	OpenCount     int // applicable, not yet recorded
 }
 
 // CareView is one rendered cage (cleanup) card — one card per
@@ -334,35 +338,18 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 					continue
 				}
 				fv := FeedingGroupView{Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed}
-				// Dedupe "pure duplicated" chips (bugs.md rework): several OPEN
-				// occurrences of the same animal × same source (e.g. a missed
-				// morning slot + the noon slot) render as identical rows and
-				// would make one click apply N records for the same feeding.
-				// Keep the earliest open occurrence; the others stay visible in
-				// their urgency tiers (state visible, no invisible work).
-				type chipKey struct {
-					animalID             int
-					sourceType, sourceID string
-				}
-				win := map[chipKey]int{} // key → index in fc.Items of the earliest open occurrence
-				var order []chipKey      // first-seen order keeps the row order stable
-				for i := range fc.Items {
-					if !openStatusAction(fc.Items[i].Status) || fc.Items[i].Status == careplan.StatusScheduled {
-						continue
-					}
-					k := chipKey{fc.Chips[i].AnimalID, fc.Chips[i].SourceType, fc.Chips[i].SourceID}
-					if at, dup := win[k]; dup {
-						if fc.Items[i].Occurrence.DueAt.Before(fc.Items[at].Occurrence.DueAt) {
-							win[k] = i
-						}
-						continue
-					}
-					win[k] = i
-					order = append(order, k)
-				}
+				// Round-2 §6.2-3: the chips arrive already deduped — one per
+				// (animal × source), the earliest CURRENT occurrence. Superseded
+				// chips are work-set history: they stay off the work cards (the
+				// dead-end red "En retard" of CP6); the WP2/WP4 pipeline routes
+				// them to the history section.
 				var refs []map[string]interface{}
-				for _, k := range order {
-					chip := fc.Chips[win[k]]
+				for i := range fc.Chips {
+					chip := fc.Chips[i]
+					if chip.Superseded || !openStatusAction(careplan.PlanStatus(chip.Status)) ||
+						chip.Status == string(careplan.StatusScheduled) {
+						continue
+					}
 					chip.AnimalLink = cardAnimalLink(chip.AnimalID, v.SelfPath)
 					fv.Chips = append(fv.Chips, chip)
 					if chip.Applicable {
@@ -504,15 +491,16 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 		g, ok := groups[it.Occurrence.AnimalID]
 		if !ok {
 			g = &MedGroupView{
-				AnimalID:    it.Occurrence.AnimalID,
-				AnimalLabel: animalLabel(a),
+				AnimalID:      it.Occurrence.AnimalID,
+				AnimalLabel:   animalLabel(a),
 				// back (not v.SelfPath): the dashboard mode overrides the
 				// chain to "/" so EVERY card link returns to the dashboard
 				// (R5-2d/D-b); on the work screen back == v.SelfPath.
-				AnimalLink: cardAnimalLink(it.Occurrence.AnimalID, back),
-				Species:    a.Species,
-				Zone:       a.Zone.String,
-				Cage:       a.Cage.String,
+				AnimalLink:    cardAnimalLink(it.Occurrence.AnimalID, back),
+				Species:       a.Species,
+				Zone:          a.Zone.String,
+				Cage:          a.Cage.String,
+				OuttakenToday: a.Outtake != nil, // §4b-A2 (Dash-9)
 			}
 			groups[it.Occurrence.AnimalID] = g
 			ids = append(ids, it.Occurrence.AnimalID)

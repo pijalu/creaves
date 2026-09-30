@@ -471,13 +471,16 @@ func TestCarePlanErrorContractDetail(t *testing.T) {
 		"409 body must carry the real hors-délai message, not 'Conflict': %s", raw)
 	require.Contains(t, string(raw), `"code":409`)
 
-	// --- 403: non-admin on an admin plan endpoint keeps the message --------
+	// --- 404: unapply of a never-applied ref keeps the real message -------
+	// (round-2 §4b-A8 dropped the admin gate: any authenticated user may
+	// undo, and a ref without an application row 404s uniformly.)
 	reg, regURL := planRegularClient(t)
 	regToken := planToken(t, reg, regURL)
 	code, raw = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, itemRef(it))
-	require.Equal(t, http.StatusForbidden, code, "body: %s", raw)
-	require.Contains(t, string(raw), "admin only",
-		"403 body must carry the real authz message, not 'Forbidden': %s", raw)
+	require.Equal(t, http.StatusNotFound, code, "body: %s", raw)
+	require.Contains(t, string(raw), "application not found",
+		"404 body must carry the real message, not 'Not Found': %s", raw)
+	require.Contains(t, string(raw), `"code":404`)
 }
 
 func TestCarePlanDayPlanHTMLRender(t *testing.T) {
@@ -591,10 +594,11 @@ func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Un-apply (§10-CP1 admin-only) + destroy hooks
+// Un-apply (§10-CP1, widened by round-2 §4b-A8: any authenticated user may
+// undo any record, audited) + destroy hooks
 // ---------------------------------------------------------------------------
 
-func TestCarePlanUnapplyAdminOnlyAndDestroyHook(t *testing.T) {
+func TestCarePlanUnapplyAnyUserAndDestroyHook(t *testing.T) {
 	f := setupPlanFixture(t)
 	admin, adminURL := planAdminClient(t)
 	token := planToken(t, admin, adminURL)
@@ -612,14 +616,11 @@ func TestCarePlanUnapplyAdminOnlyAndDestroyHook(t *testing.T) {
 	require.NoError(t, models.DB.Where("source_id = ?", rule.ID).First(app))
 	careID := app.FulfillmentID
 
-	// regular user → 403
+	// A8: regular user undoes it — 200 where round-1 answered 403; default
+	// keeps the fulfillment care row (§10-CP1 default unchanged).
 	reg, regURL := planRegularClient(t)
 	regToken := planToken(t, reg, regURL)
-	code, _ = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
-	require.Equal(t, http.StatusForbidden, code)
-
-	// admin without delete_fulfillment → application gone, care kept
-	code, raw = planDoJSON(t, admin, adminURL, "POST", "/care_plan/unapply", token, req)
+	code, raw = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
 	n, err := models.DB.Where("source_id = ?", rule.ID).Count(&models.CarePlanApplication{})
 	require.NoError(t, err)
@@ -1441,13 +1442,13 @@ func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// §10-CP1 rework: a non-admin may undo an APPLIED MEDICATION only (the slot
-// toggle is designed to be reversible); every other kind stays admin-only.
+// §10-CP1 rework, widened by round-2 §4b-A8: every authenticated user may
+// undo any record; a ref without an application row answers the uniform 404.
 // ---------------------------------------------------------------------------
 
 // TestCarePlanUnapplyMedicationNonAdmin: regular user applies a medication
 // (slot toggle), then undoes it with delete_fulfillment → application row
-// gone, treatments row destroyed. A second unapply (nothing applied) → 403.
+// gone, treatments row destroyed. A second unapply (nothing applied) → 404.
 func TestCarePlanUnapplyMedicationNonAdmin(t *testing.T) {
 	f := setupPlanFixture(t)
 	reg, regURL := planRegularClient(t)
@@ -1484,16 +1485,16 @@ func TestCarePlanUnapplyMedicationNonAdmin(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, n, "treatments row destroyed with delete_fulfillment")
 
-	// nothing applied anymore → unapply again must be the uniform 403 (no
-	// information leak about which refs ever had an application row)
+	// nothing applied anymore → the uniform 404 (no information leak about
+	// which refs ever had an application row; A8 dropped the 403 branch)
 	delete(req, "delete_fulfillment")
 	code, _ = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
-	require.Equal(t, http.StatusForbidden, code)
+	require.Equal(t, http.StatusNotFound, code)
 }
 
-// TestCarePlanUnapplyNonMedicationNonAdminDenied: feeding stays admin-only
-// for regular users even when applied.
-func TestCarePlanUnapplyNonMedicationNonAdminDenied(t *testing.T) {
+// TestCarePlanUnapplyFeedingNonAdminAllowed (round-2 §4b-A8): feeding
+// records are undoable by regular users too — depupdate parity.
+func TestCarePlanUnapplyFeedingNonAdminAllowed(t *testing.T) {
 	f := setupPlanFixture(t)
 	admin, adminURL := planAdminClient(t)
 	token := planToken(t, admin, adminURL)
@@ -1509,8 +1510,11 @@ func TestCarePlanUnapplyNonMedicationNonAdminDenied(t *testing.T) {
 
 	reg, regURL := planRegularClient(t)
 	regToken := planToken(t, reg, regURL)
-	code, _ = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
-	require.Equal(t, http.StatusForbidden, code, "feeding undo must stay admin-only for regular users")
+	code, raw = planDoJSON(t, reg, regURL, "POST", "/care_plan/unapply", regToken, req)
+	require.Equal(t, http.StatusOK, code, "A8: feeding undo open to regular users: %s", raw)
+	n, err := models.DB.Where("source_id = ?", rule.ID).Count(&models.CarePlanApplication{})
+	require.NoError(t, err)
+	require.Equal(t, 0, n, "feeding application removed by the regular-user undo")
 }
 
 // TestCarePlanUnapplyMedicationSiblingGuard (§10-M1): two medication

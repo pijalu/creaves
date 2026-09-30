@@ -50,6 +50,11 @@ type PlanItem struct {
 	Applicable   bool   // §10-A1 apply window (🔒 hors délai when false)
 	OverriddenBy string // animal-plan name when Status == overridden
 	Application  *ApplicationView
+	// NextDue is the due time of the next occurrence of the same source
+	// for the same animal (round-2 §6.2 display layer), zero when this is
+	// the window's last occurrence. Additive, derived from the existing
+	// nextDue map — no recompute.
+	NextDue time.Time
 }
 
 // ComputeStatus computes the §6.1 status of one occurrence at `now`,
@@ -99,6 +104,14 @@ func scheduleWindows(src PlanSource) (grace, miss, lookahead time.Duration) {
 		time.Duration(s.LookaheadMinutes) * time.Minute
 }
 
+// ScheduleWindows exposes the occurrence source's grace/miss/lookahead
+// durations (round-2 §6.2 display layer: the successor-imminence test in
+// the actions package uses the lookahead). Spec defaults for a missing
+// source (§4.3).
+func ScheduleWindows(src PlanSource) (grace, miss, lookahead time.Duration) {
+	return scheduleWindows(src)
+}
+
 // OccurrenceKey renders the applications UNIQUE key (§4.5):
 // (source_type, source_id, animal_id, due_at).
 func OccurrenceKey(o Occurrence) string {
@@ -133,6 +146,34 @@ func BuildPlanItems(occs []Occurrence, apps map[string]*ApplicationView, now, wi
 
 	// nextDue[i]: the next occurrence of the same source for the same
 	// animal (§10-A1), or nil when i is the last one in the window.
+	nextDue := computeNextDue(items)
+
+	for i := range items {
+		it := &items[i]
+		if it.Occurrence.Source == nil {
+			continue
+		}
+		if apps != nil {
+			it.Application = apps[OccurrenceKey(it.Occurrence)]
+		}
+		// §6.1 order: applications are joined AFTER overrides, so a
+		// historical application keeps its truthful status (the override
+		// note stays as explanation).
+		if it.Status != StatusOverridden || it.Application != nil {
+			it.Status = ComputeStatus(it.Occurrence, it.Application, now)
+		}
+		it.Applicable = itemApplicable(it, nextDue[i], now, windowEnd)
+		if nextDue[i] != nil {
+			it.NextDue = *nextDue[i]
+		}
+	}
+	return items
+}
+
+// computeNextDue maps each item index to the NEXT occurrence's due time of
+// its (source × animal) group (§10-A1 apply window): nil when i is the
+// group's last occurrence in the window. Items must be chronological.
+func computeNextDue(items []PlanItem) []*time.Time {
 	type groupKey struct {
 		typ    SourceType
 		id     string
@@ -152,24 +193,7 @@ func BuildPlanItems(occs []Occurrence, apps map[string]*ApplicationView, now, wi
 		}
 		pending[k] = items[i].Occurrence.DueAt
 	}
-
-	for i := range items {
-		it := &items[i]
-		if it.Occurrence.Source == nil {
-			continue
-		}
-		if apps != nil {
-			it.Application = apps[OccurrenceKey(it.Occurrence)]
-		}
-		// §6.1 order: applications are joined AFTER overrides, so a
-		// historical application keeps its truthful status (the override
-		// note stays as explanation).
-		if it.Status != StatusOverridden || it.Application != nil {
-			it.Status = ComputeStatus(it.Occurrence, it.Application, now)
-		}
-		it.Applicable = itemApplicable(it, nextDue[i], now, windowEnd)
-	}
-	return items
+	return nextDue
 }
 
 // itemApplicable implements the apply window (§10-A1): applicable until

@@ -126,7 +126,7 @@ func ClampDeferredUntil(src careplan.PlanSource, ctx *careplan.AnimalContext, an
 }
 
 // ---------------------------------------------------------------------------
-// Un-apply (§10-CP1 — admin-only at the handler)
+// Un-apply (round-2 §4b-A8: any authenticated user, audit-logged at the handler)
 // ---------------------------------------------------------------------------
 
 // UnapplyPlanItem deletes the application row of one occurrence and —

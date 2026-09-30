@@ -25,6 +25,10 @@ const (
 	AuditEntityDiscovery       = "discovery"
 	AuditEntityDiscoverer      = "discoverer"
 	AuditEntityAttachment      = "attachment"
+	// Round-2 §4b-A8: the day-plan application undo is audit-logged with
+	// the same best-effort mechanism (depupdate parity — its toggle was
+	// audited too).
+	AuditEntityCarePlanApplication = "care_plan_application"
 )
 
 // Audit action names.

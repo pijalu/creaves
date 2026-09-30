@@ -117,8 +117,11 @@ func TestEntryBucketBounds(t *testing.T) {
 // TestTreatmentEntriesMapBuilder: the R5-4b accordion data source groups
 // rows per date key, keeps empty-entries rows, and orders keys newest first.
 func TestTreatmentEntriesMapBuilder(t *testing.T) {
-	yesterday := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
-	today := time.Date(2026, 9, 29, 12, 30, 0, 0, time.Local) // Date carries a time on purpose
+	// date-relative: the current/past flags compare against the real clock
+	// (the hardcoded 2026-09-29 broke at midnight when that day ended).
+	now := time.Now()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 12, 30, 0, 0, time.Local) // Date carries a time on purpose
+	yesterday := today.AddDate(0, 0, -1)
 
 	tr1 := entryTreatment(yesterday, Treatement_MORNING, Treatement_MORNING)
 	tr1.Entries = TreatmentTimeEntries{entryAt(tr1, "08:00", 8, 0, true)}
@@ -131,7 +134,7 @@ func TestTreatmentEntriesMapBuilder(t *testing.T) {
 
 	keys := m.OrderedKeys()
 	require.Len(t, keys, 2)
-	require.Equal(t, "2026/09/29", keys[0].DateFmt, "newest day first")
+	require.Equal(t, today.Format("2006/01/02"), keys[0].DateFmt, "newest day first")
 	require.True(t, keys[0].Current, "today flagged current")
 	require.True(t, keys[1].Past, "yesterday flagged past")
 
@@ -149,11 +152,12 @@ func TestTreatmentEntriesMapBuilder(t *testing.T) {
 // TestTreatmentKeyForConsistency: extracted key builder matches the
 // inline logic it replaced in TreatmentsMap.
 func TestTreatmentKeyForConsistency(t *testing.T) {
-	day := time.Date(2026, 9, 29, 15, 45, 0, 0, time.Local)
+	now := time.Now()
+	day := time.Date(now.Year(), now.Month(), now.Day(), 15, 45, 0, 0, time.Local)
 	tr := entryTreatment(day, 0, 0)
 
 	k := treatmentKeyFor(*tr)
-	require.Equal(t, "2026/09/29", k.DateFmt)
+	require.Equal(t, day.Format("2006/01/02"), k.DateFmt)
 	require.True(t, k.Current)
 	require.False(t, k.Past)
 	require.False(t, k.Future)
