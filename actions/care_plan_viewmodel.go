@@ -121,6 +121,22 @@ type MedSlotView struct {
 	SourceLink      string
 	FulfillmentLink string
 	ViewLink        string // unconditional record/treatment view (R5-2b)
+	// §6.2-2 (round-2, A1): past-due, unapplied, out-of-apply-window —
+	// the dimmed series button stays clickable and records the missed
+	// occurrence with the explicit late acknowledgment.
+	LateAllowed bool
+}
+
+// MedSeriesView is one drug line of a medication card (round-2 §8.3,
+// Dash-5/Dash-8, CP1, T2): every occurrence of one animal sharing the
+// same (drug, dosage) label, bucket-ordered (morning → noon → evening)
+// and chunked 3 per row — a bucket change always starts a new row. The
+// shared `_med_series` partial renders it identically on the care plan,
+// the dashboard and the animal Treatment tab.
+type MedSeriesView struct {
+	Key   string // merge key: drug — dosage
+	Label string // display: drug — dosage
+	Rows  [][]MedSlotView
 }
 
 // MedGroupView is one rendered per-animal medication card: all medication
@@ -139,6 +155,10 @@ type MedGroupView struct {
 	OuttakenToday bool
 	Slots         []MedSlotView
 	OpenCount     int // applicable, not yet recorded
+	// Round-2 §8.3: slots merged into (drug, dosage) series — the shared
+	// `_med_series` partial renders these; Slots stays until every
+	// consumer switched (deleted together with the tier structure, WP4+).
+	Series []MedSeriesView
 }
 
 // CareView is one rendered cage (cleanup) card — one card per
@@ -709,6 +729,7 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
 		}
 		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
+		slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
 		if app := it.Application; app != nil {
 			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
 				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
@@ -737,9 +758,67 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			}
 			return g.Slots[i].DueAt.Before(g.Slots[j].DueAt)
 		})
+		g.Series = seriesOf(g.Slots, order)
 		out = append(out, *g)
 	}
 	return out
+}
+
+// slotLateAllowed reports whether an occurrence is late-recordable
+// (§6.2-2, A1): past-due, unapplied, out of the apply window — the
+// dimmed series button stays clickable for the late record.
+func slotLateAllowed(now time.Time, slot MedSlotView, it *careplan.PlanItem) bool {
+	return !slot.Done && !slot.Applicable && !slot.Overridden &&
+		it.Occurrence.DueAt.Before(now)
+}
+
+// seriesOf merges medication slots into (drug, dosage) series (Dash-5:
+// one line per drug, no duplicated label). Within a series the slots are
+// bucket-ordered (morning → noon → evening, due time within a bucket)
+// and chunked 3 per row — a bucket change always starts a new row
+// (Dash-8, the pseudo-grouped divider). Series keep first-seen order
+// (chronological by first occurrence).
+func seriesOf(slots []MedSlotView, bucketOrder map[string]int) []MedSeriesView {
+	groups := map[string][]MedSlotView{}
+	var labels []string
+	for _, s := range slots {
+		if _, ok := groups[s.Detail]; !ok {
+			labels = append(labels, s.Detail)
+		}
+		groups[s.Detail] = append(groups[s.Detail], s)
+	}
+	out := make([]MedSeriesView, 0, len(labels))
+	for _, label := range labels {
+		g := groups[label]
+		sort.SliceStable(g, func(i, j int) bool {
+			bi, bj := bucketOrder[g[i].Slot], bucketOrder[g[j].Slot]
+			if bi != bj {
+				return bi < bj
+			}
+			return g[i].DueAt.Before(g[j].DueAt)
+		})
+		out = append(out, MedSeriesView{Key: label, Label: label, Rows: chunkSeriesRows(g)})
+	}
+	return out
+}
+
+// chunkSeriesRows bucket-chunks one series' ordered slots: at most 3 per
+// row, a bucket change always starts a new row (Dash-8 pseudo-grouped
+// divider).
+func chunkSeriesRows(g []MedSlotView) [][]MedSlotView {
+	var rows [][]MedSlotView
+	var cur []MedSlotView
+	for _, s := range g {
+		if len(cur) >= 3 || (len(cur) > 0 && cur[0].Slot != s.Slot) {
+			rows = append(rows, cur)
+			cur = nil
+		}
+		cur = append(cur, s)
+	}
+	if len(cur) > 0 {
+		rows = append(rows, cur)
+	}
+	return rows
 }
 
 // BuildDashboardMedView projects the dashboard "Medication today"
