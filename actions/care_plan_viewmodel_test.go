@@ -35,21 +35,20 @@ func TestTierOrder(t *testing.T) {
 }
 
 // TestBuildDayPlanViewEmpty: an empty plan still yields a renderable view
-// (four tiers keyed, kind chips present, no hours).
+// (sections empty, kind chips present, zero stats).
 func TestBuildDayPlanViewEmpty(t *testing.T) {
 	plan := &DayPlan{Animals: &planAnimals{}}
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
 	require.NotNil(t, v)
 	require.Equal(t, "10:30", v.UpdatedAt)
-	require.Equal(t, [4]string{TierLate, TierNow, TierLater, TierDone},
-		[4]string{v.Tiers[0].Key, v.Tiers[1].Key, v.Tiers[2].Key, v.Tiers[3].Key})
-	for _, tier := range v.Tiers {
-		require.Equal(t, 0, tier.Count)
-		require.Equal(t, "0", tier.CountCap)
-	}
+	require.Empty(t, v.WorkRows)
+	require.Empty(t, v.History)
+	require.Empty(t, v.Feedings)
+	require.Empty(t, v.Cares)
+	require.Empty(t, v.Meds)
+	require.Equal(t, FilterStats{LateCap: "0", NowCap: "0", LaterCap: "0"}, v.Stats)
 	require.Len(t, v.Kinds, 6)
-	require.Empty(t, v.Hours)
 	require.Empty(t, v.Zones)
 }
 

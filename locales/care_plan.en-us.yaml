@@ -336,8 +336,6 @@
   translation: "Sat"
 - id: "care_plan.schedule_human.raw_json"
   translation: "Raw schedule (JSON)"
-- id: "care_plan.hour_chip.title"
-  translation: "{{.count}} item(s) around {{.hour}} — jump to them"
 - id: "care_plan.editor.slots"
   translation: "Time slots"
 - id: "care_plan.editor.add_slot"
@@ -555,3 +553,22 @@
 # Round-2 §7.2 (CP2): unknown zone whitelist reset
 - id: "care_plan.zone.unknown"
   translation: "Unknown zone — filter reset."
+
+# Round-2 §7.1 (WP4): sections IA — kind tabs, zone dropdown, summary
+# strip anchors, feeding batch, history undo
+- id: "care_plan.kind.all"
+  translation: "All"
+- id: "care_plan.zone.select"
+  translation: "Zone"
+- id: "care_plan.feeding.apply_all"
+  translation: "Apply all"
+- id: "care_plan.section.work"
+  translation: "Work"
+- id: "care_plan.section.history"
+  translation: "History"
+- id: "care_plan.action.undo"
+  translation: "Undo"
+- id: "care_plan.day.empty"
+  translation: "Nothing planned — everything is done."
+- id: "care_plan.animal.ready_for_release"
+  translation: "Ready for release — outtaken today"

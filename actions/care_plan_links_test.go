@@ -56,8 +56,8 @@ func TestBuildDayPlanViewLinks(t *testing.T) {
 	plan.Items = []careplan.PlanItem{it}
 
 	v := BuildDayPlanView(plan, ViewDetailed, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
-	require.Len(t, v.Tiers[3].Cards, 1, "applied item lands in the done tier")
-	card := v.Tiers[3].Cards[0]
+	require.Len(t, v.History, 1, "applied item lands in the history section")
+	card := v.History[0]
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Ddetailed#nav-plan", card.AnimalLink)
 	require.Equal(t, "/care_rules/src-obs?back=%2Fcare_plan%3Fview%3Ddetailed", card.SourceLink)
 	require.Equal(t, "/cares/fid-9?back=%2Fcare_plan%3Fview%3Ddetailed", card.FulfillmentLink)
@@ -75,8 +75,8 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	}
 
 	v := BuildDayPlanView(plan, ViewCompact, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
-	require.Empty(t, v.Tiers[1].Cards, "cleanup work leaves the per-animal tiers in compact")
-	require.Empty(t, v.Tiers[3].Cards, "applied cleanup work has no synthetic done card in compact")
+	require.Empty(t, v.WorkRows, "cleanup work leaves the generic rows in compact")
+	require.Empty(t, v.History, "grouped kinds show their done state on the section card, never as history rows")
 	require.Len(t, v.Cares, 1)
 	cc := v.Cares[0]
 	require.Equal(t, "C1", cc.Cage)
@@ -185,11 +185,11 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	require.Contains(t, html, "plan-cage-apply", "cage card carries the apply_batch button")
 	require.Contains(t, html, "/care_plan/apply_batch", "batch button posts to apply_batch")
 
-	// Zone tabs: badges + hash-memory anchors (z- prefixed).
-	require.Contains(t, html, `id="planZoneTabs"`)
+	// Zone dropdown: badges + hash-memory anchors (z- prefixed).
+	require.Contains(t, html, `id="planZoneMenu"`)
 	require.Contains(t, html, "#z-", "zone tab hash memory")
-	// Kind chips with counts.
-	require.Contains(t, html, `id="planKindChips"`)
+	// Kind nav tabs with counts.
+	require.Contains(t, html, `id="planKindTabs"`)
 
 	// Skip/defer fast actions + shared modal markup.
 	require.Contains(t, html, "plan-skip-btn")
@@ -244,13 +244,13 @@ func TestBuildDayPlanViewBackChain(t *testing.T) {
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now, "/")
 	require.Equal(t, "/care_plan?back=%2F&view=compact", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F%26view%3Dcompact#nav-plan",
-		v.Tiers[1].Cards[0].AnimalLink)
+		v.WorkRows[0].AnimalLink)
 
 	// No incoming back → cards fall back to the plain self URL.
 	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
 	require.Equal(t, "/care_plan?view=compact", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Dcompact#nav-plan",
-		v.Tiers[1].Cards[0].AnimalLink)
+		v.WorkRows[0].AnimalLink)
 }
 
 // TestLandingBackLabelKey: the U16 back label names the FINAL destination —

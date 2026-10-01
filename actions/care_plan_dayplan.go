@@ -548,6 +548,10 @@ type FeedingChip struct {
 	SupersededByDayKey    string // care_plan.time.yesterday / .tomorrow ("" otherwise)
 	SupersededByShortDate string // "02/01" for gaps beyond one day
 	OuttakenToday         bool   // §4b-A2: animal outtaken today (depupdate outtaken row)
+	// Round-2 §7.1 (CP4 honesty): open CURRENT occurrences of the same
+	// (source × animal) beyond the displayed chip — rendered "+N" so the
+	// summary strip's occurrence counts stay visible (Zeigarnik).
+	Remaining int
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan

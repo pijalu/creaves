@@ -336,8 +336,6 @@
   translation: "za"
 - id: "care_plan.schedule_human.raw_json"
   translation: "Ruwe planning (JSON)"
-- id: "care_plan.hour_chip.title"
-  translation: "{{.count}} item(s) rond {{.hour}} — ernaartoe gaan"
 - id: "care_plan.editor.slots"
   translation: "Tijdstippen"
 - id: "care_plan.editor.add_slot"
@@ -555,3 +553,22 @@
 # Round-2 §7.2 (CP2): unknown zone whitelist reset
 - id: "care_plan.zone.unknown"
   translation: "Onbekende zone — filter hersteld."
+
+# Round-2 §7.1 (WP4): sections IA — kind tabs, zone dropdown, summary
+# strip anchors, feeding batch, history undo
+- id: "care_plan.kind.all"
+  translation: "Alles"
+- id: "care_plan.zone.select"
+  translation: "Zone"
+- id: "care_plan.feeding.apply_all"
+  translation: "Alles toepassen"
+- id: "care_plan.section.work"
+  translation: "Werk"
+- id: "care_plan.section.history"
+  translation: "Geschiedenis"
+- id: "care_plan.action.undo"
+  translation: "Ongedaan maken"
+- id: "care_plan.day.empty"
+  translation: "Niets gepland — alles klaar."
+- id: "care_plan.animal.ready_for_release"
+  translation: "Klaar voor uitzetting — vandaag vertrokken"

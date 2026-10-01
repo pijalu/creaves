@@ -1,9 +1,10 @@
 package actions
 
 import (
+	"fmt"
 	"io"
 	"net/http"
-	"strings"
+
 	"testing"
 	"time"
 
@@ -76,13 +77,10 @@ func pipelinePlan() *DayPlan {
 }
 
 // openTotal counts the OPEN cards a rendered view shows — the number a
-// nav badge must equal when it was clicked (CP4 invariant).
+// nav badge must equal when it was clicked (CP4 invariant). History rows
+// are never counted: they are past work, not workload.
 func openTotal(v *DayPlanView) int {
-	n := 0
-	for ti := 0; ti < TierDoneIdx; ti++ {
-		n += len(v.Tiers[ti].Cards)
-	}
-	n += len(v.Feedings) + len(v.Cares)
+	n := len(v.WorkRows) + len(v.Feedings) + len(v.Cares)
 	for _, m := range v.Meds {
 		if m.OpenCount > 0 {
 			n++
@@ -91,12 +89,48 @@ func openTotal(v *DayPlanView) int {
 	return n
 }
 
+// expectedStats recomputes the occurrence summary INDEPENDENTLY of the
+// viewmodel (§12.1): open current occurrences after the zone×kind filter,
+// bucketed by urgency. Section kinds count per occurrence — every counted
+// occurrence shows as its own button/chip/row or folds into a "+N" badge.
+func expectedStats(plan *DayPlan, zone, kind string, now time.Time) FilterStats {
+	var buckets [3]int
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		if !statsCandidate(plan, it, zone, kind, now) {
+			continue
+		}
+		buckets[tierOrder(it.Status)]++
+	}
+	st := FilterStats{Late: buckets[0], Now: buckets[1], Later: buckets[2]}
+	st.LateCap = BadgeCap(st.Late)
+	st.NowCap = BadgeCap(st.Now)
+	st.LaterCap = BadgeCap(st.Later)
+	return st
+}
+
+// statsCandidate mirrors statsOf's inclusion test — kept SEPARATE from the
+// viewmodel on purpose: the test recomputes the bucketing independently.
+func statsCandidate(plan *DayPlan, it *careplan.PlanItem, zone, kind string, now time.Time) bool {
+	src := it.Occurrence.Source
+	if src == nil || it.Status == careplan.StatusOverridden {
+		return false
+	}
+	if kind != "" && src.ActionKind() != kind {
+		return false
+	}
+	a, ok := plan.AnimalRow(it.Occurrence.AnimalID)
+	if !ok || (zone != "" && a.Zone.String != zone) {
+		return false
+	}
+	return openStatusAction(it.Status) && IsCurrent(it, now)
+}
+
 // TestFilterStatsMatchVisibleSet: for EVERY view × zone × kind
-// combination the summary strip (Stats), the tier sections and the
-// rendered cards agree with an independent projection of the unfiltered
-// reference view — impossible states like "0 future (17)" cannot be
-// built, and every zone/kind badge equals what the screen shows after
-// clicking it (CP4/D6).
+// combination the summary strip (Stats) matches an independent
+// occurrence-level projection, every section card satisfies the active
+// filter, and the nav badges equal what the screen shows after clicking
+// them (CP4/D6) — impossible states like "0 future (17)" cannot be built.
 func TestFilterStatsMatchVisibleSet(t *testing.T) {
 	plan := pipelinePlan()
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
@@ -109,88 +143,127 @@ func TestFilterStatsMatchVisibleSet(t *testing.T) {
 		for _, zone := range zones {
 			for _, kind := range kinds {
 				v := BuildDayPlanView(plan, view, zone, kind, now)
-				ctx := "view=%s zone=%q kind=%q"
-
-				// every tier card satisfies the active filter
-				for ti := range v.Tiers {
-					exp := 0
-					for _, cv := range ref.Tiers[ti].Cards {
-						if zoneMatch(cv, zone) && kindMatch(cv, kind) {
-							exp++
-						}
-					}
-					require.Len(t, v.Tiers[ti].Cards, exp, ctx+" tier "+v.Tiers[ti].Key, view, zone, kind)
-					for _, cv := range v.Tiers[ti].Cards {
-						require.True(t, zoneMatch(cv, zone), ctx+" card zone", view, zone, kind)
-						require.True(t, kindMatch(cv, kind), ctx+" card kind", view, zone, kind)
-					}
-				}
-
-				// summary strip counts exactly the rendered tiers
-				require.Equal(t, len(v.Tiers[0].Cards), v.Stats.Late, ctx, view, zone, kind)
-				require.Equal(t, len(v.Tiers[1].Cards), v.Stats.Now, ctx, view, zone, kind)
-				require.Equal(t, len(v.Tiers[2].Cards), v.Stats.Later, ctx, view, zone, kind)
-				require.Equal(t, len(v.Tiers[3].Cards), v.Stats.Done, ctx, view, zone, kind)
-
-				// sections respect zone × kind
-				expFeeds := 0
-				if kind == "" || kind == careplan.KindFeeding {
-					for _, f := range ref.Feedings {
-						if inZone(zone, f.Zone) {
-							expFeeds++
-						}
-					}
-				}
-				require.Len(t, v.Feedings, expFeeds, ctx+" feedings", view, zone, kind)
-				expCares := 0
-				if kind == "" || kind == careplan.KindCleanup {
-					for _, cv := range ref.Cares {
-						if inZone(zone, cv.Zone) {
-							expCares++
-						}
-					}
-				}
-				require.Len(t, v.Cares, expCares, ctx+" cares", view, zone, kind)
-				expMeds := 0
-				if kind == "" || kind == careplan.KindMedication {
-					for _, m := range ref.Meds {
-						if inZone(zone, m.Zone) {
-							expMeds++
-						}
-					}
-				}
-				require.Len(t, v.Meds, expMeds, ctx+" meds", view, zone, kind)
-
-				// hour chips reference VISIBLE later cards only
-				byHour := map[string]int{}
-				for _, cv := range v.Tiers[2].Cards {
-					byHour[cv.HourKey]++
-				}
-				require.Len(t, v.Hours, len(byHour), ctx+" hour chips", view, zone, kind)
-				for _, h := range v.Hours {
-					require.Equal(t, byHour[strings.TrimPrefix(h.Anchor, "h-")], h.Count,
-						ctx+" hour chip "+h.Anchor, view, zone, kind)
-				}
-
-				// CP4: each zone tab badge equals the open cards rendered
-				// after clicking it; each kind chip likewise.
-				sumZ := 0
-				for _, zt := range v.Zones {
-					fv := BuildDayPlanView(plan, view, zt.Name, kind, now)
-					require.Equal(t, zt.Count, openTotal(fv), ctx+" zone tab "+zt.Name, view, zone, kind)
-					sumZ += zt.Count
-				}
-				require.Equal(t, v.ZoneAll, sumZ, ctx+" zone total", view, zone, kind)
-				sumK := 0
-				for _, kc := range v.Kinds {
-					fv := BuildDayPlanView(plan, view, zone, kc.Kind, now)
-					require.Equal(t, kc.Count, openTotal(fv), ctx+" kind chip "+kc.Kind, view, zone, kind)
-					sumK += kc.Count
-				}
-				require.Equal(t, v.KindAll, sumK, ctx+" kind total", view, zone, kind)
+				ctx := fmt.Sprintf("view=%s zone=%q kind=%q", view, zone, kind)
+				assertRowsFiltered(t, v, zone, kind, ctx)
+				require.Equal(t, expectedStats(plan, zone, kind, now), v.Stats, ctx+" summary strip vs independent count")
+				assertSectionsFiltered(t, ref, v, zone, kind, ctx)
+				assertAnchors(t, v, ctx)
+				assertNavBadges(t, plan, v, view, zone, kind, now, ctx)
 			}
 		}
 	}
+}
+
+// assertRowsFiltered: every work row and history row satisfies the
+// active zone × kind filter.
+func assertRowsFiltered(t *testing.T, v *DayPlanView, zone, kind string, ctx string) {
+	t.Helper()
+	for _, coll := range [][]CardView{v.WorkRows, v.History} {
+		for _, cv := range coll {
+			require.True(t, zoneMatch(cv, zone), ctx+" row zone")
+			require.True(t, kindMatch(cv, kind), ctx+" row kind")
+		}
+	}
+}
+
+// sectionZones lists the zones of ONE section's cards (unfiltered view).
+func sectionZones(ref *DayPlanView, sectionKind string) []string {
+	var zones []string
+	switch sectionKind {
+	case careplan.KindFeeding:
+		for _, f := range ref.Feedings {
+			zones = append(zones, f.Zone)
+		}
+	case careplan.KindCleanup:
+		for _, cv := range ref.Cares {
+			zones = append(zones, cv.Zone)
+		}
+	case careplan.KindMedication:
+		for _, m := range ref.Meds {
+			zones = append(zones, m.Zone)
+		}
+	}
+	return zones
+}
+
+// sectionCountInZone counts the cards of ONE section kind the active
+// zone × kind filter keeps, from the unfiltered reference view.
+func sectionCountInZone(ref *DayPlanView, zone, kind, sectionKind string) int {
+	if kind != "" && kind != sectionKind {
+		return 0
+	}
+	n := 0
+	for _, z := range sectionZones(ref, sectionKind) {
+		if inZone(zone, z) {
+			n++
+		}
+	}
+	return n
+}
+
+// assertSectionsFiltered: each grouped section shows exactly the cards
+// the active filter keeps (unfiltered reference × zone × kind).
+func assertSectionsFiltered(t *testing.T, ref, v *DayPlanView, zone, kind string, ctx string) {
+	t.Helper()
+	require.Len(t, v.Feedings, sectionCountInZone(ref, zone, kind, careplan.KindFeeding), ctx+" feedings")
+	require.Len(t, v.Cares, sectionCountInZone(ref, zone, kind, careplan.KindCleanup), ctx+" cares")
+	require.Len(t, v.Meds, sectionCountInZone(ref, zone, kind, careplan.KindMedication), ctx+" meds")
+}
+
+// assertAnchors (A3): at most ONE card per urgency state carries the
+// anchor, and every non-zero stat has its anchor on screen.
+func assertAnchors(t *testing.T, v *DayPlanView, ctx string) {
+	t.Helper()
+	var nLate, nTodo, nLater int
+	count := func(la, to, la2 bool) {
+		if la {
+			nLate++
+		}
+		if to {
+			nTodo++
+		}
+		if la2 {
+			nLater++
+		}
+	}
+	for i := range v.Meds {
+		count(v.Meds[i].FirstLate, v.Meds[i].FirstTodo, v.Meds[i].FirstLater)
+	}
+	for i := range v.Feedings {
+		count(v.Feedings[i].FirstLate, v.Feedings[i].FirstTodo, v.Feedings[i].FirstLater)
+	}
+	for i := range v.Cares {
+		count(v.Cares[i].FirstLate, v.Cares[i].FirstTodo, false)
+	}
+	for i := range v.WorkRows {
+		count(v.WorkRows[i].FirstLate, v.WorkRows[i].FirstTodo, v.WorkRows[i].FirstLater)
+	}
+	require.LessOrEqual(t, nLate, 1, ctx+" late anchors")
+	require.LessOrEqual(t, nTodo, 1, ctx+" todo anchors")
+	require.LessOrEqual(t, nLater, 1, ctx+" later anchors")
+	require.Equal(t, v.Stats.Late > 0, nLate == 1, ctx+" late anchor presence")
+	require.Equal(t, v.Stats.Now > 0, nTodo == 1, ctx+" todo anchor presence")
+	require.Equal(t, v.Stats.Later > 0, nLater == 1, ctx+" later anchor presence")
+}
+
+// assertNavBadges (CP4/D6): each zone tab badge equals the open cards
+// rendered after clicking it; each kind chip likewise.
+func assertNavBadges(t *testing.T, plan *DayPlan, v *DayPlanView, view, zone, kind string, now time.Time, ctx string) {
+	t.Helper()
+	sumZ := 0
+	for _, zt := range v.Zones {
+		fv := BuildDayPlanView(plan, view, zt.Name, kind, now)
+		require.Equal(t, zt.Count, openTotal(fv), ctx+" zone tab "+zt.Name)
+		sumZ += zt.Count
+	}
+	require.Equal(t, v.ZoneAll, sumZ, ctx+" zone total")
+	sumK := 0
+	for _, kc := range v.Kinds {
+		fv := BuildDayPlanView(plan, view, zone, kc.Kind, now)
+		require.Equal(t, kc.Count, openTotal(fv), ctx+" kind chip "+kc.Kind)
+		sumK += kc.Count
+	}
+	require.Equal(t, v.KindAll, sumK, ctx+" kind total")
 }
 
 // TestCompactAndDetailedSameGroups (CP3/D3): one build path — compact and
@@ -206,7 +279,39 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 	require.False(t, c.Detailed)
 	require.True(t, d.Detailed)
 
-	// feedings: same cards, same chips, same batch payloads
+	assertSameFeedingGroups(t, c, d)
+	assertSameCareGroups(t, c, d)
+	assertSameMedGroups(t, c, d)
+	assertSameNavCoverage(t, c, d)
+
+	// density difference: detailed surfaces the overridden occurrence in
+	// the history section (debug surface); compact collapses the group to
+	// its applied row and never renders overridden.
+	var dOvr, cOvr int
+	for _, cv := range d.History {
+		if cv.OverriddenBy != "" {
+			dOvr++
+		}
+	}
+	for _, cv := range c.History {
+		if cv.OverriddenBy != "" {
+			cOvr++
+		}
+	}
+	require.Equal(t, 1, dOvr, "detailed shows the overridden row with its suppressing plan")
+	require.Equal(t, 0, cOvr, "compact hides overridden occurrences")
+	// history rows are most-recent-first and carry undo affordance for
+	// rows with an application record
+	require.NotEmpty(t, d.History)
+	for i := 1; i < len(d.History); i++ {
+		require.False(t, d.History[i-1].DueAt.Before(d.History[i].DueAt), "history sorted most recent first")
+	}
+}
+
+// assertSameFeedingGroups: same feeding cards, same chips, same batch
+// payloads in both densities.
+func assertSameFeedingGroups(t *testing.T, c, d *DayPlanView) {
+	t.Helper()
 	require.Len(t, d.Feedings, len(c.Feedings))
 	for i := range c.Feedings {
 		cf, df := c.Feedings[i], d.Feedings[i]
@@ -217,8 +322,11 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 		require.Equal(t, cf.ChipRefsJSON, df.ChipRefsJSON)
 		require.Len(t, df.Chips, len(cf.Chips))
 	}
+}
 
-	// cares: same cage cards, same batch payloads
+// assertSameCareGroups: same cage cards, same batch payloads.
+func assertSameCareGroups(t *testing.T, c, d *DayPlanView) {
+	t.Helper()
 	require.Len(t, d.Cares, len(c.Cares))
 	for i := range c.Cares {
 		cc, dc := c.Cares[i], d.Cares[i]
@@ -228,8 +336,11 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 		require.Equal(t, cc.Count, dc.Count)
 		require.Equal(t, cc.ChipRefsJSON, dc.ChipRefsJSON)
 	}
+}
 
-	// medication: same per-animal cards, same slots, same open counts
+// assertSameMedGroups: same per-animal cards, same slots, same open counts.
+func assertSameMedGroups(t *testing.T, c, d *DayPlanView) {
+	t.Helper()
 	require.Len(t, d.Meds, len(c.Meds))
 	for i := range c.Meds {
 		cm, dm := c.Meds[i], d.Meds[i]
@@ -242,11 +353,14 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 			require.Equal(t, cm.Slots[j].Overridden, dm.Slots[j].Overridden)
 		}
 	}
+}
 
-	// the nav matrix covers the same zones/kinds in both views. Counts
-	// are per-view by design (CP4: a badge counts the cards ITS view
-	// renders — compact groups vs detailed occurrences); the click-through
-	// equality is proven in TestFilterStatsMatchVisibleSet.
+// assertSameNavCoverage: the nav matrix covers the same zones/kinds in
+// both views. Counts are per-view by design (CP4: a badge counts the
+// cards ITS view renders — compact groups vs detailed occurrences); the
+// click-through equality is proven in TestFilterStatsMatchVisibleSet.
+func assertSameNavCoverage(t *testing.T, c, d *DayPlanView) {
+	t.Helper()
 	zoneNames := func(v *DayPlanView) []string {
 		out := make([]string, 0, len(v.Zones))
 		for _, zt := range v.Zones {
@@ -265,22 +379,6 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 	}
 	require.Equal(t, zoneNames(c), zoneNames(d))
 	require.Equal(t, openKinds(c), openKinds(d))
-
-	// density difference: detailed surfaces the overridden occurrence in
-	// the done tier (debug surface); compact never renders overridden.
-	var dOvr, cOvr int
-	for _, cv := range d.Tiers[TierDoneIdx].Cards {
-		if cv.OverriddenBy != "" {
-			dOvr++
-		}
-	}
-	for _, cv := range c.Tiers[TierDoneIdx].Cards {
-		if cv.OverriddenBy != "" {
-			cOvr++
-		}
-	}
-	require.Equal(t, 1, dOvr, "detailed shows the overridden row with its suppressing plan")
-	require.Equal(t, 0, cOvr, "compact hides overridden occurrences")
 }
 
 // TestKindZoneCombinationFilters: the filter is a CONJUNCTION — kind=med
@@ -300,9 +398,8 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	require.Equal(t, 1, v.Meds[0].OpenCount)
 	require.Empty(t, v.Feedings)
 	require.Empty(t, v.Cares)
-	for _, tier := range v.Tiers {
-		require.Empty(t, tier.Cards, "weighing/care cards never survive a medication filter")
-	}
+	require.Empty(t, v.WorkRows, "weighing/care cards never survive a medication filter")
+	require.Empty(t, v.History)
 
 	// feeding × Z2: exactly the Z2 feeding card
 	v = BuildDayPlanView(plan, ViewCompact, "Z2", careplan.KindFeeding, now)
@@ -311,9 +408,8 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	require.Equal(t, "C9", v.Feedings[0].Cage)
 	require.Empty(t, v.Meds)
 	require.Empty(t, v.Cares)
-	for _, tier := range v.Tiers {
-		require.Empty(t, tier.Cards)
-	}
+	require.Empty(t, v.WorkRows)
+	require.Empty(t, v.History)
 
 	// zone tabs under an active kind count only that kind's cards
 	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)

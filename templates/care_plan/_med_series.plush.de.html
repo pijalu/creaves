@@ -14,7 +14,16 @@
 <div class="med-series">
   <%= for (series) in mg.Series { %>
     <div class="d-flex align-items-start med-series-line border-top mt-1 pt-1">
-      <div class="mr-2 text-nowrap"><strong><%= series.Label %></strong></div>
+      <div class="mr-2 text-nowrap">
+        <strong><%= series.Label %></strong>
+        <%# Read-only detail (ℹ) of the series' first occurrence — the drug
+            context is per-series, the due label of the first slot anchors it. %>
+        <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+          data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
+          data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0][0].SourceName %>" data-source-link="<%= series.Rows[0][0].SourceLink %>"
+          data-kind="medication" data-due="<%= series.Rows[0][0].DueAtHM %>"
+          data-status="<%= series.Rows[0][0].Status %>" data-remaining="">ℹ</button>
+      </div>
       <div>
         <%= for (ri, row) in series.Rows { %>
           <%= if (ri > 0 && series.Rows[ri-1][0].Slot != row[0].Slot) { %>

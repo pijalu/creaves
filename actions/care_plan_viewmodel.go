@@ -15,14 +15,9 @@ import (
 // from the assembled DayPlan plus the request params — pure projection, no
 // DB access, so it is unit-testable without a fixture.
 
-// Tier keys (template + i18n anchors). TierDoneIdx is the array index of
-// the done tier (terminal statuses) used by the card builders.
+// TierDoneIdx is the "terminal status" index used by the card builders
+// (nav counters stop below it).
 const (
-	TierLate  = "late"
-	TierNow   = "now"
-	TierLater = "later"
-	TierDone  = "done"
-
 	TierDoneIdx = 3
 )
 
@@ -34,22 +29,40 @@ const (
 
 // CardView is one rendered work-screen card.
 type CardView struct {
-	SourceType   string
-	SourceID     string
-	SourceName   string
-	Detail       string // per-kind content line (bugs.md U5); primary label when set
-	ActionKind   string
-	AnimalID     int
-	AnimalLabel  string
-	Zone         string
-	Cage         string
-	DueAt        time.Time
-	HourKey      string // "15" — anchor #h-15 inside the later tier
+	SourceType  string
+	SourceID    string
+	SourceName  string
+	Detail      string // per-kind content line (bugs.md U5); primary label when set
+	ActionKind  string
+	AnimalID    int
+	AnimalLabel string
+	Zone        string
+	Cage        string
+	DueAt       time.Time
+	// §6.2-5 date-aware due label parts (compose with t(): bare time only
+	// for today, day word yesterday/tomorrow, short date beyond).
+	DueHM        string
+	DueDayKey    string // "" | "care_plan.time.yesterday" | "care_plan.time.tomorrow"
+	DueShortDate string // "02/01" when beyond one day
 	Status       string
+	Tier         int // 0 late · 1 now · 2 later · 3 done (§U2 urgency)
 	Applicable   bool
 	Remaining    int    // compact: other open occurrences of the group ("+n")
 	RemainingCap string // BadgeCap(Remaining)
 	OverriddenBy string // detailed view only
+	// History rows (§7.1): superseded open occurrences stay recordable —
+	// one click = "record anyway (late)" (§6.2-2, A1).
+	Superseded       bool
+	SupersededReason string
+	SupersededBy     string // "15:04" of the replacing occurrence (replaced)
+	LateAllowed      bool
+	Undoable         bool // applied + an application row exists (A8 undo)
+	RecordedLate     bool // applied clearly after its due time (A1 marker)
+	// A3 summary-strip anchors: exactly ONE card per urgency state carries
+	// its First* flag — the strip scrolls to these.
+	FirstLate  bool
+	FirstTodo  bool
+	FirstLater bool
 	// bugs.md R5-2c (D-a): confirm only when fields are needed — weighing
 	// (weight) and observation (answer) open the input modal; feeding,
 	// medication, care and cleanup toggle instantly.
@@ -57,15 +70,7 @@ type CardView struct {
 	// bugs.md U3/U6 (Phase 4): fast-action links, all with back=<self>.
 	AnimalLink      string // /animals/{id}#nav-plan — empty without an animal row
 	SourceLink      string // /care_rules/{id} (rule) or /animals/{id}#nav-plan (animal plan)
-	FulfillmentLink string // done tier: /cares|/treatments/{fid} — empty otherwise
-}
-
-// TierView is one urgency tier of the work screen.
-type TierView struct {
-	Key      string
-	Cards    []CardView
-	Count    int    // len(Cards)
-	CountCap string // BadgeCap(Count)
+	FulfillmentLink string // done rows: /cares|/treatments/{fid} — empty otherwise
 }
 
 // ZoneTab is one zone filter tab with its open count.
@@ -82,13 +87,6 @@ type KindChip struct {
 	CountCap string
 }
 
-// HourChip jumps to one hour anchor of the later tier (no reload).
-type HourChip struct {
-	Hour   string // "15:00"
-	Anchor string // "h-15"
-	Count  int
-}
-
 // FeedingGroupView is one rendered feeding card (cage × diet, bugs.md U1).
 type FeedingGroupView struct {
 	Zone            string
@@ -98,6 +96,10 @@ type FeedingGroupView struct {
 	Chips           []FeedingChip
 	ApplicableCount int    // chips still applicable (apply-group button)
 	ChipRefsJSON    string // JSON item refs of the applicable chips (data-items)
+	// A3 summary-strip anchors (first card of each urgency state).
+	FirstLate  bool
+	FirstTodo  bool
+	FirstLater bool
 }
 
 // MedSlotView is one medication occurrence inside a per-animal medication
@@ -159,6 +161,10 @@ type MedGroupView struct {
 	// `_med_series` partial renders these; Slots stays until every
 	// consumer switched (deleted together with the tier structure, WP4+).
 	Series []MedSeriesView
+	// A3 summary-strip anchors (first card of each urgency state).
+	FirstLate  bool
+	FirstTodo  bool
+	FirstLater bool
 }
 
 // CareView is one rendered cage (cleanup) card — one card per
@@ -171,17 +177,25 @@ type CareView struct {
 	Count           int    // open, non-scheduled occurrences on the card
 	ChipRefsJSON    string // JSON item refs of the applicable items (data-items)
 	ApplicableCount int
+	LateCount       int // applicable occurrences already past due (late tier)
+	// A3 summary-strip anchors (first card of each urgency state).
+	FirstLate bool
+	FirstTodo bool
 }
 
 // DayPlanView is the full work-screen context value.
 type DayPlanView struct {
-	Tiers     [4]TierView
-	Feedings  []FeedingGroupView
+	// §7.1 information architecture (round-2): one sections accordion —
+	// medication cards, feeding cards, generic work rows, cage cards,
+	// history last. No tier grids, no hour chips (A3: the summary strip
+	// anchors replace them).
 	Meds      []MedGroupView
+	Feedings  []FeedingGroupView
 	Cares     []CareView
-	Zones     []ZoneTab // without the "all" entry (rendered by the template)
+	WorkRows  []CardView // care / weighing / observation (open, current)
+	History   []CardView // applied/skipped/deferred/superseded, subdued
+	Zones     []ZoneTab  // without the "all" entry (rendered by the template)
 	Kinds     []KindChip
-	Hours     []HourChip
 	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
 	View      string
 	// CP3/D3 (round-2 §7.1): one build path — compact and detailed render
@@ -197,25 +211,17 @@ type DayPlanView struct {
 	KindAllCap string
 }
 
-// FilterStats is the CP4/D6 single-pass summary of one rendered view:
-// every count derives from the same zone×kind-filtered card set the
-// screen renders — impossible states like "0 future (17)" cannot be built.
+// FilterStats is the CP4/D6 summary of one rendered view, counted in
+// OCCURRENCES after the zone×kind filter: compact and detailed report
+// the same numbers (S3) and every counted occurrence is visible either
+// as its own button/chip/row or folded into a "+N" remaining badge.
 type FilterStats struct {
 	Late     int
 	Now      int
 	Later    int
-	Done     int
 	LateCap  string
 	NowCap   string
 	LaterCap string
-	DoneCap  string
-}
-
-// tierCard pairs a card with its urgency tier before filtering (§7.2:
-// build unfiltered, then one zone×kind filter pass).
-type tierCard struct {
-	cv   CardView
-	tier int
 }
 
 // tierOrder maps a status to its tier index (§U2): missing|late → late,
@@ -255,20 +261,22 @@ var actionKinds = []string{
 }
 
 // BuildDayPlanView projects the day plan into the work-screen view model
-// (round-2 §7.2 pipeline, fixes CP2/CP3/CP4):
+// (round-2 §7.1/§7.2 pipeline, fixes CP2/CP3/CP4):
 //
 //  1. engine output (all items, no pre-narrowing — CP2 root cause removed)
-//  2. display split into card collections (tiers + sections), unfiltered
+//  2. display split into the §7.1 sections (meds, feedings, work rows,
+//     cage cards, history) — unfiltered
 //  3. ONE zone×kind filter pass (the handler whitelist-validates zone)
-//  4. sections/groups from the filtered set; urgency-first tiers
-//  5. FilterStats + the zone×kind nav matrix (CP4/D6: badges == rendered)
+//  4. FilterStats in occurrences (density-independent, S3) + the A3
+//     summary-strip anchors on the first card of each urgency state
+//  5. the zone×kind nav matrix from the unfiltered open sets (CP4/D6)
 //
 // view selects the card density (CP3/D3): compact and detailed render the
-// same sections/groups — detailed adds per-occurrence cards, overridden
-// rows and window/grace info. now drives UpdatedAt. back (R5-2d, D-b,
-// optional) is the page's own incoming back target (sanitized); it is
-// embedded in the self URL so every card link chains the ORIGINAL origin
-// (e.g. the dashboard's back=/) through the round trip.
+// same sections/groups — detailed adds per-occurrence rows and overridden
+// info. now drives UpdatedAt. back (R5-2d, D-b, optional) is the page's
+// own incoming back target (sanitized); it is embedded in the self URL so
+// every card link chains the ORIGINAL origin (e.g. the dashboard's
+// back=/) through the round trip.
 func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, back ...string) *DayPlanView {
 	backIn := ""
 	if len(back) > 0 {
@@ -284,136 +292,355 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 		SelfPath:  planSelfPath(view, zone, kind, backIn),
 	}
 
-	// Stage 1–2: build every card UNFILTERED (engine → display layer).
-	cards := v.tierCards(plan, detailed)
+	// Stage 1–2: build every section UNFILTERED (engine → display layer).
+	rows := v.workRows(plan, detailed)
+	history := v.historyRows(plan, detailed)
 	feeds := feedingViewsOf(plan, v.SelfPath)
 	cares := careViewsOf(plan, v.SelfPath)
 	meds := v.buildMedGroups(plan, "", false)
 
 	// Stage 5 for the nav (D6): the zone×kind matrix comes from the
-	// unfiltered open card sets — the zone tab of zone Z counts the cards
-	// the ACTIVE kind would render there (and symmetrically for kinds).
-	v.Zones, v.ZoneAll = navZoneTabs(cards, feeds, cares, meds, kind)
-	v.Kinds, v.KindAll = navKindChips(cards, feeds, cares, meds, zone)
+	// unfiltered open card sets — the zone item of zone Z counts the
+	// cards the ACTIVE kind would render there (and symmetrically).
+	v.Zones, v.ZoneAll = navZoneTabs(rows, feeds, cares, meds, kind)
+	v.Kinds, v.KindAll = navKindChips(rows, feeds, cares, meds, zone)
 	v.ZoneAllCap = BadgeCap(v.ZoneAll)
 	v.KindAllCap = BadgeCap(v.KindAll)
 
 	// Stage 3: one filter pass over every collection.
-	visible := filterTierCards(cards, zone, kind)
+	v.WorkRows = filterCards(rows, zone, kind)
+	v.History = filterCards(history, zone, kind)
 	v.Feedings = filterFeedings(feeds, zone, kind)
 	v.Cares = filterCares(cares, zone, kind)
 	v.Meds = filterMeds(meds, zone, kind)
 
-	// Stage 4: tiers + summary from the SAME visible set (CP4 invariant).
-	keys := []string{TierLate, TierNow, TierLater, TierDone}
-	for t := range v.Tiers {
-		v.Tiers[t].Key = keys[t]
-		for _, tc := range visible {
-			if tc.tier == t {
-				v.Tiers[t].Cards = append(v.Tiers[t].Cards, tc.cv)
-			}
-		}
-		sort.SliceStable(v.Tiers[t].Cards, func(i, j int) bool {
-			return v.Tiers[t].Cards[i].DueAt.Before(v.Tiers[t].Cards[j].DueAt)
-		})
-		v.Tiers[t].Count = len(v.Tiers[t].Cards)
-		v.Tiers[t].CountCap = BadgeCap(v.Tiers[t].Count)
-	}
-	v.Stats = FilterStats{
-		Late:  v.Tiers[0].Count,
-		Now:   v.Tiers[1].Count,
-		Later: v.Tiers[2].Count,
-		Done:  v.Tiers[3].Count,
-	}
-	v.Stats.LateCap = BadgeCap(v.Stats.Late)
-	v.Stats.NowCap = BadgeCap(v.Stats.Now)
-	v.Stats.LaterCap = BadgeCap(v.Stats.Later)
-	v.Stats.DoneCap = BadgeCap(v.Stats.Done)
-
-	// Hour chips: distinct hours of the VISIBLE later cards (CP4: a
-	// filtered view never shows a chip whose target was filtered away).
-	// Deleted together with the tier structure in WP4 (§7.1).
-	v.Hours = hourChipsOf(visible)
+	// Stage 4: summary (occurrences) + the A3 anchors on the filtered
+	// screen (CP4: every counter describes exactly what is rendered).
+	v.Stats = statsOf(plan, zone, kind, plan.Now)
+	markAnchors(v)
 
 	return v
 }
 
-// tierCards builds the urgency-tier cards (§7.2 stage 2). detailed renders
-// one card per occurrence (overridden rows surface here only); compact
-// renders the next open action per (source × animal) with a "+n" badge.
-// Grouped kinds (feeding, cage cleanup, medication) never yield tier cards
-// — they render as sections.
-func (v *DayPlanView) tierCards(plan *DayPlan, detailed bool) []tierCard {
+// workRowKind reports whether a kind renders as a generic work row
+// (§7.1): everything that is neither a grouped section (feeding, cage
+// cleanup) nor a medication card — soins, pesée, observation.
+func workRowKind(kind string) bool {
+	return !tierKindExcluded(kind)
+}
+
+// isWorkRow reports whether an occurrence is generic work-row material
+// right now (§7.1): a row kind, open, and still CURRENT (§6.2-1) —
+// superseded occurrences are history, never work.
+func isWorkRow(it *careplan.PlanItem, now time.Time) bool {
+	src := it.Occurrence.Source
+	return src != nil && workRowKind(src.ActionKind()) &&
+		openStatusAction(it.Status) && IsCurrent(it, now)
+}
+
+// workRows builds the generic work rows (§7.1): open, CURRENT occurrences
+// of the row kinds. Compact: the next open action per (source × animal)
+// with a "+n" badge; detailed: every open current occurrence. Superseded
+// and terminal occurrences go to historyRows.
+func (v *DayPlanView) workRows(plan *DayPlan, detailed bool) []CardView {
+	now := plan.Now
+	rows := make([]CardView, 0, len(plan.Items))
 	if detailed {
-		return v.tierCardsDetailed(plan)
+		for i := range plan.Items {
+			it := &plan.Items[i]
+			if !isWorkRow(it, now) {
+				continue
+			}
+			cv := v.cardFor(plan, it)
+			cv.Tier = tierOrder(it.Status)
+			rows = append(rows, cv)
+		}
+		return rows
 	}
-	return v.tierCardsCompact(plan)
-}
-
-// tierCardsDetailed: one card per occurrence; overridden items land in the
-// done tier carrying their suppressing plan (debug surface).
-func (v *DayPlanView) tierCardsDetailed(plan *DayPlan) []tierCard {
-	cards := make([]tierCard, 0, len(plan.Items))
+	// Compact folds each (source × animal) group into its next open
+	// action. The fold runs over the CURRENT occurrences only: the
+	// earliest open occurrence of a group can be superseded (yesterday's
+	// missed weighing whose successor is imminent) — folding over all
+	// open items would hide the group's live work behind a history row
+	// (CP4: the "+n" badge counts remaining work, like statsOf).
+	current := make([]careplan.PlanItem, 0, len(plan.Items))
 	for i := range plan.Items {
-		it := &plan.Items[i]
-		if it.Occurrence.Source == nil {
-			continue
+		if isWorkRow(&plan.Items[i], now) {
+			current = append(current, plan.Items[i])
 		}
-		cv := v.cardFor(plan, it)
-		t := tierOrder(it.Status)
-		if it.Status == careplan.StatusOverridden {
-			cv.OverriddenBy = it.OverriddenBy
-			t = TierDoneIdx
-		}
-		if t < 0 {
-			continue
-		}
-		cards = append(cards, tierCard{cv: cv, tier: t})
 	}
-	return cards
-}
-
-// tierCardsCompact: the next open action per (source × animal), remaining
-// open work as a "+n" badge; fully-done groups reappear as a synthetic
-// done card (done counter).
-func (v *DayPlanView) tierCardsCompact(plan *DayPlan) []tierCard {
-	next := careplan.NextOpenPerGroup(plan.Items)
-	type gkey struct {
-		typ, id string
-		animal  int
-	}
-	seen := map[gkey]bool{}
-	cards := make([]tierCard, 0, len(next))
-	for _, n := range next {
-		src := n.Item.Occurrence.Source
-		if tierKindExcluded(src.ActionKind()) {
-			continue // grouped kinds render as sections, not tier rows
-		}
+	for _, n := range careplan.NextOpenPerGroup(current) {
 		cv := v.cardFor(plan, &n.Item)
 		cv.Remaining = n.Remaining
 		cv.RemainingCap = BadgeCap(n.Remaining)
-		seen[gkey{string(src.SourceType()), src.SourceID(), n.Item.Occurrence.AnimalID}] = true
-		if t := tierOrder(n.Item.Status); t >= 0 {
-			cards = append(cards, tierCard{cv: cv, tier: t})
-		}
+		cv.Tier = tierOrder(n.Item.Status)
+		rows = append(rows, cv)
 	}
+	return rows
+}
+
+// historyKey dedupes compact history rows per (source × animal).
+type historyKey struct {
+	typ, id string
+	animal  int
+}
+
+// historyRows builds the subdued history section (§7.1): terminal
+// occurrences (applied/skipped/deferred) and superseded open ones of the
+// non-medication kinds — medication history lives in the series buttons.
+// Superseded rows stay per-occurrence in BOTH densities: each carries its
+// own late-record action (§6.2-2/A1). Terminal rows collapse to one per
+// (source × animal) group in compact; overridden surfaces in detailed
+// only. Sorted most recent first.
+func (v *DayPlanView) historyRows(plan *DayPlan, detailed bool) []CardView {
+	now := plan.Now
+	seen := map[historyKey]bool{}
+	rows := make([]CardView, 0, len(plan.Items))
 	for i := range plan.Items {
 		it := &plan.Items[i]
 		src := it.Occurrence.Source
-		if src == nil || openStatusAction(it.Status) || it.Status == careplan.StatusOverridden {
+		if src == nil || tierKindExcluded(src.ActionKind()) {
 			continue
 		}
-		if tierKindExcluded(src.ActionKind()) {
-			continue // grouped done state shows on the section card
+		if openStatusAction(it.Status) {
+			if IsCurrent(it, now) {
+				continue // current open work → workRows
+			}
+			rows = append(rows, v.supersededRow(plan, it, now))
+			continue
 		}
-		k := gkey{string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID}
+		if cv, ok := v.terminalRow(plan, it, detailed, seen); ok {
+			rows = append(rows, cv)
+		}
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		return rows[i].DueAt.After(rows[j].DueAt)
+	})
+	return rows
+}
+
+// supersededRow renders one superseded OPEN occurrence (§6.2-1): history,
+// but late-recordable when its due time already passed (A1).
+func (v *DayPlanView) supersededRow(plan *DayPlan, it *careplan.PlanItem, now time.Time) CardView {
+	cv := v.cardFor(plan, it)
+	cv.Superseded = true
+	cv.SupersededReason = SupersededReason(it, now)
+	if cv.SupersededReason == "replaced" {
+		cv.SupersededBy = it.NextDue.Format("15:04")
+	}
+	cv.Tier = tierOrder(it.Status)
+	cv.LateAllowed = it.Occurrence.DueAt.Before(now)
+	return cv
+}
+
+// terminalRow renders one terminal (applied/skipped/deferred/overridden)
+// occurrence: group-collapsed in compact, overridden detailed-only, with
+// the A8 undo affordance when an application row exists. Returns false
+// when the row is suppressed (dedupe / overridden in compact).
+func (v *DayPlanView) terminalRow(plan *DayPlan, it *careplan.PlanItem, detailed bool, seen map[historyKey]bool) (CardView, bool) {
+	src := it.Occurrence.Source
+	if it.Status == careplan.StatusOverridden && !detailed {
+		return CardView{}, false
+	}
+	if !detailed {
+		k := historyKey{string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID}
 		if seen[k] {
-			continue
+			return CardView{}, false
 		}
 		seen[k] = true
-		cards = append(cards, tierCard{cv: v.cardFor(plan, it), tier: TierDoneIdx})
 	}
-	return cards
+	cv := v.cardFor(plan, it)
+	cv.Tier = tierOrder(it.Status)
+	if it.Status == careplan.StatusOverridden {
+		cv.OverriddenBy = it.OverriddenBy
+	}
+	cv.Undoable = it.Application != nil
+	if it.Application != nil {
+		cv.RecordedLate = it.Application.AppliedAt.After(it.Occurrence.DueAt)
+	}
+	return cv, true
+}
+
+// statsOf counts the workload in OCCURRENCES after the zone×kind filter
+// (CP4/D6): the summary strip is density-independent (S3 — compact and
+// detailed report the same numbers) and every counted occurrence shows
+// on the screen, either as its own button/chip/row or folded into a
+// "+N" remaining badge on its group. Superseded and terminal
+// occurrences are not work — they belong to the history section.
+func statsOf(plan *DayPlan, zone, kind string, now time.Time) FilterStats {
+	var buckets [3]int
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || (kind != "" && src.ActionKind() != kind) ||
+			it.Status == careplan.StatusOverridden {
+			continue
+		}
+		if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); !ok || (zone != "" && a.Zone.String != zone) {
+			continue
+		}
+		if !openStatusAction(it.Status) || !IsCurrent(it, now) {
+			continue
+		}
+		buckets[tierOrder(it.Status)]++
+	}
+	st := FilterStats{Late: buckets[0], Now: buckets[1], Later: buckets[2]}
+	st.LateCap = BadgeCap(st.Late)
+	st.NowCap = BadgeCap(st.Now)
+	st.LaterCap = BadgeCap(st.Later)
+	return st
+}
+
+// anchorClaims carries the A3 claim state while markAnchors walks the
+// sections in order: each urgency state is claimed by its FIRST card.
+type anchorClaims struct {
+	late, todo, later bool
+}
+
+// take claims the urgency state of ONE card (late wins over now, now
+// over later) if that state is still unclaimed; returns 0/1/2 or -1.
+func (a *anchorClaims) take(hasL, hasT, hasR bool) int {
+	switch {
+	case hasL && !a.late:
+		a.late = true
+		return 0
+	case hasT && !a.todo:
+		a.todo = true
+		return 1
+	case hasR && !a.later:
+		a.later = true
+		return 2
+	}
+	return -1
+}
+
+// claim takes the state and, when claimed, hands the index to set — the
+// per-type flag writer (the section collections have no shared interface).
+func (a *anchorClaims) claim(hasL, hasT, hasR bool, set func(int)) {
+	if s := a.take(hasL, hasT, hasR); s >= 0 {
+		set(s)
+	}
+}
+
+func setMedAnchor(m *MedGroupView) func(int) {
+	return func(s int) {
+		switch s {
+		case 0:
+			m.FirstLate = true
+		case 1:
+			m.FirstTodo = true
+		case 2:
+			m.FirstLater = true
+		}
+	}
+}
+
+func setFeedingAnchor(f *FeedingGroupView) func(int) {
+	return func(s int) {
+		switch s {
+		case 0:
+			f.FirstLate = true
+		case 1:
+			f.FirstTodo = true
+		case 2:
+			f.FirstLater = true
+		}
+	}
+}
+
+func setCareAnchor(c *CareView) func(int) {
+	return func(s int) {
+		switch s {
+		case 0:
+			c.FirstLate = true
+		case 1:
+			c.FirstTodo = true
+		}
+	}
+}
+
+func setRowAnchor(r *CardView) func(int) {
+	return func(s int) {
+		switch s {
+		case 0:
+			r.FirstLate = true
+		case 1:
+			r.FirstTodo = true
+		case 2:
+			r.FirstLater = true
+		}
+	}
+}
+
+// urgencyOfStatus buckets one plan status (late/missing → 0 late,
+// due → 1 todo, scheduled → 2 later).
+func urgencyOfStatus(status string) (late, todo, later bool) {
+	switch status {
+	case "late", "missing":
+		late = true
+	case "due":
+		todo = true
+	case "scheduled":
+		later = true
+	}
+	return late, todo, later
+}
+
+// feedingGroupStates reports whether a feeding card holds chips in the
+// late/now/later states.
+func feedingGroupStates(f *FeedingGroupView) (late, todo, later bool) {
+	for _, c := range f.Chips {
+		l, t2, r := urgencyOfStatus(c.Status)
+		late = late || l
+		todo = todo || t2
+		later = later || r
+	}
+	return late, todo, later
+}
+
+// markAnchors flags the FIRST card of each urgency state in section
+// order (A3): the summary strip scrolls to #plan-first-late /
+// #plan-first-todo / #plan-first-later — the jump navigation the
+// deleted hour chips provided, re-homed to urgency targets. A card
+// carries AT MOST ONE flag (late wins over now, now over later) — one
+// DOM id per element.
+func markAnchors(v *DayPlanView) {
+	var claims anchorClaims
+	for i := range v.Meds {
+		ml, mt, mr := medGroupStates(&v.Meds[i])
+		claims.claim(ml, mt, mr, setMedAnchor(&v.Meds[i]))
+	}
+	for i := range v.Feedings {
+		fl, ft, fr := feedingGroupStates(&v.Feedings[i])
+		claims.claim(fl, ft, fr, setFeedingAnchor(&v.Feedings[i]))
+	}
+	for i := range v.Cares {
+		c := &v.Cares[i]
+		claims.claim(c.LateCount > 0, c.ApplicableCount > 0, false, setCareAnchor(c))
+	}
+	for i := range v.WorkRows {
+		rl, rt, rr := urgencyOfStatus(v.WorkRows[i].Status)
+		claims.claim(rl, rt, rr, setRowAnchor(&v.WorkRows[i]))
+	}
+}
+
+// medGroupStates reports whether a medication card holds open slots in
+// the late/now/later states.
+func medGroupStates(m *MedGroupView) (late, todo, later bool) {
+	for _, s := range m.Slots {
+		if s.Done || s.Overridden {
+			continue
+		}
+		switch s.Status {
+		case "late", "missing":
+			late = true
+		case "due":
+			todo = true
+		case "scheduled":
+			later = true
+		}
+	}
+	return late, todo, later
 }
 
 // tierKindExcluded lists the kinds that never render as tier cards:
@@ -426,42 +653,96 @@ func tierKindExcluded(kind string) bool {
 	return g == careplan.GroupingCageDiet || g == careplan.GroupingCage
 }
 
+// openCurrentCounts counts the OPEN CURRENT feeding occurrences per
+// (source × animal) — the chip badge's "+N" remaining workload (CP4).
+func openCurrentCounts(plan *DayPlan) map[string]int {
+	openCurrent := map[string]int{}
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || src.ActionKind() != careplan.KindFeeding ||
+			!openStatusAction(it.Status) || !IsCurrent(it, plan.Now) {
+			continue
+		}
+		openCurrent[fmt.Sprintf("%s|%s|%d", src.SourceType(), src.SourceID(), it.Occurrence.AnimalID)]++
+	}
+	return openCurrent
+}
+
+// feedingViewOf enriches one feeding card's chips (links, "+N" remaining,
+// batch refs). Returns false when no chip survived (fully-scheduled card).
+func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string) (FeedingGroupView, bool) {
+	fv := FeedingGroupView{Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed}
+	var refs []map[string]interface{}
+	for i := range fc.Chips {
+		chip := fc.Chips[i]
+		// Superseded chips stay as dimmed info chips (§6.2-3, CP5): the
+		// animal's next occurrence is visible without being work. Only
+		// OPEN CURRENT occurrences are actionable.
+		if !chip.Superseded && (!openStatusAction(careplan.PlanStatus(chip.Status)) ||
+			chip.Status == string(careplan.StatusScheduled)) {
+			continue
+		}
+		chip.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
+		if n := openCurrent[fmt.Sprintf("%s|%s|%d", chip.SourceType, chip.SourceID, chip.AnimalID)]; n > 0 {
+			chip.Remaining = n - 1
+		}
+		fv.Chips = append(fv.Chips, chip)
+		if chip.Applicable {
+			fv.ApplicableCount++
+			refs = append(refs, map[string]interface{}{
+				"source_type": chip.SourceType,
+				"source_id":   chip.SourceID,
+				"animal_id":   chip.AnimalID,
+				"due_at":      chip.DueAt.Format(time.RFC3339),
+			})
+		}
+	}
+	if len(fv.Chips) == 0 {
+		return fv, false
+	}
+	if raw, err := jsonMarshal(refs); err == nil {
+		fv.ChipRefsJSON = string(raw)
+	}
+	return fv, true
+}
+
 // feedingViewsOf builds every feeding card (cage × diet, bugs.md U1) with
 // its deduped chips (§6.2-3) — unfiltered; §7.2 stage 3 filters in one
 // pass. OPEN work only: superseded and scheduled chips stay off the work
 // cards (superseded ones resurface in the history section, WP4).
 func feedingViewsOf(plan *DayPlan, selfPath string) []FeedingGroupView {
 	_, feedings := GroupCards(plan.Items, plan)
+	// CP4 honesty: open CURRENT feeding occurrences per (source × animal)
+	// — the chip badge's "+N" remaining (the workload the deduped chip
+	// stands for).
+	openCurrent := openCurrentCounts(plan)
 	out := make([]FeedingGroupView, 0, len(feedings))
 	for _, fc := range feedings {
-		fv := FeedingGroupView{Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed}
-		var refs []map[string]interface{}
-		for i := range fc.Chips {
-			chip := fc.Chips[i]
-			if chip.Superseded || !openStatusAction(careplan.PlanStatus(chip.Status)) ||
-				chip.Status == string(careplan.StatusScheduled) {
-				continue
-			}
-			chip.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
-			fv.Chips = append(fv.Chips, chip)
-			if chip.Applicable {
-				fv.ApplicableCount++
-				refs = append(refs, map[string]interface{}{
-					"source_type": chip.SourceType,
-					"source_id":   chip.SourceID,
-					"animal_id":   chip.AnimalID,
-					"due_at":      chip.DueAt.Format(time.RFC3339),
-				})
-			}
-		}
-		if len(fv.Chips) > 0 {
-			if raw, err := jsonMarshal(refs); err == nil {
-				fv.ChipRefsJSON = string(raw)
-			}
+		if fv, ok := feedingViewOf(fc, openCurrent, selfPath); ok {
 			out = append(out, fv)
 		}
 	}
 	return out
+}
+
+// careItemCounts folds one cleanup item into its cage card (late /
+// applicable counters) and appends its batch ref. Returns false when the
+// item is not applicable open work (scheduled never renders).
+func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) ([]map[string]interface{}, bool) {
+	if !openStatusAction(it.Status) || it.Status == careplan.StatusScheduled || !it.Applicable {
+		return nil, false
+	}
+	if it.Status == careplan.StatusLate || it.Status == careplan.StatusMissing {
+		cv.LateCount++
+	}
+	cv.ApplicableCount++
+	return []map[string]interface{}{{
+		"source_type": srcType,
+		"source_id":   srcID,
+		"animal_id":   it.Occurrence.AnimalID,
+		"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
+	}}, true
 }
 
 // careViewsOf builds every cage cleanup card (bugs.md U6: one batch apply
@@ -478,17 +759,9 @@ func careViewsOf(plan *DayPlan, selfPath string) []CareView {
 		}
 		var refs []map[string]interface{}
 		for i := range cc.Items {
-			it := &cc.Items[i]
-			if !openStatusAction(it.Status) || it.Status == careplan.StatusScheduled || !it.Applicable {
-				continue
+			if r, ok := careItemCounts(&cv, string(cc.Source.SourceType()), cc.Source.SourceID(), &cc.Items[i]); ok {
+				refs = append(refs, r...)
 			}
-			cv.ApplicableCount++
-			refs = append(refs, map[string]interface{}{
-				"source_type": string(cc.Source.SourceType()),
-				"source_id":   cc.Source.SourceID(),
-				"animal_id":   it.Occurrence.AnimalID,
-				"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
-			})
 		}
 		cv.Count = cv.ApplicableCount
 		if cv.ApplicableCount > 0 {
@@ -505,11 +778,11 @@ func careViewsOf(plan *DayPlan, selfPath string) []CareView {
 // count of zone Z is the number of OPEN cards the ACTIVE kind renders
 // there (all kinds when none is active). Grouped sections count one card
 // per group with open work.
-func navZoneTabs(cards []tierCard, feeds []FeedingGroupView, cares []CareView, meds []MedGroupView, kind string) ([]ZoneTab, int) {
+func navZoneTabs(cards []CardView, feeds []FeedingGroupView, cares []CareView, meds []MedGroupView, kind string) ([]ZoneTab, int) {
 	count := map[string]int{}
 	for _, tc := range cards {
-		if tc.tier < TierDoneIdx && kindMatch(tc.cv, kind) {
-			count[tc.cv.Zone]++
+		if tc.Tier < TierDoneIdx && kindMatch(tc, kind) {
+			count[tc.Zone]++
 		}
 	}
 	countOpenSectionZones(count, feeds, cares, meds, kind)
@@ -553,11 +826,11 @@ func countOpenSectionZones(count map[string]int, feeds []FeedingGroupView, cares
 // navKindChips builds the kind column of the CP4 zone×kind matrix: the
 // count of kind K is the number of OPEN cards K renders in the ACTIVE
 // zone (symmetric to navZoneTabs). Fixed display order (chip bar).
-func navKindChips(cards []tierCard, feeds []FeedingGroupView, cares []CareView, meds []MedGroupView, zone string) ([]KindChip, int) {
+func navKindChips(cards []CardView, feeds []FeedingGroupView, cares []CareView, meds []MedGroupView, zone string) ([]KindChip, int) {
 	count := map[string]int{}
 	for _, tc := range cards {
-		if tc.tier < TierDoneIdx && zoneMatch(tc.cv, zone) {
-			count[tc.cv.ActionKind]++
+		if tc.Tier < TierDoneIdx && zoneMatch(tc, zone) {
+			count[tc.ActionKind]++
 		}
 	}
 	for _, f := range feeds {
@@ -584,13 +857,13 @@ func navKindChips(cards []tierCard, feeds []FeedingGroupView, cares []CareView, 
 	return chips, total
 }
 
-// filterTierCards keeps the cards the active zone×kind renders (§7.2
+// filterCards keeps the cards the active zone×kind renders (§7.2
 // stage 3 — the ONLY narrowing in the pipeline).
-func filterTierCards(cards []tierCard, zone, kind string) []tierCard {
-	out := make([]tierCard, 0, len(cards))
-	for _, tc := range cards {
-		if zoneMatch(tc.cv, zone) && kindMatch(tc.cv, kind) {
-			out = append(out, tc)
+func filterCards(cards []CardView, zone, kind string) []CardView {
+	out := make([]CardView, 0, len(cards))
+	for _, cv := range cards {
+		if zoneMatch(cv, zone) && kindMatch(cv, kind) {
+			out = append(out, cv)
 		}
 	}
 	return out
@@ -639,26 +912,6 @@ func filterMeds(meds []MedGroupView, zone, kind string) []MedGroupView {
 		}
 	}
 	return out
-}
-
-// hourChipsOf derives the hour anchors from the VISIBLE later cards.
-func hourChipsOf(visible []tierCard) []HourChip {
-	hourCount := map[string]int{}
-	for _, tc := range visible {
-		if tc.tier == 2 {
-			hourCount[tc.cv.HourKey]++
-		}
-	}
-	hours := make([]string, 0, len(hourCount))
-	for h := range hourCount {
-		hours = append(hours, h)
-	}
-	sort.Strings(hours)
-	chips := make([]HourChip, 0, len(hours))
-	for _, h := range hours {
-		chips = append(chips, HourChip{Hour: h + ":00", Anchor: "h-" + h, Count: hourCount[h]})
-	}
-	return chips
 }
 
 // buildMedGroups projects every medication plan item into per-animal
@@ -853,18 +1106,21 @@ func medSlotOf(due time.Time) string {
 // conversion markers stripped, per-kind detail line — bugs.md U5).
 func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 	src := it.Occurrence.Source
+	parts := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now)
 	cv := CardView{
-		SourceType: string(src.SourceType()),
-		SourceID:   src.SourceID(),
-		SourceName: DisplayName(src.Name()),
-		Detail:     planDetail(src),
-		ActionKind: src.ActionKind(),
-		AnimalID:   it.Occurrence.AnimalID,
-		DueAt:      it.Occurrence.DueAt,
-		HourKey:    fmt.Sprintf("%02d", it.Occurrence.DueAt.Hour()),
-		Status:     string(it.Status),
-		Applicable: it.Applicable,
-		NeedsInput: src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
+		SourceType:   string(src.SourceType()),
+		SourceID:     src.SourceID(),
+		SourceName:   DisplayName(src.Name()),
+		Detail:       planDetail(src),
+		ActionKind:   src.ActionKind(),
+		AnimalID:     it.Occurrence.AnimalID,
+		DueAt:        it.Occurrence.DueAt,
+		DueHM:        parts.TimeHM,
+		DueDayKey:    parts.DayKey,
+		DueShortDate: parts.ShortDate,
+		Status:       string(it.Status),
+		Applicable:   it.Applicable,
+		NeedsInput:   src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
 	}
 	if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 		cv.AnimalLabel = animalLabel(a)

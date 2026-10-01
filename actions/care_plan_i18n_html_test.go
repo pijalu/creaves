@@ -96,14 +96,15 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 	}
 
 	// planUXStrings — new-UX labels that must appear in the static care_plan
-	// HTML for every language: kind-filter chip + confirm/detail/error modal
-	// titles (mirrors locales/care_plan.<lang>.yaml). R5-2c (D-a) removed the
+	// HTML for every language: zone-dropdown label (round-2 §7.2 IA — the
+	// kind-filter chips are gone) + confirm/detail/error modal titles
+	// (mirrors locales/care_plan.<lang>.yaml). R5-2c (D-a) removed the
 	// undo modal — undo is an instant toggle, so its title is gone.
 	planUXStrings := map[string][]string{
-		"fr":    {"Filtre", "Confirmer l'application", "Détails de l'entrée", "Une erreur est survenue"},
-		"en-US": {"Filter", "Confirm application", "Entry details", "Something went wrong"},
-		"de":    {"Filter", "Anwendung bestätigen", "Eintragsdetails", "Etwas ist schiefgelaufen"},
-		"nl":    {"Filter", "Toepassing bevestigen", "Details van de invoer", "Er is iets misgegaan"},
+		"fr":    {"Zone", "Confirmer l'application", "Détails de l'entrée", "Une erreur est survenue"},
+		"en-US": {"Zone", "Confirm application", "Entry details", "Something went wrong"},
+		"de":    {"Zone", "Anwendung bestätigen", "Eintragsdetails", "Etwas ist schiefgelaufen"},
+		"nl":    {"Zone", "Toepassing bevestigen", "Details van de invoer", "Er is iets misgegaan"},
 	}
 
 	paths := []string{

@@ -199,6 +199,23 @@ func customRenderHelpers() render.Helpers {
 		// boolLabel renders a boolean as two caller-provided localized labels
 		// (e.g. t("users.yes") / t("users.no")) instead of Go's true/false.
 		"boolLabel": boolLabel,
+		// dueLabel composes the date-aware due label (§6.2-5) for templates:
+		// bare time today, localized day word (yesterday/tomorrow), short
+		// date beyond — so "retard 08:00" never lies about the day.
+		"dueLabel": func(hm, dayKey, shortDate string, help plush.HelperContext) (string, error) {
+			day := shortDate
+			if day == "" && dayKey != "" {
+				tf, ok := help.Value("t").(func(string, ...interface{}) string)
+				if !ok {
+					return "", fmt.Errorf("dueLabel: t helper not found")
+				}
+				day = tf(dayKey)
+			}
+			if day == "" {
+				return hm, nil
+			}
+			return day + " " + hm, nil
+		},
 		"dbgDump": func(s any) string {
 			return fmt.Sprintf("%v", s)
 		},
