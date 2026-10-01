@@ -428,3 +428,22 @@ Watch: `BuildDayPlanView`/`CarePlanIndex` complexity after the pipeline rewrite 
 2. Strike the three bugs.md sections; move each to `docs/archive/2026-XX-XX-<slug>.md` alongside this plan (renamed `docs/archive/2026-XX-XX-care-plan-ux-fix-plan-round2.md`).
 3. One commit per fix already done in WP1–WP7; final commit = archive + bugs.md title fix (if not done earlier).
 4. If new issues surface during validation → added to bugs.md → new plan entry → same loop (bugs.md tail rule).
+
+### 12.6 Validation results (2026-10-01, agent-browser on :3000, admin + non-admin)
+
+All scenarios S1–S9 PASS; two gaps found → fixed in `f11fb12` (zone badge
+parity, late-record modal for input kinds). Gates at close-out: go vet,
+staticcheck, no NEW gocognit/gocyclo offenders vs baseline, full
+`go test -count=1 -race -cover ./...` green.
+
+| Scenario | Evidence (abridged) |
+|---|---|
+| S1 | seed shift (obs rule → 08:00+09:20, lookahead 30) → work chip = "09:20 Due", missed 08:00 only in collapsed history: `tr.plan-item.text-muted`, badge title "Replaced by 09:20"; non-today labels date-aware ("yesterday 12:00", de "gestern 12:00") |
+| S2 | Medication badge 30 = 30 cards; Observation 18 = 18; zone S → 16 cards + toggle "Zone: S 16" (was "S 30" — fixed); zone options 5+5+16+4 = 30; unknown `?zone=XXQQ` → redirect drops zone; care/cleanup/weighing 0-open → empty screen, honest "All 0" |
+| S3 | compact vs detailed on `kind=medication&zone=S`: strip identical (Late 12 / Later 45), 16 med groups both; detailed rows = occurrences per CP3 (§7.1) — per-view badges match each visible list (D6) |
+| S4 | dashboard: table-striped, 21 white per-animal cards, 0 count badges, year-number buttons, series "Citramox L.A. (48H) — 0.06 ml IM ○ 12:00"; care_plan: 45 series lines; animal tab: #animalTodayBlock with series buttons |
+| S5 | dashboard eye → `/animals/8635?due=…&item=animal%3A…#nav-treatment` → Treatment tab `active show` + detail modal `fade show` (Detail/Due 12:00/Status Scheduled/Kind Medication) |
+| S6 | feeding: 347 Apply buttons / 342 chips; individual Apply flips ✓ disabled in place; "Apply group (1)" removes the card from the open list in place; applied card leaves the list (no dead-end chip) |
+| S7 | one-tap apply/undo round-trip ×3 screens (animal tab, dashboard, care_plan): in-place ✓/○ flip, URL unchanged, same node re-clickable; also on a past-due (late-window) med slot |
+| S8 | `/lang` ×4 → care_plan + dashboard + animal Today block: fr (Médication, Toutes), de (Fütterung/Pflege, gestern), nl (Voeding, Vandaag), en default; 0 raw keys, 0 "translation missing" |
+| S9 | late-record: confirm dialog → apply modal for observation (answer required, §10-L1) → 201, row Done + ⏱ marker, no 409; outtaken-today (seed shift): dashboard `plan-med-row outtaken` + dove badge, care_plan 🕊️, missed slot applicable/undoable, outtaken-before-today absent from dashboard+care_plan; non-admin (carekeeper, admin=0): apply + history Undo → application deleted, row re-opens as work, audit `care_plan_application/delete` recorded |
