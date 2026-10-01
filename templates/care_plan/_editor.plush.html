@@ -9,10 +9,14 @@
      the payload field set. %>
 
 <template id="planEditorTpl" style="display:none">
-<div class="plan-editor">
+<div class="plan-editor"
+     data-warn-off-hours="<%= t("care_plan.warn.off_hours") %>"
+     data-warn-open-ended="<%= t("care_plan.warn.open_ended_medication") %>"
+     data-warn-slot-bucket="<%= t("care_plan.warn.slot_bucket") %>">
   <div class="card mb-3">
     <div class="card-body">
       <h6 class="card-title"><%= t("care_plan.field.schedule") %></h6>
+      <div data-pe-warnings class="alert alert-warning d-none mb-2"></div>
       <div class="form-group">
         <label><%= t("care_plan.editor.slots") %></label>
         <div data-pe="slots"></div>
@@ -184,6 +188,17 @@
 window.planEditor = (function () {
   "use strict";
 
+  // §7.1-6/§10.3-CP6b/§10.4-M1/M4 warn-but-allow labels — resolved in the
+  // request locale at render time via data attributes on the template root
+  // (HTML-escaped, apostrophe-safe; the editor partial is locale-agnostic).
+  function warnLabels(root) {
+    return {
+      offHours: root.getAttribute('data-warn-off-hours') || 'Outside 07:00\u201323:00',
+      openEnded: root.getAttribute('data-warn-open-ended') || 'Open-ended medication',
+      slotBucket: root.getAttribute('data-warn-slot-bucket') || 'More than one slot per treatment bucket'
+    };
+  }
+
   function $(root, sel) { return root.querySelector(sel); }
   function $all(root, sel) { return Array.prototype.slice.call(root.querySelectorAll(sel)); }
 
@@ -304,12 +319,63 @@ window.planEditor = (function () {
 
   // --- Wiring ---------------------------------------------------------------
 
+  // updateWarnings renders the §10.3-CP6b/§10.4-M1/M4 warn-but-allow
+  // guardrails live while editing: slots outside 07:00–23:00, an
+  // open-ended medication course and >1 medication slot in the same
+  // treatment bucket. Purely advisory — the save is never blocked.
+  function updateWarnings(root) {
+    var box = $(root, '[data-pe-warnings]');
+    if (!box) { return; }
+    var st = root._peState;
+    if (!st) { return; }
+    var W = warnLabels(root);
+    var s = null;
+    if (st.rawMode) {
+      var p = tryParse(st.scheduleEl);
+      if (p.ok) { s = p.v; }
+    } else {
+      s = readSchedule(root);
+    }
+    var msgs = [];
+    if (s && s.times && s.times.length) {
+      var offHours = false, bucket = {};
+      var isMed = st.kindEl.value === 'medication';
+      for (var i = 0; i < s.times.length; i++) {
+        var m = /^(\d{1,2}):(\d{2})$/.exec(s.times[i]);
+        if (!m) { continue; }
+        var h = parseInt(m[1], 10), mins = parseInt(m[2], 10);
+        var mod = h * 60 + mins; // §10-CP6b 07:00–23:00 inclusive, minute-exact
+        if (mod < 420 || mod > 1380) { offHours = true; }
+        if (isMed) {
+          var b = h < 11 ? 1 : (h <= 15 ? 2 : 4);
+          bucket[b] = (bucket[b] || 0) + 1;
+        }
+      }
+      if (offHours) { msgs.push(W.offHours); }
+      if (isMed && !s.duration_days) { msgs.push(W.openEnded); }
+      if (isMed) {
+        for (var k in bucket) {
+          if (bucket[k] > 1) { msgs.push(W.slotBucket); break; }
+        }
+      }
+    }
+    if (msgs.length) {
+      box.innerHTML = msgs.map(function (m) { return '<div>' + m + '</div>'; }).join('');
+      box.classList.remove('d-none');
+    } else {
+      box.innerHTML = '';
+      box.classList.add('d-none');
+    }
+  }
+
   var sync;
   sync = function (root) {
     var st = root._peState;
-    if (st.rawMode) { return; } // raw JSON is authoritative in raw mode
-    st.scheduleEl.value = JSON.stringify(readSchedule(root));
-    st.payloadEl.value = JSON.stringify(readPayload(root, st.kindEl.value));
+    if (!st.rawMode) { // raw JSON is authoritative in raw mode
+      st.scheduleEl.value = JSON.stringify(readSchedule(root));
+      st.payloadEl.value = JSON.stringify(readPayload(root, st.kindEl.value));
+    }
+    updateWarnings(root);
   };
 
   function refreshKind(root) {
@@ -359,7 +425,9 @@ window.planEditor = (function () {
     // once on attach, and again by host pages each time the modal/form is
     // (re)loaded with a different record.
     function load() {
-      var w = root.querySelector('.alert-warning');
+      // Remove only the raw-mode banner — NOT the persistent §7.1 warnings
+      // box (which also carries .alert-warning but has data-pe-warnings).
+      var w = root.querySelector('.alert-warning:not([data-pe-warnings])');
       if (w) { w.remove(); }
       det.open = false;
       var ps = tryParse(opts.schedule), pp = tryParse(opts.payload);
@@ -399,7 +467,7 @@ window.planEditor = (function () {
       el.addEventListener('change', function () {
         var a = tryParse(opts.schedule), b = tryParse(opts.payload);
         if (a.ok && b.ok) {
-          var w = root.querySelector('.alert-warning');
+          var w = root.querySelector('.alert-warning:not([data-pe-warnings])');
           if (w) { w.remove(); }
           st.rawMode = false;
           writeSchedule(root, a.v);

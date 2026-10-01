@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"creaves/models"
+	"creaves/models/careplan"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -229,6 +230,7 @@ func (v CareRulesResource) Create(c buffalo.Context) error {
 		}).Respond(c)
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
+		flashPlanRuleWarnings(c, rule)
 		return c.Redirect(http.StatusSeeOther, "/care_rules")
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, renderJSON(rule))
@@ -269,6 +271,7 @@ func (v CareRulesResource) Update(c buffalo.Context) error {
 		}).Respond(c)
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
+		flashPlanRuleWarnings(c, rule)
 		return c.Redirect(http.StatusSeeOther, "/care_rules")
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, renderJSON(rule))
@@ -293,6 +296,53 @@ func (v CareRulesResource) Destroy(c buffalo.Context) error {
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, renderJSON(map[string]string{"status": "deleted"}))
 	}).Respond(c)
+}
+
+// planRuleWarnings implements the §7.1-6/§10.3-CP6b/§10.4-M1/M4
+// warn-but-allow save guardrails: slots outside the 07:00–23:00 work
+// window, an open-ended medication course and >1 medication slot in the
+// same treatment bucket (§10-M1 dedupe keeps only one entry per bucket)
+// never block the save — each is reported as an i18n key for the editor
+// flash. Broken schedules report nothing (they are model validation
+// errors, surfaced separately).
+func planRuleWarnings(actionKind string, schedule json.RawMessage) []string {
+	sched, err := careplan.ParseScheduleJSON([]byte(schedule))
+	if err != nil {
+		return nil
+	}
+	var warns []string
+	for _, t := range sched.Times {
+		// §10-CP6b window 07:00–23:00 inclusive, minute-exact (23:01 is out).
+		mod := t.Hour*60 + t.Minute
+		if mod < 7*60 || mod > 23*60 {
+			warns = append(warns, "care_plan.warn.off_hours")
+			break
+		}
+	}
+	if actionKind == careplan.KindMedication {
+		if sched.OpenEnded() {
+			warns = append(warns, "care_plan.warn.open_ended_medication")
+		}
+		buckets := map[int]int{}
+		for _, t := range sched.Times {
+			buckets[bucketForHour(t.Hour)]++
+		}
+		for _, n := range buckets {
+			if n > 1 {
+				warns = append(warns, "care_plan.warn.slot_bucket")
+				break
+			}
+		}
+	}
+	return warns
+}
+
+// flashPlanRuleWarnings reports the warn-but-allow guardrails on the next
+// rendered page (the rules list the save redirects to).
+func flashPlanRuleWarnings(c buffalo.Context, rule *models.CareRule) {
+	for _, key := range planRuleWarnings(rule.ActionKind, rule.Schedule) {
+		c.Flash().Add("warning", T.Translate(c, key))
+	}
 }
 
 // CareRulePreview handles GET /care_rules/{care_rule_id}/preview (§7.1-3):

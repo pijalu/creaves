@@ -395,9 +395,13 @@ func createAlertFollowUpPlan(tx *pop.Connection, src careplan.PlanSource, payloa
 		return err
 	}
 
-	// replace an identical still-active follow-up instead of stacking
-	tx.RawQuery("DELETE FROM care_animal_plans WHERE name = ? AND animal_id = ? AND active = ?",
-		followUpPlanPrefix+payload.Prompt, animalID, true).Exec()
+	// replace an identical still-active follow-up instead of stacking. The
+	// delete error is checked (review finding #8): an FK-blocked delete must
+	// abort the apply — not silently stack a second follow-up.
+	if err := tx.RawQuery("DELETE FROM care_animal_plans WHERE name = ? AND animal_id = ? AND active = ?",
+		followUpPlanPrefix+payload.Prompt, animalID, true).Exec(); err != nil {
+		return err
+	}
 
 	plan := &models.CareAnimalPlan{
 		AnimalID:      animalID,
@@ -420,7 +424,13 @@ func createAlertFollowUpPlan(tx *pop.Connection, src careplan.PlanSource, payloa
 // >15:00 → evening(4). Since R5-3 the bitmap only feeds the legacy display
 // columns — the done state lives in treatment_time_entries (D-e dormant).
 func treatmentBucketBit(due time.Time) int {
-	h := due.Hour()
+	return bucketForHour(due.Hour())
+}
+
+// bucketForHour maps a wall-clock hour to the legacy treatment slot
+// bitmap (§10-M1): <11 → morning(1), 11–15 → noon(2), >15 → evening(4).
+// Shared by the fulfillment writer and the editor warning checks.
+func bucketForHour(h int) int {
 	switch {
 	case h < 11:
 		return models.Treatement_MORNING
@@ -545,8 +555,11 @@ func writeMedicationFulfillment(tx *pop.Connection, src careplan.PlanSource, pay
 	}
 
 	var treatments []models.Treatment
+	// review finding #7: ORDER BY keeps the row pick deterministic when the
+	// dual-day lookup (or legacy data) yields multiple same-day rows — the
+	// oldest row is the day's primary one.
 	if err := tx.Where("animal_id = ? AND drug = ? AND date >= ? AND date < ?",
-		animalID, payload.Drug, lookupStart, lookupEnd).All(&treatments); err != nil {
+		animalID, payload.Drug, lookupStart, lookupEnd).Order("date asc, id asc").All(&treatments); err != nil {
 		return "", err
 	}
 

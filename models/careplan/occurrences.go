@@ -125,38 +125,6 @@ func resolveDay1(s Schedule, a *AnimalContext, loc *time.Location) (day1 time.Ti
 	return midnightIn(loc, *s.AnchorDate).AddDate(0, 0, s.FromOffsetDays), 0, true
 }
 
-// CourseBounds returns the first and last occurrence instants of the
-// source's course for the animal (§10-A4 engine surface): the service uses
-// `last` to keep a latched bounded course attached after its matcher stops
-// matching; open-ended courses report bounded=false and are never latched.
-// Clamps apply: a course truncated by the outtake ends at its last
-// pre-outtake instant. ok=false when nothing can be generated.
-func CourseBounds(src PlanSource, a *AnimalContext) (first, last time.Time, ok, bounded bool) {
-	if src == nil || a == nil || !src.Active() {
-		return time.Time{}, time.Time{}, false, false
-	}
-	s := src.Schedule()
-	loc := time.Local
-	day1, _, anchored := resolveDay1(s, a, loc)
-	if !anchored {
-		return time.Time{}, time.Time{}, false, false
-	}
-	var occs []Occurrence
-	if s.OpenEnded() {
-		// Sample window for `first` only — an open-ended course has no end.
-		occs = GenerateOccurrences(src, a, day1, day1.AddDate(0, 0, 14))
-		if len(occs) == 0 {
-			return time.Time{}, time.Time{}, false, false
-		}
-		return occs[0].DueAt, time.Time{}, true, false
-	}
-	occs = GenerateOccurrences(src, a, day1, day1.AddDate(0, 0, s.DurationDays*s.EveryDays+2))
-	if len(occs) == 0 {
-		return time.Time{}, time.Time{}, false, true
-	}
-	return occs[0].DueAt, occs[len(occs)-1].DueAt, true, true
-}
-
 // midnightIn returns local midnight of t's calendar day in loc.
 func midnightIn(loc *time.Location, t time.Time) time.Time {
 	t = t.In(loc)

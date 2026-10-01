@@ -200,6 +200,107 @@ func lateRecordAllowed(late bool, item *careplan.PlanItem, now time.Time) bool {
 	return late && !item.Occurrence.DueAt.After(now)
 }
 
+// validatePlanApplyStatus checks the request-level rules (§6.2): status
+// whitelist and the §10-CP4 mandatory skip/defer reason.
+func validatePlanApplyStatus(in *planApplyRequest) (string, int, string) {
+	status := in.Status
+	if status == "" {
+		status = models.ApplicationStatusApplied
+	}
+	if status != models.ApplicationStatusApplied &&
+		status != models.ApplicationStatusSkipped &&
+		status != models.ApplicationStatusDeferred {
+		return "", http.StatusUnprocessableEntity, "status must be applied, skipped or deferred"
+	}
+	if status != models.ApplicationStatusApplied && strings.TrimSpace(in.Note) == "" {
+		return "", http.StatusUnprocessableEntity, "reason is mandatory for skip and defer (§10-CP4)"
+	}
+	return status, 0, ""
+}
+
+// checkPlanApplyItem enforces the reverified item's state rules: §4.5
+// idempotence, §4.7 overridden (checked BEFORE the window bound so the
+// structural cause is reported, review finding #6) and the §10-A1
+// hors-délai bound with the §4b-A1 late bypass.
+func checkPlanApplyItem(item *careplan.PlanItem, late bool) (int, string) {
+	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
+		// §4.5: the occurrence already has a recorded application — the
+		// generic hors-délai message would be misleading here.
+		return http.StatusConflict, "occurrence already recorded (idempotent, §4.5)"
+	}
+	if item.Status == careplan.StatusOverridden {
+		return http.StatusConflict, fmt.Sprintf("occurrence is overridden by animal plan %q", item.OverriddenBy)
+	}
+	// Round-2 §6.2-2 (§4b-A1): an explicit `late` acknowledgment lets a
+	// caretaker record a missed occurrence after the fact (depupdate
+	// parity). Bounded: past-due only (the future stays unrecordable),
+	// unapplied (checked above) and inside the plan window (ReverifyItem
+	// already 409s anything the window no longer produces). Without the
+	// flag the default is unchanged — hors délai 409.
+	if !item.Applicable && !lateRecordAllowed(late, item, time.Now()) {
+		return http.StatusConflict, "occurrence is out of its apply window (hors délai, §10-A1)"
+	}
+	return 0, ""
+}
+
+// buildPlanApplyDeferredUntil parses and clamps the defer target
+// (§10-CP4/L3): RFC3339 or default now+1h, clamped by ClampDeferredUntil.
+func buildPlanApplyDeferredUntil(in *planApplyRequest, rev *ReverifiedItem, now time.Time) (*time.Time, int, string) {
+	requested := now.Add(time.Hour) // §10-L3 default +1h
+	if in.DeferredUntil != "" {
+		t, err := time.Parse(time.RFC3339, in.DeferredUntil)
+		if err != nil {
+			return nil, http.StatusUnprocessableEntity, "deferred_until must be RFC3339"
+		}
+		requested = t
+	}
+	item := rev.Item
+	clamped := ClampDeferredUntil(item.Occurrence.Source, rev.Ctx, item.Occurrence.AnimalID, item.Occurrence.DueAt, requested)
+	return &clamped, 0, ""
+}
+
+// preparePlanApply is the shared per-item pre-flight of BOTH apply
+// endpoints — single (§6.2) and batch (§10.1-5). Review finding #2: the
+// batch endpoint previously skipped every guardrail the single endpoint
+// had. Enforced here for both: status whitelist, mandatory skip/defer
+// reason (§10-CP4), idempotence (§4.5), overridden check (§4.7 — checked
+// BEFORE the window bound so the structural cause is reported, review
+// finding #6), hors-délai bound with the §4b-A1 late bypass, defer target
+// parse + clamp (§10-CP4/L3) and the observation alert outcome
+// (§10.1-6). A non-zero status is an HTTP-shaped per-item failure.
+func preparePlanApply(in *planApplyRequest, rev *ReverifiedItem, now time.Time) (PlanApplyInput, int, string) {
+	status, estate, emsg := validatePlanApplyStatus(in)
+	if estate != 0 {
+		return PlanApplyInput{}, estate, emsg
+	}
+	item := rev.Item
+	if estate, emsg = checkPlanApplyItem(item, in.Late); estate != 0 {
+		return PlanApplyInput{}, estate, emsg
+	}
+
+	input := PlanApplyInput{
+		Status: status,
+		Note:   strings.TrimSpace(in.Note),
+		Weight: in.Weight,
+		Answer: in.Answer,
+		Dosage: in.Dosage,
+	}
+	if status == models.ApplicationStatusDeferred {
+		du, estate, emsg := buildPlanApplyDeferredUntil(in, rev, now)
+		if estate != 0 {
+			return PlanApplyInput{}, estate, emsg
+		}
+		input.DeferredUntil = du
+	}
+
+	// observation alert outcome (§10.1-6): computed from the source payload
+	if status == models.ApplicationStatusApplied && item.Occurrence.Source.ActionKind() == careplan.KindObservation {
+		payload := parsePlanPayload(item.Occurrence.Source)
+		input.AnswerIsAlert = payload.AlertOn != nil && in.Answer == *payload.AlertOn
+	}
+	return input, 0, ""
+}
+
 // CarePlanApply handles POST /care_plan/apply (§6.2): applied fulfillment,
 // skip (mandatory reason) or defer (mandatory reason + clamped target).
 func CarePlanApply(c buffalo.Context) error {
@@ -213,19 +314,6 @@ func CarePlanApply(c buffalo.Context) error {
 		return planError(c, http.StatusUnauthorized, fmt.Errorf("authentication required"))
 	}
 
-	status := in.Status
-	if status == "" {
-		status = models.ApplicationStatusApplied
-	}
-	if status != models.ApplicationStatusApplied &&
-		status != models.ApplicationStatusSkipped &&
-		status != models.ApplicationStatusDeferred {
-		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("status must be applied, skipped or deferred"))
-	}
-	if status != models.ApplicationStatusApplied && strings.TrimSpace(in.Note) == "" {
-		return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("reason is mandatory for skip and defer (§10-CP4)"))
-	}
-
 	now := time.Now()
 	rev, err := ReverifyItem(tx, in.planItemRef, now)
 	if err != nil {
@@ -234,52 +322,12 @@ func CarePlanApply(c buffalo.Context) error {
 		}
 		return err
 	}
-	item := rev.Item
-	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
-		// §4.5: the occurrence already has a recorded application — the
-		// generic hors-délai message would be misleading here.
-		return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
-	}
-	// Round-2 §6.2-2 (§4b-A1): an explicit `late` acknowledgment lets a
-	// caretaker record a missed occurrence after the fact (depupdate
-	// parity). Bounded: past-due only (the future stays unrecordable),
-	// unapplied (checked above) and inside the plan window (ReverifyItem
-	// already 409s anything the window no longer produces). Without the
-	// flag the default is unchanged — hors délai 409.
-	if !item.Applicable && !lateRecordAllowed(in.Late, item, now) {
-		return planError(c, http.StatusConflict, fmt.Errorf("occurrence is out of its apply window (hors délai, §10-A1)"))
-	}
-	if item.Status == careplan.StatusOverridden {
-		return planError(c, http.StatusConflict, fmt.Errorf("occurrence is overridden by animal plan %q", item.OverriddenBy))
+	input, estate, emsg := preparePlanApply(in, rev, now)
+	if estate != 0 {
+		return planError(c, estate, fmt.Errorf("%s", emsg))
 	}
 
-	input := PlanApplyInput{
-		Status: status,
-		Note:   strings.TrimSpace(in.Note),
-		Weight: in.Weight,
-		Answer: in.Answer,
-		Dosage: in.Dosage,
-	}
-	if status == models.ApplicationStatusDeferred {
-		requested := time.Now().Add(time.Hour) // §10-L3 default +1h
-		if in.DeferredUntil != "" {
-			t, err := time.Parse(time.RFC3339, in.DeferredUntil)
-			if err != nil {
-				return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("deferred_until must be RFC3339"))
-			}
-			requested = t
-		}
-		clamped := ClampDeferredUntil(item.Occurrence.Source, rev.Ctx, item.Occurrence.AnimalID, item.Occurrence.DueAt, requested)
-		input.DeferredUntil = &clamped
-	}
-
-	// observation alert outcome (§10.1-6): computed from the source payload
-	if status == models.ApplicationStatusApplied && item.Occurrence.Source.ActionKind() == careplan.KindObservation {
-		payload := parsePlanPayload(item.Occurrence.Source)
-		input.AnswerIsAlert = payload.AlertOn != nil && in.Answer == *payload.AlertOn
-	}
-
-	app, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
+	app, err := writePlanApplication(tx, rev.Item.Occurrence.Source, rev.Item.Occurrence.AnimalID, rev.Item.Occurrence.DueAt, time.Now(), u.ID, input)
 	if err != nil {
 		var dre *DosageRequiredError
 		if errors.As(err, &dre) {
@@ -399,15 +447,22 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 			results = append(results, res)
 			continue
 		}
-		input := PlanApplyInput{
-			Status: ref.Status,
-			Note:   ref.Note,
-			Weight: ref.Weight,
-			Answer: ref.Answer,
-			Dosage: ref.Dosage,
+		// terminal occurrences report already_done (§4.5), matching the
+		// UNIQUE-race mapping below — not a hard error.
+		if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
+			res["status"] = "already_done"
+			results = append(results, res)
+			continue
 		}
-		if input.Status == "" {
-			input.Status = models.ApplicationStatusApplied
+		// shared guardrails with the single endpoint (review finding #2):
+		// status whitelist, mandatory reason, overridden + hors-délai 409s,
+		// defer parse + clamp, observation alert outcome.
+		input, estate, emsg := preparePlanApply(&ref, rev, time.Now())
+		if estate != 0 {
+			res["status"] = "error"
+			res["error"] = emsg
+			results = append(results, res)
+			continue
 		}
 		_, err := writePlanApplication(tx, item.Occurrence.Source, item.Occurrence.AnimalID, item.Occurrence.DueAt, time.Now(), u.ID, input)
 		if err != nil {

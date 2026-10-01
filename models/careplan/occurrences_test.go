@@ -213,44 +213,6 @@ func TestGenerateDegenerateInputs(t *testing.T) {
 		"2026-09-01 07:00", "2026-09-02 07:00", "2026-09-03 07:00")
 }
 
-// Course bounds (§10-A4 engine surface): the service uses the last instant
-// of a bounded course to keep a latched animal attached after its matcher
-// stops matching; open-ended courses are never latched.
-func TestCourseBounds(t *testing.T) {
-	src := ruleSource(t, `{"times":["08:00","19:00"],"anchor":"fixed","anchor_date":"2026-09-01","duration_days":5}`)
-	a := occAnimal(day(t, "2026-08-30 07:30"), nil)
-	first, last, ok, bounded := CourseBounds(src, a)
-	if !ok || !bounded {
-		t.Fatalf("5-day course: ok=%v bounded=%v, want true/true", ok, bounded)
-	}
-	if first.Format("2006-01-02 15:04") != "2026-09-01 08:00" || last.Format("2006-01-02 15:04") != "2026-09-05 19:00" {
-		t.Errorf("bounds = %v .. %v, want 09-01 08:00 .. 09-05 19:00", first, last)
-	}
-
-	// Outtake truncates the effective course end.
-	out := day(t, "2026-09-03 10:00")
-	a = occAnimal(day(t, "2026-08-30 07:30"), &out)
-	_, last, _, _ = CourseBounds(src, a)
-	if last.Format("2006-01-02 15:04") != "2026-09-03 08:00" {
-		t.Errorf("clamped course end = %v, want 09-03 08:00 (last slot < outtake)", last)
-	}
-
-	// Open-ended course: bounded=false, no last instant.
-	src = ruleSource(t, `{"times":["08:00"]}`)
-	a = occAnimal(day(t, "2026-08-30 07:30"), nil)
-	_, last, ok, bounded = CourseBounds(src, a)
-	if !ok || bounded || !last.IsZero() {
-		t.Errorf("open-ended: ok=%v bounded=%v last=%v, want true/false/zero", ok, bounded, last)
-	}
-
-	// Nothing to anchor on → ok=false.
-	src = ruleSource(t, `{"times":["08:00"]}`)
-	_, _, ok, _ = CourseBounds(src, &AnimalContext{ID: 42})
-	if ok {
-		t.Errorf("intake anchor without intake must yield ok=false")
-	}
-}
-
 // DST boundary (§4.3/§10-B1): day arithmetic keeps wall-clock slots on
 // their HH:MM across the Europe/Brussels spring-forward (2026-03-29,
 // 02:00→03:00) and fall-back (2026-10-25, 03:00→02:00) transitions.

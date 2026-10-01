@@ -157,20 +157,26 @@ func buildMemberships(tx *pop.Connection, sources []careplan.PlanSource, pa *pla
 		}
 	}
 
-	// parsed AST cache (§7.1-6: broken matchers match nothing, no plan error)
-	astCache := map[uuid.UUID]careplan.Node{}
-	parseExpr := func(id uuid.UUID) careplan.Node {
-		if n, ok := astCache[id]; ok {
-			return n
+	// parsed AST cache (§4.4/§7.1-6 fail-closed: a broken — or missing —
+	// matcher expression matches NOTHING; only a rule WITHOUT a matcher
+	// matches every animal). Parse failures are cached like successes.
+	type parsedMatcher struct {
+		node careplan.Node
+		ok   bool
+	}
+	astCache := map[uuid.UUID]parsedMatcher{}
+	parseExpr := func(id uuid.UUID) parsedMatcher {
+		if p, cached := astCache[id]; cached {
+			return p
 		}
-		var n careplan.Node
-		if e, ok := exprs[id]; ok {
+		var p parsedMatcher
+		if e, present := exprs[id]; present {
 			if parsed, err := careplan.ParseValidatedWith(e, careplan.DefaultRegistry()); err == nil {
-				n = parsed
+				p.node, p.ok = parsed, true
 			}
 		}
-		astCache[id] = n
-		return n
+		astCache[id] = p
+		return p
 	}
 
 	// per-animal exclusions (§4.1)
@@ -220,7 +226,13 @@ func buildMemberships(tx *pop.Connection, sources []careplan.PlanSource, pa *pla
 		set := map[int]bool{}
 		var node careplan.Node
 		if r.MatcherID.Valid {
-			node = parseExpr(r.MatcherID.UUID)
+			p := parseExpr(r.MatcherID.UUID)
+			if !p.ok {
+				// §4.4/§7.1-6 fail-closed: broken matcher matches nothing.
+				members[r.ID.String()] = set
+				continue
+			}
+			node = p.node
 		}
 		for id, ctx := range pa.ctxs {
 			if node != nil && !careplan.Eval(reg, node, ctx) {
@@ -475,23 +487,23 @@ func ReverifyItem(tx *pop.Connection, ref planItemRef, now time.Time) (*Reverifi
 }
 
 // ruleCoversAnimal reproduces the buildMemberships membership decision of
-// one rule for one animal (§5): matcher evaluation (a missing/broken
-// matcher expression matches everything, as in buildMemberships), minus
-// per-animal exclusion (§4.1), plus the §5.4 course latch — the latch
-// union runs AFTER exclusions, exactly like the bulk path.
+// one rule for one animal (§5): matcher evaluation (a broken or missing
+// matcher expression matches NOTHING, §4.4/§7.1-6, as in buildMemberships;
+// only a rule WITHOUT a matcher matches every animal), minus per-animal
+// exclusion (§4.1), plus the §5.4 course latch — the latch union runs
+// AFTER exclusions, exactly like the bulk path.
 func ruleCoversAnimal(tx *pop.Connection, r *models.CareRule, ctx *careplan.AnimalContext, from time.Time) (bool, error) {
 	matched := true
 	if r.MatcherID.Valid {
-		var node careplan.Node
 		var m models.CareMatcher
-		if err := tx.Find(&m, r.MatcherID.UUID); err == nil {
-			if parsed, perr := careplan.ParseValidatedWith(m.Expression, careplan.DefaultRegistry()); perr == nil {
-				node = parsed
-			}
+		if err := tx.Find(&m, r.MatcherID.UUID); err != nil {
+			return false, nil // missing row → fail-closed
 		}
-		if node != nil {
-			matched = careplan.Eval(careplan.DefaultRegistry(), node, ctx)
+		node, perr := careplan.ParseValidatedWith(m.Expression, careplan.DefaultRegistry())
+		if perr != nil {
+			return false, nil // §4.4/§7.1-6 fail-closed: broken matcher
 		}
+		matched = careplan.Eval(careplan.DefaultRegistry(), node, ctx)
 	}
 	if matched {
 		var ex []models.CareRuleExclusion
