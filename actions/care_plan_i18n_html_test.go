@@ -129,6 +129,10 @@ func TestCarePlanPagesAllLocales(t *testing.T) {
 					raw, _ := io.ReadAll(resp.Body)
 					require.Equal(t, http.StatusOK, resp.StatusCode,
 						"%s %s rendered: %s", lang, path, raw[:min(len(raw), 3000)])
+					// WP7 gate: no missing-key marker may reach ANY care-plan
+					// surface (a missing fork key renders this marker).
+					require.NotContains(t, string(raw), "translation missing",
+						"%s %s must not render missing-key markers", lang, path)
 					want := byLang[lang][path]
 					require.NotEmpty(t, want)
 					require.Contains(t, string(raw), want,
@@ -279,6 +283,9 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 			// on the unescaped text.
 			require.Equal(t, http.StatusOK, resp.StatusCode,
 				"%s /dashboard/ rendered: %s", lang, raw[:min(len(raw), 2000)])
+			// WP7 gate: no missing-key marker on the dashboard either.
+			require.NotContains(t, string(raw), "translation missing",
+				"%s /dashboard/ must not render missing-key markers", lang)
 			unescaped := html.UnescapeString(raw)
 			require.Contains(t, unescaped, wantHeading[lang],
 				"%s /dashboard/ must show the localized medication heading %q", lang, wantHeading[lang])
@@ -309,6 +316,66 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 				"%s /dashboard/ eye must deep-link the occurrence (item=)", lang)
 			require.Contains(t, string(raw), "#nav-treatment",
 				"%s /dashboard/ eye must target the treatment tab", lang)
+		})
+	}
+}
+
+// TestAnimalShowTodayBlockAllLocales renders one animal's show page (the
+// Treatment tab source, round-2 §10/WP6) in all four UI languages and
+// asserts the protocol-driven TODAY block: the localized care_plan.section
+// .today heading, the shared drug-series toggle buttons, and NO missing-
+// key markers anywhere on the page (the WP7 render gate for the animal
+// surface — the /care_plan and /dashboard gates live in the tests above).
+func TestAnimalShowTodayBlockAllLocales(t *testing.T) {
+	f := setupPlanFixture(t)
+	client, baseURL := planAdminClient(t)
+
+	// One medication slot due (earlier) today — without it the TODAY block
+	// would not render at all and the assertions below would pass vacuously.
+	now := time.Now()
+	due := now.Add(-time.Minute)
+	if due.Day() != now.Day() {
+		due = now // midnight edge: keep the slot inside today
+	}
+	_ = ruleWithoutMatcher(t, models.DB, "ATODAY-"+f.marker, "medication",
+		planRulePayload(t, "medication", map[string]interface{}{"drug": "ATDrug-" + f.marker, "dosage": "0.5 ml"}),
+		careScheduleJSON(t, due))
+
+	wantHeading := map[string]string{
+		"fr":    "Aujourd'hui",
+		"en-US": "Today",
+		"de":    "Heute",
+		"nl":    "Vandaag",
+	}
+	for _, lang := range []string{"fr", "en-US", "de", "nl"} {
+		lang := lang
+		t.Run(lang, func(t *testing.T) {
+			req, err := http.NewRequest("GET", baseURL+fmt.Sprintf("/animals/%d", f.animalIDs[0]), nil)
+			require.NoError(t, err)
+			req.Header.Set("Accept", "text/html")
+			req.AddCookie(&http.Cookie{Name: "lang", Value: lang})
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+			defer resp.Body.Close()
+			raw, _ := io.ReadAll(resp.Body)
+			require.Equal(t, http.StatusOK, resp.StatusCode,
+				"%s animal show rendered: %.2000s", lang, raw)
+			// Localized TODAY heading (t() output is HTML-escaped — fr
+			// "Aujourd&#39;hui" — so compare on the unescaped text).
+			unescaped := html.UnescapeString(string(raw))
+			require.Contains(t, unescaped, "animalTodayBlock",
+				"%s animal show must render the TODAY block", lang)
+			require.Contains(t, unescaped, wantHeading[lang],
+				"%s animal show must show the localized TODAY heading %q", lang, wantHeading[lang])
+			// Shared series component: hour-labeled toggle buttons.
+			require.Contains(t, string(raw), "plan-med-slot",
+				"%s animal show TODAY block must render series toggle buttons", lang)
+			// WP7 gate: no missing-key markers, and the today key itself
+			// must never render raw (a raw render means the fork lost it).
+			require.NotContains(t, string(raw), "translation missing",
+				"%s animal show must not render missing-key markers", lang)
+			require.NotContains(t, string(raw), "care_plan.section.today",
+				"%s animal show must not render the raw today key", lang)
 		})
 	}
 }
