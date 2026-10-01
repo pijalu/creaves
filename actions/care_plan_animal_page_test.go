@@ -210,3 +210,24 @@ func TestAnimalsShowTreatmentTabFromEntries(t *testing.T) {
 	// Add New treatment button (original look kept).
 	require.Contains(t, html, "Add New treatment")
 }
+
+// TestParseItemRef: the ?item= deep-link reference (round-2 §8.2,
+// Dash-7) splits into source type + id; anything malformed resolves to
+// ok=false so a stale bookmark degrades to a normal page render.
+func TestParseItemRef(t *testing.T) {
+	typ, id, ok := parseItemRef("rule:med-1")
+	require.True(t, ok)
+	require.Equal(t, "rule", typ)
+	require.Equal(t, "med-1", id)
+
+	typ, id, ok = parseItemRef("animal:0198c0aa-7b34-73d3-8f3e-2a6f88b1d947")
+	require.True(t, ok)
+	require.Equal(t, "animal", typ)
+	require.Equal(t, "0198c0aa-7b34-73d3-8f3e-2a6f88b1d947", id)
+
+	// Malformed: no separator, empty halves.
+	for _, ref := range []string{"", ":", "rule:", ":med-1", "nominalseparator"} {
+		_, _, ok = parseItemRef(ref)
+		require.False(t, ok, "parseItemRef(%q) must not parse", ref)
+	}
+}

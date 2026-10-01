@@ -123,6 +123,10 @@ type MedSlotView struct {
 	SourceLink      string
 	FulfillmentLink string
 	ViewLink        string // unconditional record/treatment view (R5-2b)
+	// Dash-7 (round-2 §8.2): dashboard eye deep-link — the animal page
+	// resolves the occurrence server-side and opens the shared detail
+	// modal on load (bookmarkable, no extra round-trip).
+	DeepLink string
 	// §6.2-2 (round-2, A1): past-due, unapplied, out-of-apply-window —
 	// the dimmed series button stays clickable and records the missed
 	// occurrence with the explicit late acknowledgment.
@@ -148,9 +152,13 @@ type MedGroupView struct {
 	AnimalID    int
 	AnimalLabel string
 	AnimalLink  string
-	Species     string // raw species (template translates via tspecies)
-	Zone        string
-	Cage        string
+	// Dash-2 (round-2 §8.1): year-number-only button text — sibling-table
+	// parity; the full label stays in the detail modal.
+	AnimalYear string
+	Species    string // raw species (template translates via tspecies)
+	Gender     string // raw gender "M"/"F"/"" (template renders ♂/♀/×)
+	Zone       string
+	Cage       string
 	// Round-2 §4b-A2 (Dash-9): animal outtaken today — depupdate parity
 	// (outtaken row class + dove badge); set only by the today-outtaken
 	// assembly scope.
@@ -954,11 +962,11 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			g = &MedGroupView{
 				AnimalID:    it.Occurrence.AnimalID,
 				AnimalLabel: animalLabel(a),
-				// back (not v.SelfPath): the dashboard mode overrides the
-				// chain to "/" so EVERY card link returns to the dashboard
-				// (R5-2d/D-b); on the work screen back == v.SelfPath.
+				// Dash-2 (§8.1): year-number-only button, sibling-table parity.
+				AnimalYear:    a.YearNumberFormatted(),
 				AnimalLink:    cardAnimalLink(it.Occurrence.AnimalID, back),
 				Species:       a.Species,
+				Gender:        a.Gender.String,
 				Zone:          a.Zone.String,
 				Cage:          a.Cage.String,
 				OuttakenToday: a.Outtake != nil, // §4b-A2 (Dash-9)
@@ -996,6 +1004,7 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 		if slot.ViewLink == "" {
 			slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, back)
 		}
+		slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
 		if slot.Applicable && !slot.Done {
 			g.OpenCount++
 		}
@@ -1072,6 +1081,19 @@ func chunkSeriesRows(g []MedSlotView) [][]MedSlotView {
 		rows = append(rows, cur)
 	}
 	return rows
+}
+
+// animalItemDeepLink builds the dashboard eye URL (Dash-7, §8.2): the
+// animal's Treatment tab (sibling-table #nav-* convention) plus the
+// occurrence reference (?item=&due=) the Show handler resolves
+// server-side to open the shared detail modal on load.
+func animalItemDeepLink(animalID int, srcType, srcID, dueRFC string) string {
+	q := url.Values{}
+	q.Set("item", srcType+":"+srcID)
+	if dueRFC != "" {
+		q.Set("due", dueRFC)
+	}
+	return fmt.Sprintf("/animals/%d?%s#nav-treatment", animalID, q.Encode())
 }
 
 // BuildDashboardMedView projects the dashboard "Medication today"

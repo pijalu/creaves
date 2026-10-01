@@ -162,6 +162,79 @@ func entryClockSVG(label string) string {
 	}
 }
 
+// PlanItemDetail carries the server-resolved display fields of one plan
+// occurrence for the shared detail modal (round-2 §8.2, Dash-7): the
+// dashboard eye deep-links /animals/{id}?item=…&due=…#nav-treatment; the
+// Show handler resolves the occurrence server-side and the show template
+// renders the modal open — no fetch, deep-links work from bookmarks.
+type PlanItemDetail struct {
+	AnimalLabel string
+	AnimalLink  string
+	Detail      string
+	SourceName  string
+	SourceLink  string
+	Kind        string // localized action kind
+	Due         string // "15:04" — deep links target today's occurrences
+	Status      string // localized occurrence status
+}
+
+// resolvePlanItemDetail handles the ?item=&due= deep link on the animal
+// page (§8.2): find the occurrence in today's plan for THIS animal and
+// pass its display fields plus openPlanDetail to the template. An
+// unparseable ref or a stale occurrence (plan gone, already purged)
+// resolves to nothing — the page renders normally without a popup.
+func resolvePlanItemDetail(tx *pop.Connection, c buffalo.Context, animal *models.Animal, ref, dueRaw string) error {
+	srcType, srcID, ok := parseItemRef(ref)
+	if !ok {
+		return nil
+	}
+	var due time.Time
+	if dueRaw != "" {
+		if d, err := time.Parse(time.RFC3339, dueRaw); err == nil {
+			due = d
+		}
+	}
+	now := time.Now()
+	from, to := TodayPlanWindow(now)
+	plan, err := BuildDayPlan(tx, now, from, to)
+	if err != nil {
+		return err
+	}
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || it.Occurrence.AnimalID != animal.ID ||
+			string(src.SourceType()) != srcType || src.SourceID() != srcID {
+			continue
+		}
+		if !due.IsZero() && !it.Occurrence.DueAt.Equal(due) {
+			continue
+		}
+		c.Set("planItemDetail", PlanItemDetail{
+			AnimalLabel: animalLabel(*animal),
+			AnimalLink:  fmt.Sprintf("/animals/%d", animal.ID),
+			Detail:      planDetail(src),
+			SourceName:  DisplayName(src.Name()),
+			SourceLink:  cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
+			Kind:        T.Translate(c, "care_plan.kind."+string(src.ActionKind())),
+			Due:         it.Occurrence.DueAt.Format("15:04"),
+			Status:      T.Translate(c, "care_plan.status."+string(it.Status)),
+		})
+		c.Set("openPlanDetail", true)
+		return nil
+	}
+	return nil
+}
+
+// parseItemRef splits the ?item= reference "<source_type>:<source_id>".
+func parseItemRef(ref string) (string, string, bool) {
+	i := strings.Index(ref, ":")
+	if i <= 0 || i == len(ref)-1 {
+		return "", "", false
+	}
+	return ref[:i], ref[i+1:], true
+}
+
 // planWindow renders the active window of a plan schedule as ISO dates
 // "YYYY-MM-DD → YYYY-MM-DD" (or "YYYY-MM-DD → ∞" when open-ended) —
 // R5-4b (U21): the Protocol tab shows the complete protocol incl. when it

@@ -294,11 +294,21 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 			require.NotContains(t, string(raw), "plan-med-card",
 				"%s /dashboard/ must not render the old card grid", lang)
 			// slot buttons show the actual due time (any number of slots),
-			// not the 3 fixed bucket names
-			require.Contains(t, string(raw), "dash-med-", "medication toggle markup present")
-			// unconditional view link (R5-2b)
+			// not the 3 fixed bucket names; the shared drug-series partial
+			// renders one line per (drug, dosage) — Dash-3 removed the
+			// per-row count badge (Dash-1/4/5/8 markup, round-2 §8.1).
+			require.Contains(t, string(raw), "plan-med-slot", "medication toggle markup present")
+			require.Contains(t, string(raw), "med-series-line", "drug series line present")
+			require.NotContains(t, string(raw), "dash-med-count",
+				"%s /dashboard/ must not render the per-row count badge (Dash-3)", lang)
+			// Dash-7 (round-2 §8.2): the eye deep-links the animal page with
+			// the occurrence reference (?item=&due=) + the treatment-tab hash.
 			require.Contains(t, string(raw), "dash-med-view",
 				"%s /dashboard/ must carry the unconditional view link", lang)
+			require.Contains(t, string(raw), "item=",
+				"%s /dashboard/ eye must deep-link the occurrence (item=)", lang)
+			require.Contains(t, string(raw), "#nav-treatment",
+				"%s /dashboard/ eye must target the treatment tab", lang)
 		})
 	}
 }

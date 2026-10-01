@@ -578,6 +578,12 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
 				return err
 			}
+			// Dash-7 (round-2 §8.2): dashboard eye deep-link — resolve the
+			// targeted plan occurrence server-side so the shared detail
+			// modal opens on load. No-op without ?item=.
+			if err := resolvePlanItemDetail(tx, c, animal, c.Param("item"), c.Param("due")); err != nil {
+				return err
+			}
 			c.Set("planActionKinds", planActionKinds())
 			// Structured editors (bugs.md U17): caretype/drug dropdown data.
 			if err := setPlanEditorData(c, tx); err != nil {

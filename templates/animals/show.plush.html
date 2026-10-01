@@ -1074,3 +1074,40 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
     </div>
   </div>
 </div>
+
+<%= if (openPlanDetail) { %>
+  <%# Dash-7 (round-2 §8.2): dashboard eye deep-link — the Show handler
+      resolved the targeted occurrence server-side (resolvePlanItemDetail);
+      render the shared detail modal OPEN on load. Bookmarkable, no extra
+      round-trip. %>
+  <%= partial("care_plan/item_detail_modal.plush.html") %>
+  <div id="planItemDeepLink" class="d-none"
+    data-animal-label="<%= planItemDetail.AnimalLabel %>" data-animal-link="<%= planItemDetail.AnimalLink %>"
+    data-detail="<%= planItemDetail.Detail %>" data-source-name="<%= planItemDetail.SourceName %>"
+    data-source-link="<%= planItemDetail.SourceLink %>" data-kind="<%= planItemDetail.Kind %>"
+    data-due="<%= planItemDetail.Due %>" data-status="<%= planItemDetail.Status %>"></div>
+  <script>
+  (function () {
+    var d = document.getElementById('planItemDeepLink');
+    document.getElementById('planDetailAnimal').textContent = d.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (d.getAttribute('data-animal-link')) {
+      aLink.setAttribute('href', d.getAttribute('data-animal-link'));
+      aLink.classList.remove('d-none');
+    }
+    document.getElementById('planDetailDetail').textContent = d.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = d.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (d.getAttribute('data-source-link')) {
+      sLink.setAttribute('href', d.getAttribute('data-source-link'));
+      sLink.classList.remove('d-none');
+    }
+    document.getElementById('planDetailKind').textContent = d.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = d.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = d.getAttribute('data-status') || '—';
+    document.getElementById('planDetailRemainingDt').classList.add('d-none');
+    document.getElementById('planDetailRemainingDd').classList.add('d-none');
+    jQuery('#planDetailModal').modal('show');
+  })();
+  </script>
+<% } %>

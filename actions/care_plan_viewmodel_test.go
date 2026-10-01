@@ -159,6 +159,13 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.Contains(t, meds[0].Slots[0].ViewLink, "back=%2F#nav-treatment",
 		"no fulfillment yet: view link targets the animal Treatment tab, back=dashboard")
 	require.Contains(t, meds[0].Slots[0].ViewLink, "/animals/1?")
+	// Dash-2 (round-2 §8.1): year-number-only button text — sibling-table
+	// parity; the full label stays on the card/detail modal.
+	require.Equal(t, "11/26", meds[0].AnimalYear)
+	// Dash-7 (§8.2): the eye deep-link carries the occurrence reference
+	// (query-escaped; url.Values orders due before item) + the hash.
+	require.Contains(t, meds[0].Slots[0].DeepLink, "/animals/1?due=")
+	require.Contains(t, meds[0].Slots[0].DeepLink, "item=rule%3Amed-1#nav-treatment")
 
 	// /care_plan mode over the same plan: unchanged — every window slot
 	// stays visible, overridden included.

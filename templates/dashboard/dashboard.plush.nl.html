@@ -85,7 +85,7 @@
 <a class="btn btn-outline-primary btn-sm ml-2" href="/care_plan?view=compact&amp;kind=medication&amp;back=%2F" title="<%= t("dashboard.medication_today.day_plan_title") %>"><i class="fas fa-external-link-alt"></i> <%= t("dashboard.medication_today.day_plan") %></a>
 <%= if (len(medicationCards) > 0) { %>
 <div class="table-responsive" id="dashMedCards">
-  <table class="table table-hover table-bordered" id="dashMedTable">
+  <table class="table table-hover table-bordered table-striped" id="dashMedTable">
     <thead class="thead-light">
       <th><%= t("dashboard.medication_today.col.number") %></th>
       <th><%= t("dashboard.medication_today.col.cage") %></th>
@@ -93,61 +93,36 @@
       <th><%= t("dashboard.medication_today.col.treatments") %></th>
     </thead>
     <tbody>
+      <% let medSeriesEye = true %>
       <%= for (mg) in medicationCards { %>
-        <tr class="plan-med-row">
+        <%# Dash-9 (§8.1): animals outtaken TODAY stay in the table —
+            subdued outtaken row class + ready-for-release dove badge.
+            Dash-1/3: striped table, no per-row count badge (the open
+            buttons ARE the count). Dash-2: year-number-only button,
+            sibling-table parity. Dash-4/5/8: one white card per animal
+            with the shared drug-series partial (one line per drug +
+            hour-labeled toggle buttons). %>
+        <tr class="plan-med-row<%= if (mg.OuttakenToday) { %> outtaken<% } %>">
           <td class="align-middle">
-            <a class="btn btn-primary" href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
-            <%= if (mg.OpenCount > 0) { %>
-              <span class="badge badge-pill badge-warning ml-1 dash-med-count"><%= mg.OpenCount %> <%= t("dashboard.medication_today.to_give") %></span>
-            <% } else { %>
-              <span class="badge badge-pill badge-success ml-1 dash-med-count">✓</span>
-            <% } %>
+            <a class="btn btn-primary" href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
+            <%= if (mg.OuttakenToday) { %><span class="badge badge-success ml-1" title="<%= t("care_plan.animal.ready_for_release") %>"><i class="fas fa-dove"></i></span><% } %>
           </td>
           <td class="align-middle"><%= mg.Cage %></td>
-          <td class="align-middle"><%= tspecies(mg.Species) %></td>
           <td class="align-middle">
-            <%= for (slot) in mg.Slots { %>
-              <div class="d-flex align-items-center justify-content-between border-top py-1 plan-med-line">
-                <div>
-                  <strong><%= slot.Detail %></strong>
-                  <br><small class="text-muted"><a href="<%= slot.SourceLink %>"><%= slot.SourceName %></a> · <%= slot.DueAtHM %></small>
-                </div>
-                <div class="text-nowrap">
-                  <%= if (slot.Applied) { %>
-                    <%# R5-2c (D-a): ONE toggle per slot — done state is a
-                        live button: re-click undoes instantly (no confirm,
-                        no reload). Undoable only when the fulfillment row
-                        still exists; otherwise the slot stays locked. %>
-                    <button type="button" class="btn btn-success btn-sm dash-med-slot<%= if (slot.CanUndo) { %> dash-med-unapply<% } %>"
-                      <%= if (!slot.CanUndo) { %>disabled <% } %>
-                      data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                      data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                      data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                      title="<%= t("care_plan.slot." + slot.Slot) %>">
-                      ✓ <%= slot.DueAtHM %>
-                    </button>
-                  <% } else if (slot.Status == "skipped" || slot.Status == "deferred") { %>
-                    <span class="badge badge-secondary py-2"><%= t("care_plan.status." + slot.Status) %></span>
-                  <% } else if (slot.Applicable) { %>
-                    <button type="button" class="btn btn-warning btn-sm dash-med-slot dash-med-apply"
-                      data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                      data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                      data-kind="medication"
-                      data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                      data-source-name="<%= slot.SourceName %>"
-                      title="<%= t("care_plan.slot." + slot.Slot) %>">
-                        ○ <%= slot.DueAtHM %>
-                      </button>
-                  <% } else { %>
-                    <button type="button" class="btn btn-light btn-sm" disabled
-                        title="<%= t("care_plan.slot." + slot.Slot) %>">
-                        – <%= slot.DueAtHM %>
-                      </button>
-                  <% } %>
-                  <a class="btn btn-outline-primary btn-sm dash-med-view" href="<%= slot.ViewLink %>" title="<%= t("dashboard.medication_today.view") %>"><i class="fa fa-eye"></i></a>
-                </div>
-              </div>
-            <% } %>
+            <%
+              let gender = "×"
+              if (mg.Gender == "M") {
+                gender = "♂"
+              } else if (mg.Gender == "F") {
+                gender = "♀"
+              }
+            %>
+            <%= tspecies(mg.Species) %> (<%= gender %>)
+          </td>
+          <td class="align-middle">
+            <div class="bg-white border rounded px-2 py-1">
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
           </td>
         </tr>
       <% } %>
@@ -208,7 +183,7 @@
   var i18n = {
     errorTitle: "<%= t("care_plan.message.error_title") %>",
     lastWeight: "<%= t("care_plan.apply.last_weight") %>",
-    toGive: "<%= t("dashboard.medication_today.to_give") %>"
+    lateConfirm: "<%= t("care_plan.treatment.record_late_confirm") %>"
   };
   var pending = null;
 
@@ -242,33 +217,9 @@
       sourceId: btn.getAttribute('data-source-id'),
       animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
       dueAt: btn.getAttribute('data-due-at'),
-      hm: btn.textContent.replace('○', '').replace('✓', '').trim()
+      hm: btn.textContent.replace('○', '').replace('✓', '')
+          .replace('–', '').replace('⊘', '').replace('⏸', '').trim()
     };
-  }
-
-  // Per-row "N to give" badge stays honest without a reload (U22): applied
-  // decrements, undo increments; at zero it flips to the ✓ badge. The live
-  // count rides in data-count — the ✓ text parses to NaN, so the undo
-  // branch would double-count without it (E2E-2 finding).
-  function bumpCount(btn, delta) {
-    var row = btn.closest('tr');
-    if (!row) { return; }
-    var badge = row.querySelector('.dash-med-count');
-    if (!badge) { return; }
-    var n = parseInt(badge.dataset.count, 10);
-    if (isNaN(n)) { n = parseInt(badge.textContent, 10); }
-    if (isNaN(n)) { n = delta > 0 ? 0 : 1; }
-    n += delta;
-    badge.dataset.count = String(n);
-    if (n <= 0) {
-      badge.classList.remove('badge-warning');
-      badge.classList.add('badge-success');
-      badge.textContent = '✓';
-    } else {
-      badge.classList.remove('badge-success');
-      badge.classList.add('badge-warning');
-      badge.textContent = n + ' ' + i18n.toGive;
-    }
   }
 
   // markApplied flips the toggle button to its done state IN PLACE — the
@@ -276,21 +227,19 @@
   function markApplied(ref) {
     var btn = ref.btn;
     if (!btn) { return; }
-    btn.classList.remove('btn-warning', 'dash-med-apply');
-    btn.classList.add('btn-success', 'dash-med-unapply');
+    btn.classList.remove('btn-warning', 'plan-apply-btn');
+    btn.classList.add('btn-success', 'plan-unapply-btn');
     btn.textContent = '✓ ' + ref.hm;
     btn.disabled = false;
-    bumpCount(btn, -1);
   }
 
   function markOpen(ref) {
     var btn = ref.btn;
     if (!btn) { return; }
-    btn.classList.remove('btn-success', 'dash-med-unapply');
-    btn.classList.add('btn-warning', 'dash-med-apply');
+    btn.classList.remove('btn-success', 'plan-unapply-btn');
+    btn.classList.add('btn-warning', 'plan-apply-btn');
     btn.textContent = '○ ' + ref.hm;
     btn.disabled = false;
-    bumpCount(btn, +1);
   }
 
   function showDosageDialog(ref, warn, btn) {
@@ -343,12 +292,16 @@
     });
   }
 
-  // One listener per node covers both states: the dispatch reads the
+  // One listener per node covers every state: the dispatch reads the
   // CURRENT classes, so in-place flips keep working without rebinding.
-  Array.prototype.forEach.call(document.querySelectorAll('.dash-med-slot'), function (btn) {
+  // The dimmed late button (data-late, §6.2-2) records the missed
+  // occurrence behind ONE confirmation; everything else applies
+  // instantly (dosage dialog excepted).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-med-slot'), function (btn) {
     btn.addEventListener('click', function () {
-      if (btn.classList.contains('dash-med-unapply')) { unapplySlot(btn); return; }
+      if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
       if (btn.disabled) { return; }
+      if (btn.getAttribute('data-late') === 'true' && !window.confirm(i18n.lateConfirm)) { return; }
       applySlot(btn);
     });
   });
