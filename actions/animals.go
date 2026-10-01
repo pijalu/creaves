@@ -578,10 +578,15 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
 				return err
 			}
-			// Dash-7 (round-2 §8.2): dashboard eye deep-link — resolve the
-			// targeted plan occurrence server-side so the shared detail
-			// modal opens on load. No-op without ?item=.
-			if err := resolvePlanItemDetail(tx, c, animal, c.Param("item"), c.Param("due")); err != nil {
+			// T1/T2 (round-2 §10): the Treatment tab's TODAY block is built
+			// from today's plan (medication + care) — the same engine pass
+			// resolves the Dash-7 deep-link occurrence (?item=) server-side.
+			todayPlan, err := animalTodayPlan(tx)
+			if err != nil {
+				return err
+			}
+			c.Set("animalToday", animalTodayBlock(todayPlan, animal))
+			if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
 				return err
 			}
 			c.Set("planActionKinds", planActionKinds())

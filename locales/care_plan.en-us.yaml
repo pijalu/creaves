@@ -566,6 +566,8 @@
   translation: "Work"
 - id: "care_plan.section.history"
   translation: "History"
+- id: "care_plan.section.today"
+  translation: "Today"
 - id: "care_plan.action.undo"
   translation: "Undo"
 - id: "care_plan.day.empty"

@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -178,12 +179,123 @@ type PlanItemDetail struct {
 	Status      string // localized occurrence status
 }
 
+// AnimalTodayBlock is the protocol-driven TODAY block of the animal
+// Treatment tab (round-2 §10, T1/T2): today's plan occurrences of the
+// medication + care kinds for THIS animal as drug/care series with
+// hour-labeled toggle buttons — the same component the dashboard and
+// the care plan render (Similarity: one visual language).
+type AnimalTodayBlock struct {
+	// Label is the animal header ("472/26 · Hérisson · A12").
+	Label string
+	// Group carries the combined series — the template binds it to `mg`
+	// so the shared _med_series partial renders it unchanged.
+	Group MedGroupView
+	// Empty reports "no protocol work today" (block not rendered).
+	Empty bool
+}
+
+// animalTodayPlan builds today's plan (TodayPlanWindow) — the single
+// engine pass behind the Treatment tab's Today block AND the ?item=
+// deep-link resolution (§8.2/§10 share one assembly).
+func animalTodayPlan(tx *pop.Connection) (*DayPlan, error) {
+	now := time.Now()
+	from, to := TodayPlanWindow(now)
+	return BuildDayPlan(tx, now, from, to)
+}
+
+// animalTodayBlock folds today's plan into the ONE animal's Today block:
+// its medication series (dashboard todayOnly semantics — overridden
+// suppressed) plus its care occurrences as series lines.
+func animalTodayBlock(plan *DayPlan, animal *models.Animal) AnimalTodayBlock {
+	b := AnimalTodayBlock{Label: animalLabel(*animal)}
+	v := &DayPlanView{View: ViewCompact, SelfPath: "/"}
+	for _, mg := range v.buildMedGroups(plan, "", true) {
+		if mg.AnimalID == animal.ID {
+			b.Group = mg
+			break
+		}
+	}
+	b.Group.AnimalID = animal.ID
+	b.Group.AnimalLabel = b.Label
+	// Self link WITHOUT the back chain and without a tab hash: the modal's
+	// animal link must stay on the current tab.
+	b.Group.AnimalLink = fmt.Sprintf("/animals/%d", animal.ID)
+	b.Group.Series = append(b.Group.Series, careSeriesOf(plan, animal.ID)...)
+	b.Empty = len(b.Group.Series) == 0
+	return b
+}
+
+// todaySlotView projects ONE today-window occurrence into the shared slot
+// view (same fields the dashboard/care-plan pipeline fills). buildMedGroups
+// keeps its inline copy — that function is a known pre-existing complexity
+// offender and stays untouched.
+func todaySlotView(plan *DayPlan, it *careplan.PlanItem, back string) MedSlotView {
+	src := it.Occurrence.Source
+	slot := MedSlotView{
+		Slot:       medSlotOf(it.Occurrence.DueAt),
+		Detail:     planDetail(src),
+		SourceName: DisplayName(src.Name()),
+		SourceType: string(src.SourceType()),
+		SourceID:   src.SourceID(),
+		DueAt:      it.Occurrence.DueAt,
+		DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
+		DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
+		Status:     string(it.Status),
+		Applied:    it.Status == careplan.StatusApplied,
+		Applicable: it.Applicable,
+		Overridden: it.Status == careplan.StatusOverridden,
+		SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
+	}
+	slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
+	slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
+	if app := it.Application; app != nil {
+		slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
+			app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
+		slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
+	}
+	slot.ViewLink = slot.FulfillmentLink
+	if slot.ViewLink == "" {
+		slot.ViewLink = fmt.Sprintf("/animals/%d#nav-treatment", it.Occurrence.AnimalID)
+	}
+	slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
+	return slot
+}
+
+// careSeriesOf folds today's CARE occurrences of one animal into series
+// (one per source) so the shared _med_series partial renders them next to
+// the medication series (§10 T1: the Today block lists the protocol's
+// medications AND cares). Overridden occurrences are suppressed (same as
+// the dashboard todayOnly mode).
+func careSeriesOf(plan *DayPlan, animalID int) []MedSeriesView {
+	order := map[string]int{"morning": 0, "noon": 1, "evening": 2}
+	var slots []MedSlotView
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || it.Occurrence.AnimalID != animalID ||
+			src.ActionKind() != careplan.KindCare || it.Status == careplan.StatusOverridden {
+			continue
+		}
+		if it.Occurrence.DueAt.Before(plan.From) || it.Occurrence.DueAt.After(plan.To) {
+			continue
+		}
+		slots = append(slots, todaySlotView(plan, it, ""))
+	}
+	sort.SliceStable(slots, func(i, j int) bool {
+		if slots[i].DueAt.Equal(slots[j].DueAt) {
+			return order[slots[i].Slot] < order[slots[j].Slot]
+		}
+		return slots[i].DueAt.Before(slots[j].DueAt)
+	})
+	return seriesOf(slots, order)
+}
+
 // resolvePlanItemDetail handles the ?item=&due= deep link on the animal
 // page (§8.2): find the occurrence in today's plan for THIS animal and
 // pass its display fields plus openPlanDetail to the template. An
 // unparseable ref or a stale occurrence (plan gone, already purged)
 // resolves to nothing — the page renders normally without a popup.
-func resolvePlanItemDetail(tx *pop.Connection, c buffalo.Context, animal *models.Animal, ref, dueRaw string) error {
+func resolvePlanItemDetail(c buffalo.Context, animal *models.Animal, plan *DayPlan, ref, dueRaw string) error {
 	srcType, srcID, ok := parseItemRef(ref)
 	if !ok {
 		return nil
@@ -193,12 +305,6 @@ func resolvePlanItemDetail(tx *pop.Connection, c buffalo.Context, animal *models
 		if d, err := time.Parse(time.RFC3339, dueRaw); err == nil {
 			due = d
 		}
-	}
-	now := time.Now()
-	from, to := TodayPlanWindow(now)
-	plan, err := BuildDayPlan(tx, now, from, to)
-	if err != nil {
-		return err
 	}
 	for i := range plan.Items {
 		it := &plan.Items[i]

@@ -566,6 +566,8 @@
   translation: "Soins du jour"
 - id: "care_plan.section.history"
   translation: "Historique"
+- id: "care_plan.section.today"
+  translation: "Aujourd'hui"
 - id: "care_plan.action.undo"
   translation: "Annuler l'application"
 - id: "care_plan.day.empty"

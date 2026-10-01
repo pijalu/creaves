@@ -566,6 +566,8 @@
   translation: "Werk"
 - id: "care_plan.section.history"
   translation: "Geschiedenis"
+- id: "care_plan.section.today"
+  translation: "Vandaag"
 - id: "care_plan.action.undo"
   translation: "Ongedaan maken"
 - id: "care_plan.day.empty"

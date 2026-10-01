@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"creaves/models"
+	"creaves/models/careplan"
 
 	"github.com/gobuffalo/nulls"
 	"github.com/stretchr/testify/require"
@@ -230,4 +231,57 @@ func TestParseItemRef(t *testing.T) {
 		_, _, ok = parseItemRef(ref)
 		require.False(t, ok, "parseItemRef(%q) must not parse", ref)
 	}
+}
+
+// TestAnimalTodayBlock: the Treatment tab's TODAY block (round-2 §10,
+// T1/T2) folds THIS animal's today medication + care occurrences into the
+// shared series view; other animals' items and overridden occurrences
+// stay out, and the group binds to the shared _med_series partial
+// context (AnimalID/Label/Link of this animal).
+func TestAnimalTodayBlock(t *testing.T) {
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+	from, to := TodayPlanWindow(now)
+	med := testSource(careplan.KindMedication, "atm-med", "Citramox", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
+	care := testSource(careplan.KindCare, "atm-care", "Bandage", map[string]interface{}{"note": "Changer bandage"})
+	plan := testPlan()
+	plan.From, plan.To, plan.Now = from, to, now
+
+	medToday := testItem(med, 1, careplan.StatusDue)
+	medToday.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
+	careToday := testItem(care, 1, careplan.StatusDue)
+	careToday.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 30, 0, 0, time.Local)
+	other := testItem(med, 2, careplan.StatusDue) // another animal — excluded
+	other.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
+	overridden := testItem(med, 1, careplan.StatusOverridden)
+	overridden.Occurrence.DueAt = time.Date(2026, 9, 28, 7, 30, 0, 0, time.Local)
+	plan.Items = []careplan.PlanItem{medToday, careToday, other, overridden}
+
+	animal := &models.Animal{ID: 1, YearNumber: 11, Year: 2026, Species: "Hérisson", Cage: nulls.NewString("C1")}
+	b := animalTodayBlock(plan, animal)
+	require.False(t, b.Empty)
+	require.Equal(t, animalLabel(*animal), b.Label)
+	require.Equal(t, 1, b.Group.AnimalID)
+	require.Equal(t, "/animals/1", b.Group.AnimalLink)
+
+	// Medication series first (buildMedGroups), care series appended.
+	require.Len(t, b.Group.Series, 2)
+	require.Equal(t, "Citramox — 0.5 ml", b.Group.Series[0].Label)
+	require.Len(t, b.Group.Series[0].Rows[0], 1, "one open today slot (overridden suppressed)")
+	require.Equal(t, "08:00", b.Group.Series[0].Rows[0][0].DueAtHM)
+	// Care series: one line per source, note label, its own due button.
+	require.Equal(t, "Changer bandage", b.Group.Series[1].Label)
+	require.Equal(t, "09:30", b.Group.Series[1].Rows[0][0].DueAtHM)
+	require.True(t, b.Group.Series[1].Rows[0][0].Applicable)
+}
+
+// TestAnimalTodayBlockEmpty: no today occurrences → Empty (block not
+// rendered by the template).
+func TestAnimalTodayBlockEmpty(t *testing.T) {
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+	from, to := TodayPlanWindow(now)
+	plan := testPlan()
+	plan.From, plan.To, plan.Now = from, to, now
+	animal := &models.Animal{ID: 3, YearNumber: 13, Year: 2026}
+	b := animalTodayBlock(plan, animal)
+	require.True(t, b.Empty)
 }
