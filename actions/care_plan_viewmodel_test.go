@@ -107,9 +107,15 @@ func TestBuildDayPlanViewMedGroups(t *testing.T) {
 	// zone filter narrows to Z1 animals (1 and 2)
 	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", now)
 	require.Len(t, v.Meds, 2)
+	// S2 badge parity: the toggle-button badge equals the visible count
+	require.Equal(t, "2", v.ZoneCap)
 	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", now)
 	require.Len(t, v.Meds, 1)
+	require.Equal(t, "1", v.ZoneCap)
 	require.Equal(t, 3, v.Meds[0].AnimalID)
+	// no zone selected → button badge = all-zones cap
+	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	require.Equal(t, v.ZoneAllCap, v.ZoneCap)
 
 	// kind filter ≠ medication hides the medication section entirely
 	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)

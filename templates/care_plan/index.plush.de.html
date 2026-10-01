@@ -92,7 +92,7 @@
 <div class="dropdown mb-3" id="planZoneDropdown">
   <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="planZoneToggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <%= t("care_plan.zone.select") %>: <%= if (view.Zone == "") { %><%= t("care_plan.zone.all") %><% } else { %><%= view.Zone %><% } %>
-    <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneAllCap %></span>
+    <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneCap %></span>
   </button>
   <div class="dropdown-menu" id="planZoneMenu" aria-labelledby="planZoneToggle">
     <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="?view=<%= view.View %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
@@ -684,6 +684,7 @@
     document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
     document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
     document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
+    applyRef.late = btn.classList.contains('plan-late-btn');
     document.getElementById('planApplyAnswer').value = '';
     document.getElementById('planApplyWeight').value = '';
     document.getElementById('planApplyDosage').value = '';
@@ -781,6 +782,7 @@
         return;
       }
     }
+    if (applyRef.late) { extra.late = true; }
     if (applyRef.kind === 'medication') {
       extra.dosage = document.getElementById('planApplyDosage').value.trim();
     }
@@ -936,8 +938,14 @@
   });
 
   // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
+  // R5-2c/S9: the history late-record button REUSES the apply modal for
+  // input kinds (observation → answer, weighing → weight, §10-L1): a
+  // blind confirm-POST would 4xx ("answer is required"). openApply marks
+  // the ref late (plan-late-btn class) so the submit records after the
+  // fact (bypasses only the apply-window 409).
   Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
     btn.addEventListener('click', function () {
+      if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
       if (!window.confirm(lateConfirm)) { return; }
       fetch('/care_plan/apply', {
         method: 'POST', credentials: 'same-origin',

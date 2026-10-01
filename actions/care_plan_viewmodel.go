@@ -215,6 +215,11 @@ type DayPlanView struct {
 	SelfPath   string // /care_plan?view=…&zone=…&kind=… — back target of every card link
 	ZoneAll    int    // open count across all zones (for the active kind)
 	ZoneAllCap string
+	// ZoneCap is the badge capacity of the zone TOGGLE BUTTON (S2: every
+	// badge equals the visible count): the selected zone's own cap, or the
+	// all-zones cap when no zone is selected. The per-item dropdown entries
+	// always show their own cap.
+	ZoneCap    string
 	KindAll    int // open count across all kinds (for the active zone)
 	KindAllCap string
 }
@@ -314,6 +319,15 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 	v.Kinds, v.KindAll = navKindChips(rows, feeds, cares, meds, zone)
 	v.ZoneAllCap = BadgeCap(v.ZoneAll)
 	v.KindAllCap = BadgeCap(v.KindAll)
+	v.ZoneCap = v.ZoneAllCap
+	if zone != "" {
+		for _, zt := range v.Zones {
+			if zt.Name == zone {
+				v.ZoneCap = zt.CountCap
+				break
+			}
+		}
+	}
 
 	// Stage 3: one filter pass over every collection.
 	v.WorkRows = filterCards(rows, zone, kind)
