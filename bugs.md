@@ -551,7 +551,7 @@ intact (`To do`/`À faire`/`Zu erledigen`/`Te doen` = clock, `Done`/`Fait`/
 identical pre-existing set. Evidence:
 `tmp/browser_evidence/round7/e2e-round7-part3-todo-glyph.md`.
 
-### TEST-1 — `TestAnimalSearchFiltersANDCombined` flakes on fixture collision (**Open**, test-infra, pre-existing)
+### TEST-1 — `TestAnimalSearchFiltersANDCombined` flakes on fixture collision (**Done**, test-infra, pre-existing)
 
 Not a product defect. The animal-search fixture derives its unique
 `(year, yearNumber)` from `MAX(yearNumber)+1` plus a hash (`animals_test.go:93`).
@@ -567,9 +567,46 @@ isolation and 3/3 in its `-race` group, and passed on HEAD in a full run. So it
 is a flaky isolation gap, not a regression — but it intermittently adds a 8th
 failure and pollutes the gate diff.
 
-Fix (separate, test-infra): extend the sweep to drop `NULL`-cage search fixtures
-(e.g. `species LIKE 'Testsp %'`), or make the yearNumber derivation provably
-collision-free. Not fixed here to keep this commit to the feeding UI change.
+**Fixed**, on both halves — either one alone leaves the flake reachable.
+
+*Leak* — the sweep predicate is now anchored on the discoverer marker, not on a
+column the fixture happens to leave NULL:
+
+```go
+search := "(a.cage IS NULL OR a.cage = '') AND a.discovery_id IN (" +
+    "SELECT d.id FROM discoveries d JOIN discoverers dc ON d.discoverer_id = dc.id WHERE dc.lastname LIKE 'TS-%')"
+```
+
+It measured **651** leftovers before the fix and `before=0` after. Clearing them
+means the 7 referencing tables had to be enumerated from
+`information_schema.KEY_COLUMN_USAGE` rather than guessed; they are now generated
+by `animalScopedDeletes`, which takes the join as a `func(alias string) string`
+closure because building it with `fmt.Sprintf` parses the `LIKE 'TS-%'` wildcards
+as format verbs (`Error 1064 ... near '(MISSING))'`). Two further traps, both
+found by printing the `.Exec()` error the sweep was swallowing: `DELETE FROM
+animals` has no table alias (hence the separate `searchNoAlias` form), and
+`animals.outtake_id` FKs `outtakes`, so fixture outtakes are collected first and
+deleted **after** their animal. The stale reference rows (`outtaketypes`,
+`entry_causes`, `animaltypes`, `animalages`) are dropped by marker REGEXP.
+
+*Collision* — `floor + hash%90000` is only collision-free while fewer than 90000
+numbers are taken above the floor, and the leaking fixtures kept ratcheting that
+count upward until the modulo wrapped back into occupied territory. The new
+`freeYearNumberBase` probes the database instead of assuming a range is empty and
+walks up until it holds `want` consecutive free numbers — correct whatever the
+database holds. It is extracted from `createAnimalSearchFixtures` on purpose:
+inlined it made that function a new `gocyclo -over 12` offender.
+
+Fixed alongside it: `TestCarePlanErrorContractDetail` had been failing on HEAD
+too, masked by the pollution TEST-3 cleaned up. `feedRule(t1, t1, t2)` with
+`t1 = now-2h`, `t2 = now-1h` straddles midnight, and `anchor_date` is derived
+from the FIRST time — so the rule produced zero occurrences and the test was
+asserting on a fixture that never existed. It now uses yesterday 00:05 with a
+backdated `IntakeDate`, and selects by `staleRule.ID`.
+
+Verified: full `-race` suite exit 0 (all 8 packages ok), `go build`/`go vet`/
+`staticcheck` clean, and the gocognit/gocyclo diff against a stashed baseline is
+empty.
 
 ### TEST-2 — `TestMigrateTreatmentTimesIdempotent` fails on a stale test-DB FK (**Done**, test-infra)
 

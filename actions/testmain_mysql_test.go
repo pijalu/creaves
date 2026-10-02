@@ -91,6 +91,29 @@ func isDisposableTestDB(db *pop.Connection) bool {
 	return strings.Contains(strings.ToLower(row.Name), "test")
 }
 
+// animalScopedDeletes builds the DELETE for every table holding a foreign key
+// to animals(id): care_animal_plans, care_plan_applications,
+// care_rule_exclusions, cares, travels, treatments, veterinaryvisits — taken
+// from information_schema rather than guessed. Leaving one out fails the
+// animals DELETE on a foreign key and, because the sweep ignores errors,
+// silently keeps every leftover.
+//
+// join is a function of the table alias so the caller can append a predicate
+// verbatim: building it with fmt.Sprintf would treat the LIKE wildcards in
+// that predicate as format verbs.
+func animalScopedDeletes(join func(alias string) string) []string {
+	return []string{
+		"DELETE cpa FROM care_plan_applications cpa " + join("cpa"),
+		"DELETE c FROM cares c " + join("c"),
+		"DELETE t FROM treatments t " + join("t"),
+		"DELETE cap FROM care_animal_plans cap " + join("cap"),
+		"DELETE e FROM treatment_time_entries e " + join("e"),
+		"DELETE v FROM veterinaryvisits v " + join("v"),
+		"DELETE tr FROM travels tr " + join("tr"),
+		"DELETE cre FROM care_rule_exclusions cre " + join("cre"),
+	}
+}
+
 // sweepStaleFixtureRows deletes garbage left by earlier suite runs whose
 // process was hard-killed before their t.Cleanup ran (bash timeouts, Ctrl-C).
 // Fixture animals are recognizable by their marker cages (CP-<hex> for the
@@ -104,14 +127,49 @@ func isDisposableTestDB(db *pop.Connection) bool {
 func sweepStaleFixtureRows(db *pop.Connection) {
 	dayAgo := "DATE_SUB(NOW(), INTERVAL 1 DAY)"
 	cage := "a.cage LIKE 'CP-%' OR a.cage LIKE 'OTHER-%'"
+	// The animal-search fixtures carry NO cage at all (createAnimalSearchFixtures
+	// leaves it NULL), so the cage predicate above never matched them and they
+	// accumulated until two runs drew the same (year, yearNumber) and the
+	// fixture died on Error 1062 animals_year_yearNumber_idx. They are
+	// recognizable by their discoverer: createAnimalSearchFixtures names it
+	// "TS-<marker>". Same marker discipline as the care-plan fixtures, so this
+	// can never match a real row. TEST-1.
+	search := "(a.cage IS NULL OR a.cage = '') AND a.discovery_id IN (" +
+		"SELECT d.id FROM discoveries d JOIN discoverers dc ON d.discoverer_id = dc.id WHERE dc.lastname LIKE 'TS-%')"
+	// Same predicate for a single-table DELETE, where no `a` alias exists.
+	searchNoAlias := "(cage IS NULL OR cage = '') AND discovery_id IN (" +
+		"SELECT d.id FROM discoveries d JOIN discoverers dc ON d.discoverer_id = dc.id WHERE dc.lastname LIKE 'TS-%')"
 	// animal-scoped rows of stale fixture animals
-	db.RawQuery("DELETE cpa FROM care_plan_applications cpa JOIN animals a ON cpa.animal_id = a.id WHERE " + cage).Exec()
-	db.RawQuery("DELETE c FROM cares c JOIN animals a ON c.animal_id = a.id WHERE " + cage).Exec()
-	db.RawQuery("DELETE t FROM treatments t JOIN animals a ON t.animal_id = a.id WHERE " + cage).Exec()
-	db.RawQuery("DELETE cap FROM care_animal_plans cap JOIN animals a ON cap.animal_id = a.id WHERE " + cage).Exec()
-	db.RawQuery("DELETE e FROM treatment_time_entries e JOIN animals a ON e.animal_id = a.id WHERE " + cage).Exec()
+	for _, q := range animalScopedDeletes(func(al string) string {
+		return "JOIN animals a ON " + al + ".animal_id = a.id WHERE " + cage
+	}) {
+		db.RawQuery(q).Exec()
+	}
+	// Same for the cage-less search fixtures: every animal-scoped dependent
+	// must go first or the animals DELETE fails on a foreign key (the sweep
+	// ignores errors, so the leftovers simply stayed — 651 of them).
+	// Every table that declares a foreign key to animals(id) — enumerated from
+	// information_schema, not guessed: care_animal_plans, care_plan_applications,
+	// care_rule_exclusions, cares, travels, treatments, veterinaryvisits. Leaving
+	// one out fails the animals DELETE on a foreign key and, because the sweep
+	// ignores errors, silently keeps every leftover.
+	for _, q := range animalScopedDeletes(func(al string) string {
+		return "JOIN animals a ON " + al + ".animal_id = a.id WHERE " + search
+	}) {
+		db.RawQuery(q).Exec()
+	}
+	// animals.outtake_id references outtakes, so a fixture outtake can only go
+	// once its animal is gone: collect the ids first, delete them after.
+	var searchOuttakes []string
+	db.RawQuery("SELECT DISTINCT outtake_id FROM animals WHERE " + searchNoAlias).All(&searchOuttakes)
 	// the animals themselves, then orphaned provenance
 	db.RawQuery("DELETE FROM animals WHERE cage LIKE 'CP-%' OR cage LIKE 'OTHER-%'").Exec()
+	db.RawQuery("DELETE FROM animals WHERE " + searchNoAlias).Exec()
+	for _, id := range searchOuttakes {
+		if id != "" {
+			db.RawQuery("DELETE FROM outtakes WHERE id = ?", id).Exec()
+		}
+	}
 	db.RawQuery("DELETE d FROM discoveries d LEFT JOIN animals a ON a.discovery_id = d.id WHERE a.id IS NULL").Exec()
 	db.RawQuery("DELETE dc FROM discoverers dc LEFT JOIN discoveries d ON d.discoverer_id = dc.id WHERE d.id IS NULL").Exec()
 	db.RawQuery("DELETE FROM intakes WHERE id NOT IN (SELECT intake_id FROM animals WHERE intake_id IS NOT NULL)").Exec()
@@ -136,4 +194,11 @@ func sweepStaleFixtureRows(db *pop.Connection) {
 	db.RawQuery("DELETE cre FROM care_rule_exclusions cre JOIN care_rules cr ON cre.rule_id = cr.id WHERE cr." + marked).Exec()
 	db.RawQuery("DELETE FROM care_rules WHERE " + marked).Exec()
 	db.RawQuery("DELETE FROM care_matchers WHERE " + marked).Exec()
+
+	// Reference rows of the animal-search fixtures. Their names end in the same
+	// run marker, so the shape - not the age - is the guard (TEST-1).
+	db.RawQuery("DELETE FROM outtaketypes WHERE name REGEXP '^TS(OutOK|OutErr)-[0-9a-f]{8}$'").Exec()
+	db.RawQuery("DELETE FROM entry_causes WHERE cause REGEXP '^TSC[12]-[0-9a-f]{8}$'").Exec()
+	db.RawQuery("DELETE FROM animaltypes WHERE name REGEXP '^TSType[12]-[0-9a-f]{8}$'").Exec()
+	db.RawQuery("DELETE FROM animalages WHERE name REGEXP '^TSAge[12]-[0-9a-f]{8}$'").Exec()
 }

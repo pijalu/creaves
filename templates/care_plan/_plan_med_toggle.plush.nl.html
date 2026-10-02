@@ -53,9 +53,9 @@
 (function () {
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var i18n = {
-    errorTitle: "<%= t("care_plan.message.error_title") %>",
-    lastWeight: "<%= t("care_plan.apply.last_weight") %>",
-    lateConfirm: "<%= t("care_plan.treatment.record_late_confirm") %>"
+    errorTitle: <%= jsString(t("care_plan.message.error_title")) %>,
+    lastWeight: <%= jsString(t("care_plan.apply.last_weight")) %>,
+    lateConfirm: <%= jsString(t("care_plan.treatment.record_late_confirm")) %>
   };
   var pending = null;
 

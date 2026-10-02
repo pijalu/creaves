@@ -46,8 +46,8 @@
         }
         // Mirror the server-side stayDuration helper: plain hours up to
         // 48h, then "days - leftover hours". Units are localized.
-        var dayUnit = '<%= t("outtake.duration.day-unit") %>';
-        var hourUnit = '<%= t("outtake.duration.hour-unit") %>';
+        var dayUnit = <%= jsString(t("outtake.duration.day-unit")) %>;
+        var hourUnit = <%= jsString(t("outtake.duration.hour-unit")) %>;
         if (h <= 48) {
             el.textContent = h + ' ' + hourUnit;
         } else {

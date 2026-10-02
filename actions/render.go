@@ -3,6 +3,7 @@ package actions
 import (
 	"creaves/public"
 	"creaves/templates"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -189,6 +190,21 @@ func customRenderHelpers() render.Helpers {
 		"userAccountRole":    userAccountRole,
 		"stayDuration":       stayDurationHours,
 		"stayDurationBucket": stayDurationBucket,
+		// jsString emits a JavaScript string LITERAL (quotes included) that is
+		// safe inside a <script> block.
+		//
+		// Writing `"<%= t("...") %>"` inside a script is wrong twice over:
+		// Plush HTML-escapes, so a French apostrophe reached the JS variable
+		// as the six characters &#39; and every modal showed it verbatim
+		// (measured: 7 entities inside the served scripts on /care_plan, fr);
+		// and a translation containing a double quote — or "</script>" —
+		// would terminate the string, or the whole script block, and inject
+		// markup. json.Marshal escapes <, > and & to \u003c, \u003e and
+		// \u0026, so a translation can no longer break out of the block; the
+		// quotes it adds are JS grammar, not part of the value.
+		//
+		// Use it as:  var label = <%= jsString(t("some.key")) %>;
+		"jsString": jsString,
 		"bool2html": func(s bool) string {
 			if s {
 				return "✓"
@@ -220,6 +236,24 @@ func customRenderHelpers() render.Helpers {
 			return fmt.Sprintf("%v", s)
 		},
 	}
+}
+
+// jsString renders a value as a JavaScript string literal, safe to emit
+// inside a <script> block. See the helper registration for why a bare
+// "<%= t(...) %>" is not.
+//
+// The return type is template.HTML, not template.JS: Plush only treats
+// template.HTML as already-safe output and rendered a template.JS return as
+// the EMPTY STRING (measured — every i18n value silently vanished from
+// care_plan's script block). A plain string would be HTML-escaped, which is
+// the original defect. template.HTML is the one type that is both emitted
+// verbatim and intentional here, which is what this helper is for.
+func jsString(v any) (template.HTML, error) {
+	b, err := json.Marshal(fmt.Sprintf("%v", v))
+	if err != nil {
+		return template.HTML(""), err
+	}
+	return template.HTML(b), nil
 }
 
 func init() {

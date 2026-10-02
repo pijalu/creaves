@@ -80,6 +80,38 @@ type animalSearchFixtures struct {
 	outtakeIDs    []uuid.UUID
 }
 
+// freeYearNumberBase returns a yearNumber that is free for `want`
+// consecutive slots, probing the database instead of assuming a range is
+// empty. See createAnimalSearchFixtures for why guessing no longer works.
+func freeYearNumberBase(t *testing.T, tx *pop.Connection, want int) int {
+	t.Helper()
+	base := 900000
+	var maxYearNumber int
+	if err := tx.RawQuery("SELECT COALESCE(MAX(yearNumber), 0) FROM animals").First(&maxYearNumber); err == nil && maxYearNumber >= base {
+		base = maxYearNumber + 1
+	}
+	taken := func(n int) bool {
+		var c int
+		if err := tx.RawQuery("SELECT COUNT(*) FROM animals WHERE yearNumber = ?", n).First(&c); err != nil {
+			return true // unreadable: assume taken and move on
+		}
+		return c > 0
+	}
+	for i := 0; ; i++ {
+		cand := base + i
+		free := true
+		for j := 0; j < want; j++ {
+			if taken(cand + j) {
+				free = false
+				break
+			}
+		}
+		if free {
+			return cand
+		}
+	}
+}
+
 func createAnimalSearchFixtures(t *testing.T, tx *pop.Connection) *animalSearchFixtures {
 	t.Helper()
 	f := &animalSearchFixtures{marker: uuid.Must(uuid.NewV4()).String()[:8]}
@@ -90,16 +122,18 @@ func createAnimalSearchFixtures(t *testing.T, tx *pop.Connection) *animalSearchF
 	// the same magnitude (a hashed 933690 once landed on an imported row —
 	// Error 1062 under the full -race suite), so the derived range floats
 	// strictly above every existing yearNumber.
-	ynBase := 900000
-	var maxYearNumber int
-	if err := tx.RawQuery("SELECT COALESCE(MAX(yearNumber), 0) FROM animals").First(&maxYearNumber); err == nil && maxYearNumber >= ynBase {
-		ynBase = maxYearNumber + 1
-	}
-	floor := ynBase
-	for _, b := range []byte(f.marker) {
-		ynBase = ynBase*31 + int(b)
-	}
-	ynBase = floor + ynBase%90000 // keep clear of small production-like numbers
+	//
+	// The spread used to be `floor + hash%90000`, which is only collision-free
+	// while fewer than 90000 numbers are taken ABOVE the floor. Search
+	// fixtures leak (they carry no cage, so the old sweep missed them — 651 of
+	// them had piled up), the max kept ratcheting upward, and the modulo
+	// wrapped back into occupied territory: Error 1062 on
+	// animals_year_yearNumber_idx, which is TEST-1.
+	//
+	// Probe the candidate slots instead of assuming a range is free, and keep
+	// walking until three consecutive free numbers are found. That is correct
+	// whatever the database holds.
+	ynBase := freeYearNumberBase(t, tx, 3)
 
 	must := func(err error) {
 		t.Helper()

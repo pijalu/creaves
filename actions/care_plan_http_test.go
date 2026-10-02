@@ -463,16 +463,33 @@ func TestCarePlanErrorContractDetail(t *testing.T) {
 	require.Contains(t, string(raw), `"code":422`)
 
 	// --- 409: out-of-window apply keeps the hors-délai message -------------
-	// two slots 2h/1h ago: the earlier occurrence's window closed when the
-	// later one became due (§10-A1) — both lie inside the plan window.
-	t1 := now.Add(-2 * time.Hour).Truncate(time.Minute)
-	t2 := now.Add(-1 * time.Hour).Truncate(time.Minute)
-	f.feedRule(t, models.DB, t1, t1, t2)
+	// A slot from yesterday: its window closed hours ago, so it is planned but
+	// NOT applicable (§10-A1) — both the occurrence and the 409 it must produce
+	// are then asserted. The old fixture used now-2h/now-1h, which straddles
+	// midnight; feedRule anchors the schedule on the FIRST time's date, so a
+	// slot belonging to the next day produced no occurrence at all and the
+	// test could never reach its assertion.
+	yst := now.AddDate(0, 0, -1)
+	dueY := time.Date(yst.Year(), yst.Month(), yst.Day(), 0, 5, 0, 0, time.Local)
+	// Fixture animals are intaked today, so occurrences before the intake
+	// instant are clamped away (§10-B3). Backdate animals.IntakeDate — the
+	// planning anchor read by loadAnimalContexts — so yesterday's slot exists.
+	require.NoError(t, models.DB.RawQuery("UPDATE animals SET IntakeDate = ? WHERE id IN (?)",
+		yst.AddDate(0, 0, -1), f.animalIDs).Exec())
+	staleRule := f.feedRule(t, models.DB, dueY)
 	_, body = planGetJSON(t, client, baseURL, "/care_plan")
 	var locked map[string]interface{}
 	for _, cand := range planItemsOf(t, body) {
-		if int(cand["animal_id"].(float64)) == f.animalIDs[0] &&
-			cand["action_kind"] == "feeding" && cand["applicable"] == false {
+		// Scope to this rule: a rule with no matcher applies to every animal,
+		// so an unrelated one could supply the occurrence instead (TEST-3).
+		if cand["source_id"] != staleRule.ID.String() {
+			continue
+		}
+		if int(cand["animal_id"].(float64)) != f.animalIDs[0] ||
+			cand["action_kind"] != "feeding" || cand["applicable"] != false {
+			continue
+		}
+		if du, perr := time.Parse(time.RFC3339, cand["due_at"].(string)); perr == nil && du.Equal(dueY) {
 			locked = cand
 			break
 		}

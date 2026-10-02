@@ -156,41 +156,41 @@
   var pending = null;
   // §6.2-2 (A1): recording a clearly late occurrence is an explicit act —
   // one confirm, once, before the POST.
-  var lateConfirm = "<%= t("care_plan.treatment.record_late_confirm") %>";
+  var lateConfirm = <%= jsString(t("care_plan.treatment.record_late_confirm")) %>;
   function lateBlocked(btn) {
     return btn.getAttribute('data-late') === 'true' && !window.confirm(lateConfirm);
   }
   var i18n = {
-    errorTitle: "<%= t("care_plan.message.error_title") %>",
+    errorTitle: <%= jsString(t("care_plan.message.error_title")) %>,
     expect: {
-      feeding:    "<%= t("care_plan.apply.expect.feeding") %>",
-      medication: "<%= t("care_plan.apply.expect.medication") %>",
-      care:       "<%= t("care_plan.apply.expect.care") %>",
-      cleanup:    "<%= t("care_plan.apply.expect.cleanup") %>",
-      weighing:   "<%= t("care_plan.apply.expect.weighing") %>",
-      observation:"<%= t("care_plan.apply.expect.observation") %>"
+      feeding:    <%= jsString(t("care_plan.apply.expect.feeding")) %>,
+      medication: <%= jsString(t("care_plan.apply.expect.medication")) %>,
+      care:       <%= jsString(t("care_plan.apply.expect.care")) %>,
+      cleanup:    <%= jsString(t("care_plan.apply.expect.cleanup")) %>,
+      weighing:   <%= jsString(t("care_plan.apply.expect.weighing")) %>,
+      observation:<%= jsString(t("care_plan.apply.expect.observation")) %>
     },
-    answerRequired: "<%= t("care_plan.modal.answer_required") %>",
-    weightRequired: "<%= t("care_plan.modal.weight_required") %>",
+    answerRequired: <%= jsString(t("care_plan.modal.answer_required")) %>,
+    weightRequired: <%= jsString(t("care_plan.modal.weight_required")) %>,
     status: {
-      scheduled: "<%= t("care_plan.status.scheduled") %>",
-      due:       "<%= t("care_plan.status.due") %>",
-      late:      "<%= t("care_plan.status.late") %>",
-      missing:   "<%= t("care_plan.status.missing") %>",
-      applied:   "<%= t("care_plan.status.applied") %>",
-      skipped:   "<%= t("care_plan.status.skipped") %>",
-      deferred:  "<%= t("care_plan.status.deferred") %>",
-      overridden:"<%= t("care_plan.status.overridden") %>"
+      scheduled: <%= jsString(t("care_plan.status.scheduled")) %>,
+      due:       <%= jsString(t("care_plan.status.due")) %>,
+      late:      <%= jsString(t("care_plan.status.late")) %>,
+      missing:   <%= jsString(t("care_plan.status.missing")) %>,
+      applied:   <%= jsString(t("care_plan.status.applied")) %>,
+      skipped:   <%= jsString(t("care_plan.status.skipped")) %>,
+      deferred:  <%= jsString(t("care_plan.status.deferred")) %>,
+      overridden:<%= jsString(t("care_plan.status.overridden")) %>
     },
     kinds: {
-      feeding:    "<%= t("care_plan.kind.feeding") %>",
-      medication: "<%= t("care_plan.kind.medication") %>",
-      care:       "<%= t("care_plan.kind.care") %>",
-      cleanup:    "<%= t("care_plan.kind.cleanup") %>",
-      weighing:   "<%= t("care_plan.kind.weighing") %>",
-      observation:"<%= t("care_plan.kind.observation") %>"
+      feeding:    <%= jsString(t("care_plan.kind.feeding")) %>,
+      medication: <%= jsString(t("care_plan.kind.medication")) %>,
+      care:       <%= jsString(t("care_plan.kind.care")) %>,
+      cleanup:    <%= jsString(t("care_plan.kind.cleanup")) %>,
+      weighing:   <%= jsString(t("care_plan.kind.weighing")) %>,
+      observation:<%= jsString(t("care_plan.kind.observation")) %>
     },
-    batchSummary: "<%= t("care_plan.apply.batch_summary") %>"
+    batchSummary: <%= jsString(t("care_plan.apply.batch_summary")) %>
   };
 
   function showMessage(title, body) {
@@ -222,7 +222,7 @@
     var wBox = document.getElementById('planDosageWeight');
     if (warn.last_weight) {
       var when = (warn.last_weight_at || '').slice(0, 10);
-      wBox.textContent = "<%= t("care_plan.apply.last_weight") %>: " + warn.last_weight + " g (" + when + ")";
+      wBox.textContent = "<%= jsString(t("care_plan.apply.last_weight")) %>: " + warn.last_weight + " g (" + when + ")";
       wBox.classList.remove('d-none');
     } else {
       wBox.classList.add('d-none');
@@ -425,8 +425,8 @@
   var sdRef = null;
   var sdMode = 'skip';
   var sdLabels = {
-    skip: {title: "<%= t("care_plan.modal.skip_title") %>", submit: "<%= t("care_plan.modal.skip") %>"},
-    defer: {title: "<%= t("care_plan.modal.defer_title") %>", submit: "<%= t("care_plan.modal.defer") %>"}
+    skip: {title: <%= jsString(t("care_plan.modal.skip_title")) %>, submit: <%= jsString(t("care_plan.modal.skip")) %>},
+    defer: {title: <%= jsString(t("care_plan.modal.defer_title")) %>, submit: <%= jsString(t("care_plan.modal.defer")) %>}
   };
 
   function openSkipDefer(btn) {
@@ -459,7 +459,7 @@
     var reason = document.getElementById('planSkipDeferReason').value.trim();
     var errBox = document.getElementById('planSkipDeferError');
     if (!reason) {
-      errBox.textContent = "<%= t("care_plan.modal.reason_required") %>";
+      errBox.textContent = <%= jsString(t("care_plan.modal.reason_required")) %>;
       errBox.classList.remove('d-none');
       return;
     }

@@ -954,7 +954,7 @@
       payload: document.getElementById('CarePlanPayload'),
       schedule: document.getElementById('CarePlanSchedule'),
       mount: document.getElementById('carePlanEditorMount'),
-      rawLabel: "<%= t("care_plan.editor.raw_json") %>",
+      rawLabel: <%= jsString(t("care_plan.editor.raw_json")) %>,
       rawWarn: "<%= raw(t("care_plan.editor.raw_json_warn")) %>"
     }) : null;
 
@@ -971,7 +971,7 @@
     }
     function openNew() {
       editingId = null;
-      document.getElementById('carePlanModalTitle').textContent = "<%= t("care_plan.animal_plans.new") %>";
+      document.getElementById('carePlanModalTitle').textContent = <%= jsString(t("care_plan.animal_plans.new")) %>;
       document.getElementById('CarePlanName').value = '';
       document.getElementById('CarePlanPayload').value = '';
       document.getElementById('CarePlanSchedule').value = '';
@@ -989,7 +989,7 @@
           for (var i = 0; i < list.length; i++) { if (list[i].id === id) { p = list[i]; break; } }
           if (!p) { return; }
           editingId = id;
-          document.getElementById('carePlanModalTitle').textContent = "<%= t("care_plan.animal_plans.edit") %>";
+          document.getElementById('carePlanModalTitle').textContent = <%= jsString(t("care_plan.animal_plans.edit")) %>;
           document.getElementById('CarePlanName').value = p.name || '';
           document.getElementById('CarePlanKind').value = p.action_kind || 'feeding';
           document.getElementById('CarePlanPayload').value = p.action_payload ? JSON.stringify(p.action_payload) : '';
@@ -1041,7 +1041,7 @@
         .catch(function () { showErr("<%= raw(t("care_plan.animal_plans.error")) %>"); });
     }
     function del(id) {
-      if (!window.confirm("<%= t("care_plan.action.confirm_delete") %>")) { return; }
+      if (!window.confirm(<%= jsString(t("care_plan.action.confirm_delete")) %>)) { return; }
       fetch(url + '/' + id, {method: 'DELETE', headers: planHeaders(), credentials: 'same-origin'})
         .then(function (r) { if (r.ok) { window.location.reload(); } });
     }

@@ -103,7 +103,7 @@
     payload: document.getElementById('RuleActionPayload'),
     schedule: document.getElementById('RuleSchedule'),
     mount: document.getElementById('ruleEditorMount'),
-    rawLabel: "<%= t("care_plan.editor.raw_json") %>",
+    rawLabel: <%= jsString(t("care_plan.editor.raw_json")) %>,
     rawWarn: "<%= raw(t("care_plan.editor.raw_json_warn")) %>"
   });
   if (pe) {
