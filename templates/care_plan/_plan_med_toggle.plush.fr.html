@@ -171,6 +171,9 @@
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest ? ev.target.closest('.plan-med-slot') : null;
     if (!btn) { return; }
+    // R4-4.1: a slot flip is a change the caregiver must SEE — tell the
+    // page's auto-refresh (when it has one) to hold off for 30 s.
+    if (window.planMarkAction) { window.planMarkAction(); }
     if (btn.classList.contains('plan-med-unapply')) { unapplySlot(btn); return; }
     if (btn.disabled) { return; }
     if (!btn.classList.contains('plan-med-apply')) { return; }

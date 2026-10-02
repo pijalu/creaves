@@ -123,7 +123,7 @@ func TestFeedingSectionRender(t *testing.T) {
 		"dueLabel": func(a, b, c string) string { return a },
 		// the index page includes JS/HTML partials this unit render does
 		// not exercise; stub them so the section markup is testable alone.
-		"partial": func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
+		"partial":   func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
 		"partialIf": func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
 	})
 	forks := []string{
@@ -170,4 +170,43 @@ func buttonHTML(html, class string) string {
 		return ""
 	}
 	return html[start : start+end+1]
+}
+
+// TestAutoRefreshVisibilityFloor (R4-4.1): the auto-refresh may not wipe
+// a change the caregiver just made — every action records the time and the
+// refresh defers itself while the page is younger than the 30 s floor. The
+// shared medication toggle announces its flips through the same hook.
+func TestAutoRefreshVisibilityFloor(t *testing.T) {
+	forks := []string{
+		"../templates/care_plan/index.plush.html",
+		"../templates/care_plan/index.plush.de.html",
+		"../templates/care_plan/index.plush.fr.html",
+		"../templates/care_plan/index.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		s := string(raw)
+		require.Contains(t, s, "ACTION_VISIBILITY_MS = 30000", f, "30 s visibility floor")
+		require.Contains(t, s, "now - lastActionAt < ACTION_VISIBILITY_MS", f, "reload defers while fresh")
+		require.Contains(t, s, "window.planMarkAction = markAction", f, "other scripts share the hook")
+		for _, fn := range []string{"markApplied", "markOpen", "instantApply", "instantUnapply"} {
+			i := strings.Index(s, "function "+fn+"(")
+			require.Positive(t, i, f+" declares "+fn)
+			body := s[i : i+400]
+			require.Contains(t, body, "markAction()", f+": "+fn+" records the action time")
+		}
+	}
+
+	toggles := []string{
+		"../templates/care_plan/_plan_med_toggle.plush.html",
+		"../templates/care_plan/_plan_med_toggle.plush.de.html",
+		"../templates/care_plan/_plan_med_toggle.plush.fr.html",
+		"../templates/care_plan/_plan_med_toggle.plush.nl.html",
+	}
+	for _, f := range toggles {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		require.Contains(t, string(raw), "window.planMarkAction()", f, "slot flips hold the refresh off")
+	}
 }

@@ -775,11 +775,33 @@
     inFlight++;
     return p.then(function (v) { inFlight--; return v; }, function (e) { inFlight--; throw e; });
   }
+
+  // R4-4.1: a change the caregiver just made must stay visible long enough
+  // to be SEEN. The old single 60 s timer armed at page load meant an
+  // apply at T=59 s was wiped by the reload one second later. Every action
+  // records lastActionAt; the refresh defers itself while the page has
+  // been changed less than 30 s ago (the requested floor). One 5 s
+  // interval checks the due time — no chained setTimeout, no drift.
+  var ACTION_VISIBILITY_MS = 30000;
+  var RELOAD_PERIOD_MS = 60000;
+  var TICK_MS = 5000;
+  var lastActionAt = 0;
+  var nextReloadAt = Date.now() + RELOAD_PERIOD_MS;
+
+  function markAction() { lastActionAt = Date.now(); }
+  // R4-4.1: other page scripts (the shared medication slot toggle, the
+  // apply modal) announce their own state changes through this hook, so a
+  // flip made anywhere on the page also holds the refresh off.
+  window.planMarkAction = markAction;
+
   function scheduleReload() {
-    setTimeout(function () {
-      if (jQuery('.modal').is(':visible') || inFlight > 0) { scheduleReload(); return; }
+    setInterval(function () {
+      var now = Date.now();
+      if (now < nextReloadAt) { return; }              // not due yet
+      if (now - lastActionAt < ACTION_VISIBILITY_MS) { return; } // too fresh
+      if (jQuery('.modal').is(':visible') || inFlight > 0) { return; }
       window.location.reload();
-    }, 60000);
+    }, TICK_MS);
   }
   scheduleReload();
 
@@ -922,6 +944,7 @@
   // check hides, undo shows; the next full render (auto-refresh) moves
   // the row to its tier/history.
   function markApplied(ref) {
+    markAction();
     var btn = ref.btn;
     if (!btn) { return; }
     btn.classList.add('d-none');
@@ -932,6 +955,7 @@
 
   // markOpen flips an applied row back to its apply check (undo clicked).
   function markOpen(ref) {
+    markAction();
     var btn = ref.btn;
     if (!btn) { return; }
     btn.classList.add('d-none');
@@ -949,6 +973,7 @@
   });
 
   function instantApply(btn) {
+    markAction();
     var ref = btnRef(btn);
     btn.disabled = true;
     applyItem(ref).then(function (res) {
@@ -969,6 +994,7 @@
   });
 
   function instantUnapply(btn) {
+    markAction();
     var ref = btnRef(btn);
     btn.disabled = true;
     track(fetch('/care_plan/unapply', {
