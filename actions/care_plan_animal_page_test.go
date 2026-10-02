@@ -200,8 +200,10 @@ func TestAnimalsShowTreatmentTabFromEntries(t *testing.T) {
 		"protocol-backed treatment links to its source protocol")
 
 	// Manual + legacy rows: no protocol backlink for them — the marker-named
-	// plan must be linked exactly once.
-	require.Equal(t, 1, strings.Count(html, "BacklinkProto-"+f.marker+"</a>"),
+	// plan must be linked exactly once in the treatment entries. (R4-6: the
+	// applicable-protocol trace links the same name again, in its own
+	// table — hence the scoping here.)
+	require.Equal(t, 1, strings.Count(html, "fa-file-medical\"></i> BacklinkProto-"+f.marker+"</a>"),
 		"exactly one protocol backlink (the protocol-backed row)")
 
 	// Legacy bitmap fallback still renders for the entry-less treatment

@@ -661,6 +661,19 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 		return err
 	}
 	c.Set("animalPlanToday", planRows)
+	// R4-6: the applicable-protocol trace — the animal's own plans AND the
+	// global rules that actually produced occurrences for this animal, in
+	// one ordered list (animal plans first), with an admin-only edit link
+	// on the global rules.
+	admin := false
+	if u := GetCurrentUser(c); u != nil {
+		admin = u.Admin
+	}
+	trace, err := protocolTraceOf(tx, todayPlan, animal, admin)
+	if err != nil {
+		return err
+	}
+	c.Set("animalProtocolTrace", trace)
 	// R3-6: the Treatment tab is rebuilt on the care-plan engine —
 	// per-day togglable medication series over the history+future
 	// window (14d back, 5d forward cap for open-ended protocols).

@@ -772,6 +772,52 @@
           <% } %>
         </div>
       <% } %>
+      <%# R4-6: applicable-protocol traceability — the sources that
+          ACTUALLY produced occurrences for this animal (its own plans AND
+          the global care rules that apply), collapsed by default. A rule
+          that produced nothing never appears, so the list is evidence, not
+          a catalogue. Global rules show an edit link to admins only. %>
+      <%= if (animalProtocolTrace != nil && len(animalProtocolTrace.Sources) > 0) { %>
+      <div class="card mt-3">
+        <div class="card-header py-2" id="planTraceHead">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planTrace" aria-expanded="false" aria-controls="planTrace">
+              <%= t("care_plan.protocol_trace.title") %>
+              <span class="badge badge-pill badge-secondary"><%= len(animalProtocolTrace.Sources) %></span>
+            </button>
+          </h5>
+          <small class="text-muted d-block"><%= t("care_plan.protocol_trace.intro") %></small>
+        </div>
+        <div class="collapse" id="planTrace" aria-labelledby="planTraceHead">
+          <div class="card-body py-2">
+            <table class="table table-sm table-hover table-bordered mb-0" id="planTraceTable">
+              <tbody>
+                <%= for (src) in animalProtocolTrace.Sources { %>
+                  <tr class="plan-trace-<%= src.SourceType %>">
+                    <td class="align-middle">
+                      <span class="badge badge-<%= if (src.SourceType == "animal") { %>primary<% } else { %>secondary<% } %>"><%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.animal_source") %><% } else { %><%= t("care_plan.protocol_trace.rule_source") %><% } %></span>
+                    </td>
+                    <td class="align-middle">
+                      <%= if (src.Editable && src.EditURL != "") { %>
+                        <a href="<%= src.EditURL %>"><%= src.Name %></a>
+                      <% } else { %>
+                        <%= src.Name %>
+                      <% } %>
+                      <% if (src.Replaces) { %>
+                        <span class="badge badge-info ml-1" title="<%= t("care_plan.protocol_trace.replaces_kind") %>">⤵</span>
+                      <% } %>
+                    </td>
+                    <td class="align-middle"><%= if (src.Content != "") { %><%= src.Content %><% } else { %>—<% } %></td>
+                    <td class="align-middle small text-muted"><%= humanSchedule(src.Schedule) %></td>
+                    <td class="align-middle text-nowrap small"><%= t("care_plan.protocol_trace.occurrences", src.Occurrences) %></td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <% } %>
       <%# R3-7: protocol definitions — collapsed by default. %>
       <div class="card mt-3">
         <div class="card-header py-2" id="planDetailsHead">
