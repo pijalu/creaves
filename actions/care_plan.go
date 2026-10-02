@@ -67,11 +67,20 @@ func CarePlanIndex(c buffalo.Context) error {
 		kindFilter = kind
 	}
 
-	// Work screen (Phase 2, U2): compact/detailed view + zone filter.
-	view := c.Param("view")
-	if view != ViewDetailed {
-		view = ViewCompact
-	}
+	// Work screen (Phase 2, U2): ONE density + zone filter.
+	//
+	// R4-7.18: the compact/detailed toggle is gone. Measured on the live
+	// pages, the two densities rendered BYTE-IDENTICALLY for feeding,
+	// medication, care, weighing and cleanup — only the toggle's own active
+	// state differed. The single exception (observation, which lists every
+	// open occurrence instead of one row per group) is exactly what R4-7.7
+	// rejected: after the day is scoped to today, re-advertising tomorrow's
+	// occurrences on today's screen is noise, not detail.
+	//
+	// The param is still accepted so old links and every `back=` target that
+	// carries `?view=detailed` keep working — they simply render the one
+	// view.
+	view := ViewCompact
 	zone := c.Param("zone")
 
 	return responder.Wants("html", func(c buffalo.Context) error {

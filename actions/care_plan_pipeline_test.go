@@ -319,6 +319,7 @@ func assertSameTierMembership(t *testing.T, c, d *DayPlanView) {
 	}
 	require.NotEmpty(t, d.Tiers[0].Cards, "medication late rows are tier rows, not a collapsible med section")
 }
+
 // assertSameNavCoverage: the nav matrix covers the same zones/kinds in
 // both views. Counts are per-view by design (CP4: a badge counts the
 // cards ITS view renders — compact groups vs detailed occurrences); the
@@ -440,7 +441,7 @@ func TestUnknownZoneRedirects(t *testing.T) {
 	raw, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.Equal(t, http.StatusFound, resp.StatusCode, "body: %s", raw)
-	require.Equal(t, "/care_plan?kind=feeding&view=compact", resp.Header.Get("Location"))
+	require.Equal(t, "/care_plan?kind=feeding", resp.Header.Get("Location"))
 
 	// the flash renders on the followed redirect (same session)
 	resp2, err := client.Get(baseURL + resp.Header.Get("Location"))

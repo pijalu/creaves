@@ -38,17 +38,6 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
   <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
-  <div class="float-right">
-    <div class="btn-group btn-group-sm" role="group">
-      <%= if (view.View == "compact") { %>
-        <a class="btn btn-primary" href="?view=compact<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.compact") %></a>
-        <a class="btn btn-outline-primary" href="?view=detailed<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.detailed") %></a>
-      <% } else { %>
-        <a class="btn btn-outline-primary" href="?view=compact<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.compact") %></a>
-        <a class="btn btn-primary" href="?view=detailed<%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>"><%= t("care_plan.view.detailed") %></a>
-      <% } %>
-    </div>
-  </div>
 </div>
 
 <%# A3 summary strip: urgency overview + jump anchors — the anchors are
@@ -73,7 +62,7 @@
 <ul class="nav nav-tabs mb-2" id="planKindTabs">
   <%= for (kc) in view.Kinds { %>
     <li class="nav-item">
-      <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?view=<%= view.View %>&kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
+      <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
         <%= t("care_plan.kind." + kc.Kind) %>
         <%= if (kc.Count > 0) { %>
           <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;"><%= kc.CountCap %></span>
@@ -92,12 +81,12 @@
     <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneCap %></span>
   </button>
   <div class="dropdown-menu" id="planZoneMenu" aria-labelledby="planZoneToggle">
-    <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="?view=<%= view.View %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
+    <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="<%= if (view.Kind != "") { %>?kind=<%= view.Kind %><% } %>">
       <%= t("care_plan.zone.all") %>
       <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneAllCap %></span>
     </a>
     <%= for (zt) in view.Zones { %>
-      <a class="dropdown-item<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?view=<%= view.View %>&zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
+      <a class="dropdown-item<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
         <%= zt.Name %>
         <%= if (zt.Count > 0) { %>
           <span class="badge badge-pill badge-primary ml-1"><%= zt.CountCap %></span>

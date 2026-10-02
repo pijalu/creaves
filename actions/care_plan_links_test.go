@@ -58,9 +58,9 @@ func TestBuildDayPlanViewLinks(t *testing.T) {
 	v := BuildDayPlanView(plan, ViewDetailed, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
 	require.Len(t, v.History, 1, "applied item lands in the history section")
 	card := v.History[0]
-	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Ddetailed#nav-plan", card.AnimalLink)
-	require.Equal(t, "/care_rules/src-obs?back=%2Fcare_plan%3Fview%3Ddetailed", card.SourceLink)
-	require.Equal(t, "/cares/fid-9?back=%2Fcare_plan%3Fview%3Ddetailed", card.FulfillmentLink)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan#nav-plan", card.AnimalLink)
+	require.Equal(t, "/care_rules/src-obs?back=%2Fcare_plan", card.SourceLink)
+	require.Equal(t, "/cares/fid-9?back=%2Fcare_plan", card.FulfillmentLink)
 }
 
 // TestBuildDayPlanViewCareCards (bugs.md U6): cleanup items leave the
@@ -84,7 +84,7 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	require.Equal(t, "C1", cc.Cage)
 	require.Equal(t, "Z1", cc.Zone)
 	require.Equal(t, "Clean", cc.SourceName, "conversion markers stripped")
-	require.Equal(t, "/care_rules/src-clean?back=%2Fcare_plan%3Fview%3Dcompact", cc.SourceLink)
+	require.Equal(t, "/care_rules/src-clean?back=%2Fcare_plan", cc.SourceLink)
 	require.Equal(t, 2, cc.ApplicableCount)
 	var refs []map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(cc.ChipRefsJSON), &refs))
@@ -239,14 +239,21 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 // TestPlanSelfPathBack: an incoming back target is carried in the work
 // screen's self URL — sanitized to same-origin paths; anything else is
 // dropped (fallback = the plain care_plan self URL).
+//
+// R4-7.18: the self URL no longer carries `view=` — the work screen has one
+// density, so the parameter was noise in every propagated link.
 func TestPlanSelfPathBack(t *testing.T) {
-	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", ""))
-	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "//evil.com"))
-	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "javascript:alert(1)"))
-	require.Equal(t, "/care_plan?view=compact", planSelfPath(ViewCompact, "", "", "/\\evil.example"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", ""))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "//evil.com"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "javascript:alert(1)"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "/\\evil.example"))
 
-	require.Equal(t, "/care_plan?back=%2F&view=compact", planSelfPath(ViewCompact, "", "", "/"))
-	require.Equal(t, "/care_plan?back=%2Fdashboard&view=compact", planSelfPath(ViewCompact, "", "", "/dashboard"))
+	require.Equal(t, "/care_plan?back=%2F", planSelfPath(ViewCompact, "", "", "/"))
+	require.Equal(t, "/care_plan?back=%2Fdashboard", planSelfPath(ViewCompact, "", "", "/dashboard"))
+
+	// The zone/kind filters are still carried; only the dead view param is gone.
+	require.Equal(t, "/care_plan?kind=feeding&zone=Z1",
+		planSelfPath(ViewCompact, "Z1", "feeding", ""))
 }
 
 // TestBuildDayPlanViewBackChain: the dashboard origin (back=/) survives the
@@ -260,14 +267,14 @@ func TestBuildDayPlanViewBackChain(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local)
 
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now, "/")
-	require.Equal(t, "/care_plan?back=%2F&view=compact", v.SelfPath)
-	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F%26view%3Dcompact#nav-plan",
+	require.Equal(t, "/care_plan?back=%2F", v.SelfPath)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F#nav-plan",
 		v.Tiers[1].Cards[0].AnimalLink)
 
 	// No incoming back → cards fall back to the plain self URL.
 	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
-	require.Equal(t, "/care_plan?view=compact", v.SelfPath)
-	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Dcompact#nav-plan",
+	require.Equal(t, "/care_plan", v.SelfPath)
+	require.Equal(t, "/animals/1?back=%2Fcare_plan#nav-plan",
 		v.Tiers[1].Cards[0].AnimalLink)
 }
 

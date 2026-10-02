@@ -328,7 +328,7 @@ translation cannot terminate the literal.
 
 ---
 
-## R4-7.18 compact vs detailed: no visible difference — **Open**
+## R4-7.18 compact vs detailed: no visible difference — **Done**
 
 Measured on the live page (byte diff of the rendered HTML, csrf/URLs ignored):
 
@@ -345,15 +345,32 @@ Only `observation` reads differently, because only that kind currently has
 multiple open occurrences per (source × animal). The toggle promises a
 density the caregiver cannot perceive.
 
-**Fix (default taken)**: remove the compact/detailed toggle; the screen is one
-density. `?view=detailed` stays accepted and redirects to the single view so
-existing links and `back=` targets keep working. Keep the "one row per
-(source × animal) group with a `+N` badge" behaviour — it is the honest one:
-detailed lists every open occurrence, which after R4-7.7 would re-advertise
-tomorrow's work on today's screen.
+**Fix**: the toggle is removed; the screen has one density. The handler pins
+`view := ViewCompact` instead of reading the parameter, so old bookmarks and
+every `back=` target that carries `?view=detailed` still resolve — they render
+the one view. `planSelfPath` no longer emits `view=`, the kind tabs / zone
+dropdown / dashboard links dropped it, and the now-unused
+`care_plan.view.compact|detailed` keys were deleted from all four locales so
+they cannot rot into a misleading "this feature exists" entry. The
+"one row per (source × animal) group with a `+N` badge" behaviour is kept — it
+is the honest one: detailed listed every open occurrence, which after R4-7.7
+would re-advertise tomorrow's work on today's screen.
 
-**Test**: `TestCarePlanHasSingleDensity` — no view toggle in any fork, and
-`?view=detailed` still renders the same rows as `?view=compact`.
+**Test**: `actions/care_plan_round7_density_test.go` —
+`TestCarePlanHasSingleDensity` (no toggle link, no `view.View` branch, no dead
+locale key in any fork; the handler forces the density),
+`TestCarePlanOneDensityForEveryKind` (the summary counters never depended on
+the density), `TestPlanSelfPathCarriesNoViewParam`.
+
+**Verified**: `go build`/`go vet`/`staticcheck` clean; full `./actions` suite
+ok; gocognit/gocyclo diffed against the pre-change tree — zero added
+offenders; e2e in en-US/fr/de/nl shows `toggleLinks=0`,
+`anyViewParamInHTML=0` and identical row counts for `?view=compact` and
+`?view=detailed` on **every** kind (observation 24=24, feeding 162=162). The 8
+`-race` failures are pre-existing shared-DB flakes — reproduced identically on
+the unmodified tree.
+
+**e2e**: `tmp/browser_evidence/round7/e2e-round7-part2-density.md`.
 
 ---
 

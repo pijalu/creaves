@@ -274,12 +274,14 @@ translation interpolated into a `<script>` block is HTML-escaped by Plush, and
 script text never decodes entities. Also a **script-injection risk**: a
 translation containing `"` terminates the JS string literal. Plan: §R4-7.17.
 
-### R4-7.18 — compact and detailed look identical (**Open**)
+### R4-7.18 — compact and detailed look identical (**Done**)
 
 Measured across every kind: compact and detailed differ **only** for
 `observation` (13 vs 23 rows); care, weighing, cleanup, medication and feeding
-differ only in the toggle's own active state. Plan: §R4-7.18 — default taken:
-remove the toggle, keep one density.
+differ only in the toggle's own active state. The toggle is removed and the
+handler pins a single density; `?view=detailed` still resolves and renders that
+same view. Verified identical row counts for both parameters on every kind.
+Plan: §R4-7.18.
 
 ### R4-7.19 — Protocol trace duplicates the definitions table (**Open**)
 

@@ -1468,15 +1468,18 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 
 // planSelfPath is the canonical URL of the work screen with its current
 // filters — the back target propagated to every card link so a round trip
-// (animal page, rule page, record page) returns to the same view/zone/kind.
+// (animal page, rule page, record page) returns to the same zone/kind.
 // R5-2d (D-b): an incoming back target is carried in the self URL (and
 // thus through every card link); invalid targets are dropped — the
 // fallback is the plain care_plan self URL.
+//
+// R4-7.18: `view` is no longer emitted. The screen has ONE density (the
+// compact/detailed toggle rendered identically for five of the six kinds), so
+// carrying the parameter in every propagated URL was noise. The parameter is
+// still ACCEPTED on the way in, so old links and bookmarks keep working.
 func planSelfPath(view, zone, kind, back string) string {
+	_ = view // kept for call-site symmetry; the work screen has one density
 	q := url.Values{}
-	if view != "" {
-		q.Set("view", view)
-	}
 	if zone != "" {
 		q.Set("zone", zone)
 	}
@@ -1485,6 +1488,11 @@ func planSelfPath(view, zone, kind, back string) string {
 	}
 	if b := localBackParam(back); b != "" {
 		q.Set("back", b)
+	}
+	// No dangling "?" — the self URL is copied into every card link and into
+	// the caregiver's bookmark bar; "/care_plan?" reads like a broken URL.
+	if len(q) == 0 {
+		return "/care_plan"
 	}
 	return "/care_plan?" + q.Encode()
 }
