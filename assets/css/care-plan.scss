@@ -1,0 +1,23 @@
+// Care-plan round-4 fixes (bugs.md R4-1, R4-2.3).
+//
+// R4-1.1: every medication slot is colour-coded by its urgency tier
+// (late red · due-now yellow · future white · applied green). The colour
+// is ADDITIVE — the glyph (○/✓/⊘/⏸) and the title stay, so the state is
+// never colour-only.
+//
+// R4-1.2: inside a series the urgent slot (the one that placed the series
+// in its tier) is visually dominant — a red ring — while the future slots
+// of the same line recede. This is what makes "the late slot" readable
+// inside a multi-day series without re-tiering the series itself.
+.plan-med-btn {
+  // R4-3.2: fixed target width so `○ 12:00` and `✓ 12:00` never change
+  // the column width (the row stays a clean grid when a slot is applied).
+  min-width: 5.6rem;
+}
+.plan-med-urgent {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.85);
+  font-weight: 600;
+}
+.plan-med-future {
+  opacity: 0.55;
+}

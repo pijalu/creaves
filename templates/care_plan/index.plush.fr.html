@@ -123,7 +123,7 @@
     <div class="plan-tier plan-tier-late" id="tier-late">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.late") %></span>
-        <span class="badge badge-pill badge-danger"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[0]) %><% } else { %><%= view.Tiers[0].CountCap %><% } %></span>
+        <span class="badge badge-pill badge-danger"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[0] %><% } else { %><%= view.Tiers[0].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-late-rows">
@@ -219,7 +219,7 @@
     <div class="plan-tier plan-tier-now" id="tier-now">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.now") %></span>
-        <span class="badge badge-pill badge-warning"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[1]) %><% } else { %><%= view.Tiers[1].CountCap %><% } %></span>
+        <span class="badge badge-pill badge-warning"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[1] %><% } else { %><%= view.Tiers[1].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-now-rows">
@@ -311,7 +311,7 @@
     <div class="plan-tier plan-tier-later" id="tier-later">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.later") %></span>
-        <span class="badge badge-pill badge-success"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[2]) %><% } else { %><%= view.Tiers[2].CountCap %><% } %></span>
+        <span class="badge badge-pill badge-success"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[2] %><% } else { %><%= view.Tiers[2].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-later-rows">

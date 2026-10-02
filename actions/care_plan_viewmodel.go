@@ -145,6 +145,20 @@ type MedSlotView struct {
 	// the dimmed series button stays clickable and records the missed
 	// occurrence with the explicit late acknowledgment.
 	LateAllowed bool
+	// R4-1.1: urgency tier of this occurrence (tierOrder): 0 late/missing,
+	// 1 due-now, 2 scheduled/future, 3 done. Terminal states keep their
+	// own glyph treatment and are never re-coloured by tier.
+	Tier int
+	// TierClass is the Bootstrap button class carrying the tier colour
+	// (R4-1.1): late red · due-now yellow · future white (bordered) ·
+	// applied green. Colour is additive — the glyph and title stay.
+	TierClass string
+	// R4-1.2: Urgent marks the series' most urgent open slot (the one
+	// that placed the series in its tier) — red ring, dominant.
+	Urgent bool
+	// R4-1.2: Future marks an open later-tier slot inside a series whose
+	// urgent slot is late/due-now — recedes (reduced opacity).
+	Future bool
 }
 
 // MedSeriesRow is one visual row of a series (≤3 slots).
@@ -248,6 +262,12 @@ type DayPlanView struct {
 	// all-zones cap when no zone is selected. The per-item dropdown entries
 	// always show their own cap.
 	ZoneCap string
+	// R4-1.3: MedTierOpen[i] counts the OPEN OCCURRENCES rendered in
+	// medication tier i (a series may contribute several), capped in
+	// MedTierOpenCap — the same unit as the summary strip's Stats, so the
+	// section badge and the strip can never disagree.
+	MedTierOpen    [3]int
+	MedTierOpenCap [3]string
 }
 
 // FilterStats is the CP4/D6 summary of one rendered view, counted in
@@ -385,9 +405,16 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView) {
 			}
 			series.Tier = tier
 			series.FirstDueAt = first
+			// R4-1.2: the slot that placed the series in its tier is the
+			// urgent one (red ring); its later-tier open siblings recede.
+			markSeriesUrgency(&series, tier)
+			v.MedTierOpen[tier] += seriesTierOpenCount(series, tier)
 			g.Series = []MedSeriesView{series}
 			v.MedTiers[tier] = append(v.MedTiers[tier], g)
 		}
+	}
+	for i := 0; i < 3; i++ {
+		v.MedTierOpenCap[i] = BadgeCap(v.MedTierOpen[i])
 	}
 	for i := 0; i < 3; i++ {
 		sort.SliceStable(v.MedTiers[i], func(a, b int) bool {
@@ -428,6 +455,60 @@ func betterTierSlot(best int, first time.Time, s MedSlotView) (int, time.Time) {
 		return t, s.DueAt
 	}
 	return best, first
+}
+
+// markSeriesUrgency flags, in place, the slot that placed the series in
+// its tier (`Urgent`) and the open later-tier siblings (`Future`) —
+// R4-1.2: within one line the urgent occurrence is visually dominant,
+// the future ones recede. The urgent slot is the earliest same-tier open
+// slot, matching betterTierSlot's choice.
+func markSeriesUrgency(series *MedSeriesView, tier int) {
+	for ri := range series.Rows {
+		for si := range series.Rows[ri].Slots {
+			s := &series.Rows[ri].Slots[si]
+			if s.Done || s.Overridden {
+				continue
+			}
+			if s.Tier > tier {
+				s.Future = true
+			}
+		}
+	}
+	// The urgent slot is the EARLIEST same-tier open slot — the exact one
+	// betterTierSlot used to place the series (ties: first encountered).
+	var urgent *MedSlotView
+	for ri := range series.Rows {
+		for si := range series.Rows[ri].Slots {
+			s := &series.Rows[ri].Slots[si]
+			if s.Done || s.Overridden || s.Tier != tier {
+				continue
+			}
+			if urgent == nil || s.DueAt.Before(urgent.DueAt) {
+				urgent = s
+			}
+		}
+	}
+	if urgent != nil {
+		urgent.Urgent = true
+	}
+}
+
+// seriesTierOpenCount counts the APPLICABLE occurrences of a series that
+// belong to `tier` — R4-1.3: the section badge counts OCCURRENCES in its
+// own tier (the same population and unit as the summary strip's statsOf —
+// open, current, applicable), never series, so "Late 22" in the header
+// and "Late 20" in the strip can never disagree.
+func seriesTierOpenCount(series MedSeriesView, tier int) int {
+	n := 0
+	for _, row := range series.Rows {
+		for _, s := range row.Slots {
+			if s.Done || s.Overridden || !s.Applicable || s.Tier != tier {
+				continue
+			}
+			n++
+		}
+	}
+	return n
 }
 
 // fillTiers distributes the filtered open rows over the three urgency
@@ -967,6 +1048,8 @@ func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
 	}
 	slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
 	slot.LateAllowed = slotLateAllowed(now, slot, it)
+	slot.Tier = slotTierOf(slot, it.Status)
+	slot.TierClass = slotTierClass(slot.Tier)
 	if app := it.Application; app != nil {
 		slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
 			app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
@@ -982,6 +1065,41 @@ func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
 	}
 	slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
 	return slot
+}
+
+// slotTierOf is the R4-1.1 slot tier: the urgency tier of an open slot,
+// 3 for applied (green ✓) and -1 for the other terminal states — skipped,
+// deferred and overridden keep their own glyph treatment and are never
+// re-coloured by tier.
+func slotTierOf(slot MedSlotView, status careplan.PlanStatus) int {
+	slot.Tier = tierOrder(status)
+	switch {
+	case !slot.Done && !slot.Overridden:
+		// open occurrence — urgency tier
+	case slot.Applied:
+		slot.Tier = 3
+	default:
+		slot.Tier = -1
+	}
+	return slot.Tier
+}
+
+// slotTierClass is the R4-1.1 tier→colour mapping: 0 late red, 1 due-now
+// yellow, 2 future white (bordered so it stays visible on the white tier
+// body), 3 applied green. Terminal states (-1) keep btn-light with their
+// own glyph (⊘ skipped, ⏸ deferred) — they are not colour-encodable.
+func slotTierClass(tier int) string {
+	switch tier {
+	case 0:
+		return "btn-danger"
+	case 1:
+		return "btn-warning"
+	case 2:
+		return "btn-light border"
+	case 3:
+		return "btn-success"
+	}
+	return "btn-light"
 }
 
 // seriesOf merges medication slots into (drug, dosage) series (Dash-5:
@@ -1009,9 +1127,23 @@ func seriesOf(slots []MedSlotView, bucketOrder map[string]int) []MedSeriesView {
 			}
 			return g[i].DueAt.Before(g[j].DueAt)
 		})
-		out = append(out, MedSeriesView{Key: label, Label: label, Rows: chunkSeriesRows(g)})
+		out = append(out, seriesForRow(g, label))
 	}
 	return out
+}
+
+// seriesForRow assembles one (drug, dosage) series and marks its urgency
+// (R4-1.2) so every surface rendering a series — care plan, dashboard and
+// animal tabs — highlights the same urgent slot. tierOrder/seriesTier are
+// deterministic, so fillMedTiers' later pass marks identically.
+func seriesForRow(g []MedSlotView, label string) MedSeriesView {
+	series := MedSeriesView{Key: label, Label: label, Rows: chunkSeriesRows(g)}
+	if tier, first := seriesTier(series); tier >= 0 {
+		series.Tier = tier
+		series.FirstDueAt = first
+		markSeriesUrgency(&series, tier)
+	}
+	return series
 }
 
 // chunkSeriesRows bucket-chunks one series' ordered slots: at most 3 per
