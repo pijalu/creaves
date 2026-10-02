@@ -578,14 +578,19 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
 				return err
 			}
-			// T1/T2 (round-2 §10): the Treatment tab's TODAY block is built
-			// from today's plan (medication + care) — the same engine pass
-			// resolves the Dash-7 deep-link occurrence (?item=) server-side.
+			// Today's plan occurrences (bugs.md U26 — fix 7): merged into
+			// the Treatment tab accordion (deduped against legacy
+			// treatments) — the same engine pass resolves the Dash-7
+			// deep-link occurrence (?item=) server-side.
 			todayPlan, err := animalTodayPlan(tx)
 			if err != nil {
 				return err
 			}
-			c.Set("animalToday", animalTodayBlock(todayPlan, animal))
+			planRows, err := animalPlanTodayRows(tx, todayPlan, animal)
+			if err != nil {
+				return err
+			}
+			c.Set("animalPlanToday", planRows)
 			if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
 				return err
 			}

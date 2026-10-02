@@ -233,55 +233,109 @@ func TestParseItemRef(t *testing.T) {
 	}
 }
 
-// TestAnimalTodayBlock: the Treatment tab's TODAY block (round-2 §10,
-// T1/T2) folds THIS animal's today medication + care occurrences into the
-// shared series view; other animals' items and overridden occurrences
-// stay out, and the group binds to the shared _med_series partial
-// context (AnimalID/Label/Link of this animal).
-func TestAnimalTodayBlock(t *testing.T) {
+// TestAnimalPlanTodayRows: the Treatment tab's plan rows (bugs.md U26 —
+// fix 7) fold THIS animal's today medication + observation + care
+// occurrences into accordion rows — statuses (done/skipped/pending/missed),
+// sorted by due time; other animals' items and overridden occurrences
+// stay out, and no row repeats the animal label (the tab already names
+// the animal).
+func TestAnimalPlanTodayRows(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 	from, to := TodayPlanWindow(now)
-	med := testSource(careplan.KindMedication, "atm-med", "Citramox", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
-	care := testSource(careplan.KindCare, "atm-care", "Bandage", map[string]interface{}{"note": "Changer bandage"})
+	med := testSource(careplan.KindMedication, "atr-med", "Citramox", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
+	obs := testSource(careplan.KindObservation, "atr-obs", "Nettoyage", map[string]interface{}{"prompt": "Nettoyage Fistule"})
+	care := testSource(careplan.KindCare, "atr-care", "Bandage", map[string]interface{}{"note": "Changer bandage"})
 	plan := testPlan()
 	plan.From, plan.To, plan.Now = from, to, now
 
-	medToday := testItem(med, 1, careplan.StatusDue)
-	medToday.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
-	careToday := testItem(care, 1, careplan.StatusDue)
-	careToday.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 30, 0, 0, time.Local)
+	done := testItem(med, 1, careplan.StatusApplied)
+	done.Occurrence.DueAt = time.Date(2026, 9, 28, 7, 0, 0, 0, time.Local)
+	done.Application = &careplan.ApplicationView{Status: "applied", AppliedAt: time.Date(2026, 9, 28, 7, 5, 0, 0, time.Local)}
+	missed := testItem(obs, 1, careplan.StatusDue)
+	missed.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
+	skipped := testItem(care, 1, careplan.StatusSkipped)
+	skipped.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 30, 0, 0, time.Local)
+	pending := testItem(med, 1, careplan.StatusDue)
+	pending.Occurrence.DueAt = time.Date(2026, 9, 28, 14, 0, 0, 0, time.Local)
 	other := testItem(med, 2, careplan.StatusDue) // another animal — excluded
 	other.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
 	overridden := testItem(med, 1, careplan.StatusOverridden)
 	overridden.Occurrence.DueAt = time.Date(2026, 9, 28, 7, 30, 0, 0, time.Local)
-	plan.Items = []careplan.PlanItem{medToday, careToday, other, overridden}
+	plan.Items = []careplan.PlanItem{done, missed, skipped, pending, other, overridden}
 
 	animal := &models.Animal{ID: 1, YearNumber: 11, Year: 2026, Species: "Hérisson", Cage: nulls.NewString("C1")}
-	b := animalTodayBlock(plan, animal)
-	require.False(t, b.Empty)
-	require.Equal(t, animalLabel(*animal), b.Label)
-	require.Equal(t, 1, b.Group.AnimalID)
-	require.Equal(t, "/animals/1", b.Group.AnimalLink)
+	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	require.NoError(t, err)
+	require.Len(t, rows, 4)
 
-	// Medication series first (buildMedGroups), care series appended.
-	require.Len(t, b.Group.Series, 2)
-	require.Equal(t, "Citramox — 0.5 ml", b.Group.Series[0].Label)
-	require.Len(t, b.Group.Series[0].Rows[0], 1, "one open today slot (overridden suppressed)")
-	require.Equal(t, "08:00", b.Group.Series[0].Rows[0][0].DueAtHM)
-	// Care series: one line per source, note label, its own due button.
-	require.Equal(t, "Changer bandage", b.Group.Series[1].Label)
-	require.Equal(t, "09:30", b.Group.Series[1].Rows[0][0].DueAtHM)
-	require.True(t, b.Group.Series[1].Rows[0][0].Applicable)
+	// Sorted by due time, one row per occurrence with its status.
+	require.Equal(t, "07:00", rows[0].DueHM)
+	require.Equal(t, "done", rows[0].Status)
+	require.Equal(t, "07:05", rows[0].AppliedAt)
+	require.Equal(t, "08:00", rows[1].DueHM)
+	require.Equal(t, "missed", rows[1].Status)
+	require.Equal(t, "Nettoyage Fistule", rows[1].Label)
+	require.Equal(t, "09:30", rows[2].DueHM)
+	require.Equal(t, "skipped", rows[2].Status)
+	require.Equal(t, "Changer bandage", rows[2].Label)
+	require.Equal(t, "14:00", rows[3].DueHM)
+	require.Equal(t, "pending", rows[3].Status)
+	require.Equal(t, "Citramox (0.5 ml)", rows[3].Label)
+
+	// No animal label anywhere — the tab already names the animal (U26).
+	for _, r := range rows {
+		require.NotContains(t, r.Label, "Hérisson")
+		require.NotContains(t, r.Label, "C1")
+	}
 }
 
-// TestAnimalTodayBlockEmpty: no today occurrences → Empty (block not
-// rendered by the template).
-func TestAnimalTodayBlockEmpty(t *testing.T) {
+// TestAnimalPlanTodayRowsDedupe: occurrences whose drug/prompt already
+// exists as a legacy treatment of the SAME day are deduped away — the
+// legacy row keeps showing that work (new must not stack on top of old,
+// bugs.md U26); same-label treatments of other days do not dedupe.
+func TestAnimalPlanTodayRowsDedupe(t *testing.T) {
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+	from, to := TodayPlanWindow(now)
+	plan := testPlan()
+	plan.From, plan.To, plan.Now = from, to, now
+	medDup := testSource(careplan.KindMedication, "atd-med", "Dup", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
+	obsDup := testSource(careplan.KindObservation, "atd-obs", "Obs", map[string]interface{}{"prompt": "Nettoyage Fistule"})
+	medKeep := testSource(careplan.KindMedication, "atd-new", "New", map[string]interface{}{"drug": "Itra"})
+	dup1 := testItem(medDup, 1, careplan.StatusDue)
+	dup1.Occurrence.DueAt = time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
+	dup2 := testItem(obsDup, 1, careplan.StatusDue)
+	dup2.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)
+	keep := testItem(medKeep, 1, careplan.StatusDue)
+	keep.Occurrence.DueAt = time.Date(2026, 9, 28, 14, 0, 0, 0, time.Local)
+	plan.Items = []careplan.PlanItem{dup1, dup2, keep}
+
+	today := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	animal := &models.Animal{ID: 1, Treatments: models.Treatments{
+		{Date: today, Drug: "citramox "}, // case/whitespace-insensitive match
+		{Date: today, Drug: "Nettoyage Fistule"},
+		{Date: today.AddDate(0, 0, -2), Drug: "Itra"}, // other day → no dedupe
+	}}
+	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, "Itra", rows[0].Label, "dosage-less medication keeps the bare drug label")
+	require.Equal(t, "14:00", rows[0].DueHM)
+	require.Equal(t, "pending", rows[0].Status)
+}
+
+// TestAnimalPlanTodayRowsEmpty: no today occurrences (and a nil plan)
+// yield no rows — the accordion renders only the legacy treatments.
+func TestAnimalPlanTodayRowsEmpty(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 	from, to := TodayPlanWindow(now)
 	plan := testPlan()
 	plan.From, plan.To, plan.Now = from, to, now
 	animal := &models.Animal{ID: 3, YearNumber: 13, Year: 2026}
-	b := animalTodayBlock(plan, animal)
-	require.True(t, b.Empty)
+	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	require.NoError(t, err)
+	require.Empty(t, rows)
+
+	rows, err = animalPlanTodayRows(models.DB, nil, animal)
+	require.NoError(t, err)
+	require.Empty(t, rows)
 }

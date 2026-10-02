@@ -319,34 +319,40 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 		})
 	}
 }
-
-// TestAnimalShowTodayBlockAllLocales renders one animal's show page (the
-// Treatment tab source, round-2 §10/WP6) in all four UI languages and
-// asserts the protocol-driven TODAY block: the localized care_plan.section
-// .today heading, the shared drug-series toggle buttons, and NO missing-
-// key markers anywhere on the page (the WP7 render gate for the animal
-// surface — the /care_plan and /dashboard gates live in the tests above).
-func TestAnimalShowTodayBlockAllLocales(t *testing.T) {
+// TestAnimalShowPlanTodayRowsAllLocales renders one animal's show page
+// (the Treatment tab source, bugs.md U26 — fix 7) in all four UI
+// languages and asserts the merged accordion: the dedicated Today block
+// is gone, today's plan occurrence renders as an original-look accordion
+// row (payload label + protocol backlink + clock badge), and NO missing-
+// key markers appear anywhere on the page (the WP7 render gate for the
+// animal surface — the /care_plan and /dashboard gates live in the tests
+// above).
+func TestAnimalShowPlanTodayRowsAllLocales(t *testing.T) {
 	f := setupPlanFixture(t)
 	client, baseURL := planAdminClient(t)
 
-	// One medication slot due (earlier) today — without it the TODAY block
-	// would not render at all and the assertions below would pass vacuously.
+	// A legacy treatment dated today — without it the accordion has no
+	// current-date card and the plan row would render nowhere. The app
+	// stores treatment dates as UTC midnight (time.Parse of "2006-01-02"),
+	// so mimic that or the card lands on the previous day.
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	legacyTr := &models.Treatment{
+		Date: today, AnimalID: f.animalIDs[0],
+		Drug: "LegacyTr-" + f.marker, Dosage: "1 ml",
+	}
+	require.NoError(t, models.DB.Create(legacyTr))
+
+	// One medication occurrence due (earlier) today — without it no plan
+	// row would render and the assertions below would pass vacuously.
 	now := time.Now()
 	due := now.Add(-time.Minute)
 	if due.Day() != now.Day() {
-		due = now // midnight edge: keep the slot inside today
+		due = now // midnight edge: keep the occurrence inside today
 	}
 	_ = ruleWithoutMatcher(t, models.DB, "ATODAY-"+f.marker, "medication",
 		planRulePayload(t, "medication", map[string]interface{}{"drug": "ATDrug-" + f.marker, "dosage": "0.5 ml"}),
 		careScheduleJSON(t, due))
 
-	wantHeading := map[string]string{
-		"fr":    "Aujourd'hui",
-		"en-US": "Today",
-		"de":    "Heute",
-		"nl":    "Vandaag",
-	}
 	for _, lang := range []string{"fr", "en-US", "de", "nl"} {
 		lang := lang
 		t.Run(lang, func(t *testing.T) {
@@ -360,16 +366,23 @@ func TestAnimalShowTodayBlockAllLocales(t *testing.T) {
 			raw, _ := io.ReadAll(resp.Body)
 			require.Equal(t, http.StatusOK, resp.StatusCode,
 				"%s animal show rendered: %.2000s", lang, raw)
-			// Localized TODAY heading (t() output is HTML-escaped — fr
-			// "Aujourd&#39;hui" — so compare on the unescaped text).
 			unescaped := html.UnescapeString(string(raw))
-			require.Contains(t, unescaped, "animalTodayBlock",
-				"%s animal show must render the TODAY block", lang)
-			require.Contains(t, unescaped, wantHeading[lang],
-				"%s animal show must show the localized TODAY heading %q", lang, wantHeading[lang])
-			// Shared series component: hour-labeled toggle buttons.
-			require.Contains(t, string(raw), "plan-med-slot",
-				"%s animal show TODAY block must render series toggle buttons", lang)
+			// U26 (fix 7): the dedicated Today block is gone.
+			require.NotContains(t, unescaped, "animalTodayBlock",
+				"%s animal show must not render the old TODAY block", lang)
+			require.NotContains(t, string(raw), "plan-med-slot",
+				"%s animal show must not render series toggle buttons", lang)
+			// The plan occurrence merges into the accordion as an
+			// original-look row: payload label + due-hour clock badge.
+			require.Contains(t, unescaped, "ATDrug-"+f.marker,
+				"%s animal show must render the plan row label", lang)
+			require.Contains(t, unescaped, due.Format("15:04")+" \u00b7 ",
+				"%s animal show must render the clock badge title", lang)
+			// Protocol backlink: rule sources open the care-rules library.
+			require.Contains(t, unescaped, "ATODAY-"+f.marker,
+				"%s animal show must link the source rule", lang)
+			require.Contains(t, string(raw), `href="/care_rules"`,
+				"%s animal show plan row must target the rules library", lang)
 			// WP7 gate: no missing-key markers, and the today key itself
 			// must never render raw (a raw render means the fork lost it).
 			require.NotContains(t, string(raw), "translation missing",

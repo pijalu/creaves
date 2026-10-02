@@ -179,19 +179,28 @@ type PlanItemDetail struct {
 	Status      string // localized occurrence status
 }
 
-// AnimalTodayBlock is the protocol-driven TODAY block of the animal
-// Treatment tab (round-2 §10, T1/T2): today's plan occurrences of the
-// medication + care kinds for THIS animal as drug/care series with
-// hour-labeled toggle buttons — the same component the dashboard and
-// the care plan render (Similarity: one visual language).
-type AnimalTodayBlock struct {
-	// Label is the animal header ("472/26 · Hérisson · A12").
+// AnimalPlanTodayRow is ONE plan occurrence in the animal Treatment
+// tab's current-date accordion card (bugs.md U26 — fix 7): today's
+// medication, observation and care occurrences merge into the legacy
+// treatment list with the original look (label + protocol backlink +
+// clock badge) — the dedicated Today block is gone, new replaces old
+// instead of sitting on top of it.
+type AnimalPlanTodayRow struct {
+	// Label is the content line: medication "Drug (dosage)", observation
+	// prompt, care note (falling back to instructions, then source name).
 	Label string
-	// Group carries the combined series — the template binds it to `mg`
-	// so the shared _med_series partial renders it unchanged.
-	Group MedGroupView
-	// Empty reports "no protocol work today" (block not rendered).
-	Empty bool
+	// DueHM is the due time "15:04" (drives the clock-dot badge).
+	DueHM string
+	// Status is "done", "skipped" (skipped or deferred) or "pending";
+	// open occurrences due earlier today are "missed".
+	Status string
+	// AppliedAt is the "15:04" apply time of done rows ("" otherwise).
+	AppliedAt string
+	// Protocol backlink of the source plan / care rule (same fields as
+	// TreatmentProtocolLink — Rule opens the care-rules library).
+	ProtocolName string
+	ProtocolHref string
+	ProtocolRule bool
 }
 
 // animalTodayPlan builds today's plan (TodayPlanWindow) — the single
@@ -203,91 +212,164 @@ func animalTodayPlan(tx *pop.Connection) (*DayPlan, error) {
 	return BuildDayPlan(tx, now, from, to)
 }
 
-// animalTodayBlock folds today's plan into the ONE animal's Today block:
-// its medication series (dashboard todayOnly semantics — overridden
-// suppressed) plus its care occurrences as series lines.
-func animalTodayBlock(plan *DayPlan, animal *models.Animal) AnimalTodayBlock {
-	b := AnimalTodayBlock{Label: animalLabel(*animal)}
-	v := &DayPlanView{View: ViewCompact, SelfPath: "/"}
-	for _, mg := range v.buildMedGroups(plan, "", true) {
-		if mg.AnimalID == animal.ID {
-			b.Group = mg
-			break
+
+// animalPlanTodayItem pairs an accordion row with its due time (sort
+// key), its source reference (protocol backlink) and its dedupe key
+// ("" = never deduped against legacy treatments).
+type animalPlanTodayItem struct {
+	due    time.Time
+	srcID  string
+	rule   bool
+	ddedup string
+	row    AnimalPlanTodayRow
+}
+
+// animalPlanLegacyDrugs indexes the drug labels of the animal's legacy
+// treatments dated inside the plan window (today) — the dedupe keys of
+// the plan rows (bugs.md U26).
+func animalPlanLegacyDrugs(plan *DayPlan, animal *models.Animal) map[string]bool {
+	legacy := map[string]bool{}
+	for i := range animal.Treatments {
+		t := &animal.Treatments[i]
+		if t.Date.Before(plan.From) || t.Date.After(plan.To) {
+			continue
 		}
+		legacy[normalizeWorkLabel(t.Drug)] = true
 	}
-	b.Group.AnimalID = animal.ID
-	b.Group.AnimalLabel = b.Label
-	// Self link WITHOUT the back chain and without a tab hash: the modal's
-	// animal link must stay on the current tab.
-	b.Group.AnimalLink = fmt.Sprintf("/animals/%d", animal.ID)
-	b.Group.Series = append(b.Group.Series, careSeriesOf(plan, animal.ID)...)
-	b.Empty = len(b.Group.Series) == 0
-	return b
+	return legacy
 }
 
-// todaySlotView projects ONE today-window occurrence into the shared slot
-// view (same fields the dashboard/care-plan pipeline fills). buildMedGroups
-// keeps its inline copy — that function is a known pre-existing complexity
-// offender and stays untouched.
-func todaySlotView(plan *DayPlan, it *careplan.PlanItem, back string) MedSlotView {
-	src := it.Occurrence.Source
-	slot := MedSlotView{
-		Slot:       medSlotOf(it.Occurrence.DueAt),
-		Detail:     planDetail(src),
-		SourceName: DisplayName(src.Name()),
-		SourceType: string(src.SourceType()),
-		SourceID:   src.SourceID(),
-		DueAt:      it.Occurrence.DueAt,
-		DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
-		DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
-		Status:     string(it.Status),
-		Applied:    it.Status == careplan.StatusApplied,
-		Applicable: it.Applicable,
-		Overridden: it.Status == careplan.StatusOverridden,
-		SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
-	}
-	slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
-	slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
-	if app := it.Application; app != nil {
-		slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
-			app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
-		slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
-	}
-	slot.ViewLink = slot.FulfillmentLink
-	if slot.ViewLink == "" {
-		slot.ViewLink = fmt.Sprintf("/animals/%d#nav-treatment", it.Occurrence.AnimalID)
-	}
-	slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
-	return slot
+// animalPlanTodayKind reports whether the action kind shows on the
+// Treatment tab (medication, observation, care — feeding/cleanup/weighing
+// belong to the care plan screen).
+func animalPlanTodayKind(kind string) bool {
+	return kind == careplan.KindMedication || kind == careplan.KindObservation ||
+		kind == careplan.KindCare
 }
 
-// careSeriesOf folds today's CARE occurrences of one animal into series
-// (one per source) so the shared _med_series partial renders them next to
-// the medication series (§10 T1: the Today block lists the protocol's
-// medications AND cares). Overridden occurrences are suppressed (same as
-// the dashboard todayOnly mode).
-func careSeriesOf(plan *DayPlan, animalID int) []MedSeriesView {
-	order := map[string]int{"morning": 0, "noon": 1, "evening": 2}
-	var slots []MedSlotView
+// animalPlanTodayLabel renders the content line of one occurrence:
+// medication "Drug (dosage)", observation prompt, care note (falling
+// back to instructions). Returns the dedupe key ("" = never deduped
+// against legacy treatments — care rows have no drug/prompt identity).
+func animalPlanTodayLabel(kind string, src careplan.PlanSource) (label, dedupe string) {
+	p := parsePlanPayload(src)
+	switch kind {
+	case careplan.KindMedication:
+		if p.Dosage == "" {
+			return p.Drug, p.Drug
+		}
+		return p.Drug + " (" + p.Dosage + ")", p.Drug
+	case careplan.KindObservation:
+		return p.Prompt, p.Prompt
+	default: // care
+		if p.Note != "" {
+			return p.Note, ""
+		}
+		return p.Instructions, ""
+	}
+}
+
+// animalPlanTodayStatus folds the occurrence status into the accordion
+// badge kind: "done", "skipped" (skipped or deferred) or "pending";
+// open occurrences due earlier today are "missed". appliedAt is the
+// "15:04" apply time of done rows.
+func animalPlanTodayStatus(it *careplan.PlanItem, now time.Time) (status, appliedAt string) {
+	switch it.Status {
+	case careplan.StatusApplied:
+		if it.Application != nil {
+			return "done", it.Application.AppliedAt.Format("15:04")
+		}
+		return "done", ""
+	case careplan.StatusSkipped, careplan.StatusDeferred:
+		return "skipped", ""
+	default:
+		if it.Occurrence.DueAt.Before(now) {
+			return "missed", ""
+		}
+		return "pending", ""
+	}
+}
+
+// collectAnimalPlanTodayItems projects the today-window occurrences of
+// ONE animal into accordion items: overridden occurrences stay out, and
+// occurrences whose drug/prompt already exists as a legacy treatment of
+// the same day are deduped away — the legacy row keeps showing that work
+// (new must not stack on top of old, bugs.md U26). Also returns the
+// distinct source ids per planning level for the protocol backlinks.
+func collectAnimalPlanTodayItems(plan *DayPlan, animal *models.Animal, legacy map[string]bool) (items []animalPlanTodayItem, planIDs, ruleIDs []uuid.UUID) {
 	for i := range plan.Items {
 		it := &plan.Items[i]
 		src := it.Occurrence.Source
-		if src == nil || it.Occurrence.AnimalID != animalID ||
-			src.ActionKind() != careplan.KindCare || it.Status == careplan.StatusOverridden {
+		if src == nil || it.Occurrence.AnimalID != animal.ID ||
+			it.Status == careplan.StatusOverridden ||
+			!animalPlanTodayKind(src.ActionKind()) {
 			continue
 		}
 		if it.Occurrence.DueAt.Before(plan.From) || it.Occurrence.DueAt.After(plan.To) {
 			continue
 		}
-		slots = append(slots, todaySlotView(plan, it, ""))
-	}
-	sort.SliceStable(slots, func(i, j int) bool {
-		if slots[i].DueAt.Equal(slots[j].DueAt) {
-			return order[slots[i].Slot] < order[slots[j].Slot]
+		entry := animalPlanTodayItem{due: it.Occurrence.DueAt, srcID: src.SourceID()}
+		entry.row.DueHM = it.Occurrence.DueAt.Format("15:04")
+		entry.row.Label, entry.ddedup = animalPlanTodayLabel(src.ActionKind(), src)
+		if entry.row.Label == "" {
+			entry.row.Label = DisplayName(src.Name())
 		}
-		return slots[i].DueAt.Before(slots[j].DueAt)
-	})
-	return seriesOf(slots, order)
+		entry.row.Status, entry.row.AppliedAt = animalPlanTodayStatus(it, plan.Now)
+		if entry.ddedup != "" && legacy[normalizeWorkLabel(entry.ddedup)] {
+			continue
+		}
+		if src.SourceType() == careplan.SourceAnimal {
+			planIDs = append(planIDs, uuid.FromStringOrNil(src.SourceID()))
+		} else {
+			entry.rule = true
+			ruleIDs = append(ruleIDs, uuid.FromStringOrNil(src.SourceID()))
+		}
+		items = append(items, entry)
+	}
+	return items, planIDs, ruleIDs
+}
+
+// animalPlanTodayRows folds today's plan occurrences of ONE animal
+// (medication + observation + care, TodayPlanWindow) into Treatment-tab
+// accordion rows, sorted by due time, with the protocol backlink of
+// their source (animal plans anchor #nav-plan on this page, rules open
+// the care-rules library — same convention as treatmentProtocolLinks).
+func animalPlanTodayRows(tx *pop.Connection, plan *DayPlan, animal *models.Animal) ([]AnimalPlanTodayRow, error) {
+	if plan == nil {
+		return nil, nil
+	}
+	items, planIDs, ruleIDs := collectAnimalPlanTodayItems(plan, animal, animalPlanLegacyDrugs(plan, animal))
+	if len(items) == 0 {
+		return nil, nil
+	}
+	planNames, err := planNamesByIDs(tx, planIDs)
+	if err != nil {
+		return nil, err
+	}
+	ruleNames, err := ruleNamesByIDs(tx, ruleIDs)
+	if err != nil {
+		return nil, err
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].due.Before(items[j].due) })
+	rows := make([]AnimalPlanTodayRow, 0, len(items))
+	for _, entry := range items {
+		if entry.rule {
+			entry.row.ProtocolRule = true
+			entry.row.ProtocolHref = "/care_rules"
+			entry.row.ProtocolName = ruleNames[entry.srcID]
+		} else {
+			entry.row.ProtocolHref = fmt.Sprintf("/animals/%d#nav-plan", animal.ID)
+			entry.row.ProtocolName = planNames[entry.srcID]
+		}
+		rows = append(rows, entry.row)
+	}
+	return rows, nil
+}
+
+// normalizeWorkLabel folds a drug/prompt label for the plan-vs-legacy
+// dedupe (case/whitespace-insensitive compare).
+func normalizeWorkLabel(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 // resolvePlanItemDetail handles the ?item=&due= deep link on the animal
