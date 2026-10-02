@@ -14,6 +14,12 @@
   <style>
     /* Keep navigation labels visible when navbar collapses into hamburger menu. */
     @media (max-width: 991.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R3-1b: at ≥xl the labels show — but a verbose locale (or a narrow
+       xl window) still overflows the bar and pushes the search box out
+       (horizontal page scroll). The script below marks the bar
+       .nav-compact whenever it actually overflows; here the compact
+       state hides the labels again (icons + tooltips). */
+    @media (min-width: 992px) { nav.navbar.nav-compact .nav-label { display: none !important; } }
   </style>
   </head>
   <body>
@@ -201,6 +207,34 @@
       </ul>
     </div>
   </nav>
+  <script>
+  (function () {
+    /* R3-1b: MEASURED progressive collapse — the static xl breakpoint
+       still overflows in verbose locales (labels + icons wider than the
+       window → search box clipped, horizontal page scroll). Whenever the
+       expanded bar does not fit, hide the labels (icons + tooltips);
+       probe again when the window grows. */
+    var navbar = document.querySelector('nav.navbar');
+    if (!navbar) { return; }
+    var lastW = 0;
+    function fits() { return navbar.scrollWidth <= navbar.clientWidth + 1; }
+    function apply() {
+      var w = window.innerWidth;
+      if (w < 992) { navbar.classList.remove('nav-compact'); lastW = w; return; }
+      if (!navbar.classList.contains('nav-compact')) {
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      } else if (w > lastW) {
+        navbar.classList.remove('nav-compact');
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      }
+      lastW = w;
+    }
+    window.addEventListener('resize', apply);
+    window.addEventListener('load', apply);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(apply); }
+    apply();
+  })();
+  </script>
 
     <div class="container">
       <%= partial("flash.html") %>
