@@ -214,7 +214,7 @@ func TestFillMedTiers(t *testing.T) {
 	}
 
 	v := &DayPlanView{}
-	v.fillMedTiers(groups)
+		v.fillMedTiers(groups, day.Add(10 * time.Hour))
 
 	// late tier: LateB (06:00) before Late (07:00); now: Now; later: Later;
 	// the all-done series renders no line. A line is the group narrowed to

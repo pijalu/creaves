@@ -176,7 +176,7 @@
                     data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
                     data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
                   <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
                       data-animal-id="<%= card.AnimalID %>"
@@ -268,7 +268,7 @@
                     data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
                     data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
                   <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
                       data-animal-id="<%= card.AnimalID %>"
@@ -360,7 +360,7 @@
                     data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
                     data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
                   <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
                       data-animal-id="<%= card.AnimalID %>"
@@ -448,6 +448,9 @@
                         <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
                           <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
                             <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
+                            <%# R4-7.6: the EXPECTED time travels with the chip, so
+                                "late" is readable as a duration and not as a bare word. %>
+                            <%= if (chip.DueShortDate != "") { %><span class="plan-chip-due"><%= chip.DueShortDate %> <%= chip.DueHM %></span><% } else if (chip.DueDayKey != "") { %><span class="plan-chip-due"><%= t(chip.DueDayKey) %> <%= chip.DueHM %></span><% } else { %><span class="plan-chip-due"><%= chip.DueHM %></span><% } %>
                           </a>
                           <span class="d-flex align-items-center">
                             <%= if (chip.Superseded) { %>
@@ -457,17 +460,25 @@
                                   section and the group dot carry the state.
                                   The text stays for assistive tech only. %>
                               <span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span>
-                              <%= if (chip.Applicable) { %>
-                                <button type="button" class="btn btn-outline-success btn-sm plan-feeding-one"
-                                  data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
-                                  data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
-                                  data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                                  data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                  title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                                  data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                                  data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                  title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                              <%# R4-7.5: the per-ANIMAL check only earns its place when the
+                                  cage holds several animals; with a single one the GROUP check
+                                  does the whole job. The invisible spacer keeps the row footprint —
+                                  and the column alignment — identical either way. %>
+                              <%= if (len(fcard.Chips) > 1) { %>
+                                <%= if (chip.Applicable) { %>
+                                  <button type="button" class="btn btn-outline-secondary btn-sm plan-feeding-one"
+                                    data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                                    data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                                    data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                                    data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                                    title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                                    data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                                    data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                                    title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                                <% } %>
+                              <% } else { %>
+                                <span class="plan-apply-space" aria-hidden="true"></span>
                               <% } %>
                             <% } %>
                             <%= if (chip.OuttakenToday) { %>
@@ -483,14 +494,19 @@
                           count stays visible at N=1. %>
                       <%= if (fcard.ApplicableCount > 0) { %>
                         <span class="position-relative d-inline-block">
-                          <button type="button" class="btn btn-success plan-feeding-apply"
+                          <button type="button" class="btn btn-outline-secondary plan-feeding-apply"
                             data-items="<%= fcard.ChipRefsJSON %>"
                             data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
                             aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
                             title="<%= t("care_plan.card.apply_group") %>">
                             <i class="fas fa-check"></i>
                           </button>
-                          <span class="badge badge-pill badge-light plan-apply-count"><%= fcard.ApplicableCount %></span>
+                          <%# R4-7.5: a lone animal needs no counter — the pill only
+                              says "1" — and a darker badge stays readable
+                              against the row background. %>
+                          <%= if (len(fcard.Chips) > 1) { %>
+                            <span class="badge badge-pill badge-secondary plan-apply-count"><%= fcard.ApplicableCount %></span>
+                          <% } %>
                         </span>
                       <% } %>
                     </td>
@@ -521,14 +537,14 @@
               <%# R4-4.2: corner overlay count — the button keeps a constant
                   width and the count stays visible at N=1. %>
               <span class="position-relative d-inline-block">
-                <button type="button" class="btn btn-success plan-cage-apply"
+                <button type="button" class="btn btn-outline-secondary plan-cage-apply"
                   data-items="<%= ccard.ChipRefsJSON %>"
                   data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
                   aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
                   title="<%= t("care_plan.card.apply_cage") %>">
                   <i class="fas fa-check"></i>
                 </button>
-                <span class="badge badge-pill badge-light plan-apply-count"><%= ccard.ApplicableCount %></span>
+                <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>
               </span>
             </td>
           </tr>

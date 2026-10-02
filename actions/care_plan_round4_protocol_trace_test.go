@@ -105,12 +105,27 @@ func TestAnimalProtocolTraceAllLocales(t *testing.T) {
 	// A non-admin sees the same list but never a rule edit link.
 	userHTML := animalShowHTMLAs(t, user, userURL, animalID, "en-US")
 	require.Contains(t, userHTML, `id="planTraceTable"`, "the trace renders for a regular user")
-	// Scope to the trace table: the treatment rows legitimately link to
-	// their source protocol for everyone.
-	traceTable := userHTML[strings.Index(userHTML, `id="planTraceTable"`):]
+	// Scope to the trace TABLE element: the day rows below it (and the
+	// protocol definitions table it now shares a card with) legitimately
+	// link to a source protocol for every user.
+	traceTable := traceTableHTML(userHTML)
 	require.Contains(t, traceTable, "TraceRule-"+f.marker, "the rule is still visible")
 	require.NotContains(t, traceTable, "/care_rules/"+rule.ID.String(),
 		"a non-admin never gets a dead link to a global rule")
+}
+
+// traceTableHTML slices exactly the traceability table out of a rendered
+// animal page — from its id up to its closing </table>.
+func traceTableHTML(page string) string {
+	i := strings.Index(page, `id="planTraceTable"`)
+	if i < 0 {
+		return ""
+	}
+	j := strings.Index(page[i:], "</table>")
+	if j < 0 {
+		return ""
+	}
+	return page[i : i+j]
 }
 
 // animalShowHTMLAs fetches one animal page with an explicit client and

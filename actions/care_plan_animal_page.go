@@ -256,6 +256,41 @@ type AnimalTreatmentDay struct {
 	Group     MedGroupView
 	Items     []CardView // R3-7: non-medication occurrences (kind-ordered)
 	OpenCount int        // open (not done/overridden) slots of the day
+	// MissingCount counts the occurrences of the day already past due
+	// with nothing recorded (status missing) INSIDE the last 24 h: those
+	// rows are no longer actionable, so they leave the list and the
+	// caregiver gets ONE pill with their number on the day's last row
+	// (R4-7). Older misses stay visible as history; the count stops at
+	// missingCountCap — past that the exact number stops being information.
+	MissingCount int
+}
+
+// missingCountCap bounds the "N missed" pill.
+const missingCountCap = 5
+
+// missingWindow bounds which misses the pill summarises: the last 24 h.
+// Anything older is history, not "what did I just miss".
+const missingWindow = 24 * time.Hour
+
+// dayItemsWithoutMisses splits the day's compact rows: a MISSED
+// occurrence (past due, nothing recorded) inside the last 24 h is not
+// actionable any more — the apply window has closed — so it leaves the
+// list and only raises MissingCount, which the template renders as ONE
+// pill on the last remaining row. Every other row (including older
+// misses, kept as history) stays.
+func dayItemsWithoutMisses(items []CardView, now time.Time, day *AnimalTreatmentDay) []CardView {
+	cutoff := now.Add(-missingWindow)
+	out := make([]CardView, 0, len(items))
+	for _, it := range items {
+		if it.Status == string(careplan.StatusMissing) && !it.DueAt.Before(cutoff) && !it.DueAt.After(now) {
+			if day.MissingCount < missingCountCap {
+				day.MissingCount++
+			}
+			continue
+		}
+		out = append(out, it)
+	}
+	return out
 }
 
 // animalTreatmentDays folds the engine plan into per-day medication
@@ -307,7 +342,7 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 	bucketOrder := map[string]int{"morning": 0, "noon": 1, "evening": 2}
 	out := make([]AnimalTreatmentDay, 0, len(keys))
 	for _, k := range keys {
-		out = append(out, animalTreatmentDayFor(k, today, dayTime[k], byDay[k], byDayItems[k], animal, bucketOrder))
+		out = append(out, animalTreatmentDayFor(k, today, plan.Now, dayTime[k], byDay[k], byDayItems[k], animal, bucketOrder))
 	}
 	return out
 }
@@ -316,7 +351,7 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 // sorted by due time then slot bucket, merged into the shared series;
 // the non-medication compact items ride along; OpenCount covers both
 // open slots and open items so the day badge reflects ALL remaining work.
-func animalTreatmentDayFor(key, today string, date time.Time, slots []MedSlotView, items []CardView, animal *models.Animal, bucketOrder map[string]int) AnimalTreatmentDay {
+func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSlotView, items []CardView, animal *models.Animal, bucketOrder map[string]int) AnimalTreatmentDay {
 	sort.SliceStable(slots, func(i, j int) bool {
 		if slots[i].DueAt.Equal(slots[j].DueAt) {
 			return bucketOrder[slots[i].Slot] < bucketOrder[slots[j].Slot]
@@ -336,6 +371,9 @@ func animalTreatmentDayFor(key, today string, date time.Time, slots []MedSlotVie
 		},
 		Items: items,
 	}
+	// R4-7: recent misses leave the list (they can no longer be applied);
+	// their number rides on the day's last row as one pill.
+	d.Items = dayItemsWithoutMisses(d.Items, now, &d)
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
 			d.OpenCount++

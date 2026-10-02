@@ -561,8 +561,14 @@ type FeedingChip struct {
 	SourceType string
 	SourceID   string
 	DueAt      time.Time
-	Applicable bool
-	AnimalLink string // set by the view-model layer (back-aware)
+	// R4-7.6: the EXPECTED time of the occurrence, date-aware — a chip
+	// that only says "late" hides whether it is 5 min or 5 h late, so the
+	// caregiver cannot judge urgency. Same parts as the day labels.
+	DueHM        string // "15:04"
+	DueDayKey    string // care_plan.time.yesterday / .tomorrow ("" when today)
+	DueShortDate string // "02/01" beyond one day
+	Applicable   bool
+	AnimalLink   string // set by the view-model layer (back-aware)
 	// Round-2 §6.2-3/§9 (additive): chip dedupe + supersession info. The
 	// chip is the animal's earliest CURRENT occurrence; a fully superseded
 	// animal keeps a dimmed info chip pointing at the next due time.
@@ -701,6 +707,7 @@ func feedingCardChip(card *FeedingCard, it *careplan.PlanItem, src careplan.Plan
 // work set and what replaced it (date-aware label parts, §6.2-5 — the
 // template localizes the day word).
 func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string, outtakenToday bool, now time.Time) FeedingChip {
+	due := DueLabelPartsOf(it.Occurrence.DueAt, now)
 	chip := FeedingChip{
 		AnimalID:      it.Occurrence.AnimalID,
 		Label:         label,
@@ -708,6 +715,9 @@ func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string,
 		SourceType:    string(src.SourceType()),
 		SourceID:      src.SourceID(),
 		DueAt:         it.Occurrence.DueAt,
+		DueHM:         due.TimeHM,
+		DueDayKey:     due.DayKey,
+		DueShortDate:  due.ShortDate,
 		Applicable:    it.Applicable,
 		OuttakenToday: outtakenToday,
 	}

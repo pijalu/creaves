@@ -406,7 +406,7 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 	// ordinary table rows — one `<animal> — <series> | [HH:MM]…` line per
 	// (animal × drug series), placed in its most urgent open slot's tier.
 	if kind == careplan.KindMedication {
-		v.fillMedTiers(v.buildMedGroups(plan, zone, false))
+		v.fillMedTiers(v.buildMedGroups(plan, zone, false), plan.Now)
 	}
 	v.Stats = statsOf(plan, zone, kind, plan.Now)
 
@@ -416,13 +416,24 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 // fillMedTiers distributes per-animal drug series over the three urgency
 // tiers (R3-5): a series lands in its most urgent OPEN slot's tier and
 // sorts by that slot's due time inside the tier (oldest first).
-func (v *DayPlanView) fillMedTiers(groups []MedGroupView) {
+func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	for _, g := range groups {
 		for _, series := range g.Series {
 			tier, first := seriesTier(series)
 			if tier < 0 {
 				continue // every slot terminal — nothing to work on
 			}
+			// R4-7.7: the work screen shows TODAY. A series with no open
+			// occurrence left for today disappears (in the evening the table
+			// is empty), and at most ONE later occurrence survives — the
+			// nearest — and only when it is nearer than the pending late
+			// entry, so a far-off tomorrow slot never competes with work
+			// that is due now. Everything else waits for its own day.
+			series = scopeSeriesToToday(series, now)
+			if len(series.Rows) == 0 || seriesTierOrMinus(series) < 0 {
+				continue
+			}
+			tier, first = seriesTier(series)
 			series.Tier = tier
 			series.FirstDueAt = first
 			// R4-1.2: the slot that placed the series in its tier is the
@@ -1238,6 +1249,94 @@ func chunkSeriesRows(g []MedSlotView) []MedSeriesRow {
 	}
 	return rows
 }
+
+// seriesTierOrMinus is seriesTier for a caller that only needs to know
+// whether the series still has open work (R4-7.7 filtering).
+func seriesTierOrMinus(series MedSeriesView) int {
+	tier, _ := seriesTier(series)
+	return tier
+}
+
+// scopeSeriesToToday is R4-7.7: the work screen shows the DAY's work, not
+// the schedule. Kept: every slot due up to the end of today (open or
+// terminal — the done ones are the day's record), plus AT MOST ONE later
+// open slot, the nearest, and only when it is nearer than the pending late
+// entry ("if the duration from now to the entry is shorter than the
+// current one"). Everything else waits for its own day, so the table is
+// empty in the evening. The surviving later slot is bucketed "tomorrow",
+// following morning/noon/evening like any other bucket.
+func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
+	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+	var urgentDue time.Time
+	haveUrgent := false
+	for _, row := range series.Rows {
+		for _, s := range row.Slots {
+			if s.Done || s.Overridden || s.DueAt.After(endOfDay) {
+				continue
+			}
+			if tier := tierOrder(careplan.PlanStatus(s.Status)); tier >= 0 && tier <= 2 {
+				if !haveUrgent || betterSeriesSlot(s, urgentDue) {
+					urgentDue, haveUrgent = s.DueAt, true
+				}
+			}
+		}
+	}
+	if !haveUrgent {
+		return MedSeriesView{Key: series.Key, Label: series.Label}
+	}
+
+	// The nearest later open slot, kept only when it beats the pending one.
+	var nextDue time.Time
+	haveNext := false
+	for _, row := range series.Rows {
+		for _, s := range row.Slots {
+			if s.Done || s.Overridden || !s.DueAt.After(endOfDay) {
+				continue
+			}
+			if tier := tierOrder(careplan.PlanStatus(s.Status)); tier < 0 || tier > 2 {
+				continue
+			}
+			if !haveNext || s.DueAt.Before(nextDue) {
+				nextDue, haveNext = s.DueAt, true
+			}
+		}
+	}
+	keepNext := haveNext && nextDue.Sub(now) < now.Sub(urgentDue)
+
+	var kept []MedSlotView
+	for _, row := range series.Rows {
+		for _, s := range row.Slots {
+			switch {
+			case s.DueAt.After(endOfDay):
+				if !keepNext || !s.DueAt.Equal(nextDue) {
+					continue
+				}
+				s.Slot = slotTomorrow
+			case tierOrder(careplan.PlanStatus(s.Status)) > 2 && !s.Done && !s.Overridden:
+				continue // not applicable and not terminal: nothing to do
+			}
+			kept = append(kept, s)
+		}
+	}
+	if len(kept) == 0 {
+		return MedSeriesView{Key: series.Key, Label: series.Label}
+	}
+	out := series
+	out.Rows = chunkSeriesRows(kept)
+	return out
+}
+
+// betterSeriesSlot reports whether slot `s` is more urgent than the slot
+// due at `have` (same helper semantics as betterTierSlot, kept separate so
+// the scoping pass does not depend on tier bookkeeping).
+func betterSeriesSlot(s MedSlotView, have time.Time) bool {
+	t := tierOrder(careplan.PlanStatus(s.Status))
+	return t <= 1 || (t == 2 && s.DueAt.Before(have))
+}
+
+// slotTomorrow is the bucket key of the "next day" group (R4-7.7); its
+// label is care_plan.slot.tomorrow.
+const slotTomorrow = "tomorrow"
 
 // animalItemDeepLink builds the dashboard eye URL (Dash-7, §8.2): the
 // animal's Treatment tab (sibling-table #nav-* convention) plus the

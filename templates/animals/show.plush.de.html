@@ -665,13 +665,6 @@
       <% let ct_id = ct_id + 1 %>
       <%}%>
     </div>
-    <%# R3-6: the togglable hour buttons of the engine series above are
-        driven by the shared toggle partial (apply/undo, dosage dialog). %>
-    <%= partial("care_plan/plan_med_toggle.plush.html") %>
-    <%# R4-2.2: ONE apply implementation shared with the day plan — the
-        animal tab's feeding/observation/care rows use the same modal and
-        the same in-place toggle, prefilled from their data-* attributes. %>
-    <%= partial("care_plan/apply_toggle.plush.html") %>
 
   </div>
 
@@ -681,116 +674,36 @@
           same per-day engine groups as the Treatment tab (all action
           kinds: togglable medication series + compact observation/care/
           weighing lines), NO animal labels (the identity is the page
-          context). The protocol definitions table moves below into a
-          collapsed "Details" collapsible. %>
+          context). The protocol definitions + traceability live in the
+          ONE collapsed "Details" card on top of the tab (R4-7.3). %>
       <div class="d-flex align-items-center mb-2">
         <h5 class="mb-0"><%= t("care_plan.animal_plans.title") %></h5>
         <button type="button" class="btn btn-primary ml-auto" data-toggle="modal" data-target="#carePlanModal" id="carePlanNewBtn"><%= t("care_plan.animal_plans.new") %></button>
       </div>
-      <%= if (len(animalTreatmentDays) > 0) { %>
-        <div id="animalCarePlan">
-          <%= for (day) in animalTreatmentDays { %>
-            <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
-              <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="acp-head-<%= day.DateKey %>">
-                <h5 class="mb-0 d-flex align-items-center">
-                  <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#acp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="acp-<%= day.DateKey %>">
-                    <%= day.Date.Format("02/01/2006") %>
-                  </button>
-                  <%= if (day.OpenCount > 0) { %>
-                    <span class="badge badge-pill badge-warning ml-2"><%= day.OpenCount %></span>
-                  <% } %>
-                </h5>
-              </div>
-              <div id="acp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="acp-head-<%= day.DateKey %>" data-parent="#animalCarePlan">
-                <div class="card-body py-2">
-                  <%= if (len(day.Group.Series) > 0) { %>
-                    <% let mg = day.Group %>
-                    <%= partial("care_plan/med_series.plush.html") %>
-                  <% } %>
-                  <%= for (item) in day.Items { %>
-                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1<%= if (item.Tier == 0 && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %> plan-item-late<% } %>">
-                      <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
-                      <span>
-                        <%= if (item.Detail != "") { %>
-                          <strong><%= item.Detail %></strong> <small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small>
-                        <% } else { %>
-                          <a href="<%= item.SourceLink %>"><%= item.SourceName %></a>
-                        <% } %>
-                      </span>
-                      <span class="ml-auto text-nowrap">
-                        <%= dueLabel(item.DueHM, item.DueDayKey, item.DueShortDate) %>
-                        <%= if (item.Status == "applied") { %>
-                          <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
-                        <% } else if (item.Status == "skipped") { %>
-                          <span class="badge badge-light"><%= t("care_plan.status.skipped") %></span>
-                        <% } else if (item.Status == "deferred") { %>
-                          <span class="badge badge-light"><%= t("care_plan.status.deferred") %></span>
-                        <% } else if (item.Tier == 0) { %>
-                          <%# R4-3.3: no redundant "Late" PILL — the row is
-                              RED (see .plan-item-late): the late state is
-                              carried by the row colour and by the apply
-                              affordance's own tier colour. The text stays
-                              for assistive technology. %>
-                          <span class="plan-item-late sr-only"><%= t("care_plan.status.late") %></span>
-                        <% } else { %>
-                          <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
-                        <% } %>
-                        <%# R4-2.2: the row is ACTIONABLE — one toggle pair
-                            per occurrence, bound by the shared apply
-                            partial (the same one visual language as the day
-                            plan). A feeding row opens the apply modal
-                            PREFILLED with its ration (plan-feeding-entry);
-                            other kinds apply instantly or open their own
-                            required inputs (observation answer, weighing
-                            weight). %>
-                        <span class="ml-2">
-                          <%= if (item.Applicable && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %>
-                            <button type="button" class="btn btn-success btn-sm plan-apply-btn<%= if (item.ActionKind == "feeding") { %> plan-feeding-entry<% } %>"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              data-kind="<%= item.ActionKind %>"
-                              data-animal-label="<%= item.AnimalLabel %>" data-detail="<%= item.Detail %>"
-                              data-source-name="<%= item.SourceName %>"
-                              title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                          <% } else if (item.Undoable) { %>
-                            <button type="button" class="btn btn-outline-secondary btn-sm plan-unapply-btn d-none"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                          <% } %>
-                        </span>
-                      </span>
-                    </div>
-                  <% } %>
-                </div>
-              </div>
-            </div>
-          <% } %>
-        </div>
-      <% } %>
-      <%# R4-6: applicable-protocol traceability — the sources that
-          ACTUALLY produced occurrences for this animal (its own plans AND
-          the global care rules that apply), collapsed by default. A rule
-          that produced nothing never appears, so the list is evidence, not
-          a catalogue. Global rules show an edit link to admins only. %>
-      <%= if (animalProtocolTrace != nil && len(animalProtocolTrace.Sources) > 0) { %>
-      <div class="card mt-3">
-        <div class="card-header py-2" id="planTraceHead">
-          <h5 class="mb-0">
-            <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planTrace" aria-expanded="false" aria-controls="planTrace">
-              <%= t("care_plan.protocol_trace.title") %>
-              <span class="badge badge-pill badge-secondary"><%= len(animalProtocolTrace.Sources) %></span>
-            </button>
-          </h5>
-          <small class="text-muted d-block"><%= t("care_plan.protocol_trace.intro") %></small>
-        </div>
-        <div class="collapse" id="planTrace" aria-labelledby="planTraceHead">
-          <div class="card-body py-2">
-            <table class="table table-sm table-hover table-bordered mb-0" id="planTraceTable">
+        <%# R4-7.3: ONE collapsed card on top of the tab, merging the
+            applicable-protocol traceability (R4-6) and the protocol
+            definitions (R3-7): two stacked collapsibles read as clutter
+            — the caregiver opens one thing to answer "why does this
+            animal get this?". The traceability list still shows only
+            the sources that ACTUALLY produced occurrences (animal
+            plans first, then the global rules that apply), so it is
+            evidence, not a catalogue. %>
+        <div class="card mt-2">
+          <div class="card-header py-2" id="planDetailsHead">
+            <h5 class="mb-0">
+              <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planDetails" aria-expanded="false" aria-controls="planDetails">
+                <%= t("care_plan.animal_plans.details") %>
+                <%= if (animalProtocolTrace != nil && len(animalProtocolTrace.Sources) > 0) { %>
+                  <span class="badge badge-pill badge-secondary ml-1"><%= len(animalProtocolTrace.Sources) %></span>
+                <% } %>
+              </button>
+            </h5>
+            <small class="text-muted d-block"><%= t("care_plan.protocol_trace.intro") %></small>
+          </div>
+          <div id="planDetails" class="collapse" aria-labelledby="planDetailsHead">
+            <div class="card-body py-2">
+              <%= if (animalProtocolTrace != nil && len(animalProtocolTrace.Sources) > 0) { %>
+            <table class="table table-sm table-hover table-bordered mb-2" id="planTraceTable">
               <tbody>
                 <%= for (src) in animalProtocolTrace.Sources { %>
                   <tr class="plan-trace-<%= src.SourceType %>">
@@ -803,7 +716,7 @@
                       <% } else { %>
                         <%= src.Name %>
                       <% } %>
-                      <% if (src.Replaces) { %>
+                      <%= if (src.Replaces) { %>
                         <span class="badge badge-info ml-1" title="<%= t("care_plan.protocol_trace.replaces_kind") %>">⤵</span>
                       <% } %>
                     </td>
@@ -814,21 +727,7 @@
                 <% } %>
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-      <% } %>
-      <%# R3-7: protocol definitions — collapsed by default. %>
-      <div class="card mt-3">
-        <div class="card-header py-2" id="planDetailsHead">
-          <h5 class="mb-0">
-            <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planDetails" aria-expanded="false" aria-controls="planDetails">
-              <%= t("care_plan.animal_plans.details") %>
-            </button>
-          </h5>
-        </div>
-        <div id="planDetails" class="collapse" aria-labelledby="planDetailsHead">
-          <div class="card-body py-2">
+              <% } %>
       <table class="table table-hover table-bordered" id="careAnimalPlansTable"
              data-animal-id="<%= animal.ID %>"
              data-url="/animals/<%= animal.ID %>/care_animal_plans">
@@ -873,11 +772,113 @@
           <% } %>
         </tbody>
       </table>
+            </div>
           </div>
         </div>
-      </div>
+
+      <%= if (len(animalTreatmentDays) > 0) { %>
+        <div id="animalCarePlan">
+          <%= for (day) in animalTreatmentDays { %>
+            <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
+              <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="acp-head-<%= day.DateKey %>">
+                <h5 class="mb-0 d-flex align-items-center">
+                  <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#acp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="acp-<%= day.DateKey %>">
+                    <%= day.Date.Format("02/01/2006") %>
+                  </button>
+                  <%= if (day.OpenCount > 0) { %>
+                    <span class="badge badge-pill badge-warning ml-2"><%= day.OpenCount %></span>
+                  <% } %>
+                </h5>
+              </div>
+              <div id="acp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="acp-head-<%= day.DateKey %>" data-parent="#animalCarePlan">
+                <div class="card-body py-2">
+                  <%= if (len(day.Group.Series) > 0) { %>
+                    <% let mg = day.Group %>
+                    <%= partial("care_plan/med_series.plush.html") %>
+                  <% } %>
+                  <%= for (i, item) in day.Items { %>
+                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1<%= if (item.Tier == 0 && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %> plan-item-late<% } %>">
+                      <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
+                      <span>
+                        <%= if (item.Detail != "") { %>
+                          <strong><%= item.Detail %></strong> <small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small>
+                        <% } else { %>
+                          <a href="<%= item.SourceLink %>"><%= item.SourceName %></a>
+                        <% } %>
+                      <%# R4-7.2: the occurrences of the day already missed (nothing
+                          recorded, apply window closed) leave the list; their number
+                          rides here, on the last row of the day, as ONE pill — the
+                          caregiver learns work was missed without a wall of dead
+                          rows. %>
+                      <%= if (day.MissingCount > 0 && i == len(day.Items)-1) { %>
+                        <span class="badge badge-pill badge-danger ml-1" title="<%= t("care_plan.animal_plans.missing_hint") %>"><%= t("care_plan.animal_plans.missing", day.MissingCount) %></span>
+                      <% } %>
+                      </span>
+                      <span class="ml-auto text-nowrap">
+                        <%= dueLabel(item.DueHM, item.DueDayKey, item.DueShortDate) %>
+                        <%= if (item.Status == "applied") { %>
+                          <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+                        <% } else if (item.Status == "skipped") { %>
+                          <span class="badge badge-light"><%= t("care_plan.status.skipped") %></span>
+                        <% } else if (item.Status == "deferred") { %>
+                          <span class="badge badge-light"><%= t("care_plan.status.deferred") %></span>
+                        <% } else if (item.Tier == 0) { %>
+                          <%# R4-3.3: no redundant "Late" PILL — the row is
+                              RED (see .plan-item-late): the late state is
+                              carried by the row colour and by the apply
+                              affordance's own tier colour. The text stays
+                              for assistive technology. %>
+                          <span class="plan-item-late sr-only"><%= t("care_plan.status.late") %></span>
+                        <% } else { %>
+                          <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
+                        <% } %>
+                        <%# R4-2.2: the row is ACTIONABLE — one toggle pair
+                            per occurrence, bound by the shared apply
+                            partial (the same one visual language as the day
+                            plan). A feeding row opens the apply modal
+                            PREFILLED with its ration (plan-feeding-entry);
+                            other kinds apply instantly or open their own
+                            required inputs (observation answer, weighing
+                            weight). %>
+                        <span class="ml-2">
+                          <%= if (item.Applicable && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %>
+                            <button type="button" class="btn btn-outline-secondary btn-sm plan-apply-btn<%= if (item.ActionKind == "feeding") { %> plan-feeding-entry<% } %>"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              data-kind="<%= item.ActionKind %>"
+                              data-animal-label="<%= item.AnimalLabel %>" data-detail="<%= item.Detail %>"
+                              data-source-name="<%= item.SourceName %>"
+                              title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                          <% } else if (item.Undoable) { %>
+                            <button type="button" class="btn btn-outline-secondary btn-sm plan-unapply-btn d-none"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                          <% } %>
+                        </span>
+                      </span>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
     </div>
   </div>
+
+  <%# R4-7.1: the shared toggle/apply partials render at PAGE LEVEL (here,
+      next to the plan editor), never inside a tab pane: a modal inside a
+      hidden pane shows only Bootstrap's backdrop — the screen greys out
+      with nothing clickable. Delegated `document` listeners make the DOM
+      position irrelevant. %>
+  <%= partial("care_plan/plan_med_toggle.plush.html") %>
+  <%= partial("care_plan/apply_toggle.plush.html") %>
 
   <%= partial("care_plan/editor.html") %>
 

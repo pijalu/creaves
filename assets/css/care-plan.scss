@@ -31,6 +31,26 @@
   pointer-events: none;
 }
 
+// R4-7.5: the per-ANIMAL check disappears when the cage holds a single
+// animal (the group check does the job); this spacer keeps the row
+// footprint — and with it the column alignment — byte for byte the same,
+// so the table never shifts when a cage gains or loses a co-diner.
+.plan-apply-space {
+  display: inline-block;
+  width: 2.1rem;   // one btn-sm check
+  height: 1.9rem;
+  vertical-align: middle;
+}
+
+// R4-7.6: the expected time of a feeding occurrence travels with the chip
+// so "late" reads as a duration, not a bare word.
+.plan-chip-due {
+  color: #6c757d;
+  font-size: 0.85em;
+  margin-left: 0.35rem;
+  white-space: nowrap;
+}
+
 // R4-4.3: the feeding urgency sections are anchor targets too — offset the
 // scroll so a jumped section is not hidden behind the fixed topbar.
 #feed-tier-0,
@@ -102,4 +122,7 @@
 .plan-item-late {
   border-left: 3px solid #dc3545 !important;
   background-color: #fdf2f3;
+  // R4-7.4: the row's first child (the kind pill) must not touch the red
+  // border — a glued pill reads as part of the border, not as a label.
+  padding-left: 0.65rem;
 }

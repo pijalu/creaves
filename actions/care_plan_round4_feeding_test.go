@@ -142,15 +142,84 @@ func TestFeedingSectionRender(t *testing.T) {
 		require.Contains(t, out, "plan-dot-late", f, "one group dot, most urgent chip")
 		require.Equal(t, 1, strings.Count(out, `class="plan-dot plan-dot-`), f,
 			"exactly ONE dot per cage × diet card")
-		require.Contains(t, out, `class="badge badge-pill badge-light plan-apply-count">2<`, f,
-			"count is a corner overlay badge, rendered at N=2")
+		require.Contains(t, out, `class="badge badge-pill badge-secondary plan-apply-count">2<`, f,
+			"count is a corner overlay badge, rendered at N=2 (darker badge: R4-7.5)")
 		require.Contains(t, out, `class="sr-only"`, f, "status stays available to assistive tech")
 		require.Contains(t, out, `aria-label="care_plan.card.apply_group (2)"`, f, "count in the a11y label")
+		require.Contains(t, out, `<span class="plan-chip-due">08:00</span>`, f,
+			"R4-7.6: the chip shows its expected time")
+		require.Contains(t, out, "plan-feeding-one", f,
+			"R4-7.5: with several animals the per-animal check stays")
+		require.NotContains(t, out, "plan-apply-space", f,
+			"no spacer needed when the per-animal check renders")
+
+		// R4-7.11: no apply button wears the "done" green.
+		require.NotContains(t, buttonHTML(out, "plan-feeding-apply"), "btn-success", f,
+			"a green apply button reads as 'already done'")
+		require.NotContains(t, buttonHTML(out, "plan-feeding-one"), "btn-success", f,
+			"a green per-animal check reads as 'already done'")
 
 		// The count badge must NOT be a child of the apply button.
 		btn := buttonHTML(out, "plan-feeding-apply")
 		require.NotEmpty(t, btn, f)
 		require.NotContains(t, btn, "badge", f, "no count pill inside the button (R4-4.2)")
+	}
+}
+
+// TestFeedingSingleAnimalGroupOnly pins R4-7.5: a cage with ONE animal shows
+// only the group check — no per-animal check, no counter pill — and the row
+// keeps its footprint through the invisible spacer, so the table's columns
+// stay aligned whether or not the per-animal check is present.
+func TestFeedingSingleAnimalGroupOnly(t *testing.T) {
+	plan := testPlan()
+	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
+	plan.Now = now
+	feed := testSource(careplan.KindFeeding, "feed-1", "Feed", map[string]interface{}{"food": "grenouilles"})
+
+	a := testItem(feed, 1, careplan.StatusDue)
+	a.Occurrence.DueAt = time.Date(2026, 9, 28, 10, 15, 0, 0, time.Local)
+	plan.Items = []careplan.PlanItem{a}
+
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	require.Len(t, v.Feedings, 1)
+	require.Len(t, v.FeedTiers[1][0].Chips, 1, "the lone due occurrence sits in the 'now' tier")
+
+	ctx := plush.NewContextWith(map[string]interface{}{
+		"view":     v,
+		"t":        func(s string) string { return s },
+		"tbase":    func(a, b, c string) string { return c },
+		"dueLabel": func(a, b, c string) string { return a },
+		"partial":  func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
+		"partialIf": func(name string, ctx map[string]interface{}) (string, error) {
+			return "", nil
+		},
+	})
+	forks := []string{
+		"../templates/care_plan/index.plush.html",
+		"../templates/care_plan/index.plush.de.html",
+		"../templates/care_plan/index.plush.fr.html",
+		"../templates/care_plan/index.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		out, err := plush.Render(string(raw), ctx)
+		require.NoError(t, err, f)
+
+		// Scope to the feeding table: the page's batch JS legitimately
+		// names the per-animal class it flips.
+		tier := out[strings.Index(out, `id="feed-tier-`):]
+		tier = tier[:strings.Index(tier, "</table>")]
+
+		require.Contains(t, tier, "plan-feeding-apply", f, "the GROUP check stays")
+		require.NotContains(t, tier, "plan-feeding-one", f,
+			"a lone animal has no per-animal check (R4-7.5)")
+		require.Contains(t, tier, `<span class="plan-apply-space" aria-hidden="true"></span>`, f,
+			"the spacer keeps the row footprint — and the columns — aligned")
+		require.NotContains(t, tier, "plan-apply-count", f,
+			"a counter of 1 is noise, not information (R4-7.5)")
+		require.Contains(t, out, `aria-label="care_plan.card.apply_group (1)"`, f,
+			"the count still reaches assistive tech through the aria-label")
 	}
 }
 
