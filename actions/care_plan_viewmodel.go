@@ -107,6 +107,15 @@ type FeedingGroupView struct {
 	Chips           []FeedingChip
 	ApplicableCount int    // chips still applicable (apply-group button)
 	ChipRefsJSON    string // JSON item refs of the applicable chips (data-items)
+	// R4-4.3: the group's urgency tier — the most urgent NON-superseded
+	// chip's tier, the same late → now → later language the medication
+	// sections use. -1 when the group has no open work.
+	Tier             int
+	TierKey          string // care_plan.tier.<key> i18n key ("" when untiered)
+	TierCount        int    // groups in this tier (the tier section badge)
+	TierCap          string // capped TierCount
+	GroupStatus      string // R4-4.4: the GROUP status (most urgent chip)
+	GroupStatusClass string // plan-dot-<status> — ONE dot per cage × diet
 }
 
 // MedSlotView is one medication occurrence inside a per-animal medication
@@ -268,6 +277,14 @@ type DayPlanView struct {
 	// section badge and the strip can never disagree.
 	MedTierOpen    [3]int
 	MedTierOpenCap [3]string
+	// R4-4.3: FeedTiers[i] = the feeding cards of urgency tier i (0 late
+	// · 1 now · 2 later), the same visual language as the medication
+	// tiers — feeding carries most of the workload, so urgency is the
+	// FIRST level, not a per-chip afterthought. v.Feedings stays the flat
+	// filtered set (nav + filters).
+	FeedTiers     [3][]FeedingGroupView
+	FeedTierCount [3]int
+	FeedTierCap   [3]string
 }
 
 // FilterStats is the CP4/D6 summary of one rendered view, counted in
@@ -378,6 +395,9 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 	v.History = filterCards(history, zone, kind)
 	v.Feedings = filterFeedings(feeds, zone, kind)
 	v.Cares = filterCares(cares, zone, kind)
+	// R4-4.3: feeding cards are grouped into the same late → now → later
+	// tiers as every other kind; R4-4.4: each card carries ONE group dot.
+	fillFeedTiers(v)
 
 	// Stage 4: tiers (late → now → later, due-time sorted) + the summary
 	// strip (occurrences, density-independent).
@@ -509,6 +529,56 @@ func seriesTierOpenCount(series MedSeriesView, tier int) int {
 		}
 	}
 	return n
+}
+
+// fillFeedTiers distributes the filtered feeding cards over the three
+// urgency tiers (R4-4.3) and stamps each card with its GROUP status —
+// the most urgent non-superseded chip (R4-4.4). Cards with no open work
+// keep tier -1 and stay out of the tier sections.
+func fillFeedTiers(v *DayPlanView) {
+	keys := []string{TierLate, TierNow, TierLater}
+	for _, f := range v.Feedings {
+		tier, status := feedingGroupTier(f)
+		f.Tier = tier
+		f.GroupStatus = status
+		f.GroupStatusClass = "plan-dot-" + status
+		if tier < 0 || tier > 2 {
+			continue
+		}
+		f.TierKey = keys[tier]
+		v.FeedTiers[tier] = append(v.FeedTiers[tier], f)
+	}
+	for i := range v.FeedTiers {
+		v.FeedTierCount[i] = len(v.FeedTiers[i])
+		v.FeedTierCap[i] = BadgeCap(v.FeedTierCount[i])
+	}
+}
+
+// feedingGroupTier reports the group's urgency tier and the status of its
+// most urgent non-superseded chip (R4-4.4: ONE dot per cage × diet —
+// identical cage × diet always reads identical). Superseded chips are
+// info, not work, so they never set the group state. -1 / "" when every
+// chip is superseded or terminal.
+func feedingGroupTier(f FeedingGroupView) (int, string) {
+	best := 3
+	status := ""
+	for _, c := range f.Chips {
+		if c.Superseded {
+			continue
+		}
+		t := tierOrder(careplan.PlanStatus(c.Status))
+		if t < 0 || t > 2 {
+			continue
+		}
+		if t < best || (t == best && status == "") {
+			best = t
+			status = c.Status
+		}
+	}
+	if best > 2 {
+		return -1, ""
+	}
+	return best, status
 }
 
 // fillTiers distributes the filtered open rows over the three urgency

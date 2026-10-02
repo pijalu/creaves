@@ -21,3 +21,20 @@
 .plan-med-future {
   opacity: 0.55;
 }
+// R4-4.2: the apply-group count is a CORNER OVERLAY on the button, never a
+// button child — the button keeps a constant width as the count changes
+// (and the count stays visible at N=1 instead of vanishing).
+.plan-apply-count {
+  position: absolute;
+  top: -0.6em;
+  right: -0.6em;
+  pointer-events: none;
+}
+
+// R4-4.3: the feeding urgency sections are anchor targets too — offset the
+// scroll so a jumped section is not hidden behind the fixed topbar.
+#feed-tier-0,
+#feed-tier-1,
+#feed-tier-2 {
+  scroll-margin-top: 60px;
+}
