@@ -245,3 +245,59 @@ func TestMedSeriesLayoutAndInfoFirst(t *testing.T) {
 		require.NotContains(t, out, "med-series-divider", f, "the unlabelled rule is gone")
 	}
 }
+
+// TestMedSeriesNoRedundantLatePill (R4-3.3, all four locales): the series
+// line drops the redundant "Late" text badge — the tier colour of the slot
+// button now carries the status — while the terminal glyphs (skipped ⊘,
+// deferred ⏸) survive, because a terminal state is not colour-encodable.
+func TestMedSeriesNoRedundantLatePill(t *testing.T) {
+	now := time.Date(2026, 10, 2, 17, 39, 0, 0, time.Local)
+	plan := testPlan()
+	plan.Now = now
+	at := func(d, h int) time.Time { return time.Date(2026, 10, d, h, 0, 0, 0, time.Local) }
+	med := testSource(careplan.KindMedication, "med-1", "Med", map[string]interface{}{"drug": "Citramox", "dosage": "0.5 ml"})
+
+	late := testItem(med, 1, careplan.StatusLate)
+	late.Occurrence.DueAt = at(1, 12)
+	late.Applicable = false
+	skip := testItem(med, 2, careplan.StatusSkipped)
+	skip.Occurrence.DueAt = at(2, 9)
+	defer_ := testItem(med, 3, careplan.StatusDeferred)
+	defer_.Occurrence.DueAt = at(2, 20)
+	plan.Items = []careplan.PlanItem{late, skip, defer_}
+
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	meds := v.buildMedGroups(plan, "", false)
+	require.Len(t, meds, 3, "one group per animal fixture")
+
+	// Render every group: the late slot, the skipped slot and the deferred
+	// slot each live on their own line, so each fork is checked against all
+	// three.
+	outs := map[string]string{}
+	forks := []string{
+		"../templates/care_plan/_med_series.plush.html",
+		"../templates/care_plan/_med_series.plush.de.html",
+		"../templates/care_plan/_med_series.plush.fr.html",
+		"../templates/care_plan/_med_series.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		for _, mg := range meds {
+			out, err := plush.Render(string(raw), plush.NewContextWith(map[string]interface{}{
+				"mg": mg,
+				"t":  func(s string) string { return s },
+			}))
+			require.NoError(t, err, f)
+			outs[f] += out
+		}
+
+		out := outs[f]
+		require.NotContains(t, out, "care_plan.status.late", f,
+			"no redundant Late pill: the slot button colour carries the status")
+		require.NotContains(t, out, `badge-warning`, f, "no status-coloured pill in the series line")
+		require.Contains(t, out, "⊘ 09:00", f, "the skipped terminal glyph survives")
+		require.Contains(t, out, "⏸ 20:00", f, "the deferred terminal glyph survives")
+		require.Contains(t, out, "btn-danger", f, "the late slot is red")
+	}
+}
