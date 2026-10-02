@@ -360,6 +360,20 @@ func findItemByAnimal(items []map[string]interface{}, animalID int, kind string)
 	return nil
 }
 
+// findItemFrom is findItemByAnimal restricted to one rule — see
+// mustItemFrom for why (animal, kind) is not a unique key in the shared
+// test database. Returns nil when the rule produced nothing for that animal.
+func findItemFrom(items []map[string]interface{}, animalID int, kind string, sourceID uuid.UUID) map[string]interface{} {
+	for _, it := range items {
+		if it["source_id"] == sourceID.String() {
+			if r := findItemByAnimal([]map[string]interface{}{it}, animalID, kind); r != nil {
+				return r
+			}
+		}
+	}
+	return nil
+}
+
 func itemRef(it map[string]interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"source_type": it["source_type"],
@@ -385,7 +399,7 @@ func TestCarePlanDayPlanApplyIdempotent(t *testing.T) {
 	code, body := planGetJSON(t, client, baseURL, "/care_plan")
 	require.Equal(t, http.StatusOK, code)
 	items := planItemsOf(t, body)
-	it := findItemByAnimal(items, f.animalIDs[0], "feeding")
+	it := findItemFrom(items, f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it, "day plan must render the rule occurrence")
 	require.Equal(t, "due", it["status"])
 	require.Equal(t, true, it["applicable"])
@@ -417,7 +431,7 @@ func TestCarePlanDayPlanApplyIdempotent(t *testing.T) {
 	// re-render: applied
 	_, body = planGetJSON(t, client, baseURL, "/care_plan")
 	items = planItemsOf(t, body)
-	it = findItemByAnimal(items, f.animalIDs[0], "feeding")
+	it = findItemFrom(items, f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it)
 	require.Equal(t, "applied", it["status"])
 }
@@ -435,9 +449,9 @@ func TestCarePlanErrorContractDetail(t *testing.T) {
 
 	// --- 422: skip without note keeps the §10-CP4 reason -------------------
 	due := itemDueSoon(now)
-	f.feedRule(t, models.DB, due)
+	rule := f.feedRule(t, models.DB, due)
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it)
 
 	req := itemRef(it)
@@ -538,9 +552,14 @@ func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
 	items := planItemsOf(t, body)
-	// two occurrences per animal; pick the first (due1)
+	// Two occurrences of THIS rule for the animal (due1, due2). Scoping by
+	// source_id matters: a rule with no matcher applies to every animal, so
+	// an unrelated leftover rule would supply first/second instead (TEST-3).
 	var first, second map[string]interface{}
 	for _, it := range items {
+		if it["source_id"] != rule.ID.String() {
+			continue
+		}
 		if int(it["animal_id"].(float64)) != f.animalIDs[0] {
 			continue
 		}
@@ -607,7 +626,7 @@ func TestCarePlanUnapplyAnyUserAndDestroyHook(t *testing.T) {
 	rule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 
 	_, body := planGetJSON(t, admin, adminURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it)
 	req := itemRef(it)
 	code, raw := planDoJSON(t, admin, adminURL, "POST", "/care_plan/apply", token, req)
@@ -651,7 +670,7 @@ func TestCarePlanDestroyHooksMarkFulfillmentDeleted(t *testing.T) {
 	// care fulfillment hook
 	rule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 	_, body := planGetJSON(t, admin, baseURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it)
 	code, raw := planDoJSON(t, admin, baseURL, "POST", "/care_plan/apply", token, itemRef(it))
 	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
@@ -675,9 +694,8 @@ func TestCarePlanDestroyHooksMarkFulfillmentDeleted(t *testing.T) {
 	med := ruleWithoutMatcher(t, models.DB, "RMED-"+f.marker, "medication",
 		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrug-" + f.marker, "dosage": "0.5 ml"}),
 		careScheduleJSON(t, due))
-	_ = med
 	_, body = planGetJSON(t, admin, baseURL, "/care_plan")
-	it = findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "medication")
+	it = findItemFrom(planItemsOf(t, body), f.animalIDs[0], "medication", med.ID)
 	require.NotNil(t, it)
 	code, raw = planDoJSON(t, admin, baseURL, "POST", "/care_plan/apply", token, itemRef(it))
 	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
@@ -709,6 +727,34 @@ func mustItem(t *testing.T, items []map[string]interface{}, animalID int, kind s
 	return nil
 }
 
+// mustItemFrom is mustItem restricted to the item ONE rule produced.
+//
+// mustItem matches on (animal, kind) only, which is not unique: a care rule
+// with no matcher applies to EVERY animal, so any other rule of the same
+// kind in the shared test database can come first in the plan. The test then
+// posts that item's ref (source_id + due_at) while believing it exercises its
+// own rule. Measured on creaves_test: three matcher-less feeding rules left
+// behind by killed runs (bugs.md TEST-3) made seven care-plan tests fail at
+// once — three of them by looking up a due_at no row ever had.
+//
+// Tests that create their own rule must therefore select through this helper.
+// mustItem stays for assertions that genuinely mean "any item of this kind"
+// (e.g. a global default rule nobody in the test created).
+func mustItemFrom(t *testing.T, items []map[string]interface{}, animalID int, kind string, sourceID uuid.UUID) map[string]interface{} {
+	t.Helper()
+	mine := make([]map[string]interface{}, 0, len(items))
+	for _, it := range items {
+		if it["source_id"] == sourceID.String() {
+			mine = append(mine, it)
+		}
+	}
+	if len(mine) == 0 {
+		t.Fatalf("no %s item for animal %d from rule %s in plan (%d items, none from that rule)",
+			kind, animalID, sourceID, len(items))
+	}
+	return mustItem(t, mine, animalID, kind)
+}
+
 func itemDueAt(t *testing.T, item map[string]interface{}) time.Time {
 	t.Helper()
 	ts, err := time.Parse(time.RFC3339, item["due_at"].(string))
@@ -730,8 +776,8 @@ func TestCarePlanBatchScopedToSingleCage(t *testing.T) {
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
 	items := planItemsOf(t, body)
-	i1 := mustItem(t, items, f.animalIDs[0], "feeding")
-	i3 := mustItem(t, items, a3, "feeding")
+	i1 := mustItemFrom(t, items, f.animalIDs[0], "feeding", rule.ID)
+	i3 := mustItemFrom(t, items, a3, "feeding", rule.ID)
 
 	mkRef := func(it map[string]interface{}) map[string]interface{} {
 		return map[string]interface{}{
@@ -742,7 +788,7 @@ func TestCarePlanBatchScopedToSingleCage(t *testing.T) {
 
 	// same cage → both applied
 	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, map[string]interface{}{
-		"items": []map[string]interface{}{mkRef(i1), mkRef(mustItem(t, items, f.animalIDs[1], "feeding"))},
+		"items": []map[string]interface{}{mkRef(i1), mkRef(mustItemFrom(t, items, f.animalIDs[1], "feeding", rule.ID))},
 	})
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
 	var out struct {
@@ -753,7 +799,7 @@ func TestCarePlanBatchScopedToSingleCage(t *testing.T) {
 
 	// cross-cage same source → the foreign-cage item errors, no cross apply
 	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, map[string]interface{}{
-		"items": []map[string]interface{}{mkRef(mustItem(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), f.animalIDs[0], "feeding")), mkRef(i3)},
+		"items": []map[string]interface{}{mkRef(mustItemFrom(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), f.animalIDs[0], "feeding", rule.ID)), mkRef(i3)},
 	})
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
 	var out2 struct {
@@ -767,12 +813,12 @@ func TestCarePlanBatchScopedToSingleCage(t *testing.T) {
 	// cross-source batch is refused outright
 	rule2 := f.feedRule(t, models.DB, due.Add(time.Minute))
 	_, body = planGetJSON(t, client, baseURL, "/care_plan")
-	i2 := mustItem(t, planItemsOf(t, body), f.animalIDs[1], "feeding")
+	i2 := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[1], "feeding", rule2.ID)
 	_ = i2
 	code, _ = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, map[string]interface{}{
 		"items": []map[string]interface{}{
-			mkRef(mustItem(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), a3, "feeding")),
-			{"source_type": "rule", "source_id": rule2.ID.String(), "animal_id": f.animalIDs[0], "due_at": itemDueAt(t, mustItem(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), f.animalIDs[0], "feeding"))},
+			mkRef(mustItemFrom(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), a3, "feeding", rule.ID)),
+			{"source_type": "rule", "source_id": rule2.ID.String(), "animal_id": f.animalIDs[0], "due_at": itemDueAt(t, mustItemFrom(t, planItemsOf(t, func() map[string]interface{} { _, b := planGetJSON(t, client, baseURL, "/care_plan"); return b }()), f.animalIDs[0], "feeding", rule2.ID))},
 		},
 	})
 	require.Equal(t, http.StatusUnprocessableEntity, code)
@@ -798,7 +844,7 @@ func TestCarePlanWeighingRequiresWeight(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "weighing")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "weighing", rule.ID)
 	ref := map[string]interface{}{
 		"source_type": "rule", "source_id": rule.ID.String(),
 		"animal_id": f.animalIDs[0], "due_at": itemDueAt(t, item),
@@ -953,8 +999,8 @@ func TestCareAnimalPlansCaretakerCRUD(t *testing.T) {
 	rule := f.feedRule(t, models.DB, due)
 	_, dayBody := planGetJSON(t, reg, regURL, "/care_plan")
 	items := planItemsOf(t, dayBody)
-	_ = mustItem(t, items, animalID, "care")
-	feedItem := mustItem(t, items, animalID, "feeding")
+	_ = mustItemFrom(t, items, animalID, "care", plan.ID)
+	feedItem := mustItemFrom(t, items, animalID, "feeding", rule.ID)
 	require.NotEqual(t, "overridden", feedItem["status"])
 
 	// update (rename)
@@ -963,7 +1009,6 @@ func TestCareAnimalPlansCaretakerCRUD(t *testing.T) {
 		"action_payload": json.RawMessage(payload), "schedule": json.RawMessage(sched),
 	})
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
-	_ = rule
 
 	// destroy
 	code, _ = planDoJSON(t, reg, regURL, "DELETE", fmt.Sprintf("/animals/%d/care_animal_plans/%s", animalID, plan.ID), regToken, nil)
@@ -990,7 +1035,7 @@ func TestCareObservationAlertLoopAndFollowUp(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "observation")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "observation", rule.ID)
 
 	// alert outcome: answer == alert_on ("no") → warning care + follow-up
 	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, map[string]interface{}{
@@ -1054,7 +1099,7 @@ func TestCareMedicationApplyCreatesTreatment(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "medication")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "medication", rule.ID)
 	dueAt := itemDueAt(t, item)
 
 	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, map[string]interface{}{
@@ -1252,7 +1297,7 @@ func TestCareMedicationDosageRequiredFlow(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "medication")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "medication", rule.ID)
 
 	// 1st attempt, no dosage → 422 dosage_required with §10-L2 weight fields
 	req := itemRef(item)
@@ -1319,7 +1364,7 @@ func TestCareMedicationManualDosageSameBucket(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "medication")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "medication", rule.ID)
 
 	// Pre-existing same-bucket row, not yet done, carrying the plan dosage —
 	// the shape converted treatment series produce.
@@ -1391,7 +1436,7 @@ func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
 	items := planItemsOf(t, body)
-	it1 := mustItem(t, items, f.animalIDs[0], "medication")
+	it1 := mustItemFrom(t, items, f.animalIDs[0], "medication", rule.ID)
 
 	// single apply: no weight anywhere → 422, no weight fields
 	code, raw := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, itemRef(it1))
@@ -1403,7 +1448,7 @@ func TestCareMedicationDosageRequiredNoWeight(t *testing.T) {
 	require.Empty(t, errBody["last_weight"], "no weight on record → field empty")
 
 	// batch path: per-item dosage_required, then per-item manual resubmit
-	it2 := mustItem(t, items, f.animalIDs[1], "medication")
+	it2 := mustItemFrom(t, items, f.animalIDs[1], "medication", rule.ID)
 	batch := map[string]interface{}{"items": []map[string]interface{}{itemRef(it1), itemRef(it2)}}
 	code, raw = planDoJSON(t, client, baseURL, "POST", "/care_plan/apply_batch", token, batch)
 	require.Equal(t, http.StatusOK, code, "body: %s", raw)
@@ -1457,12 +1502,12 @@ func TestCarePlanUnapplyMedicationNonAdmin(t *testing.T) {
 
 	now := time.Now()
 	due := itemDueSoon(now)
-	ruleWithoutMatcher(t, models.DB, "RMED-UNDO-"+f.marker, "medication",
+	med := ruleWithoutMatcher(t, models.DB, "RMED-UNDO-"+f.marker, "medication",
 		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrug-" + f.marker, "dosage": "0.5 ml"}),
 		careScheduleJSON(t, due))
 
 	_, body := planGetJSON(t, reg, regURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "medication")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "medication", med.ID)
 	require.NotNil(t, it)
 	req := itemRef(it)
 
@@ -1502,7 +1547,7 @@ func TestCarePlanUnapplyFeedingNonAdminAllowed(t *testing.T) {
 
 	rule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 	_, body := planGetJSON(t, admin, adminURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "feeding", rule.ID)
 	require.NotNil(t, it)
 	req := itemRef(it)
 	code, raw := planDoJSON(t, admin, adminURL, "POST", "/care_plan/apply", token, req)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
@@ -15,11 +16,16 @@ import (
 // reason is shown in the why-explanation on the rule page and the animal's
 // Plan tab.
 type CareRuleExclusion struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	RuleID    uuid.UUID `json:"rule_id" db:"rule_id"`
-	AnimalID  int       `json:"animal_id" db:"animal_id"`
-	Reason    string    `json:"reason" db:"reason"`
-	CreatedBy uuid.UUID `json:"created_by" db:"created_by"`
+	ID       uuid.UUID `json:"id" db:"id"`
+	RuleID   uuid.UUID `json:"rule_id" db:"rule_id"`
+	AnimalID int       `json:"animal_id" db:"animal_id"`
+	// Nullable column: a plain string here made every scan fail on a NULL
+	// row (see CareRule.Description, TEST-4).
+	Reason nulls.String `json:"reason" db:"reason"`
+	// Nullable column too: a plain uuid.UUID here made every scan fail on a
+	// NULL row ("uuid: cannot convert <nil> to UUID") — same defect class as
+	// Reason above (TEST-4).
+	CreatedBy uuid.NullUUID `json:"created_by" db:"created_by"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -40,7 +46,7 @@ func (e *CareRuleExclusion) Validate(tx *pop.Connection) (*validate.Errors, erro
 		&validators.UUIDIsPresent{Field: e.RuleID, Name: "RuleID"},
 		&validators.IntIsPresent{Field: e.AnimalID, Name: "AnimalID"},
 		&validators.StringLengthInRange{
-			Field: e.Reason, Name: "Reason", Min: 0, Max: 500,
+			Field: e.Reason.String, Name: "Reason", Min: 0, Max: 500,
 		},
 	), nil
 }

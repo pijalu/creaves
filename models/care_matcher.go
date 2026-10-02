@@ -6,6 +6,7 @@ import (
 
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
@@ -16,9 +17,11 @@ import (
 // expression (§5.2) selecting animals. Referenced by CareRule.MatcherID;
 // many rules may share one matcher (library reuse model, §4.6).
 type CareMatcher struct {
-	ID          uuid.UUID `json:"id" db:"id"`
-	Name        string    `json:"name" db:"name"`
-	Description string    `json:"description" db:"description"`
+	ID   uuid.UUID `json:"id" db:"id"`
+	Name string    `json:"name" db:"name"`
+	// Nullable column: a plain string here made every scan fail on a NULL
+	// row and 500 the whole day plan (see CareRule.Description, TEST-4).
+	Description nulls.String `json:"description" db:"description"`
 	// Expression is the matcher DSL (§5.2). Parsed and semantically
 	// validated at save time — a matcher that fails to parse must never
 	// reach the database.

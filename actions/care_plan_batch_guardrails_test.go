@@ -23,9 +23,9 @@ func TestCarePlanBatchGuardrails(t *testing.T) {
 	token := planToken(t, client, baseURL)
 
 	due := itemDueSoon(time.Now())
-	f.feedRule(t, models.DB, due)
+	feedRule := f.feedRule(t, models.DB, due)
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	i1 := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "feeding")
+	i1 := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "feeding", feedRule.ID)
 	ref := itemRef(i1)
 
 	type batchOut struct {
@@ -160,7 +160,7 @@ func TestCarePlanBatchObservationAlertLoop(t *testing.T) {
 	require.NoError(t, models.DB.Create(rule))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "observation")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "observation", rule.ID)
 	ref := itemRef(item)
 	ref["answer"] = "no" // == alert_on → alert outcome
 
@@ -194,7 +194,7 @@ func TestOverriddenMessagePrecedence(t *testing.T) {
 	token := planToken(t, client, baseURL)
 
 	due := itemDueSoon(time.Now())
-	f.feedRule(t, models.DB, due)
+	feedRule := f.feedRule(t, models.DB, due)
 
 	// kind-level replacing plan on animal 1 → its rule occurrences render
 	// overridden (§4.7)
@@ -222,7 +222,7 @@ func TestOverriddenMessagePrecedence(t *testing.T) {
 	require.NoError(t, models.DB.Create(ap))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	item := mustItem(t, planItemsOf(t, body), f.animalIDs[0], "feeding")
+	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "feeding", feedRule.ID)
 	require.Equal(t, "overridden", item["status"], "fixture produces an overridden item")
 	ref := itemRef(item)
 

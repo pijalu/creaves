@@ -133,12 +133,12 @@ func TestPlanJSONFulfillmentFields(t *testing.T) {
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
 
-	f.feedRule(t, models.DB, itemDueSoon(time.Now()))
+	feedRule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
 	items := planItemsOf(t, body)
 	require.NotEmpty(t, items)
-	it := findItemByAnimal(items, f.animalIDs[0], "feeding")
+	it := findItemFrom(items, f.animalIDs[0], "feeding", feedRule.ID)
 	require.NotNil(t, it)
 	_, hasType := it["fulfillment_type"]
 	_, hasID := it["fulfillment_id"]
@@ -151,7 +151,7 @@ func TestPlanJSONFulfillmentFields(t *testing.T) {
 
 	_, body = planGetJSON(t, client, baseURL, "/care_plan")
 	items = planItemsOf(t, body)
-	done := findItemByAnimal(items, f.animalIDs[0], "feeding")
+	done := findItemFrom(items, f.animalIDs[0], "feeding", feedRule.ID)
 	require.NotNil(t, done)
 	require.Equal(t, models.ApplicationFulfillmentCare, done["fulfillment_type"])
 	require.NotEmpty(t, done["fulfillment_id"])
@@ -168,7 +168,7 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 
 	// One feeding rule (feeding list row) + one cleanup rule (cage list
 	// row) + one care rule (a TIER row kind) — all due inside the window.
-	f.feedRule(t, models.DB, itemDueSoon(time.Now()))
+	feedRule := f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 	payload := planRulePayload(t, "cleanup", map[string]interface{}{"note": "nettoyer"})
 	ruleWithoutMatcher(t, models.DB, "CPCL-"+f.marker, "cleanup", payload, careScheduleJSON(t, itemDueSoon(time.Now())))
 	carePayload := planRulePayload(t, "care", map[string]interface{}{"note": "soin"})
@@ -218,7 +218,7 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	// Apply one feeding item, then re-render: the done tier links the
 	// fulfillment record with back=/care_plan (bugs.md U3).
 	_, body := planGetJSON(t, client, baseURL, "/care_plan")
-	it := findItemByAnimal(planItemsOf(t, body), f.animalIDs[0], "feeding")
+	it := findItemFrom(planItemsOf(t, body), f.animalIDs[0], "feeding", feedRule.ID)
 	require.NotNil(t, it)
 	st, raw2 := planDoJSON(t, client, baseURL, "POST", "/care_plan/apply", token, itemRef(it))
 	require.Equal(t, http.StatusCreated, st, "apply: %s", raw2)

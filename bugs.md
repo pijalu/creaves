@@ -604,3 +604,89 @@ Verified both branches: the reuse path passes 3/3 under `-race`, and the create
 path was proven by temporarily short-circuiting the reuse branch to `&& false`
 so the fixture chain actually executed. Pure unit tests (`migrationEntries`)
 short-circuit on `DB == nil` and never touch the database.
+
+### TEST-3 — seven care-plan tests fail on leftover matcher-less rules (**Done**, test-infra)
+
+`go test -count=1 -race -cover ./...` reported seven failures:
+
+```
+TestCarePlanBatchGuardrails              TestCarePlanDestroyHooksMarkFulfillmentDeleted
+TestCarePlanBatchScopedToSingleCage      TestCarePlanSkipDeferRequireReasonAndClamp
+TestCarePlanDayPlanApplyIdempotent       TestCarePlanUnapplyAnyUserAndDestroyHook
+                                         TestCarePlanUnapplyFeedingNonAdminAllowed
+```
+
+Every one passed in isolation on a clean database, and every one left no rule
+behind. Cause, measured rather than guessed: `creaves_test` held three rules
+(`R-9d8cf3d8-2231`, `R-9d8cf3d8-2232`, `R-d479dc74-2350`, all `feeding`,
+`active=1`, **`matcher_id = NULL`**) left by suite runs killed before their
+`t.Cleanup`. A rule with no matcher matches **every** animal, so it contributes
+an item of the same kind to every fixture's day plan. The plan items are
+ordered by priority then source, and priority 0 sorts first, so the foreign item
+always won.
+
+The tests selected items with `mustItem(t, items, animalID, kind)` /
+`findItemByAnimal(items, animalID, kind)` — a match on `(animal, kind)` alone,
+which is **not unique** in a shared database. The test then posted that item's
+`source_id` + `due_at` while believing it was exercising its own rule, e.g.
+`TestCarePlanBatchScopedToSingleCage` returned `applied: 0` instead of 2 because
+the posted `due_at` (22:31, foreign) had no matching row, and
+`TestCarePlanBatchGuardrails` died on `no rows in result set` looking up a
+`due_at` (00:57, its own rule) that it had never posted.
+
+Two defects, both fixed:
+
+1. **Selection.** `mustItemFrom` / `findItemFrom` restrict the search to one
+   `source_id`. All 20 call sites that follow a rule they created now use them,
+   as does the two-occurrence loop in
+   `TestCarePlanSkipDeferRequireReasonAndClamp`. `mustItem` / `findItemByAnimal`
+   remain for assertions that genuinely mean "any item of this kind".
+2. **The sweep.** `sweepStaleFixtureRows` deleted abandoned rules only when
+   `updated_at < NOW() - INTERVAL 1 DAY`, so a killed run poisoned the next
+   twenty-four hours. Fixture rule/matcher names all end in the run marker —
+   the 8 hex characters of a fresh uuid — which no seeded or user-authored row
+   carries, so marker-shaped names are now swept regardless of age. Age was the
+   wrong guard; the marker is the guard.
+
+The sweep additionally refuses to run unless `SELECT DATABASE()` says "test":
+`TestMain` only repoints `models.DB` when `GO_ENV` was not already `test`, so
+`GO_ENV=development go test` used to run a bulk DELETE against the development
+database. `isDisposableTestDB` returns false when the name is unreadable.
+
+Proven by re-injecting the fault: a realistic global feeding rule (a real name,
+no marker, so the sweep must not remove it) inserted into `creaves_test` makes
+the whole `-run TestCarePlan` set pass, where it previously broke it.
+
+### TEST-4 — a NULL `description` 500s the whole day plan (**Done**, product)
+
+While proving TEST-3 the pollution was reproduced with a hand-written `INSERT`
+that left `description` NULL, and every request to `/care_plan` answered **500**
+("Crashed"). The error was not the pollution:
+
+```
+unable to fetch records: mysql select many: sql: Scan error on column index 4,
+name "description": converting NULL to string is unsupported
+```
+
+`care_rules.description` is declared nullable
+(`t.Column("description", "text", {null: true})`) but `models.CareRule` read it
+into a plain `string`. One such row — from an import, a seeder, or any raw
+INSERT that omits the column — takes the day plan down for **every** animal,
+not just its own. No fixture could hit it: every test builds rules through the
+model, which writes `''`.
+
+The same mismatch existed in two sibling models, both on nullable columns, and
+both reached by the same page:
+
+- `models.CareMatcher.Description` → `nulls.String`
+- `models.CareRuleExclusion.Reason` → `nulls.String`
+- `models.CareRuleExclusion.CreatedBy` → `uuid.NullUUID` (a NULL there failed
+  with `uuid: cannot convert <nil> to UUID`; the field had no reader at all)
+
+`animals`, `cares` and `drugs` were audited the same way and already use
+`nulls.*` throughout — the care tables were the outliers.
+
+Three regression tests in `actions/care_rule_null_description_test.go` insert
+the rows **bypassing the model** (as an import would) and pin: the day plan
+still renders, and all four columns scan. Templates need no change — Plush
+prints a `nulls.String` through its `String` method.

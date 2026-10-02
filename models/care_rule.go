@@ -6,6 +6,7 @@ import (
 
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
@@ -34,9 +35,14 @@ func validateActionAndSchedule(verrs *validate.Errors, kind string, payload, sch
 // CareRule is a generic (rule-level) care plan: action + schedule + a named
 // matcher selecting the animals it applies to (§4.1 of docs/care-expert.md).
 type CareRule struct {
-	ID            uuid.UUID       `json:"id" db:"id"`
-	Name          string          `json:"name" db:"name"`
-	Description   string          `json:"description" db:"description"`
+	ID   uuid.UUID `json:"id" db:"id"`
+	Name string    `json:"name" db:"name"`
+	// Description is nulls.String because the column is nullable: reading it
+	// as a plain string made EVERY scan of care_rules fail on a NULL row
+	// ("converting NULL to string is unsupported"), which turned the whole
+	// day plan into a 500 — a rule inserted without a description (import,
+	// seeder, raw SQL) took down /care_plan for every animal (TEST-4).
+	Description   nulls.String    `json:"description" db:"description"`
 	ActionKind    string          `json:"action_kind" db:"action_kind"`
 	ActionPayload json.RawMessage `json:"action_payload" db:"action_payload"`
 	Schedule      json.RawMessage `json:"schedule" db:"schedule"`

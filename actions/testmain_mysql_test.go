@@ -6,6 +6,7 @@ package actions
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"creaves/models"
@@ -61,7 +62,7 @@ func TestMain(m *testing.M) {
 	// event_streams/event_deliveries rows slow every listing endpoint the
 	// suite exercises (dashboard, exports) and skew DLQ assertions.
 	// creaves_test is disposable by contract; the dev database is untouched.
-	if models.DB != nil && models.DB.Dialect.Name() != "sqlite3" {
+	if models.DB != nil && models.DB.Dialect.Name() != "sqlite3" && isDisposableTestDB(models.DB) {
 		models.DB.RawQuery("DELETE FROM event_deliveries").Exec()
 		models.DB.RawQuery("DELETE FROM event_streams").Exec()
 		sweepStaleFixtureRows(models.DB)
@@ -72,6 +73,22 @@ func TestMain(m *testing.M) {
 	// Belt and braces: never leak the worker past the test binary.
 	StopWebhookWorker()
 	os.Exit(code)
+}
+
+// isDisposableTestDB reports whether db is the throwaway test database.
+// TestMain only repoints models.DB when GO_ENV was NOT already "test", so
+// `GO_ENV=development go test` leaves models.DB on the DEVELOPMENT database
+// while the sweep below deletes rows in bulk. It must therefore refuse to run
+// anywhere but a database whose name says test. An unreadable name is treated
+// as "not disposable" — hygiene is best effort, never a reason to touch data.
+func isDisposableTestDB(db *pop.Connection) bool {
+	var row struct {
+		Name string `db:"name"`
+	}
+	if err := db.RawQuery("SELECT DATABASE() AS name").First(&row); err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(row.Name), "test")
 }
 
 // sweepStaleFixtureRows deletes garbage left by earlier suite runs whose
@@ -106,4 +123,17 @@ func sweepStaleFixtureRows(db *pop.Connection) {
 	db.RawQuery("DELETE FROM care_plan_applications WHERE created_at < " + dayAgo).Exec()
 	db.RawQuery("DELETE FROM treatment_time_entries WHERE created_at < " + dayAgo).Exec()
 	db.RawQuery("DELETE FROM treatments WHERE updated_at < " + dayAgo).Exec()
+
+	// Fixture-shaped rule/matcher names all end in the run marker — the 8
+	// hex characters of a fresh uuid ("R-9d8cf3d8-2231", "R2-1a2b3c4d",
+	// "MLatch-1a2b3c4d", "R-fc-1a2b3c4d-1504") — which no seeded or
+	// user-authored row carries, so they are swept regardless of age.
+	// The age-only guard above left a killed run's rules in place for a
+	// whole day, and a rule with NO matcher applies to EVERY animal: three
+	// such leftovers (measured on creaves_test) broke seven care-plan tests
+	// at once. Age is the wrong guard here; the marker is the guard (TEST-3).
+	marked := "name REGEXP '-[0-9a-f]{8}(-[0-9]{4})?$'"
+	db.RawQuery("DELETE cre FROM care_rule_exclusions cre JOIN care_rules cr ON cre.rule_id = cr.id WHERE cr." + marked).Exec()
+	db.RawQuery("DELETE FROM care_rules WHERE " + marked).Exec()
+	db.RawQuery("DELETE FROM care_matchers WHERE " + marked).Exec()
 }

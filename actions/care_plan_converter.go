@@ -348,7 +348,7 @@ func upsertClusterMatcher(tx *pop.Connection, report *ConversionReport, m *model
 		return uuid.NullUUID{UUID: existing.ID, Valid: true}, nil
 	}
 	switch {
-	case !strings.Contains(existing.Description, ConverterTag):
+	case !strings.Contains(existing.Description.String, ConverterTag):
 		line.Action, line.Reason = "skipped", "not converter-owned"
 	case handEdited(existing.CreatedAt, existing.UpdatedAt):
 		line.Action, line.Reason = "skipped", "hand-edited (updated_at ≠ created_at)"

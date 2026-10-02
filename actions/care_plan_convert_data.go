@@ -246,7 +246,7 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 	}
 	rule := &models.CareRule{
 		Name:          ruleName,
-		Description:   fmt.Sprintf("Cluster alimentation ×%d [source: %s]", len(entries), ConverterTag),
+		Description:   nulls.NewString(fmt.Sprintf("Cluster alimentation ×%d [source: %s]", len(entries), ConverterTag)),
 		ActionKind:    careplan.KindFeeding,
 		ActionPayload: buildSeedPayload(seedRuleDef{Kind: careplan.KindFeeding, PayloadFood: diet, ForceFeed: entries[0].Force}, feedCareID),
 		Schedule:      []byte(buildConvertedScheduleJSON(entries[0].Times)),

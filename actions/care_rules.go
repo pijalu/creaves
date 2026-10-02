@@ -12,6 +12,7 @@ import (
 	"creaves/models/careplan"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/x/responder"
 	"github.com/gofrs/uuid"
@@ -39,7 +40,7 @@ type careRuleForm struct {
 // optional validity window.
 func (f careRuleForm) apply(rule *models.CareRule) error {
 	rule.Name = f.Name
-	rule.Description = f.Description
+	rule.Description = nulls.NewString(f.Description)
 	rule.ActionKind = f.ActionKind
 	rule.StopOnOuttake = f.StopOnOuttake
 	rule.LatchMembership = f.LatchMembership

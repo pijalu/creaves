@@ -3,6 +3,8 @@ package models
 import (
 	"strings"
 	"testing"
+
+	"github.com/gobuffalo/nulls"
 )
 
 const validMatcherExpr = `animal_type = "Hérissons / Insectivore" AND animal_age = "bébé" AND weight_g < 300`
@@ -11,7 +13,7 @@ func TestCareMatcherValidateValid(t *testing.T) {
 	m := CareMatcher{
 		Name:        "Hérisson bébé < 300 g",
 		Expression:  validMatcherExpr,
-		Description: "shared by R1/R1b",
+		Description: nulls.NewString("shared by R1/R1b"),
 	}
 	if verrs, err := m.Validate(nil); verrs.HasAny() || err != nil {
 		t.Fatalf("expected valid matcher, got %v / %v", verrs, err)

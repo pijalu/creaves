@@ -7,6 +7,7 @@ import (
 	"creaves/models"
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gofrs/uuid"
 )
 
@@ -132,7 +133,7 @@ func SeedRules() []seedRuleDef {
 func buildSeedMatcher(def seedMatcherDef) *models.CareMatcher {
 	return &models.CareMatcher{
 		Name:        def.Name,
-		Description: fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag),
+		Description: nulls.NewString(fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)),
 		Expression:  def.Expression,
 	}
 }
@@ -143,7 +144,7 @@ func buildSeedMatcher(def seedMatcherDef) *models.CareMatcher {
 func buildSeedRule(def seedRuleDef, matcherID uuid.NullUUID, caretypeID string) (*models.CareRule, error) {
 	r := &models.CareRule{
 		Name:            def.Name,
-		Description:     fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag),
+		Description:     nulls.NewString(fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)),
 		ActionKind:      def.Kind,
 		ActionPayload:   buildSeedPayload(def, caretypeID),
 		Schedule:        []byte(def.ScheduleJSON),
