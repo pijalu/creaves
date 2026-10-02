@@ -11,9 +11,11 @@
     the apply window. A dimmed PAST button stays clickable (§6.2-2):
     one click records the missed occurrence with the late acknowledgment
     (data-late="true"). %>
-<div class="med-series">
-  <%= for (series) in mg.Series { %>
-    <div class="d-flex align-items-start med-series-line border-top mt-1 pt-1">
+<div class="med-series flex-grow-1">
+  <%= for (si, series) in mg.Series { %>
+    <%# The line separator belongs BETWEEN series — never on top of the
+        first line (a leading border floats mid-air above the list). %>
+    <div class="d-flex align-items-start med-series-line <%= if (si > 0) { %>border-top mt-1 pt-1<% } %>">
       <div class="mr-2 text-nowrap">
         <strong><%= series.Label %></strong>
         <%# Read-only detail (ℹ) of the series' first occurrence — the drug
@@ -31,7 +33,10 @@
             aria-label="<%= series.Label %> <%= series.Rows[0].Slots[0].DueAtHM %>"><i class="fa fa-eye"></i></a>
         <% } %>
       </div>
-      <div>
+      <%# Toggle buttons RIGHT-JUSTIFIED (ml-auto): the drug label owns
+          the left edge, the hour buttons the right edge — full use of
+          the line width on wide screens, stable button targets. %>
+      <div class="ml-auto text-right">
         <%= for (ri, row) in series.Rows { %>
           <%= if (row.DividerBefore) { %>
             <div class="med-series-divider border-top my-1"></div>
