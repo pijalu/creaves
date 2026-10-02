@@ -13,6 +13,27 @@
      late · now · later, always in this order) — offset the scroll so a
      jumped section is not hidden behind the fixed topbar. */
   #tier-late, #tier-now, #tier-later { scroll-margin-top: 60px; }
+
+  /* R3-3/R3-4: each tier is ONE bordered, light-tinted section — header
+     (tier name + count pill + chevron) and collapse body inside the same
+     border, no more loose button toggles. Tints are the Bootstrap alert
+     palette (late red · now yellow · later green). */
+  .plan-tier { border: 1px solid; border-radius: 0.35rem; margin-bottom: 0.75rem; overflow: hidden; }
+  .plan-tier-late  { background: #f8d7da; border-color: #f5c6cb; }
+  .plan-tier-now   { background: #fff3cd; border-color: #ffeeba; }
+  .plan-tier-later { background: #d4edda; border-color: #c3e6cb; }
+  .plan-tier-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; cursor: pointer; user-select: none;
+    font-weight: 600;
+  }
+  .plan-tier-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-tier-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-tier-late  .plan-tier-header { color: #721c24; }
+  .plan-tier-now   .plan-tier-header { color: #856404; }
+  .plan-tier-later .plan-tier-header { color: #155724; }
+  .plan-tier-body { background: #fff; }
+  .plan-tier-body .table { margin-bottom: 0; }
 </style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
@@ -41,7 +62,7 @@
     <a class="badge badge-warning mr-1" href="#tier-now"><%= t("care_plan.tier.now") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.NowCap %></span></a>
   <% } %>
   <%= if (view.Stats.Later > 0) { %>
-    <a class="badge badge-primary mr-1" href="#tier-later"><%= t("care_plan.tier.later") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LaterCap %></span></a>
+    <a class="badge badge-success mr-1" href="#tier-later"><%= t("care_plan.tier.later") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LaterCap %></span></a>
   <% } %>
 </div>
 
@@ -99,16 +120,17 @@
        below and never appear in the tiers. %>
   <%= if (view.Kind != "feeding" && view.Kind != "cleanup") { %>
 
-    <div class="mb-2" id="tier-late">
-      <button class="btn btn-outline-danger position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true">
-        <%= t("care_plan.tier.late") %>
-        <span class="badge badge-pill badge-danger position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[0].CountCap %></span>
-      </button>
-      <div class="collapse show" id="tier-late-rows">
+    <div class="plan-tier plan-tier-late" id="tier-late">
+      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true" role="button" tabindex="0">
+        <span><%= t("care_plan.tier.late") %></span>
+        <span class="badge badge-pill badge-danger"><%= view.Tiers[0].CountCap %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse show plan-tier-body" id="tier-late-rows">
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[0].Cards { %>
-              <tr class="plan-item plan-item-<%= card.Status %> table-danger">
+              <tr class="plan-item plan-item-<%= card.Status %>">
                 <td>
                   <%= if (card.AnimalLink != "") { %>
                     <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
@@ -176,16 +198,17 @@
       </div>
     </div>
 
-    <div class="mb-2" id="tier-now">
-      <button class="btn btn-outline-warning position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true">
-        <%= t("care_plan.tier.now") %>
-        <span class="badge badge-pill badge-warning position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[1].CountCap %></span>
-      </button>
-      <div class="collapse show" id="tier-now-rows">
+    <div class="plan-tier plan-tier-now" id="tier-now">
+      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true" role="button" tabindex="0">
+        <span><%= t("care_plan.tier.now") %></span>
+        <span class="badge badge-pill badge-warning"><%= view.Tiers[1].CountCap %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse show plan-tier-body" id="tier-now-rows">
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[1].Cards { %>
-              <tr class="plan-item plan-item-<%= card.Status %> table-warning">
+              <tr class="plan-item plan-item-<%= card.Status %>">
                 <td>
                   <%= if (card.AnimalLink != "") { %>
                     <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
@@ -249,12 +272,13 @@
       </div>
     </div>
 
-    <div class="mb-2" id="tier-later">
-      <button class="btn btn-outline-primary position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="false">
-        <%= t("care_plan.tier.later") %>
-        <span class="badge badge-pill badge-primary position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[2].CountCap %></span>
-      </button>
-      <div class="collapse" id="tier-later-rows">
+    <div class="plan-tier plan-tier-later" id="tier-later">
+      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="true" role="button" tabindex="0">
+        <span><%= t("care_plan.tier.later") %></span>
+        <span class="badge badge-pill badge-success"><%= view.Tiers[2].CountCap %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse show plan-tier-body" id="tier-later-rows">
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[2].Cards { %>
@@ -665,6 +689,14 @@
     }, 60000);
   }
   scheduleReload();
+
+  // R3-4: tier headers are divs (not buttons) — give them keyboard
+  // collapse toggling (Enter/Space) to match the click affordance.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-tier-header[data-toggle="collapse"]'), function (h) {
+    h.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jQuery(h).trigger('click'); }
+    });
+  });
 
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   // {ref, btn} awaiting a manual dosage (§10-B6); btn is flipped in place
