@@ -27,7 +27,7 @@ At the end of the session - the bug list must be empty, all changes committed an
 
 ---
 
-<!-- TODO: empty — the three round-2 items (treatment view, dashboard
-medication view, care plan view) are closed; see
-docs/archive/2026-10-01-care-plan-ux-round2-bugs.md and
-docs/archive/2026-10-01-care-plan-ux-fix-plan-round2.md (§12.6). -->
+<!-- TODO: empty — the round-2 review regressions (#1 navbar hamburger,
+#2-#6 care plan screen, #7 animal treatment tab) are fixed, tested and
+e2e-validated; see docs/archive/2026-10-02-care-plan-review-regressions-1-7.md
+and docs/archive/2026-10-01-care-plan-ux-round2-bugs.md. -->
