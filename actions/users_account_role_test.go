@@ -3,6 +3,7 @@ package actions
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -229,22 +230,36 @@ func TestUsersListFilters(t *testing.T) {
 		return strings.Index(body, login)
 	}
 
+	// The test database is shared with dev seeds — a filter may match
+	// MORE than per_page rows, pushing the fixture onto a later page.
+	// Page through the filter and concatenate the bodies so membership
+	// assertions test the FILTER, not the fixture's sort position.
+	filteredBodies := func(params string) string {
+		var sb strings.Builder
+		for page := 1; ; page++ {
+			url := "/users?per_page=100&page=" + strconv.Itoa(page) + "&" + params
+			code, body := roleTestGetBody(t, client, baseURL, url)
+			require.Equal(t, http.StatusOK, code)
+			sb.WriteString(body)
+			if !strings.Contains(body, ">Next<") && !strings.Contains(body, "page="+strconv.Itoa(page+1)) || page > 50 {
+				return sb.String()
+			}
+		}
+	}
+
 	// role=shared → shared account listed, reader not
-	code, body := roleTestGetBody(t, client, baseURL, "/users?per_page=100&role=shared")
-	require.Equal(t, http.StatusOK, code)
+	body := filteredBodies("role=shared")
 	require.GreaterOrEqual(t, pos(body, sharedU.Login), 0, "shared account listed")
 	require.Equal(t, -1, pos(body, readerU.Login), "reader not in shared filter")
 	require.Equal(t, -1, pos(body, pendingU.Login), "regular user not in shared filter")
 
 	// role=lecteur → reader listed, shared not
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&role=lecteur")
-	require.Equal(t, http.StatusOK, code)
+	body = filteredBodies("role=lecteur")
 	require.GreaterOrEqual(t, pos(body, readerU.Login), 0, "reader listed")
 	require.Equal(t, -1, pos(body, sharedU.Login), "shared not in lecteur filter")
 
 	// role=user → regular accounts only (no admin/shared/restricted)
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&role=user")
-	require.Equal(t, http.StatusOK, code)
+	body = filteredBodies("role=user")
 	require.GreaterOrEqual(t, pos(body, pendingU.Login), 0, "regular account listed")
 	require.Equal(t, -1, pos(body, sharedU.Login), "shared not in user filter")
 	require.Equal(t, -1, pos(body, readerU.Login), "reader not in user filter")
@@ -253,14 +268,12 @@ func TestUsersListFilters(t *testing.T) {
 	require.Equal(t, -1, pos(body, `align-middle">`+admin.Login+"<"), "admin row not in user filter")
 
 	// status=pending → unapproved listed, approved not
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&status=pending")
-	require.Equal(t, http.StatusOK, code)
+	body = filteredBodies("status=pending")
 	require.GreaterOrEqual(t, pos(body, pendingU.Login), 0, "pending account listed")
 	require.Equal(t, -1, pos(body, readerU.Login), "approved reader not in pending filter")
 
 	// combined: role=lecteur + status=active
-	code, body = roleTestGetBody(t, client, baseURL, "/users?per_page=100&role=lecteur&status=active")
-	require.Equal(t, http.StatusOK, code)
+	body = filteredBodies("role=lecteur&status=active")
 	require.GreaterOrEqual(t, pos(body, readerU.Login), 0, "active reader listed")
 	require.Equal(t, -1, pos(body, pendingU.Login), "pending regular not listed")
 }
