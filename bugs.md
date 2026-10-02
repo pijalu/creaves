@@ -32,7 +32,7 @@ At the end of the session - the bug list must be empty, all changes committed an
 - docs/archive/2026-10-01-care-plan-ux-round2-bugs.md -->
 
 
-<!-- Round 3 fixed & archived: docs/archive/2026-10-02-care-plan-round3-bugs.md
+<!-- Round 3 fixed & archived: docs/archive/2026-10-02-care-plan-round-3-bugs.md
      (R3-1..R3-7 + follow-ups: engine window clamp, feeding-only plan entries,
      measured navbar collapse, in-page detail popup, TestUsersListFilters) -->
 
