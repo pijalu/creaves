@@ -190,6 +190,30 @@
 // redundant "Late" pill is gone — the row colour and the apply button's
 // own tier colour carry it; the status text stays in the DOM for
 // assistive technology).
+// R4-7.16: observation / care / weighing now render in the MEDICATION line
+// language (.plan-med-line + lead/label/btns) instead of a 4-cell table, and
+// EVERY item carries the line background — not only the late ones. The tint
+// used to be a late-only marker, so a scheduled item sat on the page
+// background with no band at all and the list read as a spreadsheet. The
+// neutral band below is that "line" reading; `.plan-item-late` then overrides
+// it with the light red, so red still means LATE (R4-3.3) and is not spent on
+// decoration. The user approved the light red (#fdf2f3) as the background to
+// carry — it is what the late rows already used.
+.plan-item-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  // A 3px border on EVERY line, so the late one only changes its COLOUR and
+  // the strip keeps the same width on every row (no 2px reflow when an item
+  // goes late).
+  border-left: 3px solid #e9ecef;
+  background-color: #f8f9fa;
+  padding: 0.35rem 0.5rem 0.35rem 0.65rem;
+  // R4-7.4: the first child must not touch the strip.
+  margin-bottom: 0.25rem;
+  border-radius: 2px;
+}
+
 .plan-item-late {
   border-left: 3px solid #dc3545 !important;
   background-color: #fdf2f3;

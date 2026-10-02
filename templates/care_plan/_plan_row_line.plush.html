@@ -1,0 +1,86 @@
+<%# R4-7.16 — ONE plan line for the non-medication kinds (observation, care,
+    weighing), in the SAME visual language as the medication series.
+
+    Context: `card` — a TierView card (the same struct the old table row used).
+
+    It was a 4-cell table: animal | detail+source | due | status+buttons. The
+    medication page beside it renders a flex LINE, so switching kind changed
+    the whole shape of the page for no reason. This partial is that line:
+    R4-3.1's fixed-width leading column (the ℹ lands at the same x on every
+    row), the text block that grows and wraps, and ONE right-aligned button
+    group.
+
+    The tint now covers EVERY item (`.plan-item-line`), not only the late ones
+    — the requested "background line colour/style on all items". A scheduled
+    item used to sit on the bare page background with no band, which is why
+    the list read as a spreadsheet. `.plan-item-late` still overrides with the
+    light red, so red keeps meaning LATE (R4-3.3).
+
+    The buttons keep their classes and data attributes, and apply/undo/skip/
+    defer all live in the SAME parent (.plan-med-btns) — `_apply_toggle`
+    pairs them with `btn.parentNode.querySelector(...)`, so a shared parent is
+    a hard requirement, not a style choice. %>
+<div class="plan-med-line plan-item-line plan-item-<%= card.Status %>">
+  <div class="plan-med-lead">
+    <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+      data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+      data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+      data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+      data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+  </div>
+  <div class="plan-med-label">
+    <% if (card.AnimalLink != "") { %>
+      <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+    <% } else { %>
+      <%= card.AnimalLabel %>
+    <% } %>
+    <% if (card.Detail != "") { %>
+      — <strong><%= card.Detail %></strong>
+      <small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+    <% } else { %>
+      — <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+    <% } %>
+  </div>
+  <div class="plan-med-btns">
+    <span class="text-nowrap mr-2"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></span>
+    <span class="text-nowrap">
+      <%= if (card.Status == "late") { %>
+        <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+      <% } else { %>
+        <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+      <% } %>
+      <%= if (card.Applicable) { %>
+        <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
+          data-source-type="<%= card.SourceType %>"
+          data-source-id="<%= card.SourceID %>"
+          data-animal-id="<%= card.AnimalID %>"
+          data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+          data-kind="<%= card.ActionKind %>"
+          data-animal-label="<%= card.AnimalLabel %>"
+          data-detail="<%= card.Detail %>"
+          data-source-name="<%= card.SourceName %>"
+          title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
+        <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+          data-source-type="<%= card.SourceType %>"
+          data-source-id="<%= card.SourceID %>"
+          data-animal-id="<%= card.AnimalID %>"
+          data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+          title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+        <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+          data-source-type="<%= card.SourceType %>"
+          data-source-id="<%= card.SourceID %>"
+          data-animal-id="<%= card.AnimalID %>"
+          data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+          data-mode="skip"
+          data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
+        <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+          data-source-type="<%= card.SourceType %>"
+          data-source-id="<%= card.SourceID %>"
+          data-animal-id="<%= card.AnimalID %>"
+          data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+          data-mode="defer"
+          data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
+      <% } %>
+    </span>
+  </div>
+</div>

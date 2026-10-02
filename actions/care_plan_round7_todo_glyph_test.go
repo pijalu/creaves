@@ -47,6 +47,11 @@ var carePlanToDoForks = []string{
 	"../templates/animals/show.plush.fr.html",
 	"../templates/animals/show.plush.de.html",
 	"../templates/animals/show.plush.nl.html",
+	// R4-7.16 moved the observation/care/weighing apply control out of the
+	// three duplicated tier tables into ONE shared, locale-agnostic partial.
+	// It is a to-do control like the others, so it belongs in this scan — and
+	// being locale-agnostic it exists ONCE, not per fork.
+	"../templates/care_plan/_plan_row_line.plush.html",
 }
 
 // isReplacesKindYesNo reports whether a line's check is the animal page's "does
@@ -122,17 +127,23 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 	}
 }
 
-// TestEveryToDoControlCarriesTheClock: 6 to-do controls per care-plan index
-// fork and 1 per animal-page fork. A count floor, so the swap cannot
-// half-apply to one locale.
+// TestEveryToDoControlCarriesTheClock: a count floor so the swap cannot
+// half-apply to one locale. R4-7.16 changed the shape: the observation /
+// care / weighing apply control left the three duplicated tier tables of each
+// index fork and now lives in ONE shared partial, so the per-fork index count
+// fell from 6 to 3. The total is therefore 3 clocks x 4 index forks + 1 x 4
+// animal forks + 1 in the shared partial = 17. What must never change is that
+// EVERY to-do control carries the clock — that is asserted per control by
+// clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only a
+// tripwire against a whole locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	total := 0
 	for _, f := range carePlanToDoForks {
 		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
 	}
-	require.GreaterOrEqual(t, total, 28,
-		"expected the clock 7 times per locale fork (6 in the index, 1 in the "+
-			"animal page) = 28")
+	require.GreaterOrEqual(t, total, 17,
+		"expected the clock 3x in each index fork, 1x in each animal fork, "+
+			"and 1x in the shared row-line partial = 17")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the

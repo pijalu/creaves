@@ -306,11 +306,65 @@ one label per sub-group, plus a `NotContains` that no animal repeats a time.
 background, so labels stop reading as a column. Measured: distinct widths
 `167.9 … 180.8px`, `bg=rgba(0,0,0,0)`. Plan: §R4-7.15.
 
-### R4-7.16 — Compact observation does not follow the medication format (**Open**)
+### R4-7.16 — Compact observation does not follow the medication format (**Done**, product)
 
 `kind=observation` (and `care`, `weighing`) still render a 4-cell table while
 medication renders a line, and the row tint exists only on late items. Plan:
 §R4-7.16 — default taken: convert all three, tint every item.
+
+**Fixed.** Measured first, and one part of the request could not mean what it
+looked like: the medication line has **no** background — `getComputedStyle`
+returned `rgba(0, 0, 0, 0)`, identical to the page. So "apply the background
+line colour to all items" cannot mean copying the medication line's colour.
+What it can mean is the request's own second half — the user approved the
+observation page's existing late background (`rgb(253,242,243)`, `(this is a
+good background color)`) — applied as the line band.
+
+So every item now carries a band and red still means LATE (R4-3.3):
+
+- `.plan-item-line` gives **every** row the neutral `#f8f9fa` plus a 3px
+  left strip, so a scheduled item is no longer bare page background;
+- `.plan-item-late` still overrides with `#fdf2f3` + the red strip. Applying
+  the red to everything would have made "late" mean nothing.
+
+The row markup moved from a 4-cell table to the medication flex LINE —
+`plan-med-line` + `plan-med-lead` (R4-3.1's fixed-width leading column, so
+every ℹ lands at the same x) + `plan-med-label` + `plan-med-btns`. It now
+lives in ONE shared partial, `templates/care_plan/_plan_row_line.plush.html`,
+replacing the same block duplicated across the three tier tables — 4 files
+shrank to a call. The partial is locale-agnostic (no literal text, every
+string through `t()`), so it is one file, not four.
+
+Two things this had to preserve, both verified:
+
+- apply / undo / skip / defer must share a parent, because `_apply_toggle`
+  pairs them with `btn.parentNode.querySelector(...)`. All four sit in
+  `.plan-med-btns`. Measured `pairOK: true` on every line.
+- The R4-7.25 clock sweep counts to-do controls per file; moving the control
+  into the partial broke its hard-coded floor of 28. The partial was added to
+  the scanned forks and the floor recomputed to 17 (3 per index fork × 4 + 1
+  per animal fork × 4 + 1 shared), with the per-control clock assertion —
+  the actual invariant — untouched. Verified as a live tripwire: swapping the
+  clock back for a check fails it at 16.
+
+Re-measured on `/care_plan?view=compact&kind=observation`: `23` lines,
+background census `{rgb(253,242,243): 13, rgb(248,249,250): 10}` — **every
+item tinted**, none transparent — and `infoAlignSpread: 0`, the ℹ at an
+identical x on all 23. The medication page is unchanged (`Late 24` /
+`Later 31`, no violations). `care` and `weighing` render no lines today
+because they have no occurrences, and their tier sections are correctly
+suppressed rather than showing an empty "Now 0" header.
+
+One measurement worth recording as NOT a regression: clicking an apply button
+through the browser harness does not open the apply modal — but it does not on
+stashed HEAD either, with the old table. `TestNoCheckMarksAToDoItem` still
+passes, so the control's markup is intact; the harness's synthetic click simply
+does not reach the delegated handler. Behaviour is unchanged by this commit.
+
+Gates: `go build`/`go vet`/`staticcheck` clean; gocognit/gocyclo diffed against
+HEAD empty in both directions; `go test -count=1 -race -cover ./...` exit 0
+(actions 59.9%). The SCSS is compiled by webpack (`public/assets/` is
+gitignored — built at deploy, not committed). No destructive DB changes.
 
 ### R4-7.17 — Raw HTML entities in the confirm modal (**Open**)
 

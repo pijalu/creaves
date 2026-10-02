@@ -180,74 +180,11 @@
           <% } %>
         </div>
       <% } else { %>
-        <table class="table table-hover table-bordered">
-          <tbody>
+        <div class="px-2">
             <%= for (card) in view.Tiers[0].Cards { %>
-              <tr class="plan-item plan-item-<%= card.Status %>">
-                <td>
-                  <%= if (card.AnimalLink != "") { %>
-                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                  <% } else { %>
-                    <%= card.AnimalLabel %>
-                  <% } %>
-                </td>
-                <td>
-                  <%= if (card.Detail != "") { %>
-                    <strong><%= card.Detail %></strong>
-                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                  <% } else { %>
-                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                    <% } %>
-                  </td>
-                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                  <td class="text-nowrap">
-                    <%= if (card.Status == "late") { %>
-                    <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
-                  <% } else { %>
-                    <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-                  <% } %>
-                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-                  <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-kind="<%= card.ActionKind %>"
-                      data-animal-label="<%= card.AnimalLabel %>"
-                      data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="skip"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
-                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="defer"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
-                  <% } %>
-                </td>
-              </tr>
+              <%= partial("care_plan/plan_row_line.plush.html") %>
             <% } %>
-          </tbody>
-        </table>
+          </div>
       <% } %>
       </div>
     </div>
@@ -278,70 +215,11 @@
           <% } %>
         </div>
       <% } else { %>
-        <table class="table table-hover table-bordered">
-          <tbody>
+        <div class="px-2">
             <%= for (card) in view.Tiers[1].Cards { %>
-              <tr class="plan-item plan-item-<%= card.Status %>">
-                <td>
-                  <%= if (card.AnimalLink != "") { %>
-                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                  <% } else { %>
-                    <%= card.AnimalLabel %>
-                  <% } %>
-                </td>
-                <td>
-                  <%= if (card.Detail != "") { %>
-                    <strong><%= card.Detail %></strong>
-                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                  <% } else { %>
-                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                    <% } %>
-                  </td>
-                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                  <td class="text-nowrap">
-                    <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-                  <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-kind="<%= card.ActionKind %>"
-                      data-animal-label="<%= card.AnimalLabel %>"
-                      data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="skip"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
-                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="defer"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
-                  <% } %>
-                </td>
-              </tr>
+              <%= partial("care_plan/plan_row_line.plush.html") %>
             <% } %>
-          </tbody>
-        </table>
+          </div>
       <% } %>
       </div>
     </div>
@@ -372,70 +250,11 @@
           <% } %>
         </div>
       <% } else { %>
-        <table class="table table-hover table-bordered">
-          <tbody>
+        <div class="px-2">
             <%= for (card) in view.Tiers[2].Cards { %>
-              <tr class="plan-item plan-item-<%= card.Status %>">
-                <td>
-                  <%= if (card.AnimalLink != "") { %>
-                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                  <% } else { %>
-                    <%= card.AnimalLabel %>
-                  <% } %>
-                </td>
-                <td>
-                  <%= if (card.Detail != "") { %>
-                    <strong><%= card.Detail %></strong>
-                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                  <% } else { %>
-                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                    <% } %>
-                  </td>
-                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                  <td class="text-nowrap">
-                    <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
-                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-                  <%= if (card.Applicable) { %>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-kind="<%= card.ActionKind %>"
-                      data-animal-label="<%= card.AnimalLabel %>"
-                      data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="skip"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
-                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-mode="defer"
-                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
-                  <% } %>
-                </td>
-              </tr>
+              <%= partial("care_plan/plan_row_line.plush.html") %>
             <% } %>
-          </tbody>
-        </table>
+          </div>
       <% } %>
       </div>
     </div>
