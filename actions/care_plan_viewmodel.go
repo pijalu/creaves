@@ -98,6 +98,22 @@ type KindChip struct {
 	CountCap string
 }
 
+// FeedingTimeGroup is the R4-7.14b fold of the per-chip due time. A cage fed
+// at 16:00 used to render `10100 16:00 | 10101 16:00 | 10102 16:00` — the
+// same time repeated on every animal, which is noise that makes the list
+// harder to scan than the single time it encodes. The time becomes the
+// sub-group label, stated ONCE, with the animals that share it underneath.
+type FeedingTimeGroup struct {
+	Label      string // "16:00"
+	DayKey     string // care_plan.time.yesterday / .tomorrow ("" when today)
+	ShortDate  string // "02/01" beyond one day
+	DueAt      time.Time
+	Chips      []FeedingChip
+	Count      int
+	CountCap   string
+	Applicable int // chips in this sub-group still actionable
+}
+
 // FeedingGroupView is one rendered feeding row (cage × diet, bugs.md U1).
 type FeedingGroupView struct {
 	Zone            string
@@ -107,6 +123,19 @@ type FeedingGroupView struct {
 	Chips           []FeedingChip
 	ApplicableCount int    // chips still applicable (apply-group button)
 	ChipRefsJSON    string // JSON item refs of the applicable chips (data-items)
+	// R4-7.14b: the chips folded into due-time sub-groups, so the time is
+	// stated once per group instead of once per animal. Parallel to Chips —
+	// same order, same members — so R4-7.5's `len(fcard.Chips) > 1` checks and
+	// the group count keep working unchanged.
+	TimeGroups []FeedingTimeGroup
+	// R4-7.14c: with more than one animal the list collapses by default. A
+	// single-animal row is one line with nothing to expand, so it renders
+	// open and these stay empty. The header still has to say what is due, so
+	// the group carries the count and the earliest time to show there.
+	Collapsible    bool
+	AnimalCount    int
+	AnimalCountCap string
+	FirstTimeLabel string // the earliest sub-group's time, for the header
 	// R4-4.3: the group's urgency tier — the most urgent NON-superseded
 	// chip's tier, the same late → now → later language the medication
 	// sections use. -1 when the group has no open work.
@@ -876,10 +905,63 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string)
 	if len(fv.Chips) == 0 {
 		return fv, false
 	}
+	finalizeFeedingChips(&fv)
 	if raw, err := jsonMarshal(refs); err == nil {
 		fv.ChipRefsJSON = string(raw)
 	}
 	return fv, true
+}
+
+// finalizeFeedingChips derives everything the row needs from its chip list:
+// the due-time sub-groups, the counts, and whether the list collapses.
+//
+// R4-7.14c: only a multi-animal row is worth collapsing — a one-line list has
+// nothing to expand, and a closed one would hide the very row the caregiver
+// has to act on.
+func finalizeFeedingChips(fv *FeedingGroupView) {
+	fv.TimeGroups = foldChipsByTime(fv.Chips)
+	fv.AnimalCount = len(fv.Chips)
+	fv.AnimalCountCap = BadgeCap(fv.AnimalCount)
+	fv.Collapsible = fv.AnimalCount > 1
+	if len(fv.TimeGroups) > 0 {
+		// The header time IS the first sub-group's, so the two cannot drift.
+		fv.FirstTimeLabel = fv.TimeGroups[0].Label
+	}
+}
+
+// foldChipsByTime groups a card's chips by the occurrence time they share, so
+// the time is stated once per group instead of once per animal (R4-7.14b).
+//
+// The groups keep the chips' existing order: a chip already arrives sorted by
+// due time, so a stable first-seen walk yields ascending time groups for free
+// and "the earliest" is always group 0 — no re-sort, no chance of the header
+// disagreeing with the first sub-group.
+func foldChipsByTime(chips []FeedingChip) []FeedingTimeGroup {
+	var groups []FeedingTimeGroup
+	index := map[string]int{}
+	for _, c := range chips {
+		key := c.DueDayKey + "|" + c.DueShortDate + "|" + c.DueHM
+		at, ok := index[key]
+		if !ok {
+			groups = append(groups, FeedingTimeGroup{
+				Label:     c.DueHM,
+				DayKey:    c.DueDayKey,
+				ShortDate: c.DueShortDate,
+				DueAt:     c.DueAt,
+			})
+			at = len(groups) - 1
+			index[key] = at
+		}
+		groups[at].Chips = append(groups[at].Chips, c)
+		groups[at].Count++
+		if c.Applicable {
+			groups[at].Applicable++
+		}
+	}
+	for i := range groups {
+		groups[i].CountCap = BadgeCap(groups[i].Count)
+	}
+	return groups
 }
 
 // feedingViewsOf builds every feeding card (cage × diet, bugs.md U1) with

@@ -56,6 +56,23 @@
   .plan-tier-body .table-hover tbody tr:hover > td {
     background-color: rgba(255, 255, 255, 0.45);
   }
+  /* R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
+     multi-animal row collapses behind a header that carries the count and the
+     earliest time — so the closed state still says what is due rather than
+     hiding it. */
+  .plan-feed-animals { min-width: 12rem; }
+  .plan-feed-header {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.15rem 0; cursor: pointer; user-select: none;
+    font-size: 0.875rem;
+  }
+  .plan-feed-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-feed-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-feed-count { font-weight: 600; }
+  .plan-feed-when { color: #6c757d; }
+  .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
+  .plan-time-group:first-child { border-top: 0; padding-top: 0; }
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
 </style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
@@ -444,7 +461,7 @@
           <div class="collapse show plan-tier-body" id="feed-tier-<%= ti %>-rows">
             <table class="table table-hover table-bordered mb-0">
               <tbody>
-                <%= for (fcard) in view.FeedTiers[ti] { %>
+                <%= for (fi, fcard) in view.FeedTiers[ti] { %>
                   <tr class="plan-feeding-row">
                     <td>
                       <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
@@ -454,14 +471,52 @@
                         <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
                       <% } %>
                     </td>
-                    <td>
-                      <%= for (chip) in fcard.Chips { %>
+                    <%# R4-7.14c: with more than one animal the list COLLAPSES by
+                        default. Measured before: 29 of 162 rows held several
+                        animals, all expanded, and the row with 47 chips stood
+                        321 px tall — so the caregiver scrolled past an
+                        undifferentiated column of animal numbers to find the
+                        one due now. A single-animal row is one line with
+                        nothing to expand, so it renders open.
+
+                        R4-7.14b: the chips are folded into due-time
+                        sub-groups, so the expected time is stated ONCE per
+                        sub-group instead of once per animal. The chip keeps the
+                        same label, link and buttons; it loses the repeated
+                        time, which the sub-group header now carries.
+
+                        The collapse id is stable across a refresh (tier index +
+                        row index), so auto-refresh does not collapse a list the
+                        caregiver has just opened. %>
+                    <td class="plan-feed-animals">
+                      <%= if (fcard.Collapsible) { %>
+                        <div class="plan-feed-header" data-toggle="collapse" data-target="#feed-animals-<%= ti %>-<%= fi %>"
+                             aria-expanded="false" role="button" tabindex="0"
+                             title="<%= t("care_plan.feeding.show_animals") %>">
+                          <span class="badge badge-pill badge-light plan-feed-count"><%= fcard.AnimalCountCap %></span>
+                          <span class="plan-feed-when">
+                            <%# The header must still say WHAT is due while the
+                                list is closed, or collapsing hides the work. %>
+                            <%= if (fcard.FirstTimeLabel != "") { %><%= t("care_plan.feeding.earliest") %> <%= fcard.FirstTimeLabel %><% } %>
+                            <% if (len(fcard.TimeGroups) > 1) { %> · +<%= len(fcard.TimeGroups) - 1 %><% } %>
+                          </span>
+                          <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+                        </div>
+                        <div class="collapse" id="feed-animals-<%= ti %>-<%= fi %>">
+                      <% } %>
+                      <%= for (tg) in fcard.TimeGroups { %>
+                        <div class="plan-time-group">
+                          <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
+                            <%# Same day-aware expression the chip used to carry,
+                                so "tomorrow 16:00" and "02/01 16:00" still read
+                                as themselves — once per sub-group. %>
+                            <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
+                            <% if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
+                          </div>
+                      <%= for (chip) in tg.Chips { %>
                         <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
                           <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
                             <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
-                            <%# R4-7.6: the EXPECTED time travels with the chip, so
-                                "late" is readable as a duration and not as a bare word. %>
-                            <%= if (chip.DueShortDate != "") { %><span class="plan-chip-due"><%= chip.DueShortDate %> <%= chip.DueHM %></span><% } else if (chip.DueDayKey != "") { %><span class="plan-chip-due"><%= t(chip.DueDayKey) %> <%= chip.DueHM %></span><% } else { %><span class="plan-chip-due"><%= chip.DueHM %></span><% } %>
                           </a>
                           <span class="d-flex align-items-center">
                             <%= if (chip.Superseded) { %>
@@ -496,6 +551,11 @@
                               <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
                             <% } %>
                           </span>
+                        </div>
+                      <% } %>
+                        </div>
+                      <% } %>
+                      <%= if (fcard.Collapsible) { %>
                         </div>
                       <% } %>
                     </td>

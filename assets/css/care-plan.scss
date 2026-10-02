@@ -65,14 +65,52 @@
   vertical-align: middle !important;
 }
 
-// R4-7.6: the expected time of a feeding occurrence travels with the chip
-// so "late" reads as a duration, not a bare word.
-.plan-chip-due {
-  color: #6c757d;
-  font-size: 0.85em;
-  margin-left: 0.35rem;
-  white-space: nowrap;
+// R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
+// multi-animal row collapses behind a header that carries the count and the
+// earliest time — so the closed state still says what is due rather than
+// hiding it.
+.plan-feed-animals {
+  min-width: 12rem;
 }
+.plan-feed-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+}
+.plan-feed-header .plan-tier-chevron {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+.plan-feed-header[aria-expanded="false"] .plan-tier-chevron {
+  transform: rotate(-90deg);
+}
+.plan-feed-count {
+  font-weight: 600;
+}
+.plan-feed-when {
+  color: #6c757d;
+}
+.plan-time-group {
+  border-top: 1px dotted rgba(0, 0, 0, 0.15);
+  padding-top: 0.15rem;
+}
+.plan-time-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.plan-time-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+// R4-7.6's `.plan-chip-due` was removed together with its markup: the expected
+// time is now the sub-group label (R4-7.14b), so no rule targets a per-chip
+// time span any more.
 
 // R4-4.3: the feeding urgency sections are anchor targets too — offset the
 // scroll so a jumped section is not hidden behind the fixed topbar.

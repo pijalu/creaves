@@ -238,7 +238,7 @@ settable by anyone who can already edit the animal, permanent until removed,
 logging who set it and why. Needs an additive table + engine rule (no
 destructive migration — see the session constraint).
 
-### R4-7.14 — Compact feeding rows (**Parts 1-3 Done, 4-5 Open**)
+### R4-7.14 — Compact feeding rows (**Done** — 5/5)
 
 `/care_plan?view=compact&kind=feeding`:
 
@@ -275,8 +275,30 @@ assumed:
   belonged to the first animal. `.plan-feed-check` centres it: `vTop=145.5
   vBot=145.5`.
 
-**Parts 4-5 remain open** — the repeated time per chip and the always-expanded
-multi-animal list. Two new todos (t25, t26).
+**Parts 4-5 fixed.** Both were re-measured in the live DOM before any edit:
+
+- **4 (repeated time)** — the time was per-*chip* markup, so a cage of six
+  animals fed at `08:00` printed `08:00` six times: **351 chips for 167 distinct
+  (day, time) pairs**, the worst row carrying `WASTED_TIME_LABELS=5`. The chip's
+  `plan-chip-due` span is gone; the time is now the **sub-group heading**.
+  `foldChipsByTime` keys on `day|short-date|time` — so `16:00 today` and `16:00
+  tomorrow` stay two sub-groups rather than merging — and keeps first-seen
+  order, which makes group 0 the earliest by construction. After:
+  `chipsStillCarryingOwnTime=0`, one `plan-time-label` per sub-group
+  (`timeLabels=167`), and the page shrank `21476 → 12784 px`.
+- **5 (no collapse)** — **29 of 162** rows hold several animals (133 hold one);
+  all were expanded, the largest **321 px** tall. A row is collapsible only when
+  `AnimalCount > 1`, so a single-animal row never gains a header to open. It
+  renders **closed by default** (`aria-expanded="false"`, `class="collapse"`),
+  keyboard-operable like the tier headers, and the collapsed header still
+  carries the count badge plus `from 08:00` — so collapsing tidies the screen
+  without hiding what is due. `COLLAPSED=29 EXPANDED=0`, `noHeader=133`, and
+  `GROUPCHECK vTop=10.5 vBot=10.5 cellH=51` (was 321) — the check is centred
+  again for the same reason as part 3.
+
+R4-7.6's per-chip `plan-chip-due` assertion in `TestFeedingSectionRender` was
+**retargeted, not deleted**: its intent (the time is visible) is now asserted as
+one label per sub-group, plus a `NotContains` that no animal repeats a time.
 
 ### R4-7.15 — Compact medication animal column is ragged (**Open**)
 
@@ -462,3 +484,23 @@ intact (`To do`/`À faire`/`Zu erledigen`/`Te doen` = clock, `Done`/`Fait`/
 `Erledigt`/`Gedaan` = check). Gates clean; the 7 `actions` failures are the
 identical pre-existing set. Evidence:
 `tmp/browser_evidence/round7/e2e-round7-part3-todo-glyph.md`.
+
+### TEST-1 — `TestAnimalSearchFiltersANDCombined` flakes on fixture collision (**Open**, test-infra, pre-existing)
+
+Not a product defect. The animal-search fixture derives its unique
+`(year, yearNumber)` from `MAX(yearNumber)+1` plus a hash (`animals_test.go:93`).
+`sweepStaleFixtureRows` only deletes animals with `cage LIKE 'CP-%'/'OTHER-%'`,
+but the search fixtures are written with `cage = NULL`, so they accumulate. As
+`MAX(yearNumber)` grows each run, the hashed offset can land on an already-taken
+`(year, yearNumber)` and the fixture insert fails with
+`Error 1062 Duplicate entry … animals.animals_year_yearNumber_idx`.
+
+Observed during R4-7.14b/c gating: the **same** feature code passed the test in
+two consecutive full `-race` runs and failed in a third; it also passes 3/3 in
+isolation and 3/3 in its `-race` group, and passed on HEAD in a full run. So it
+is a flaky isolation gap, not a regression — but it intermittently adds a 8th
+failure and pollutes the gate diff.
+
+Fix (separate, test-infra): extend the sweep to drop `NULL`-cage search fixtures
+(e.g. `species LIKE 'Testsp %'`), or make the yearNumber derivation provably
+collision-free. Not fixed here to keep this commit to the feeding UI change.

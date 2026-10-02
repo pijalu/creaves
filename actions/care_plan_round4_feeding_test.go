@@ -146,8 +146,16 @@ func TestFeedingSectionRender(t *testing.T) {
 			"count is a corner overlay badge, rendered at N=2 (darker badge: R4-7.5)")
 		require.Contains(t, out, `class="sr-only"`, f, "status stays available to assistive tech")
 		require.Contains(t, out, `aria-label="care_plan.card.apply_group (2)"`, f, "count in the a11y label")
-		require.Contains(t, out, `<span class="plan-chip-due">08:00</span>`, f,
-			"R4-7.6: the chip shows its expected time")
+		// R4-7.6 asked the chip to show its expected time; R4-7.14b moved
+		// that time ONTO the sub-group, because six animals fed at 08:00
+		// printed 08:00 six times. The time is still on screen, and it is
+		// still the same time — stated once per sub-group, not per animal.
+		require.Equal(t, 2, strings.Count(out, `class="plan-time-label"`), f,
+			"R4-7.14b: one time label per sub-group (08:00 and 10:15 here)")
+		require.Contains(t, out, "care_plan.feeding.earliest 08:00", f,
+			"R4-7.14c: the collapsed header states the earliest time")
+		require.NotContains(t, out, "plan-chip-due", f,
+			"R4-7.14b: no animal repeats a time the sub-group already states")
 		require.Contains(t, out, "plan-feeding-one", f,
 			"R4-7.5: with several animals the per-animal check stays")
 		require.NotContains(t, out, "plan-apply-space", f,

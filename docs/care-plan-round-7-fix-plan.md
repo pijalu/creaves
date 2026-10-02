@@ -223,7 +223,7 @@ actually logged and return to the exact row.
 link with a `back=` parameter pointing at the care-plan page.
 ---
 
-## R4-7.14 Compact feeding: red late rows, execution order, centred check — **Parts 1-3 Done**
+## R4-7.14 Compact feeding: red late rows, execution order, centred check — **Done (5/5)**
 
 `/care_plan?view=compact&kind=feeding` feedback, five parts:
 
@@ -279,11 +279,57 @@ Implemented as planned, with two corrections the measurements forced:
   time wins every `Before` comparison — so "unknown due time" sorted to the
   very TOP of the section. Such a group now sorts last.
 
-Parts 4-5 are tracked separately (t25, t26). Verified en-US/fr/de/nl:
-`effectiveRowBg=rgb(248,215,218)`, `dotColor=rgb(220,53,69)`,
-`ASCENDING_BY_EARLIEST_DUE=true unsortedKeys=0`, `vTop=145.5 vBot=145.5`,
-`H_OVERFLOW=false` — byte-identical in all four locales. Five new tests, each
-verified to fail on the pre-change code.
+Parts 1-3 verified en-US/fr/de/nl: `effectiveRowBg=rgb(248,215,218)`,
+`dotColor=rgb(220,53,69)`, `ASCENDING_BY_EARLIEST_DUE=true unsortedKeys=0`,
+`vTop=145.5 vBot=145.5`, `H_OVERFLOW=false` — byte-identical in all four
+locales. Five new tests, each verified to fail on the pre-change code.
+
+### Outcome — parts 4-5 (t25, t26)
+
+- **Part 4** — the time was per-chip markup, so six animals fed at `08:00`
+  printed `08:00` six times (`WASTED_TIME_LABELS=5`). `foldChipsByTime` keys on
+  `DayKey|ShortDate|DueHM`, so `16:00 today` and `16:00 tomorrow` remain two
+  sub-groups instead of collapsing into one label, and it preserves first-seen
+  order — which is what lets `FinalizeFeedingChips` set `FirstTimeLabel` from
+  `TimeGroups[0]` and makes the collapsed header structurally unable to disagree
+  with the first sub-group. After: `chipsStillCarryingOwnTime=0`, one
+  `plan-time-label` per sub-group.
+- **Part 5** — 29 of 162 rows hold several animals; 133 hold exactly one and must
+  **not** gain a header (`Collapsible` is `AnimalCount > 1`, not a property of
+  the section). The header is a `role="button"` div with the same
+  Enter/Space handling as the tier headers, and carries the count badge plus the
+  `from <time>` prefix — collapsing must not hide what is due.
+
+  A measurement caveat: `aria-expanded` flips to `true` immediately, but the
+  `.collapse` pane only reaches full height after Bootstrap's ~350 ms transition,
+  so a **synchronous** `eval` right after the click reads `after=false`. Confirmed
+  open after 1 s: `show=true paneHeight=212 chips=6 timeLabels=1`.
+
+Verified en-US/fr/de/nl (`/care_plan?kind=feeding`), byte-identical across
+locales except for the `from`/`dès`/`ab`/`vanaf` word:
+
+```
+rows=162 multi=29 single=133
+headers=29 noHeader=133 COLLAPSED=29 EXPANDED=0    COLLAPSE_DEFAULT_OK=true
+chips=351 chipsStillCarryingOwnTime=0               TIME_STATED_ONCE=true
+timeLabels=167            OPEN_ROW0 timeGroups=1 chips=6 chipsRepeatingTime=0
+CLOSED_ROWS_STATING_TIME=29/29
+GROUPCHECK vTop=10.5 vBot=10.5 cellH=51
+PAGE_HEIGHT=12784 (was 21476)                        H_OVERFLOW=false
+```
+
+`totalIds=91 duplicatedIds=0 ID_UNIQUE=true` and
+`feedHeaderTargets=29 targetsThatResolve=29` — the collapse id embeds
+`feed-animals-<tier>-<row>`, which is what makes 29 collapsible rows on one page
+legal HTML. Duplicate ids would silently break every `data-target` after the
+first, and `getElementById` would have returned the wrong pane.
+
+Eight new tests in `actions/care_plan_round7_feeding_groups_test.go`. Five are
+pure-Go (fold order, day keying, collapse gating); the three asset assertions —
+template markup, locale keys, SCSS — were each verified to fail on the
+pre-change assets. `TestFeedingSectionRender`'s R4-7.6 `plan-chip-due`
+assertion was **retargeted** to the new invariant (one label per sub-group +
+`NotContains plan-chip-due`), not deleted.
 
 ---
 
