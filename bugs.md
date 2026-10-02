@@ -376,3 +376,66 @@ Audited truncation sites:
 Fix: a shared, rune-safe, word-boundary truncator used by every name/content
 writer; and where a description is too long for a cell it must **wrap or be
 reachable in full**, never silently cut.
+
+### R4-7.25 — A ✓ marks an item that is still **to do** (**Done**)
+
+> "instead of using a check mark for item to do - use the same as treatment
+> `treatments/062b233c-…?back=%2Fcare_plan%3Fkind%3Dmedication`"
+
+Measured on the live pages:
+
+| page | marker for an open (to-do) item |
+|---|---|
+| `/treatments/:id` | `<span class="badge badge-warning"><i class="far fa-clock"></i> To do</span>` — a **clock**, amber |
+| `/treatments/:id`, already done | `<span class="badge badge-success"><i class="fas fa-check"></i> Done</span>` |
+| `/care_plan` (every kind) | `<button class="… plan-apply-btn"><i class="fas fa-check"></i></button>` — a **solid check** |
+
+Both pages end up applying the very same treatment, so the same object is called
+"Done" on one page and "to do" on the other. The ✓ is the app-wide **completed**
+glyph: it is the dashboard's "Done" submit, the todos' "Fait / Erledigt /
+Klaar", `drugs`/`cares` checkboxes, and the treatment page's own *done* badge.
+Putting it on a button whose job is to *perform* the item means the user reads
+the button's face as the item's state, and gets it backwards — the row looks
+finished before anything was recorded.
+
+FontAwesome is genuinely loaded (`/assets/application.*.css` + the i2svg
+runtime, which swaps the `<i>` for an inline `<svg class="svg-inline--fa
+fa-check">`), so this is a wrong-glyph bug, not a missing-icon bug: the check is
+drawn at 12.45×16 px inside a 32 px button.
+
+Fix: adopt the treatment page's language verbatim — **open item = clock**
+(`far fa-clock`), **done item = check** (`fas fa-check`). Applied to every
+care-plan "record this" control, in all four locales:
+
+- `templates/care_plan/index.plush*.html` — 6 × `fas fa-check`
+  (`.plan-apply-btn` ×3, `.plan-feeding-one`, `.plan-feeding-apply`,
+  `.plan-cage-apply`)
+- `templates/animals/show.plush*.html` — 1 × `fas fa-check` (`.plan-apply-btn`)
+
+Deliberately **not** touched:
+- `_med_series.plush.html` — its `○ HH:MM` (open) / `✓ HH:MM` (green, applied)
+  already uses check = done. It becomes *more* consistent with the change.
+- `animals/show.plush.html:777` — `fa-check`/`fa-times` answer "does this
+  protocol replace the kind?", a yes/no fact, not a to-do.
+- the green `btn-success` treatment modal/slot buttons — green = applied, and
+  `TestSlotTierClass` pins it.
+
+Plan: §R4-7.25.
+
+Fixed: `fas fa-check` → `far fa-clock` on the 7 to-do controls per locale fork
+(28 replacements, whole-line and count-asserted). The language is now one
+glyph: **clock = to do, check = done**, on both pages.
+
+The swap also removed a latent defect: R4-7.5's invisible `plan-apply-space`
+spacer is 34 px while the control it stands in for was 32 px, so a cage gaining
+or losing a co-diner shifted the row by 2 px. `min-width: 2.1rem` on the four
+to-do controls makes them agree — and pins the width against the clock being
+0.89 px narrower than the check it replaced.
+
+Verified in en-US/fr/de/nl on `/care_plan?kind=feeding|observation|medication`
+and `/animals/10312?back=#nav-plan`: `ANY_CHECK_ON_TODO=0` everywhere, widths
+`{"34":218,"42":162}` on feeding, and the treatment page's localized pair
+intact (`To do`/`À faire`/`Zu erledigen`/`Te doen` = clock, `Done`/`Fait`/
+`Erledigt`/`Gedaan` = check). Gates clean; the 7 `actions` failures are the
+identical pre-existing set. Evidence:
+`tmp/browser_evidence/round7/e2e-round7-part3-todo-glyph.md`.

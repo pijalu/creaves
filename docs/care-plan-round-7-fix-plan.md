@@ -585,3 +585,114 @@ be reachable in full** — never cut.
 **Test**: `TestNoDescriptionIsCutMidWord` over the conversion fixtures, plus a
 template assertion that no description cell uses a fixed width with hidden
 overflow.
+
+---
+
+## R4-7.25 A ✓ marks an item that is still **to do** — **Done**
+
+> "instead of using a check mark for item to do - use the same as treatment
+> `treatments/062b233c-…?back=%2Fcare_plan%3Fkind%3Dmedication`"
+
+### Measured before-state
+
+`/treatments/062b233c-…` — one row per expected time, and the status column
+reads (live DOM, en-US):
+
+```
+status[0] <span class="badge badge-success entry-status"> <svg … fa-check> Done · 20:10   bg=rgb(40,167,69)
+status[1] <span class="badge badge-warning entry-status"> <svg … fa-clock> To do          bg=rgb(255,193,7)
+toggle[0] <button class="btn btn-outline-warning entry-toggle"> ○  title="Mark as not done"
+toggle[1] <button class="btn btn-outline-success entry-toggle"> ✓  title="Mark as done"
+```
+
+So the treatment page's language is unambiguous and it is the reference:
+
+> **to do = a clock, amber · done = a check, green**
+
+`/care_plan?kind=observation` — 23 open items, every one of them:
+
+```
+apply[0] <button class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
+              data-kind="observation" title="Apply">
+              <svg class="svg-inline--fa fa-check fa-w-16" …>   color=rgb(108,117,125)
+```
+
+`fas fa-check` on a button titled "Apply". The same glyph is the dashboard's
+**Done** submit, the todos' **Fait / Erledigt / Klaar**, and `drugs`/`cares`
+checkboxes. The button's face is read as the item's state, and it says the item
+is finished before anything was recorded. Same treatment, two verdicts.
+
+**Not a missing-icon bug.** FontAwesome is loaded
+(`/assets/application.fb1efe0c4000d5dffa0a.css`) and its i2svg runtime has
+already swapped every `<i class="fas fa-check">` for an inline
+`<svg class="svg-inline--fa fa-check fa-w-16">` (12.45 × 16 px inside the
+32 × 31 px button). The glyph is drawn; it is simply the wrong one.
+
+### Fix
+
+Adopt the treatment page's pair verbatim. `fas fa-check` → `far fa-clock`
+on every care-plan control whose action is *record this item*:
+
+| file | selector | count |
+|---|---|---|
+| `templates/care_plan/index.plush{,.fr,.de,.nl}.html` | `.plan-apply-btn` | 3 |
+| `templates/care_plan/index.plush{,.fr,.de,.nl}.html` | `.plan-feeding-one` | 1 |
+| `templates/care_plan/index.plush{,.fr,.de,.nl}.html` | `.plan-feeding-apply` | 1 |
+| `templates/care_plan/index.plush{,.fr,.de,.nl}.html` | `.plan-cage-apply` | 1 |
+| `templates/animals/show.plush{,.fr,.de,.nl}.html` | `.plan-apply-btn` | 1 |
+
+8 replacements per locale fork, 32 total. Each sits on its own line (or, for the
+three `.plan-apply-btn`s, on the single `title=…"><i class="fas fa-check">`
+line), so the edit is a whole-line, per-file, count-asserted replacement — no
+`re.S` block moves anywhere near `<%# %>` comments.
+
+### Deliberately unchanged
+
+- `_med_series.plush.{html,fr,de,nl}.html` — the medication slot buttons already
+  read `○ HH:MM` open / `✓ HH:MM` green applied, i.e. check = done. The change
+  makes the *slot* language and the *item* language agree.
+- `animals/show.plush*.html:777` — `fa-check` / `fa-times` there answer "does
+  this protocol replace the kind?", a yes/no fact, not a to-do.
+- `btn-success` on the apply-modal submit and on applied slots — green stays
+  reserved for *applied*; `TestSlotTierClass` pins it.
+- the apply buttons keep `btn-outline-secondary`, deliberately **not** the
+  treatment page's `btn-outline-success`: green outline would claim the item is
+  already done, which is precisely the bug being fixed.
+
+### Tests
+
+`TestItemToDoUsesTheClockNotTheCheck` — for all four locale forks:
+1. no `fas fa-check` inside any `plan-apply-btn` / `plan-feeding-one` /
+   `plan-feeding-apply` / `plan-cage-apply` in the rendered HTML;
+2. every such control carries `far fa-clock`;
+3. the treatment page's `entry-status` pending badge still uses `far fa-clock`,
+   and its done badge still uses `fas fa-check` — the reference pair is pinned
+   so the two pages cannot drift apart again;
+4. `_med_series` keeps `✓` on the applied slot and `○` on the open slot.
+
+### e2e
+
+All four locales, `/care_plan?kind=observation`, `/care_plan?kind=feeding`,
+`/care_plan?kind=medication`, `/animals/10312?back=#nav-plan`,
+`/treatments/062b233c-…`: assert
+`buttons with i/svg.fa-check AND class plan-apply* == 0`, `fa-clock count == the
+open-item count`, and that the button's rendered box still holds its previous
+width (32 px, so the 3-button group does not reflow).
+
+### Outcome
+
+Applied as planned: 28 whole-line replacements (7 per locale fork), each
+count-asserted. The width pin in `assets/css/care-plan.scss` turned out to fix
+a **second, pre-existing** defect rather than only guard against the swap —
+R4-7.5's spacer was 34 px and the control it stands in for 32 px, so a cage
+gaining or losing a co-diner shifted the row. `min-width: 2.1rem` aligns them.
+
+Post-change, en-US/fr/de/nl: `ANY_CHECK_ON_TODO=0` on
+`/care_plan?kind=feeding|observation|medication` and
+`/animals/10312?back=#nav-plan`; feeding widths `{"34":218,"42":162}`;
+`H_OVERFLOW=false`; the treatment page's localized pair unchanged. Six new
+tests (max gocognit 12, gocyclo 9), each verified to fail on the pre-change
+templates. Gates clean; the 7 `actions` failures are byte-for-byte the
+pre-existing baseline set.
+
+Full measurements: `tmp/browser_evidence/round7/e2e-round7-part3-todo-glyph.md`.

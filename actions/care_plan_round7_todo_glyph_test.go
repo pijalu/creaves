@@ -1,0 +1,207 @@
+package actions
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+// R4-7.25: "instead of using a check mark for item to do — use the same as
+// treatment".
+//
+// Measured before the change:
+//
+//	treatments/:id   open item -> <span class="badge badge-warning entry-status">
+//	                              <i class="far fa-clock"></i> To do
+//	                 done item -> <span class="badge badge-success entry-status">
+//	                              <i class="fas fa-check"></i> Done
+//	care_plan        open item -> <button … plan-apply-btn
+//	                              title="Apply"><i class="fas fa-check"></i>
+//
+// So the very same treatment read "Done" on one page and "to do" on the other,
+// and the ✓ is the app-wide COMPLETED glyph (dashboard "Done", todos "Fait",
+// drugs/cares checkboxes). The treatment page's pair is the reference and is
+// now the single language: clock = to do, check = done.
+//
+// The glyph lives in markup, not in Go, so this is asserted against the four
+// locale forks; the rendered proof is the agent-browser pass recorded in
+// tmp/browser_evidence/round7/.
+
+// todoGlyphControls are the controls whose job is "record this item" — the
+// ones that used to carry a check.
+var todoGlyphControls = []string{
+	"plan-apply-btn",
+	"plan-feeding-one",
+	"plan-feeding-apply",
+	"plan-cage-apply",
+}
+
+// carePlanToDoForks: every locale fork that renders a to-do control.
+var carePlanToDoForks = []string{
+	"../templates/care_plan/index.plush.html",
+	"../templates/care_plan/index.plush.fr.html",
+	"../templates/care_plan/index.plush.de.html",
+	"../templates/care_plan/index.plush.nl.html",
+	"../templates/animals/show.plush.html",
+	"../templates/animals/show.plush.fr.html",
+	"../templates/animals/show.plush.de.html",
+	"../templates/animals/show.plush.nl.html",
+}
+
+// isReplacesKindYesNo reports whether a line's check is the animal page's "does
+// this protocol replace the kind?" cell — a yes/no fact, not a to-do. It is
+// the one legitimate survivor of the swap.
+func isReplacesKindYesNo(line string) bool {
+	return strings.Contains(line, "p.ReplacesKind")
+}
+
+// requireNoCheckOnToDoControls fails if any check mark sits on a line that also
+// opens a to-do control.
+func requireNoCheckOnToDoControls(t *testing.T, fork, raw string) {
+	t.Helper()
+	for _, line := range strings.Split(raw, "\n") {
+		if !strings.Contains(line, "fas fa-check") || isReplacesKindYesNo(line) {
+			continue
+		}
+		for _, c := range todoGlyphControls {
+			require.NotContains(t, line, c,
+				fork+": a check still marks a to-do control ("+c+")")
+		}
+	}
+}
+
+// clockInsideToDoControls walks the markup and pairs every to-do control's
+// opening tag with the glyph that closes it, so a control cannot lose the clock
+// and a stray clock cannot be counted in its place. The buttons here hold
+// exactly one icon child, so the glyph is whatever sits between the control's
+// opening tag and its `</button>`. Returns how many controls it saw.
+func clockInsideToDoControls(t *testing.T, fork, raw string) int {
+	t.Helper()
+	seen := 0
+	for _, c := range todoGlyphControls {
+		needle := " " + c
+		for rest := raw; ; {
+			at := strings.Index(rest, needle)
+			if at < 0 {
+				break
+			}
+			body := rest[at+len(needle):]
+			// The class may end there, or continue: the animal page appends a
+			// Plush conditional (`plan-apply-btn<%= if … %> plan-feeding-entry`).
+			// Anything else is a longer name that merely starts the same way.
+			if len(body) == 0 || (body[0] != '"' && body[0] != ' ' && body[0] != '<') {
+				rest = body
+				continue
+			}
+			tag := rest[at:]
+			open := strings.Index(tag, ">")
+			closing := strings.Index(tag, "</button>")
+			require.True(t, open >= 0 && closing > open,
+				fork+": unterminated "+c+" control")
+			inner := tag[open+1 : closing]
+			require.Contains(t, inner, `<i class="far fa-clock"></i>`,
+				fork+": "+c+" must open with the treatment page's clock")
+			require.NotContains(t, inner, `fa-check`,
+				fork+": "+c+" must not open with the completed check")
+			seen++
+			rest = tag[closing:]
+		}
+	}
+	return seen
+}
+
+// TestNoCheckMarksAToDoItem: the regression itself, per fork.
+func TestNoCheckMarksAToDoItem(t *testing.T) {
+	for _, f := range carePlanToDoForks {
+		raw := readTemplate(t, f)
+		requireNoCheckOnToDoControls(t, f, raw)
+		require.Greater(t, clockInsideToDoControls(t, f, raw), 0,
+			f+": no to-do control found — the class names drifted, the assertion "+
+				"is now vacuous")
+	}
+}
+
+// TestEveryToDoControlCarriesTheClock: 6 to-do controls per care-plan index
+// fork and 1 per animal-page fork. A count floor, so the swap cannot
+// half-apply to one locale.
+func TestEveryToDoControlCarriesTheClock(t *testing.T) {
+	total := 0
+	for _, f := range carePlanToDoForks {
+		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
+	}
+	require.GreaterOrEqual(t, total, 28,
+		"expected the clock 7 times per locale fork (6 in the index, 1 in the "+
+			"animal page) = 28")
+}
+
+// TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the
+// user named, so it must keep saying clock = to do, check = done. If someone
+// later "tidies" the treatment badge, the two pages drift apart again and this
+// is the test that says so.
+func TestTreatmentPageKeepsTheReferencePair(t *testing.T) {
+	for _, f := range []string{
+		"../templates/treatments/show.plush.html",
+		"../templates/treatments/show.plush.fr.html",
+		"../templates/treatments/show.plush.de.html",
+		"../templates/treatments/show.plush.nl.html",
+	} {
+		raw := readTemplate(t, f)
+		require.Contains(t, raw, `<i class="far fa-clock"></i>`,
+			f+": the pending badge must keep the clock (the to-do reference)")
+		require.Contains(t, raw, `<i class="fas fa-check"></i>`,
+			f+": the done badge must keep the check (the done reference)")
+		// And the toggle: pending shows ✓ ("mark as done"), done shows ○.
+		require.Contains(t, raw, `entry.Status == "done"`,
+			f+": the entry toggle must keep its done/to-do split")
+	}
+}
+
+// TestMedicationSlotsKeepTheirOwnPair: the medication slot buttons already
+// spoke this language — open `○`, applied `✓` in a green button. Pinned so the
+// glyph work never "simplifies" them into a check for an open slot.
+func TestMedicationSlotsKeepTheirOwnPair(t *testing.T) {
+	for _, f := range []string{
+		"../templates/care_plan/_med_series.plush.html",
+		"../templates/care_plan/_med_series.plush.fr.html",
+		"../templates/care_plan/_med_series.plush.de.html",
+		"../templates/care_plan/_med_series.plush.nl.html",
+	} {
+		raw := readTemplate(t, f)
+		require.Contains(t, raw, `>○ <%= slot.DueAtHM %>`,
+			f+": an open medication slot must stay an empty circle")
+		require.Contains(t, raw, `>✓ <%= slot.DueAtHM %>`,
+			f+": an applied medication slot must keep the check")
+	}
+}
+
+// TestToDoGlyphDoesNotReflowTheButtonGroup: the clock (11.56 px) is narrower
+// than the check it replaced (12.45 px). R4-4.2 exists precisely so a control
+// never changes size, so the width is pinned in CSS rather than left to the
+// glyph's metrics.
+func TestToDoGlyphDoesNotReflowTheButtonGroup(t *testing.T) {
+	css := readTemplate(t, "../assets/css/care-plan.scss")
+	for _, c := range todoGlyphControls {
+		require.Contains(t, css, "."+c,
+			"the to-do control ."+c+" must be in the width-pinned rule")
+	}
+	require.Contains(t, css, "min-width: 2.1rem",
+		"the to-do controls must keep the footprint of the check they replaced")
+}
+
+// TestToDoControlIsNeverGreen: green is reserved for "applied". An apply
+// control that turned green would read as done before it is done — which is
+// the bug R4-7.25 is fixing, in colour instead of in a glyph.
+func TestToDoControlIsNeverGreen(t *testing.T) {
+	for _, f := range carePlanToDoForks {
+		for _, line := range strings.Split(readTemplate(t, f), "\n") {
+			for _, c := range todoGlyphControls {
+				if !strings.Contains(line, c) {
+					continue
+				}
+				require.NotContains(t, line, "btn-success",
+					f+": a to-do control ("+c+") must not be green")
+			}
+		}
+	}
+}

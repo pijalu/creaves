@@ -42,6 +42,20 @@
   vertical-align: middle;
 }
 
+// R4-7.25: the to-do glyph is now the treatment page's CLOCK (fa-clock,
+// 11.56 px) instead of the check (fa-check, 12.45 px). Pinned so swapping the
+// glyph can never reflow the ℹ / ⏭ / ↺ button group — the width a control
+// has while the item is to do must be the width it has after it is done.
+.plan-apply-btn,
+.plan-feeding-one,
+.plan-feeding-apply,
+.plan-cage-apply {
+  min-width: 2.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 // R4-7.6: the expected time of a feeding occurrence travels with the chip
 // so "late" reads as a duration, not a bare word.
 .plan-chip-due {

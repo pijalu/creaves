@@ -174,7 +174,7 @@
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
                       data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
                     <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -266,7 +266,7 @@
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
                       data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
                     <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -358,7 +358,7 @@
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
                       data-source-name="<%= card.SourceName %>"
-                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                      title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
                     <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -460,7 +460,7 @@
                                     data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
                                     data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
                                     data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                    title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                                    title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
                                   <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
                                     data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
                                     data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
@@ -488,7 +488,7 @@
                             data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
                             aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
                             title="<%= t("care_plan.card.apply_group") %>">
-                            <i class="fas fa-check"></i>
+                            <i class="far fa-clock"></i>
                           </button>
                           <%# R4-7.5: a lone animal needs no counter — the pill only
                               says "1" — and a darker badge stays readable
@@ -531,7 +531,7 @@
                   data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
                   aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
                   title="<%= t("care_plan.card.apply_cage") %>">
-                  <i class="fas fa-check"></i>
+                  <i class="far fa-clock"></i>
                 </button>
                 <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>
               </span>
