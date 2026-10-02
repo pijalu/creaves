@@ -99,6 +99,12 @@
 .plan-med-cell {
   display: inline-flex;
   align-items: center;
+  // R4-7.8: "buttons on a table should be aligned to offer a clear and clean
+  // view". A fixed cell width + right-align puts every time button's LEFT edge
+  // on the same x, so the column of times reads as a column instead of a
+  // ragged wrap. Width fits the widest "✓ HH:MM" button.
+  min-width: 4.75rem;
+  justify-content: flex-end;
   margin: 0 0.25rem 0.25rem 0;
 }
 // R4-2.4: the morning/noon/evening grouping cue is LABELLED, not an
@@ -113,6 +119,10 @@
   border-top: 1px solid #dee2e6;
   margin: 0.25rem 0;
   padding-top: 0.15rem;
+  // R4-7.8: a bucket caption reserves the same height whether or not it
+  // carries a border, so the buttons after every bucket start at the same y —
+  // the day groups read as aligned bands.
+  min-height: 1.1rem;
 }
 
 // R4-3.3: an open LATE item on the animal tabs reads as a red row (the
