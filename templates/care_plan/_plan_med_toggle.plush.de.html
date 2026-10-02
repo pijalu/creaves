@@ -99,8 +99,8 @@
   function markApplied(ref) {
     var btn = ref.btn;
     if (!btn) { return; }
-    btn.classList.remove('btn-warning', 'btn-light', 'plan-apply-btn');
-    btn.classList.add('btn-success', 'plan-unapply-btn');
+    btn.classList.remove('btn-warning', 'btn-light', 'plan-med-apply');
+    btn.classList.add('btn-success', 'plan-med-unapply');
     btn.textContent = '✓ ' + ref.hm;
     btn.disabled = false;
   }
@@ -108,8 +108,8 @@
   function markOpen(ref) {
     var btn = ref.btn;
     if (!btn) { return; }
-    btn.classList.remove('btn-success', 'plan-unapply-btn');
-    btn.classList.add('btn-warning', 'plan-apply-btn');
+    btn.classList.remove('btn-success', 'plan-med-unapply');
+    btn.classList.add('btn-warning', 'plan-med-apply');
     btn.textContent = '○ ' + ref.hm;
     btn.disabled = false;
   }
@@ -171,9 +171,9 @@
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest ? ev.target.closest('.plan-med-slot') : null;
     if (!btn) { return; }
-    if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
+    if (btn.classList.contains('plan-med-unapply')) { unapplySlot(btn); return; }
     if (btn.disabled) { return; }
-    if (!btn.classList.contains('plan-apply-btn')) { return; }
+    if (!btn.classList.contains('plan-med-apply')) { return; }
     if (btn.getAttribute('data-late') === 'true' && !window.confirm(i18n.lateConfirm)) { return; }
     applySlot(btn);
   });

@@ -38,10 +38,15 @@
           <% } %>
           <div class="text-nowrap med-series-row">
             <%= for (slot) in row.Slots { %>
+              <%# R3-5: a series spans several days — slots not due today
+                  carry their day qualifier as a small badge BEFORE the
+                  button (outside it: the toggle JS rewrites the button
+                  text on apply/undo, the badge stays). %>
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border mr-1 mb-1 plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border mr-1 mb-1 plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
               <%= if (slot.Applied) { %>
                 <%# R5-2c: ONE toggle per slot — the done button stays
                     live (re-click undoes, no confirm, no reload). %>
-                <button type="button" class="btn btn-success btn-sm plan-med-slot mr-1 mb-1<%= if (slot.CanUndo) { %> plan-unapply-btn<% } %>"
+                <button type="button" class="btn btn-success btn-sm plan-med-slot mr-1 mb-1<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
                   <%= if (!slot.CanUndo) { %>disabled <% } %>
                   data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                   data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
@@ -54,7 +59,7 @@
                 <button type="button" class="btn btn-light btn-sm plan-med-slot mr-1 mb-1" disabled
                   title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></button>
               <% } else if (slot.Applicable) { %>
-                <button type="button" class="btn btn-warning btn-sm plan-med-slot plan-apply-btn mr-1 mb-1"
+                <button type="button" class="btn btn-warning btn-sm plan-med-slot plan-med-apply mr-1 mb-1"
                   data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                   data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
                   data-kind="medication"
@@ -64,7 +69,7 @@
               <% } else if (slot.LateAllowed) { %>
                 <%# §6.2-2: past-due, unapplied, out of the apply window —
                     dimmed but clickable: record anyway (late). %>
-                <button type="button" class="btn btn-light btn-sm plan-med-slot plan-apply-btn mr-1 mb-1"
+                <button type="button" class="btn btn-light btn-sm plan-med-slot plan-med-apply mr-1 mb-1"
                   data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                   data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
                   data-kind="medication" data-late="true"

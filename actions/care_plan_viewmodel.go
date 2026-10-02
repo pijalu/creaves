@@ -113,14 +113,21 @@ type FeedingGroupView struct {
 // card: the slot (morning/noon/evening) toggle state plus everything the
 // toggle/undo/detail UI needs.
 type MedSlotView struct {
-	Slot            string // "morning" | "noon" | "evening" (i18n key suffix)
-	Detail          string // drug — dosage
-	SourceName      string
-	SourceType      string
-	SourceID        string
-	DueAt           time.Time
-	DueAtRFC        string
-	DueAtHM         string // "15:04"
+	Slot       string // "morning" | "noon" | "evening" (i18n key suffix)
+	Detail     string // drug — dosage
+	SourceName string
+	SourceType string
+	SourceID   string
+	DueAt      time.Time
+	DueAtRFC   string
+	DueAtHM    string // "15:04"
+	// R3-5: day qualifier when the slot is NOT due today — the template
+	// composes the label from DueDayKey (yesterday/tomorrow i18n key) or
+	// DueShortDate ("02/10"). A multi-day series renders several slots
+	// with the same clock time; the qualifier keeps each occurrence
+	// identifiable (yesterday's late 08:00 ≠ tomorrow's).
+	DueDayKey       string
+	DueShortDate    string
 	Status          string
 	Done            bool // applied/skipped/deferred (has an application row)
 	Applied         bool
@@ -156,10 +163,18 @@ type MedSeriesRow struct {
 // shared `_med_series` partial renders it identically on the care plan,
 // the dashboard and the animal Treatment tab.
 type MedSeriesView struct {
-	Key   string // merge key: drug — dosage
-	Label string // display: drug — dosage
-	Rows  []MedSeriesRow
+	Key        string // merge key: drug — dosage
+	Label      string // display: drug — dosage
+	Rows       []MedSeriesRow
+	Tier       int       // most urgent open slot's tier (R3-5 tier placement)
+	FirstDueAt time.Time // earliest open slot's due time (tier sort)
 }
+
+// MedTierLine is one rendered medication line of the work screen (R3-5):
+// `<animal> — <series.Label> | hour toggles`, placed in its urgency tier.
+// It is a MedGroupView narrowed to exactly one series so the shared
+// `_med_series` partial renders the line unchanged.
+type MedTierLine = MedGroupView
 
 // MedGroupView is one rendered per-animal medication card: all medication
 // occurrences of the day for one animal, in slot order — the single view
@@ -206,12 +221,16 @@ type CareView struct {
 // series) — the grouped feeding/cleanup sections as lists, history last.
 type DayPlanView struct {
 	// Tiers[i] = urgency section: 0 late · 1 now · 2 later (§U2).
-	Tiers    [3]TierView
-	Feedings []FeedingGroupView // cage × diet groups (feeding kind only)
-	Cares    []CareView         // cage cleanup groups (cleanup kind only)
-	History  []CardView         // terminal + superseded rows, subdued
-	Zones    []ZoneTab          // without the "all" entry (rendered by the template)
-	Kinds    []KindChip
+	Tiers [3]TierView
+	// MedTiers[i] = the medication-kind urgency sections (R3-5): one line
+	// per (animal × drug series) — `<animal> — <medication> | hour toggles`
+	// — instead of the ordinary table rows the other kinds render.
+	MedTiers  [3][]MedTierLine
+	Feedings  []FeedingGroupView // cage × diet groups (feeding kind only)
+	Cares     []CareView         // cage cleanup groups (cleanup kind only)
+	History   []CardView         // terminal + superseded rows, subdued
+	Zones     []ZoneTab          // without the "all" entry (rendered by the template)
+	Kinds     []KindChip
 	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
 	View      string
 	// Detailed switches row density only: compact folds each
@@ -343,9 +362,65 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 	// Stage 4: tiers (late → now → later, due-time sorted) + the summary
 	// strip (occurrences, density-independent).
 	fillTiers(v, openRows)
+	// R3-5: the medication kind renders hour-toggle lines instead of the
+	// ordinary table rows — one `<animal> — <series> | [HH:MM]…` line per
+	// (animal × drug series), placed in its most urgent open slot's tier.
+	if kind == careplan.KindMedication {
+		v.fillMedTiers(v.buildMedGroups(plan, zone, false))
+	}
 	v.Stats = statsOf(plan, zone, kind, plan.Now)
 
 	return v
+}
+
+// fillMedTiers distributes per-animal drug series over the three urgency
+// tiers (R3-5): a series lands in its most urgent OPEN slot's tier and
+// sorts by that slot's due time inside the tier (oldest first).
+func (v *DayPlanView) fillMedTiers(groups []MedGroupView) {
+	for _, g := range groups {
+		for _, series := range g.Series {
+			tier, first := seriesTier(series)
+			if tier < 0 {
+				continue // every slot terminal — nothing to work on
+			}
+			series.Tier = tier
+			series.FirstDueAt = first
+			g.Series = []MedSeriesView{series}
+			v.MedTiers[tier] = append(v.MedTiers[tier], g)
+		}
+	}
+	for i := 0; i < 3; i++ {
+		sort.SliceStable(v.MedTiers[i], func(a, b int) bool {
+			return v.MedTiers[i][a].Series[0].FirstDueAt.Before(v.MedTiers[i][b].Series[0].FirstDueAt)
+		})
+	}
+}
+
+// seriesTier reports the tier index of a series' most urgent OPEN slot
+// (0 late · 1 now · 2 later) and that slot's due time; -1 when the
+// series has no open slot left (all applied/skipped/deferred/overridden).
+func seriesTier(series MedSeriesView) (int, time.Time) {
+	best := 3
+	var first time.Time
+	for _, row := range series.Rows {
+		for _, s := range row.Slots {
+			if s.Done || s.Overridden {
+				continue
+			}
+			t := tierOrder(careplan.PlanStatus(s.Status))
+			if t < 0 || t > 2 {
+				continue
+			}
+			if t < best || (t == best && (first.IsZero() || s.DueAt.Before(first))) {
+				best = t
+				first = s.DueAt
+			}
+		}
+	}
+	if best > 2 {
+		return -1, time.Time{}
+	}
+	return best, first
 }
 
 // fillTiers distributes the filtered open rows over the three urgency
@@ -842,6 +917,11 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 		}
 		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
 		slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
+		// R3-5: day qualifier for non-today slots (multi-day series clarity).
+		if dp := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now); dp.DayKey != "" || dp.ShortDate != "" {
+			slot.DueDayKey = dp.DayKey
+			slot.DueShortDate = dp.ShortDate
+		}
 		if app := it.Application; app != nil {
 			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
 				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted

@@ -107,7 +107,7 @@
   </div>
 </div>
 
-<%= if (len(view.Tiers[0].Cards) == 0 && len(view.Tiers[1].Cards) == 0 && len(view.Tiers[2].Cards) == 0 && len(view.Feedings) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
+<%= if (len(view.Tiers[0].Cards) == 0 && len(view.Tiers[1].Cards) == 0 && len(view.Tiers[2].Cards) == 0 && len(view.MedTiers[0]) == 0 && len(view.MedTiers[1]) == 0 && len(view.MedTiers[2]) == 0 && len(view.Feedings) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
   <div class="alert alert-success"><%= t("care_plan.day.empty") %></div>
 <% } else { %>
 <div id="planSections">
@@ -123,10 +123,27 @@
     <div class="plan-tier plan-tier-late" id="tier-late">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.late") %></span>
-        <span class="badge badge-pill badge-danger"><%= view.Tiers[0].CountCap %></span>
+        <span class="badge badge-pill badge-danger"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[0]) %><% } else { %><%= view.Tiers[0].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-late-rows">
+<%= if (view.Kind == "medication") { %>
+        <%# R3-5: one line per (animal x drug series) — the shared
+            `_med_series` partial renders the hour-toggle buttons; the
+            renamed plan-med-apply/plan-med-unapply classes keep these
+            slots OUT of this page's table apply/undo bindings (the
+            `_plan_med_toggle` partial owns them). %>
+        <div class="px-2 py-1">
+          <%= for (mg) in view.MedTiers[0] { %>
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+              <div class="mr-2 text-nowrap py-1">
+                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
+              </div>
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[0].Cards { %>
@@ -195,16 +212,34 @@
             <% } %>
           </tbody>
         </table>
+      <% } %>
       </div>
     </div>
 
     <div class="plan-tier plan-tier-now" id="tier-now">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.now") %></span>
-        <span class="badge badge-pill badge-warning"><%= view.Tiers[1].CountCap %></span>
+        <span class="badge badge-pill badge-warning"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[1]) %><% } else { %><%= view.Tiers[1].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-now-rows">
+<%= if (view.Kind == "medication") { %>
+        <%# R3-5: one line per (animal x drug series) — the shared
+            `_med_series` partial renders the hour-toggle buttons; the
+            renamed plan-med-apply/plan-med-unapply classes keep these
+            slots OUT of this page's table apply/undo bindings (the
+            `_plan_med_toggle` partial owns them). %>
+        <div class="px-2 py-1">
+          <%= for (mg) in view.MedTiers[1] { %>
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+              <div class="mr-2 text-nowrap py-1">
+                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
+              </div>
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[1].Cards { %>
@@ -269,16 +304,34 @@
             <% } %>
           </tbody>
         </table>
+      <% } %>
       </div>
     </div>
 
     <div class="plan-tier plan-tier-later" id="tier-later">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.later") %></span>
-        <span class="badge badge-pill badge-success"><%= view.Tiers[2].CountCap %></span>
+        <span class="badge badge-pill badge-success"><%= if (view.Kind == "medication") { %><%= len(view.MedTiers[2]) %><% } else { %><%= view.Tiers[2].CountCap %><% } %></span>
         <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
       </div>
       <div class="collapse show plan-tier-body" id="tier-later-rows">
+<%= if (view.Kind == "medication") { %>
+        <%# R3-5: one line per (animal x drug series) — the shared
+            `_med_series` partial renders the hour-toggle buttons; the
+            renamed plan-med-apply/plan-med-unapply classes keep these
+            slots OUT of this page's table apply/undo bindings (the
+            `_plan_med_toggle` partial owns them). %>
+        <div class="px-2 py-1">
+          <%= for (mg) in view.MedTiers[2] { %>
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+              <div class="mr-2 text-nowrap py-1">
+                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
+              </div>
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
         <table class="table table-hover table-bordered">
           <tbody>
             <%= for (card) in view.Tiers[2].Cards { %>
@@ -343,12 +396,17 @@
             <% } %>
           </tbody>
         </table>
+      <% } %>
       </div>
     </div>
 
   <% } %>
 
-  <%# --- Nourrissage: LIST (fix 3) — one row per cage × diet, the
+  <%= if (view.Kind == "medication") { %>
+      <%= partial("care_plan/plan_med_toggle.plush.html") %>
+    <% } %>
+
+    <%# --- Nourrissage: LIST (fix 3) — one row per cage × diet, the
        animals as chip rows inside; no cards. Only under kind=feeding. %>
   <%= if (len(view.Feedings) > 0) { %>
     <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>

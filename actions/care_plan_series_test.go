@@ -182,11 +182,11 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 
 		require.Contains(t, out, "Citramox — 0.5 ml", f)
 		require.Contains(t, out, "✓ 08:00", f)            // applied, undoable
-		require.Contains(t, out, "plan-unapply-btn", f)   // undo hook present
+		require.Contains(t, out, "plan-med-unapply", f)   // undo hook present (R3-5 renamed)
 		require.Contains(t, out, "data-late=\"true\"", f) // late-recordable dimmed
 		require.Contains(t, out, "– 09:00", f)            // late button
 		require.Contains(t, out, "○ 12:00", f)            // open apply
-		require.Contains(t, out, "plan-apply-btn", f)     // apply hook present
+		require.Contains(t, out, "plan-med-apply", f)     // apply hook present (R3-5 renamed)
 		require.Contains(t, out, "⊘ 12:30", f)            // skipped
 		require.Contains(t, out, "⏸ 13:00", f)            // deferred
 		require.Contains(t, out, "– 10:00", f)            // out of window, locked

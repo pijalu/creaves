@@ -134,6 +134,106 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 }
 
 // TestBuildDashboardMedViewTodayOnly: the dashboard mode (bugs.md R5-2a)
+// TestSeriesTier pins the R3-5 tier placement rule: a series lands in its
+// most urgent OPEN slot's tier (late beats now beats later), carries that
+// slot's due time for the in-tier sort, and returns -1 when every slot is
+// terminal (applied/skipped/deferred/overridden) — such a series renders
+// no work line at all.
+func TestSeriesTier(t *testing.T) {
+	day := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	slot := func(h int, status careplan.PlanStatus, done, overridden bool) MedSlotView {
+		return MedSlotView{
+			DueAt:      day.Add(time.Duration(h) * time.Hour),
+			Status:     string(status),
+			Done:       done,
+			Overridden: overridden,
+		}
+	}
+	series := func(slots ...MedSlotView) MedSeriesView {
+		return MedSeriesView{Label: "Drug — 1 ml", Rows: []MedSeriesRow{{Slots: slots}}}
+	}
+
+	// most urgent wins: a late 08:00 slot beats a scheduled 18:00 one
+	tier, first := seriesTier(series(
+		slot(18, careplan.StatusScheduled, false, false),
+		slot(8, careplan.StatusLate, false, false),
+		slot(12, careplan.StatusDue, false, false),
+	))
+	require.Equal(t, 0, tier)
+	require.Equal(t, day.Add(8*time.Hour), first)
+
+	// no late slot → now tier with the earliest due slot
+	tier, first = seriesTier(series(
+		slot(18, careplan.StatusScheduled, false, false),
+		slot(12, careplan.StatusDue, false, false),
+		slot(10, careplan.StatusDue, false, false),
+	))
+	require.Equal(t, 1, tier)
+	require.Equal(t, day.Add(10*time.Hour), first)
+
+	// scheduled only → later tier
+	tier, first = seriesTier(series(slot(18, careplan.StatusScheduled, false, false)))
+	require.Equal(t, 2, tier)
+	require.Equal(t, day.Add(18*time.Hour), first)
+
+	// done and overridden slots never place a series
+	tier, _ = seriesTier(series(
+		slot(8, careplan.StatusApplied, true, false),
+		slot(12, careplan.StatusDue, false, true),
+	))
+	require.Equal(t, -1, tier)
+}
+
+// TestFillMedTiers (R3-5): the medication kind renders one work line per
+// (animal × drug series) inside the series' most urgent open tier, sorted
+// by that slot's due time — the ordinary table-row tiers stay empty.
+func TestFillMedTiers(t *testing.T) {
+	day := time.Date(2026, 9, 28, 0, 0, 0, 0, time.Local)
+	slot := func(h int, status careplan.PlanStatus) MedSlotView {
+		return MedSlotView{DueAt: day.Add(time.Duration(h) * time.Hour), Status: string(status)}
+	}
+	mk := func(label string, slots ...MedSlotView) MedSeriesView {
+		return MedSeriesView{Label: label, Rows: []MedSeriesRow{{Slots: slots}}}
+	}
+	groups := []MedGroupView{
+		{
+			AnimalID: 1, AnimalLabel: "Fox-1", AnimalLink: "/animals/1",
+			Series: []MedSeriesView{
+				mk("Late — 1 ml", slot(7, careplan.StatusLate)),
+				mk("Now — 1 ml", slot(10, careplan.StatusDue)),
+			},
+		},
+		{
+			AnimalID: 2, AnimalLabel: "Owl-2", AnimalLink: "/animals/2",
+			Series: []MedSeriesView{
+				mk("LateB — 1 ml", slot(6, careplan.StatusLate)),
+				mk("Later — 1 ml", slot(18, careplan.StatusScheduled)),
+				mk("Done — 1 ml", MedSlotView{DueAt: day.Add(9 * time.Hour), Status: string(careplan.StatusApplied), Done: true}),
+			},
+		},
+	}
+
+	v := &DayPlanView{}
+	v.fillMedTiers(groups)
+
+	// late tier: LateB (06:00) before Late (07:00); now: Now; later: Later;
+	// the all-done series renders no line. A line is the group narrowed to
+	// its one series (the `_med_series` partial renders it unchanged).
+	require.Len(t, v.MedTiers[0], 2)
+	require.Equal(t, "LateB — 1 ml", v.MedTiers[0][0].Series[0].Label)
+	require.Equal(t, "Owl-2", v.MedTiers[0][0].AnimalLabel)
+	require.Equal(t, "Late — 1 ml", v.MedTiers[0][1].Series[0].Label)
+	require.Equal(t, "Fox-1", v.MedTiers[0][1].AnimalLabel)
+	require.Equal(t, "/animals/1", v.MedTiers[0][1].AnimalLink)
+	require.Len(t, v.MedTiers[1], 1)
+	require.Equal(t, "Now — 1 ml", v.MedTiers[1][0].Series[0].Label)
+	require.Equal(t, 1, v.MedTiers[1][0].Series[0].Tier)
+	require.Len(t, v.MedTiers[2], 1)
+	require.Equal(t, "Later — 1 ml", v.MedTiers[2][0].Series[0].Label)
+	require.Equal(t, 2, v.MedTiers[2][0].Series[0].Tier)
+	require.Equal(t, day.Add(18*time.Hour), v.MedTiers[2][0].Series[0].FirstDueAt)
+}
+
 // collapses a 4-day plan window to today's slots only — no yesterday, no
 // tomorrow — suppresses Overridden occurrences and counts only open
 // today slots (honest badge). The /care_plan projection is unchanged:
