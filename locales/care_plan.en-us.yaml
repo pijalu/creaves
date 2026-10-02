@@ -170,8 +170,6 @@
   translation: "Animal protocol"
 - id: "care_plan.protocol_trace.rule_source"
   translation: "Care rule"
-- id: "care_plan.protocol_trace.occurrences"
-  translation: "{count} occurrence(s)"
 - id: "care_plan.protocol_trace.replaces_kind"
   translation: "Replaces the kind protocol"
 - id: "care_plan.animal_plans.view_source"

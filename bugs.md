@@ -26,8 +26,11 @@ escape, no close.
 editor, outside every tab pane. Their listeners are delegated on
 `document`, so DOM position is irrelevant. Applied in all four locale forks.
 
-**Test**: render assertion — in `show.plush.*` the `planApplyModal` /
-`planMedDosageModal` markup must appear AFTER the last `tab-pane` closes.
+**Test**: `TestAnimalShowModalsOutsideTabPanes` walks the `<div>`/`</div>`
+nesting of every locale fork and asserts both partials fall outside **every**
+tab pane, not merely after the last one — this page legitimately has panes
+(media/outtake/audit) after the modals, so "after the last pane" was the
+wrong invariant.
 
 ---
 
@@ -127,39 +130,109 @@ four locales).
 
 ---
 
+## R4-7.7 — Compact medication shows tomorrow all day long (**Done**)
+
+**Where**: `/care_plan?view=compact&kind=medication`.
+
+The work screen listed every slot of the schedule, tomorrow included, so it
+was never empty and tomorrow's buttons competed with today's.
+
+**Fix**: `scopeSeriesToToday` (`actions/care_plan_viewmodel.go`) keeps every
+slot due up to the end of today — open ones and the terminal ones that are
+the day's record — plus **at most one** later open slot, the nearest, and
+only when it beats the pending late entry ("if the duration from now to the
+entry is shorter than the current one"). The survivor is rebucketed into a
+dedicated `tomorrow` group, so it follows morning/noon/evening like any
+other bucket instead of masquerading as part of today. With the day's work
+done at 22:00 the medication view is empty.
+
+`care_plan.slot.tomorrow` was translated in en-us/fr only — de/nl rendered
+the raw key; both were added ("Morgen").
+
+**Test**: `TestScopeSeriesToToday{DropsTomorrow,KeepsNearerNext,EmptyInEvening,KeepsAtMostOneLaterSlot}`,
+`TestFillMedTiersDropsScopedOutSeries`, `TestTomorrowSlotLabelInAllLocales`
+(`actions/care_plan_round7_med_scope_test.go`). The "exactly equal" case is a
+real boundary: a 1 s shift in the comparison flips it.
+
+---
+
+## R4-7.8 — Button alignment in the medication table (**Done**)
+
+**Where**: the medication series table, every slot row.
+
+**Fix** (`assets/css/care-plan.scss`): `.plan-med-cell` gets a fixed
+`min-width` and right-aligns its content, so every button's left edge lands
+on the same x and the times read as a column instead of a ragged wrap.
+`.plan-med-bucket` reserves a `min-height`, so the buttons after every
+bucket caption start at the same y and the day groups read as aligned
+bands.
+
+`public/` is gitignored and rebuilt by webpack, so the `.scss` is the
+artefact of record.
+
+**Test**: `TestCarePlanStylesheetAlignment` pins the rules on the source, and
+the stylesheet was compiled with `sass` to confirm the output.
+
+---
+
+## R4-7.9 — Hamburger shown while there is still room (**Done**)
+
+**Where**: the application navbar, every authenticated page.
+
+`navbar-expand-lg` collapsed the bar below 992px although the icon-only bar
+fits comfortably there — the space was simply wasted.
+
+**Fix**: the breakpoint moved to `md`, and the **two thresholds that mirror
+it** moved with it, or the bar would lie about its own state: the CSS query
+that keeps labels visible while the menu is collapsed (767.98px) and the JS
+overflow guard that only probes an expanded bar (768). Below md the labels
+stay force-visible (in the collapsed vertical menu they cost no width);
+between md and xl the bar is icon-only; at xl+ the pre-existing *measured*
+overflow probe still hides the labels in a verbose locale. All four locale
+forks.
+
+**Test**: `TestNavbarBreakpointsAgree` asserts the Bootstrap class, both CSS
+thresholds and the JS guard agree, per fork — changing the Bootstrap class
+alone now fails it.
+
+---
+
+## R4-7.11b — Link an activity to its logged item (**Done**)
+
+**Where**: `/animals/{id}#nav-plan`, every applied row.
+
+`CardView.FulfillmentLink` was already computed on the animal page but never
+rendered, so an applied feeding/observation was a dead end.
+
+**Fix**: the green "done" badge doubles as the door to the record that was
+actually logged — same badge shape and colour, only clickable, never a dead
+link (a deleted or absent fulfillment keeps the plain badge). The link
+carries `back=/animals/{id}#nav-plan`, so the record's own back button
+lands on the source.
+
+That exposed an asymmetry: `Treatments.Show` honoured `?back=` (sanitized,
+with a label naming the real destination) but `Cares.Show` ignored it and
+its template read `params["back"]` **raw** — an unsanitized redirect plus a
+hardcoded "Back" that lied about where the button went. `Cares.Show` now
+mirrors `Treatments.Show`.
+
+**Test**: `TestAnimalAppliedRowLinksToFulfillment`,
+`TestAnimalDayCardBackTargetsPlanTab`, `TestCareShowUsesSanitizedBack`,
+`TestViewRecordLabelInAllLocales` (`actions/care_plan_round7_fulfillment_link_test.go`).
+
+---
+
 ## Open items
-
-### R4-7.7 — Compact medication shows tomorrow all day long (**Open**)
-
-`/care_plan?view=compact&kind=medication` always lists the next days'
-buttons. Required: show only what should be done **during the day** (the
-table is empty in the evening), keep the buttons grouped — a dedicated
-`tomorrow` bucket following morning/noon/evening — and show the *next*
-entry only when the duration from now to it is shorter than the current
-late one. Plan: §R4-7.7 of `docs/care-plan-round-7-fix-plan.md`.
-
-### R4-7.8 — Button alignment in the medication table (**Open**)
-
-Buttons must line up column-wise across rows (fixed slot-button width,
-fixed bucket-label band). Plan: §R4-7.8.
-
-### R4-7.9 — Hamburger shown while there is still room (**Open**)
-
-`navbar-expand-lg` collapses the menu at <992px even when the bar has free
-space. Plan: §R4-7.9 (review the breakpoint / item widths).
 
 ### R4-7.12 — Protocol trace repeats what the row already shows (**Open**)
 
 The `{count} occurrence(s)` column adds nothing once the schedule and
-content are visible; replace it with the edit/delete affordance.
+content are visible; replace it with the edit/delete affordance. Plan:
+§R4-7.12 of `docs/care-plan-round-7-fix-plan.md`.
 
 ### R4-7.13 — Per-animal exception to a global protocol (**Open**)
 
 An animal-specific "skip this protocol" exception, toggled by a checkbox on
 the protocol and listed as an exception on the animal. Needs an additive
 table + engine rule (no destructive migration — see the session constraint).
-
-### R4-7.11b — Link an activity to its logged item (**Open**)
-
-An applied feeding/observation row should open the logged feeding (animal
-feeding view) with `back=` routing back to the source.
+Needs care-expert input on the semantics before it is built.

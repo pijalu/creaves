@@ -105,7 +105,7 @@ keys defined in every locale file.
 
 ---
 
-## R4-7.7 Compact medication: today's work only — **Open**
+## R4-7.7 Compact medication: today's work only — **Done**
 
 **Rule to implement** (caregiver's own wording):
 
@@ -137,7 +137,7 @@ button in a tier body.
 
 ---
 
-## R4-7.8 Aligned buttons in the medication table — **Open**
+## R4-7.8 Aligned buttons in the medication table — **Done**
 
 **Fix**: `assets/css/care-plan.scss`
 - `.plan-med-cell { min-width: 4.75rem; justify-content: flex-end; }` — every
@@ -151,7 +151,7 @@ first `.plan-med-cell` of consecutive lines.
 
 ---
 
-## R4-7.9 Navbar breakpoint — **Open**
+## R4-7.9 Navbar breakpoint — **Done**
 
 `navbar-expand-lg` (992px) collapses the menu even when the items still fit.
 **Step**: measure the widest item set (`/animals` = 9 tabs) and either lower
@@ -187,7 +187,7 @@ the cage-mates keep theirs.
 
 ---
 
-## R4-7.11b Activity → logged item — **Open**
+## R4-7.11b Activity → logged item — **Done**
 
 An applied row renders a link to its fulfillment
 (`CardView.FulfillmentLink`: `/cares/:id`, `/treatments/:id`) carrying

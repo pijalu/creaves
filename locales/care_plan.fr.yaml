@@ -170,8 +170,6 @@
   translation: "Protocole de l'animal"
 - id: "care_plan.protocol_trace.rule_source"
   translation: "Règle de soin"
-- id: "care_plan.protocol_trace.occurrences"
-  translation: "{count} occurrence(s)"
 - id: "care_plan.protocol_trace.replaces_kind"
   translation: "Remplace le protocole du type"
 - id: "care_plan.animal_plans.view_source"

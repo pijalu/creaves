@@ -170,8 +170,6 @@
   translation: "Dierprotocol"
 - id: "care_plan.protocol_trace.rule_source"
   translation: "Zorgregel"
-- id: "care_plan.protocol_trace.occurrences"
-  translation: "{count} voorkomen(s)"
 - id: "care_plan.protocol_trace.replaces_kind"
   translation: "Vervangt het protocol van de soort"
 - id: "care_plan.animal_plans.view_source"

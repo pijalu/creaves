@@ -170,8 +170,6 @@
   translation: "Tierprotokoll"
 - id: "care_plan.protocol_trace.rule_source"
   translation: "Pflegeregel"
-- id: "care_plan.protocol_trace.occurrences"
-  translation: "{count} Vorkommen"
 - id: "care_plan.protocol_trace.replaces_kind"
   translation: "Ersetzt das Protokoll der Art"
 - id: "care_plan.animal_plans.view_source"

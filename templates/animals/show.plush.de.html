@@ -722,7 +722,25 @@
                     </td>
                     <td class="align-middle"><%= if (src.Content != "") { %><%= src.Content %><% } else { %>—<% } %></td>
                     <td class="align-middle small text-muted"><%= humanSchedule(src.Schedule) %></td>
-                    <td class="align-middle text-nowrap small"><%= t("care_plan.protocol_trace.occurrences", src.Occurrences) %></td>
+                    <%# R4-7.12: the "N occurrence(s)" cell is gone — a
+                        bare count explained nothing and offered nothing.
+                        This column is the row's actions instead. %>
+                    <td class="align-middle text-nowrap">
+                      <%= if (src.SourceType == "animal") { %>
+                        <%# The animal's own protocol is edited/deleted in
+                            place, on this very page (the definitions table
+                            below already drives these by class + data-id). %>
+                        <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
+                        <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
+                      <% } else if (src.Editable && src.EditURL != "") { %>
+                        <%= linkTo(editCareRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-warning btn-sm", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+                        <%= linkTo(careRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>"}) %>
+                      <% } else { %>
+                        <%# A non-admin sees the rule's evidence but no
+                            control — never a link that 403s. %>
+                        <span class="text-muted small">&mdash;</span>
+                      <% } %>
+                    </td>
                   </tr>
                 <% } %>
               </tbody>

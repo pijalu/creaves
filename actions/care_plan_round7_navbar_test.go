@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// R4-7.13 (feedback item 13): "Menu size should be reviewed — hamburger is
+// R4-7.9 (feedback item 13): "Menu size should be reviewed — hamburger is
 // shown when there is *still* important space available". The bar collapsed
 // to the hamburger below lg (992px) although the icon-only bar fits far
 // below that, so the breakpoint moved down to md (768px).
