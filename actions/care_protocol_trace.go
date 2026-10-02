@@ -33,6 +33,12 @@ type ProtocolSourceView struct {
 	Editable    bool   // animal plans: always; global rules: admin only
 	Replaces    bool   // the source replaces the kind-level protocol
 	Occurrences int    // occurrences this source contributed to the window
+	// R4-7.22: Active is the stored soft switch. The trace now also lists
+	// protocols that produced NOTHING (appendIdleAnimalPlans), so an
+	// inactive protocol is listed — and without this flag it would be
+	// indistinguishable from a live one. Measured on animals/10221: one
+	// definition was already inactive.
+	Active bool
 }
 
 // ProtocolTraceView is the ordered list of applicable sources: animal
@@ -53,12 +59,26 @@ func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, a
 	}
 	trace.AnimalID = animal.ID
 	ruleIDs, planIDs := traceSources(plan, animal, admin, trace)
+	// R4-7.22: the animal's OWN protocols are listed whether or not they
+	// produced anything today. They are this animal's care plan, and the
+	// caregiver must be able to find, edit or delete one that has gone quiet
+	// — measured on animals/10221, two protocols lived ONLY in the duplicate
+	// definitions table, and dropping that table would have made them
+	// unreachable. Global rules keep the stricter rule (evidence, not
+	// catalogue): only the ones that actually apply are listed.
+	if err := appendIdleAnimalPlans(tx, animal, trace); err != nil {
+		return nil, err
+	}
 	schedules, err := protocolSchedules(tx, ruleIDs, planIDs)
 	if err != nil {
 		return nil, err
 	}
 	for i := range trace.Sources {
-		trace.Sources[i].Schedule = schedules[trace.Sources[i].SourceType+"|"+trace.Sources[i].SourceID]
+		// An appended idle plan already carries its own schedule; only fill in
+		// the ones the occurrence pass asked for.
+		if raw, ok := schedules[trace.Sources[i].SourceType+"|"+trace.Sources[i].SourceID]; ok {
+			trace.Sources[i].Schedule = raw
+		}
 	}
 	sortProtocolSources(trace.Sources)
 	return trace, nil
@@ -104,6 +124,7 @@ func protocolSourceView(src careplan.PlanSource, animal *models.Animal, admin bo
 		Content:     planDetail(src),
 		Replaces:    src.ReplacesKind(),
 		Occurrences: 1,
+		Active:      src.Active(),
 	}
 	if view.SourceType == string(careplan.SourceAnimal) {
 		// The animal's own protocol is edited on this very page.
@@ -140,6 +161,51 @@ func protocolSchedules(tx *pop.Connection, ruleIDs, planIDs []uuid.UUID) (map[st
 		}
 	}
 	return out, nil
+}
+
+// appendIdleAnimalPlans adds every animal protocol that produced no
+// occurrence to the trace, so merging the trace with the old definitions table
+// cannot make a protocol unreachable.
+//
+// The occurrence pass above returns the ids whose schedule still needs loading;
+// an appended row has to contribute its own.
+func appendIdleAnimalPlans(tx *pop.Connection, animal *models.Animal, trace *ProtocolTraceView) error {
+	if animal == nil {
+		return nil
+	}
+	plans := &models.CareAnimalPlans{}
+	if err := tx.Where("animal_id = ?", animal.ID).All(plans); err != nil {
+		return err
+	}
+	seen := make(map[string]bool, len(trace.Sources))
+	for _, s := range trace.Sources {
+		if s.SourceType == string(careplan.SourceAnimal) {
+			seen[s.SourceID] = true
+		}
+	}
+	for _, p := range *plans {
+		id := p.ID.String()
+		if seen[id] {
+			continue
+		}
+		seen[id] = true
+		var payload planPayload
+		_ = jsonUnmarshalStrictish(p.ActionPayload, &payload)
+		trace.Sources = append(trace.Sources, ProtocolSourceView{
+			SourceType:  string(careplan.SourceAnimal),
+			SourceID:    id,
+			Name:        DisplayName(p.Name),
+			Kind:        p.ActionKind,
+			Content:     planDetailOf(p.ActionKind, payload),
+			Schedule:    string(p.Schedule),
+			EditURL:     fmt.Sprintf("/animals/%d#nav-plan", animal.ID),
+			Editable:    true,
+			Replaces:    p.ReplacesKind,
+			Occurrences: 0,
+			Active:      p.Active,
+		})
+	}
+	return nil
 }
 
 // sortProtocolSources: animal plans first (they override the global

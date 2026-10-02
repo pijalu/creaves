@@ -13,10 +13,79 @@ import (
 // care:migrate_treatment_times tests (bugs.md R5-3e, U25/D-e): bitmap →
 // entries backfill, remarks appendum parsing, idempotency.
 
-func migrationTreatment(date time.Time, timebitmap, timedonebitmap int, remarks string) *Treatment {
+// migrationHostAnimalID returns the id of an animal the fixture treatments can
+// legally reference (bugs.md TEST-2).
+//
+// The helper used to hardcode AnimalID 42, but `treatments.animal_id` carries a
+// foreign key to `animals(id)` and that table is auto-increment from ~996249 —
+// no animal has ever had id 42, so every DB-backed run of this file died with
+// "Error 1452: treatments_animals_id_fk" before asserting anything.
+//
+// Reuse an existing animal when the test database has one (it always does: it
+// is never reset between runs); otherwise build the minimum chain an animal
+// needs — animaltype, discoverer, discovery, intake — so the fixture is
+// self-contained on a freshly migrated database too.
+func migrationHostAnimalID(t *testing.T) int {
+	t.Helper()
+	if DB == nil {
+		// Pure unit test (migrationEntries): no row is written, so the animal
+		// reference is never resolved.
+		return 0
+	}
+	var existing Animal
+	if err := DB.Order("id").First(&existing); err == nil {
+		return existing.ID
+	}
+
+	id, err := uuid.NewV4()
+	require.NoError(t, err)
+	marker := "TEST-2-" + id.String()[:8]
+	now := time.Now()
+	at := &Animaltype{Name: marker, Description: nulls.NewString(marker)}
+	require.NoError(t, DB.Create(at))
+	discoverer := &Discoverer{Firstname: nulls.NewString(marker), Lastname: nulls.NewString(marker)}
+	require.NoError(t, DB.Create(discoverer))
+	discovery := &Discovery{Date: now, DiscovererID: discoverer.ID, EntryCauseID: "1.1"}
+	require.NoError(t, DB.Create(discovery))
+	intake := &Intake{Date: now}
+	require.NoError(t, DB.Create(intake))
+
+	// animals has a UNIQUE(year, yearNumber) and the zero pair is already
+	// taken by the seed data, so derive a free one from the random uuid
+	// bytes (same class of collision as bugs.md TEST-1).
+	b := id.Bytes()
+	n := int64(b[0])<<24 | int64(b[1])<<16 | int64(b[2])<<8 | int64(b[3])
+
+	animal := &Animal{
+		Species:      marker,
+		AnimaltypeID: at.ID,
+		DiscoveryID:  discovery.ID,
+		IntakeID:     intake.ID,
+		Cage:         nulls.NewString(marker),
+		// animals.IntakeDate is NOT NULL with no default: left unset it
+		// sends the zero time and MySQL rejects '0000-00-00'.
+		IntakeDate: now,
+		Year:       1900 + int(n)%200,
+		YearNumber: int(n) % 900000,
+	}
+	require.NoError(t, DB.Create(animal))
+
+	t.Cleanup(func() {
+		DB.RawQuery("DELETE FROM treatments WHERE animal_id = ?", animal.ID).Exec()
+		DB.RawQuery("DELETE FROM animals WHERE id = ?", animal.ID).Exec()
+		DB.RawQuery("DELETE FROM intakes WHERE id = ?", intake.ID).Exec()
+		DB.RawQuery("DELETE FROM discoveries WHERE id = ?", discovery.ID).Exec()
+		DB.RawQuery("DELETE FROM discoverers WHERE id = ?", discoverer.ID).Exec()
+		DB.RawQuery("DELETE FROM animaltypes WHERE id = ?", at.ID).Exec()
+	})
+	return animal.ID
+}
+
+func migrationTreatment(t *testing.T, date time.Time, timebitmap, timedonebitmap int, remarks string) *Treatment {
+	t.Helper()
 	return &Treatment{
 		Date:           date,
-		AnimalID:       42,
+		AnimalID:       migrationHostAnimalID(t),
 		Drug:           "TestDrug",
 		Dosage:         "0.1 ml",
 		Remarks:        nulls.NewString(remarks),
@@ -27,7 +96,7 @@ func migrationTreatment(date time.Time, timebitmap, timedonebitmap int, remarks 
 
 func TestMigrationEntriesDoneBitsOnly(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
-	tr := migrationTreatment(day, Treatement_MORNING, Treatement_MORNING, "")
+	tr := migrationTreatment(t, day, Treatement_MORNING, Treatement_MORNING, "")
 
 	entries, err := tr.migrationEntries()
 	require.NoError(t, err)
@@ -42,7 +111,7 @@ func TestMigrationEntriesDoneBitsOnly(t *testing.T) {
 
 func TestMigrationEntriesRequiredNotDonePending(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
-	tr := migrationTreatment(day, Treatement_MORNING|Treatement_NOON, Treatement_MORNING, "")
+	tr := migrationTreatment(t, day, Treatement_MORNING|Treatement_NOON, Treatement_MORNING, "")
 
 	entries, err := tr.migrationEntries()
 	require.NoError(t, err)
@@ -58,7 +127,7 @@ func TestMigrationEntriesAppendumParsing(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
 	// Legacy same-bucket flow: first dose sets the bit, later doses append
 	// "; HH:MM" / "; HH:MM (note)" to the remarks.
-	tr := migrationTreatment(day, Treatement_MORNING, Treatement_MORNING,
+	tr := migrationTreatment(t, day, Treatement_MORNING, Treatement_MORNING,
 		"Base remark; 09:30 (given late); 10:15")
 
 	entries, err := tr.migrationEntries()
@@ -85,7 +154,7 @@ func TestMigrationEntriesAppendumParsing(t *testing.T) {
 func TestMigrationEntriesAppendumOutsideRequiredBuckets(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
 	// An evening appendum on a row without any evening bits must survive.
-	tr := migrationTreatment(day, Treatement_MORNING, 0, "Base; 18:45")
+	tr := migrationTreatment(t, day, Treatement_MORNING, 0, "Base; 18:45")
 
 	entries, err := tr.migrationEntries()
 	require.NoError(t, err)
@@ -99,7 +168,7 @@ func TestMigrationEntriesAppendumOutsideRequiredBuckets(t *testing.T) {
 
 func TestMigrationEntriesSkipsMalformedLabel(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
-	tr := migrationTreatment(day, 0, 0, "Base; 25:99; 09:30")
+	tr := migrationTreatment(t, day, 0, 0, "Base; 25:99; 09:30")
 
 	entries, err := tr.migrationEntries()
 	require.NoError(t, err)
@@ -109,7 +178,7 @@ func TestMigrationEntriesSkipsMalformedLabel(t *testing.T) {
 
 func TestMigrationEntriesNothingToMigrate(t *testing.T) {
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
-	tr := migrationTreatment(day, 0, 0, "plain remark, no appendums")
+	tr := migrationTreatment(t, day, 0, 0, "plain remark, no appendums")
 
 	entries, err := tr.migrationEntries()
 	require.NoError(t, err)
@@ -134,9 +203,9 @@ func TestMigrateTreatmentTimesIdempotent(t *testing.T) {
 	}
 	day := time.Date(2026, 9, 29, 0, 0, 0, 0, time.Local)
 	rows := []*Treatment{
-		migrationTreatment(day, Treatement_MORNING, Treatement_MORNING, "legacy; 09:30 (late)"),
-		migrationTreatment(day, Treatement_EVENING, 0, ""),
-		migrationTreatment(day, 0, 0, "nothing to do"),
+		migrationTreatment(t, day, Treatement_MORNING, Treatement_MORNING, "legacy; 09:30 (late)"),
+		migrationTreatment(t, day, Treatement_EVENING, 0, ""),
+		migrationTreatment(t, day, 0, 0, "nothing to do"),
 	}
 	for _, r := range rows {
 		require.NoError(t, DB.Create(r))

@@ -428,8 +428,14 @@ func DisplayName(name string) string {
 // care/cleanup/weighing → note (falling back to instructions),
 // observation → prompt. Empty when the payload carries nothing displayable.
 func planDetail(src careplan.PlanSource) string {
-	p := parsePlanPayload(src)
-	switch src.ActionKind() {
+	return planDetailOf(src.ActionKind(), parsePlanPayload(src))
+}
+
+// planDetailOf is planDetail over an already-parsed payload, so a stored row
+// (an animal protocol that produced no occurrence — R4-7.22) renders its
+// content through exactly the same rules as a live one.
+func planDetailOf(kind string, p planPayload) string {
+	switch kind {
 	case careplan.KindFeeding:
 		if p.ForceFeed {
 			if p.Food == "" {

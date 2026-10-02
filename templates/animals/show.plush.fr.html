@@ -703,7 +703,9 @@
             </h5>
             <small class="text-muted d-block"><%= t("care_plan.protocol_trace.intro") %></small>
           </div>
-          <div id="planDetails" class="collapse" aria-labelledby="planDetailsHead">
+          <div id="planDetails" class="collapse" aria-labelledby="planDetailsHead"
+             data-animal-id="<%= animal.ID %>"
+             data-url="/animals/<%= animal.ID %>/care_animal_plans">
             <div class="card-body py-2">
               <%= if (animalProtocolTrace != nil && len(animalProtocolTrace.Sources) > 0) { %>
             <table class="table table-sm table-hover table-bordered mb-2" id="planTraceTable">
@@ -711,7 +713,7 @@
                 <%= for (src) in animalProtocolTrace.Sources { %>
                   <tr class="plan-trace-<%= src.SourceType %>">
                     <td class="align-middle">
-                      <span class="badge badge-<%= if (src.SourceType == "animal") { %>primary<% } else { %>secondary<% } %>"><%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.animal_source") %><% } else { %><%= t("care_plan.protocol_trace.rule_source") %><% } %></span>
+                      <span class="badge badge-<%= if (src.SourceType == "animal") { %>primary<% } else { %>secondary<% } %>" title="<%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated_hint") %><% } else { %><%= t("care_plan.protocol_trace.rule_source_hint") %><% } %>"><%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated") %><% } else { %><%= t("care_plan.protocol_trace.rule_source") %><% } %></span>
                     </td>
                     <td class="align-middle">
                       <%= if (src.Editable && src.EditURL != "") { %>
@@ -723,6 +725,24 @@
                         <span class="badge badge-info ml-1" title="<%= t("care_plan.protocol_trace.replaces_kind") %>">⤵</span>
                       <% } %>
                     </td>
+                    <td class="align-middle text-nowrap">
+                      <span class="badge badge-light"><%= t("care_plan.kind." + src.Kind) %></span>
+                      <%= if (src.SourceType == "animal") { %>
+                        <%# Status is stated for EVERY animal protocol, not just
+                            the exceptions: since appendIdleAnimalPlans lists
+                            protocols that produce nothing today, "no badge"
+                            would be ambiguous between active-but-not-due and
+                            switched-off. %>
+                        <%= if (!src.Active) { %>
+                          <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
+                        <% } else if (planExpired(animal, src.Schedule)) { %>
+                          <span class="badge badge-warning"><%= t("care_plan.status.expired") %></span>
+                        <% } else { %>
+                          <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+                        <% } %>
+                        <span class="d-block small text-muted"><%= planWindow(animal, src.Schedule) %></span>
+                      <% } %>
+                    </td>
                     <td class="align-middle"><%= if (src.Content != "") { %><%= src.Content %><% } else { %>—<% } %></td>
                     <td class="align-middle small text-muted"><%= humanSchedule(src.Schedule) %></td>
                     <%# R4-7.12: the "N occurrence(s)" cell is gone — a
@@ -730,9 +750,12 @@
                         This column is the row's actions instead. %>
                     <td class="align-middle text-nowrap">
                       <%= if (src.SourceType == "animal") { %>
-                        <%# The animal's own protocol is edited/deleted in
-                            place, on this very page (the definitions table
-                            below already drives these by class + data-id). %>
+                        <%# Edited/deleted in place. The delegated script
+                            at the foot of the page binds by class, and
+                            reads its CRUD url from #planDetails — which
+                            renders whether or not this table does, so the
+                            editor still works on an animal with no
+                            protocol yet. %>
                         <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
                         <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
                       <% } else if (src.Editable && src.EditURL != "") { %>
@@ -749,51 +772,7 @@
               </tbody>
             </table>
               <% } %>
-      <table class="table table-hover table-bordered" id="careAnimalPlansTable"
-             data-animal-id="<%= animal.ID %>"
-             data-url="/animals/<%= animal.ID %>/care_animal_plans">
-        <thead class="thead-light">
-          <th><%= t("care_plan.field.name") %></th>
-          <th><%= t("care_plan.field.action_kind") %></th>
-          <th><%= t("care_plan.animal_plans.content") %></th>
-          <th><%= t("care_plan.field.active") %></th>
-          <th><%= t("care_plan.animal_plans.window") %></th>
-          <th><%= t("care_plan.field.replaces_kind") %></th>
-          <th><%= t("care_plan.field.schedule") %></th>
-          <th>&nbsp;</th>
-        </thead>
-        <tbody>
-          <%= for (p) in careAnimalPlans { %>
-            <tr data-id="<%= p.ID %>">
-              <td class="align-middle"><%= richPlanName(p.Name, p.ActionKind, p.ActionPayload) %></td>
-              <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + p.ActionKind) %></span></td>
-              <td class="align-middle"><%= planContentLabel(p.ActionKind, p.ActionPayload) %><%= if (planContentLabel(p.ActionKind, p.ActionPayload) == "") { %>—<% } %></td>
-              <td class="align-middle">
-                <%= if (p.Active) { %>
-                  <%= if (planExpired(animal, p.Schedule)) { %>
-                    <span class="badge badge-warning"><%= t("care_plan.status.expired") %></span>
-                  <% } else { %>
-                    <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
-                  <% } %>
-                <% } else { %>
-                  <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
-                <% } %>
-              </td>
-              <td class="align-middle text-nowrap"><%= planWindow(animal, p.Schedule) %></td>
-              <td class="align-middle"><%= if (p.ReplacesKind) { %><i class="fas fa-check"></i><% } else { %><i class="fas fa-times"></i><% } %></td>
-              <td class="align-middle"><%= humanSchedule(p.Schedule) %>
-                <details class="mt-1"><summary class="text-muted small"><%= t("care_plan.schedule_human.raw_json") %></summary><code class="small"><%= p.Schedule %></code></details></td>
-              <td>
-                <div class="float-right">
-                  <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= p.ID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
-                  <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= p.ID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
-                </div>
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-            </div>
+                  </div>
           </div>
         </div>
 
@@ -971,7 +950,7 @@
 
   <script>
   (function () {
-    var table = document.getElementById('careAnimalPlansTable');
+    var table = document.getElementById('planDetails');
     if (!table) { return; }
     var url = table.getAttribute('data-url');
     var csrf = document.querySelector('meta[name="csrf-token"]').content;

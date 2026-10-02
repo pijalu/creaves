@@ -328,7 +328,7 @@ handler pins a single density; `?view=detailed` still resolves and renders that
 same view. Verified identical row counts for both parameters on every kind.
 Plan: §R4-7.18.
 
-### R4-7.19 — Protocol trace duplicates the definitions table (**Open**)
+### R4-7.19 — Protocol trace duplicates the definitions table (**Done**)
 
 On the animal Protocol tab the same protocol is listed **twice, stacked** —
 trace row and definitions row — with the same name, content and schedule; and
@@ -337,6 +337,21 @@ should say the protocol is set at animal level (with a tooltip), and the trace
 should carry the action kind. Removing the second table needs one confirmation
 first (it is the only place inactive/expired protocols are listed). Plan:
 §R4-7.19.
+
+**Resolved** (commit R4-7.22). The single confirmation asked for was measured
+first, and it changed the fix: on animals/10221 **two** protocols existed ONLY
+in the definitions table (one of them inactive), so deleting it outright would
+have made them unreachable. Three things therefore moved into the trace row
+before the table went: the protocol TYPE (`src.Kind`), the Active/Expired/…
+status, and the ISO window. `ProtocolSourceView` gained `Active` for the status
+(rendered for **every** animal protocol, not just the exceptions — now that
+idle protocols are listed, "no badge" would be ambiguous between
+active-but-not-due and switched-off). The badge reads "Dedicated" / "Spécifique"
+/ "Spezifisch" / "Specifiek" with a tooltip explaining it is set at this
+animal's level. The delegated CRUD script moved its `data-url`/`data-animal-id`
+anchor to `#planDetails` — NOT to `#planTraceTable`, which renders only when
+the trace is non-empty and would have killed the "New protocol" button on an
+animal with no protocol.
 
 ### R4-7.20 — Protocol names truncated mid-word (**Open**)
 
@@ -354,7 +369,7 @@ the tier badge counts **groups**, and both saturate at `99+`, so `162` and
 CHIP_OCCURRENCES=351`. Direction given: a badge counts **what is visible in
 its section** — groups everywhere, one unit, one meaning. Plan: §R4-7.21.
 
-### R4-7.22 — The same protocol sentence is rendered four times (**Open**)
+### R4-7.22 — The same protocol sentence is rendered four times (**Done**)
 
 `/animals/{id}#nav-plan`, measured on animal 10312 (fr): the diet sentence
 appears **3–4×** on one screen — trace name cell, trace content cell,
@@ -380,6 +395,32 @@ Target format (given): `<type>  <complete description>  [<buttons for the
 applicable hours>]`, following the care_plan medication rules; two protocols
 with the same description but different hours are two lines, each with its own
 hours. Plan: §R4-7.22.
+
+**Resolved** (same commit). The root cause is fixed at step 3 — the
+definitions table is gone, so there is one surface instead of two, and the
+trace row renders the description in exactly one cell (`richPlanName`'s
+re-append is no longer used there). Steps 1–2 were already fixed by R4-7.24,
+which stores whole words; no data migration was needed either way.
+
+Measured on animals/10312 (all four locales), after the merge:
+
+```
+definitionsTableStillPresent=false   traceTablePresent=true
+rowsMissingType=0   rowsMissingStatusAndWindow=0
+rowsWithContentTwice=0   REPEATED_CELLS={}
+scopeTooltips=2   hasDedicatedLabel=true
+crudAnchor=true url=/animals/10312/care_animal_plans   newBtnWired=true
+```
+
+On animals/10221 the trace now lists **9** rows including the two that were
+previously unreachable ("Traitement — Baycox 5 % (PER OS)", "Traitement —
+Contrôle prolongation TRT"), each with its own type and window.
+
+A measurement trap worth recording: the duplication count was first read off
+`innerText`, which also returns the text of **collapsed** accordions — 21 hidden
+copies of the same feeding sentence (7 days × 3 times) inflated the figure. Every
+`#acp-*` day card on that animal is collapsed, so `VISIBLE_OCCURRENCES_OF_DESC=0`.
+Duplication must be counted on **visible** text (`offsetParent !== null`) only.
 
 ### R4-7.23 — Treatment tab: day badge over an empty body (**Open**)
 
@@ -529,3 +570,37 @@ failure and pollutes the gate diff.
 Fix (separate, test-infra): extend the sweep to drop `NULL`-cage search fixtures
 (e.g. `species LIKE 'Testsp %'`), or make the yearNumber derivation provably
 collision-free. Not fixed here to keep this commit to the feeding UI change.
+
+### TEST-2 — `TestMigrateTreatmentTimesIdempotent` fails on a stale test-DB FK (**Done**, test-infra)
+
+Not a product defect and not caused by R4-7.22. The test inserts a `treatments`
+row for an animal that no longer exists in `creaves_test`:
+
+```
+Error 1452 (23000): Cannot add or update a child row: a foreign key constraint
+fails (`creaves_test`.`treatments`, CONSTRAINT `treatments_animals_id_fk`
+FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`))
+```
+
+Proven pre-existing during R4-7.22 gating: it fails identically on stashed HEAD
+(`6723739`), in isolation 3/3, and as part of the whole `models` package. The
+R4-7.22 diff touches no file under `models/`. Unlike TEST-1 this one is
+deterministic, not flaky — it is a permanently red gate on this machine.
+
+**Fixed.** `migrationTreatment` hardcoded `AnimalID: 42`; a new
+`migrationHostAnimalID(t)` helper resolves a legal animal instead. It reuses an
+existing animal when the test database has one (the normal case — `creaves_test`
+is never reset between runs), and otherwise builds the minimum chain an animal
+requires, cleaning it up afterwards. Two schema facts the create branch has to
+respect, both found by forcing that branch and watching it fail:
+
+- `animals.IntakeDate` is NOT NULL with no default — unset, it sends the zero
+  time and MySQL rejects `'0000-00-00'`;
+- `animals` carries `UNIQUE(year, yearNumber)` and the zero pair is already
+  taken by the seed data (`Duplicate entry '0-0'`), so both are derived from
+  the random uuid bytes — the same collision class as TEST-1.
+
+Verified both branches: the reuse path passes 3/3 under `-race`, and the create
+path was proven by temporarily short-circuiting the reuse branch to `&& false`
+so the fixture chain actually executed. Pure unit tests (`migrationEntries`)
+short-circuit on `DB == nil` and never touch the database.

@@ -45,16 +45,22 @@ func TestTraceTableHasActionsNotOccurrenceCount(t *testing.T) {
 }
 
 // The animal-plan buttons in the trace are driven by the SAME delegated JS as
-// the definitions table below it — the handlers bind by class, so the trace
-// rows must use exactly those classes or they would render as inert buttons.
+// the rest of the page — the handlers bind by class, so the trace rows must
+// use exactly those classes or they would render as inert buttons.
+//
+// R4-7.22: the editor used to read its CRUD url off the separate definitions
+// table. That table is now gone (it duplicated the trace row), and the anchor
+// is #planDetails — which renders whether or not the trace has rows, so an
+// animal with no protocol yet keeps its "New protocol" button.
 func TestTraceEditorButtonsShareTheDelegatedHandlers(t *testing.T) {
 	raw := readTemplate(t, "../templates/animals/show.plush.html")
 	require.Contains(t, raw, "document.querySelectorAll('.carePlanEditBtn')",
 		"the editor handler binds by class")
 	require.Contains(t, raw, "document.querySelectorAll('.carePlanDeleteBtn')",
 		"the delete handler binds by class")
-	// and the table the handlers post to is present on the same page
-	require.Contains(t, raw, `id="careAnimalPlansTable"`, "the editor's backing table is on the page")
+	// and the anchor the handlers post to is present on the same page
 	require.Contains(t, raw, `data-url="/animals/<%= animal.ID %>/care_animal_plans"`,
 		"the editor knows where to save")
+	require.Contains(t, raw, "document.getElementById('planDetails')",
+		"the editor reads that url from an element that always renders")
 }
