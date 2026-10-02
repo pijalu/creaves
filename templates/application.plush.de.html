@@ -12,21 +12,26 @@
     <!-- App -->
     <%= javascriptTag("application.js") %>
   <style>
-    /* Keep navigation labels visible when the navbar collapses into the
-       hamburger menu (below xl the 10-item bar would overflow — issue #1:
-       cut menu instead of hamburger). */
-    @media (max-width: 991.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
-    /* R3-1b: at ≥xl the labels show — but a verbose locale (or a narrow
+    /* R4-7.13: the expanded bar is the DEFAULT down to md (768px) — below
+       lg the icon-only bar still fits comfortably, and collapsing it into a
+       hamburger there wasted the space ("hamburger is shown when there is
+       *still* important space avl"). Below md the labels are force-visible
+       again, because in the collapsed vertical menu they cost no width;
+       between md and xl they stay hidden (icon-only band), and at xl+ they
+       show unless the measured overflow probe (bottom of the page) says the
+       verbose locale does not fit. */
+    @media (max-width: 767.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R3-1b: at xl+ the labels show — but a verbose locale (or a narrow
        xl window) still overflows the bar and pushes the search box out
        (horizontal page scroll). The script below marks the bar
-       .nav-compact whenever it actually overflows; here the compact
-       state hides the labels again (icons + tooltips). */
-    @media (min-width: 992px) { nav.navbar.nav-compact .nav-label { display: none !important; } }
+       .nav-compact whenever it actually overflows; here the compact state
+       hides the labels again (icons + tooltips). */
+    @media (min-width: 768px) { nav.navbar.nav-compact .nav-label { display: none !important; } }
   </style>
   </head>
   <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
     <%= if (current_user) {%>
     <a class="navbar-brand" href="<%= rootPath() %>">
     <% } else {%>
@@ -220,7 +225,7 @@
     function fits() { return navbar.scrollWidth <= navbar.clientWidth + 1; }
     function apply() {
       var w = window.innerWidth;
-      if (w < 992) { navbar.classList.remove('nav-compact'); lastW = w; return; }
+      if (w < 768) { navbar.classList.remove('nav-compact'); lastW = w; return; }
       if (!navbar.classList.contains('nav-compact')) {
         if (!fits()) { navbar.classList.add('nav-compact'); }
       } else if (w > lastW) {
