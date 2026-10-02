@@ -129,7 +129,6 @@ func TestMedTierBadgeCountsOccurrences(t *testing.T) {
 	l2.Occurrence.DueAt = at(1, 20)
 	f := testItem(med, 1, careplan.StatusScheduled)
 	f.Occurrence.DueAt = at(3, 8)
-	f.Applicable = false
 	plan.Items = []careplan.PlanItem{l1, l2, f}
 
 	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
@@ -137,8 +136,14 @@ func TestMedTierBadgeCountsOccurrences(t *testing.T) {
 	require.Equal(t, 2, v.MedTierOpen[0], "badge counts occurrences, not series")
 	require.Equal(t, "2", v.MedTierOpenCap[0])
 	require.Equal(t, 2, v.Stats.Late, "badge and strip agree (R4-1.3)")
+	// A series sits in ONE section, but its future slot is still an
+	// occurrence of the later tier: the badges count occurrences across all
+	// series, so every badge equals the strip (the live "Late 22 vs Late
+	// 20" defect).
 	require.Empty(t, v.MedTiers[2], "the series sits in its most urgent tier only")
-	require.Equal(t, 0, v.MedTierOpen[2])
+	require.Equal(t, 1, v.MedTierOpen[2], "its future slot counts in the later tier")
+	require.Equal(t, v.Stats.Later, v.MedTierOpen[2], "later badge == later strip")
+	require.Equal(t, v.Stats.Now, v.MedTierOpen[1], "now badge == now strip")
 }
 
 // TestMedSeriesPartialTierClasses (R4-1.1, all four locales): the shared

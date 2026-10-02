@@ -428,7 +428,11 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView) {
 			// R4-1.2: the slot that placed the series in its tier is the
 			// urgent one (red ring); its later-tier open siblings recede.
 			markSeriesUrgency(&series, tier)
-			v.MedTierOpen[tier] += seriesTierOpenCount(series, tier)
+			// R4-1.3: the badge counts the tier's occurrences across ALL
+			// medication series — a series that sits in the Late section may
+			// still own future slots, and those occurrences are visible on
+			// this very page. One unit, one number, everywhere.
+			addTierOpenCounts(v, series)
 			g.Series = []MedSeriesView{series}
 			v.MedTiers[tier] = append(v.MedTiers[tier], g)
 		}
@@ -513,22 +517,22 @@ func markSeriesUrgency(series *MedSeriesView, tier int) {
 	}
 }
 
-// seriesTierOpenCount counts the APPLICABLE occurrences of a series that
-// belong to `tier` — R4-1.3: the section badge counts OCCURRENCES in its
-// own tier (the same population and unit as the summary strip's statsOf —
-// open, current, applicable), never series, so "Late 22" in the header
-// and "Late 20" in the strip can never disagree.
-func seriesTierOpenCount(series MedSeriesView, tier int) int {
-	n := 0
+// addTierOpenCounts folds one series' open applicable occurrences into the
+// per-tier badge counters — R4-1.3: the medication section badges count
+// OCCURRENCES (the same population and unit as the summary strip's
+// statsOf: open, current, applicable), never series, so "Late 22" in a
+// header and "Late 20" in the strip can never disagree.
+func addTierOpenCounts(v *DayPlanView, series MedSeriesView) {
 	for _, row := range series.Rows {
-		for _, s := range row.Slots {
-			if s.Done || s.Overridden || !s.Applicable || s.Tier != tier {
+		for _, slot := range row.Slots {
+			if slot.Done || slot.Overridden || !slot.Applicable {
 				continue
 			}
-			n++
+			if slot.Tier >= 0 && slot.Tier <= 2 {
+				v.MedTierOpen[slot.Tier]++
+			}
 		}
 	}
-	return n
 }
 
 // fillFeedTiers distributes the filtered feeding cards over the three
