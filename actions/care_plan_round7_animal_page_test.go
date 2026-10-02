@@ -129,36 +129,7 @@ func TestAnimalShowModalsOutsideTabPanes(t *testing.T) {
 // R4-7.10: every care_plan.status.* key a template can render must exist in
 // every locale file — a missing key showed up literally on the page.
 func TestCarePlanStatusKeysLocalizedEverywhere(t *testing.T) {
-	// validI18nKey matches an i18n key suffix: lowercase word + underscore —
-	// anything else came from prose, not from a t() call.
-	var validI18nKey = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
-
-	used := map[string]bool{}
-	for _, f := range []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/_med_series.plush.html",
-		"../templates/animals/show.plush.html",
-	} {
-		raw := readTemplate(t, f)
-		for _, chunk := range strings.Split(raw, "care_plan.status.") {
-			if chunk == "" {
-				continue
-			}
-			// A dynamic concatenation — `t("care_plan.status." + x)` — carries no
-			// literal key to verify; skip it.
-			if strings.HasPrefix(chunk, `"`) {
-				continue
-			}
-			key := chunk
-			if i := strings.IndexAny(key, `" `); i >= 0 {
-				key = key[:i]
-			}
-			if key == "" || !validI18nKey.MatchString(key) {
-				continue
-			}
-			used["care_plan.status."+key] = true
-		}
-	}
+	used := statusKeysUsedByTemplates(t)
 	require.Contains(t, used, "care_plan.status.done", "the done alias is used")
 
 	for _, lang := range []string{"en-us", "fr", "de", "nl"} {
@@ -167,6 +138,46 @@ func TestCarePlanStatusKeysLocalizedEverywhere(t *testing.T) {
 			require.Contains(t, raw, `- id: "`+key+`"`, lang+" — "+key)
 		}
 	}
+}
+
+// statusKeysUsedByTemplates collects every literal care_plan.status.* key the
+// templates can render, across the templates that render statuses.
+func statusKeysUsedByTemplates(t *testing.T) map[string]bool {
+	// validI18nKey matches an i18n key suffix: lowercase word + underscore —
+	// anything else came from prose, not from a t() call.
+	validI18nKey := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+	used := map[string]bool{}
+	for _, f := range []string{
+		"../templates/care_plan/index.plush.html",
+		"../templates/care_plan/_med_series.plush.html",
+		"../templates/animals/show.plush.html",
+	} {
+		for _, key := range literalStatusKeys(readTemplate(t, f), validI18nKey) {
+			used[key] = true
+		}
+	}
+	return used
+}
+
+// literalStatusKeys extracts the static care_plan.status.* keys of one
+// template. A dynamic concatenation — `t("care_plan.status." + x)` — carries no
+// literal key to verify and is skipped.
+func literalStatusKeys(raw string, validI18nKey *regexp.Regexp) []string {
+	var keys []string
+	for _, chunk := range strings.Split(raw, "care_plan.status.") {
+		if chunk == "" || strings.HasPrefix(chunk, `"`) {
+			continue
+		}
+		key := chunk
+		if i := strings.IndexAny(key, `" `); i >= 0 {
+			key = key[:i]
+		}
+		if key != "" && validI18nKey.MatchString(key) {
+			keys = append(keys, "care_plan.status."+key)
+		}
+	}
+	return keys
 }
 
 // paneRange is the byte span of one `class="tab-pane"` element: the offset of
@@ -195,27 +206,24 @@ func tabPaneRanges(raw string) []paneRange {
 	var stack []openDiv
 	line := 1
 	for i := 0; i < len(raw); {
-		switch {
-		case strings.HasPrefix(raw[i:], "</div"):
-			if n := len(stack); n > 0 {
-				d := stack[n-1]
-				stack = stack[:n-1]
-				if d.isPane {
-					out = append(out, paneRange{start: d.offset, end: i + len("</div>"), line: d.line})
-				}
+		switch tag, size := nextDivTag(raw, i); tag {
+		case divClose:
+			if pane, ok := popDiv(&stack, i+size); ok {
+				pane.end = i + size
+				out = append(out, pane)
 			}
-			i += len("</div>")
-		case strings.HasPrefix(raw[i:], "<div"):
-			tagEnd := strings.Index(raw[i:], ">")
-			if tagEnd < 0 {
+			i += size
+		case divOpen:
+			end := strings.Index(raw[i:], ">")
+			if end < 0 {
 				return out
 			}
 			stack = append(stack, openDiv{
 				offset: i,
-				isPane: strings.Contains(raw[i:i+tagEnd], `class="tab-pane`),
+				isPane: strings.Contains(raw[i:i+end], `class="tab-pane`),
 				line:   line,
 			})
-			i += tagEnd + 1
+			i += end + 1
 		default:
 			if raw[i] == '\n' {
 				line++
@@ -225,6 +233,38 @@ func tabPaneRanges(raw string) []paneRange {
 	}
 	// innermost-first is fine for the "is X inside a pane" check.
 	return out
+}
+
+// divTag names the kind of div marker at an offset.
+const (
+	divNone = iota
+	divOpen
+	divClose
+)
+
+// nextDivTag reports which div marker (`<div` / `</div>`) starts at offset i,
+// and its length; divNone when neither does. Splitting the scan out of
+// tabPaneRanges keeps the nesting logic flat.
+func nextDivTag(raw string, i int) (int, int) {
+	switch {
+	case strings.HasPrefix(raw[i:], "</div"):
+		return divClose, len("</div>")
+	case strings.HasPrefix(raw[i:], "<div"):
+		return divOpen, len("<div")
+	}
+	return divNone, 0
+}
+
+// popDiv removes the innermost open <div and reports whether it was a pane,
+// returning its identity so the caller can complete the range.
+func popDiv(stack *[]openDiv, closeAt int) (paneRange, bool) {
+	s := *stack
+	if len(s) == 0 {
+		return paneRange{}, false
+	}
+	d := s[len(s)-1]
+	*stack = s[:len(s)-1]
+	return paneRange{start: d.offset, line: d.line}, d.isPane
 }
 
 // readTemplate reads a template/locale file, failing the test on error.

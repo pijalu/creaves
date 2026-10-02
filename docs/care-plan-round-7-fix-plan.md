@@ -10,6 +10,22 @@ per tool run (`go vet`, `staticcheck`, `gocognit -over 15 .`, `gocyclo -over 12 
 `go test -count=1 -race -cover ./...`), e2e evidence via the agent-browser
 skill, commit per fix, archive resolved entries at the end of the round.
 
+**e2e evidence** (agent-browser DOM dumps, admin session, en-US + fr):
+`tmp/browser_evidence/round7/e2e-round7.md` (tmp/ is gitignored — local).
+Measured, not asserted:
+- the animal page is intact (9 tab panes, div nesting 539/539, Treatment tab
+  present) and all three shared modals render outside every pane;
+- the merged Details card sits above the day cards (top 339 vs 405);
+- the trace rows carry 5 cells, the last one edit+delete, and the string
+  "occurrence" appears nowhere in the table;
+- the compact medication view shows 24 lines, all buckets "EVENING",
+  **zero** tomorrow buckets, and every line's first slot cell at exactly
+  x = 1092.4 (aligned by construction);
+- the navbar is inline (no hamburger) from 768 to 992+ and only collapses
+  below 768, with all 11 labels visible there and no horizontal overflow at
+  any width.
+
+
 ---
 
 ## R4-7.1 Apply modal outside the tab panes — **Done**
