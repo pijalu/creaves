@@ -274,6 +274,8 @@
   translation: "Middag"
 - id: "care_plan.slot.evening"
   translation: "Avond"
+- id: "care_plan.slot.tomorrow"
+  translation: "Morgen"
 - id: "care_plan.apply.expect.feeding"
   translation: "De voeding wordt als gedaan geregistreerd en de invoer wordt als toegepast gemarkeerd."
 - id: "care_plan.apply.expect.medication"

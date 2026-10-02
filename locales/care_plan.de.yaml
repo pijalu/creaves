@@ -274,6 +274,8 @@
   translation: "Mittag"
 - id: "care_plan.slot.evening"
   translation: "Abend"
+- id: "care_plan.slot.tomorrow"
+  translation: "Morgen"
 - id: "care_plan.apply.expect.feeding"
   translation: "Die Fütterung wird als erledigt erfasst und der Eintrag wird als angewendet markiert."
 - id: "care_plan.apply.expect.medication"
