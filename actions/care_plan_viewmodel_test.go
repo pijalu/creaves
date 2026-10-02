@@ -35,29 +35,32 @@ func TestTierOrder(t *testing.T) {
 }
 
 // TestBuildDayPlanViewEmpty: an empty plan still yields a renderable view
-// (sections empty, kind chips present, zero stats).
+// (tiers empty, kind chips present, zero stats).
 func TestBuildDayPlanViewEmpty(t *testing.T) {
 	plan := &DayPlan{Animals: &planAnimals{}}
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
 	require.NotNil(t, v)
 	require.Equal(t, "10:30", v.UpdatedAt)
-	require.Empty(t, v.WorkRows)
+	for ti := range v.Tiers {
+		require.Empty(t, v.Tiers[ti].Cards)
+		require.Equal(t, 0, v.Tiers[ti].Count)
+	}
 	require.Empty(t, v.History)
 	require.Empty(t, v.Feedings)
 	require.Empty(t, v.Cares)
-	require.Empty(t, v.Meds)
 	require.Equal(t, FilterStats{LateCap: "0", NowCap: "0", LaterCap: "0"}, v.Stats)
 	require.Len(t, v.Kinds, 6)
 	require.Empty(t, v.Zones)
 }
 
-// TestBuildDayPlanViewMedGroups: compact view projects every medication
-// occurrence into per-animal cards (bugs.md rework). One card per animal
-// holding ALL its slots (morning/noon/evening buckets from the due hour,
-// §6.2); applied slots stay visible (state visible, undoable); zone filter
-// narrows the cards; non-medication kinds never leak in.
-func TestBuildDayPlanViewMedGroups(t *testing.T) {
+// TestBuildDayPlanViewMedTiers (fix 6): medication renders as TIER ROWS
+// (no per-hour button series, no separate collapsible section). Compact
+// folds each (source × animal) group to its next open action; zone and
+// kind filters narrow the rows; non-medication kinds stay out of the
+// med rows (feeding has its own section). The per-animal SLOT cards stay
+// dashboard-only (TestBuildDashboardMedViewTodayOnly).
+func TestBuildDayPlanViewMedTiers(t *testing.T) {
 	plan := testPlan()
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 
@@ -71,58 +74,63 @@ func TestBuildDayPlanViewMedGroups(t *testing.T) {
 	evening.Occurrence.DueAt = time.Date(2026, 9, 28, 18, 0, 0, 0, time.Local)
 	done := testItem(medMorning, 2, careplan.StatusApplied)
 	done.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)
+	done.Application = &careplan.ApplicationView{Status: "applied"}
 	otherZone := testItem(medMorning, 3, careplan.StatusDue)
 	otherZone.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)
 	feeding := testItem(feed, 1, careplan.StatusDue)
 
 	plan.Items = []careplan.PlanItem{morning, evening, done, otherZone, feeding}
 
+	// compact, unfiltered: three open med rows — now: 08:30 (animal 1)
+	// then 09:00 (animal 3), later: 18:00 (animal 1); the applied
+	// occurrence is history. Feeding is its own section, never a row.
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
-	require.Len(t, v.Meds, 3, "one medication card per animal (1, 2, 3)")
+	require.Len(t, v.Tiers[1].Cards, 2, "due med rows in the now tier")
+	require.Equal(t, 1, v.Tiers[1].Cards[0].AnimalID)
+	require.Equal(t, "08:30", v.Tiers[1].Cards[0].DueHM)
+	require.Equal(t, 3, v.Tiers[1].Cards[1].AnimalID)
+	require.Len(t, v.Tiers[2].Cards, 1, "scheduled evening med row")
+	require.Equal(t, 1, v.Tiers[2].Cards[0].AnimalID)
+	require.Equal(t, "18:00", v.Tiers[2].Cards[0].DueHM)
+	require.Len(t, v.History, 1, "applied med is history, undoable")
+	require.Equal(t, 2, v.History[0].AnimalID)
+	require.True(t, v.History[0].Undoable)
+	require.Len(t, v.Feedings, 1)
+	require.Equal(t, "Itra — 0.1 ml", v.Tiers[1].Cards[0].Detail, "drug — dosage detail line, marker stripped (U5)")
+	require.Contains(t, v.Tiers[1].Cards[0].AnimalLink, "/animals/1?back=")
 
-	// groups sort by animal ID
-	require.Equal(t, 1, v.Meds[0].AnimalID)
-	require.Equal(t, 2, v.Meds[1].AnimalID)
-	require.Equal(t, 3, v.Meds[2].AnimalID)
-
-	// animal 1: two slots sorted by due time — morning first, evening last;
-	// feeding item must not leak into the medication card
-	g1 := v.Meds[0]
-	require.Len(t, g1.Slots, 2)
-	require.Equal(t, "morning", g1.Slots[0].Slot)
-	require.Equal(t, "evening", g1.Slots[1].Slot)
-	require.Equal(t, "Itra", g1.Slots[0].SourceName, "conversion marker stripped (U5)")
-	require.Equal(t, "Itra — 0.1 ml", g1.Slots[0].Detail)
-	require.Equal(t, 2, g1.OpenCount, "both open slots count (due morning + scheduled evening — still to give today)")
-	require.False(t, g1.Slots[0].Done)
-	require.Contains(t, g1.AnimalLink, "/animals/1?back=")
-
-	// animal 2: applied slot stays visible with Done/Applied flags
-	g2 := v.Meds[1]
-	require.Len(t, g2.Slots, 1)
-	require.True(t, g2.Slots[0].Applied)
-	require.True(t, g2.Slots[0].Done)
-	require.Equal(t, 0, g2.OpenCount)
-
-	// zone filter narrows to Z1 animals (1 and 2)
+	// zone filter narrows to Z1 animals (1 and 2): rows of animal 3 gone
 	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", now)
-	require.Len(t, v.Meds, 2)
+	require.Len(t, v.Tiers[1].Cards, 1)
+	require.Len(t, v.Tiers[2].Cards, 1)
 	// S2 badge parity: the toggle-button badge equals the visible count
-	require.Equal(t, "2", v.ZoneCap)
+	// (2 rows + 1 feeding card)
+	require.Equal(t, "3", v.ZoneCap)
 	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", now)
-	require.Len(t, v.Meds, 1)
+	require.Len(t, v.Tiers[1].Cards, 1)
 	require.Equal(t, "1", v.ZoneCap)
-	require.Equal(t, 3, v.Meds[0].AnimalID)
+	require.Equal(t, 3, v.Tiers[1].Cards[0].AnimalID)
 	// no zone selected → button badge = all-zones cap
 	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
 	require.Equal(t, v.ZoneAllCap, v.ZoneCap)
 
-	// kind filter ≠ medication hides the medication section entirely
-	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
-	require.Empty(t, v.Meds)
-	// kind = medication keeps it
+	// kind filter = medication keeps ONLY the med rows (feeding section gone)
 	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
-	require.Len(t, v.Meds, 3)
+	require.Len(t, v.Tiers[1].Cards, 2)
+	require.Len(t, v.Tiers[2].Cards, 1)
+	require.Empty(t, v.Feedings)
+	// kind = feeding: no med rows anywhere, feeding section only
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	for ti := range v.Tiers {
+		require.Empty(t, v.Tiers[ti].Cards)
+	}
+	require.Len(t, v.Feedings, 1)
+
+	// detailed: every open occurrence gets its own row — same med set,
+	// one row per occurrence (morning 08:30, evening 18:00, Z2 09:00)
+	d := BuildDayPlanView(plan, ViewDetailed, "", "", now)
+	require.Len(t, d.Tiers[1].Cards, 2)
+	require.Len(t, d.Tiers[2].Cards, 1)
 }
 
 // TestBuildDashboardMedViewTodayOnly: the dashboard mode (bugs.md R5-2a)
@@ -173,17 +181,22 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.Contains(t, meds[0].Slots[0].DeepLink, "/animals/1?due=")
 	require.Contains(t, meds[0].Slots[0].DeepLink, "item=rule%3Amed-1#nav-treatment")
 
-	// /care_plan mode over the same plan: unchanged — every window slot
-	// stays visible, overridden included.
+	// /care_plan tier projection over the same plan (fix 6): compact
+	// folds the three open occurrences of (med-1 × animal 1) into ONE
+	// late row with a "+2" remaining badge — no per-slot button series.
 	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
-	require.Len(t, v.Meds, 2, "animal 1 (3 slots) + animal 2 (overridden kept)")
-	g1 := v.Meds[0]
-	require.Len(t, g1.Slots, 4, "yesterday + 2 today + tomorrow slots (4-day window keeps everything)")
-	require.Equal(t, 3, g1.OpenCount, "work-screen count unchanged: late + due + scheduled open across the 4-day window")
-	g2 := v.Meds[1]
-	require.Equal(t, 2, g2.AnimalID)
-	require.Len(t, g2.Slots, 1, "overridden slot still surfaces on the work screen")
-	require.True(t, g2.Slots[0].Overridden)
+	require.Len(t, v.Tiers[0].Cards, 1, "one folded row: yesterday's late slot is the next open action")
+	require.Equal(t, 1, v.Tiers[0].Cards[0].AnimalID)
+	require.Equal(t, 2, v.Tiers[0].Cards[0].Remaining, "due today + scheduled tomorrow fold into the +N badge")
+	require.Len(t, v.History, 1, "today's applied slot is history; overridden stays hidden in compact")
+	require.Equal(t, 1, v.History[0].AnimalID)
+	// detailed: every open occurrence is its own tier row; overridden
+	// surfaces in the history section only in this density.
+	dv := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, now)
+	require.Len(t, dv.Tiers[0].Cards, 1)
+	require.Len(t, dv.Tiers[1].Cards, 1, "today's due slot")
+	require.Len(t, dv.Tiers[2].Cards, 1, "tomorrow's scheduled slot")
+	require.Len(t, dv.History, 2, "applied + overridden (detailed debug surface)")
 }
 
 // TestMedSlotOf: bucket boundaries match treatmentBucketBit (§6.2) so the

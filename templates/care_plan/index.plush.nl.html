@@ -6,36 +6,17 @@
   .plan-dot-missing { color: #dc3545; }
   .plan-dot-scheduled { color: #6c757d; }
   .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
-
-  /* Sections accordion (round-2 §7.1): a real card per section — header
-     carries title + count + chevron. */
-  .plan-section .card-header { cursor: pointer; user-select: none; }
-  .plan-section .plan-chevron { transition: transform .2s; }
-  .plan-section .collapsed .plan-chevron { transform: rotate(-90deg); }
-
-  /* Feeding cards: one row per animal (multi-line, never clipped). */
-  .plan-feeding-card .plan-animal-row {
-    display: flex; justify-content: space-between; align-items: center;
-    gap: .5rem; padding: .15rem 0; border-top: 1px solid rgba(0,0,0,.06);
-  }
-  .plan-feeding-card .plan-animal-row:first-of-type { border-top: 0; }
   .plan-feeding-chip { text-decoration: none; }
   .plan-feeding-chip:hover { text-decoration: none; background-color: #e2e6ea; }
 
-  /* Feeding card diet text: wraps to multiple lines, never truncated
-     (bugs.md U14) — the diet IS the card's content. */
-  .plan-feeding-food { display: block; white-space: normal; word-break: break-word; font-weight: 600; }
-  .plan-feeding-zone { font-weight: 600; }
-
-  /* Medication slot toggle buttons. */
-  .plan-med-slot { min-width: 2.6rem; }
-
-  /* A3 summary-strip anchor targets land under the fixed topbar — offset
-     the scroll so the jumped card is not hidden behind it. */
-  [id^="plan-first-"] { scroll-margin-top: 60px; }
+  /* The three urgency sections are the screen's anchor targets (fix 2:
+     late · now · later, always in this order) — offset the scroll so a
+     jumped section is not hidden behind the fixed topbar. */
+  #tier-late, #tier-now, #tier-later { scroll-margin-top: 60px; }
 </style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
+  <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
   <div class="float-right">
     <div class="btn-group btn-group-sm" role="group">
       <%= if (view.View == "compact") { %>
@@ -49,31 +30,26 @@
   </div>
 </div>
 
-<%# A3 summary strip: urgency overview + jump anchors. Anchors are only
-     rendered when the state has work — the target card carries the
-     matching plan-first id (markAnchors guarantees exactly one). %>
+<%# A3 summary strip: urgency overview + jump anchors — the anchors are
+     the tier sections themselves (fix 2), always present, no per-card
+     ids. Anchors render only when the state has work. %>
 <div class="mb-2" id="planSummaryStrip">
   <%= if (view.Stats.Late > 0) { %>
-    <a class="badge badge-danger mr-1" href="#plan-first-late"><%= t("care_plan.tier.late") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LateCap %></span></a>
+    <a class="badge badge-danger mr-1" href="#tier-late"><%= t("care_plan.tier.late") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LateCap %></span></a>
   <% } %>
   <%= if (view.Stats.Now > 0) { %>
-    <a class="badge badge-warning mr-1" href="#plan-first-todo"><%= t("care_plan.tier.now") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.NowCap %></span></a>
+    <a class="badge badge-warning mr-1" href="#tier-now"><%= t("care_plan.tier.now") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.NowCap %></span></a>
   <% } %>
   <%= if (view.Stats.Later > 0) { %>
-    <a class="badge badge-primary mr-1" href="#plan-first-later"><%= t("care_plan.tier.later") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LaterCap %></span></a>
+    <a class="badge badge-primary mr-1" href="#tier-later"><%= t("care_plan.tier.later") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LaterCap %></span></a>
   <% } %>
-  <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
 </div>
 
-<%# Kind = primary nav (round-2 §7.2 IA): counts are open occurrences of
-     the kind in the ACTIVE zone; "all" is the whole active zone. %>
+<%# Kind = primary nav (fix 5 — NO "all/TOUT" tab, the handler picks the
+     active kind): counts are open occurrences of the kind in the ACTIVE
+     zone. One kind on screen at a time — feeding never mixes with
+     medication (fix 4). %>
 <ul class="nav nav-tabs mb-2" id="planKindTabs">
-  <li class="nav-item">
-    <a class="nav-link<%= if (view.Kind == "") { %> active<% } %>" href="?view=<%= view.View %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
-      <%= t("care_plan.kind.all") %>
-      <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;"><%= view.KindAllCap %></span>
-    </a>
-  </li>
   <%= for (kc) in view.Kinds { %>
     <li class="nav-item">
       <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?view=<%= view.View %>&kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
@@ -86,9 +62,9 @@
   <% } %>
 </ul>
 
-<%# Zone = dropdown filter (round-2 §7.2 IA): a long zone list no longer
-     breaks the layout as a tab row. Counts are open occurrences of the
-     ACTIVE kind in the zone. %>
+<%# Zone = dropdown filter: a long zone list no longer breaks the layout
+     as a tab row. Counts are open occurrences of the ACTIVE kind in the
+     zone; the toggle button's badge equals the visible count (S2). %>
 <div class="dropdown mb-3" id="planZoneDropdown">
   <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="planZoneToggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
     <%= t("care_plan.zone.select") %>: <%= if (view.Zone == "") { %><%= t("care_plan.zone.all") %><% } else { %><%= view.Zone %><% } %>
@@ -110,313 +86,410 @@
   </div>
 </div>
 
-<%# §7.1: ONE sections accordion — medication cards, feeding cards, work
-     rows, cage cards, history last. No tier grids, no hour chips: the
-     summary strip anchors replace the jump navigation. %>
-<%= if (len(view.Meds) == 0 && len(view.Feedings) == 0 && len(view.WorkRows) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
+<%= if (len(view.Tiers[0].Cards) == 0 && len(view.Tiers[1].Cards) == 0 && len(view.Tiers[2].Cards) == 0 && len(view.Feedings) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
   <div class="alert alert-success"><%= t("care_plan.day.empty") %></div>
 <% } else { %>
 <div id="planSections">
 
-  <%# --- Médicaments ------------------------------------------------------- %>
-  <div class="card plan-section mb-3">
-    <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#section-meds" aria-expanded="true">
-      <i class="fas fa-chevron-down plan-chevron mr-2"></i>
-      <strong><%= t("care_plan.medication.title") %></strong>
-      <span class="badge badge-pill badge-secondary ml-2"><%= len(view.Meds) %></span>
+  <%# --- Tiers: late → now → later (§U2, the original work screen) --------
+       Fix 2/3/6: three collapsible TABLE sections in fixed order, rows
+       are lists (never cards); medication renders as ordinary tier rows
+       with a day-aware due label — no per-hour button series, no separate
+       collapsible medication section. Feeding/cleanup are grouped lists
+       below and never appear in the tiers. %>
+  <%= if (view.Kind != "feeding" && view.Kind != "cleanup") { %>
+
+    <div class="mb-2" id="tier-late">
+      <button class="btn btn-outline-danger position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true">
+        <%= t("care_plan.tier.late") %>
+        <span class="badge badge-pill badge-danger position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[0].CountCap %></span>
+      </button>
+      <div class="collapse show" id="tier-late-rows">
+        <table class="table table-hover table-bordered">
+          <tbody>
+            <%= for (card) in view.Tiers[0].Cards { %>
+              <tr class="plan-item plan-item-<%= card.Status %> table-danger">
+                <td>
+                  <%= if (card.AnimalLink != "") { %>
+                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+                  <% } else { %>
+                    <%= card.AnimalLabel %>
+                  <% } %>
+                </td>
+                <td>
+                  <%= if (card.Detail != "") { %>
+                    <strong><%= card.Detail %></strong>
+                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+                  <% } else { %>
+                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+                  <% } %>
+                  <%= if (card.Remaining > 0) { %>
+                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+                  <% } %>
+                </td>
+                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                <td class="text-nowrap">
+                  <%= if (card.Status == "late") { %>
+                    <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+                  <% } else { %>
+                    <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+                  <% } %>
+                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+                  <%= if (card.Applicable) { %>
+                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-kind="<%= card.ActionKind %>"
+                      data-animal-label="<%= card.AnimalLabel %>"
+                      data-detail="<%= card.Detail %>"
+                      data-source-name="<%= card.SourceName %>">
+                      <%= t("care_plan.apply.action") %>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="skip"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
+                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="defer"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <div class="collapse show" id="section-meds">
-      <div class="card-body p-2">
-        <div class="row">
-          <%= for (mg) in view.Meds { %>
-            <div class="col-md-6"<%= if (mg.FirstLate) { %> id="plan-first-late"<% } %><%= if (mg.FirstTodo) { %> id="plan-first-todo"<% } %><%= if (mg.FirstLater) { %> id="plan-first-later"<% } %>>
-              <div class="card mb-2 plan-med-card">
-                <div class="card-body p-2">
-                  <div class="d-flex align-items-center">
-                    <strong><a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a></strong>
-                    <%= if (mg.OuttakenToday) { %>
+
+    <div class="mb-2" id="tier-now">
+      <button class="btn btn-outline-warning position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true">
+        <%= t("care_plan.tier.now") %>
+        <span class="badge badge-pill badge-warning position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[1].CountCap %></span>
+      </button>
+      <div class="collapse show" id="tier-now-rows">
+        <table class="table table-hover table-bordered">
+          <tbody>
+            <%= for (card) in view.Tiers[1].Cards { %>
+              <tr class="plan-item plan-item-<%= card.Status %> table-warning">
+                <td>
+                  <%= if (card.AnimalLink != "") { %>
+                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+                  <% } else { %>
+                    <%= card.AnimalLabel %>
+                  <% } %>
+                </td>
+                <td>
+                  <%= if (card.Detail != "") { %>
+                    <strong><%= card.Detail %></strong>
+                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+                  <% } else { %>
+                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+                  <% } %>
+                  <%= if (card.Remaining > 0) { %>
+                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+                  <% } %>
+                </td>
+                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                <td class="text-nowrap">
+                  <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+                  <%= if (card.Applicable) { %>
+                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-kind="<%= card.ActionKind %>"
+                      data-animal-label="<%= card.AnimalLabel %>"
+                      data-detail="<%= card.Detail %>"
+                      data-source-name="<%= card.SourceName %>">
+                      <%= t("care_plan.apply.action") %>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="skip"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
+                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="defer"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="mb-2" id="tier-later">
+      <button class="btn btn-outline-primary position-relative mb-1" type="button" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="false">
+        <%= t("care_plan.tier.later") %>
+        <span class="badge badge-pill badge-primary position-absolute" style="top:-0.6em;right:-0.6em;"><%= view.Tiers[2].CountCap %></span>
+      </button>
+      <div class="collapse" id="tier-later-rows">
+        <table class="table table-hover table-bordered">
+          <tbody>
+            <%= for (card) in view.Tiers[2].Cards { %>
+              <tr class="plan-item plan-item-<%= card.Status %>">
+                <td>
+                  <%= if (card.AnimalLink != "") { %>
+                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+                  <% } else { %>
+                    <%= card.AnimalLabel %>
+                  <% } %>
+                </td>
+                <td>
+                  <%= if (card.Detail != "") { %>
+                    <strong><%= card.Detail %></strong>
+                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+                  <% } else { %>
+                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+                  <% } %>
+                  <%= if (card.Remaining > 0) { %>
+                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
+                  <% } %>
+                </td>
+                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                <td class="text-nowrap">
+                  <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
+                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+                  <%= if (card.Applicable) { %>
+                    <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-kind="<%= card.ActionKind %>"
+                      data-animal-label="<%= card.AnimalLabel %>"
+                      data-detail="<%= card.Detail %>"
+                      data-source-name="<%= card.SourceName %>">
+                      <%= t("care_plan.apply.action") %>
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="skip"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
+                    <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-mode="defer"
+                      data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <% } %>
+
+  <%# --- Nourrissage: LIST (fix 3) — one row per cage × diet, the
+       animals as chip rows inside; no cards. Only under kind=feeding. %>
+  <%= if (len(view.Feedings) > 0) { %>
+    <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
+    <table class="table table-hover table-bordered mb-3">
+      <tbody>
+        <%= for (fcard) in view.Feedings { %>
+          <tr class="plan-feeding-row">
+            <td>
+              <strong><%= fcard.Cage %></strong>
+              <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
+              <br><span class="text-info"><%= fcard.Food %></span>
+              <%= if (fcard.ForceFeed) { %>
+                <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
+              <% } %>
+            </td>
+            <td>
+              <%= for (chip) in fcard.Chips { %>
+                <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
+                  <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
+                    <span class="plan-dot plan-dot-<%= chip.Status %>">●</span> <%= chip.Label %>
+                  </a>
+                  <span class="d-flex align-items-center">
+                    <%= if (chip.Superseded) { %>
+                      <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
+                    <% } else { %>
+                      <span class="text-muted small mr-1"><%= t("care_plan.status." + chip.Status) %></span>
+                      <%= if (chip.Applicable) { %>
+                        <button type="button" class="btn btn-outline-success btn-sm plan-feeding-one"
+                          data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                          data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.apply.action") %>"><%= t("care_plan.apply.action") %></button>
+                      <% } %>
+                    <% } %>
+                    <%= if (chip.OuttakenToday) { %>
                       <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
                     <% } %>
-                    <%= if (mg.OpenCount > 0) { %>
-                      <span class="badge badge-pill badge-warning ml-2"><%= t("care_plan.medication.open", {count: mg.OpenCount}) %></span>
-                    <% } else { %>
-                      <span class="badge badge-pill badge-success ml-2">✓</span>
+                    <%= if (chip.Remaining > 0) { %>
+                      <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= chip.Remaining %></span>
                     <% } %>
-                  </div>
-                  <%= partial("care_plan/med_series.plush.html") %>
+                  </span>
                 </div>
-              </div>
-            </div>
-          <% } %>
-        </div>
-      </div>
-    </div>
-  </div>
+              <% } %>
+            </td>
+            <td class="text-nowrap">
+              <%= if (fcard.ApplicableCount > 0) { %>
+                <button type="button" class="btn btn-success plan-feeding-apply"
+                  data-items="<%= fcard.ChipRefsJSON %>"
+                  data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>">
+                  <%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)
+                </button>
+              <% } %>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
 
-  <%# --- Nourrissage -------------------------------------------------------- %>
-  <div class="card plan-section mb-3">
-    <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#section-feedings" aria-expanded="true">
-      <i class="fas fa-chevron-down plan-chevron mr-2"></i>
-      <strong><%= t("care_plan.feeding.title") %></strong>
-      <span class="badge badge-pill badge-secondary ml-2"><%= len(view.Feedings) %></span>
-    </div>
-    <div class="collapse show" id="section-feedings">
-      <div class="card-body p-2">
-        <div class="row">
-          <%= for (fcard) in view.Feedings { %>
-            <div class="col-md-4"<%= if (fcard.FirstLate) { %> id="plan-first-late"<% } %><%= if (fcard.FirstTodo) { %> id="plan-first-todo"<% } %><%= if (fcard.FirstLater) { %> id="plan-first-later"<% } %>>
-              <div class="card mb-2 plan-feeding-card">
-                <div class="card-body p-2">
-                  <div>
-                    <strong><%= fcard.Cage %></strong>
-                    <span class="text-muted plan-feeding-zone"><%= tbase("zones", "zone", fcard.Zone) %></span>
-                    <span class="plan-feeding-food text-info"><%= fcard.Food %></span>
-                    <%= if (fcard.ForceFeed) { %>
-                      <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
-                    <% } %>
-                  </div>
-                  <div class="mt-1">
-                    <%= for (chip) in fcard.Chips { %>
-                      <div class="plan-animal-row">
-                        <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
-                          <span class="plan-dot plan-dot-<%= chip.Status %>">●</span> <%= chip.Label %>
-                        </a>
-                        <span class="d-flex align-items-center">
-                          <%= if (chip.Superseded) { %>
-                            <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
-                          <% } else { %>
-                            <span class="text-muted small mr-1"><%= t("care_plan.status." + chip.Status) %></span>
-                            <%= if (chip.Applicable) { %>
-                              <button type="button" class="btn btn-outline-success btn-sm plan-feeding-one"
-                                data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
-                                data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
-                                data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                                data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                title="<%= t("care_plan.apply.action") %>"><%= t("care_plan.apply.action") %></button>
-                            <% } %>
-                          <% } %>
-                          <%= if (chip.OuttakenToday) { %>
-                            <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
-                          <% } %>
-                          <%= if (chip.Remaining > 0) { %>
-                            <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= chip.Remaining %></span>
-                          <% } %>
-                        </span>
-                      </div>
-                    <% } %>
-                  </div>
-                  <%= if (fcard.ApplicableCount > 0) { %>
-                    <button type="button" class="btn btn-success mt-2 plan-feeding-apply"
-                      data-items="<%= fcard.ChipRefsJSON %>"
-                      data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>">
-                      <%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)
+  <%# --- Nettoyage: LIST (fix 3) — one row per cage; no cards.
+       Only under kind=cleanup. %>
+  <%= if (len(view.Cares) > 0) { %>
+    <h5 class="mt-3"><%= t("care_plan.cage_cards") %></h5>
+    <table class="table table-hover table-bordered mb-3">
+      <tbody>
+        <%= for (ccard) in view.Cares { %>
+          <tr class="plan-cage-row">
+            <td>
+              <strong><%= ccard.Cage %></strong>
+              <span class="text-muted"><%= ccard.Zone %></span>
+              <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+            </td>
+            <td class="text-nowrap">
+              <button type="button" class="btn btn-success plan-cage-apply"
+                data-items="<%= ccard.ChipRefsJSON %>"
+                data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>">
+                <%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)
+              </button>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  <% } %>
+
+  <%# --- Historique (subdued, collapsed by default): terminal +
+       superseded rows of the ROW kinds — medication included (its done
+       rows carry undo, fulfillment links and the late-record action). %>
+  <%= if (len(view.History) > 0) { %>
+    <div class="mb-2">
+      <button class="btn btn-outline-secondary position-relative mb-1" type="button" data-toggle="collapse" data-target="#plan-history-rows" aria-expanded="false">
+        <%= t("care_plan.section.history") %>
+        <span class="badge badge-pill badge-secondary position-absolute" style="top:-0.6em;right:-0.6em;"><%= len(view.History) %></span>
+      </button>
+      <div class="collapse" id="plan-history-rows">
+        <table class="table table-sm table-hover table-bordered mb-0">
+          <tbody>
+            <%= for (card) in view.History { %>
+              <tr class="plan-item text-muted">
+                <td>
+                  <%= if (card.AnimalLink != "") { %>
+                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+                  <% } else { %>
+                    <%= card.AnimalLabel %>
+                  <% } %>
+                </td>
+                <td>
+                  <%= if (card.Detail != "") { %>
+                    <strong><%= card.Detail %></strong>
+                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+                  <% } else { %>
+                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+                  <% } %>
+                </td>
+                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                <td class="text-nowrap">
+                  <%= if (card.Superseded) { %>
+                    <span class="badge badge-light"<%= if (card.SupersededBy != "") { %> title="<%= t("care_plan.superseded.replaced_by") %> <%= card.SupersededBy %>"<% } %>><%= t("care_plan.status." + card.Status) %></span>
+                  <% } else if (card.Status == "applied") { %>
+                    <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
+                  <% } else if (card.Status == "skipped") { %>
+                    <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
+                  <% } else if (card.Status == "deferred") { %>
+                    <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
+                  <% } else if (card.Status == "overridden") { %>
+                    <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
+                  <% } else { %>
+                    <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+                  <% } %>
+                  <%= if (card.RecordedLate) { %>
+                    <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>
+                  <% } %>
+                  <%= if (card.FulfillmentLink != "") { %>
+                    <a class="btn btn-outline-success btn-sm ml-1" href="<%= card.FulfillmentLink %>"><%= t("care_plan.fulfillment.view") %></a>
+                  <% } %>
+                  <%= if (card.Superseded && card.LateAllowed) { %>
+                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-late-btn" title="<%= t("care_plan.treatment.record_late") %>"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      data-kind="<%= card.ActionKind %>"
+                      data-animal-label="<%= card.AnimalLabel %>"
+                      data-detail="<%= card.Detail %>"
+                      data-source-name="<%= card.SourceName %>">
+                      <%= t("care_plan.treatment.record_late") %>
                     </button>
                   <% } %>
-                </div>
-              </div>
-            </div>
-          <% } %>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <%# --- Soins du jour (generic work rows) ---------------------------------- %>
-  <div class="card plan-section mb-3">
-    <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#section-work" aria-expanded="true">
-      <i class="fas fa-chevron-down plan-chevron mr-2"></i>
-      <strong><%= t("care_plan.section.work") %></strong>
-      <span class="badge badge-pill badge-secondary ml-2"><%= len(view.WorkRows) %></span>
-    </div>
-    <div class="collapse show" id="section-work">
-      <table class="table table-hover mb-0">
-        <tbody>
-          <%= for (card) in view.WorkRows { %>
-            <tr class="plan-item plan-item-<%= card.Status %>"<%= if (card.FirstLate) { %> id="plan-first-late"<% } %><%= if (card.FirstTodo) { %> id="plan-first-todo"<% } %><%= if (card.FirstLater) { %> id="plan-first-later"<% } %>>
-              <td>
-                <%= if (card.AnimalLink != "") { %>
-                  <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                <% } else { %>
-                  <%= card.AnimalLabel %>
-                <% } %>
-              </td>
-              <td>
-                <%= if (card.Detail != "") { %>
-                  <strong><%= card.Detail %></strong>
-                  <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                <% } else { %>
-                  <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                <% } %>
-                <%= if (card.Remaining > 0) { %>
-                  <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
-                <% } %>
-              </td>
-              <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-              <td class="text-nowrap">
-                <%= if (card.Status == "late") { %>
-                  <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
-                <% } else if (card.Status == "missing") { %>
-                  <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-                <% } else if (card.Status == "due") { %>
-                  <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
-                <% } else { %>
-                  <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
-                <% } %>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                  data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                  data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                  data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                  data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-                <%= if (card.Applicable) { %>
-                  <button type="button" class="btn btn-success btn-sm ml-1 plan-apply-btn"
-                    data-source-type="<%= card.SourceType %>"
-                    data-source-id="<%= card.SourceID %>"
-                    data-animal-id="<%= card.AnimalID %>"
-                    data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                    data-kind="<%= card.ActionKind %>"
-                    data-animal-label="<%= card.AnimalLabel %>"
-                    data-detail="<%= card.Detail %>"
-                    data-source-name="<%= card.SourceName %>">
-                    <%= t("care_plan.apply.action") %>
-                  </button>
-                  <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
-                    data-source-type="<%= card.SourceType %>"
-                    data-source-id="<%= card.SourceID %>"
-                    data-animal-id="<%= card.AnimalID %>"
-                    data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                    data-mode="skip"
-                    data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
-                  <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
-                    data-source-type="<%= card.SourceType %>"
-                    data-source-id="<%= card.SourceID %>"
-                    data-animal-id="<%= card.AnimalID %>"
-                    data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                    data-mode="defer"
-                    data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
-                <% } %>
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <%# --- Cage cards --------------------------------------------------------- %>
-  <div class="card plan-section mb-3">
-    <div class="card-header d-flex align-items-center" data-toggle="collapse" data-target="#section-cages" aria-expanded="true">
-      <i class="fas fa-chevron-down plan-chevron mr-2"></i>
-      <strong><%= t("care_plan.cage_cards") %></strong>
-      <span class="badge badge-pill badge-secondary ml-2"><%= len(view.Cares) %></span>
-    </div>
-    <div class="collapse show" id="section-cages">
-      <div class="card-body p-2">
-        <div class="row">
-          <%= for (ccard) in view.Cares { %>
-            <div class="col-md-3"<%= if (ccard.FirstLate) { %> id="plan-first-late"<% } %><%= if (ccard.FirstTodo) { %> id="plan-first-todo"<% } %>>
-              <div class="card mb-2 plan-cage-card">
-                <div class="card-body p-2">
-                  <strong><%= ccard.Cage %></strong>
-                  <span class="text-muted"><%= ccard.Zone %></span>
-                  <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
-                  <div>
-                    <button type="button" class="btn btn-success mt-2 plan-cage-apply"
-                      data-items="<%= ccard.ChipRefsJSON %>"
-                      data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>">
-                      <%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)
+                  <%= if (card.Undoable) { %>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-history-undo"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>">
+                      <%= t("care_plan.action.undo") %>
                     </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          <% } %>
-        </div>
+                  <% } %>
+                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+                </td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
-
-  <%# --- Historique (subdued, collapsed by default) --------------------------- %>
-  <div class="card plan-section mb-3">
-    <div class="card-header d-flex align-items-center collapsed" data-toggle="collapse" data-target="#section-history" aria-expanded="false">
-      <i class="fas fa-chevron-down plan-chevron mr-2"></i>
-      <strong><%= t("care_plan.section.history") %></strong>
-      <span class="badge badge-pill badge-secondary ml-2"><%= len(view.History) %></span>
-    </div>
-    <div class="collapse" id="section-history">
-      <table class="table table-sm table-hover mb-0">
-        <tbody>
-          <%= for (card) in view.History { %>
-            <tr class="plan-item text-muted">
-              <td>
-                <%= if (card.AnimalLink != "") { %>
-                  <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                <% } else { %>
-                  <%= card.AnimalLabel %>
-                <% } %>
-              </td>
-              <td>
-                <%= if (card.Detail != "") { %>
-                  <strong><%= card.Detail %></strong>
-                  <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                <% } else { %>
-                  <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                <% } %>
-              </td>
-              <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-              <td class="text-nowrap">
-                <%= if (card.Superseded) { %>
-                  <span class="badge badge-light"<%= if (card.SupersededBy != "") { %> title="<%= t("care_plan.superseded.replaced_by") %> <%= card.SupersededBy %>"<% } %>><%= t("care_plan.status." + card.Status) %></span>
-                <% } else if (card.Status == "applied") { %>
-                  <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
-                <% } else if (card.Status == "skipped") { %>
-                  <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
-                <% } else if (card.Status == "deferred") { %>
-                  <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
-                <% } else if (card.Status == "overridden") { %>
-                  <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
-                <% } else { %>
-                  <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-                <% } %>
-                <%= if (card.RecordedLate) { %>
-                  <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>
-                <% } %>
-                <%= if (card.FulfillmentLink != "") { %>
-                  <a class="btn btn-outline-success btn-sm ml-1" href="<%= card.FulfillmentLink %>"><%= t("care_plan.fulfillment.view") %></a>
-                <% } %>
-                <%= if (card.Superseded && card.LateAllowed) { %>
-                  <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-late-btn" title="<%= t("care_plan.treatment.record_late") %>"
-                    data-source-type="<%= card.SourceType %>"
-                    data-source-id="<%= card.SourceID %>"
-                    data-animal-id="<%= card.AnimalID %>"
-                    data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                    data-kind="<%= card.ActionKind %>"
-                    data-animal-label="<%= card.AnimalLabel %>"
-                    data-detail="<%= card.Detail %>"
-                    data-source-name="<%= card.SourceName %>">
-                    <%= t("care_plan.treatment.record_late") %>
-                  </button>
-                <% } %>
-                <%= if (card.Undoable) { %>
-                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-history-undo"
-                    data-source-type="<%= card.SourceType %>"
-                    data-source-id="<%= card.SourceID %>"
-                    data-animal-id="<%= card.AnimalID %>"
-                    data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>">
-                    <%= t("care_plan.action.undo") %>
-                  </button>
-                <% } %>
-                <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                  data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                  data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                  data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                  data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-              </td>
-            </tr>
-          <% } %>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <% } %>
 
 </div>
 <% } %>
@@ -498,7 +571,7 @@
   </div>
 </div>
 
-<!-- Batch apply confirmation (feeding group / cage cards): one explicit
+<!-- Batch apply confirmation (feeding group / cage rows): one explicit
      summary of what will be recorded before anything happens. -->
 <div class="modal fade" id="planBatchModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog" role="document">
@@ -699,10 +772,7 @@
     return kind === 'weighing' || kind === 'observation';
   }
 
-  // R5-2c: med slots bind their own toggle handler below (they flip classes
-  // in place, so one per-node listener covers both states) — exclude them
-  // here to avoid a double POST.
-  Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn:not(.plan-med-slot), .plan-feeding-one'), function (btn) {
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn, .plan-feeding-one'), function (btn) {
     btn.addEventListener('click', function () {
       if (lateBlocked(btn)) { return; }
       if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
@@ -736,30 +806,13 @@
     };
   }
 
-  // markApplied flips a toggle button to its done state IN PLACE — med
-  // slots stay live (re-click undoes); card buttons just show ✓ (the next
-  // render moves the card to the done tier).
+  // markApplied flips a toggle button to its done state IN PLACE — the
+  // next full render (auto-refresh) moves the row to its tier/history.
   function markApplied(ref) {
     var btn = ref.btn;
     if (!btn) { return; }
-    if (btn.classList.contains('plan-med-slot')) {
-      btn.classList.remove('btn-warning', 'plan-apply-btn');
-      btn.classList.add('btn-success', 'plan-unapply-btn');
-      btn.textContent = '✓ ' + ref.hm;
-      btn.disabled = false;
-    } else {
-      btn.textContent = '✓';
-      btn.disabled = true;
-    }
-  }
-
-  function markOpen(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.remove('btn-success', 'plan-unapply-btn');
-    btn.classList.add('btn-warning', 'plan-apply-btn');
-    btn.textContent = '○ ' + ref.hm;
-    btn.disabled = false;
+    btn.textContent = '✓';
+    btn.disabled = true;
   }
 
   document.getElementById('planApplySubmit').addEventListener('click', function () {
@@ -829,7 +882,7 @@
     });
   });
 
-  // --- Batch apply (feeding group / cage cards) -----------------------------
+  // --- Batch apply (feeding group / cage rows) ------------------------------
   var batchBtn = null;
   function openBatch(btn) {
     var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
@@ -899,41 +952,6 @@
       } else {
         window.location.reload();
       }
-    });
-  });
-
-  // --- Medication slot toggle (one-toggle, R5-2c, D-a) ----------------------
-  // Each slot keeps ONE live button for its whole life: todo → click
-  // applies instantly; done → click undoes instantly. No confirm, no
-  // reload — except a data-late slot, which confirms first (A1). The
-  // listener is per node, so it keeps working after markApplied
-  // / markOpen flip the classes in place.
-  function unapplySlot(btn) {
-    var ref = btnRef(btn);
-    btn.disabled = true;
-    track(fetch('/care_plan/unapply', {
-      method: 'POST', credentials: 'same-origin',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-      body: JSON.stringify({
-        source_type: ref.sourceType, source_id: ref.sourceId,
-        animal_id: ref.animalId, due_at: ref.dueAt,
-        delete_fulfillment: true
-      })
-    })).then(function (r) {
-      if (r.status === 200) { markOpen(ref); return; }
-      btn.disabled = false;
-      r.json().then(function (j) {
-        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
-      });
-    });
-  }
-
-  Array.prototype.forEach.call(document.querySelectorAll('.plan-med-slot'), function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
-      if (btn.disabled) { return; }
-      if (lateBlocked(btn)) { return; }
-      instantApply(btn);
     });
   });
 
@@ -1074,9 +1092,9 @@
   });
 
   // Zone dropdown memory (bugs.md U3): the legacy feeding screen remembered
-  // its tab in location.hash — replicate with a z- prefix so the summary
-  // anchors (#plan-first-*) never collide. A remembered zone only applies
-  // when the URL carries no explicit ?zone= filter.
+  // its tab in location.hash — replicate with a z- prefix so the tier
+  // anchors (#tier-*) never collide. A remembered zone only applies when
+  // the URL carries no explicit ?zone= filter.
   var zoneTabs = document.querySelectorAll('#planZoneMenu a[data-zone]');
   Array.prototype.forEach.call(zoneTabs, function (tab) {
     tab.addEventListener('click', function () {

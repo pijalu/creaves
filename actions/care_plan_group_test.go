@@ -137,7 +137,9 @@ func TestBuildDayPlanViewFeedingCards(t *testing.T) {
 	plan.Items = items
 
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
-	require.Empty(t, v.WorkRows, "feeding never yields work rows (compact)")
+	for ti := range v.Tiers {
+		require.Empty(t, v.Tiers[ti].Cards, "feeding never yields tier rows (compact)")
+	}
 	require.Empty(t, v.History, "grouped kinds show their done state on the section card")
 	require.Len(t, v.Feedings, 1)
 	fc := v.Feedings[0]

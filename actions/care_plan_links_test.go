@@ -75,7 +75,9 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	}
 
 	v := BuildDayPlanView(plan, ViewCompact, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
-	require.Empty(t, v.WorkRows, "cleanup work leaves the generic rows in compact")
+	for ti := range v.Tiers {
+		require.Empty(t, v.Tiers[ti].Cards, "cleanup work leaves the tiers in compact")
+	}
 	require.Empty(t, v.History, "grouped kinds show their done state on the section card, never as history rows")
 	require.Len(t, v.Cares, 1)
 	cc := v.Cares[0]
@@ -164,11 +166,13 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
 
-	// One feeding rule (feeding card) + one cleanup rule (care cage card),
-	// both due inside the window.
+	// One feeding rule (feeding list row) + one cleanup rule (cage list
+	// row) + one care rule (a TIER row kind) — all due inside the window.
 	f.feedRule(t, models.DB, itemDueSoon(time.Now()))
 	payload := planRulePayload(t, "cleanup", map[string]interface{}{"note": "nettoyer"})
 	ruleWithoutMatcher(t, models.DB, "CPCL-"+f.marker, "cleanup", payload, careScheduleJSON(t, itemDueSoon(time.Now())))
+	carePayload := planRulePayload(t, "care", map[string]interface{}{"note": "soin"})
+	ruleWithoutMatcher(t, models.DB, "CPCL-CARE-"+f.marker, "care", carePayload, careScheduleJSON(t, itemDueSoon(time.Now())))
 
 	req, err := http.NewRequest("GET", baseURL+"/care_plan", nil)
 	require.NoError(t, err)
@@ -180,20 +184,34 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode, "html: %.300s", raw)
 	html := string(raw)
 
-	// Care cage card (bugs.md U6): one card, batch button with item refs.
-	require.Contains(t, html, "plan-cage-card", "cleanup renders as a cage card")
-	require.Contains(t, html, "plan-cage-apply", "cage card carries the apply_batch button")
-	require.Contains(t, html, "/care_plan/apply_batch", "batch button posts to apply_batch")
+	// Fix 5: the default screen opens on ONE kind (feeding here) — the
+	// kind tabs have no "all" entry and feeding shows no cleanup section.
+	require.Contains(t, html, `id="planKindTabs"`)
+	require.NotContains(t, html, "plan-cage-row", "feeding kind shows no cleanup list")
+
+	// Cage LIST row (fix 3): one row per cage with the batch button —
+	// rendered under its own kind tab (one kind per screen, fix 5).
+	respClean, err := client.Get(baseURL + "/care_plan?kind=cleanup")
+	require.NoError(t, err)
+	rawClean, _ := io.ReadAll(respClean.Body)
+	respClean.Body.Close()
+	require.Equal(t, http.StatusOK, respClean.StatusCode)
+	require.Contains(t, string(rawClean), "plan-cage-row", "cleanup renders as a cage list row")
+	require.Contains(t, string(rawClean), "plan-cage-apply", "cage row carries the apply_batch button")
+	require.Contains(t, string(rawClean), "/care_plan/apply_batch", "batch button posts to apply_batch")
 
 	// Zone dropdown: badges + hash-memory anchors (z- prefixed).
 	require.Contains(t, html, `id="planZoneMenu"`)
 	require.Contains(t, html, "#z-", "zone tab hash memory")
-	// Kind nav tabs with counts.
-	require.Contains(t, html, `id="planKindTabs"`)
 
-	// Skip/defer fast actions + shared modal markup.
-	require.Contains(t, html, "plan-skip-btn")
-	require.Contains(t, html, "plan-defer-btn")
+	// Skip/defer fast actions on a TIER row (care kind) + shared modal markup.
+	respCare, err := client.Get(baseURL + "/care_plan?kind=care")
+	require.NoError(t, err)
+	rawCare, _ := io.ReadAll(respCare.Body)
+	respCare.Body.Close()
+	require.Equal(t, http.StatusOK, respCare.StatusCode)
+	require.Contains(t, string(rawCare), "plan-skip-btn")
+	require.Contains(t, string(rawCare), "plan-defer-btn")
 	require.Contains(t, html, `id="planSkipDeferModal"`)
 	require.Contains(t, html, "deferred_until", "modal posts deferred_until for defer")
 
@@ -244,13 +262,13 @@ func TestBuildDayPlanViewBackChain(t *testing.T) {
 	v := BuildDayPlanView(plan, ViewCompact, "", "", now, "/")
 	require.Equal(t, "/care_plan?back=%2F&view=compact", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F%26view%3Dcompact#nav-plan",
-		v.WorkRows[0].AnimalLink)
+		v.Tiers[1].Cards[0].AnimalLink)
 
 	// No incoming back → cards fall back to the plain self URL.
 	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
 	require.Equal(t, "/care_plan?view=compact", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fview%3Dcompact#nav-plan",
-		v.WorkRows[0].AnimalLink)
+		v.Tiers[1].Cards[0].AnimalLink)
 }
 
 // TestLandingBackLabelKey: the U16 back label names the FINAL destination —

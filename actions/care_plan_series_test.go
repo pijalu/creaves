@@ -49,9 +49,10 @@ func TestMedSeriesGroupsByDrugAndDosage(t *testing.T) {
 	dos.Occurrence.DueAt = day(9, 0)
 	plan.Items = []careplan.PlanItem{s1, s2, s3, dos}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
-	require.Len(t, v.Meds, 1)
-	series := v.Meds[0].Series
+	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	meds := v.buildMedGroups(plan, "", false) // per-animal slot cards = dashboard projection
+	require.Len(t, meds, 1)
+	series := meds[0].Series
 	require.Len(t, series, 2, "(drug, dosage) merge: 0.5 ml once, 1 ml separate")
 	require.Equal(t, "Citramox — 0.5 ml", series[0].Label)
 	require.Equal(t, "Citramox — 1 ml", series[1].Label)
@@ -71,7 +72,7 @@ func TestMedSeriesGroupsByDrugAndDosage(t *testing.T) {
 	require.Equal(t, 3, n, "all occurrences of (Citramox, 0.5 ml) on one line")
 
 	// backward compat: Slots still carries every occurrence flat
-	require.Len(t, v.Meds[0].Slots, 4)
+	require.Len(t, meds[0].Slots, 4)
 }
 
 // TestMedSeriesChunksThreePerRowByBucket: five morning occurrences chunk
@@ -213,9 +214,10 @@ func TestMedSlotLateAllowed(t *testing.T) {
 	done.Applicable = false
 	plan.Items = []careplan.PlanItem{late, future, done}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
-	require.Len(t, v.Meds, 1)
-	slots := v.Meds[0].Slots
+	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	meds := v.buildMedGroups(plan, "", false)
+	require.Len(t, meds, 1)
+	slots := meds[0].Slots
 	require.Len(t, slots, 3)
 	byTime := map[string]bool{}
 	for _, s := range slots {

@@ -77,16 +77,16 @@ func pipelinePlan() *DayPlan {
 }
 
 // openTotal counts the OPEN cards a rendered view shows — the number a
-// nav badge must equal when it was clicked (CP4 invariant). History rows
-// are never counted: they are past work, not workload.
+// nav badge must equal when it was clicked (CP4 invariant): the three
+// urgency tiers (rows — medication, care, weighing, observation) plus
+// the grouped feeding/cleanup lists. History rows are never counted:
+// they are past work, not workload.
 func openTotal(v *DayPlanView) int {
-	n := len(v.WorkRows) + len(v.Feedings) + len(v.Cares)
-	for _, m := range v.Meds {
-		if m.OpenCount > 0 {
-			n++
-		}
+	n := 0
+	for _, tier := range v.Tiers {
+		n += len(tier.Cards)
 	}
-	return n
+	return n + len(v.Feedings) + len(v.Cares)
 }
 
 // expectedStats recomputes the occurrence summary INDEPENDENTLY of the
@@ -147,22 +147,26 @@ func TestFilterStatsMatchVisibleSet(t *testing.T) {
 				assertRowsFiltered(t, v, zone, kind, ctx)
 				require.Equal(t, expectedStats(plan, zone, kind, now), v.Stats, ctx+" summary strip vs independent count")
 				assertSectionsFiltered(t, ref, v, zone, kind, ctx)
-				assertAnchors(t, v, ctx)
 				assertNavBadges(t, plan, v, view, zone, kind, now, ctx)
 			}
 		}
 	}
 }
 
-// assertRowsFiltered: every work row and history row satisfies the
-// active zone × kind filter.
+// assertRowsFiltered: every tier row and history row satisfies the
+// active zone × kind filter — medication rows included (fix 6: medication
+// renders INSIDE the tiers, never as a separate collapsible section).
 func assertRowsFiltered(t *testing.T, v *DayPlanView, zone, kind string, ctx string) {
 	t.Helper()
-	for _, coll := range [][]CardView{v.WorkRows, v.History} {
-		for _, cv := range coll {
-			require.True(t, zoneMatch(cv, zone), ctx+" row zone")
-			require.True(t, kindMatch(cv, kind), ctx+" row kind")
+	for ti := range v.Tiers {
+		for _, cv := range v.Tiers[ti].Cards {
+			require.True(t, zoneMatch(cv, zone), ctx+" tier row zone")
+			require.True(t, kindMatch(cv, kind), ctx+" tier row kind")
 		}
+	}
+	for _, cv := range v.History {
+		require.True(t, zoneMatch(cv, zone), ctx+" history row zone")
+		require.True(t, kindMatch(cv, kind), ctx+" history row kind")
 	}
 }
 
@@ -177,10 +181,6 @@ func sectionZones(ref *DayPlanView, sectionKind string) []string {
 	case careplan.KindCleanup:
 		for _, cv := range ref.Cares {
 			zones = append(zones, cv.Zone)
-		}
-	case careplan.KindMedication:
-		for _, m := range ref.Meds {
-			zones = append(zones, m.Zone)
 		}
 	}
 	return zones
@@ -203,51 +203,18 @@ func sectionCountInZone(ref *DayPlanView, zone, kind, sectionKind string) int {
 
 // assertSectionsFiltered: each grouped section shows exactly the cards
 // the active filter keeps (unfiltered reference × zone × kind).
+// Medication has no grouped section — it is tier rows, filtered and
+// asserted by assertRowsFiltered.
 func assertSectionsFiltered(t *testing.T, ref, v *DayPlanView, zone, kind string, ctx string) {
 	t.Helper()
 	require.Len(t, v.Feedings, sectionCountInZone(ref, zone, kind, careplan.KindFeeding), ctx+" feedings")
 	require.Len(t, v.Cares, sectionCountInZone(ref, zone, kind, careplan.KindCleanup), ctx+" cares")
-	require.Len(t, v.Meds, sectionCountInZone(ref, zone, kind, careplan.KindMedication), ctx+" meds")
-}
-
-// assertAnchors (A3): at most ONE card per urgency state carries the
-// anchor, and every non-zero stat has its anchor on screen.
-func assertAnchors(t *testing.T, v *DayPlanView, ctx string) {
-	t.Helper()
-	var nLate, nTodo, nLater int
-	count := func(la, to, la2 bool) {
-		if la {
-			nLate++
-		}
-		if to {
-			nTodo++
-		}
-		if la2 {
-			nLater++
-		}
-	}
-	for i := range v.Meds {
-		count(v.Meds[i].FirstLate, v.Meds[i].FirstTodo, v.Meds[i].FirstLater)
-	}
-	for i := range v.Feedings {
-		count(v.Feedings[i].FirstLate, v.Feedings[i].FirstTodo, v.Feedings[i].FirstLater)
-	}
-	for i := range v.Cares {
-		count(v.Cares[i].FirstLate, v.Cares[i].FirstTodo, false)
-	}
-	for i := range v.WorkRows {
-		count(v.WorkRows[i].FirstLate, v.WorkRows[i].FirstTodo, v.WorkRows[i].FirstLater)
-	}
-	require.LessOrEqual(t, nLate, 1, ctx+" late anchors")
-	require.LessOrEqual(t, nTodo, 1, ctx+" todo anchors")
-	require.LessOrEqual(t, nLater, 1, ctx+" later anchors")
-	require.Equal(t, v.Stats.Late > 0, nLate == 1, ctx+" late anchor presence")
-	require.Equal(t, v.Stats.Now > 0, nTodo == 1, ctx+" todo anchor presence")
-	require.Equal(t, v.Stats.Later > 0, nLater == 1, ctx+" later anchor presence")
 }
 
 // assertNavBadges (CP4/D6): each zone tab badge equals the open cards
-// rendered after clicking it; each kind chip likewise.
+// rendered after clicking it; each kind chip likewise. The kind chips
+// PARTITION the active zone's workload (there is no "all/TOUT" chip —
+// fix 5), so their counts sum to the zone's open total.
 func assertNavBadges(t *testing.T, plan *DayPlan, v *DayPlanView, view, zone, kind string, now time.Time, ctx string) {
 	t.Helper()
 	sumZ := 0
@@ -263,7 +230,8 @@ func assertNavBadges(t *testing.T, plan *DayPlan, v *DayPlanView, view, zone, ki
 		require.Equal(t, kc.Count, openTotal(fv), ctx+" kind chip "+kc.Kind)
 		sumK += kc.Count
 	}
-	require.Equal(t, v.KindAll, sumK, ctx+" kind total")
+	require.Equal(t, openTotal(BuildDayPlanView(plan, view, zone, "", now)), sumK,
+		ctx+" kind chips partition the active zone's workload")
 }
 
 // TestCompactAndDetailedSameGroups (CP3/D3): one build path — compact and
@@ -281,8 +249,8 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 
 	assertSameFeedingGroups(t, c, d)
 	assertSameCareGroups(t, c, d)
-	assertSameMedGroups(t, c, d)
 	assertSameNavCoverage(t, c, d)
+	assertSameTierMembership(t, c, d)
 
 	// density difference: detailed surfaces the overridden occurrence in
 	// the history section (debug surface); compact collapses the group to
@@ -338,23 +306,19 @@ func assertSameCareGroups(t *testing.T, c, d *DayPlanView) {
 	}
 }
 
-// assertSameMedGroups: same per-animal cards, same slots, same open counts.
-func assertSameMedGroups(t *testing.T, c, d *DayPlanView) {
+// assertSameTierMembership: medication/care/weighing/observation are TIER
+// rows in both densities (fix 6 — no separate medication section).
+// Compact folds each (source × animal) group to its next open action,
+// detailed lists every open current occurrence — so compact has at most
+// one card per group and detailed at least as many cards per tier.
+func assertSameTierMembership(t *testing.T, c, d *DayPlanView) {
 	t.Helper()
-	require.Len(t, d.Meds, len(c.Meds))
-	for i := range c.Meds {
-		cm, dm := c.Meds[i], d.Meds[i]
-		require.Equal(t, cm.AnimalID, dm.AnimalID)
-		require.Equal(t, cm.OpenCount, dm.OpenCount)
-		require.Len(t, dm.Slots, len(cm.Slots))
-		for j := range cm.Slots {
-			require.Equal(t, cm.Slots[j].DueAt, dm.Slots[j].DueAt)
-			require.Equal(t, cm.Slots[j].Status, dm.Slots[j].Status)
-			require.Equal(t, cm.Slots[j].Overridden, dm.Slots[j].Overridden)
-		}
+	for ti := range c.Tiers {
+		require.LessOrEqual(t, len(c.Tiers[ti].Cards), len(d.Tiers[ti].Cards),
+			"tier "+c.Tiers[ti].Key+": compact folds, detailed lists")
 	}
+	require.NotEmpty(t, d.Tiers[0].Cards, "medication late rows are tier rows, not a collapsible med section")
 }
-
 // assertSameNavCoverage: the nav matrix covers the same zones/kinds in
 // both views. Counts are per-view by design (CP4: a badge counts the
 // cards ITS view renders — compact groups vs detailed occurrences); the
@@ -390,25 +354,29 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	plan := pipelinePlan()
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 
-	// medication × Z1: exactly animal 1's med card; every other section
-	// and every tier card is filtered away
+	// medication × Z1: exactly animal 1's med ROW in the "now" tier
+	// (fix 6 — medication is tier rows, no med section); its applied
+	// occurrence surfaces as a history row; no feeding/cleanup section.
 	v := BuildDayPlanView(plan, ViewCompact, "Z1", careplan.KindMedication, now)
-	require.Len(t, v.Meds, 1)
-	require.Equal(t, 1, v.Meds[0].AnimalID)
-	require.Equal(t, 1, v.Meds[0].OpenCount)
+	require.Len(t, v.Tiers[1].Cards, 1)
+	require.Equal(t, 1, v.Tiers[1].Cards[0].AnimalID)
+	require.Empty(t, v.Tiers[0].Cards)
+	require.Empty(t, v.Tiers[2].Cards)
 	require.Empty(t, v.Feedings)
 	require.Empty(t, v.Cares)
-	require.Empty(t, v.WorkRows, "weighing/care cards never survive a medication filter")
-	require.Empty(t, v.History)
+	require.Len(t, v.History, 1, "the applied Z1 med occurrence is history")
+	require.Equal(t, 1, v.History[0].AnimalID)
 
-	// feeding × Z2: exactly the Z2 feeding card
+	// feeding × Z2: exactly the Z2 feeding card; feeding never yields
+	// tier rows nor history rows (grouped kinds stay on their section)
 	v = BuildDayPlanView(plan, ViewCompact, "Z2", careplan.KindFeeding, now)
 	require.Len(t, v.Feedings, 1)
 	require.Equal(t, "Z2", v.Feedings[0].Zone)
 	require.Equal(t, "C9", v.Feedings[0].Cage)
-	require.Empty(t, v.Meds)
+	for ti := range v.Tiers {
+		require.Empty(t, v.Tiers[ti].Cards)
+	}
 	require.Empty(t, v.Cares)
-	require.Empty(t, v.WorkRows)
 	require.Empty(t, v.History)
 
 	// zone tabs under an active kind count only that kind's cards
@@ -420,7 +388,8 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	}
 	require.Equal(t, map[string]int{"Z1": 1, "Z2": 1}, byZone)
 
-	// kind chips under an active zone count only that zone's cards
+	// kind chips under an active zone count only that zone's cards —
+	// CARE and MEDICATION included (both are tier rows now)
 	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", now)
 	chips := map[string]int{}
 	for _, kc := range v.Kinds {
@@ -428,10 +397,26 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	}
 	require.Equal(t, map[string]int{
 		careplan.KindFeeding:     1, // one feeding card
-		careplan.KindMedication:  1, // one med card with open work
+		careplan.KindMedication:  1, // one med row with open work
 		careplan.KindCleanup:     1, // one cage cleanup card
-		careplan.KindWeighing:    1, // one late weighing card
-		careplan.KindCare:        0,
+		careplan.KindWeighing:    1, // one late weighing row
+		careplan.KindCare:        0, // the care row is Z2 (animal 3)
+		careplan.KindObservation: 0,
+	}, chips)
+
+	// kind chips under NO zone count the whole day's workload — the care
+	// row (animal 3) and the second weighing row (animal 3) show up here
+	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	chips = map[string]int{}
+	for _, kc := range v.Kinds {
+		chips[kc.Kind] = kc.Count
+	}
+	require.Equal(t, map[string]int{
+		careplan.KindFeeding:     2, // C1 + C9 feeding cards
+		careplan.KindMedication:  1, // one folded med row (animal 1, "+1" later)
+		careplan.KindCleanup:     1, // C1 cage card
+		careplan.KindWeighing:    2, // late animal 1 + scheduled animal 3
+		careplan.KindCare:        1, // the due care row (animal 3)
 		careplan.KindObservation: 0,
 	}, chips)
 }
@@ -445,7 +430,8 @@ func TestUnknownZoneRedirects(t *testing.T) {
 	_ = f
 	client, baseURL := planAdminClient(t)
 
-	// unknown zone → redirect + flash
+	// unknown zone → redirect + flash (to the DEFAULT kind screen — fix 5:
+	// the tabs have no "all" entry, so the reset target carries the kind)
 	req, err := http.NewRequest("GET", baseURL+"/care_plan?zone=NOPE&view=compact", nil)
 	require.NoError(t, err)
 	req.Header.Set("Accept", "text/html")
@@ -454,7 +440,7 @@ func TestUnknownZoneRedirects(t *testing.T) {
 	raw, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.Equal(t, http.StatusFound, resp.StatusCode, "body: %s", raw)
-	require.Equal(t, "/care_plan?view=compact", resp.Header.Get("Location"))
+	require.Equal(t, "/care_plan?kind=feeding&view=compact", resp.Header.Get("Location"))
 
 	// the flash renders on the followed redirect (same session)
 	resp2, err := client.Get(baseURL + resp.Header.Get("Location"))

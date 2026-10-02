@@ -86,10 +86,17 @@ func CarePlanIndex(c buffalo.Context) error {
 			}
 			if !exists {
 				c.Flash().Add("warning", T.Translate(c, "care_plan.zone.unknown"))
-				return c.Redirect(http.StatusFound, planSelfPath(view, "", kindFilter, c.Param("back")))
+				return c.Redirect(http.StatusFound, planSelfPath(view, "", defaultWorkKind(plan, view, "", now, c.Param("back")), c.Param("back")))
 			}
 		}
-		c.Set("view", BuildDayPlanView(plan, view, zone, kindFilter, now, c.Param("back")))
+		// Fix 5: the kind tabs have NO "all" entry — the screen always
+		// shows ONE kind. With no explicit ?kind= open on the first kind
+		// that has open work in the active zone (feeding fallback).
+		kind := kindFilter
+		if kind == "" {
+			kind = defaultWorkKind(plan, view, zone, now, c.Param("back"))
+		}
+		c.Set("view", BuildDayPlanView(plan, view, zone, kind, now, c.Param("back")))
 		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		rows := planJSONRows(narrowPlanByKind(plan, kindFilter))
@@ -97,6 +104,19 @@ func CarePlanIndex(c buffalo.Context) error {
 			"from": plan.From, "to": plan.To, "items": rows,
 		}))
 	}).Respond(c)
+}
+
+// defaultWorkKind picks the kind tab the work screen opens on (fix 5 —
+// there is no "all/TOUT" tab): the first kind in display order with open
+// work in the ACTIVE zone, falling back to feeding.
+func defaultWorkKind(plan *DayPlan, view, zone string, now time.Time, back string) string {
+	nav := BuildDayPlanView(plan, view, zone, "", now, back)
+	for _, kc := range nav.Kinds {
+		if kc.Count > 0 {
+			return kc.Kind
+		}
+	}
+	return careplan.KindFeeding
 }
 
 // narrowPlanByKind returns a shallow copy of plan with only the items of

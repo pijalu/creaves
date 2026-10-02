@@ -498,11 +498,12 @@ func TestCarePlanDayPlanHTMLRender(t *testing.T) {
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
 	require.Equal(t, http.StatusOK, resp.StatusCode, "html: %.300s", raw)
-	// bugs.md U1: feeding items render as one cage × diet card, not tier
-	// rows — the card carries the apply-group button and per-animal chips.
-	require.Contains(t, string(raw), "plan-feeding-card", "template renders the feeding card")
+	// Fix 3 (round-2 feedback): feeding renders as a cage × diet LIST row
+	// (no cards) — the row carries the apply-group button and per-animal
+	// chips with their status dot.
+	require.Contains(t, string(raw), "plan-feeding-row", "template renders the feeding list row")
 	require.Contains(t, string(raw), "plan-dot-due", "feeding chips carry the per-animal status dot")
-	require.Contains(t, string(raw), "plan-feeding-apply", "feeding card carries the apply-group button")
+	require.Contains(t, string(raw), "plan-feeding-apply", "feeding row carries the apply-group button")
 }
 
 // ---------------------------------------------------------------------------
