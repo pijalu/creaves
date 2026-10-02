@@ -38,14 +38,14 @@ func TestAnimalTreatmentDays(t *testing.T) {
 		mk(8, 0, careplan.StatusApplied, 1, med),
 		mk(18, 0, careplan.StatusDue, 1, med),
 		mk(12, 1, careplan.StatusScheduled, 1, med),
-		mk(9, 0, careplan.StatusDue, 1, feed),        // feeding — excluded
+		mk(9, 0, careplan.StatusDue, 1, feed),        // feeding — rides along as Item (R3-7)
 		mk(9, 0, careplan.StatusDue, 2, med),         // other animal — excluded
 		mk(10, 0, careplan.StatusOverridden, 1, med), // overridden — excluded
 	}
 
 	days := animalTreatmentDays(plan, &models.Animal{ID: 1})
 
-	require.Len(t, days, 2, "today + tomorrow only (feeding/other/overridden excluded)")
+	require.Len(t, days, 2, "today + tomorrow only (other animal/overridden excluded)")
 	// newest day first: tomorrow (10-03) before today (10-02)
 	require.Equal(t, "2026-10-03", days[0].DateKey)
 	require.False(t, days[0].Current)
@@ -59,10 +59,12 @@ func TestAnimalTreatmentDays(t *testing.T) {
 	require.Len(t, days[0].Group.Series, 1)
 	require.Equal(t, 1, days[0].Group.AnimalID)
 
-	// today: 18:00 open (08:00 applied) → OpenCount 1; series carries both
-	// slots and the applied one is marked done.
-	require.Equal(t, 1, days[1].OpenCount)
+	// today: 18:00 open (08:00 applied) + the open feeding item → OpenCount
+	// 2; the series carries both med slots and the applied one is marked done.
+	require.Equal(t, 2, days[1].OpenCount)
 	require.Len(t, days[1].Group.Series, 1)
+	require.Len(t, days[1].Items, 1, "feeding rides along as a compact item")
+	require.Equal(t, "feeding", days[1].Items[0].ActionKind)
 	var applied, open int
 	for _, row := range days[1].Group.Series[0].Rows {
 		for _, s := range row.Slots {
@@ -84,6 +86,55 @@ func TestAnimalTreatmentDaysEmpty(t *testing.T) {
 	plan.Now = time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
 	require.Empty(t, animalTreatmentDays(plan, &models.Animal{ID: 1}))
 	require.Empty(t, animalTreatmentDays(nil, &models.Animal{ID: 1}))
+}
+
+// TestAnimalTreatmentDaysAllKinds (R3-7): the Protocol tab embeds the
+// animal's COMPLETE care plan from the same per-day groups — every
+// non-medication occurrence (observation/care/weighing AND the cage-
+// grouped feeding/cleanup — a feeding protocol must not render as "no
+// entries") rides along as a compact Item while the medication series
+// stay in Group; a day with only non-medication work still renders (its
+// own day card).
+func TestAnimalTreatmentDaysAllKinds(t *testing.T) {
+	plan := testPlan()
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
+	plan.Now = now
+
+	med := testSource(careplan.KindMedication, "med-1", "Quadro", map[string]interface{}{"drug": "Quadro", "dosage": "0.03 ml"})
+	obs := testSource(careplan.KindObservation, "obs-1", "Observe", map[string]interface{}{"prompt": "Eating?"})
+	care := testSource(careplan.KindCare, "care-1", "Care", map[string]interface{}{"note": "Check wound"})
+	feed := testSource(careplan.KindFeeding, "feed-1", "Feed", map[string]interface{}{"food": "x"})
+
+	mk := func(h, dayOff int, status careplan.PlanStatus, animalID int, src careplan.PlanSource) careplan.PlanItem {
+		it := testItem(src, animalID, status)
+		it.Occurrence.DueAt = time.Date(2026, 10, 2+dayOff, h, 0, 0, 0, time.Local)
+		return it
+	}
+	plan.Items = []careplan.PlanItem{
+		mk(8, 0, careplan.StatusDue, 1, med),         // today: medication slot
+		mk(9, 0, careplan.StatusDue, 1, obs),         // today: observation item
+		mk(10, 1, careplan.StatusScheduled, 1, care), // tomorrow: care only
+		mk(11, 0, careplan.StatusDue, 1, feed),       // today: feeding item (cage-grouped — still shown)
+		mk(9, 0, careplan.StatusDue, 2, obs),         // other animal — excluded
+	}
+
+	days := animalTreatmentDays(plan, &models.Animal{ID: 1})
+
+	require.Len(t, days, 2, "today (med+obs+feed) + tomorrow (care only)")
+	// newest first: tomorrow has NO medication series but a care item.
+	require.Equal(t, "2026-10-03", days[0].DateKey)
+	require.Empty(t, days[0].Group.Series, "no medication tomorrow — no series")
+	require.Len(t, days[0].Items, 1, "the care occurrence rides along")
+	require.Equal(t, careplan.KindCare, days[0].Items[0].ActionKind)
+	require.Equal(t, 1, days[0].OpenCount, "the open care item counts in the day badge")
+	// today: one series + observation + feeding items; open = 1 slot + 2 items.
+	require.Equal(t, "2026-10-02", days[1].DateKey)
+	require.Len(t, days[1].Group.Series, 1)
+	require.Len(t, days[1].Items, 2)
+	require.Equal(t, careplan.KindObservation, days[1].Items[0].ActionKind)
+	require.Equal(t, "Eating?", days[1].Items[0].Detail)
+	require.Equal(t, careplan.KindFeeding, days[1].Items[1].ActionKind)
+	require.Equal(t, 3, days[1].OpenCount)
 }
 
 // TestTreatmentPlanWindow (R3-6): 14 days history, 5 days forward — the

@@ -152,6 +152,8 @@
   translation: "Contenu"
 - id: "care_plan.animal_plans.window"
   translation: "Période d'application"
+- id: "care_plan.animal_plans.details"
+  translation: "Détails"
 - id: "care_plan.animal_plans.view_source"
   translation: "Voir le protocole source"
 - id: "care_plan.status.expired"

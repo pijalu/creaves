@@ -676,10 +676,79 @@
 
   <div class="tab-pane fade" id="nav-plan" role="tabpanel" aria-labelledby="nav-plan-tab">
     <div class="p-3">
+      <%# R3-7: the Protocol tab IS the animal's complete care plan — the
+          same per-day engine groups as the Treatment tab (all action
+          kinds: togglable medication series + compact observation/care/
+          weighing lines), NO animal labels (the identity is the page
+          context). The protocol definitions table moves below into a
+          collapsed "Details" collapsible. %>
       <div class="d-flex align-items-center mb-2">
         <h5 class="mb-0"><%= t("care_plan.animal_plans.title") %></h5>
         <button type="button" class="btn btn-primary ml-auto" data-toggle="modal" data-target="#carePlanModal" id="carePlanNewBtn"><%= t("care_plan.animal_plans.new") %></button>
       </div>
+      <%= if (len(animalTreatmentDays) > 0) { %>
+        <div id="animalCarePlan">
+          <%= for (day) in animalTreatmentDays { %>
+            <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
+              <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="acp-head-<%= day.DateKey %>">
+                <h5 class="mb-0 d-flex align-items-center">
+                  <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#acp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="acp-<%= day.DateKey %>">
+                    <%= day.Date.Format("02/01/2006") %>
+                  </button>
+                  <%= if (day.OpenCount > 0) { %>
+                    <span class="badge badge-pill badge-warning ml-2"><%= day.OpenCount %></span>
+                  <% } %>
+                </h5>
+              </div>
+              <div id="acp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="acp-head-<%= day.DateKey %>" data-parent="#animalCarePlan">
+                <div class="card-body py-2">
+                  <%= if (len(day.Group.Series) > 0) { %>
+                    <% let mg = day.Group %>
+                    <%= partial("care_plan/med_series.plush.html") %>
+                  <% } %>
+                  <%= for (item) in day.Items { %>
+                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1">
+                      <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
+                      <span>
+                        <%= if (item.Detail != "") { %>
+                          <strong><%= item.Detail %></strong> <small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small>
+                        <% } else { %>
+                          <a href="<%= item.SourceLink %>"><%= item.SourceName %></a>
+                        <% } %>
+                      </span>
+                      <span class="ml-auto text-nowrap">
+                        <%= dueLabel(item.DueHM, item.DueDayKey, item.DueShortDate) %>
+                        <%= if (item.Status == "applied") { %>
+                          <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+                        <% } else if (item.Status == "skipped") { %>
+                          <span class="badge badge-light"><%= t("care_plan.status.skipped") %></span>
+                        <% } else if (item.Status == "deferred") { %>
+                          <span class="badge badge-light"><%= t("care_plan.status.deferred") %></span>
+                        <% } else if (item.Tier == 0) { %>
+                          <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+                        <% } else { %>
+                          <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
+                        <% } %>
+                      </span>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      <% } %>
+      <%# R3-7: protocol definitions — collapsed by default. %>
+      <div class="card mt-3">
+        <div class="card-header py-2" id="planDetailsHead">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planDetails" aria-expanded="false" aria-controls="planDetails">
+              <%= t("care_plan.animal_plans.details") %>
+            </button>
+          </h5>
+        </div>
+        <div id="planDetails" class="collapse" aria-labelledby="planDetailsHead">
+          <div class="card-body py-2">
       <table class="table table-hover table-bordered" id="careAnimalPlansTable"
              data-animal-id="<%= animal.ID %>"
              data-url="/animals/<%= animal.ID %>/care_animal_plans">
@@ -724,6 +793,9 @@
           <% } %>
         </tbody>
       </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1156,12 +1228,42 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   </div>
 </div>
 
+<%# The shared read-only detail popup backs every ℹ button on this page
+    (R3-6/R3-7 medication series AND the Dash-7 deep-link below) —
+    include it unconditionally. The animal row stays TEXT in this
+    context: the identity is the page, a link would reload it. %>
+<%= partial("care_plan/item_detail_modal.plush.html") %>
+<script>
+(function () {
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-detail-btn') : null;
+    if (!btn) { return; }
+    document.getElementById('planDetailAnimal').textContent = btn.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (aLink) { aLink.classList.add('d-none'); }
+    document.getElementById('planDetailDetail').textContent = btn.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = btn.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (sLink) {
+      if (btn.getAttribute('data-source-link')) { sLink.setAttribute('href', btn.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+      else { sLink.classList.add('d-none'); }
+    }
+    document.getElementById('planDetailKind').textContent = btn.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = btn.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = btn.getAttribute('data-status') || '—';
+    var remDt = document.getElementById('planDetailRemainingDt');
+    var remDd = document.getElementById('planDetailRemainingDd');
+    if (remDt) { remDt.classList.add('d-none'); }
+    if (remDd) { remDd.classList.add('d-none'); }
+    $('#planDetailModal').modal('show');
+  });
+})();
+</script>
 <%= if (openPlanDetail) { %>
   <%# Dash-7 (round-2 §8.2): dashboard eye deep-link — the Show handler
       resolved the targeted occurrence server-side (resolvePlanItemDetail);
       render the shared detail modal OPEN on load. Bookmarkable, no extra
       round-trip. %>
-  <%= partial("care_plan/item_detail_modal.plush.html") %>
   <div id="planItemDeepLink" class="d-none"
     data-animal-label="<%= planItemDetail.AnimalLabel %>" data-animal-link="<%= planItemDetail.AnimalLink %>"
     data-detail="<%= planItemDetail.Detail %>" data-source-name="<%= planItemDetail.SourceName %>"

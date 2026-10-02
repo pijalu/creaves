@@ -243,14 +243,19 @@ func animalTreatmentPlan(tx *pop.Connection) (*DayPlan, error) {
 // animal's medication series for that calendar day, newest day first.
 // Group carries the same series in the MedGroupView shape the shared
 // `_med_series` partial expects (its `mg` context) — one group per day
-// keeps the partial reusable unchanged.
+// keeps the partial reusable unchanged. R3-7: Items adds the non-
+// medication occurrences of the day (observation/care/weighing — compact
+// read-only rows) so the Protocol tab can embed the animal's complete
+// care plan from the SAME per-day groups; the Treatment tab ignores
+// Items and keeps its medication-only focus.
 type AnimalTreatmentDay struct {
 	Date      time.Time
 	DateKey   string // "2006-01-02" (collapse anchor id)
 	Current   bool   // today
 	Future    bool
 	Group     MedGroupView
-	OpenCount int // open (not done/overridden) slots of the day
+	Items     []CardView // R3-7: non-medication occurrences (kind-ordered)
+	OpenCount int        // open (not done/overridden) slots of the day
 }
 
 // animalTreatmentDays folds the engine plan into per-day medication
@@ -265,17 +270,29 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 	}
 	// Per-day slot buckets keyed by date; series merged within the day.
 	byDay := map[string][]MedSlotView{}
+	byDayItems := map[string][]CardView{} // R3-7: non-medication occurrences
 	dayTime := map[string]time.Time{}
 	for i := range plan.Items {
 		it := &plan.Items[i]
 		src := it.Occurrence.Source
 		if src == nil || it.Occurrence.AnimalID != animal.ID ||
-			src.ActionKind() != careplan.KindMedication ||
 			it.Status == careplan.StatusOverridden {
 			continue
 		}
 		due := it.Occurrence.DueAt
 		key := due.Format("2006-01-02")
+		if _, ok := dayTime[key]; !ok {
+			dayTime[key] = time.Date(due.Year(), due.Month(), due.Day(), 0, 0, 0, 0, due.Location())
+		}
+		// R3-7: the Protocol tab embeds the animal's COMPLETE care plan —
+		// every non-medication occurrence (observation/care/weighing AND
+		// the cage-grouped feeding/cleanup — a feeding protocol with no
+		// line here would look like "no entries") rides along as a
+		// compact CardView row (read-only on the animal page).
+		if src.ActionKind() != careplan.KindMedication {
+			byDayItems[key] = append(byDayItems[key], animalDayCardFor(plan, it, animal))
+			continue
+		}
 		slot := MedSlotView{
 			Slot:       medSlotOf(due),
 			Detail:     planDetail(src),
@@ -304,15 +321,12 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 		}
 		slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
 		byDay[key] = append(byDay[key], slot)
-		if _, ok := dayTime[key]; !ok {
-			dayTime[key] = time.Date(due.Year(), due.Month(), due.Day(), 0, 0, 0, 0, due.Location())
-		}
 	}
-	if len(byDay) == 0 {
+	if len(byDay) == 0 && len(byDayItems) == 0 {
 		return nil
 	}
-	keys := make([]string, 0, len(byDay))
-	for k := range byDay {
+	keys := make([]string, 0, len(dayTime))
+	for k := range dayTime {
 		keys = append(keys, k)
 	}
 	sort.Sort(sort.Reverse(sort.StringSlice(keys))) // newest day first
@@ -339,15 +353,52 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 				AnimalLink:  animalTreatmentLink(animal.ID, ""),
 				Series:      series,
 			},
+			Items: byDayItems[k],
 		}
 		for _, s := range slots {
 			if !s.Done && !s.Overridden {
 				d.OpenCount++
 			}
 		}
+		for _, item := range d.Items {
+			if openStatusAction(careplan.PlanStatus(item.Status)) {
+				d.OpenCount++
+			}
+		}
 		out = append(out, d)
 	}
 	return out
+}
+
+// animalDayCardFor projects one NON-medication occurrence of the animal
+// into the compact CardView the R3-7 Protocol tab renders read-only
+// (label + localized kind chip + due label + status + source backlink —
+// no apply/undo buttons: the animal page keeps ONE interaction surface
+// for work, the togglable medication series).
+func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Animal) CardView {
+	src := it.Occurrence.Source
+	parts := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now)
+	cv := CardView{
+		SourceType:   string(src.SourceType()),
+		SourceID:     src.SourceID(),
+		SourceName:   DisplayName(src.Name()),
+		Detail:       planDetail(src),
+		ActionKind:   src.ActionKind(),
+		AnimalID:     animal.ID,
+		AnimalLabel:  animalLabel(*animal),
+		DueAt:        it.Occurrence.DueAt,
+		DueHM:        parts.TimeHM,
+		DueDayKey:    parts.DayKey,
+		DueShortDate: parts.ShortDate,
+		Status:       string(it.Status),
+		Tier:         tierOrder(it.Status),
+		Applicable:   it.Applicable,
+		SourceLink:   cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
+	}
+	if app := it.Application; app != nil {
+		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, "")
+	}
+	return cv
 }
 
 // animalPlanTodayItem pairs an accordion row with its due time (sort

@@ -152,6 +152,8 @@
   translation: "Inhoud"
 - id: "care_plan.animal_plans.window"
   translation: "Geldigheidsperiode"
+- id: "care_plan.animal_plans.details"
+  translation: "Details"
 - id: "care_plan.animal_plans.view_source"
   translation: "Bronprotocol bekijken"
 - id: "care_plan.status.expired"
