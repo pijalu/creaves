@@ -1,8 +1,11 @@
-# Care plan / treatment / dashboard UX — Round 2 bugs
+# Care plan / treatment / dashboard UX — Round 5 bugs
 
-Tracking document for the care-plan / treatment / dashboard UX round-2 bugs
-(treatment view, dashboard medication view, care plan view). All work is in
-the `creaves/` project.
+Tracking document for the care-plan / treatment / dashboard UX bugs of the
+new round. All work is in the `creaves/` project.
+
+**No open bug at the start of this round** — Round 4 is fully resolved,
+quality-gated and validated e2e; see
+`docs/archive/2026-10-02-care-plan-round-4-bugs.md`.
 
 **Guideline** (same as `/Users/muaddib/dev/creaves.project/bugs.md`):
 1. Create a detailed fix plan for each bug - the plan must contain test approach and validation steps - execute the plan and validate the fix when all elements are in place.
@@ -28,13 +31,18 @@ At the end of the session - the bug list must be empty, all changes committed an
 ---
 
 <!-- Previous rounds fixed & archived:
+- docs/archive/2026-10-02-care-plan-round-4-bugs.md
+- docs/archive/2026-10-02-care-plan-round-3-bugs.md
 - docs/archive/2026-10-02-care-plan-review-regressions-1-7.md
 - docs/archive/2026-10-01-care-plan-ux-round2-bugs.md -->
 
+---
 
-<!-- Round 3 fixed & archived: docs/archive/2026-10-02-care-plan-round-3-bugs.md
-     (R3-1..R3-7 + follow-ups: engine window clamp, feeding-only plan entries,
-     measured navbar collapse, in-page detail popup, TestUsersListFilters) -->
+## Carried to the care-expert backlog (not UI bugs)
 
-_Round 3 empty — all bugs fixed, verified (go tests + agent-browser e2e in
-en/fr/de/nl), quality gates green and archived._
+- **Feeding schedule divergence inside one cage** (animals 1883/26 and
+  2008/26, both cage `E2` / diet `NB 1/2`, got 4×/day and 3×/day schedules
+  from the care-plan conversion). The engine is correct — this is a
+  conversion-data question for a care expert, made visible by the Round-4
+  applicable-protocol trace (R4-6). Tracked in
+  `docs/archive/2026-10-02-care-plan-round-4-bugs.md` §R4-5.
