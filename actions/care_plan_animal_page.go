@@ -293,34 +293,7 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 			byDayItems[key] = append(byDayItems[key], animalDayCardFor(plan, it, animal))
 			continue
 		}
-		slot := MedSlotView{
-			Slot:       medSlotOf(due),
-			Detail:     planDetail(src),
-			SourceName: DisplayName(src.Name()),
-			SourceType: string(src.SourceType()),
-			SourceID:   src.SourceID(),
-			DueAt:      due,
-			DueAtRFC:   due.Format("2006-01-02T15:04:05Z07:00"),
-			DueAtHM:    due.Format("15:04"),
-			Status:     string(it.Status),
-			Applied:    it.Status == careplan.StatusApplied,
-			Applicable: it.Applicable,
-			Overridden: false,
-			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
-		}
-		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
-		slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
-		if app := it.Application; app != nil {
-			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
-				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
-			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, "")
-		}
-		slot.ViewLink = slot.FulfillmentLink
-		if slot.ViewLink == "" {
-			slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, "")
-		}
-		slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
-		byDay[key] = append(byDay[key], slot)
+		byDay[key] = append(byDay[key], animalDayMedSlot(plan, it, animal))
 	}
 	if len(byDay) == 0 && len(byDayItems) == 0 {
 		return nil
@@ -334,40 +307,56 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 	bucketOrder := map[string]int{"morning": 0, "noon": 1, "evening": 2}
 	out := make([]AnimalTreatmentDay, 0, len(keys))
 	for _, k := range keys {
-		slots := byDay[k]
-		sort.SliceStable(slots, func(i, j int) bool {
-			if slots[i].DueAt.Equal(slots[j].DueAt) {
-				return bucketOrder[slots[i].Slot] < bucketOrder[slots[j].Slot]
-			}
-			return slots[i].DueAt.Before(slots[j].DueAt)
-		})
-		series := seriesOf(slots, bucketOrder)
-		d := AnimalTreatmentDay{
-			Date:    dayTime[k],
-			DateKey: k,
-			Current: k == today,
-			Future:  k > today,
-			Group: MedGroupView{
-				AnimalID:    animal.ID,
-				AnimalLabel: animalLabel(*animal),
-				AnimalLink:  animalTreatmentLink(animal.ID, ""),
-				Series:      series,
-			},
-			Items: byDayItems[k],
-		}
-		for _, s := range slots {
-			if !s.Done && !s.Overridden {
-				d.OpenCount++
-			}
-		}
-		for _, item := range d.Items {
-			if openStatusAction(careplan.PlanStatus(item.Status)) {
-				d.OpenCount++
-			}
-		}
-		out = append(out, d)
+		out = append(out, animalTreatmentDayFor(k, today, dayTime[k], byDay[k], byDayItems[k], animal, bucketOrder))
 	}
 	return out
+}
+
+// animalTreatmentDayFor assembles one calendar day: medication slots
+// sorted by due time then slot bucket, merged into the shared series;
+// the non-medication compact items ride along; OpenCount covers both
+// open slots and open items so the day badge reflects ALL remaining work.
+func animalTreatmentDayFor(key, today string, date time.Time, slots []MedSlotView, items []CardView, animal *models.Animal, bucketOrder map[string]int) AnimalTreatmentDay {
+	sort.SliceStable(slots, func(i, j int) bool {
+		if slots[i].DueAt.Equal(slots[j].DueAt) {
+			return bucketOrder[slots[i].Slot] < bucketOrder[slots[j].Slot]
+		}
+		return slots[i].DueAt.Before(slots[j].DueAt)
+	})
+	d := AnimalTreatmentDay{
+		Date:    date,
+		DateKey: key,
+		Current: key == today,
+		Future:  key > today,
+		Group: MedGroupView{
+			AnimalID:    animal.ID,
+			AnimalLabel: animalLabel(*animal),
+			AnimalLink:  animalTreatmentLink(animal.ID, ""),
+			Series:      seriesOf(slots, bucketOrder),
+		},
+		Items: items,
+	}
+	for _, s := range slots {
+		if !s.Done && !s.Overridden {
+			d.OpenCount++
+		}
+	}
+	for _, item := range d.Items {
+		if openStatusAction(careplan.PlanStatus(item.Status)) {
+			d.OpenCount++
+		}
+	}
+	return d
+}
+
+// animalDayMedSlot projects one medication occurrence of the animal into
+// the togglable MedSlotView the shared `_med_series` partial renders —
+// the shared medSlotFor with the animal page as its own return path
+// (overridden occurrences never reach it: filtered upstream).
+func animalDayMedSlot(plan *DayPlan, it *careplan.PlanItem, animal *models.Animal) MedSlotView {
+	slot := medSlotFor(plan.Now, it, "")
+	slot.Overridden = false // filtered upstream — never rendered as such
+	return slot
 }
 
 // animalDayCardFor projects one NON-medication occurrence of the animal

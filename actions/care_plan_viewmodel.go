@@ -404,21 +404,28 @@ func seriesTier(series MedSeriesView) (int, time.Time) {
 	var first time.Time
 	for _, row := range series.Rows {
 		for _, s := range row.Slots {
-			if s.Done || s.Overridden {
-				continue
-			}
-			t := tierOrder(careplan.PlanStatus(s.Status))
-			if t < 0 || t > 2 {
-				continue
-			}
-			if t < best || (t == best && (first.IsZero() || s.DueAt.Before(first))) {
-				best = t
-				first = s.DueAt
-			}
+			best, first = betterTierSlot(best, first, s)
 		}
 	}
 	if best > 2 {
 		return -1, time.Time{}
+	}
+	return best, first
+}
+
+// betterTierSlot folds one slot into the running (best tier, first due)
+// pair: closed slots and non-tier statuses are skipped; a slot wins when
+// its tier is strictly more urgent, or same-tier and earlier due.
+func betterTierSlot(best int, first time.Time, s MedSlotView) (int, time.Time) {
+	if s.Done || s.Overridden {
+		return best, first
+	}
+	t := tierOrder(careplan.PlanStatus(s.Status))
+	if t < 0 || t > 2 {
+		return best, first
+	}
+	if t < best || (t == best && (first.IsZero() || s.DueAt.Before(first))) {
+		return t, s.DueAt
 	}
 	return best, first
 }
@@ -900,42 +907,12 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			groups[it.Occurrence.AnimalID] = g
 			ids = append(ids, it.Occurrence.AnimalID)
 		}
-		slot := MedSlotView{
-			Slot:       medSlotOf(it.Occurrence.DueAt),
-			Detail:     planDetail(src),
-			SourceName: DisplayName(src.Name()),
-			SourceType: string(src.SourceType()),
-			SourceID:   src.SourceID(),
-			DueAt:      it.Occurrence.DueAt,
-			DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
-			DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
-			Status:     string(it.Status),
-			Applied:    it.Status == careplan.StatusApplied,
-			Applicable: it.Applicable,
-			Overridden: it.Status == careplan.StatusOverridden,
-			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
-		}
-		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
-		slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
+		slot := medSlotFor(plan.Now, it, back)
 		// R3-5: day qualifier for non-today slots (multi-day series clarity).
 		if dp := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now); dp.DayKey != "" || dp.ShortDate != "" {
 			slot.DueDayKey = dp.DayKey
 			slot.DueShortDate = dp.ShortDate
 		}
-		if app := it.Application; app != nil {
-			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
-				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
-			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
-		}
-		// Unconditional view link (bugs.md R5-2b): an existing fulfillment
-		// targets its care/treatment record, anything else the animal's
-		// Treatment tab — present before AND after the toggle, sibling of
-		// the toggle button, never moves.
-		slot.ViewLink = slot.FulfillmentLink
-		if slot.ViewLink == "" {
-			slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, back)
-		}
-		slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
 		if slot.Applicable && !slot.Done {
 			g.OpenCount++
 		}
@@ -963,6 +940,48 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 func slotLateAllowed(now time.Time, slot MedSlotView, it *careplan.PlanItem) bool {
 	return !slot.Done && !slot.Applicable && !slot.Overridden &&
 		it.Occurrence.DueAt.Before(now)
+}
+
+// medSlotFor projects one medication plan item into the togglable
+// MedSlotView shared by the care plan, the dashboard and the animal
+// tabs: apply/undo state, undo link only for treatment-backed
+// applications, late recording when the window passed, unconditional
+// view link (bugs.md R5-2b) and the dashboard deep link. `back` is the
+// return path embedded in every link ("" on the animal page).
+func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
+	src := it.Occurrence.Source
+	slot := MedSlotView{
+		Slot:       medSlotOf(it.Occurrence.DueAt),
+		Detail:     planDetail(src),
+		SourceName: DisplayName(src.Name()),
+		SourceType: string(src.SourceType()),
+		SourceID:   src.SourceID(),
+		DueAt:      it.Occurrence.DueAt,
+		DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
+		DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
+		Status:     string(it.Status),
+		Applied:    it.Status == careplan.StatusApplied,
+		Applicable: it.Applicable,
+		Overridden: it.Status == careplan.StatusOverridden,
+		SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
+	}
+	slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
+	slot.LateAllowed = slotLateAllowed(now, slot, it)
+	if app := it.Application; app != nil {
+		slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
+			app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
+		slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, back)
+	}
+	// Unconditional view link (bugs.md R5-2b): an existing fulfillment
+	// targets its care/treatment record, anything else the animal's
+	// Treatment tab — present before AND after the toggle, sibling of
+	// the toggle button, never moves.
+	slot.ViewLink = slot.FulfillmentLink
+	if slot.ViewLink == "" {
+		slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, back)
+	}
+	slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
+	return slot
 }
 
 // seriesOf merges medication slots into (drug, dosage) series (Dash-5:

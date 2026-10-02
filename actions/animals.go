@@ -567,44 +567,10 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
 
-			// Plan tab (§4.7): the animal's own care plans, caretaker-editable.
-			plans := &models.CareAnimalPlans{}
-			if err := tx.Where("animal_id = ?", animal.ID).Order("created_at desc").All(plans); err != nil {
-				return err
-			}
-			c.Set("careAnimalPlans", plans)
-			// R5-4b (bugs.md U21/D-c): Treatment tab source-protocol backlinks
-			// (per-time entries are read in-template via TreatmentEntriesMap).
-			if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
-				return err
-			}
-			// Today's plan occurrences (bugs.md U26 — fix 7): merged into
-			// the Treatment tab accordion (deduped against legacy
-			// treatments) — the same engine pass resolves the Dash-7
-			// deep-link occurrence (?item=) server-side.
-			todayPlan, err := animalTodayPlan(tx)
-			if err != nil {
-				return err
-			}
-			planRows, err := animalPlanTodayRows(tx, todayPlan, animal)
-			if err != nil {
-				return err
-			}
-			c.Set("animalPlanToday", planRows)
-			// R3-6: the Treatment tab is rebuilt on the care-plan engine —
-			// per-day togglable medication series over the history+future
-			// window (14d back, 5d forward cap for open-ended protocols).
-			treatPlan, err := animalTreatmentPlan(tx)
-			if err != nil {
-				return err
-			}
-			c.Set("animalTreatmentDays", animalTreatmentDays(treatPlan, animal))
-			if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
-				return err
-			}
-			c.Set("planActionKinds", planActionKinds())
-			// Structured editors (bugs.md U17): caretype/drug dropdown data.
-			if err := setPlanEditorData(c, tx); err != nil {
+			// Plan tab data (§4.7 + R3-6/R3-7): the animal's own plans,
+			// the legacy treatment accordion context and the engine-driven
+			// per-day treatment/protocol views.
+			if err := setAnimalShowPlanData(c, tx, animal); err != nil {
 				return err
 			}
 
@@ -663,6 +629,52 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	}).Wants("xml", func(c buffalo.Context) error {
 		return c.Render(200, r.XML(animal))
 	}).Respond(c)
+}
+
+// setAnimalShowPlanData loads every plan-related context value of the
+// animal show page: the animal's own care plans (Protocol tab Details),
+// the legacy treatment accordion context (source-protocol backlinks), the
+// engine-driven per-day treatment view (R3-6) reused by the Protocol tab
+// (R3-7), the Dash-7 deep-link resolution and the structured editor data.
+func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models.Animal) error {
+	// Plan tab (§4.7): the animal's own care plans, caretaker-editable.
+	plans := &models.CareAnimalPlans{}
+	if err := tx.Where("animal_id = ?", animal.ID).Order("created_at desc").All(plans); err != nil {
+		return err
+	}
+	c.Set("careAnimalPlans", plans)
+	// R5-4b (bugs.md U21/D-c): Treatment tab source-protocol backlinks
+	// (per-time entries are read in-template via TreatmentEntriesMap).
+	if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
+		return err
+	}
+	// Today's plan occurrences (bugs.md U26 — fix 7): merged into the
+	// Treatment tab accordion (deduped against legacy treatments) — the
+	// same engine pass resolves the Dash-7 deep-link occurrence (?item=)
+	// server-side.
+	todayPlan, err := animalTodayPlan(tx)
+	if err != nil {
+		return err
+	}
+	planRows, err := animalPlanTodayRows(tx, todayPlan, animal)
+	if err != nil {
+		return err
+	}
+	c.Set("animalPlanToday", planRows)
+	// R3-6: the Treatment tab is rebuilt on the care-plan engine —
+	// per-day togglable medication series over the history+future
+	// window (14d back, 5d forward cap for open-ended protocols).
+	treatPlan, err := animalTreatmentPlan(tx)
+	if err != nil {
+		return err
+	}
+	c.Set("animalTreatmentDays", animalTreatmentDays(treatPlan, animal))
+	if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
+		return err
+	}
+	c.Set("planActionKinds", planActionKinds())
+	// Structured editors (bugs.md U17): caretype/drug dropdown data.
+	return setPlanEditorData(c, tx)
 }
 
 // New renders the form for creating a new Animal.
