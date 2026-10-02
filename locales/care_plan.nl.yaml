@@ -156,6 +156,8 @@
   translation: "Geldigheidsperiode"
 - id: "care_plan.animal_plans.details"
   translation: "Details"
+- id: "care_plan.animal_plans.view_record"
+  translation: "Registratie bekijken"
 - id: "care_plan.animal_plans.missing"
   translation: "{count} gemist"
 - id: "care_plan.animal_plans.missing_hint"

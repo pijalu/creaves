@@ -419,8 +419,7 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	for _, g := range groups {
 		for _, series := range g.Series {
-			tier, first := seriesTier(series)
-			if tier < 0 {
+			if seriesTierOrMinus(series) < 0 {
 				continue // every slot terminal — nothing to work on
 			}
 			// R4-7.7: the work screen shows TODAY. A series with no open
@@ -433,7 +432,7 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 			if len(series.Rows) == 0 || seriesTierOrMinus(series) < 0 {
 				continue
 			}
-			tier, first = seriesTier(series)
+			tier, first := seriesTier(series)
 			series.Tier = tier
 			series.FirstDueAt = first
 			// R4-1.2: the slot that placed the series in its tier is the
@@ -1261,69 +1260,123 @@ func seriesTierOrMinus(series MedSeriesView) int {
 // the schedule. Kept: every slot due up to the end of today (open or
 // terminal — the done ones are the day's record), plus AT MOST ONE later
 // open slot, the nearest, and only when it is nearer than the pending late
-// entry ("if the duration from now to the entry is shorter than the
-// current one"). Everything else waits for its own day, so the table is
-// empty in the evening. The surviving later slot is bucketed "tomorrow",
-// following morning/noon/evening like any other bucket.
+// entry ("if the duration from now to the entry is shorter than the current
+// one"). Everything else waits for its own day, so the table is empty in the
+// evening. The surviving later slot is bucketed "tomorrow", following
+// morning/noon/evening like any other bucket.
 func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
-	endOfDay := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
-	var urgentDue time.Time
-	haveUrgent := false
-	for _, row := range series.Rows {
-		for _, s := range row.Slots {
-			if s.Done || s.Overridden || s.DueAt.After(endOfDay) {
-				continue
-			}
-			if tier := tierOrder(careplan.PlanStatus(s.Status)); tier >= 0 && tier <= 2 {
-				if !haveUrgent || betterSeriesSlot(s, urgentDue) {
-					urgentDue, haveUrgent = s.DueAt, true
-				}
-			}
-		}
-	}
-	if !haveUrgent {
-		return MedSeriesView{Key: series.Key, Label: series.Label}
+	endOfDay := endOfDayOf(now)
+
+	// Without an open slot due today there is no work to scope around.
+	urgentDue, ok := mostUrgentSlotDue(series, endOfDay)
+	if !ok {
+		return emptySeries(series)
 	}
 
-	// The nearest later open slot, kept only when it beats the pending one.
-	var nextDue time.Time
-	haveNext := false
-	for _, row := range series.Rows {
-		for _, s := range row.Slots {
-			if s.Done || s.Overridden || !s.DueAt.After(endOfDay) {
-				continue
-			}
-			if tier := tierOrder(careplan.PlanStatus(s.Status)); tier < 0 || tier > 2 {
-				continue
-			}
-			if !haveNext || s.DueAt.Before(nextDue) {
-				nextDue, haveNext = s.DueAt, true
-			}
-		}
+	// The one later slot worth showing: the nearest open one, and only when
+	// it beats the pending late entry.
+	kept := todaysSlots(series, endOfDay)
+	if nextDue, found := nearestLaterSlot(series, endOfDay); found &&
+		nextDue.Sub(now) < now.Sub(urgentDue) {
+		kept = append(kept, tomorrowSlot(series, nextDue)...)
 	}
-	keepNext := haveNext && nextDue.Sub(now) < now.Sub(urgentDue)
 
-	var kept []MedSlotView
-	for _, row := range series.Rows {
-		for _, s := range row.Slots {
-			switch {
-			case s.DueAt.After(endOfDay):
-				if !keepNext || !s.DueAt.Equal(nextDue) {
-					continue
-				}
-				s.Slot = slotTomorrow
-			case tierOrder(careplan.PlanStatus(s.Status)) > 2 && !s.Done && !s.Overridden:
-				continue // not applicable and not terminal: nothing to do
-			}
-			kept = append(kept, s)
-		}
-	}
 	if len(kept) == 0 {
-		return MedSeriesView{Key: series.Key, Label: series.Label}
+		return emptySeries(series)
 	}
 	out := series
 	out.Rows = chunkSeriesRows(kept)
 	return out
+}
+
+// emptySeries keeps only the identity of a series whose scoped rows are gone,
+// so the caller can recognise it while rendering no line for it.
+func emptySeries(series MedSeriesView) MedSeriesView {
+	return MedSeriesView{Key: series.Key, Label: series.Label}
+}
+
+// endOfDayOf is the last instant of `now`'s day.
+func endOfDayOf(now time.Time) time.Time {
+	return time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+}
+
+// slotIsOpenWork reports whether the slot still needs something done (an
+// occurrence with no application and no terminal/suppressed state).
+func slotIsOpenWork(s MedSlotView) bool {
+	tier := tierOrder(careplan.PlanStatus(s.Status))
+	return !s.Done && !s.Overridden && tier >= 0 && tier <= 2
+}
+
+// flatSlots is every slot of a series, in order.
+func flatSlots(series MedSeriesView) []MedSlotView {
+	var out []MedSlotView
+	for _, row := range series.Rows {
+		out = append(out, row.Slots...)
+	}
+	return out
+}
+
+// mostUrgentSlotDue returns the due time of the most urgent open slot due up
+// to `endOfDay`, and whether one exists. With none, the day's work is done or
+// not yet due and the series leaves the work screen.
+func mostUrgentSlotDue(series MedSeriesView, endOfDay time.Time) (time.Time, bool) {
+	var due time.Time
+	found := false
+	for _, s := range flatSlots(series) {
+		if s.DueAt.After(endOfDay) || !slotIsOpenWork(s) {
+			continue
+		}
+		if !found || betterSeriesSlot(s, due) {
+			due, found = s.DueAt, true
+		}
+	}
+	return due, found
+}
+
+// nearestLaterSlot returns the due time of the nearest open slot after
+// `endOfDay`, and whether one exists.
+func nearestLaterSlot(series MedSeriesView, endOfDay time.Time) (time.Time, bool) {
+	var due time.Time
+	found := false
+	for _, s := range flatSlots(series) {
+		if !s.DueAt.After(endOfDay) || !slotIsOpenWork(s) {
+			continue
+		}
+		if !found || s.DueAt.Before(due) {
+			due, found = s.DueAt, true
+		}
+	}
+	return due, found
+}
+
+// todaysSlots keeps every slot due up to the end of today — the open ones and
+// the terminal ones (the day's record). A slot that is neither open nor
+// terminal is dropped: there is nothing to do and nothing to remember.
+func todaysSlots(series MedSeriesView, endOfDay time.Time) []MedSlotView {
+	var kept []MedSlotView
+	for _, s := range flatSlots(series) {
+		if s.DueAt.After(endOfDay) {
+			continue
+		}
+		if !s.Done && !s.Overridden && tierOrder(careplan.PlanStatus(s.Status)) > 2 {
+			continue
+		}
+		kept = append(kept, s)
+	}
+	return kept
+}
+
+// tomorrowSlot returns the slots due at exactly `nextDue`, rebucketed into
+// the "tomorrow" group so they read apart from the day's own buckets.
+func tomorrowSlot(series MedSeriesView, nextDue time.Time) []MedSlotView {
+	var kept []MedSlotView
+	for _, s := range flatSlots(series) {
+		if s.DueAt.Equal(nextDue) {
+			s.Slot = slotTomorrow
+			kept = append(kept, s)
+		}
+	}
+	return kept
 }
 
 // betterSeriesSlot reports whether slot `s` is more urgent than the slot

@@ -35,6 +35,7 @@ func TestCarePlanStylesheetAlignment(t *testing.T) {
 	for _, sel := range []string{
 		".plan-apply-space",
 		".plan-chip-due",
+		".plan-item-view",
 	} {
 		require.Contains(t, raw, sel, sel+" is still styled")
 	}

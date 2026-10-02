@@ -136,3 +136,15 @@
   // border — a glued pill reads as part of the border, not as a label.
   padding-left: 0.65rem;
 }
+
+// R4-7.11b: the DONE badge is a link to the record that was logged. As an
+// <a> it must not look like a link — same badge, only a pointer and a hover
+// tint, so "done" still reads as done.
+.plan-item-view {
+  cursor: pointer;
+}
+.plan-item-view:hover,
+.plan-item-view:focus {
+  text-decoration: none;
+  filter: brightness(0.92);
+}

@@ -156,6 +156,8 @@
   translation: "Gültigkeitszeitraum"
 - id: "care_plan.animal_plans.details"
   translation: "Details"
+- id: "care_plan.animal_plans.view_record"
+  translation: "Eintrag ansehen"
 - id: "care_plan.animal_plans.missing"
   translation: "{count} verpasst"
 - id: "care_plan.animal_plans.missing_hint"

@@ -423,7 +423,11 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		SourceLink:   cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
 	}
 	if app := it.Application; app != nil {
-		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, "")
+		// R4-7.11b: the row's record of what was actually done. `back` is
+		// THIS page's Plan tab, so the record's own back button returns
+		// here instead of stranding the caregiver on a dead-end list.
+		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted,
+			fmt.Sprintf("/animals/%d#nav-plan", animal.ID))
 	}
 	return cv
 }

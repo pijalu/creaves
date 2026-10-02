@@ -156,6 +156,8 @@
   translation: "Période d'application"
 - id: "care_plan.animal_plans.details"
   translation: "Détails"
+- id: "care_plan.animal_plans.view_record"
+  translation: "Voir l'enregistrement"
 - id: "care_plan.animal_plans.missing"
   translation: "{count} non fait(s)"
 - id: "care_plan.animal_plans.missing_hint"

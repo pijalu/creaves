@@ -162,6 +162,15 @@ func (v CaresResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("care", care)
+		// R4-7.11b: mirror Treatments.Show — the care-plan card link lands
+		// here with ?back=..., sanitized the same way (safeBackParam +
+		// unwrapBackChain) and with the U16 label naming the real
+		// destination. The template used to read params["back"] raw, which
+		// both leaked an unsanitized redirect and showed a hardcoded "Back"
+		// that lied about where the button goes.
+		back := unwrapBackChain(safeBackParam(c))
+		c.Set("back", back)
+		c.Set("landingBackLabel", landingBackLabelKey(back))
 
 		return c.Render(http.StatusOK, r.HTML("/cares/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {

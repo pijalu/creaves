@@ -156,6 +156,8 @@
   translation: "Active window"
 - id: "care_plan.animal_plans.details"
   translation: "Details"
+- id: "care_plan.animal_plans.view_record"
+  translation: "View the logged record"
 - id: "care_plan.animal_plans.missing"
   translation: "{count} missed"
 - id: "care_plan.animal_plans.missing_hint"

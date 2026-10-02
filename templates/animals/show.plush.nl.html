@@ -817,7 +817,19 @@
                       <span class="ml-auto text-nowrap">
                         <%= dueLabel(item.DueHM, item.DueDayKey, item.DueShortDate) %>
                         <%= if (item.Status == "applied") { %>
-                          <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+                          <%# R4-7.11b: "a click on the action can be seen in
+                              the animal feeding" — the DONE badge doubles as
+                              the door to the record that was actually logged
+                              (feeding / care). The link carries back= this
+                              page's Plan tab, so the record's own back button
+                              returns here. No fulfillment (or deleted) ⇒ a
+                              plain badge, never a dead link. %>
+                          <%= if (item.FulfillmentLink != "") { %>
+                            <a class="badge badge-success plan-item-view" href="<%= item.FulfillmentLink %>"
+                              title="<%= t("care_plan.animal_plans.view_record") %>" aria-label="<%= t("care_plan.animal_plans.view_record") %>"><%= t("care_plan.status.done") %> <i class="fas fa-external-link-alt"></i></a>
+                          <% } else { %>
+                            <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+                          <% } %>
                         <% } else if (item.Status == "skipped") { %>
                           <span class="badge badge-light"><%= t("care_plan.status.skipped") %></span>
                         <% } else if (item.Status == "deferred") { %>
