@@ -12,13 +12,15 @@
     <!-- App -->
     <%= javascriptTag("application.js") %>
   <style>
-    /* Keep navigation labels visible when navbar collapses into hamburger menu. */
-    @media (max-width: 575.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* Keep navigation labels visible when the navbar collapses into the
+       hamburger menu (below xl the 10-item bar would overflow — issue #1:
+       cut menu instead of hamburger). */
+    @media (max-width: 1199.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
   </style>
   </head>
   <body>
 
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-xl navbar-dark bg-dark sticky-top">
     <%= if (current_user) {%>
     <a class="navbar-brand" href="<%= rootPath() %>">
     <% } else {%>
