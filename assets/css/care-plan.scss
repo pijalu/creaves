@@ -38,3 +38,68 @@
 #feed-tier-2 {
   scroll-margin-top: 60px;
 }
+
+// R4-2.3: the A/B/C entry layout rule of a medication series line.
+// One flex line, three shapes, all from the same markup:
+//   A/ <ℹ> <label>            | <b1><b2>…<bX>   buttons on one line
+//   B/ <ℹ> <label>            | <b1>
+//      <b2> … <bX>              buttons wrap, still right-aligned
+//   C/ <ℹ> <label wrapped>   |
+//      <b1>
+//      <b2> … <bX>              text wraps, buttons in a column
+// The A→B breakpoint is driven by CONTENT width (flex wrapping), not by the
+// viewport: whatever does not fit on the line moves to the next one.
+.plan-med-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.plan-med-lead {
+  // R4-3.1: fixed-width leading column so every row's ℹ lands at the same
+  // x, whatever the drug label length (alignment by construction, not by
+  // luck).
+  flex: 0 0 auto;
+  min-width: 2.5rem;
+}
+.plan-med-label {
+  // Grows, wraps when the buttons need the room (shape C).
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.plan-med-btns {
+  // ONE right-aligned button group that wraps: one line when it fits (A),
+  // stacked and still right-aligned when it does not (B).
+  flex: 0 1 auto;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+.plan-med-cell {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.25rem 0.25rem 0;
+}
+// R4-2.4: the morning/noon/evening grouping cue is LABELLED, not an
+// unlabelled rule — a small caps caption that occupies a full line of the
+// button group so the following buttons start a fresh row.
+.plan-med-bucket {
+  flex: 1 0 100%;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6c757d;
+  border-top: 1px solid #dee2e6;
+  margin: 0.25rem 0;
+  padding-top: 0.15rem;
+}
+
+// R4-3.3: an open LATE item on the animal tabs reads as a red row (the
+// redundant "Late" pill is gone — the row colour and the apply button's
+// own tier colour carry it; the status text stays in the DOM for
+// assistive technology).
+.plan-item-late {
+  border-left: 3px solid #dc3545 !important;
+  background-color: #fdf2f3;
+}

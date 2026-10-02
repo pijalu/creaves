@@ -704,7 +704,7 @@
                     <%= partial("care_plan/med_series.plush.html") %>
                   <% } %>
                   <%= for (item) in day.Items { %>
-                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1">
+                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1<%= if (item.Tier == 0 && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %> plan-item-late<% } %>">
                       <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
                       <span>
                         <%= if (item.Detail != "") { %>
@@ -722,7 +722,12 @@
                         <% } else if (item.Status == "deferred") { %>
                           <span class="badge badge-light"><%= t("care_plan.status.deferred") %></span>
                         <% } else if (item.Tier == 0) { %>
-                          <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
+                          <%# R4-3.3: no redundant "Late" PILL — the row is
+                              RED (see .plan-item-late): the late state is
+                              carried by the row colour and by the apply
+                              affordance's own tier colour. The text stays
+                              for assistive technology. %>
+                          <span class="plan-item-late sr-only"><%= t("care_plan.status.late") %></span>
                         <% } else { %>
                           <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
                         <% } %>

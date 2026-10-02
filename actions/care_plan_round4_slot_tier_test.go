@@ -196,3 +196,47 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 		require.False(t, strings.Contains(out, `class="btn  btn-sm`), f, "empty tier class")
 	}
 }
+
+// TestMedSeriesLayoutAndInfoFirst (R4-2.3/R4-2.4/R4-3.1/R4-3.2, all four
+// locales): the line follows the A/B/C layout rule — a fixed-width LEADING
+// column holding the ℹ (first entry, aligned), a growing label block and
+// ONE right-aligned button group; the morning/noon/evening grouping is an
+// explicit LABELLED divider, not an empty rule.
+func TestMedSeriesLayoutAndInfoFirst(t *testing.T) {
+	slots := []MedSlotView{
+		{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 8, 0, 0, 0, time.Local), DueAtHM: "08:00", Status: "due", Tier: 1, TierClass: "btn-warning", Applicable: true},
+		{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 9, 0, 0, 0, time.Local), DueAtHM: "09:00", Status: "scheduled", Tier: 2, TierClass: "btn-light border"},
+		{Slot: "evening", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 18, 0, 0, 0, time.Local), DueAtHM: "18:00", Status: "due", Tier: 1, TierClass: "btn-warning", Applicable: true},
+	}
+	mg := MedGroupView{AnimalID: 1, AnimalLabel: "472/26", Series: seriesOf(slots, seriesBucketOrder)}
+	require.Len(t, mg.Series, 1)
+
+	forks := []string{
+		"../templates/care_plan/_med_series.plush.html",
+		"../templates/care_plan/_med_series.plush.de.html",
+		"../templates/care_plan/_med_series.plush.fr.html",
+		"../templates/care_plan/_med_series.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		out, err := plush.Render(string(raw), plush.NewContextWith(map[string]interface{}{
+			"mg": mg,
+			"t":  func(s string) string { return s },
+		}))
+		require.NoError(t, err, f)
+
+		line := strings.Index(out, `class="d-flex align-items-start plan-med-line`)
+		lead := strings.Index(out, `class="plan-med-lead text-nowrap"`)
+		info := strings.Index(out, "plan-detail-btn")
+		label := strings.Index(out, `class="plan-med-label"`)
+		btns := strings.Index(out, `class="plan-med-btns"`)
+		require.True(t, line >= 0 && lead > line && info > lead, f+": the line opens with the ℹ column")
+		require.True(t, label > info, f+": the drug label follows the ℹ")
+		require.True(t, btns > label, f+": ONE right-aligned button group closes the line")
+		require.Contains(t, out, `class="plan-med-bucket">care_plan.slot.evening<`, f,
+			"the morning/noon/evening grouping is labelled (R4-2.4)")
+		require.Contains(t, out, `class="plan-med-cell"`, f, "the day badge travels with its own button (R4-3.2)")
+		require.NotContains(t, out, "med-series-divider", f, "the unlabelled rule is gone")
+	}
+}

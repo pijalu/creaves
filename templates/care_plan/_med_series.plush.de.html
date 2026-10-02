@@ -1,26 +1,49 @@
 <%# Shared drug-series component (round-2 §8.3, CP1/Dash-8/T2): one line
-    per (drug, dosage) with its time-button series — 3 per row, bucket
-    change forces a new row (thin divider). The SAME partial renders the
-    care-plan medication section, the dashboard table and the animal
+    per (drug, dosage) with its time-button series. The SAME partial renders
+    the care-plan medication section, the dashboard table and the animal
     Treatment tab (Jakob's/Similarity: one visual language).
 
     Context: `mg` — a MedGroupView (Series built by buildMedGroups).
 
-    Button states (depupdate language): outlined warning = open, ✓ green
-    = applied (click undoes), ⊘ = skipped, ⏸ = deferred, dimmed = out of
-    the apply window. A dimmed PAST button stays clickable (§6.2-2):
-    one click records the missed occurrence with the late acknowledgment
+    R4-2.3 entry layout rule — the A/B/C shapes of ONE line:
+      A/ <ℹ> <label>            | <b1><b2>…<bX>   (all buttons on one line)
+      B/ <ℹ> <label>            | <b1>
+         <b2> … <bX>              (buttons wrap, still right-aligned)
+      C/ <ℹ> <label wrapped>   |
+         <b1>
+         <b2> … <bX>              (text wraps, buttons in a column)
+    Implementation: the line is a flex row (see .plan-med-line in
+    assets/css/care-plan.scss): the text block is `flex:1 1 auto; min-width:0`
+    (wraps in C), the button block `flex:0 1 auto; margin-left:auto` with its
+    own wrapping flex (one row in A, stacked + right-aligned in B).
+
+    R4-3.1: the read-only detail (ℹ) is the FIRST entry of the line, in a
+    fixed-width leading column, so every row's ℹ lands at the same x
+    regardless of label length. Its title stays localized; the ℹ glyph is
+    language-neutral and is never translated.
+
+    R4-2.4: the morning/noon/evening grouping is EXPLICIT — each bucket
+    divider carries its localized label (care_plan.slot.*), instead of an
+    unlabelled rule. The buttons themselves flow in ONE right-aligned group.
+
+    R4-1.1: button colour = the slot's urgency tier (late red · due-now
+    yellow · future white · applied green); the glyph (○/✓/⊘/⏸/–) and the
+    title remain the accessible label, so colour is never the only signal.
+
+    Button states (depupdate language): outlined = open, ✓ green = applied
+    (click undoes), ⊘ skipped, ⏸ deferred, dimmed = out of the apply
+    window. A dimmed PAST button stays clickable (§6.2-2): one click
+    records the missed occurrence with the late acknowledgment
     (data-late="true"). %>
 <div class="med-series flex-grow-1">
   <%= for (si, series) in mg.Series { %>
     <%# The line separator belongs BETWEEN series — never on top of the
         first line (a leading border floats mid-air above the list). %>
-    <div class="d-flex align-items-start med-series-line <%= if (si > 0) { %>border-top mt-1 pt-1<% } %>">
-      <div class="mr-2 text-nowrap">
-        <strong><%= series.Label %></strong>
-        <%# Read-only detail (ℹ) of the series' first occurrence — the drug
-            context is per-series, the due label of the first slot anchors it. %>
-        <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+    <div class="d-flex align-items-start plan-med-line<%= if (si > 0) { %> border-top mt-1 pt-1<% } %>">
+      <%# R4-3.1: fixed-width leading column — ℹ first, then the optional
+          dashboard eye, so both align down the whole list. %>
+      <div class="plan-med-lead text-nowrap">
+        <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
           data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
           data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0].Slots[0].SourceName %>" data-source-link="<%= series.Rows[0].Slots[0].SourceLink %>"
           data-kind="medication" data-due="<%= series.Rows[0].Slots[0].DueAtHM %>"
@@ -33,44 +56,45 @@
             aria-label="<%= series.Label %> <%= series.Rows[0].Slots[0].DueAtHM %>"><i class="fa fa-eye"></i></a>
         <% } %>
       </div>
-      <%# Toggle buttons RIGHT-JUSTIFIED (ml-auto): the drug label owns
-          the left edge, the hour buttons the right edge — full use of
-          the line width on wide screens, stable button targets. %>
-      <div class="ml-auto text-right">
+      <%# Text block: grows, wraps when the buttons need the room (C). %>
+      <div class="plan-med-label"><strong><%= series.Label %></strong></div>
+      <%# Buttons: ONE right-aligned group that wraps (A → B) — the day
+          badge travels with its own button (R4-3.2). %>
+      <div class="plan-med-btns">
         <%= for (ri, row) in series.Rows { %>
+          <%# R4-2.4: the bucket change is LABELLED, not implied by an
+              empty rule — the morning/noon/evening grouping is explicit. %>
           <%= if (row.DividerBefore) { %>
-            <div class="med-series-divider border-top my-1"></div>
+            <div class="plan-med-bucket"><%= t("care_plan.slot." + row.Slots[0].Slot) %></div>
           <% } %>
-          <div class="text-nowrap med-series-row">
-            <%= for (slot) in row.Slots { %>
-              <%# R3-5: a series spans several days — slots not due today
-                  carry their day qualifier as a small badge BEFORE the
-                  button (outside it: the toggle JS rewrites the button
-                  text on apply/undo, the badge stays). %>
-              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border mr-1 mb-1 plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border mr-1 mb-1 plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+          <%= for (slot) in row.Slots { %>
+            <%# R3-5: a series spans several days — slots not due today
+                carry their day qualifier as a small badge NEXT TO the
+                button (outside it: the toggle JS rewrites the button
+                text on apply/undo, the badge stays). %>
+            <span class="plan-med-cell">
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
               <%= if (slot.Applied) { %>
-                                <%# R5-2c: ONE toggle per slot — the done button stays
-                                    live (re-click undoes, no confirm, no reload).
-                                    R4-1.1: the tier colour (green here) is additive — the
-                                    ✓ glyph and the title stay the accessible label. %>
-                                <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn mr-1 mb-1<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
-                                  <%= if (!slot.CanUndo) { %>disabled <% } %>
-                                  data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
-                                  data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
-                                  data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-                                  title="<%= t("care_plan.slot." + slot.Slot) %>">✓ <%= slot.DueAtHM %></button>
-                              <% } else if (slot.Status == "skipped") { %>
-                                <button type="button" class="btn btn-light plan-med-slot plan-med-btn mr-1 mb-1" disabled
-                                  title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></button>
-                              <% } else if (slot.Status == "deferred") { %>
-                                <button type="button" class="btn btn-light plan-med-slot plan-med-btn mr-1 mb-1" disabled
-                                  title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></button>
-                              <% } else if (slot.Applicable) { %>
-                                <%# R4-1.1: colour BY TIER — late red, due-now yellow,
-                                    future white — replacing the old Applicable/LateAllowed
-                                    colour branching. R4-1.2: the urgent slot of the series
-                                    gets a red ring, its future siblings recede. %>
-                                <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply mr-1 mb-1<%= if (slot.Urgent) { %> plan-med-urgent<% } %><%= if (slot.Future) { %> plan-med-future<% } %>"
+                <%# R5-2c: ONE toggle per slot — the done button stays
+                    live (re-click undoes, no confirm, no reload). %>
+                <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
+                  <%= if (!slot.CanUndo) { %>disabled <% } %>
+                  data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+                  data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+                  data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+                  title="<%= t("care_plan.slot." + slot.Slot) %>">✓ <%= slot.DueAtHM %></button>
+              <% } else if (slot.Status == "skipped") { %>
+                <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
+                  title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></button>
+              <% } else if (slot.Status == "deferred") { %>
+                <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
+                  title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></button>
+              <% } else if (slot.Applicable) { %>
+                <%# R4-1.1: colour BY TIER — late red, due-now yellow,
+                    future white — replacing the old Applicable/LateAllowed
+                    colour branching. R4-1.2: the urgent slot of the series
+                    gets a red ring, its future siblings recede. %>
+                <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %><%= if (slot.Future) { %> plan-med-future<% } %>"
                   data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                   data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
                   data-kind="medication"
@@ -79,10 +103,10 @@
                   title="<%= t("care_plan.apply.action") %> — <%= t("care_plan.slot." + slot.Slot) %>">○ <%= slot.DueAtHM %></button>
               <% } else if (slot.LateAllowed) { %>
                 <%# §6.2-2: past-due, unapplied, out of the apply window —
-                                      still clickable: record anyway (late). R4-1.1: its
-                                      colour is its tier (late = red), the affordance
-                                      (data-late) stays orthogonal. %>
-                                  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply mr-1 mb-1<%= if (slot.Urgent) { %> plan-med-urgent<% } %>"
+                    still clickable: record anyway (late). R4-1.1: its
+                    colour is its tier (late = red); the affordance
+                    (data-late) stays orthogonal to the colour. %>
+                <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %>"
                   data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
                   data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
                   data-kind="medication" data-late="true"
@@ -90,11 +114,11 @@
                   data-source-name="<%= slot.SourceName %>"
                   title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueAtHM %></button>
               <% } else { %>
-                                <button type="button" class="btn <%= slot.TierClass %> plan-med-slot plan-med-btn mr-1 mb-1" disabled
-                                  title="<%= t("care_plan.slot." + slot.Slot) %>">– <%= slot.DueAtHM %></button>
-                              <% } %>
-            <% } %>
-          </div>
+                <button type="button" class="btn <%= slot.TierClass %> plan-med-slot plan-med-btn" disabled
+                  title="<%= t("care_plan.slot." + slot.Slot) %>">– <%= slot.DueAtHM %></button>
+              <% } %>
+            </span>
+          <% } %>
         <% } %>
       </div>
     </div>

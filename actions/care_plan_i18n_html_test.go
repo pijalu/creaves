@@ -305,7 +305,7 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 			// renders one line per (drug, dosage) — Dash-3 removed the
 			// per-row count badge (Dash-1/4/5/8 markup, round-2 §8.1).
 			require.Contains(t, string(raw), "plan-med-slot", "medication toggle markup present")
-			require.Contains(t, string(raw), "med-series-line", "drug series line present")
+			require.Contains(t, string(raw), "plan-med-line", "drug series line present (R4-2.3 layout)")
 			require.NotContains(t, string(raw), "dash-med-count",
 				"%s /dashboard/ must not render the per-row count badge (Dash-3)", lang)
 			// Dash-7 (round-2 §8.2): the eye deep-links the animal page with

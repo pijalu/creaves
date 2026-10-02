@@ -190,7 +190,7 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		require.Contains(t, out, "⊘ 12:30", f)            // skipped
 		require.Contains(t, out, "⏸ 13:00", f)            // deferred
 		require.Contains(t, out, "– 10:00", f)            // out of window, locked
-		require.Contains(t, out, "med-series-divider", f) // bucket divider
+		require.Contains(t, out, "plan-med-bucket", f) // LABELLED bucket divider (R4-2.4)
 		require.NotContains(t, out, "<%= for (", f, "unrendered plush tag")
 		require.Contains(t, out, `data-animal-id="1"`, f, "apply hooks carry the animal")
 		require.Contains(t, out, `data-due-at="2026-09-28T12:00:00+02:00"`, f)
