@@ -10,6 +10,15 @@ per tool run (`go vet`, `staticcheck`, `gocognit -over 15 .`, `gocyclo -over 12 
 `go test -count=1 -race -cover ./...`), e2e evidence via the agent-browser
 skill, commit per fix, archive resolved entries at the end of the round.
 
+**Verification rule for this round's items**: every change is validated with
+agent-browser in **all four locales** (en-US, fr, de, nl) — not screenshots,
+DOM/geometry dumps — and each changed screen is reviewed on **correctness,
+usefulness and meaningfulness**: does it show the right thing, does it help the
+caregiver act, and does every number and label carry exactly one meaning (no
+duplicated content, no unit that silently changes). The local dev `admin`
+account password was set to a known value for the e2e session so the pages can
+be reached; the original hash is kept in `tmp/admin-orig-hash.txt`.
+
 **e2e evidence** (agent-browser DOM dumps, admin session, en-US + fr):
 `tmp/browser_evidence/round7/e2e-round7.md` (tmp/ is gitignored — local).
 Measured, not asserted:
@@ -212,3 +221,350 @@ actually logged and return to the exact row.
 
 **Test**: render assertion that an applied feeding row exposes a fulfillment
 link with a `back=` parameter pointing at the care-plan page.
+---
+
+## R4-7.14 Compact feeding: red late rows, execution order, centred check — **Open**
+
+`/care_plan?view=compact&kind=feeding` feedback, five parts:
+
+1. **Late rows are not red.** `.plan-tier-body { background: #fff }` paints the
+   collapse body white, so the `.plan-tier-late` red only reaches the header
+   strip — every late feeding row rendered on white. Give `.plan-feeding-row`
+   the tier class and tint a late row the same light red as `.plan-item-late`
+   (the treatment the row-kind tiers already use), so "late" reads on the row
+   and not only on the section.
+2. **Rows are ordered by cage name, not by urgency of execution.** Sorting is
+   `zone → cage`; the caregiver wants *what to execute first* first. Sort each
+   tier's groups by the earliest open chip's due time (stable, so equal times
+   keep zone/cage order).
+3. **The global checkmark is not centred.** It sits left in a `text-nowrap`
+   cell. Centre it in a fixed-width cell so the checks form one clean column
+   (same rule as R4-7.8).
+4. **The time repeats on every animal chip.** With several animals fed at the
+   same time the chip shows `10100 16:15`, `10101 16:15`, `10102 16:15`. Fold
+   the chips into due-time sub-groups (`FeedingTimeGroup`): the time becomes
+   the sub-group label, stated once, with the animal buttons under it.
+5. **More than one animal → a collapsible, collapsed by default.** The animal
+   button list becomes a collapse (single-animal rows are unaffected — the
+   list is one row, nothing to expand). Its header carries the count and the
+   earliest time, so the collapsed state still states what is due.
+
+**Model**: `FeedingGroupView.TierClass`, `.FirstDueAt`, `.TimeGroups`;
+`FeedingTimeGroup{Label, DayKey, ShortDate, DueAt, Chips, Applicable, CountCap}`.
+`feedingGroupTier` returns the earliest due alongside tier/status so the tier,
+the dot and the sort key can never disagree.
+
+**Test**: `TestFeedingRowOrderingByEarliestDue`, `TestFeedingTimeGroupsFoldRepeatedTimes`,
+`TestFeedingRowTierClassAndSortKey`, plus template assertions that the late row
+carries the tier class, the check cell is centred, and a multi-animal row
+renders `data-toggle="collapse"` with `aria-expanded="false"`.
+
+---
+
+## R4-7.15 Compact medication: uniform animal column — **Open**
+
+`/care_plan?view=compact&kind=medication`: the animal cell is `text-nowrap`
+with no width, so a short year number leaves the series starting at a
+different x on every line and the labels stop reading as a column.
+
+Give the cell one class (`.plan-med-animal`): a fixed width so every animal
+gets the same column, and the same light red background on every row, so the
+column reads as one band. Applied to all three medication tier blocks (late ·
+now · later) — same markup in all four locale forks.
+
+**Test**: `TestMedAnimalColumnStyled` (stylesheet source) + template assertion
+that all three tier blocks carry the class.
+
+---
+
+## R4-7.16 Compact observation/care/weighing: the medication line format — **Open**
+
+Observed: `/care_plan?view=compact&kind=observation` renders a 4-cell
+`<table>` row (animal · content · due · status+buttons), while
+`kind=medication` renders a flex LINE (animal column · series · aligned
+button group). The two densities read as two different products.
+
+Measured (before): late observation rows `bg=rgb(253,242,243)`,
+`later` rows `bg=rgba(0,0,0,0)` — the tint exists but only on late rows.
+
+**Fix**: the non-grouped kinds (observation, care, weighing) render the
+medication line format — animal column + content + right-aligned, fixed-width
+button group — and the light-red background is applied to **all** items, so
+every line reads as one band and the status pill/button carries the urgency.
+
+**Open decision**: `care` and `weighing` share the identical template branch.
+Default taken: convert all three (one consistent layout) rather than
+duplicating the markup for observation only.
+
+**Test**: `TestNonGroupedKindsRenderLineFormat` (all three tier blocks carry
+`.plan-med-animal` + `.plan-med-line`), `TestTierRowBackgroundOnEveryItem`.
+
+---
+
+## R4-7.17 Script-embedded translations are HTML-escaped — **Open**
+
+**Where**: every `t("…")` interpolated into a `<script>` block — the `i18n`
+object and `lateConfirm` in `templates/care_plan/_apply_toggle.plush.*`
+(≈25 keys × 4 forks) and `templates/care_plan/_plan_med_toggle.plush.*`.
+
+**Defect**: Plush's `<%= %>` HTML-escapes. Inside `<script>` the browser never
+decodes entities (script text is raw), and the strings are consumed via
+`textContent`, so every `'` renders literally as `&#39;`.
+
+Reported: the observation confirm modal shows
+`La réponse à l&#39;observation sera enregistrée. Une réponse d&#39;alerte…`.
+
+**This is also an injection risk**: a translation containing `"` or a newline
+terminates the JS string literal and injects script. Any future translation
+with a double quote breaks the page.
+
+**Fix**: emit these as proper JS string literals (JSON/JS-escaped, raw — not
+HTML-escaped), via a registered plush helper. No translation may contain a raw
+`"` again.
+
+**Test**: `TestScriptTranslationsAreJsEscaped` — render each fork, assert no
+`&#39;`/`&#34;`/`&amp;` inside the `<script>` blocks, and that a hostile
+translation cannot terminate the literal.
+
+---
+
+## R4-7.18 compact vs detailed: no visible difference — **Open**
+
+Measured on the live page (byte diff of the rendered HTML, csrf/URLs ignored):
+
+| kind | compact vs detailed |
+|---|---|
+| care | 30 diff lines — only the toggle's own active state |
+| weighing | 30 — same |
+| cleanup | 30 — same |
+| medication | 218 — same (csrf + lang links + toggle) |
+| feeding | 744 — same |
+| observation | 1368 — **real** (13 rows compact vs 23 detailed) |
+
+Only `observation` reads differently, because only that kind currently has
+multiple open occurrences per (source × animal). The toggle promises a
+density the caregiver cannot perceive.
+
+**Fix (default taken)**: remove the compact/detailed toggle; the screen is one
+density. `?view=detailed` stays accepted and redirects to the single view so
+existing links and `back=` targets keep working. Keep the "one row per
+(source × animal) group with a `+N` badge" behaviour — it is the honest one:
+detailed lists every open occurrence, which after R4-7.7 would re-advertise
+tomorrow's work on today's screen.
+
+**Test**: `TestCarePlanHasSingleDensity` — no view toggle in any fork, and
+`?view=detailed` still renders the same rows as `?view=compact`.
+
+---
+
+## R4-7.19 Protocol trace duplicates the definitions table — **Open**
+
+**Where**: `/animals/{id}#nav-plan`, the collapsed Details card.
+
+Observed (animal 10312, fr): the animal protocol appears **twice, stacked** —
+once in the applicability trace, once in the definitions table below it, with
+the same name, content and schedule. Columns duplicated across the two:
+Nom/Name, Contenu/Content, Horaires/Schedule, Type d'action, Actif, Remplace.
+
+Additionally the **name itself repeats its own detail**: conversion wrote
+`Alimentation — <full diet text>`, so the row reads the same sentence twice
+(name cell + content cell).
+
+**Fix**:
+1. Badge `Protocole de l'animal` → a word for "set on the animal itself"
+   (e.g. `Spécifique` / `Dedicated`), with a tooltip explaining that it is a
+   protocol defined at animal level, not a global rule.
+2. Add the **action kind** (e.g. `Nourrissage`) to the trace detail.
+3. Then the definitions table below is redundant **for the rows the trace
+   shows** and is removed.
+
+**Open risk (must be confirmed before step 3)**: the trace lists only sources
+that actually produced occurrences; the definitions table also lists
+**inactive / expired** protocols that produce nothing. Removing it would hide
+those. Mitigation: enrich the trace with the action kind + active/expired
+badge + raw schedule `<details>` so the table's unique information survives.
+
+**Open sub-question**: "no button on 'past' item" — read (a): the ⤵
+"replaces" badge has no explanation; read (b): superseded/past protocols get no
+edit control. Needs confirmation.
+
+---
+
+## R4-7.20 Protocol names truncated mid-word — **Open**
+
+`actions/care_plan_convert_data.go:230-232`:
+
+```go
+title := diet
+if len(title) > 60 {
+    title = title[:60]      // BYTES, and mid-word
+}
+ruleName := fmt.Sprintf("Alimentation — %s (conversion)", title)
+```
+
+Stored result for animal 10312:
+`Alimentation — floating, farine poussin, eau - ne pas mettre l'eau à cô (conversion)`
+— cut inside "côté". The same `%.60s` byte slice is used at line 220.
+
+**Fix**: rune-safe truncation that ends on a word boundary, with a `…` so a
+cut name never reads as a complete one. Byte slicing a UTF-8 string can also
+split a rune, which would render as a replacement character.
+
+**No destructive DB change**: existing rows are left exactly as they are. Only
+the generator changes, so future conversions are clean. (A one-off repair of
+the existing names would be a data migration — proposed separately, not done
+here.)
+
+**Test**: `TestConversionNameTruncatesOnRuneAndWordBoundary`.
+
+---
+
+## R4-7.21 Every count must mean the same thing — **Open**
+
+**Measured on `/care_plan?view=compact&kind=feeding`**:
+
+```
+STRIP:        Late 99+ | 99+ | Later 99+ | 99+
+feed-tier-0:  headerBadge=99+   ROWS=162   CHIP_OCCURRENCES=351
+```
+
+The summary strip counts **occurrences** (`statsOf`), the feeding tier badge
+counts **groups** (`fillFeedTiers`), and both saturate at `99+`, so two
+different numbers are rendered identically. R4-1.3 already fixed this for
+medication (`MedTierOpen`); feeding was never brought in line.
+
+**Fix (direction given)**: a badge counts **what you can see in its section** —
+groups, everywhere. One unit, one meaning, no number that silently means
+something else. The `99+` cap stays (a 351-row screen must not print 351) but
+is applied to the same unit everywhere, so a capped and an uncapped count are
+never confused.
+
+**Test**: `TestEveryBadgeCountsGroups` — for one plan, strip totals == sum of
+tier section group counts, for every kind.
+
+---
+
+## R4-7.22 Animal Protocol tab: one line per protocol, in the medication format — **Open**
+
+The single biggest duplication found in the round. Measured on
+`/animals/10312?back=…#nav-plan` (fr), the same sentence is rendered
+**four times** on one screen:
+
+```
+DUPLICATE_VISIBLE_LINES :: (3x) floating, farine poussin, eau - ne pas mettre l'eau à côté de la nourriture…
+definitions row NOM = "Alimentation — floating, farine poussin, eau - ne pas mettre l'eau à cô
+                       — floating, farine poussin, eau - ne pas mettre l'eau à côté de la nourriture et la retirer le soir"
+                     TYPE = "Nourrissage"
+                  CONTENU = "floating, farine poussin, eau - ne pas mettre l'eau à côté de la nourriture et la retirer le soir"
+```
+
+## Root cause chain (all confirmed, each independently sufficient)
+
+1. **`care_plan_convert_data.go:230`** — `title[:60]` slices **bytes**, so the
+   stored name ends mid-word: `…à cô` instead of `…à côté de la nourriture…`.
+   (`%.60s` at line 220 does the same.)
+2. **`care_plan_humanize.go:147`** — `richPlanName` decides "is the content
+   already inside the name?" with
+   `strings.Contains(lower(base), lower(main))`. A truncated name can never
+   contain the full content, so the check **fails and the content is appended a
+   second time**. This is why the name cell reads `name — content`.
+3. **Two surfaces render it** — the applicability trace (name cell + content
+   cell) and the definitions table (name cell + content cell). Fixing only the
+   template leaves 2 copies; fixing only `richPlanName` leaves 2 surfaces.
+
+Fixing (1) alone does **not** repair the 3 existing truncated rows, so the
+display must become tolerant: a name that already *starts with* the content
+(even truncated) must not get the content appended again. That removes the
+duplication on legacy data **without any data migration**.
+
+## Target format (given)
+
+```
+<type>  <complete description>  [<buttons for the applicable hours>]
+```
+
+following the care_plan **medication** rules exactly. Two protocols with the
+same description but **different hours** are two lines, each carrying its own
+hours — the hours become actionable buttons instead of a sentence repeated in a
+schedule column.
+
+## Scope
+
+Replaces both surfaces of the collapsed Details card:
+
+- the applicability trace keeps only what is *evidence*: which sources produced
+  occurrences, animal-level vs global rule (badge "Dedicated"/"Spécifique" +
+  tooltip), and the actions;
+- the protocol itself is presented once, as the medication-style line, with
+  edit/delete for animal-level protocols;
+- the descriptions table goes away (it is the fourth copy).
+
+**Open risk carried over from R4-7.19**: the trace only lists sources that
+produced occurrences, so a protocol that is **inactive/expired** must still be
+listed somewhere — otherwise it becomes invisible and uneditable.
+
+**Test**: `TestRichPlanNameDoesNotRepeatTruncatedContent`,
+`TestProtocolLineFollowsMedicationFormat`, `TestProtocolHoursBecomeButtons`.
+
+---
+
+## R4-7.23 Treatment tab: the day badge counts work the body never shows — **Open**
+
+`/animals/10312?back=#nav-treatment` shows six day cards, each with an
+open-count badge and an **empty body**:
+
+```
+07/10/2026  3     06/10/2026  3     05/10/2026  3
+04/10/2026  3     03/10/2026  3     02/10/2026  2
+each body: <div class="card-body py-2"><div class="med-series flex-grow-1"></div></div>
+```
+
+**Cause**: `animalTreatmentDayFor` counts the badge from medication slots
+**plus** the non-medication items (`care_plan_animal_page.go:377-386`), but the
+card body renders only `partial("care_plan/med_series.plush.html")` driven by
+`day.Group.Series`. For an animal whose work is feeding/observation/care the
+count is non-zero and the series list is empty.
+
+This is worse than a missing list: the number is a **promise** the body does not
+keep, and the sibling `#nav-plan` tab renders those very items — so the two tabs
+disagree about the same days.
+
+**Fix**: render `day.Items` in the Treatment tab body as lines in the same
+language as the medication series (one line per item, with the due time), so the
+badge and the body always describe the same set.
+
+**Invariant to pin in a test**: for every day card,
+`OpenCount == (open series slots) + (rendered non-medication lines)`.
+
+---
+
+## R4-7.24 Never cut a description — **Open (critical, cross-cutting)**
+
+Raised after the same truncation was reported from three different screens.
+Hard rule: **no page may render a cut description** — not mid-word, not
+mid-sentence, not silently.
+
+Audit of every truncation site in the codebase:
+
+| site | verdict |
+|---|---|
+| `care_plan_convert_data.go:220` `%.60s` | offender (R4-7.20) |
+| `care_plan_convert_data.go:231` `title[:60]` | offender (R4-7.20) |
+| `care_plan_convert_data.go:310` `title[:60]` | offender (R4-7.20) |
+| `guest.go:621` `number[:20]` | lookup key, never displayed — leave alone |
+| `configs.go:393` `uuid[:8]` | not text |
+| `guest.go:115/145` `hits[:0]` | slice-reuse idiom, not truncation |
+| `.autocomplete-suggestion` ellipsis | type-ahead dropdown — expected |
+
+The `name` column is `varchar(200)` in both `care_animal_plans` and
+`care_rules`, so the 60-char cap is not a storage requirement — it was a
+belt-and-braces limit that produced corrupt display data.
+
+**Fix**: one shared, rune-safe, word-boundary truncator used by every name and
+content writer, appending an ellipsis so a shortened string never reads as a
+complete one. And where a description is too long for its cell it must **wrap or
+be reachable in full** — never cut.
+
+**Test**: `TestNoDescriptionIsCutMidWord` over the conversion fixtures, plus a
+template assertion that no description cell uses a fixed width with hidden
+overflow.

@@ -224,15 +224,153 @@ mirrors `Treatments.Show`.
 
 ## Open items
 
-### R4-7.12 — Protocol trace repeats what the row already shows (**Open**)
+### R4-7.12 — Protocol trace repeats what the row already shows (**Done**)
 
-The `{count} occurrence(s)` column adds nothing once the schedule and
-content are visible; replace it with the edit/delete affordance. Plan:
+The `{count} occurrence(s)` column added nothing once the schedule and
+content were visible; it now carries edit/delete per row. Plan:
 §R4-7.12 of `docs/care-plan-round-7-fix-plan.md`.
 
 ### R4-7.13 — Per-animal exception to a global protocol (**Open**)
 
-An animal-specific "skip this protocol" exception, toggled by a checkbox on
-the protocol and listed as an exception on the animal. Needs an additive
-table + engine rule (no destructive migration — see the session constraint).
-Needs care-expert input on the semantics before it is built.
+An animal-specific "skip this protocol" exception, listed as an exception on
+the animal and suppressed-but-still-traceable in the plan. Semantics agreed:
+settable by anyone who can already edit the animal, permanent until removed,
+logging who set it and why. Needs an additive table + engine rule (no
+destructive migration — see the session constraint).
+
+### R4-7.14 — Compact feeding rows (**Open**)
+
+`/care_plan?view=compact&kind=feeding`:
+
+- late rows are **white**, not red — `.plan-tier-body { background: #fff }`
+  paints the body, so the section's red only reaches the header strip.
+- rows are ordered by **cage name**, not by what must be executed first.
+- the global checkmark is left-aligned in its cell, not centred.
+- the expected **time repeats on every animal chip** (`10100 16:00`,
+  `10101 16:00`, …) instead of once per group.
+- with more than one animal there is no collapse — the buttons are always
+  expanded.
+
+Measured before: `rowBg=rgba(0,0,0,0)` inside `bodyBg=rgb(255,255,255)`;
+`applyBtn offsetInCell=10.5` of a 63px cell; chips `[2003/26 16:00 |
+2004/26 16:00]`. Plan: §R4-7.14.
+
+### R4-7.15 — Compact medication animal column is ragged (**Open**)
+
+`/care_plan?view=compact&kind=medication`: the animal cell has no width and no
+background, so labels stop reading as a column. Measured: distinct widths
+`167.9 … 180.8px`, `bg=rgba(0,0,0,0)`. Plan: §R4-7.15.
+
+### R4-7.16 — Compact observation does not follow the medication format (**Open**)
+
+`kind=observation` (and `care`, `weighing`) still render a 4-cell table while
+medication renders a line, and the row tint exists only on late items. Plan:
+§R4-7.16 — default taken: convert all three, tint every item.
+
+### R4-7.17 — Raw HTML entities in the confirm modal (**Open**)
+
+The observation confirmation shows `La réponse à l&#39;observation…`. Every
+translation interpolated into a `<script>` block is HTML-escaped by Plush, and
+script text never decodes entities. Also a **script-injection risk**: a
+translation containing `"` terminates the JS string literal. Plan: §R4-7.17.
+
+### R4-7.18 — compact and detailed look identical (**Open**)
+
+Measured across every kind: compact and detailed differ **only** for
+`observation` (13 vs 23 rows); care, weighing, cleanup, medication and feeding
+differ only in the toggle's own active state. Plan: §R4-7.18 — default taken:
+remove the toggle, keep one density.
+
+### R4-7.19 — Protocol trace duplicates the definitions table (**Open**)
+
+On the animal Protocol tab the same protocol is listed **twice, stacked** —
+trace row and definitions row — with the same name, content and schedule; and
+the name itself repeats its own detail. Also: the "Protocole de l'animal" badge
+should say the protocol is set at animal level (with a tooltip), and the trace
+should carry the action kind. Removing the second table needs one confirmation
+first (it is the only place inactive/expired protocols are listed). Plan:
+§R4-7.19.
+
+### R4-7.20 — Protocol names truncated mid-word (**Open**)
+
+`care_plan_convert_data.go:230` slices the name by **bytes** at 60, so
+`…à côté de la nourriture…` is stored as `…à cô` — cut inside a word (and able
+to split a multi-byte rune). Generator fixed to truncate on a rune and word
+boundary; existing rows left untouched (no destructive DB change). Plan:
+§R4-7.20.
+
+### R4-7.21 — Counts do not all mean the same thing (**Open**)
+
+On the compact feeding screen the summary strip counts **occurrences** while
+the tier badge counts **groups**, and both saturate at `99+`, so `162` and
+`351` render identically. Measured: `headerBadge=99+ ROWS=162
+CHIP_OCCURRENCES=351`. Direction given: a badge counts **what is visible in
+its section** — groups everywhere, one unit, one meaning. Plan: §R4-7.21.
+
+### R4-7.22 — The same protocol sentence is rendered four times (**Open**)
+
+`/animals/{id}#nav-plan`, measured on animal 10312 (fr): the diet sentence
+appears **3–4×** on one screen — trace name cell, trace content cell,
+definitions-table name cell, definitions-table content cell.
+
+Root cause chain, each step independently sufficient:
+
+1. `care_plan_convert_data.go:230` truncates the stored name by **bytes**
+   (`title[:60]`) → `…à cô`, cut mid-word (R4-7.20);
+2. `care_plan_humanize.go:147` then asks
+   `strings.Contains(name, content)` to decide whether to append the content
+   — a truncated name can never contain the full content, so the check fails
+   and the content is appended **again**, producing
+   `Alimentation — …à cô — …retirer le soir`;
+3. two surfaces render name **and** content, so 2 code paths × 2 cells = the
+   four copies.
+
+Fixing the truncation alone does not repair the 3 existing rows, so the display
+must also become tolerant of a name that merely *starts with* the content —
+that removes the duplication on existing data with **no data migration**.
+
+Target format (given): `<type>  <complete description>  [<buttons for the
+applicable hours>]`, following the care_plan medication rules; two protocols
+with the same description but different hours are two lines, each with its own
+hours. Plan: §R4-7.22.
+
+### R4-7.23 — Treatment tab: day badge over an empty body (**Open**)
+
+`/animals/10312?back=#nav-treatment`: six day cards, each header showing an
+open-count badge, each body **empty** — a count of "3" over nothing. The
+caregiver is told there is work and given none.
+
+Cause: the day badge counts medication slots **and** the non-medication items
+(`care_plan_animal_page.go:377-386`), but the card body renders only
+`partial("care_plan/med_series.plush.html")` from `day.Group.Series`. For an
+animal whose work is feeding/observation/care the count is non-zero while the
+series list is empty. The animal's own Protocol tab (`#nav-plan`) *does* render
+those items — the two tabs disagree about the same days.
+
+Measured (10312): 6 collapses, every body `<div class="med-series
+flex-grow-1"></div>`, headers `07/10·3 06/10·3 05/10·3 04/10·3 03/10·3
+02/10·2`.
+
+Fix: render the non-medication items in the Treatment tab too (one line per
+item, same language as the medication series), so the badge and the body always
+describe the same set. Plan: §R4-7.23.
+
+### R4-7.24 — A description must never be cut (cross-cutting, critical) (**Open**)
+
+Stated as a hard rule after the `…à cô` truncation (R4-7.20) was found a
+third time in the UI. No page may render a **cut description**: not mid-word,
+not mid-sentence, not with a silent truncation.
+
+Audited truncation sites:
+- `care_plan_convert_data.go:220` `%.60s`, `:231` and `:310` `title[:60]` — the
+  real offenders (R4-7.20). The column is `varchar(200)`, so the cap is not a
+  storage necessity.
+- `guest.go:621` `number[:20]` — a **lookup key**, never displayed; not a
+  description. Out of scope, documented so it is not "fixed" by mistake.
+- `configs.go:393` `uuid[:8]`, `guest.go:115/145` `hits[:0]` — not truncation.
+- CSS: only `.autocomplete-suggestion` uses `text-overflow: ellipsis`
+  (a type-ahead dropdown — expected).
+
+Fix: a shared, rune-safe, word-boundary truncator used by every name/content
+writer; and where a description is too long for a cell it must **wrap or be
+reachable in full**, never silently cut.
