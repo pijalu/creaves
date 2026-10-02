@@ -223,7 +223,7 @@ actually logged and return to the exact row.
 link with a `back=` parameter pointing at the care-plan page.
 ---
 
-## R4-7.14 Compact feeding: red late rows, execution order, centred check — **Open**
+## R4-7.14 Compact feeding: red late rows, execution order, centred check — **Parts 1-3 Done**
 
 `/care_plan?view=compact&kind=feeding` feedback, five parts:
 
@@ -258,6 +258,32 @@ the dot and the sort key can never disagree.
 `TestFeedingRowTierClassAndSortKey`, plus template assertions that the late row
 carries the tier class, the check cell is centred, and a multi-animal row
 renders `data-toggle="collapse"` with `aria-expanded="false"`.
+
+### Outcome — parts 1-3
+
+Implemented as planned, with two corrections the measurements forced:
+
+- **Part 1** was *not* only the white body. The `.plan-dot-late` group dot was
+  amber `#e0a800`, identical to the "due now" tier it sits beside, so the one
+  per-group signal the tier header cannot give was the wrong colour. Both fixed:
+  body + cells transparent, dot red.
+- **Part 3** was *not* horizontal. The check was already centred at 10.5/10.5 px
+  in a 63 px cell; the defect was vertical, in a cell that grows with the animal
+  list (10.5 px from the top of a 321 px cell, 280.5 px from the bottom).
+  `.plan-feed-check { vertical-align: middle !important }` — `!important`
+  because `.text-nowrap` does not set `vertical-align`, but the Bootstrap table
+  default is `top` and specificity would otherwise depend on source order.
+
+- **Part 2** exposed a defect in its own first draft: a group whose chips are
+  all superseded or no longer applicable has a zero `FirstDueAt`, and the zero
+  time wins every `Before` comparison — so "unknown due time" sorted to the
+  very TOP of the section. Such a group now sorts last.
+
+Parts 4-5 are tracked separately (t25, t26). Verified en-US/fr/de/nl:
+`effectiveRowBg=rgb(248,215,218)`, `dotColor=rgb(220,53,69)`,
+`ASCENDING_BY_EARLIEST_DUE=true unsortedKeys=0`, `vTop=145.5 vBot=145.5`,
+`H_OVERFLOW=false` — byte-identical in all four locales. Five new tests, each
+verified to fail on the pre-change code.
 
 ---
 

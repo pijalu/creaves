@@ -238,7 +238,7 @@ settable by anyone who can already edit the animal, permanent until removed,
 logging who set it and why. Needs an additive table + engine rule (no
 destructive migration — see the session constraint).
 
-### R4-7.14 — Compact feeding rows (**Open**)
+### R4-7.14 — Compact feeding rows (**Parts 1-3 Done, 4-5 Open**)
 
 `/care_plan?view=compact&kind=feeding`:
 
@@ -254,6 +254,29 @@ destructive migration — see the session constraint).
 Measured before: `rowBg=rgba(0,0,0,0)` inside `bodyBg=rgb(255,255,255)`;
 `applyBtn offsetInCell=10.5` of a 63px cell; chips `[2003/26 16:00 |
 2004/26 16:00]`. Plan: §R4-7.14.
+
+**Parts 1-3 fixed.** The other two findings were re-measured rather than
+assumed:
+
+- **1 (red late rows)** — `.plan-tier-body { background: #fff }` forced the
+  body white, so the tier's red reached only the border. The body and its
+  cells are now transparent and the tint shows: `effectiveRowBg`
+  `rgb(255,255,255)` → `rgb(248,215,218)`. The **late group dot was also
+  amber** `#e0a800` — the same colour as the "due now" tier next to it — so it
+  is now red `#dc3545`, matching `.plan-dot-missing`.
+- **2 (execution order)** — `fillFeedTiers` appended rows in cage order and
+  never sorted. Now sorted by the group's EARLIEST open occurrence, cage label
+  as tie-break so the auto-refresh does not reshuffle equal times. After:
+  `ASCENDING_BY_EARLIEST_DUE=true unsortedKeys=0`.
+- **3 (centred check)** — the check was already horizontally centred
+  (10.5 px / 10.5 px in a 63 px cell); what was wrong is **vertical**: the cell
+  grows with the animal list, so on a cage with 47 chips the button sat 10.5 px
+  from the top of a 321 px cell and 280.5 px from the bottom — reading as if it
+  belonged to the first animal. `.plan-feed-check` centres it: `vTop=145.5
+  vBot=145.5`.
+
+**Parts 4-5 remain open** — the repeated time per chip and the always-expanded
+multi-animal list. Two new todos (t25, t26).
 
 ### R4-7.15 — Compact medication animal column is ragged (**Open**)
 

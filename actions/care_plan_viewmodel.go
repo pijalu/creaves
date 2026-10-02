@@ -110,10 +110,15 @@ type FeedingGroupView struct {
 	// R4-4.3: the group's urgency tier — the most urgent NON-superseded
 	// chip's tier, the same late → now → later language the medication
 	// sections use. -1 when the group has no open work.
-	Tier             int
-	TierKey          string // care_plan.tier.<key> i18n key ("" when untiered)
-	TierCount        int    // groups in this tier (the tier section badge)
-	TierCap          string // capped TierCount
+	Tier      int
+	TierKey   string // care_plan.tier.<key> i18n key ("" when untiered)
+	TierCount int    // groups in this tier (the tier section badge)
+	TierCap   string // capped TierCount
+	// R4-7.14: the EARLIEST due occurrence in the group that is real work
+	// (non-superseded + applicable). The sort key inside a tier, so the row
+	// the caregiver must act on first is the row they see first. The zero
+	// value means the group has no open occurrence.
+	FirstDueAt       time.Time
 	GroupStatus      string // R4-4.4: the GROUP status (most urgent chip)
 	GroupStatusClass string // plan-dot-<status> — ONE dot per cage × diet
 }
@@ -552,12 +557,54 @@ func fillFeedTiers(v *DayPlanView) {
 			continue
 		}
 		f.TierKey = keys[tier]
+		f.FirstDueAt = firstChipDue(f)
 		v.FeedTiers[tier] = append(v.FeedTiers[tier], f)
 	}
 	for i := range v.FeedTiers {
 		v.FeedTierCount[i] = len(v.FeedTiers[i])
 		v.FeedTierCap[i] = BadgeCap(v.FeedTierCount[i])
+		// R4-7.14: within a tier, the row the caregiver must act on FIRST
+		// comes first. The tiers already encode urgency (late → now → later),
+		// but inside a tier the rows arrived in cage order, so "16:00, 18:00,
+		// 17:00, 16:00…" — the caregiver had to re-sort the section by eye.
+		// Earliest-due first, and the cage label breaks a tie so the order is
+		// stable between two refreshes (auto-refresh re-sorts in place).
+		//
+		// A group with NO open occurrence (FirstDueAt zero) sorts LAST: its
+		// due time is unknown, and an unknown due time is not "the most
+		// urgent". The zero time would otherwise win every comparison and
+		// float such a group to the very top of the section.
+		sort.SliceStable(v.FeedTiers[i], func(a, b int) bool {
+			fa, fb := v.FeedTiers[i][a], v.FeedTiers[i][b]
+			if fa.FirstDueAt.IsZero() != fb.FirstDueAt.IsZero() {
+				return fb.FirstDueAt.IsZero()
+			}
+			if fa.FirstDueAt.Equal(fb.FirstDueAt) {
+				if fa.Cage != fb.Cage {
+					return fa.Cage < fb.Cage
+				}
+				return fa.Food < fb.Food
+			}
+			return fa.FirstDueAt.Before(fb.FirstDueAt)
+		})
 	}
+}
+
+// firstChipDue reports the earliest occurrence in the group that is real WORK:
+// a non-superseded, applicable chip. Superseded chips are history and a
+// terminal chip is nothing to do, so neither can lead the order. The zero time
+// means "no open occurrence" and sorts last.
+func firstChipDue(f FeedingGroupView) time.Time {
+	var first time.Time
+	for _, c := range f.Chips {
+		if c.Superseded || !c.Applicable {
+			continue
+		}
+		if first.IsZero() || c.DueAt.Before(first) {
+			first = c.DueAt
+		}
+	}
+	return first
 }
 
 // feedingGroupTier reports the group's urgency tier and the status of its

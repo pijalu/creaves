@@ -56,6 +56,15 @@
   justify-content: center;
 }
 
+// R4-7.14: the GROUP check ("apply every animal in this cage") sat top-aligned
+// in a cell that grows with the animal list — measured 10.5 px from the top of
+// a 321 px cell, 280.5 px from the bottom. On a cage holding many animals it
+// read as belonging to the first animal rather than to the group. Centred
+// vertically, the check sits where the eye already is on a tall row.
+.plan-feed-check {
+  vertical-align: middle !important;
+}
+
 // R4-7.6: the expected time of a feeding occurrence travels with the chip
 // so "late" reads as a duration, not a bare word.
 .plan-chip-due {

@@ -2,7 +2,11 @@
   /* Feeding chip status dots (bugs.md U1) — bootstrap contextual palette. */
   .plan-dot-applied { color: #28a745; }
   .plan-dot-due { color: #007bff; }
-  .plan-dot-late { color: #e0a800; }
+  /* R4-7.14: this was amber (#e0a800) — the same colour as the "due now"
+     tier it sits next to. Late is the only red in this palette, and the dot
+     is the per-GROUP signal the tier header cannot give (one header, many
+     groups), so it has to match the section the row is in. */
+  .plan-dot-late { color: #dc3545; }
   .plan-dot-missing { color: #dc3545; }
   .plan-dot-scheduled { color: #6c757d; }
   .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
@@ -32,8 +36,26 @@
   .plan-tier-late  .plan-tier-header { color: #721c24; }
   .plan-tier-now   .plan-tier-header { color: #856404; }
   .plan-tier-later .plan-tier-header { color: #155724; }
-  .plan-tier-body { background: #fff; }
+
+  /* R4-7.14: the collapse body used to be forced to solid white, which
+     painted a white table over the tier's own tint — a row in the "Late"
+     section was as white as a row in "Later", so the colour carried no
+     information at the row level, only at the border. Measured before:
+     rowBg=rgba(0,0,0,0) inside paneBg=rgb(255,255,255).
+     The body now inherits the tier tint, and the TABLE and its cells go
+     transparent so nothing re-covers it. The tint stays a wash: the row text
+     is dark on all three, so contrast is unchanged from the white body. */
+  .plan-tier-body { background: transparent; }
+  .plan-tier-body .table,
+  .plan-tier-body .table tbody,
+  .plan-tier-body .table td,
+  .plan-tier-body .table th { background-color: transparent; }
   .plan-tier-body .table { margin-bottom: 0; }
+  /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
+     red; a tint-preserving hover keeps the urgency readable while pointing. */
+  .plan-tier-body .table-hover tbody tr:hover > td {
+    background-color: rgba(255, 255, 255, 0.45);
+  }
 </style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
@@ -477,7 +499,14 @@
                         </div>
                       <% } %>
                     </td>
-                    <td class="text-nowrap">
+                    <%# R4-7.14: the GROUP check was top-aligned inside a cell
+                        that grows with the animal list (measured: a 321 px cell
+                        with the button 10.5 px from the top and 280.5 px from
+                        the bottom), so on a cage with many animals the check
+                        floated at the top of an otherwise empty column and read
+                        as belonging to the FIRST animal only. plan-feed-check
+                        centres it in the row, where it belongs to the group. %>
+                    <td class="text-nowrap plan-feed-check">
                       <%# R4-4.2: the count is a corner overlay, never a button
                           child — the button keeps a constant width and the
                           count stays visible at N=1. %>
