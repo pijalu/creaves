@@ -122,14 +122,11 @@
                     <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
                   <% } else { %>
                     <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                  <% } %>
-                  <%= if (card.Remaining > 0) { %>
-                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
-                  <% } %>
-                </td>
-                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                <td class="text-nowrap">
-                  <%= if (card.Status == "late") { %>
+                    <% } %>
+                  </td>
+                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                  <td class="text-nowrap">
+                    <%= if (card.Status == "late") { %>
                     <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
                   <% } else { %>
                     <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
@@ -148,9 +145,14 @@
                       data-kind="<%= card.ActionKind %>"
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>">
-                      <%= t("care_plan.apply.action") %>
-                    </button>
+                      data-source-name="<%= card.SourceName %>"
+                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
                     <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -197,14 +199,11 @@
                     <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
                   <% } else { %>
                     <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                  <% } %>
-                  <%= if (card.Remaining > 0) { %>
-                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
-                  <% } %>
-                </td>
-                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                <td class="text-nowrap">
-                  <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
+                    <% } %>
+                  </td>
+                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                  <td class="text-nowrap">
+                    <span class="badge badge-primary"><%= t("care_plan.status.due") %></span>
                   <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
                     data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
                     data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
@@ -219,9 +218,14 @@
                       data-kind="<%= card.ActionKind %>"
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>">
-                      <%= t("care_plan.apply.action") %>
-                    </button>
+                      data-source-name="<%= card.SourceName %>"
+                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
                     <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -268,14 +272,11 @@
                     <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
                   <% } else { %>
                     <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                  <% } %>
-                  <%= if (card.Remaining > 0) { %>
-                    <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= card.RemainingCap %></span>
-                  <% } %>
-                </td>
-                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                <td class="text-nowrap">
-                  <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
+                    <% } %>
+                  </td>
+                  <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+                  <td class="text-nowrap">
+                    <span class="badge badge-light"><%= t("care_plan.status.scheduled") %></span>
                   <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
                     data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
                     data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
@@ -290,9 +291,14 @@
                       data-kind="<%= card.ActionKind %>"
                       data-animal-label="<%= card.AnimalLabel %>"
                       data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>">
-                      <%= t("care_plan.apply.action") %>
-                    </button>
+                      data-source-name="<%= card.SourceName %>"
+                      title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                      data-source-type="<%= card.SourceType %>"
+                      data-source-id="<%= card.SourceID %>"
+                      data-animal-id="<%= card.AnimalID %>"
+                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                      title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
                     <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
                       data-source-type="<%= card.SourceType %>"
                       data-source-id="<%= card.SourceID %>"
@@ -351,14 +357,15 @@
                           data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
                           data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
                           data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                          title="<%= t("care_plan.apply.action") %>"><%= t("care_plan.apply.action") %></button>
+                          title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
                       <% } %>
                     <% } %>
                     <%= if (chip.OuttakenToday) { %>
                       <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
-                    <% } %>
-                    <%= if (chip.Remaining > 0) { %>
-                      <span class="badge badge-pill badge-secondary" title="<%= t("care_plan.badge.more") %>">+<%= chip.Remaining %></span>
                     <% } %>
                   </span>
                 </div>
@@ -368,8 +375,12 @@
               <%= if (fcard.ApplicableCount > 0) { %>
                 <button type="button" class="btn btn-success plan-feeding-apply"
                   data-items="<%= fcard.ChipRefsJSON %>"
-                  data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>">
-                  <%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)
+                  data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
+                  title="<%= t("care_plan.card.apply_group") %>">
+                  <i class="fas fa-check"></i>
+                  <%= if (fcard.ApplicableCount > 1) { %>
+                    <span class="badge badge-pill badge-light ml-1"><%= fcard.ApplicableCount %></span>
+                  <% } %>
                 </button>
               <% } %>
             </td>
@@ -395,8 +406,12 @@
             <td class="text-nowrap">
               <button type="button" class="btn btn-success plan-cage-apply"
                 data-items="<%= ccard.ChipRefsJSON %>"
-                data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>">
-                <%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)
+                data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
+                title="<%= t("care_plan.card.apply_cage") %>">
+                <i class="fas fa-check"></i>
+                <%= if (ccard.ApplicableCount > 1) { %>
+                  <span class="badge badge-pill badge-light ml-1"><%= ccard.ApplicableCount %></span>
+                <% } %>
               </button>
             </td>
           </tr>
@@ -772,6 +787,34 @@
     return kind === 'weighing' || kind === 'observation';
   }
 
+  // R3-2: one row = one toggle pair — the apply check (`.plan-apply-btn` /
+  // `.plan-feeding-one`) and its undo sibling (`.plan-unapply-btn`) swap
+  // visibility in place; no reload, no waiting for the auto-refresh.
+  function pairApply(btn) { return btn.parentNode.querySelector('.plan-apply-btn, .plan-feeding-one'); }
+  function pairUndo(btn) { return btn.parentNode.querySelector('.plan-unapply-btn'); }
+
+  // markApplied flips an apply check to its undo control IN PLACE (R3-2):
+  // check hides, undo shows; the next full render (auto-refresh) moves
+  // the row to its tier/history.
+  function markApplied(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var undo = pairUndo(btn);
+    if (undo) { undo.classList.remove('d-none'); }
+  }
+
+  // markOpen flips an applied row back to its apply check (undo clicked).
+  function markOpen(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var apply = pairApply(btn);
+    if (apply) { apply.classList.remove('d-none'); }
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('.plan-apply-btn, .plan-feeding-one'), function (btn) {
     btn.addEventListener('click', function () {
       if (lateBlocked(btn)) { return; }
@@ -794,6 +837,32 @@
     });
   }
 
+  // In-place undo (R3-2): same /care_plan/unapply call as the history
+  // undo, but flips the row's toggle back instead of reloading.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-unapply-btn'), function (btn) {
+    btn.addEventListener('click', function () { instantUnapply(btn); });
+  });
+
+  function instantUnapply(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    track(fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
+        delete_fulfillment: true
+      })
+    })).then(function (r) {
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
   function btnRef(btn) {
     return {
       btn: btn,
@@ -804,15 +873,6 @@
       kind: btn.getAttribute('data-kind'),
       hm: btn.textContent.replace('○', '').replace('✓', '').replace('–', '').replace('⊘', '').replace('⏸', '').trim()
     };
-  }
-
-  // markApplied flips a toggle button to its done state IN PLACE — the
-  // next full render (auto-refresh) moves the row to its tier/history.
-  function markApplied(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.textContent = '✓';
-    btn.disabled = true;
   }
 
   document.getElementById('planApplySubmit').addEventListener('click', function () {
@@ -950,10 +1010,23 @@
       if (failures.length) {
         showMessage(i18n.errorTitle, failures.join('\n'));
       } else {
-        window.location.reload();
+        // R3-2: no reload — flip the group's per-animal checks to their
+        // undo controls and retire the global apply until the refresh.
+        flipBatchRow(btn);
       }
     });
   });
+
+  // flipBatchRow marks every applicable chip of the batch row as applied
+  // (check → undo) and hides the exhausted global apply button.
+  function flipBatchRow(btn) {
+    var row = btn.closest('tr');
+    if (!row) { window.location.reload(); return; }
+    Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
+      markApplied({btn: b});
+    });
+    btn.classList.add('d-none');
+  }
 
   // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
   // R5-2c/S9: the history late-record button REUSES the apply modal for
