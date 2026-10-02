@@ -52,30 +52,7 @@ func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, a
 		return trace, nil
 	}
 	trace.AnimalID = animal.ID
-	type key struct{ typ, id string }
-	idx := map[key]int{}
-	var ruleIDs, planIDs []uuid.UUID
-	for i := range plan.Items {
-		it := &plan.Items[i]
-		src := it.Occurrence.Source
-		if src == nil || it.Occurrence.AnimalID != animal.ID {
-			continue
-		}
-		k := key{string(src.SourceType()), src.SourceID()}
-		if at, ok := idx[k]; ok {
-			trace.Sources[at].Occurrences++
-			continue
-		}
-		idx[k] = len(trace.Sources)
-		trace.Sources = append(trace.Sources, protocolSourceView(src, animal, admin))
-		if u, err := uuid.FromString(src.SourceID()); err == nil {
-			if k.typ == string(careplan.SourceRule) {
-				ruleIDs = append(ruleIDs, u)
-			} else {
-				planIDs = append(planIDs, u)
-			}
-		}
-	}
+	ruleIDs, planIDs := traceSources(plan, animal, admin, trace)
 	schedules, err := protocolSchedules(tx, ruleIDs, planIDs)
 	if err != nil {
 		return nil, err
@@ -85,6 +62,35 @@ func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, a
 	}
 	sortProtocolSources(trace.Sources)
 	return trace, nil
+}
+
+// traceSources folds every occurrence of THIS animal into one row per
+// contributing source, counting what each produced, and returns the ids
+// whose stored schedule document must still be loaded.
+func traceSources(plan *DayPlan, animal *models.Animal, admin bool, trace *ProtocolTraceView) (ruleIDs, planIDs []uuid.UUID) {
+	idx := map[[2]string]int{}
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || it.Occurrence.AnimalID != animal.ID {
+			continue
+		}
+		k := [2]string{string(src.SourceType()), src.SourceID()}
+		if at, ok := idx[k]; ok {
+			trace.Sources[at].Occurrences++
+			continue
+		}
+		idx[k] = len(trace.Sources)
+		trace.Sources = append(trace.Sources, protocolSourceView(src, animal, admin))
+		if u, err := uuid.FromString(src.SourceID()); err == nil {
+			if k[0] == string(careplan.SourceRule) {
+				ruleIDs = append(ruleIDs, u)
+			} else {
+				planIDs = append(planIDs, u)
+			}
+		}
+	}
+	return ruleIDs, planIDs
 }
 
 // protocolSourceView projects one source into its trace row (schedule
