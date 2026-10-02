@@ -39,14 +39,25 @@ func (d *DayPlan) AnimalRow(animalID int) (models.Animal, bool) {
 	return a, ok
 }
 
+// maxTime returns the later of a and b (Go 1.18 has no generic max).
+func maxTime(a, b time.Time) time.Time {
+	if a.After(b) {
+		return a
+	}
+	return b
+}
+
 // BuildDayPlan assembles the day plan for [from, to] (clamped to the §6.1
-// 14-day cap). from/to zero means the default window.
+// 14-day cap). from/to zero means the default window. The cap bounds the
+// FORWARD reach: to never exceeds max(from, now)+14d, so callers spanning
+// the past (R3-6 treatment history) keep their full window while
+// future-only callers see the same 14-day horizon as before.
 func BuildDayPlan(tx *pop.Connection, now, from, to time.Time) (*DayPlan, error) {
 	if from.IsZero() || to.IsZero() || to.Before(from) {
 		from, to = DefaultPlanWindow(now)
 	}
-	if d := to.Sub(from); d > planWindowMaxDays*24*time.Hour {
-		to = from.Add(planWindowMaxDays * 24 * time.Hour)
+	if maxTo := maxTime(from, now).Add(planWindowMaxDays * 24 * time.Hour); to.After(maxTo) {
+		to = maxTo
 	}
 
 	// Round-2 §4b-A2 (bugs.md Dash-9): animals outtaken TODAY stay in the
@@ -691,14 +702,14 @@ func feedingCardChip(card *FeedingCard, it *careplan.PlanItem, src careplan.Plan
 // template localizes the day word).
 func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string, outtakenToday bool, now time.Time) FeedingChip {
 	chip := FeedingChip{
-		AnimalID:       it.Occurrence.AnimalID,
-		Label:          label,
-		Status:         string(it.Status),
-		SourceType:     string(src.SourceType()),
-		SourceID:       src.SourceID(),
-		DueAt:          it.Occurrence.DueAt,
-		Applicable:     it.Applicable,
-		OuttakenToday:  outtakenToday,
+		AnimalID:      it.Occurrence.AnimalID,
+		Label:         label,
+		Status:        string(it.Status),
+		SourceType:    string(src.SourceType()),
+		SourceID:      src.SourceID(),
+		DueAt:         it.Occurrence.DueAt,
+		Applicable:    it.Applicable,
+		OuttakenToday: outtakenToday,
 	}
 	if reason := SupersededReason(it, now); reason != "" {
 		chip.Superseded = true

@@ -212,6 +212,143 @@ func animalTodayPlan(tx *pop.Connection) (*DayPlan, error) {
 	return BuildDayPlan(tx, now, from, to)
 }
 
+// R3-6 treatment-tab window: 14 days of history, 5 days ahead — the
+// forward cap bounds open-ended protocols (no end date) so the engine
+// never generates an unbounded occurrence list.
+const (
+	treatmentWindowPastDays   = 14
+	treatmentWindowFutureDays = 5
+)
+
+// TreatmentPlanWindow returns the animal Treatment tab window (R3-6):
+// [now-14d 00:00, now+5d 24:00). The +5d forward cap bounds open-ended
+// protocols; history shows the last two weeks of applied/missed work.
+func TreatmentPlanWindow(now time.Time) (time.Time, time.Time) {
+	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
+		AddDate(0, 0, -treatmentWindowPastDays)
+	end := start.AddDate(0, 0, treatmentWindowPastDays+treatmentWindowFutureDays).
+		Add(24*time.Hour - time.Nanosecond)
+	return start, end
+}
+
+// animalTreatmentPlan builds the R3-6 engine plan behind the animal
+// Treatment tab (history + future, capped forward).
+func animalTreatmentPlan(tx *pop.Connection) (*DayPlan, error) {
+	now := time.Now()
+	from, to := TreatmentPlanWindow(now)
+	return BuildDayPlan(tx, now, from, to)
+}
+
+// AnimalTreatmentDay is ONE date group of the R3-6 Treatment tab: the
+// animal's medication series for that calendar day, newest day first.
+// Group carries the same series in the MedGroupView shape the shared
+// `_med_series` partial expects (its `mg` context) — one group per day
+// keeps the partial reusable unchanged.
+type AnimalTreatmentDay struct {
+	Date      time.Time
+	DateKey   string // "2006-01-02" (collapse anchor id)
+	Current   bool   // today
+	Future    bool
+	Group     MedGroupView
+	OpenCount int // open (not done/overridden) slots of the day
+}
+
+// animalTreatmentDays folds the engine plan into per-day medication
+// series for ONE animal (R3-6): every occurrence of the window lands in
+// its calendar day, grouped into the shared `_med_series` series so the
+// hour buttons stay togglable via `_plan_med_toggle`. Overridden
+// occurrences stay out; days are returned newest-first, series in slot
+// order. Days with no occurrence are omitted.
+func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatmentDay {
+	if plan == nil {
+		return nil
+	}
+	// Per-day slot buckets keyed by date; series merged within the day.
+	byDay := map[string][]MedSlotView{}
+	dayTime := map[string]time.Time{}
+	for i := range plan.Items {
+		it := &plan.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || it.Occurrence.AnimalID != animal.ID ||
+			src.ActionKind() != careplan.KindMedication ||
+			it.Status == careplan.StatusOverridden {
+			continue
+		}
+		due := it.Occurrence.DueAt
+		key := due.Format("2006-01-02")
+		slot := MedSlotView{
+			Slot:       medSlotOf(due),
+			Detail:     planDetail(src),
+			SourceName: DisplayName(src.Name()),
+			SourceType: string(src.SourceType()),
+			SourceID:   src.SourceID(),
+			DueAt:      due,
+			DueAtRFC:   due.Format("2006-01-02T15:04:05Z07:00"),
+			DueAtHM:    due.Format("15:04"),
+			Status:     string(it.Status),
+			Applied:    it.Status == careplan.StatusApplied,
+			Applicable: it.Applicable,
+			Overridden: false,
+			SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
+		}
+		slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
+		slot.LateAllowed = slotLateAllowed(plan.Now, slot, it)
+		if app := it.Application; app != nil {
+			slot.CanUndo = slot.Applied && app.FulfillmentType == models.ApplicationFulfillmentTreatment &&
+				app.FulfillmentID != "" && app.FulfillmentID != planFulfillmentNone && !app.FulfillmentDeleted
+			slot.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted, "")
+		}
+		slot.ViewLink = slot.FulfillmentLink
+		if slot.ViewLink == "" {
+			slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, "")
+		}
+		slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
+		byDay[key] = append(byDay[key], slot)
+		if _, ok := dayTime[key]; !ok {
+			dayTime[key] = time.Date(due.Year(), due.Month(), due.Day(), 0, 0, 0, 0, due.Location())
+		}
+	}
+	if len(byDay) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(byDay))
+	for k := range byDay {
+		keys = append(keys, k)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(keys))) // newest day first
+	today := plan.Now.Format("2006-01-02")
+	bucketOrder := map[string]int{"morning": 0, "noon": 1, "evening": 2}
+	out := make([]AnimalTreatmentDay, 0, len(keys))
+	for _, k := range keys {
+		slots := byDay[k]
+		sort.SliceStable(slots, func(i, j int) bool {
+			if slots[i].DueAt.Equal(slots[j].DueAt) {
+				return bucketOrder[slots[i].Slot] < bucketOrder[slots[j].Slot]
+			}
+			return slots[i].DueAt.Before(slots[j].DueAt)
+		})
+		series := seriesOf(slots, bucketOrder)
+		d := AnimalTreatmentDay{
+			Date:    dayTime[k],
+			DateKey: k,
+			Current: k == today,
+			Future:  k > today,
+			Group: MedGroupView{
+				AnimalID:    animal.ID,
+				AnimalLabel: animalLabel(*animal),
+				AnimalLink:  animalTreatmentLink(animal.ID, ""),
+				Series:      series,
+			},
+		}
+		for _, s := range slots {
+			if !s.Done && !s.Overridden {
+				d.OpenCount++
+			}
+		}
+		out = append(out, d)
+	}
+	return out
+}
 
 // animalPlanTodayItem pairs an accordion row with its due time (sort
 // key), its source reference (protocol backlink) and its dedupe key

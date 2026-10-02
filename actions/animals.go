@@ -591,6 +591,14 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 				return err
 			}
 			c.Set("animalPlanToday", planRows)
+			// R3-6: the Treatment tab is rebuilt on the care-plan engine —
+			// per-day togglable medication series over the history+future
+			// window (14d back, 5d forward cap for open-ended protocols).
+			treatPlan, err := animalTreatmentPlan(tx)
+			if err != nil {
+				return err
+			}
+			c.Set("animalTreatmentDays", animalTreatmentDays(treatPlan, animal))
 			if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
 				return err
 			}

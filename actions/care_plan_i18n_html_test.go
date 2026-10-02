@@ -320,13 +320,13 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 	}
 }
 // TestAnimalShowPlanTodayRowsAllLocales renders one animal's show page
-// (the Treatment tab source, bugs.md U26 — fix 7) in all four UI
-// languages and asserts the merged accordion: the dedicated Today block
-// is gone, today's plan occurrence renders as an original-look accordion
-// row (payload label + protocol backlink + clock badge), and NO missing-
-// key markers appear anywhere on the page (the WP7 render gate for the
-// animal surface — the /care_plan and /dashboard gates live in the tests
-// above).
+// (the Treatment tab source, bugs.md U26 — fix 7, rebuilt in R3-6) in all
+// four UI languages and asserts the engine-driven tab: the dedicated
+// Today block is gone, today's plan occurrence renders in the per-day
+// treatment plan as a togglable series line (payload label + due-hour
+// slot button + protocol backlink), and NO missing-key markers appear
+// anywhere on the page (the WP7 render gate for the animal surface —
+// the /care_plan and /dashboard gates live in the tests above).
 func TestAnimalShowPlanTodayRowsAllLocales(t *testing.T) {
 	f := setupPlanFixture(t)
 	client, baseURL := planAdminClient(t)
@@ -370,19 +370,26 @@ func TestAnimalShowPlanTodayRowsAllLocales(t *testing.T) {
 			// U26 (fix 7): the dedicated Today block is gone.
 			require.NotContains(t, unescaped, "animalTodayBlock",
 				"%s animal show must not render the old TODAY block", lang)
-			require.NotContains(t, string(raw), "plan-med-slot",
-				"%s animal show must not render series toggle buttons", lang)
-			// The plan occurrence merges into the accordion as an
-			// original-look row: payload label + due-hour clock badge.
+			// R3-6: the Treatment tab rebuilds on the care-plan engine —
+			// per-day cards of the shared medication series, hour buttons
+			// togglable in place via the shared toggle partial.
+			require.Contains(t, string(raw), "treatmentPlan",
+				"%s animal show must render the R3-6 per-day treatment plan", lang)
+			require.Contains(t, string(raw), "plan-med-slot",
+				"%s animal show must render togglable series hour buttons", lang)
+			require.Contains(t, string(raw), "planMedMessageModal",
+				"%s animal show must include the shared toggle partial", lang)
+			// The plan occurrence renders as a series line: payload label +
+			// due-hour slot button.
 			require.Contains(t, unescaped, "ATDrug-"+f.marker,
 				"%s animal show must render the plan row label", lang)
-			require.Contains(t, unescaped, due.Format("15:04")+" \u00b7 ",
-				"%s animal show must render the clock badge title", lang)
+			require.Contains(t, unescaped, due.Format("15:04"),
+				"%s animal show must render the due hour", lang)
 			// Protocol backlink: rule sources open the care-rules library.
 			require.Contains(t, unescaped, "ATODAY-"+f.marker,
 				"%s animal show must link the source rule", lang)
-			require.Contains(t, string(raw), `href="/care_rules"`,
-				"%s animal show plan row must target the rules library", lang)
+			require.Contains(t, string(raw), "/care_rules/",
+				"%s animal show plan row must target the source rule", lang)
 			// WP7 gate: no missing-key markers, and the today key itself
 			// must never render raw (a raw render means the fork lost it).
 			require.NotContains(t, string(raw), "translation missing",

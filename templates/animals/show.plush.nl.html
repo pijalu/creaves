@@ -457,6 +457,37 @@
         gevoed door de protocol-engine: één stip per verwachte tijd (R5-3-opslag),
         protocolrijen linken naar hun bronprotocol, en
         oude rijen zonder entries behouden het 3-sloten blok. %>
+    <%# R3-6: the Treatment tab is REBUILT on the care-plan engine — the
+        old static clock badges (R5-4b) are gone. The animal's medication
+        occurrences render as per-day series with TOGGLABLE hour buttons
+        (the shared `_med_series` + `_plan_med_toggle` partials), over a
+        history+future window (14d back, 5d forward cap for open-ended
+        protocols). Legacy manual treatments stay below, read-only. %>
+    <%= if (len(animalTreatmentDays) > 0) { %>
+      <div id="treatmentPlan">
+        <%= for (day) in animalTreatmentDays { %>
+          <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
+            <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="tp-head-<%= day.DateKey %>">
+              <h5 class="mb-0 d-flex align-items-center">
+                <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#tp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="tp-<%= day.DateKey %>">
+                  <%= day.Date.Format("02/01/2006") %>
+                </button>
+                <%= if (day.OpenCount > 0) { %>
+                  <span class="badge badge-pill badge-warning ml-2"><%= day.OpenCount %></span>
+                <% } %>
+              </h5>
+            </div>
+            <div id="tp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="tp-head-<%= day.DateKey %>" data-parent="#treatmentPlan">
+              <div class="card-body py-2">
+                <% let mg = day.Group %>
+                <%= partial("care_plan/med_series.plush.html") %>
+              </div>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+
     <% let entriesMap = animal.Treatments.TreatmentEntriesMap() %>
     <% let orderedTMKey = entriesMap.OrderedKeys() %>
     <div id="accordion">
@@ -634,6 +665,10 @@
       <% let ct_id = ct_id + 1 %>
       <%}%>
     </div>
+    <%# R3-6: the togglable hour buttons of the engine series above are
+        driven by the shared toggle partial (apply/undo, dosage dialog). %>
+    <%= partial("care_plan/plan_med_toggle.plush.html") %>
+
   </div>
 
   <div class="tab-pane fade" id="nav-plan" role="tabpanel" aria-labelledby="nav-plan-tab">
