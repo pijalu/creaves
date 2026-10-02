@@ -85,7 +85,6 @@ func timesKey(times []careplan.TimeOfDay) string {
 	return strings.Join(parts, ",")
 }
 
-
 func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedCareID string) error {
 	if feedCareID == "" {
 		report.Feeding.Lines = append(report.Feeding.Lines,
@@ -217,7 +216,7 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 
 	matcher := buildSeedMatcher(seedMatcherDef{
 		Key: "CONV", Derived: true,
-		Name:       fmt.Sprintf("Régime « %.60s » (conversion)", diet),
+		Name:       convertedMatcherName(diet),
 		Expression: expr,
 	})
 	// R5-1e: on re-runs the existing matcher row is refreshed in place
@@ -226,11 +225,9 @@ func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries
 	if err != nil {
 		return nil, err
 	}
-	title := diet
-	if len(title) > 60 {
-		title = title[:60]
-	}
-	ruleName := fmt.Sprintf("Alimentation — %s (conversion)", title)
+	// R4-7.24: the diet is shortened at a WORD boundary in RUNES, not cut
+	// mid-word by a byte slice — a cut name is a critical UI defect.
+	ruleName := convertedFeedingName(diet, false)
 	exists, err := careRuleNameExists(tx, ruleName)
 	if err != nil {
 		return nil, err
@@ -305,14 +302,8 @@ func cageClause(entries []feedingEntry, covered map[int]bool) string {
 }
 
 func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, feedCareID string) error {
-	title := e.Diet
-	if len(title) > 60 {
-		title = title[:60]
-	}
-	name := fmt.Sprintf("Alimentation — %s (conversion)", title)
-	if e.Fallback {
-		name += " (à vérifier)"
-	}
+	// R4-7.24: word-boundary, rune-safe shortening (see text_truncate.go).
+	name := convertedFeedingName(e.Diet, e.Fallback)
 	// Idempotent re-run guard: one converted plan per animal+regime.
 	// COLLATE utf8mb4_bin: prod tables use utf8mb4_0900_ai_ci, which would
 	// treat names differing only by case/accents as identical (e.g. legacy

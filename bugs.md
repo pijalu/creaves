@@ -402,7 +402,7 @@ Fix: render the non-medication items in the Treatment tab too (one line per
 item, same language as the medication series), so the badge and the body always
 describe the same set. Plan: §R4-7.23.
 
-### R4-7.24 — A description must never be cut (cross-cutting, critical) (**Open**)
+### R4-7.24 — A description must never be cut (cross-cutting, critical) (**Done**)
 
 Stated as a hard rule after the `…à cô` truncation (R4-7.20) was found a
 third time in the UI. No page may render a **cut description**: not mid-word,
@@ -421,6 +421,31 @@ Audited truncation sites:
 Fix: a shared, rune-safe, word-boundary truncator used by every name/content
 writer; and where a description is too long for a cell it must **wrap or be
 reachable in full**, never silently cut.
+
+**Fixed.** `truncateWords(s, max)` in `actions/text_truncate.go` — counts RUNES
+(to match `varchar(200)`, which MySQL counts in characters), cuts back to the
+last space, trims the dangling space, marks the cut with `…`, and falls back to
+a hard rune cut when there is no word boundary (returning it over-long would
+overflow the column, which is the original defect). All three offending sites now
+route through `convertedFeedingName` / `convertedMatcherName`.
+
+Proven end-to-end against the test DB: reverting just the per-animal plan site
+to the byte slice stores `Alimentation — nourriture 6ba7da04 spéciale pour
+animaux malades avec un r (conversion)` — cut mid-word, and silently, with no
+marker at all.
+
+Two things worth recording:
+- `richPlanName` was **already** tolerant (t21 flagged it as a risk): a truncated
+  name no longer `Contains` the payload content, so the full text is appended
+  and the caregiver still reads the complete description. Pinned by
+  `TestTruncatedNameStillShowsTheCompleteContent`.
+- **Existing rows are untouched.** Two names in the dev DB were already cut by
+  the old code (`…40 souri`, `…poussin moulu et`); rewriting stored data is
+  outside the no-destructive-change rule, so the fix prevents new cuts only.
+
+Audit re-run: no CSS `text-overflow` on any description-bearing element, and the
+only other Go slices are a lookup key (`guest.go` `number[:20]`, never displayed)
+and uuid/marker prefixes.
 
 ### R4-7.25 — A ✓ marks an item that is still **to do** (**Done**)
 

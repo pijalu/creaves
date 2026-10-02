@@ -627,7 +627,7 @@ badge and the body always describe the same set.
 
 ---
 
-## R4-7.24 Never cut a description — **Open (critical, cross-cutting)**
+## R4-7.24 Never cut a description — **Done (critical, cross-cutting)**
 
 Raised after the same truncation was reported from three different screens.
 Hard rule: **no page may render a cut description** — not mid-word, not
@@ -654,9 +654,43 @@ content writer, appending an ellipsis so a shortened string never reads as a
 complete one. And where a description is too long for its cell it must **wrap or
 be reachable in full** — never cut.
 
-**Test**: `TestNoDescriptionIsCutMidWord` over the conversion fixtures, plus a
-template assertion that no description cell uses a fixed width with hidden
-overflow.
+**Test**: as delivered — `truncateWords` unit tests (boundary, rune safety,
+rune-vs-byte budget, unbreakable word, trailing space), plus
+`TestConverterNeverCutsANameWithAByteSlice` pinning the call sites and
+`TestConvertedPlanNameIsStoredWholeWord` asserting what lands in the column.
+
+### Outcome
+
+`actions/text_truncate.go` — `truncateWords(s, max)`:
+
+- counts **runes**, because `varchar(200)` counts characters and a byte budget
+  both under-fills the column and splits multi-byte text;
+- walks back to the last space, then trims it, so a cut never leaves
+  `word …`;
+- falls back to a hard rune cut when there is no boundary — returning the text
+  over-long would overflow the column, which is the defect being fixed;
+- appends `…`, so a shortened string never reads as a complete one.
+
+Three call sites now route through `convertedFeedingName(diet, fallback)` and
+`convertedMatcherName(diet)`.
+
+**Two corrections the measurements forced:**
+
+- The first test pass was **not verification**. Every helper test called
+  `convertedFeedingName` directly, so they passed even after I reverted the
+  call sites to `title[:60]`. Only `TestConverterNeverCutsANameWithAByteSlice`
+  (source-level: no `[:60]`, no `%.60s`, both sites present) and the DB
+  round-trip actually pin the behaviour. A helper test proves the helper, not
+  the producer.
+- `richPlanName` needed **no** change. t21 had flagged a truncated name as a
+  risk there; measurement showed it is already tolerant — the truncated name no
+  longer `Contains` the payload content, so the full text is appended and the
+  caregiver still reads the complete description. Pinned so it stays that way.
+
+**Scope respected**: names already stored by the old code keep their cut text.
+Two exist in the dev DB (`…40 souri`, `…poussin moulu et`); rewriting stored
+data is outside the no-destructive-change rule, so this fix prevents new cuts
+only.
 
 ---
 

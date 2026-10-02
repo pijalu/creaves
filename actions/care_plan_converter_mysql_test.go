@@ -6,8 +6,10 @@ package actions
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"creaves/models"
 	"creaves/models/careplan"
@@ -498,4 +500,73 @@ func parseScheduleForTest(raw []byte) ([]string, error) {
 		out[i] = t.String()
 	}
 	return out, nil
+}
+
+// TestConvertedPlanNameIsStoredWholeWord (R4-7.24): end-to-end through the
+// real writer against the disposable test DB. The unit tests prove the helper
+// and the call sites; this proves what actually LANDS in the varchar(200)
+// column — where the old byte slice produced a name ending mid-word.
+//
+// Accented text is deliberate: "é" is 2 bytes, so a byte budget at 60 cuts
+// after ~30 characters of accented diet text, well inside a word.
+func TestConvertedPlanNameIsStoredWholeWord(t *testing.T) {
+	// models.DB points at the disposable creaves_test database.
+	tx := models.DB
+
+	fx := setupConverterFixture(t)
+	defer fx.f.cleanup()
+
+	marker := uuid.Must(uuid.NewV4()).String()[:8]
+	// The marker goes IN THE DIET because that is what composes the name — a
+	// unique diet is what makes this plan's name unique, so the idempotency
+	// guard inserts instead of short-circuiting on an earlier run.
+	diet := "nourriture " + marker + " spéciale pour animaux malades avec un régime très long"
+
+	feedCareID, err := resolveFeedingCaretype(tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, feedCareID, "the test DB must carry a feeding caretype")
+
+	report := &ConversionReport{coverage: map[int][]careplan.TimeOfDay{}}
+	e := feedingEntry{
+		AnimalID: fx.animalIDs[0],
+		Label:    "cut-" + marker,
+		Times:    []careplan.TimeOfDay{{Hour: 8, Minute: 0}},
+		Diet:     diet,
+		// The marker keeps this name unique, so the idempotency guard inserts
+		// rather than short-circuiting on an existing plan.
+		Fallback: false,
+	}
+	require.NoError(t, createConvertedFeedingPlan(tx, report, e, feedCareID))
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM care_animal_plans WHERE name LIKE ?", "%"+marker+"%").Exec()
+		tx.RawQuery("DELETE FROM care_rules WHERE name LIKE ?", "%"+marker+"%").Exec()
+	})
+
+	var rows []struct {
+		Name string `db:"name"`
+	}
+	require.NoError(t, tx.RawQuery(
+		"SELECT name FROM care_animal_plans WHERE name LIKE ?", "%"+marker+"%").All(&rows))
+	require.NotEmpty(t, rows, "the converted plan must have been stored")
+
+	for _, r := range rows {
+		require.True(t, utf8.ValidString(r.Name), "stored name is invalid UTF-8: %q", r.Name)
+		require.NotContains(t, r.Name, "�",
+			"a split rune reached the database: %q", r.Name)
+		require.LessOrEqual(t, utf8.RuneCountInString(r.Name), 200,
+			"stored name must fit varchar(200): %q", r.Name)
+		// The cut must be MARKED, and marked at a word edge.
+		if strings.Contains(r.Name, "…") {
+			inner := strings.TrimSuffix(strings.TrimPrefix(r.Name, "Alimentation — "), " (conversion)")
+			body := strings.TrimSuffix(inner, "…")
+			require.False(t, strings.HasSuffix(body, " "),
+				"a space was left dangling before the ellipsis: %q", r.Name)
+			require.Equal(t, ' ', []rune(diet)[len([]rune(body))],
+				"the stored name was cut mid-word: %q", r.Name)
+		} else {
+			// Not cut: then the diet must be present WHOLE.
+			require.Contains(t, r.Name, diet,
+				"an uncut name must carry the complete diet: %q", r.Name)
+		}
+	}
 }
