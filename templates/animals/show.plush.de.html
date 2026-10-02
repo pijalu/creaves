@@ -668,6 +668,10 @@
     <%# R3-6: the togglable hour buttons of the engine series above are
         driven by the shared toggle partial (apply/undo, dosage dialog). %>
     <%= partial("care_plan/plan_med_toggle.plush.html") %>
+    <%# R4-2.2: ONE apply implementation shared with the day plan — the
+        animal tab's feeding/observation/care rows use the same modal and
+        the same in-place toggle, prefilled from their data-* attributes. %>
+    <%= partial("care_plan/apply_toggle.plush.html") %>
 
   </div>
 
@@ -731,6 +735,34 @@
                         <% } else { %>
                           <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
                         <% } %>
+                        <%# R4-2.2: the row is ACTIONABLE — one toggle pair
+                            per occurrence, bound by the shared apply
+                            partial (the same one visual language as the day
+                            plan). A feeding row opens the apply modal
+                            PREFILLED with its ration (plan-feeding-entry);
+                            other kinds apply instantly or open their own
+                            required inputs (observation answer, weighing
+                            weight). %>
+                        <span class="ml-2">
+                          <%= if (item.Applicable && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %>
+                            <button type="button" class="btn btn-success btn-sm plan-apply-btn<%= if (item.ActionKind == "feeding") { %> plan-feeding-entry<% } %>"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              data-kind="<%= item.ActionKind %>"
+                              data-animal-label="<%= item.AnimalLabel %>" data-detail="<%= item.Detail %>"
+                              data-source-name="<%= item.SourceName %>"
+                              title="<%= t("care_plan.apply.action") %>"><i class="fas fa-check"></i></button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                          <% } else if (item.Undoable) { %>
+                            <button type="button" class="btn btn-outline-secondary btn-sm plan-unapply-btn d-none"
+                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
+                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                          <% } %>
+                        </span>
                       </span>
                     </div>
                   <% } %>

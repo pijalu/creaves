@@ -173,29 +173,42 @@ func buttonHTML(html, class string) string {
 }
 
 // TestAutoRefreshVisibilityFloor (R4-4.1): the auto-refresh may not wipe
-// a change the caregiver just made — every action records the time and the
-// refresh defers itself while the page is younger than the 30 s floor. The
-// shared medication toggle announces its flips through the same hook.
+// a change the caregiver just made — every action records the time in the
+// SHARED apply partial and the refresh defers itself while the page is
+// younger than the 30 s floor.
 func TestAutoRefreshVisibilityFloor(t *testing.T) {
-	forks := []string{
+	partials := []string{
+		"../templates/care_plan/_apply_toggle.plush.html",
+		"../templates/care_plan/_apply_toggle.plush.de.html",
+		"../templates/care_plan/_apply_toggle.plush.fr.html",
+		"../templates/care_plan/_apply_toggle.plush.nl.html",
+	}
+	for _, f := range partials {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		s := string(raw)
+		require.Contains(t, s, "ACTION_VISIBILITY_MS = 30000", f, "30 s visibility floor")
+		require.Contains(t, s, "window.planMarkAction = markAction", f, "shared hook")
+		require.Contains(t, s, "window.planActionAge", f, "the refresh guard can read the action age")
+		for _, fn := range []string{"markApplied", "markOpen", "instantApply", "instantUnapply"} {
+			i := strings.Index(s, "function "+fn+"(")
+			require.Positive(t, i, f+" declares "+fn)
+			require.Contains(t, s[i:i+400], "markAction()", f+": "+fn+" records the action time")
+		}
+	}
+
+	pages := []string{
 		"../templates/care_plan/index.plush.html",
 		"../templates/care_plan/index.plush.de.html",
 		"../templates/care_plan/index.plush.fr.html",
 		"../templates/care_plan/index.plush.nl.html",
 	}
-	for _, f := range forks {
+	for _, f := range pages {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		s := string(raw)
-		require.Contains(t, s, "ACTION_VISIBILITY_MS = 30000", f, "30 s visibility floor")
-		require.Contains(t, s, "now - lastActionAt < ACTION_VISIBILITY_MS", f, "reload defers while fresh")
-		require.Contains(t, s, "window.planMarkAction = markAction", f, "other scripts share the hook")
-		for _, fn := range []string{"markApplied", "markOpen", "instantApply", "instantUnapply"} {
-			i := strings.Index(s, "function "+fn+"(")
-			require.Positive(t, i, f+" declares "+fn)
-			body := s[i : i+400]
-			require.Contains(t, body, "markAction()", f+": "+fn+" records the action time")
-		}
+		require.Contains(t, s, `partial("care_plan/apply_toggle.plush.html")`, f, "one shared apply implementation")
+		require.Contains(t, s, "window.planActionAge() < 30000", f, "the reload waits for the floor")
 	}
 
 	toggles := []string{
@@ -208,5 +221,38 @@ func TestAutoRefreshVisibilityFloor(t *testing.T) {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		require.Contains(t, string(raw), "window.planMarkAction()", f, "slot flips hold the refresh off")
+	}
+}
+
+// TestApplyToggleSharedByBothPages (R4-2.2): ONE apply implementation —
+// the day plan and the animal tabs include the same partial, so a feeding
+// or observation row is recorded the same way on both.
+func TestApplyToggleSharedByBothPages(t *testing.T) {
+	forks := []string{
+		"../templates/care_plan/_apply_toggle.plush.html",
+		"../templates/care_plan/_apply_toggle.plush.de.html",
+		"../templates/care_plan/_apply_toggle.plush.fr.html",
+		"../templates/care_plan/_apply_toggle.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		s := string(raw)
+		require.Contains(t, s, "plan-feeding-entry", f, "feeding entries open the prefilled modal")
+		require.Contains(t, s, "closest('.plan-apply-btn, .plan-feeding-one')", f, "delegated apply binding")
+		require.Contains(t, s, "closest('.plan-unapply-btn')", f, "delegated undo binding")
+	}
+	for _, f := range []string{
+		"../templates/animals/show.plush.html",
+		"../templates/animals/show.plush.fr.html",
+		"../templates/animals/show.plush.de.html",
+		"../templates/animals/show.plush.nl.html",
+	} {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		s := string(raw)
+		require.Contains(t, s, `partial("care_plan/apply_toggle.plush.html")`, f, "animal tabs use the shared apply")
+		require.Contains(t, s, "plan-apply-btn", f, "animal item rows are actionable")
+		require.Contains(t, s, "plan-feeding-entry", f, "feeding rows open the prefilled entry")
 	}
 }

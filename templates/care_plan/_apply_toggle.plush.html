@@ -1,0 +1,519 @@
+<%# Shared apply / undo / skip / defer partial (bugs.md R4-2.2).
+
+    ONE visual language and ONE implementation of the day-plan apply
+    affordance: the care-plan work screen, the dashboard and the animal
+    Protocol/Treatment tabs all bind `.plan-apply-btn`,
+    `.plan-feeding-one` and `.plan-unapply-btn` through THIS partial —
+    no page-local copy, so an occurrence is recorded the same way wherever
+    the caregiver meets it.
+
+    Modals: apply confirmation (kind-specific required inputs),
+    skip/defer, dosage fallback, generic error popup.
+    Bindings are DELEGATED on `document`, so buttons rendered later (or by
+    another script) are covered as well.
+
+    Input kinds (feeding, observation, weighing, care, cleanup, medication)
+    open the shared apply modal PREFILLED from the button's data-* (animal,
+    detail, source, due); non-input kinds apply instantly. Nothing reloads:
+    the button flips in place and the auto-refresh floor (R4-4.1) keeps the
+    change visible. %>
+<!-- Apply confirmation: sets the expectation BEFORE anything is recorded —
+     what, for whom, when — plus the kind-specific required inputs
+     (observation answer, weighing weight, medication dosage, optional note). -->
+<div class="modal fade" id="planApplyModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><%= t("care_plan.apply.confirm_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <dl class="row mb-2">
+          <dt class="col-sm-4"><%= t("care_plan.col.animal") %></dt>
+          <dd class="col-sm-8" id="planApplyAnimal"></dd>
+          <dt class="col-sm-4"><%= t("care_plan.col.plan") %></dt>
+          <dd class="col-sm-8"><span id="planApplyDetail"></span><br><small class="text-muted" id="planApplySource"></small></dd>
+        </dl>
+        <div class="alert alert-info small" id="planApplyExpect"></div>
+        <div class="form-group d-none" id="planApplyAnswerGroup">
+          <label for="planApplyAnswer"><%= t("care_plan.modal.answer") %></label>
+          <input type="text" class="form-control" id="planApplyAnswer" autocomplete="off">
+        </div>
+        <div class="form-group d-none" id="planApplyWeightGroup">
+          <label for="planApplyWeight"><%= t("care_plan.modal.weight") %></label>
+          <input type="text" class="form-control" id="planApplyWeight" placeholder="850 g" autocomplete="off">
+        </div>
+        <div class="form-group d-none" id="planApplyDosageGroup">
+          <label for="planApplyDosage"><%= t("care_plan.modal.dosage") %></label>
+          <input type="text" class="form-control" id="planApplyDosage" placeholder="0.1 ml" autocomplete="off">
+        </div>
+        <div class="form-group mb-0">
+          <label for="planApplyNote"><%= t("care_plan.modal.note_optional") %></label>
+          <input type="text" class="form-control" id="planApplyNote" autocomplete="off">
+        </div>
+        <div class="alert alert-danger d-none mt-2 mb-0" id="planApplyError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal"><%= t("care_plan.action.cancel") %></button>
+        <button type="button" class="btn btn-success" id="planApplySubmit"><%= t("care_plan.apply.confirm_submit") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# Shared read-only detail popup (round-2 §7/WP4): one partial for the
+     care plan AND the animal Treatment tab deep-link. %>
+<%= partial("care_plan/item_detail_modal.plush.html") %>
+
+<!-- Shared skip/defer modal (§7.3.1, bugs.md U6): one modal, reason
+     mandatory; defer adds an hours input (default +1h, §10-L3) converted
+     client-side to an RFC3339 deferred_until. -->
+<div class="modal fade" id="planSkipDeferModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="planSkipDeferTitle"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-2" id="planSkipDeferContext"></p>
+        <div class="form-group">
+          <label for="planSkipDeferReason"><%= t("care_plan.modal.reason") %></label>
+          <input type="text" class="form-control" id="planSkipDeferReason" autocomplete="off">
+        </div>
+        <div class="form-group d-none" id="planSkipDeferHoursGroup">
+          <label for="planSkipDeferHours"><%= t("care_plan.modal.defer_hours") %></label>
+          <input type="number" class="form-control" id="planSkipDeferHours" min="1" step="1" value="1">
+        </div>
+        <div class="alert alert-danger d-none" id="planSkipDeferError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="planSkipDeferSubmit"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- §10-B6: dosage resolution failure never blocks apply — the dialog warns
+     (with the last recorded weight, §10-L2) and asks for a manual dosage. -->
+<div class="modal fade" id="planDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><%= t("care_plan.apply.dosage_required_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning" id="planDosageDetail"></div>
+        <p class="text-muted d-none" id="planDosageWeight"></p>
+        <input type="text" class="form-control" id="planDosageInput" placeholder="0.1 ml" autocomplete="off">
+        <div class="alert alert-danger d-none mt-2" id="planDosageError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="planDosageSubmit"><%= t("care_plan.apply.dosage_submit") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Generic error/info popup: replaces window.alert so a failure never
+     appears as an uncontrolled browser alert. -->
+<div class="modal fade" id="planMessageModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="planMessageTitle"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <pre class="mb-0" id="planMessageBody" style="white-space:pre-wrap;font-family:inherit;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // R4-4.1 (shared): every action announces itself so a page with the
+  // auto-refresh timer holds the reload off for the visibility floor.
+  var ACTION_VISIBILITY_MS = 30000;
+  var lastActionAt = 0;
+  function markAction() { lastActionAt = Date.now(); }
+  window.planMarkAction = markAction;
+
+  var inFlight = 0;
+  function track(p) {
+    inFlight++;
+    return p.then(function (v) { inFlight--; return v; }, function (e) { inFlight--; throw e; });
+  }
+  function busy() { return inFlight > 0; }
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  // {ref, btn} awaiting a manual dosage (§10-B6); btn is flipped in place
+  // once the dosage is recorded (R5-2c: no full reload).
+  var pending = null;
+  // §6.2-2 (A1): recording a clearly late occurrence is an explicit act —
+  // one confirm, once, before the POST.
+  var lateConfirm = "<%= t("care_plan.treatment.record_late_confirm") %>";
+  function lateBlocked(btn) {
+    return btn.getAttribute('data-late') === 'true' && !window.confirm(lateConfirm);
+  }
+  var i18n = {
+    errorTitle: "<%= t("care_plan.message.error_title") %>",
+    expect: {
+      feeding:    "<%= t("care_plan.apply.expect.feeding") %>",
+      medication: "<%= t("care_plan.apply.expect.medication") %>",
+      care:       "<%= t("care_plan.apply.expect.care") %>",
+      cleanup:    "<%= t("care_plan.apply.expect.cleanup") %>",
+      weighing:   "<%= t("care_plan.apply.expect.weighing") %>",
+      observation:"<%= t("care_plan.apply.expect.observation") %>"
+    },
+    answerRequired: "<%= t("care_plan.modal.answer_required") %>",
+    weightRequired: "<%= t("care_plan.modal.weight_required") %>",
+    status: {
+      scheduled: "<%= t("care_plan.status.scheduled") %>",
+      due:       "<%= t("care_plan.status.due") %>",
+      late:      "<%= t("care_plan.status.late") %>",
+      missing:   "<%= t("care_plan.status.missing") %>",
+      applied:   "<%= t("care_plan.status.applied") %>",
+      skipped:   "<%= t("care_plan.status.skipped") %>",
+      deferred:  "<%= t("care_plan.status.deferred") %>",
+      overridden:"<%= t("care_plan.status.overridden") %>"
+    },
+    kinds: {
+      feeding:    "<%= t("care_plan.kind.feeding") %>",
+      medication: "<%= t("care_plan.kind.medication") %>",
+      care:       "<%= t("care_plan.kind.care") %>",
+      cleanup:    "<%= t("care_plan.kind.cleanup") %>",
+      weighing:   "<%= t("care_plan.kind.weighing") %>",
+      observation:"<%= t("care_plan.kind.observation") %>"
+    },
+    batchSummary: "<%= t("care_plan.apply.batch_summary") %>"
+  };
+
+  function showMessage(title, body) {
+    document.getElementById('planMessageTitle').textContent = title;
+    document.getElementById('planMessageBody').textContent = body;
+    $('#planMessageModal').modal('show');
+  }
+
+  function applyItem(ref, extra) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
+    }
+    return track(fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
+    }));
+  }
+
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
+    document.getElementById('planDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('planDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = "<%= t("care_plan.apply.last_weight") %>: " + warn.last_weight + " g (" + when + ")";
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('planDosageInput').value = '';
+    document.getElementById('planDosageError').classList.add('d-none');
+    $('#planDosageModal').modal('show');
+  }
+
+  // --- One-toggle apply/unapply (bugs.md R5-2c, D-a) -----------------------
+  // ONE policy for dashboard AND work screen: confirm only when fields are
+  // needed (weighing → weight, observation → answer); everything else
+  // toggles INSTANTLY — no confirm, no reload. The button flips in place;
+  // the view link is a sibling that never moves. Medication dosage stays
+  // optional: a 422 dosage_required opens the dosage dialog.
+  var applyRef = null;
+
+  function openApply(btn) {
+    applyRef = {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind')
+    };
+    document.getElementById('planApplyAnimal').textContent = btn.getAttribute('data-animal-label') || '';
+    document.getElementById('planApplyDetail').textContent = btn.getAttribute('data-detail') || '';
+    document.getElementById('planApplySource').textContent = btn.getAttribute('data-source-name') || '';
+    document.getElementById('planApplyExpect').textContent = i18n.expect[applyRef.kind] || '';
+    document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
+    document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
+    document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
+    applyRef.late = btn.classList.contains('plan-late-btn');
+    document.getElementById('planApplyAnswer').value = '';
+    document.getElementById('planApplyWeight').value = '';
+    document.getElementById('planApplyDosage').value = '';
+    document.getElementById('planApplyNote').value = '';
+    document.getElementById('planApplyError').classList.add('d-none');
+    $('#planApplyModal').modal('show');
+  }
+
+  // One-toggle dispatch (D-a): input kinds open the modal, everything
+  // else applies instantly and flips the button in place.
+  //
+  // R4-2.2: a FEEDING entry rendered on an animal tab (class
+  // plan-feeding-entry) is an input kind too — the caregiver confirms the
+  // ration in the prefilled modal instead of a bare instant click.
+  function isInputKind(btn) {
+    var kind = btn.getAttribute('data-kind');
+    if (kind === 'weighing' || kind === 'observation') { return true; }
+    return kind === 'feeding' && btn.classList.contains('plan-feeding-entry');
+  }
+
+  // R3-2: one row = one toggle pair — the apply check (`.plan-apply-btn` /
+  // `.plan-feeding-one`) and its undo sibling (`.plan-unapply-btn`) swap
+  // visibility in place; no reload, no waiting for the auto-refresh.
+  function pairApply(btn) { return btn.parentNode.querySelector('.plan-apply-btn, .plan-feeding-one'); }
+  function pairUndo(btn) { return btn.parentNode.querySelector('.plan-unapply-btn'); }
+
+  // markApplied flips an apply check to its undo control IN PLACE (R3-2):
+  // check hides, undo shows; the next full render (auto-refresh) moves
+  // the row to its tier/history.
+  function markApplied(ref) {
+    markAction();
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var undo = pairUndo(btn);
+    if (undo) { undo.classList.remove('d-none'); }
+  }
+
+  // markOpen flips an applied row back to its apply check (undo clicked).
+  function markOpen(ref) {
+    markAction();
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var apply = pairApply(btn);
+    if (apply) { apply.classList.remove('d-none'); }
+  }
+
+  // Delegated (R4-2.2): one listener covers every page that includes this
+  // partial — the work screen, the dashboard and the animal tabs — and
+  // buttons rendered later by another script.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-apply-btn, .plan-feeding-one') : null;
+    if (!btn || btn.disabled) { return; }
+    if (lateBlocked(btn)) { return; }
+    if (isInputKind(btn)) { openApply(btn); return; }
+    instantApply(btn);
+  });
+
+  function instantApply(btn) {
+    markAction();
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    applyItem(ref).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  // In-place undo (R3-2): same /care_plan/unapply call as the history
+  // undo, but flips the row's toggle back instead of reloading.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-unapply-btn') : null;
+    if (!btn || btn.disabled) { return; }
+    instantUnapply(btn);
+  });
+
+  function instantUnapply(btn) {
+    markAction();
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    track(fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
+        delete_fulfillment: true
+      })
+    })).then(function (r) {
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind'),
+      hm: btn.textContent.replace('○', '').replace('✓', '').replace('–', '').replace('⊘', '').replace('⏸', '').trim()
+    };
+  }
+
+  document.getElementById('planApplySubmit').addEventListener('click', function () {
+    if (!applyRef) { return; }
+    var errBox = document.getElementById('planApplyError');
+    var extra = { note: document.getElementById('planApplyNote').value.trim() };
+    if (applyRef.kind === 'observation') {
+      extra.answer = document.getElementById('planApplyAnswer').value.trim();
+      if (!extra.answer) {
+        errBox.textContent = i18n.answerRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.kind === 'weighing') {
+      extra.weight = document.getElementById('planApplyWeight').value.trim();
+      if (!extra.weight) {
+        errBox.textContent = i18n.weightRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.late) { extra.late = true; }
+    if (applyRef.kind === 'medication') {
+      extra.dosage = document.getElementById('planApplyDosage').value.trim();
+    }
+    var ref = applyRef;
+    this.disabled = true;
+    var submitBtn = this;
+    applyItem(ref, extra).then(function (res) {
+      submitBtn.disabled = false;
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planApplyModal').modal('hide');
+        markApplied(ref);
+        return;
+      }
+      $('#planApplyModal').modal('hide');
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, ref.btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  });
+
+  // --- Skip / defer -----------------------------------------------------------
+  // Shared skip/defer modal (§7.3.1): skip = reason only; defer = reason +
+  // hours (default +1h, §10-L3 → RFC3339 now+Nh). Empty reason stays
+  // client-side — the server enforces 422 too (§10-CP4).
+  var sdRef = null;
+  var sdMode = 'skip';
+  var sdLabels = {
+    skip: {title: "<%= t("care_plan.modal.skip_title") %>", submit: "<%= t("care_plan.modal.skip") %>"},
+    defer: {title: "<%= t("care_plan.modal.defer_title") %>", submit: "<%= t("care_plan.modal.defer") %>"}
+  };
+
+  function openSkipDefer(btn) {
+    sdMode = btn.getAttribute('data-mode');
+    sdRef = {
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at')
+    };
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels[sdMode].title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels[sdMode].submit;
+    document.getElementById('planSkipDeferContext').textContent =
+      (btn.getAttribute('data-animal-label') || '') + (btn.getAttribute('data-detail') ? ' — ' + btn.getAttribute('data-detail') : '');
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.toggle('d-none', sdMode !== 'defer');
+    $('#planSkipDeferModal').modal('show');
+  }
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-skip-btn, .plan-defer-btn') : null;
+    if (!btn) { return; }
+    openSkipDefer(btn);
+  });
+
+  document.getElementById('planSkipDeferSubmit').addEventListener('click', function () {
+    if (!sdRef) { return; }
+    var reason = document.getElementById('planSkipDeferReason').value.trim();
+    var errBox = document.getElementById('planSkipDeferError');
+    if (!reason) {
+      errBox.textContent = "<%= t("care_plan.modal.reason_required") %>";
+      errBox.classList.remove('d-none');
+      return;
+    }
+    var body = {
+      source_type: sdRef.sourceType, source_id: sdRef.sourceId,
+      animal_id: sdRef.animalId, due_at: sdRef.dueAt,
+      status: sdMode === 'defer' ? 'deferred' : 'skipped',
+      note: reason
+    };
+    if (sdMode === 'defer') {
+      var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+      if (!hours || hours < 1) { hours = 1; }
+      body.deferred_until = new Date(Date.now() + hours * 3600000).toISOString();
+    }
+    fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 201) { window.location.reload(); return; }
+      r.json().then(function (j) {
+        errBox.textContent = (j && (j.detail || j.error)) || ('HTTP ' + r.status);
+        errBox.classList.remove('d-none');
+      });
+    });
+  });
+
+  document.getElementById('planDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('planDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending.ref;
+    applyItem(ref, {dosage: dosage}).then(function (res) {
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
+      var box = document.getElementById('planDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
+    });
+  });
+
+
+  // R4-4.1: the age of the last action, for a page's auto-refresh guard.
+  window.planActionAge = function () { return Date.now() - lastActionAt; };
+  // R4-2.2: pages that still own page-specific scripts (batch apply,
+  // detail popup, history) reuse these instead of re-implementing them.
+  window.planApply = {
+    csrf: csrf, i18n: i18n, track: track, busy: busy,
+    applyItem: applyItem, showMessage: showMessage, markApplied: markApplied,
+    markAction: markAction, pending: function () { return pending; }
+  };
+})();
+</script>
