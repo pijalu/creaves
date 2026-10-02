@@ -255,7 +255,14 @@ type AnimalTreatmentDay struct {
 	Future    bool
 	Group     MedGroupView
 	Items     []CardView // R3-7: non-medication occurrences (kind-ordered)
-	OpenCount int        // open (not done/overridden) slots of the day
+	OpenCount int        // open (not done/overridden) slots + open non-medication items of the day
+	// MedOpenCount counts ONLY the open medication slots — what the Treatment
+	// tab actually renders. R4-7.23: that tab showed OpenCount over a body
+	// that carries the medication series alone, so a day whose work is all
+	// feeding/care/observation advertised "3" above an EMPTY card (measured
+	// on animals/10312: 7 day cards, badge 3, zero rows). The Protocol tab
+	// renders both halves and keeps OpenCount.
+	MedOpenCount int
 	// MissingCount counts the occurrences of the day already past due
 	// with nothing recorded (status missing) INSIDE the last 24 h: those
 	// rows are no longer actionable, so they leave the list and the
@@ -347,6 +354,23 @@ func animalTreatmentDays(plan *DayPlan, animal *models.Animal) []AnimalTreatment
 	return out
 }
 
+// medicationOnlyDays returns the days of a treatment-day list that actually
+// carry medication work — the ones the Treatment tab can render. A day whose
+// occurrences are all feeding/care/observation produces no series, and a card
+// whose body is the series alone would then be an empty box under a count
+// (R4-7.23, measured on animals/10312: 7 such cards, each badged "3", each
+// with nothing in it). Those days are NOT dropped from the data: the Protocol
+// tab renders them, since it lists the non-medication items too.
+func medicationOnlyDays(days []AnimalTreatmentDay) []AnimalTreatmentDay {
+	out := make([]AnimalTreatmentDay, 0, len(days))
+	for _, d := range days {
+		if len(d.Group.Series) > 0 {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
 // animalTreatmentDayFor assembles one calendar day: medication slots
 // sorted by due time then slot bucket, merged into the shared series;
 // the non-medication compact items ride along; OpenCount covers both
@@ -377,6 +401,7 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
 			d.OpenCount++
+			d.MedOpenCount++
 		}
 	}
 	for _, item := range d.Items {

@@ -681,7 +681,14 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 	if err != nil {
 		return err
 	}
-	c.Set("animalTreatmentDays", animalTreatmentDays(treatPlan, animal))
+	treatDays := animalTreatmentDays(treatPlan, animal)
+	c.Set("animalTreatmentDays", treatDays)
+	// R4-7.23: the Treatment tab body renders the medication series
+	// alone, so only the days that HAVE one can be shown there — a day
+	// card with an empty body under a count is worse than no card. The
+	// Protocol tab keeps the unfiltered list (it lists the
+	// non-medication items too), so no work is lost.
+	c.Set("animalMedicationDays", medicationOnlyDays(treatDays))
 	if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
 		return err
 	}

@@ -422,7 +422,7 @@ copies of the same feeding sentence (7 days × 3 times) inflated the figure. Eve
 `#acp-*` day card on that animal is collapsed, so `VISIBLE_OCCURRENCES_OF_DESC=0`.
 Duplication must be counted on **visible** text (`offsetParent !== null`) only.
 
-### R4-7.23 — Treatment tab: day badge over an empty body (**Open**)
+### R4-7.23 — Treatment tab: day badge over an empty body (**Done**, product)
 
 `/animals/10312?back=#nav-treatment`: six day cards, each header showing an
 open-count badge, each body **empty** — a count of "3" over nothing. The
@@ -439,9 +439,53 @@ Measured (10312): 6 collapses, every body `<div class="med-series
 flex-grow-1"></div>`, headers `07/10·3 06/10·3 05/10·3 04/10·3 03/10·3
 02/10·2`.
 
-Fix: render the non-medication items in the Treatment tab too (one line per
-item, same language as the medication series), so the badge and the body always
-describe the same set. Plan: §R4-7.23.
+**Fixed** — but NOT the way the first diagnosis proposed, because measuring
+changed the answer. The plan above was to render the non-medication items in the
+Treatment tab as well. The live DOM says otherwise: the Protocol tab
+(`#nav-plan`) **already** renders them, day for day. Copying them into the
+Treatment tab would duplicate the entire Protocol tab inside the same page —
+the exact thing Round 7 was raised against ("be critical of the UI to avoid
+further duplication"). The intent is documented on the view type itself:
+
+> "the Protocol tab embeds the animal's complete care plan from the SAME
+> per-day groups; the Treatment tab ignores Items and keeps its
+> medication-only focus."
+
+The code contradicted its own contract in two ways, so that is what was fixed:
+
+- **A day with no medication series renders no card.** `medicationOnlyDays`
+  keeps only the days that have a `Group.Series`; an empty card under a count
+  is worse than no card. Nothing is lost — `animalTreatmentDays` still returns
+  every day, and the Protocol tab still renders them.
+- **The badge counts `MedOpenCount`, not `OpenCount`.** `OpenCount` counts the
+  open medication slots *plus* the non-medication items, which the Treatment tab
+  never shows. The new field counts the medication slots alone, so a badge can
+  never advertise work that is not under it. The Protocol tab keeps `OpenCount`
+  because it renders both halves.
+
+The filter lives in Go, not in the template. A template version needed an
+`append` helper, which **does not exist** in plush v3.8.3 nor in Buffalo
+v0.18.9's render helpers nor in this app's `customRenderHelpers` — relying on
+it would have produced a silently wrong list.
+
+Re-measured in all four locales:
+
+- `animals/10312` (feeding/care only, no medication): `treatmentCards` 7 -> **0**,
+  `violations` empty, `protocolCards` still **7** with badges 3×6 + 2 unchanged.
+- `animals/10221` (6 medication plans): `treatmentCards` **7**, every card with
+  `lines > 0` and `slots > 0`; the 02/10 card reads badge **5** against **6**
+  slots — one already applied, so the badge counts the OPEN slots, not the total.
+  Identical in en-US/fr/de/nl; `jsErrors` 0; the legacy accordion still renders.
+- All 4 forks of the block md5-identical (`6d3d5e5037ef0d5142d59aed28eabb08`).
+
+Three tests in `actions/care_plan_animal_page_treatment_tab_test.go` pin the
+invariant from both sides: a care-only day is dropped from the Treatment tab
+while `OpenCount` still knows about it; an animal with no medication at all
+yields no card; an all-applied medication day stays visible but unbadged.
+
+Gates: `go build`/`go vet`/`staticcheck` clean, gocognit/gocyclo diffed against
+HEAD empty in both directions, `go test -count=1 -race -cover ./...` exit 0
+(actions 59.9%). No destructive DB changes.
 
 ### R4-7.24 — A description must never be cut (cross-cutting, critical) (**Done**)
 

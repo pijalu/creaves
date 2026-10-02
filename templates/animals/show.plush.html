@@ -459,17 +459,30 @@
         (the shared `_med_series` + `_plan_med_toggle` partials), over a
         history+future window (14d back, 5d forward cap for open-ended
         protocols). Legacy manual treatments stay below, read-only. %>
-    <%= if (len(animalTreatmentDays) > 0) { %>
+    <%# R4-7.23: this tab is MEDICATION-only (see the AnimalTreatmentDay
+        doc: "the Treatment tab ignores Items and keeps its medication-only
+        focus"). Two ways it contradicted that and advertised work it never
+        showed — measured on animals/10312, an animal whose protocols are all
+        feeding/care: 7 day cards, each badged "3", each with an EMPTY body,
+        because the card body renders the medication series alone.
+          - a day with no medication series renders no card at all (an empty
+            card under a count is worse than no card);
+          - the badge counts MedOpenCount — the open medication SLOTS — not
+            OpenCount, which also counts the non-medication items that only
+            the Protocol tab lists. A badge must count what is under it.
+        The non-medication work is not lost: the Protocol tab is the animal's
+        complete care plan and renders it, day for day. %>
+    <%= if (len(animalMedicationDays) > 0) { %>
       <div id="treatmentPlan">
-        <%= for (day) in animalTreatmentDays { %>
+        <%= for (day) in animalMedicationDays { %>
           <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
             <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="tp-head-<%= day.DateKey %>">
               <h5 class="mb-0 d-flex align-items-center">
                 <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#tp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="tp-<%= day.DateKey %>">
                   <%= day.Date.Format("02/01/2006") %>
                 </button>
-                <%= if (day.OpenCount > 0) { %>
-                  <span class="badge badge-pill badge-warning ml-2"><%= day.OpenCount %></span>
+                <%= if (day.MedOpenCount > 0) { %>
+                  <span class="badge badge-pill badge-warning ml-2"><%= day.MedOpenCount %></span>
                 <% } %>
               </h5>
             </div>
@@ -481,6 +494,8 @@
             </div>
           </div>
         <% } %>
+      </div>
+    <% } %>
       </div>
     <% } %>
 
