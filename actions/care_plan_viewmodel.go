@@ -140,6 +140,15 @@ type MedSlotView struct {
 	LateAllowed bool
 }
 
+// MedSeriesRow is one visual row of a series (≤3 slots).
+type MedSeriesRow struct {
+	// DividerBefore marks a slot-bucket change relative to the previous
+	// row (the template draws the thin divider) — computed in Go because
+	// plush cannot index Rows[ri-1] (round-3 build fix).
+	DividerBefore bool
+	Slots         []MedSlotView
+}
+
 // MedSeriesView is one drug line of a medication card (round-2 §8.3,
 // Dash-5/Dash-8, CP1, T2): every occurrence of one animal sharing the
 // same (drug, dosage) label, bucket-ordered (morning → noon → evening)
@@ -149,7 +158,7 @@ type MedSlotView struct {
 type MedSeriesView struct {
 	Key   string // merge key: drug — dosage
 	Label string // display: drug — dosage
-	Rows  [][]MedSlotView
+	Rows  []MedSeriesRow
 }
 
 // MedGroupView is one rendered per-animal medication card: all medication
@@ -909,18 +918,26 @@ func seriesOf(slots []MedSlotView, bucketOrder map[string]int) []MedSeriesView {
 // chunkSeriesRows bucket-chunks one series' ordered slots: at most 3 per
 // row, a bucket change always starts a new row (Dash-8 pseudo-grouped
 // divider).
-func chunkSeriesRows(g []MedSlotView) [][]MedSlotView {
-	var rows [][]MedSlotView
+func chunkSeriesRows(g []MedSlotView) []MedSeriesRow {
+	var rows []MedSeriesRow
 	var cur []MedSlotView
 	for _, s := range g {
 		if len(cur) >= 3 || (len(cur) > 0 && cur[0].Slot != s.Slot) {
-			rows = append(rows, cur)
+			rows = append(rows, MedSeriesRow{Slots: cur})
 			cur = nil
 		}
 		cur = append(cur, s)
 	}
 	if len(cur) > 0 {
-		rows = append(rows, cur)
+		rows = append(rows, MedSeriesRow{Slots: cur})
+	}
+	// DividerBefore: row i>0 divides when its first slot's bucket differs
+	// from the previous row's last slot bucket.
+	for i := 1; i < len(rows); i++ {
+		prev := rows[i-1].Slots[len(rows[i-1].Slots)-1]
+		if rows[i].Slots[0].Slot != prev.Slot {
+			rows[i].DividerBefore = true
+		}
 	}
 	return rows
 }

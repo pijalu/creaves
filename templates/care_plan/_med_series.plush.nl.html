@@ -20,24 +20,24 @@
             context is per-series, the due label of the first slot anchors it. %>
         <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
           data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
-          data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0][0].SourceName %>" data-source-link="<%= series.Rows[0][0].SourceLink %>"
-          data-kind="medication" data-due="<%= series.Rows[0][0].DueAtHM %>"
-          data-status="<%= series.Rows[0][0].Status %>" data-remaining="">ℹ</button>
+          data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0].Slots[0].SourceName %>" data-source-link="<%= series.Rows[0].Slots[0].SourceLink %>"
+          data-kind="medication" data-due="<%= series.Rows[0].Slots[0].DueAtHM %>"
+          data-status="<%= series.Rows[0].Slots[0].Status %>" data-remaining="">ℹ</button>
         <%# Dash-7 (§8.2): the deep-link eye — dashboard only. The care
             plan never sets the flag, so it renders no eye there. %>
         <%= if (medSeriesEye) { %>
-          <a class="btn btn-outline-primary btn-sm ml-1 dash-med-view" href="<%= series.Rows[0][0].DeepLink %>"
+          <a class="btn btn-outline-primary btn-sm ml-1 dash-med-view" href="<%= series.Rows[0].Slots[0].DeepLink %>"
             title="<%= t("dashboard.medication_today.view") %>"
-            aria-label="<%= series.Label %> <%= series.Rows[0][0].DueAtHM %>"><i class="fa fa-eye"></i></a>
+            aria-label="<%= series.Label %> <%= series.Rows[0].Slots[0].DueAtHM %>"><i class="fa fa-eye"></i></a>
         <% } %>
       </div>
       <div>
         <%= for (ri, row) in series.Rows { %>
-          <%= if (ri > 0 && series.Rows[ri-1][0].Slot != row[0].Slot) { %>
+          <%= if (row.DividerBefore) { %>
             <div class="med-series-divider border-top my-1"></div>
           <% } %>
           <div class="text-nowrap med-series-row">
-            <%= for (slot) in row { %>
+            <%= for (slot) in row.Slots { %>
               <%= if (slot.Applied) { %>
                 <%# R5-2c: ONE toggle per slot — the done button stays
                     live (re-click undoes, no confirm, no reload). %>

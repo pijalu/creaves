@@ -67,7 +67,7 @@ func TestMedSeriesGroupsByDrugAndDosage(t *testing.T) {
 	require.NotNil(t, half)
 	n := 0
 	for _, row := range half.Rows {
-		n += len(row)
+		n += len(row.Slots)
 	}
 	require.Equal(t, 3, n, "all occurrences of (Citramox, 0.5 ml) on one line")
 
@@ -92,15 +92,18 @@ func TestMedSeriesChunksThreePerRowByBucket(t *testing.T) {
 	require.Len(t, series, 1)
 	rows := series[0].Rows
 	require.Len(t, rows, 3, "3 + 2 morning, noon forces its own row")
-	require.Equal(t, []int{3, 2, 1}, []int{len(rows[0]), len(rows[1]), len(rows[2])})
+	require.Equal(t, []int{3, 2, 1}, []int{len(rows[0].Slots), len(rows[1].Slots), len(rows[2].Slots)})
 	for _, row := range rows {
-		for _, s := range row {
-			require.Equal(t, row[0].Slot, s.Slot, "a row never mixes buckets")
+		for _, s := range row.Slots {
+			require.Equal(t, row.Slots[0].Slot, s.Slot, "a row never mixes buckets")
 		}
 	}
-	require.Equal(t, "morning", rows[0][0].Slot)
-	require.Equal(t, "morning", rows[1][0].Slot)
-	require.Equal(t, "noon", rows[2][0].Slot)
+	require.Equal(t, "morning", rows[0].Slots[0].Slot)
+	require.Equal(t, "morning", rows[1].Slots[0].Slot)
+	require.Equal(t, "noon", rows[2].Slots[0].Slot)
+	require.False(t, rows[0].DividerBefore)
+	require.False(t, rows[1].DividerBefore, "same bucket, no divider")
+	require.True(t, rows[2].DividerBefore, "bucket change divides")
 }
 
 // TestMedSeriesSlotOrderMatchesBuckets: within a series the slots are
@@ -118,7 +121,7 @@ func TestMedSeriesSlotOrderMatchesBuckets(t *testing.T) {
 	require.Len(t, series, 1)
 	var got []string
 	for _, row := range series[0].Rows {
-		for _, s := range row {
+		for _, s := range row.Slots {
 			got = append(got, s.Slot+" "+s.DueAt.Format("01-02 15:04"))
 		}
 	}
@@ -141,23 +144,23 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		Series: []MedSeriesView{{
 			Key:   "Citramox — 0.5 ml",
 			Label: "Citramox — 0.5 ml",
-			Rows: [][]MedSlotView{
-				{
+			Rows: []MedSeriesRow{
+				{Slots: []MedSlotView{
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "08:00", Status: "applied", Done: true, Applied: true, CanUndo: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T08:00:00+02:00"},
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "09:00", Status: "late", Applicable: false, LateAllowed: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T09:00:00+02:00", SourceName: "Citramox AM"},
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "10:00", Status: "scheduled", Applicable: false,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T10:00:00+02:00"},
-				},
-				{
+				}},
+				{DividerBefore: true, Slots: []MedSlotView{
 					{Slot: "noon", Detail: "Citramox — 0.5 ml", DueAtHM: "12:00", Status: "due", Applicable: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T12:00:00+02:00", SourceName: "Citramox AM"},
 					{Slot: "noon", Detail: "Citramox — 0.5 ml", DueAtHM: "12:30", Status: "skipped", Done: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T12:30:00+02:00"},
 					{Slot: "noon", Detail: "Citramox — 0.5 ml", DueAtHM: "13:00", Status: "deferred", Done: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T13:00:00+02:00"},
-				},
+				}},
 			},
 		}},
 	}

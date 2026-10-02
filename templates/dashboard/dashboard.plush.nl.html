@@ -1,14 +1,14 @@
-<h3 class="d-inline-block">Dieren in alarm</h3>
+<h3 class="d-inline-block">Animals in alert</h3>
 <%= if (len(openCares)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Datum</th>
-    <th>Dier</th>
+    <th>Date</th>
+    <th>Animal</th>
     <th>Zone</th>
-    <th>Kooi</th>
-    <th>Soort</th>
-    <th>Notitie</th>
+    <th>Cage</th>
+    <th>Species</th>
+    <th>Note</th>
   </thead>
   <tbody>
     <%= for (care) in openCares { %>
@@ -33,31 +33,31 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p>None</p>
 <%}%>
 <br/>
 
 
-<h3 class="d-inline-block">Dieren met gewichtsverlies</h3> <i class="fas fa-question-circle text-muted" title="Gegevens berekend op <%= animalsWithWeightLossCachedAt.Format("02/01/2006 om 15:04") %> (tot 12u gecachet)"></i>
+<h3 class="d-inline-block">Animals with weight loss</h3> <i class="fas fa-question-circle text-muted" title="Data computed as of <%= animalsWithWeightLossCachedAt.Format("02/01/2006 at 15:04") %> (cached for up to 12h)"></i>
 <%= if (len(animalsWithWeightLoss)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Dier</th>
+    <th>Animal</th>
     <th>Zone</th>
-    <th>Kooi</th>
-    <th>Soort</th>
-    <th>Leeftijd</th>
-    <th>Gewichten</th>
+    <th>Cage</th>
+    <th>Species</th>
+    <th>Age</th>
+    <th>Weights</th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
       <tr>
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Klaar voor vrijlating"><i class="fas fa-dove"></i></span><% } %>
+          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Ready for release"><i class="fas fa-dove"></i></span><% } %>
         </td>
-        <td class="align-middle"><%= animal.Zone %></td>
+        <td class="align-middle"><%= tbase("zones", "zone", animal.Zone) %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle">
           <%
@@ -68,8 +68,8 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
-        </td>
+        <%= tspecies(animal.Species) %> (<%= gender %>)
+      </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
       </tr>
@@ -78,7 +78,7 @@
 </table>
 </div>
   <%} else {%>
-<p>Geen</p>
+<p>None</p>
 <%}%>
 <br/>
 <h3 class="d-inline-block"><%= t("dashboard.medication_today.title") %></h3>
@@ -133,210 +133,19 @@
 <p><%= t("dashboard.medication_today.none") %></p>
 <% } %>
 
-<!-- R5-2c (D-a): dosage dialog — the ONLY confirm left on the dashboard.
-     It opens exclusively when the server answers 422 dosage_required. -->
-<div class="modal fade" id="dashMedDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><%= t("care_plan.apply.dosage_required_title") %></h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-warning" id="dashMedDosageDetail"></div>
-        <p class="text-muted d-none" id="dashMedDosageWeight"></p>
-        <input type="text" class="form-control" id="dashMedDosageInput" placeholder="0.1 ml" autocomplete="off">
-        <div class="alert alert-danger d-none mt-2" id="dashMedDosageError"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" id="dashMedDosageSubmit"><%= t("care_plan.apply.dosage_submit") %></button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Error message modal (R5-2c: replaces the uncontrolled browser alert). -->
-<div class="modal fade" id="dashMedMessageModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="dashMedMessageTitle"></h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-      </div>
-      <div class="modal-body">
-        <pre class="mb-0" id="dashMedMessageBody" style="white-space:pre-wrap;font-family:inherit;"></pre>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-(function () {
-  var csrf = document.querySelector('meta[name="csrf-token"]').content;
-  // R5-2c (D-a): ONE toggle per slot. The only confirm left is the dosage
-  // dialog, opened when the server answers 422 dosage_required. Everything
-  // else applies/undoes INSTANTLY — no confirm, no full reload; the button
-  // flips in place and the view link (its sibling) never moves.
-  var i18n = {
-    errorTitle: "<%= t("care_plan.message.error_title") %>",
-    lastWeight: "<%= t("care_plan.apply.last_weight") %>",
-    lateConfirm: "<%= t("care_plan.treatment.record_late_confirm") %>"
-  };
-  var pending = null;
-
-  function showMessage(title, body) {
-    document.getElementById('dashMedMessageTitle').textContent = title;
-    document.getElementById('dashMedMessageBody').textContent = body;
-    $('#dashMedMessageModal').modal('show');
-  }
-
-  function applyCall(ref, extra) {
-    var body = {
-      source_type: ref.sourceType, source_id: ref.sourceId,
-      animal_id: ref.animalId, due_at: ref.dueAt
-    };
-    if (extra) {
-      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
-    }
-    return fetch('/care_plan/apply', {
-      method: 'POST', credentials: 'same-origin',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-      body: JSON.stringify(body)
-    }).then(function (r) {
-      return r.json().then(function (j) { return {status: r.status, body: j}; });
-    });
-  }
-
-  function btnRef(btn) {
-    return {
-      btn: btn,
-      sourceType: btn.getAttribute('data-source-type'),
-      sourceId: btn.getAttribute('data-source-id'),
-      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
-      dueAt: btn.getAttribute('data-due-at'),
-      hm: btn.textContent.replace('○', '').replace('✓', '')
-          .replace('–', '').replace('⊘', '').replace('⏸', '').trim()
-    };
-  }
-
-  // markApplied flips the toggle button to its done state IN PLACE — the
-  // button stays live (re-click undoes); the view link is untouched.
-  function markApplied(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.remove('btn-warning', 'plan-apply-btn');
-    btn.classList.add('btn-success', 'plan-unapply-btn');
-    btn.textContent = '✓ ' + ref.hm;
-    btn.disabled = false;
-  }
-
-  function markOpen(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.remove('btn-success', 'plan-unapply-btn');
-    btn.classList.add('btn-warning', 'plan-apply-btn');
-    btn.textContent = '○ ' + ref.hm;
-    btn.disabled = false;
-  }
-
-  function showDosageDialog(ref, warn, btn) {
-    pending = {ref: ref, btn: btn || null};
-    document.getElementById('dashMedDosageDetail').textContent = warn.detail || '';
-    var wBox = document.getElementById('dashMedDosageWeight');
-    if (warn.last_weight) {
-      var when = (warn.last_weight_at || '').slice(0, 10);
-      wBox.textContent = i18n.lastWeight + ': ' + warn.last_weight + ' g (' + when + ')';
-      wBox.classList.remove('d-none');
-    } else {
-      wBox.classList.add('d-none');
-    }
-    document.getElementById('dashMedDosageInput').value = '';
-    document.getElementById('dashMedDosageError').classList.add('d-none');
-    $('#dashMedDosageModal').modal('show');
-  }
-
-  function applySlot(btn) {
-    var ref = btnRef(btn);
-    btn.disabled = true;
-    applyCall(ref).then(function (res) {
-      if (res.status === 201) { markApplied(ref); return; }
-      btn.disabled = false;
-      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
-        showDosageDialog(ref, res.body, btn);
-        return;
-      }
-      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
-    });
-  }
-
-  function unapplySlot(btn) {
-    var ref = btnRef(btn);
-    btn.disabled = true;
-    fetch('/care_plan/unapply', {
-      method: 'POST', credentials: 'same-origin',
-      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
-      body: JSON.stringify({
-        source_type: ref.sourceType, source_id: ref.sourceId,
-        animal_id: ref.animalId, due_at: ref.dueAt,
-        delete_fulfillment: true
-      })
-    }).then(function (r) {
-      if (r.status === 200) { markOpen(ref); return; }
-      btn.disabled = false;
-      r.json().then(function (j) {
-        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
-      });
-    });
-  }
-
-  // One listener per node covers every state: the dispatch reads the
-  // CURRENT classes, so in-place flips keep working without rebinding.
-  // The dimmed late button (data-late, §6.2-2) records the missed
-  // occurrence behind ONE confirmation; everything else applies
-  // instantly (dosage dialog excepted).
-  Array.prototype.forEach.call(document.querySelectorAll('.plan-med-slot'), function (btn) {
-    btn.addEventListener('click', function () {
-      if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
-      if (btn.disabled) { return; }
-      if (btn.getAttribute('data-late') === 'true' && !window.confirm(i18n.lateConfirm)) { return; }
-      applySlot(btn);
-    });
-  });
-
-  document.getElementById('dashMedDosageSubmit').addEventListener('click', function () {
-    if (!pending) { return; }
-    var dosage = document.getElementById('dashMedDosageInput').value.trim();
-    if (!dosage) { return; }
-    var ref = pending.ref;
-    applyCall(ref, {dosage: dosage}).then(function (res) {
-      if (res.status === 201) {
-        // R5-2c: no reload — flip the originating button in place.
-        $('#dashMedDosageModal').modal('hide');
-        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
-        return;
-      }
-      var box = document.getElementById('dashMedDosageError');
-      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
-      box.classList.remove('d-none');
-    });
-  });
-})();
-</script>
+<%= partial("care_plan/plan_med_toggle.plush.html") %>
 
 <br/>
 
-<h3 class="d-inline-block">Dierenartsbezoeken vandaag</h3>
+<h3 class="d-inline-block">Veterinary visits today</h3>
 <%= if (len(todaysVetVisits)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Tijd</th>
-    <th>Dier</th>
-    <th>Dierenarts</th>
-    <th>Diagnose</th>
+    <th>Time</th>
+    <th>Animal</th>
+    <th>Veterinary</th>
+    <th>Diagnostic</th>
   </thead>
   <tbody>
     <%= for (vv) in todaysVetVisits { %>
@@ -351,32 +160,32 @@
 </table>
 </div>
   <%} else {%>
-<p>Geen</p>
+<p>None</p>
 <%}%>
 <br/>
 
 <h3 class="d-inline-block" id="todos">TODOs (<%= len(dashboardTodos) %>)</h3>
-<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> Alles</a>
+<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> All</a>
 <%= if (len(dashboardTodos)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th></th>
-    <th>Omschrijving</th>
-    <th>Datum</th>
+    <th>Description</th>
+    <th>Date</th>
     <th>Actions</th>
   </thead>
   <tbody>
     <%= for (v) in dashboardTodos { %>
       <tr>
         <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="TODO openen"><%= v.Todo.Description %></a></td>
+        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="Open TODO"><%= v.Todo.Description %></a></td>
         <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
         <td class="align-middle">
-          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('TODO als voltooid markeren?');">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('Mark this TODO as done?');">
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <input type="hidden" name="redirect" value="/#todos">
-            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Klaar</button>
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Done</button>
           </form>
         </td>
       </tr>
@@ -385,19 +194,19 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p>None</p>
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Logboek laatste 24 uur</h3>
+<h3 class="d-inline-block">Log entries (last 24h)</h3>
 <%= if (len(lastLogentries)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Aangemaakt</th>
-    <th>Bijgewerkt</th>
-    <th>Gebruiker</th>
-    <th>Beschrijving</th>
+    <th>CreatedAt</th>
+    <th>UpdatedAt</th>
+    <th>User</th>
+    <th>Description</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -409,7 +218,7 @@
         <td class="align-middle" width="100%"><%= logentry.Description %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
           </div>
         </td>
       </tr>
@@ -418,17 +227,17 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p>None</p>
 <%}%>
 
 <br/>
-<h3>Statistieken</h3>
-<h4 class="d-inline-block">Dieren in zorg</h4>
+<h3>Statistics</h3>
+<h4 class="d-inline-block">Animals in cares</h4>
 <div class="table-responsive">
 <table class="table table-sm">
 <thead>
     <th>Type</th>
-    <th>Aantal</th>
+    <th>Count</th>
   </thead>
   <tbody>
   <%= for (ac) in animalCountPerType { %>
@@ -438,7 +247,7 @@
     </tr>
   <%}%>
     <tr class="table-info">
-        <td class="align-middle">TOTAAL</td>
+        <td class="align-middle">TOTAL</td>
         <td class="align-middle"><%= totalAnimalCount %></td>
     </tr>
   <%}%>

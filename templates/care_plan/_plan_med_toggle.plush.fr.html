@@ -1,0 +1,198 @@
+<%# Shared medication slot toggle (bugs.md round-3, R3-2/R3-5/R3-6/R3-7
+    groundwork): single-click apply/undo for `.plan-med-slot` buttons plus
+    the dosage dialog (opened only on 422 dosage_required) and an error
+    message modal. ONE policy everywhere: confirm only for late records
+    (data-late="true"); everything else toggles INSTANTLY — no confirm,
+    no full reload; the button flips in place.
+
+    Include ONCE per page that renders `.plan-med-slot` buttons (care plan
+    medication section, dashboard medication table, animal Treatment/Plan
+    tabs). Requires jQuery + Bootstrap modal + a csrf-token meta tag. %>
+
+<!-- Dosage dialog — opens exclusively when the server answers 422
+     dosage_required. -->
+<div class="modal fade" id="planMedDosageModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><%= t("care_plan.apply.dosage_required_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning" id="planMedDosageDetail"></div>
+        <p class="text-muted d-none" id="planMedDosageWeight"></p>
+        <input type="text" class="form-control" id="planMedDosageInput" placeholder="0.1 ml" autocomplete="off">
+        <div class="alert alert-danger d-none mt-2" id="planMedDosageError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="planMedDosageSubmit"><%= t("care_plan.apply.dosage_submit") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Error message modal (replaces uncontrolled browser alerts). -->
+<div class="modal fade" id="planMedMessageModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="planMedMessageTitle"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <pre class="mb-0" id="planMedMessageBody" style="white-space:pre-wrap;font-family:inherit;"></pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var i18n = {
+    errorTitle: "<%= t("care_plan.message.error_title") %>",
+    lastWeight: "<%= t("care_plan.apply.last_weight") %>",
+    lateConfirm: "<%= t("care_plan.treatment.record_late_confirm") %>"
+  };
+  var pending = null;
+
+  function showMessage(title, body) {
+    document.getElementById('planMedMessageTitle').textContent = title;
+    document.getElementById('planMedMessageBody').textContent = body;
+    $('#planMedMessageModal').modal('show');
+  }
+
+  function applyCall(ref, extra) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
+    }
+    return fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
+    });
+  }
+
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      hm: btn.textContent.replace('○', '').replace('✓', '')
+          .replace('–', '').replace('⊘', '').replace('⏸', '').trim()
+    };
+  }
+
+  // markApplied flips the toggle button to its done state IN PLACE — the
+  // button stays live (re-click undoes); the view link is untouched.
+  function markApplied(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.remove('btn-warning', 'btn-light', 'plan-apply-btn');
+    btn.classList.add('btn-success', 'plan-unapply-btn');
+    btn.textContent = '✓ ' + ref.hm;
+    btn.disabled = false;
+  }
+
+  function markOpen(ref) {
+    var btn = ref.btn;
+    if (!btn) { return; }
+    btn.classList.remove('btn-success', 'plan-unapply-btn');
+    btn.classList.add('btn-warning', 'plan-apply-btn');
+    btn.textContent = '○ ' + ref.hm;
+    btn.disabled = false;
+  }
+
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
+    document.getElementById('planMedDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('planMedDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = i18n.lastWeight + ': ' + warn.last_weight + ' g (' + when + ')';
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('planMedDosageInput').value = '';
+    document.getElementById('planMedDosageError').classList.add('d-none');
+    $('#planMedDosageModal').modal('show');
+  }
+
+  function applySlot(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    applyCall(ref).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  function unapplySlot(btn) {
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
+        delete_fulfillment: true
+      })
+    }).then(function (r) {
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
+  // Delegated listener: covers buttons rendered after page load and
+  // in-place flips without rebinding. The dispatch reads the CURRENT
+  // classes. The dimmed late button (data-late, §6.2-2) records the
+  // missed occurrence behind ONE confirmation.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-med-slot') : null;
+    if (!btn) { return; }
+    if (btn.classList.contains('plan-unapply-btn')) { unapplySlot(btn); return; }
+    if (btn.disabled) { return; }
+    if (!btn.classList.contains('plan-apply-btn')) { return; }
+    if (btn.getAttribute('data-late') === 'true' && !window.confirm(i18n.lateConfirm)) { return; }
+    applySlot(btn);
+  });
+
+  document.getElementById('planMedDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('planMedDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending.ref;
+    applyCall(ref, {dosage: dosage}).then(function (res) {
+      if (res.status === 201) {
+        $('#planMedDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
+      var box = document.getElementById('planMedDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
+    });
+  });
+})();
+</script>
