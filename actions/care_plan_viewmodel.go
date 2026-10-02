@@ -487,6 +487,10 @@ func betterTierSlot(best int, first time.Time, s MedSlotView) (int, time.Time) {
 // the future ones recede. The urgent slot is the earliest same-tier open
 // slot, matching betterTierSlot's choice.
 func markSeriesUrgency(series *MedSeriesView, tier int) {
+	// Single pass: flag every open later-tier sibling as Future and keep
+	// the EARLIEST same-tier open slot — the exact one betterTierSlot used
+	// to place the series (ties: first encountered).
+	var urgent *MedSlotView
 	for ri := range series.Rows {
 		for si := range series.Rows[ri].Slots {
 			s := &series.Rows[ri].Slots[si]
@@ -495,19 +499,7 @@ func markSeriesUrgency(series *MedSeriesView, tier int) {
 			}
 			if s.Tier > tier {
 				s.Future = true
-			}
-		}
-	}
-	// The urgent slot is the EARLIEST same-tier open slot — the exact one
-	// betterTierSlot used to place the series (ties: first encountered).
-	var urgent *MedSlotView
-	for ri := range series.Rows {
-		for si := range series.Rows[ri].Slots {
-			s := &series.Rows[ri].Slots[si]
-			if s.Done || s.Overridden || s.Tier != tier {
-				continue
-			}
-			if urgent == nil || s.DueAt.Before(urgent.DueAt) {
+			} else if s.Tier == tier && (urgent == nil || s.DueAt.Before(urgent.DueAt)) {
 				urgent = s
 			}
 		}
