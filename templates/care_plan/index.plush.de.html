@@ -79,18 +79,25 @@
   <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
 </div>
 
-<%# A3 summary strip: urgency overview + jump anchors — the anchors are
-     the tier sections themselves (fix 2), always present, no per-card
-     ids. Anchors render only when the state has work. %>
+<%# A3 summary strip: an INDEX of the tier sections, not a second opinion
+     about them (R4-7.21). Three measured defects came from it disagreeing
+     with what the page actually renders:
+       - it counted OCCURRENCES across days (view.Stats, via statsOf) while
+         the sections are today-scoped, so "Later 83" sat above a section
+         badged 31 (medication) and 10 (observation);
+       - its anchors were the hardcoded row-kind ids #tier-late / #tier-now
+         / #tier-later, which feeding never renders (its sections are
+         #feed-tier-N) — both links were dead on /care_plan?kind=feeding;
+       - it gated on the WORKLOAD count, so feeding advertised "Later 99+"
+         with no Later section on the page at all.
+     A pill now appears only when its section exists, links to that section's
+     real id, and repeats that section's own number in the same unit — the
+     strip can no longer contradict the header it points at. view.Stats still
+     counts the workload for the nav/zone tabs, which are workload-wide by
+     design. %>
 <div class="mb-2" id="planSummaryStrip">
-  <%= if (view.Stats.Late > 0) { %>
-    <a class="badge badge-danger mr-1" href="#tier-late"><%= t("care_plan.tier.late") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LateCap %></span></a>
-  <% } %>
-  <%= if (view.Stats.Now > 0) { %>
-    <a class="badge badge-warning mr-1" href="#tier-now"><%= t("care_plan.tier.now") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.NowCap %></span></a>
-  <% } %>
-  <%= if (view.Stats.Later > 0) { %>
-    <a class="badge badge-success mr-1" href="#tier-later"><%= t("care_plan.tier.later") %> <span class="badge badge-pill badge-light ml-1"><%= view.Stats.LaterCap %></span></a>
+  <%= for (sl) in view.TierLinks { %>
+    <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
   <% } %>
 </div>
 
@@ -148,6 +155,7 @@
        below and never appear in the tiers. %>
   <%= if (view.Kind != "feeding" && view.Kind != "cleanup") { %>
 
+    <%= if (view.TierHasWork[0]) { %>
     <div class="plan-tier plan-tier-late" id="tier-late">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.late") %></span>
@@ -243,7 +251,9 @@
       <% } %>
       </div>
     </div>
+    <% } %>
 
+    <%= if (view.TierHasWork[1]) { %>
     <div class="plan-tier plan-tier-now" id="tier-now">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.now") %></span>
@@ -335,7 +345,9 @@
       <% } %>
       </div>
     </div>
+    <% } %>
 
+    <%= if (view.TierHasWork[2]) { %>
     <div class="plan-tier plan-tier-later" id="tier-later">
       <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="true" role="button" tabindex="0">
         <span><%= t("care_plan.tier.later") %></span>
@@ -427,6 +439,7 @@
       <% } %>
       </div>
     </div>
+    <% } %>
 
   <% } %>
 
@@ -455,7 +468,7 @@
         <div class="plan-tier plan-tier-<%= view.FeedTiers[ti][0].TierKey %>" id="feed-tier-<%= ti %>">
           <div class="plan-tier-header" data-toggle="collapse" data-target="#feed-tier-<%= ti %>-rows" aria-expanded="true" role="button" tabindex="0">
             <span><%= t("care_plan.tier." + view.FeedTiers[ti][0].TierKey) %></span>
-            <span class="badge badge-pill badge-secondary"><%= view.FeedTierCap[ti] %></span>
+            <span class="badge badge-pill badge-secondary"><%= view.FeedTierOpenCap[ti] %></span>
             <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
           </div>
           <div class="collapse show plan-tier-body" id="feed-tier-<%= ti %>-rows">

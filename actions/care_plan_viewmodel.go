@@ -84,6 +84,20 @@ type CardView struct {
 	FulfillmentLink string // done rows: /cares|/treatments/{fid} — empty otherwise
 }
 
+// TierLink is one pill of the summary strip (R4-7.21): a jump link to a
+// tier section that EXISTS, repeating that section's OWN count in the unit
+// the section itself uses. The strip used to render view.Stats — a
+// workload-wide count of open occurrences across days, computed before the
+// sections were scoped to today — which made it disagree with the header it
+// pointed at.
+type TierLink struct {
+	ID    string // section element id: "tier-late" (row kinds) / "feed-tier-0"
+	Key   string // tier key for care_plan.tier.<Key> ("late"/"now"/"later")
+	Num   int
+	Cap   string
+	Class string
+}
+
 // ZoneTab is one zone filter tab with its open count.
 type ZoneTab struct {
 	Name     string
@@ -279,6 +293,15 @@ type CareView struct {
 type DayPlanView struct {
 	// Tiers[i] = urgency section: 0 late · 1 now · 2 later (§U2).
 	Tiers [3]TierView
+	// R4-7.21: TierHasWork[i] reports whether urgency tier i has anything to
+	// render. The three row-kind tier sections used to render UNCONDITIONALLY,
+	// so an empty one appeared under a "0" badge (measured: a "Now 0" header
+	// with no rows, on both the medication and the observation page) — a
+	// header that promises nothing, and a jump target for the summary strip's
+	// "Now" pill. Feeding already guarded itself on len(FeedTiers[i]).
+	TierHasWork [3]bool
+	// TierLinks is the rendered summary strip, in order (R4-7.21).
+	TierLinks []TierLink
 	// MedTiers[i] = the medication-kind urgency sections (R3-5): one line
 	// per (animal × drug series) — `<animal> — <medication> | hour toggles`
 	// — instead of the ordinary table rows the other kinds render.
@@ -319,6 +342,17 @@ type DayPlanView struct {
 	FeedTiers     [3][]FeedingGroupView
 	FeedTierCount [3]int
 	FeedTierCap   [3]string
+	// R4-7.21: FeedTierOpen[i] counts the OPEN APPLICABLE OCCURRENCES of the
+	// feeding groups in tier i — the unit every other tier badge on this page
+	// already speaks. FeedTierCount counts GROUPS; a group holds one chip per
+	// animal, so the two disagreed by a factor of the cage size (measured:
+	// 162 groups / 218 occurrences) and switching the kind tab silently
+	// changed what the number meant. R4-1.3 settled the unit for medication
+	// ("one unit, one number, everywhere"); feeding now follows it, and the
+	// summary strip — which counts occurrences via statsOf — agrees with the
+	// section header instead of contradicting it.
+	FeedTierOpen    [3]int
+	FeedTierOpenCap [3]string
 }
 
 // FilterStats is the CP4/D6 summary of one rendered view, counted in
@@ -443,8 +477,56 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 		v.fillMedTiers(v.buildMedGroups(plan, zone, false), plan.Now)
 	}
 	v.Stats = statsOf(plan, zone, kind, plan.Now)
+	fillTierHasWork(v, kind)
 
 	return v
+}
+
+// fillTierHasWork records, per urgency tier, whether anything renders in it.
+// Feeding fills FeedTiers, medication fills MedTiers, every other row kind
+// fills Tiers[i].Cards. The summary strip is gated on this too (R4-7.21):
+// a pill whose section does not exist is a dead jump target that also
+// advertised work the page never shows.
+func fillTierHasWork(v *DayPlanView, kind string) {
+	for i := 0; i < 3; i++ {
+		switch {
+		case kind == careplan.KindFeeding || kind == careplan.KindCleanup:
+			v.TierHasWork[i] = len(v.FeedTiers[i]) > 0
+		case kind == careplan.KindMedication:
+			v.TierHasWork[i] = len(v.MedTiers[i]) > 0
+		default:
+			v.TierHasWork[i] = len(v.Tiers[i].Cards) > 0
+		}
+	}
+	v.TierLinks = tierLinks(v, kind)
+}
+
+// tierLinks builds the summary strip: one pill per tier that renders, in
+// late → now → later order, each pointing at the real section id and showing
+// the same number as that section's header.
+func tierLinks(v *DayPlanView, kind string) []TierLink {
+	keys := [3]string{TierLate, TierNow, TierLater}
+	classes := [3]string{"badge-danger mr-1", "badge-warning mr-1", "badge-success mr-1"}
+	feed := kind == careplan.KindFeeding || kind == careplan.KindCleanup
+	out := make([]TierLink, 0, 3)
+	for i := 0; i < 3; i++ {
+		if !v.TierHasWork[i] {
+			continue
+		}
+		tl := TierLink{Key: keys[i], Class: classes[i]}
+		if feed {
+			tl.ID = "feed-tier-" + fmt.Sprint(i)
+			tl.Num, tl.Cap = v.FeedTierOpen[i], v.FeedTierOpenCap[i]
+		} else if kind == careplan.KindMedication {
+			tl.ID = "tier-" + keys[i]
+			tl.Num, tl.Cap = v.MedTierOpen[i], v.MedTierOpenCap[i]
+		} else {
+			tl.ID = "tier-" + keys[i]
+			tl.Num, tl.Cap = v.Tiers[i].Count, v.Tiers[i].CountCap
+		}
+		out = append(out, tl)
+	}
+	return out
 }
 
 // fillMedTiers distributes per-animal drug series over the three urgency
@@ -571,6 +653,18 @@ func addTierOpenCounts(v *DayPlanView, series MedSeriesView) {
 	}
 }
 
+// feedTierOpenCount totals the OPEN APPLICABLE OCCURRENCES of a feeding
+// tier — the chips its apply buttons would record. R4-7.21: the tier header
+// badge counts these, not the groups, so the number never changes meaning
+// when the caregiver switches the kind tab.
+func feedTierOpenCount(groups []FeedingGroupView) int {
+	n := 0
+	for _, g := range groups {
+		n += g.ApplicableCount
+	}
+	return n
+}
+
 // fillFeedTiers distributes the filtered feeding cards over the three
 // urgency tiers (R4-4.3) and stamps each card with its GROUP status —
 // the most urgent non-superseded chip (R4-4.4). Cards with no open work
@@ -592,6 +686,8 @@ func fillFeedTiers(v *DayPlanView) {
 	for i := range v.FeedTiers {
 		v.FeedTierCount[i] = len(v.FeedTiers[i])
 		v.FeedTierCap[i] = BadgeCap(v.FeedTierCount[i])
+		v.FeedTierOpen[i] = feedTierOpenCount(v.FeedTiers[i])
+		v.FeedTierOpenCap[i] = BadgeCap(v.FeedTierOpen[i])
 		// R4-7.14: within a tier, the row the caregiver must act on FIRST
 		// comes first. The tiers already encode urgency (late → now → later),
 		// but inside a tier the rows arrived in cage order, so "16:00, 18:00,

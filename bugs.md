@@ -361,13 +361,72 @@ to split a multi-byte rune). Generator fixed to truncate on a rune and word
 boundary; existing rows left untouched (no destructive DB change). Plan:
 §R4-7.20.
 
-### R4-7.21 — Counts do not all mean the same thing (**Open**)
+### R4-7.21 — Counts do not all mean the same thing (**Done**, product)
 
 On the compact feeding screen the summary strip counts **occurrences** while
 the tier badge counts **groups**, and both saturate at `99+`, so `162` and
 `351` render identically. Measured: `headerBadge=99+ ROWS=162
 CHIP_OCCURRENCES=351`. Direction given: a badge counts **what is visible in
 its section** — groups everywhere, one unit, one meaning. Plan: §R4-7.21.
+
+**Fixed**, and the measurement corrected the stated direction. Probing the live
+DOM found FOUR defects, not one, and the entry's proposed direction ("groups
+everywhere") would have been the wrong call — it conflicts with the decision
+R4-1.3 already made for medication ("the badge counts the tier's occurrences
+… One unit, one number, everywhere"). Switching the kind tab from medication to
+feeding silently changed what the number meant: medication tier badges counted
+occurrences, feeding ones counted groups. So the unit is **occurrences**
+everywhere, matching what the apply buttons actually record.
+
+The four measured defects:
+
+- **Unit split.** `FeedTierCount[i] = len(v.FeedTiers[i])` (groups) against a
+  strip counting occurrences. Added `FeedTierOpen[i]`, summing each group's
+  `ApplicableCount` — the chips its apply button would record — and the tier
+  header now shows `FeedTierOpenCap`. `FeedTierCount` is kept for callers that
+  want "how many rows".
+- **Dead anchors.** The strip hardcoded `href="#tier-late"` / `#tier-now` /
+  `#tier-later`, but those are the ROW-kind section ids; feeding renders
+  `#feed-tier-N`. Measured `targetExists:false` for both pills on
+  `/care_plan?view=compact&kind=feeding`.
+- **A pill for a section that does not exist.** The strip gated on the
+  workload count, so feeding advertised "Later 99+" while only `feed-tier-0`
+  was on the page.
+- **Empty sections badged "0".** The three row-kind tier sections rendered
+  unconditionally, so medication and observation both showed a "Now 0" header
+  over no rows — and it was a jump target.
+
+All four are one fix: the strip is now an **index of the sections that exist**,
+not a second opinion about them. `tierLinks` (Go, not the template — plush has
+no `append`/`itoa`/ternary, so a template version would have silently rendered
+a wrong list) emits one pill per tier that renders, with that section's real
+id and that section's own number. `TierHasWork[i]` gates both the pill and the
+row-kind section. `view.Stats` still counts the workload for the nav/zone tabs,
+which are workload-wide by design.
+
+Re-measured — every pill resolves and equals its section header, zero
+violations, in en-US/fr/de/nl:
+
+| kind | strip | agrees with section |
+|---|---|---|
+| feeding | `Late 99+` → `#feed-tier-0` | 99+ = 99+ |
+| medication | `Late 24` → `#tier-late`, `Later 31` → `#tier-later` | 24=24, 31=31 |
+| observation | `Late 13` → `#tier-late`, `Later 10` → `#tier-later` | 13=13, 10=10 |
+| care / weighing / cleanup | (empty strip, no tier sections) | — |
+
+Observation's "Later" went 31 → 10 and medication's stayed 31 — both are now the
+number actually in the section instead of a cross-day workload figure.
+
+Five tests in `actions/care_plan_counts_r421_test.go`: the feeding badge counts
+occurrences not groups; a group with no open work contributes nothing; every
+pill's id is the section that renders, for all five kinds; `Cap` always equals
+`BadgeCap(Num)`; and an empty tier yields neither a section nor a pill.
+
+Gates: `go build`/`go vet`/`staticcheck` clean; gocognit/gocyclo diffed against
+HEAD empty in both directions (the occurrence sum is extracted into
+`feedTierOpenCount` so `fillFeedTiers` did not cross the threshold); full
+`-race` suite exit 0. The 4 template forks are md5-identical in the edited
+block (`114a513609cdc35dd5ce3f7b36014fc7`). No destructive DB changes.
 
 ### R4-7.22 — The same protocol sentence is rendered four times (**Done**)
 
