@@ -222,7 +222,11 @@ mirrors `Treatments.Show`.
 
 ---
 
-## Open items
+## Round 7 items — all resolved
+
+Every entry below is **Done** as of commit `00cc250` (R4-7.15, the last open
+one). The heading used to read "Open items"; it is kept as the single running
+list rather than archived piecemeal, so the reasoning stays next to the entry.
 
 ### R4-7.12 — Protocol trace repeats what the row already shows (**Done**)
 
