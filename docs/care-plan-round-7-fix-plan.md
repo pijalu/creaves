@@ -802,3 +802,30 @@ templates. Gates clean; the 7 `actions` failures are byte-for-byte the
 pre-existing baseline set.
 
 Full measurements: `tmp/browser_evidence/round7/e2e-round7-part3-todo-glyph.md`.
+
+---
+
+## Final validation sweep (2026-10-03) — **Done**
+
+Whole-round re-verification after the last code commit (`00cc250`), one gate per
+run: `go build ./...` OK · `go vet ./...` OK · `staticcheck ./...` OK (no output)
+· `gocognit -over 15 .` and `gocyclo -over 12 .` intersect **zero** changed files
+· `go test -count=1 -race -cover ./...` all packages ok · server log 0 `EROR`,
+0 panics, 0 HTTP 500.
+
+The running dev binary predated the final commit, so it was rebuilt from HEAD and
+restarted before measuring; `public/assets` re-checked against
+`assets/css/care-plan.scss` (the `.plan-med-animal` rule is in the compiled CSS).
+
+agent-browser, DOM/geometry dumps, admin session, en-US + fr + de + nl:
+
+| URL | measured |
+|---|---|
+| `/care_plan` | nav + strip localized in all 4 locales, 162 apply buttons, 0 raw i18n keys, 0 horizontal overflow |
+| `/care_plan?view=compact&kind=medication` | 36 lines, 58 slots: 26 red / 31 white / 1 green (no yellow — nothing in the due-now window at 02:2x; the mapping is pinned by `TestSlotTierClass`); strip Late 24 / Later 31 reconciles (31 == the 31 white buttons; the 2 extra red are the documented closed-window `– 08:00`/`– 12:00` slots); buckets EVENING/SOIR/ABEND/AVOND; animal column ONE width 352.7 px + ONE tint; 36 button groups right-aligned at x = 1246; ℹ lead first in every line, top delta 0, titles localized |
+| `/care_plan?view=compact&kind=feeding` | 162 rows, 29 collapsible (all `aria-expanded="false"`), 133 single-animal, 167 time sub-groups ("yesterday 09:00" / "gestern 09:00"), red tier body `rgb(248,215,218)`, red dot `rgb(220,53,69)`, checks `vertical-align: middle` — identical in all 4 locales |
+| `/care_rules` | 20 rows, headers localized incl. de/nl |
+| `/care_matchers` | 25 rows, headers + expression humanizer localized |
+| `/animals/10221#nav-plan` | 9 tab panes, all three modals outside every pane, Details card above the day cards (63 vs 150), trace table 9 rows × 6 cells with edit+delete, "occurrence" absent, no description cut mid-word, schedule sentence localized, navbar inline |
+
+Evidence: `tmp/browser_evidence/round7/e2e-round7-final-validation.md` (local).
