@@ -336,3 +336,51 @@ All Round-4 bugs resolved, quality-gated and validated e2e
 Quality gates (run separately, clean): `go vet ./...`, `staticcheck ./...`,
 `gocognit -over 15 .` (no new offenders), `gocyclo -over 12 .` (no new
 offenders), `go test -count=1 -race -cover ./...` (all packages ok).
+
+---
+
+## Re-verification (2026-10-03) — one regression found and fixed
+
+Every Round-4 item re-measured in a live agent-browser session (admin, dev
+server rebuilt from HEAD, four locales, read-only DOM dumps — no clicks that
+mutate state, no DB writes). All held **except one**, in R4-3.2's own claim:
+the ℹ column is aligned **only while the viewport is wide enough**.
+
+**The defect.** `.med-series` (the series that sits next to the ANIMAL cell in
+a `flex-wrap` row) had `flex-basis: auto`, so its hypothetical size was its
+MAX-CONTENT width — label plus every button side by side. When that exceeded
+the space left by the animal column the WHOLE series jumped onto a flex line of
+its own, where it then fitted comfortably (1092 px), so the row looked
+innocent — but the ℹ travelled with it and landed **361 px left of every other
+row**: 33 lines at x=455, 3 at x=94, and the three offenders were exactly the
+widest series. At 1600/1280/1024 px the spread was 361 in all four locales;
+with the series wide enough it was 0, which is why the earlier sweep read
+"top delta 0" and missed it.
+
+**Fix** — CSS only, in the artefact of record
+(`assets/css/care-plan.scss`, imported by `application.scss`, so all four
+locale forks inherit it):
+
+```
+.med-series {
+  min-width: 0;
+  flex: 1 1 0;
+}
+```
+
+A zero flex-basis declares "this item shares the row": the series shrinks to
+the remaining width and its OWN line folds per the R4-2.3 A/B/C rule. After,
+in all four locales: ℹ spread **0 px** at 1600/1280/1024, `hOverflow false`,
+and the three former offenders take shape B — buttons stacked, line height
+129 px, `clipped 0`. The A/B/C folding rules and the right-alignment of
+`.plan-med-btns` are untouched.
+
+**Test**: `TestMedSeriesStaysOnTheAnimalCellsLine`
+(`actions/care_plan_round4_series_align_test.go`) pins `min-width: 0` +
+`flex: 1 1 0`, that the line and the button group still wrap, that folded
+buttons stay right-aligned, and that no overflow/ellipsis is introduced.
+Verified to be a live tripwire: swapping the basis back to `auto` fails it.
+
+Evidence: `tmp/browser_evidence/round4/e2e-round4-revalidation.md` (DOM dumps
+for all four locales × the medication, day-plan and three animal Protocol
+pages, plus the served-page check of the 30 s reload floor).

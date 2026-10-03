@@ -120,6 +120,26 @@
   scroll-margin-top: 60px;
 }
 
+// The whole line is `flex-grow-1` inside the row that also holds the ANIMAL
+// cell, and that row WRAPS. A flex item's automatic minimum size is its
+// min-content width, so a series whose buttons + label were wider than the
+// space left by the animal column could not shrink: the ENTIRE series wrapped
+// onto the next flex line, landing at the container's left edge — and with it
+// the ℹ, which then sat 361 px left of every other row's (measured: 33 lines
+// at x=455, 3 at x=94). `min-width: 0` drops that automatic minimum, so the
+// series shrinks onto the animal cell's line and the A/B/C rule below decides
+// how its own content folds (B: buttons wrap, C: label wraps).
+.med-series {
+  min-width: 0;
+  // `flex-basis: auto` sizes the item from its CONTENT, and a flex line only
+  // keeps an item on a line when its hypothetical size fits. A series whose
+  // label + all its buttons side by side exceed the space left by the animal
+  // column therefore jumped to a line of its own — where it then fitted
+  // comfortably (1092 px), which is why the ℹ landed 361 px left of the other
+  // rows. A zero basis declares "this item shares the row": it shrinks to the
+  // remaining width and its OWN line folds per the A/B/C rule below.
+  flex: 1 1 0;
+}
 // R4-2.3: the A/B/C entry layout rule of a medication series line.
 // One flex line, three shapes, all from the same markup:
 //   A/ <ℹ> <label>            | <b1><b2>…<bX>   buttons on one line
