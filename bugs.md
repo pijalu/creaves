@@ -364,11 +364,48 @@ R4-7.6's per-chip `plan-chip-due` assertion in `TestFeedingSectionRender` was
 **retargeted, not deleted**: its intent (the time is visible) is now asserted as
 one label per sub-group, plus a `NotContains` that no animal repeats a time.
 
-### R4-7.15 — Compact medication animal column is ragged (**Open**)
+### R4-7.15 — Compact medication animal column is ragged (**Done**, product)
 
 `/care_plan?view=compact&kind=medication`: the animal cell has no width and no
 background, so labels stop reading as a column. Measured: distinct widths
 `167.9 … 180.8px`, `bg=rgba(0,0,0,0)`. Plan: §R4-7.15.
+
+User's words: "format the animal column to make sure all animal have the same
+lenght + same light red background color". This entry was the only Round-7 item
+still Open with **no goal todo tracking it** — re-measured 2026-10-03 and still
+real: 36 cells, **13 distinct widths** (168..181px plus one 239px outlier),
+`bg=rgba(0,0,0,0)` on all 36.
+
+**The tension the fix had to resolve.** "The same length" wants a hard width;
+R4-7.24 ("never cut a description on any page") forbids cutting the longest
+label. A fixed px constant satisfies one and breaks the other depending on the
+data, so the width is **computed per page from the longest label** across all
+three tiers and emitted in `ch`:
+
+- `DayPlanView.MedAnimalColCh` + `medAnimalColCh(tiers)` — rune count (not
+  bytes: a French species name is multi-byte, and byte-counting would size the
+  column ~3× too wide — the same defect class as R4-7.20) plus **one** spare
+  column, because `ch` is the width of `0` and a label of narrow glyphs renders
+  wider than its rune count.
+- The value is emitted as `min-width`, with **no** overflow rule and **no**
+  ellipsis: a label longer than the computed width simply grows. "Same length"
+  for every row that fits, and nothing is ever cut.
+- `.plan-med-animal` in `assets/css/care-plan.scss` — `flex: 0 0 auto` plus the
+  light red `#fdf2f3`, the exact value the user approved for this page and
+  already used by `.plan-item-late`.
+
+**Measured** (agent-browser, en-US/fr/de/nl, `?view=compact&kind=medication`):
+before `{168:4, 169:6, 170:2, 172:1, 174:2, 176:2, 177:1, 178:4, 179:4, 180:3,
+181:6, 239:1}` + `rgba(0,0,0,0)`×36 → after **`{353: 36}`** + **`rgb(253,242,243)`×36**,
+with `clippedCount: 0` and the 239px worst-case label
+(`1903/26 · Tourterelle turque · S11`) intact. The change is scoped to the
+medication tier bodies of `care_plan/index.plush*.html` — verified 0 occurrences
+on the feeding/observation/care/weighing pages, so the animal Treatment tab and
+the dashboard (which share `_med_series`) are untouched.
+
+Pinned by `actions/care_plan_r415_animal_column_test.go` (5 tests), including
+`TestMedAnimalColumnStyleNeverCuts`, which fails if anyone swaps `min-width` for
+`width` or introduces `text-overflow: ellipsis` on this column.
 
 ### R4-7.16 — Compact observation does not follow the medication format (**Done**, product)
 

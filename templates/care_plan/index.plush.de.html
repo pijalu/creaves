@@ -172,7 +172,14 @@
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[0] { %>
             <div class="d-flex align-items-start flex-wrap border-bottom py-1">
-              <div class="mr-2 text-nowrap py-1">
+              <%# R4-7.15: the ANIMAL column. It had no width and no
+                  background, so the labels stopped reading as a column
+                  (measured: 13 distinct widths across 36 cells, every one
+                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
+                  page, sized from the longest label — a per-row min-width
+                  would still leave the longest row wider, and a hard-coded px
+                  would cut a long label (R4-7.24). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>
@@ -207,7 +214,14 @@
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[1] { %>
             <div class="d-flex align-items-start flex-wrap border-bottom py-1">
-              <div class="mr-2 text-nowrap py-1">
+              <%# R4-7.15: the ANIMAL column. It had no width and no
+                  background, so the labels stopped reading as a column
+                  (measured: 13 distinct widths across 36 cells, every one
+                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
+                  page, sized from the longest label — a per-row min-width
+                  would still leave the longest row wider, and a hard-coded px
+                  would cut a long label (R4-7.24). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>
@@ -242,7 +256,14 @@
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[2] { %>
             <div class="d-flex align-items-start flex-wrap border-bottom py-1">
-              <div class="mr-2 text-nowrap py-1">
+              <%# R4-7.15: the ANIMAL column. It had no width and no
+                  background, so the labels stopped reading as a column
+                  (measured: 13 distinct widths across 36 cells, every one
+                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
+                  page, sized from the longest label — a per-row min-width
+                  would still leave the longest row wider, and a hard-coded px
+                  would cut a long label (R4-7.24). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>

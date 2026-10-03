@@ -147,6 +147,20 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+// R4-7.15: the medication page's ANIMAL column. It carried no width and no
+// background, so the labels stopped reading as a column — measured 13
+// distinct widths across 36 cells and `bg=rgba(0,0,0,0)` on every one.
+//
+// The width itself is a per-page value (view.MedAnimalColCh, sized from the
+// longest label) so no label is ever cut (R4-7.24); this class only makes the
+// cells behave as a column and carries the tint the user asked for — the same
+// light red the late rows already use.
+.plan-med-animal {
+  flex: 0 0 auto;
+  background-color: #fdf2f3;
+  border-radius: 2px;
+  padding-left: 0.35rem;
+}
 .plan-med-btns {
   // ONE right-aligned button group that wraps: one line when it fits (A),
   // stacked and still right-aligned when it does not (B).

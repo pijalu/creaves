@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"sort"
 	"time"
+	"unicode/utf8"
 
 	"creaves/models"
 	"creaves/models/careplan"
@@ -305,14 +306,26 @@ type DayPlanView struct {
 	// MedTiers[i] = the medication-kind urgency sections (R3-5): one line
 	// per (animal × drug series) — `<animal> — <medication> | hour toggles`
 	// — instead of the ordinary table rows the other kinds render.
-	MedTiers  [3][]MedTierLine
-	Feedings  []FeedingGroupView // cage × diet groups (feeding kind only)
-	Cares     []CareView         // cage cleanup groups (cleanup kind only)
-	History   []CardView         // terminal + superseded rows, subdued
-	Zones     []ZoneTab          // without the "all" entry (rendered by the template)
-	Kinds     []KindChip
-	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
-	View      string
+	MedTiers [3][]MedTierLine
+	// R4-7.15: the medication page's animal COLUMN. It had no width and no
+	// background at all, so the labels stopped reading as a column — measured
+	// 13 distinct widths across 36 cells (168..181px, one 239px outlier) and
+	// `bg=rgba(0,0,0,0)` on every one.
+	//
+	// One shared width in `ch`, taken from the LONGEST label on the page. A
+	// hard-coded px would either cut the longest label or leave the short ones
+	// ragged, and R4-7.24 ("never cut a description on any page") applies to
+	// the animal label too. `ch` keeps it proportional to the rendered font,
+	// and one value for the whole page is what makes the cells equal — a
+	// per-row min-width would still leave the longest row wider.
+	MedAnimalColCh int
+	Feedings       []FeedingGroupView // cage × diet groups (feeding kind only)
+	Cares          []CareView         // cage cleanup groups (cleanup kind only)
+	History        []CardView         // terminal + superseded rows, subdued
+	Zones          []ZoneTab          // without the "all" entry (rendered by the template)
+	Kinds          []KindChip
+	UpdatedAt      string // HH:MM of render (auto-refresh indicator, §10-CP6c)
+	View           string
 	// Detailed switches row density only: compact folds each
 	// (source × animal) group to its next open action ("+N" badge),
 	// detailed lists every open current occurrence.
@@ -571,6 +584,31 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 			return v.MedTiers[i][a].Series[0].FirstDueAt.Before(v.MedTiers[i][b].Series[0].FirstDueAt)
 		})
 	}
+	v.MedAnimalColCh = medAnimalColCh(v.MedTiers)
+}
+
+// medAnimalColCh is the shared animal-column width for the whole medication
+// page: the longest label across ALL THREE tiers, in `ch` plus one spare
+// column. A label longer than this is never cut — the cell carries no
+// overflow rule, it simply grows.
+func medAnimalColCh(tiers [3][]MedTierLine) int {
+	// One spare column: `ch` is the width of "0", so a label made of narrow
+	// glyphs (digits, spaces, the `·` separators) renders WIDER than its rune
+	// count in ch. The spare column absorbs that; without it a label right at
+	// the limit would be clipped, and R4-7.24 forbids clipping.
+	const room = 1
+	widest := 0
+	for i := range tiers {
+		for _, g := range tiers[i] {
+			if n := utf8.RuneCountInString(g.AnimalLabel); n > widest {
+				widest = n
+			}
+		}
+	}
+	if widest == 0 {
+		return 0
+	}
+	return widest + room
 }
 
 // seriesTier reports the tier index of a series' most urgent OPEN slot
