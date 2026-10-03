@@ -85,7 +85,13 @@ var (
 	scriptBlockRE = regexp.MustCompile(`(?s)<script[^>]*>.*?</script>`)
 	// A translation wrapped in quotes inside a script — the R4-7.17 shape.
 	bareTranslationRE = regexp.MustCompile("[\"']<%=\\s*t\\([^)]*\\)\\s*%>[\"']")
-	htmlEntityRE      = regexp.MustCompile(`&#\d+;|&[a-z]+;`)
+	// A jsString call wrapped in quotes — the Round-8 shape (R8-1). jsString
+	// already emits a quoted literal; an outer quote pair yields
+	// `""value"" …` which is a hard JS syntax error and kills the whole
+	// script block (measured live: window.planApply undefined, every shared
+	// apply control dead on /care_plan and the animal tabs).
+	quotedJSStringRE = regexp.MustCompile("[\"']<%=\\s*jsString\\(")
+	htmlEntityRE     = regexp.MustCompile(`&#\d+;|&[a-z]+;`)
 )
 
 // TestNoTemplateInterpolatesATranslationIntoAScript is the call-site guard.
@@ -100,7 +106,25 @@ func TestNoTemplateInterpolatesATranslationIntoAScript(t *testing.T) {
 		for i, block := range blocks {
 			require.NotRegexp(t, bareTranslationRE, block,
 				"%s script block %d still interpolates a translation; use jsString(t(...))", f, i)
+			require.NotRegexp(t, quotedJSStringRE, block,
+				"%s script block %d wraps jsString in quotes — it already emits a quoted literal (R8-1)", f, i)
 		}
+	}
+}
+
+// TestAutoRefreshGuardUsesActionAgeDirectly pins the R8-2 fix: the R4-4.1
+// floor must compare the action AGE against 30 s. planActionAge() already
+// returns Date.now() - lastActionAt; subtracting it from Date.now() again
+// inverts the guard in both directions (fresh page defers forever — measured
+// live: no reload for 95 s+; post-action page reloads immediately, defeating
+// the floor).
+func TestAutoRefreshGuardUsesActionAgeDirectly(t *testing.T) {
+	invertedRE := regexp.MustCompile(`Date\.now\(\) - window\.planActionAge\(\)`)
+	for _, f := range jsCarryingTemplateFiles() {
+		body, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		require.NotRegexp(t, invertedRE, string(body),
+			"%s double-subtracts planActionAge — guard inverted both ways (R8-2)", f)
 	}
 }
 

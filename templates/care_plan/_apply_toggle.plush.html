@@ -222,7 +222,7 @@
     var wBox = document.getElementById('planDosageWeight');
     if (warn.last_weight) {
       var when = (warn.last_weight_at || '').slice(0, 10);
-      wBox.textContent = "<%= jsString(t("care_plan.apply.last_weight")) %>: " + warn.last_weight + " g (" + when + ")";
+      wBox.textContent = <%= jsString(t("care_plan.apply.last_weight")) %> + ": " + warn.last_weight + " g (" + when + ")";
       wBox.classList.remove('d-none');
     } else {
       wBox.classList.add('d-none');

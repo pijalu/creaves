@@ -27,7 +27,90 @@ round is closed.
 
 ## Open items
 
-_None — the current round is closed._
+Round 8 — revalidation sweep of the Round-7 commits (care-plan-round / fixes),
+all findings reproduced live via agent-browser against the local dev instance
+(admin session, en-US) on 2026-10-03.
+
+### R8-1 `_apply_toggle` script block is a JS syntax error — every shared apply control dead
+
+**Severity**: critical. **Found**: 2026-10-03, agent-browser on `/care_plan?kind=feeding`.
+
+**Defect**: `templates/care_plan/_apply_toggle.plush.html` line 225
+(= all four forks) wraps the `jsString(...)` call in literal quotes:
+
+```js
+wBox.textContent = "<%= jsString(t("care_plan.apply.last_weight")) %>: " + ...
+```
+
+`jsString` emits a full JS string literal INCLUDING quotes (json.Marshal of
+the value), so the rendered script contains `"“Last recorded weight”: " + ...`
+— a syntax error (`Unexpected identifier 'Last'`) that kills the ENTIRE
+script block. Measured in the browser: `new Function(scriptText)` → parse
+error; `window.planApply` === undefined.
+
+**Blast radius** (all measured, en-US):
+- `planApply` never defined → the care_plan index script (auto-refresh,
+  batch apply, detail popup, late-record, history undo) crashes at
+  `var csrf = planApply.csrf` — the whole page-level script dies.
+- Group "Apply group (N)" buttons (`.plan-feeding-apply`, `.plan-cage-apply`)
+  do nothing when clicked (no batch modal, no request) — verified on the
+  VE28 row, 3 pending animals, feeding section.
+- Skip/defer buttons, detail popup, batch modal, late-record buttons all
+  dead on `/care_plan` for every kind.
+- The medication slot toggle (a DIFFERENT script, `_plan_med_toggle`) still
+  works — which is why single-slot apply/unapply tested fine.
+
+**Fix**: drop the outer quotes in all four forks:
+`wBox.textContent = <%= jsString(t("care_plan.apply.last_weight")) %> + ": " + ...`.
+
+**Validation**: `new Function(scriptText)` parses; `window.planApply` is an
+object; clicking a group apply opens the batch modal; apply records in DB.
+Locale sweep after fix: fr/de/nl/en all render
+`wBox.textContent = "<localized label>" + ": " + ...` and `planApply` is an
+object on every locale.
+
+**Status**: fixed 2026-10-03 (templates ×4 + regression pin in
+`TestNoTemplateInterpolatesATranslationIntoAScript` rejecting quote-wrapped
+`jsString` calls).
+
+### R8-2 care-plan auto-refresh never fires; R4-4.1 30 s floor inverted
+
+**Severity**: high (data staleness: day plan silently goes stale for users
+who never click anything; the R4-4.1 protection is also defeated for users
+who do).
+**Found**: 2026-10-03, agent-browser on `/care_plan` — injected
+`window.__probe` marker survived 95 s+ with no reload (period is 60 s),
+no console errors, no modal open, `planApply.busy()` false.
+
+**Defect**: `templates/care_plan/index.plush.html` line 626:
+
+```js
+if (Date.now() - window.planActionAge() < 30000) { return; } // R4-4.1 floor
+```
+
+`planActionAge()` already returns `Date.now() - lastActionAt`. The extra
+`Date.now() -` inverts the guard in BOTH directions:
+
+- Fresh page (`lastActionAt = 0`): `planActionAge()` = `Date.now()` →
+  `Date.now() - planActionAge()` = 0 < 30000 → **defers on every 5 s tick
+  forever** → the §10-CP6c auto-refresh NEVER fires until the user performs
+  an action. Measured: marker survives 95+ s.
+- Right after an action: `Date.now() - planActionAge()` = `lastActionAt`
+  (≈1.79e12) ≥ 30000 → guard passes immediately → the reload can fire 1 s
+  after the caregiver's change, wiping it from view — the exact failure
+  R4-4.1 was written to prevent.
+
+**Fix**: drop the extra subtraction:
+`if (window.planActionAge() < 30000) { return; }`.
+
+**Validation**: after fix, fresh page reloads at 60 s (injected marker
+disappears); after `planApply.markAction()` the page must survive the next
+30 s+ without reloading (marker persists past `nextReloadAt`).
+
+**Status**: fixed 2026-10-03 (all four `index.plush.*` forks +
+`TestAutoRefreshGuardUsesActionAgeDirectly` regression pin). Live-verified:
+fresh page marker gone at 50–60 s; action marked at +32 s → page still alive
+at +61 s (floor held), reloaded by +62–72 s (≥30 s after the action).
 
 ---
 

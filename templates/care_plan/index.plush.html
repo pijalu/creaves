@@ -623,7 +623,7 @@
   function scheduleReload() {
     setInterval(function () {
       if (Date.now() < nextReloadAt) { return; }              // not due yet
-      if (Date.now() - window.planActionAge() < 30000) { return; } // R4-4.1 floor
+      if (window.planActionAge() < 30000) { return; } // R4-4.1 floor
       if (jQuery('.modal').is(':visible') || planApply.busy()) { return; }
       window.location.reload();
     }, TICK_MS);
