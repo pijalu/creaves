@@ -757,7 +757,11 @@
                     <%# R4-7.12: the "N occurrence(s)" cell is gone — a
                         bare count explained nothing and offered nothing.
                         This column is the row's actions instead. %>
-                    <td class="align-middle text-nowrap">
+                    <%# R4-7.13: a rule row must WRAP — the exception reason
+                        is shown in full here (a cut reason would be
+                        meaningless, see bugs.md R4-7.24) and needs more than
+                        one line. Animal rows keep their nowrap buttons. %>
+                    <td class="align-middle <%= if (src.SourceType == "animal") { %>text-nowrap<% } else { %>text-break<% } %>">
                       <%= if (src.SourceType == "animal") { %>
                         <%# Edited/deleted in place. The delegated script
                             at the foot of the page binds by class, and
@@ -767,13 +771,17 @@
                             protocol yet. %>
                         <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
                         <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
-                      <% } else if (src.Editable && src.EditURL != "") { %>
-                        <%= linkTo(editCareRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-warning btn-sm", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
-                        <%= linkTo(careRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>"}) %>
                       <% } else { %>
-                        <%# A non-admin sees the rule's evidence but no
-                            control — never a link that 403s. %>
-                        <span class="text-muted small">&mdash;</span>
+                        <%# R4-7.13: a GLOBAL rule can be opted out of for
+                            THIS animal. Offered to every account that can
+                            reach the page (AnimalsResource.Update has no
+                            admin gate); the rule's own EDIT/DELETE links stay
+                            admin-only below. %>
+                        <%= partial("animals/trace_exception_ctrl.plush.html") %>
+                        <%= if (src.Editable && src.EditURL != "") { %>
+                          <%= linkTo(editCareRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-warning btn-sm", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+                          <%= linkTo(careRulePath({ care_rule_id: src.SourceID }), {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>"}) %>
+                        <% } %>
                       <% } %>
                     </td>
                   </tr>
@@ -956,6 +964,10 @@
       </div>
     </div>
   </div>
+
+  <%# R4-7.13: the per-animal rule-exception reason modal + its delegated JS.
+      Locale-agnostic partial, rendered once per animal page. %>
+  <%= partial("animals/trace_exception_modal.plush.html") %>
 
   <script>
   (function () {

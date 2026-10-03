@@ -230,13 +230,77 @@ The `{count} occurrence(s)` column added nothing once the schedule and
 content were visible; it now carries edit/delete per row. Plan:
 §R4-7.12 of `docs/care-plan-round-7-fix-plan.md`.
 
-### R4-7.13 — Per-animal exception to a global protocol (**Open**)
+### R4-7.13 — Per-animal exception to a global protocol (**Done**, product)
 
-An animal-specific "skip this protocol" exception, listed as an exception on
-the animal and suppressed-but-still-traceable in the plan. Semantics agreed:
-settable by anyone who can already edit the animal, permanent until removed,
-logging who set it and why. Needs an additive table + engine rule (no
-destructive migration — see the session constraint).
+The whole feature was **unreachable**, not broken, and it was unreachable in
+both directions:
+
+- `models/care_rule_exclusion.go` and the migration
+  `20261026090020_create_care_rule_exclusions` existed, and the day-plan engine
+  honoured the row (`care_plan_dayplan.go`, `ruleCoversAnimal`: `matched =
+  false` when an exclusion exists). But **no route, no handler and no page could
+  create one** — `grep care_rule_exclusion actions/app.go templates/` returned
+  nothing. The opt-out could not be set.
+- Even a hand-inserted row would have been **invisible**: R4-7.22 made the
+  protocol trace list "only the sources that actually produced occurrences" for
+  global rules. An excluded rule produces none, so the exception would have
+  vanished from the animal page — leaving no way to see it, explain it or undo
+  it. This is the trap the §4.1 exclusion feature falls into on its own.
+
+**Fix — additive, no migration, no destructive change:**
+
+1. `ProtocolSourceView` gains `Excluded`, `ExclusionID`, `ExclusionReason`, and
+   `appendExcludedRules` (in `actions/care_protocol_trace.go`) flags the rows
+   the engine already emitted and APPENDS the rows it did not — built from the
+   `care_rules` row itself, since a suppressed source has no `PlanSource` to
+   project from. `TestTraceListsTheExcludedRuleAsSuppressed` is the tripwire:
+   deleting the one `appendExcludedRules` call makes it fail with "it must still
+   be LISTED, or the exception is unremovable".
+2. `actions/care_rule_exclusions.go` — `CareRuleExclusionCreate` /
+   `CareRuleExclusionDestroy`, shaped on `CareAnimalPlanCreate`. `POST
+   /animals/{animal_id}/care_rule_exclusions`, `DELETE
+   /animals/{animal_id}/care_rule_exclusions/{id}` (registered in `app.go`
+   beside the animal-plan routes). 404 on an unknown rule, 422 on a malformed
+   id, **409 on a duplicate** (the trace renders one control per rule), and the
+   delete is scoped to the animal — another animal's exclusion is a 404, never
+   a cross-animal delete.
+3. **Permission:** no admin gate, deliberately — `AnimalsResource.Update` has
+   none either, so an animal's exception follows the animal.
+   `TestExclusionAPIIsOpenToAnyAccountThatCanEditTheAnimal` pins it, because a
+   control that renders for a caretaker and then 403s is worse than none.
+4. UI: two locale-agnostic partials (`_trace_exception_ctrl.plush.html` for the
+   row, `_trace_exception_modal.plush.html` for the reason modal + its
+   delegated JS) referenced from all four `templates/animals/show.plush*.html`
+   forks. The reason is rendered **in full** in a wrapping cell — a cut reason
+   would be meaningless (R4-7.24), so the action `<td>` drops `text-nowrap` on
+   rule rows only.
+
+**Collateral, deliberate:** `TestTraceTableHasActionsNotOccurrenceCount` pinned
+the trace's rule branch to `} else if (src.Editable && src.EditURL != "") {`,
+which made the whole branch vanish for a non-admin — it would have hidden the
+exception control from exactly the caretakers who need it. The branch now always
+renders and the rule's own edit/delete are gated inside it on `Editable`.
+
+**Measured** (agent-browser, animals/10192, all four locales): the full round
+trip runs in the real UI — exclude → reason modal → save → reload shows the
+*Exception* badge, the reason and a restore control; restore → reload → the
+badge and the exclusion are gone and the DB row is deleted (dev DB left at 0
+exclusions, unchanged). `TestExclusionSuppressesTheRuleForThatAnimalOnly` also
+pins that the opt-out is per ANIMAL: the sibling in the same cage keeps the
+rule, otherwise excluding one bird would silently unfeed the whole cage.
+
+Note the engine order (§4.1 exclusion checked BEFORE the §5.4 course latch): a
+rule with an application history can still produce occurrences despite the
+opt-out. `markExcludedSources` therefore flags an already-listed row rather
+than assuming every excluded rule needs appending.
+
+**Harness note (cost me a false alarm):** Bootstrap adds `.show` only after its
+transition, so a probe that clicks the exclude button and checks the modal in
+the *same* eval always reads "not shown". Checking in a second eval ~1 s later
+shows it open in all four locales. The exception modal DOES open on a synthetic
+`.click()` — unlike the care-plan apply modal above, which does not even on
+stashed HEAD. Before concluding "the handler never bound", confirm the wait
+first: it is cheaper than rebuilding the binary with a marker line.
 
 ### R4-7.14 — Compact feeding rows (**Done** — 5/5)
 
@@ -366,12 +430,19 @@ HEAD empty in both directions; `go test -count=1 -race -cover ./...` exit 0
 (actions 59.9%). The SCSS is compiled by webpack (`public/assets/` is
 gitignored — built at deploy, not committed). No destructive DB changes.
 
-### R4-7.17 — Raw HTML entities in the confirm modal (**Open**)
+### R4-7.17 — Raw HTML entities in the confirm modal (**Done** — commit R4-7.17)
 
 The observation confirmation shows `La réponse à l&#39;observation…`. Every
 translation interpolated into a `<script>` block is HTML-escaped by Plush, and
 script text never decodes entities. Also a **script-injection risk**: a
 translation containing `"` terminates the JS string literal. Plan: §R4-7.17.
+
+Fixed with the `jsString` helper (`actions/render.go`, returning `template.HTML`
+— only that type is emitted verbatim by `<%= %>`; a `template.JS` return renders
+as an EMPTY STRING, which was the first wrong attempt). 168 call sites across 24
+files converted. Pinned by `TestNoTemplateInterpolatesATranslationIntoAScript`,
+which pins the CALL SITES, not the helper — a helper test alone would have
+proved the helper while every producer stayed broken.
 
 ### R4-7.18 — compact and detailed look identical (**Done**)
 
@@ -407,13 +478,19 @@ anchor to `#planDetails` — NOT to `#planTraceTable`, which renders only when
 the trace is non-empty and would have killed the "New protocol" button on an
 animal with no protocol.
 
-### R4-7.20 — Protocol names truncated mid-word (**Open**)
+### R4-7.20 — Protocol names truncated mid-word (**Done** — via R4-7.24)
 
 `care_plan_convert_data.go:230` slices the name by **bytes** at 60, so
 `…à côté de la nourriture…` is stored as `…à cô` — cut inside a word (and able
 to split a multi-byte rune). Generator fixed to truncate on a rune and word
 boundary; existing rows left untouched (no destructive DB change). Plan:
 §R4-7.20.
+
+The user then escalated this to a cross-cutting rule — "never cut description on
+any page, showing a cut description is a critical issue" — which R4-7.24 applied
+to **all 7 truncation sites** through one shared rune-safe word-boundary
+truncator. This entry is closed by that work, not by a fix local to the name
+column.
 
 ### R4-7.21 — Counts do not all mean the same thing (**Done**, product)
 

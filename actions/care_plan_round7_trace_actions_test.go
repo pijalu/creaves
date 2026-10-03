@@ -36,11 +36,16 @@ func TestTraceTableHasActionsNotOccurrenceCount(t *testing.T) {
 		require.Contains(t, raw, `"data-method": "DELETE"`, f,
 			"the rule row carries a delete control")
 
-		// the rule branch is gated on Editable — a non-admin must never get
-		// a control that 403s
-		require.Contains(t, raw, `src.SourceType == "animal"`, f)
-		require.Contains(t, raw, `} else if (src.Editable && src.EditURL != "") {`, f,
-			"the rule controls are gated on Editable")
+		// R4-7.13: the rule branch ALWAYS renders now — it carries the
+		// per-animal exception control for every account, and the rule's own
+		// edit/delete are gated INSIDE it on Editable. The old
+		// `} else if (src.Editable && src.EditURL != "") {` made the whole
+		// branch disappear for a non-admin, which would have hidden the
+		// exception control from exactly the caretakers who need it.
+		require.Contains(t, raw, `if (src.Editable && src.EditURL != "") {`, f,
+			"the rule's own edit/delete stay admin-only")
+		require.Contains(t, raw, `partial("animals/trace_exception_ctrl.plush.html")`, f,
+			"and the exception control renders for every account")
 	}
 }
 

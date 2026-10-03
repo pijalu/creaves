@@ -1,0 +1,27 @@
+<%# R4-7.13 — per-animal exception control for a GLOBAL care rule row of the
+    protocol trace (§4.1).
+
+    Locale-agnostic on purpose: it contains no literal text, only t() calls,
+    so ONE file serves all four locales.
+
+    Context: src (a ProtocolSourceView), animal (the *models.Animal).
+
+    A rule that is excluded produces no occurrence, which under the trace's
+    "evidence, not catalogue" rule would make it disappear entirely — so
+    appendExcludedRules keeps it here, flagged. Without this cell an
+    exception would be impossible to set AND impossible to undo. %>
+<span class="plan-trace-exclusion">
+  <%= if (src.Excluded) { %>
+    <span class="badge badge-danger" title="<%= t("care_plan.protocol_trace.exception_hint") %>"><i class="fas fa-ban"></i> <%= t("care_plan.protocol_trace.exception") %></span>
+    <%= if (src.ExclusionReason != "") { %>
+      <small class="d-block text-danger text-break mt-1"><%= t("care_plan.protocol_trace.exception_reason") %>: <%= src.ExclusionReason %></small>
+    <% } %>
+    <button type="button" class="btn btn-outline-success btn-sm careRuleRestoreBtn" data-id="<%= src.ExclusionID %>" title="<%= t("care_plan.protocol_trace.restore") %>"><i class="fas fa-undo-alt"></i></button>
+  <% } else { %>
+    <%# Only a rule the animal is CURRENTLY subject to can be opted out of.
+        Offering the control on a suppressed row would let the user stack a
+        second exclusion on a rule that is already excluded (the API answers
+        409, but a control that can only fail is a bad control). %>
+    <button type="button" class="btn btn-outline-danger btn-sm careRuleExcludeBtn" data-id="<%= src.SourceID %>" data-name="<%= src.Name %>" title="<%= t("care_plan.protocol_trace.exclude") %>"><i class="fas fa-ban"></i></button>
+  <% } %>
+</span>

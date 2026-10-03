@@ -39,6 +39,14 @@ type ProtocolSourceView struct {
 	// indistinguishable from a live one. Measured on animals/10221: one
 	// definition was already inactive.
 	Active bool
+	// R4-7.13: per-animal opt-out (§4.1). A rule excluded for THIS animal
+	// produces no occurrence, so under the "evidence, not catalogue" rule it
+	// would simply vanish from the trace and become impossible to undo. The
+	// excluded rows are therefore listed as SUPPRESSED: they keep their
+	// evidence row, flagged, with the reason and the id needed to restore.
+	Excluded        bool
+	ExclusionID     string
+	ExclusionReason string
 }
 
 // ProtocolTraceView is the ordered list of applicable sources: animal
@@ -67,6 +75,9 @@ func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, a
 	// unreachable. Global rules keep the stricter rule (evidence, not
 	// catalogue): only the ones that actually apply are listed.
 	if err := appendIdleAnimalPlans(tx, animal, trace); err != nil {
+		return nil, err
+	}
+	if err := appendExcludedRules(tx, animal, trace, admin); err != nil {
 		return nil, err
 	}
 	schedules, err := protocolSchedules(tx, ruleIDs, planIDs)
@@ -206,6 +217,107 @@ func appendIdleAnimalPlans(tx *pop.Connection, animal *models.Animal, trace *Pro
 		})
 	}
 	return nil
+}
+
+// appendExcludedRules marks (or adds) the care rules this animal is opted out
+// of (§4.1).
+//
+// The engine checks an exclusion BEFORE the §5.4 course latch, so a rule that
+// still has a recent application history can produce occurrences despite the
+// opt-out. Such a row is already in the trace from its occurrences and only
+// needs the flag; a rule with no occurrence at all is APPENDED, otherwise the
+// caregiver would have no way to remove the exception they added.
+func appendExcludedRules(tx *pop.Connection, animal *models.Animal, trace *ProtocolTraceView, admin bool) error {
+	if animal == nil {
+		return nil
+	}
+	var exclusions []models.CareRuleExclusion
+	if err := tx.Where("animal_id = ?", animal.ID).All(&exclusions); err != nil {
+		return err
+	}
+	missing := markExcludedSources(exclusions, trace)
+	return appendMissingExcludedRules(tx, missing, exclusions, trace, admin)
+}
+
+// markExcludedSources flags every excluded rule that already has a trace row
+// and returns the ids of those that do not.
+func markExcludedSources(exclusions []models.CareRuleExclusion, trace *ProtocolTraceView) []uuid.UUID {
+	present := traceRuleRows(trace)
+	var missing []uuid.UUID
+	seen := map[uuid.UUID]struct{}{}
+	for _, e := range exclusions {
+		if i, ok := present[e.RuleID]; ok {
+			trace.Sources[i].Excluded = true
+			trace.Sources[i].ExclusionID = e.ID.String()
+			trace.Sources[i].ExclusionReason = e.Reason.String
+			continue
+		}
+		// Two exclusion rows for the same rule would append it twice; the
+		// first one wins and keeps the trace idempotent.
+		if _, dup := seen[e.RuleID]; dup {
+			continue
+		}
+		seen[e.RuleID] = struct{}{}
+		missing = append(missing, e.RuleID)
+	}
+	return missing
+}
+
+// traceRuleRows indexes the trace's GLOBAL-RULE rows by rule id — the only
+// ones an exclusion can apply to.
+func traceRuleRows(trace *ProtocolTraceView) map[uuid.UUID]int {
+	present := map[uuid.UUID]int{}
+	for i := range trace.Sources {
+		if trace.Sources[i].SourceType != string(careplan.SourceRule) {
+			continue
+		}
+		if u, err := uuid.FromString(trace.Sources[i].SourceID); err == nil {
+			present[u] = i
+		}
+	}
+	return present
+}
+
+// appendMissingExcludedRules adds a row per excluded rule the engine emitted
+// nothing for. The engine no longer produces these sources, so there is no
+// PlanSource to project from — the row is built from the rule row itself.
+func appendMissingExcludedRules(tx *pop.Connection, missing []uuid.UUID,
+	exclusions []models.CareRuleExclusion, trace *ProtocolTraceView, admin bool) error {
+	if len(missing) == 0 {
+		return nil
+	}
+	rules := &models.CareRules{}
+	if err := tx.Where("id IN (?)", missing).All(rules); err != nil {
+		return err
+	}
+	reason := map[uuid.UUID]models.CareRuleExclusion{}
+	for _, e := range exclusions {
+		reason[e.RuleID] = e
+	}
+	for _, r := range *rules {
+		trace.Sources = append(trace.Sources, suppressedRuleView(r, reason[r.ID], admin))
+	}
+	return nil
+}
+
+// suppressedRuleView projects one suppressed rule into its trace row.
+func suppressedRuleView(r models.CareRule, e models.CareRuleExclusion, admin bool) ProtocolSourceView {
+	var payload planPayload
+	_ = jsonUnmarshalStrictish(r.ActionPayload, &payload)
+	return ProtocolSourceView{
+		SourceType:      string(careplan.SourceRule),
+		SourceID:        r.ID.String(),
+		Name:            DisplayName(r.Name),
+		Kind:            r.ActionKind,
+		Content:         planDetailOf(r.ActionKind, payload),
+		Schedule:        string(r.Schedule),
+		EditURL:         "/care_rules/" + r.ID.String(),
+		Editable:        admin,
+		Active:          r.Active,
+		Excluded:        true,
+		ExclusionID:     e.ID.String(),
+		ExclusionReason: e.Reason.String,
+	}
 }
 
 // sortProtocolSources: animal plans first (they override the global
