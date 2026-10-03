@@ -112,6 +112,32 @@ disappears); after `planApply.markAction()` the page must survive the next
 fresh page marker gone at 50–60 s; action marked at +32 s → page still alive
 at +61 s (floor held), reloaded by +62–72 s (≥30 s after the action).
 
+### Round-8 sweep — verified, no defect
+
+Revalidated live via agent-browser on 2026-10-03 (en unless noted):
+
+- R4-7.13 per-animal rule exclusion: set + restore round-trip on animal
+  10315 (rows verified in `care_rule_exclusions`, cleaned up after).
+- R4-7.15 medication animal column; R4-7.16 observation/care/weighing use
+  the `.plan-med-line` format.
+- R4-7.9 navbar: hamburger ≤767 px, inline ≥768 px, no horizontal overflow.
+- R4-3.2 info-glyph alignment: spread 0 at 1600/1280/1024/800 px.
+- R4-7.24 no mid-word cut cells on care_plan (486 cells) or med page (36).
+- R4-7.25 slot semantics: `○ HH:MM` outline+"Apply" = open, `✓ HH:MM`
+  btn-success = applied — apply/unapply round-trip on animal 10221.
+- R4-7.11b fulfillment links: "View record" on applied cards → treatment
+  page → "Back to the day plan" returns to `/care_plan?kind=medication`.
+- R4-7.19/22 Protocol tab: single merged table, one line per protocol.
+- R4-7.12 trace rows carry real actions; R4-7.18 density toggle gone on
+  all kinds; R4-7.17 covered by the R8-1 parse sweep + locale test.
+- R4-7.14/14b/14c feeding: red late dot (rgb 220,53,69), time sub-groups
+  ordered ascending per feeding, collapsible animal list toggles.
+- R4-7.21 count badges = occurrence count capped at 99+ (`BadgeCap`),
+  matches rendered rows on observation (13/13, 10/10) and feeding
+  (250→"99+", 99→"99").
+- Locale spot-check after R8-1 fix: fr/de/nl/en all render the corrected
+  script line and define `window.planApply`.
+
 ---
 
 ## Archived rounds
