@@ -43,6 +43,6 @@
 - id: "preferences.future_show_hours"
   translation: "Horizon futur maximal affiché (heures)"
 - id: "preferences.now_window_minutes"
-  translation: "Fenêtre « maintenant » (minutes, réservé)"
+  translation: "Fenêtre « maintenant » (heures)"
 - id: "preferences.no_cap"
   translation: "pas de limite"

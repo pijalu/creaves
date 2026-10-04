@@ -40,6 +40,6 @@
 - id: "preferences.future_show_hours"
   translation: "Max. Zukunftshorizont (Stunden)"
 - id: "preferences.now_window_minutes"
-  translation: "Jetzt-Fenster (Minuten, reserviert)"
+  translation: "Jetzt-Fenster (Stunden)"
 - id: "preferences.no_cap"
   translation: "kein Limit"

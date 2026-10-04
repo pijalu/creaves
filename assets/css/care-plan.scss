@@ -302,3 +302,71 @@
   background-color: #fff3cd !important;
   box-shadow: inset 3px 0 0 #ffc107;
 }
+
+// R9: COMPACT SINGLE-LINE medication rows — <info> <animal> | <drug> |
+// <toggles>. The utility flex-wrap classes on the line are deliberately
+// overridden (higher-specificity selectors, no !important): the caregiver
+// scans one line per animal×drug, the label ellipsizes instead of pushing
+// the toggles to a second line.
+div.plan-med-row.d-flex,
+.plan-med-row.plan-item-line {
+  flex-wrap: nowrap;
+  font-size: 0.85rem;
+  background-color: transparent; // the tinted tier panel + zebra carry the line
+}
+.plan-med-row .plan-med-line {
+  flex-wrap: nowrap;
+}
+.plan-med-btns {
+  flex-wrap: nowrap;
+}
+.plan-med-row .plan-med-slot {
+  font-size: 0.78rem;
+  padding: 0.15rem 0.4rem;
+}
+.plan-med-row .plan-med-day {
+  font-size: 0.65rem;
+}
+// Pipe separators of the one-line reading order.
+.plan-med-animal {
+  border-right: 1px solid #dee2e6;
+  padding-right: 0.5rem;
+}
+.plan-med-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-right: 1px solid #dee2e6;
+  padding-right: 0.5rem;
+  margin-right: 0.5rem;
+}
+// R9: on the DAY-PLAN rows the drug label shrinks-to-fit its text (pipe
+// hugs the text, toggles right-align) instead of growing and dragging the
+// pipe to the far edge; long drug texts ellipsize at 34 ch. With a wide
+// button group the label keeps a 12 ch floor — the drug name must stay
+// readable (the Late row squeezed it to a few characters otherwise).
+div.plan-med-row .plan-med-label {
+  flex: 0 1 auto;
+  max-width: 34ch;
+  min-width: 12ch;
+}
+// R9: a MISSING row reads red like a LATE one (the removed "Missing"
+// bubble must not take the colour signal with it).
+.plan-med-row.plan-item-missing {
+  border-left: 3px solid #dc3545 !important;
+  background-color: #fdf2f3;
+  padding-left: 0.65rem;
+}
+
+// R9 cascade fix: at equal specificity file order decides — the zebra and
+// the red late/missing bands must land AFTER the transparent base above,
+// or even rows lose the band and late rows lose the red.
+.plan-med-row:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+.plan-med-row.plan-item-late,
+.plan-med-row.plan-item-missing {
+  background-color: #fdf2f3;
+  border-left: 3px solid #dc3545 !important;
+  padding-left: 0.65rem;
+}

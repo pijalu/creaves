@@ -76,8 +76,12 @@ func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 		raw := readTemplate(t, f)
 		require.Equal(t, 3, strings.Count(raw, `class="mr-2 text-nowrap py-1 plan-med-animal"`), f+
 			": every medication tier body (late/now/later) carries the animal cell")
-		require.Equal(t, 3, strings.Count(raw, `style="min-width: <%= view.MedAnimalColCh %>ch"`), f+
-			": every animal cell takes the ONE page-wide width — a per-row value would still be ragged")
+		// R9: the ONE page-wide width is gone — the user asked for the
+		// animal cell to size to its content so the whole line reads on a
+		// single line (<info> <animal> | <drug> | <toggles>) without the
+		// long empty tail the widest-label width produced.
+		require.NotContains(t, raw, `min-width: <%= view.MedAnimalColCh %>ch`, f+
+			": the page-wide animal column must not come back (R9 single-line layout)")
 	}
 }
 

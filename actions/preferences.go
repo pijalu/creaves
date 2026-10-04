@@ -3,6 +3,8 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -23,8 +25,13 @@ import (
 // preferenceKinds lists the day-plan action kinds, in display order.
 var preferenceKinds = actionKinds
 
-// PreferencesEnsureSeeded creates any missing per-kind row with NULL caps
-// (idempotent — safe on every request path that needs the settings).
+// R9 default view caps: late work disappears after 8 h, future work beyond
+// an 8 h horizon, and the "now" window is 60 min. An admin can change or
+// clear any of them per kind; empty = no cap.
+var preferenceDefaults = struct{ lateHours, futureHours, nowMinutes int }{8, 8, 60}
+
+// PreferencesEnsureSeeded creates any missing per-kind row with the R9
+// defaults (idempotent — safe on every request path that needs the settings).
 func PreferencesEnsureSeeded(tx *pop.Connection) error {
 	for _, kind := range preferenceKinds {
 		exists, err := tx.Where("kind = ?", kind).Exists(&models.Preference{})
@@ -34,7 +41,12 @@ func PreferencesEnsureSeeded(tx *pop.Connection) error {
 		if exists {
 			continue
 		}
-		p := &models.Preference{Kind: kind}
+		p := &models.Preference{
+			Kind:             kind,
+			LateShowHours:    nulls.Int{Int: preferenceDefaults.lateHours, Valid: true},
+			FutureShowHours:  nulls.Int{Int: preferenceDefaults.futureHours, Valid: true},
+			NowWindowMinutes: nulls.Int{Int: preferenceDefaults.nowMinutes, Valid: true},
+		}
 		if err := tx.Create(p); err != nil {
 			return err
 		}
@@ -123,6 +135,12 @@ func (v PreferencesResource) Save(c buffalo.Context) error {
 	p.NowWindowMinutes = nulls.Int{}
 	if err := c.Bind(p); err != nil {
 		return err
+	}
+	// R9: the now window is edited in HOURS (NowWindowHours) and stored in
+	// minutes (column now_window_minutes) — one unit in the UI, matching
+	// the other two knobs.
+	if h, err := strconv.Atoi(strings.TrimSpace(c.Request().FormValue("NowWindowHours"))); err == nil && h > 0 {
+		p.NowWindowMinutes = nulls.Int{Int: h * 60, Valid: true}
 	}
 	verrs, err := tx.ValidateAndUpdate(p)
 	if err != nil {

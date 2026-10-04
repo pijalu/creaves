@@ -40,6 +40,6 @@
 - id: "preferences.future_show_hours"
   translation: "Max. toekomsthorizon (uren)"
 - id: "preferences.now_window_minutes"
-  translation: "Nu-venster (minuten, gereserveerd)"
+  translation: "Nu-venster (uren)"
 - id: "preferences.no_cap"
   translation: "geen limiet"

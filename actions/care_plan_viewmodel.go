@@ -1572,6 +1572,16 @@ func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
 		kept = append(kept, tomorrowSlot(series, nextDue)...)
 	}
 
+	// R9 next-in-future rule: a series must not advertise the same
+	// treatment twice. A PAST-due slot is shown only while the next
+	// treatment is still in the future; once an occurrence of the series
+	// is DUE now (the caregiver is on it), the stale past ones leave —
+	// the due slot carries the series from here. (The preference caps
+	// already filtered the too-old past slots upstream.)
+	if hasDueNowSlot(kept) {
+		kept = dropPastDueSlots(kept)
+	}
+
 	if len(kept) == 0 {
 		return emptySeries(series)
 	}
@@ -1655,6 +1665,31 @@ func todaysSlots(series MedSeriesView, endOfDay time.Time) []MedSlotView {
 		kept = append(kept, s)
 	}
 	return kept
+}
+
+// hasDueNowSlot reports whether any slot of the set is DUE now — open, not
+// late yet (R9 next-in-future rule trigger).
+func hasDueNowSlot(slots []MedSlotView) bool {
+	for _, s := range slots {
+		if !s.Done && !s.Overridden && careplan.PlanStatus(s.Status) == careplan.StatusDue {
+			return true
+		}
+	}
+	return false
+}
+
+// dropPastDueSlots removes the series' open past-due slots (late/missing):
+// the due-now slot takes over the series (R9 next-in-future rule). Done and
+// overridden slots stay — the day's record must survive.
+func dropPastDueSlots(slots []MedSlotView) []MedSlotView {
+	out := slots[:0:0]
+	for _, s := range slots {
+		if !s.Done && !s.Overridden && tierOrder(careplan.PlanStatus(s.Status)) == 0 {
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
 }
 
 // tomorrowSlot returns the slots due at exactly `nextDue`, rebucketed into

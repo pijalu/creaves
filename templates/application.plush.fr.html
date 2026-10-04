@@ -96,7 +96,6 @@
           <% } %>
             <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Utilisateurs</a>
             <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
-            <a class="dropdown-item" href="/preferences"><i class="fas fa-sliders-h"></i> <%= t("nav.preferences") %></a>
             <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
           </div>
         </div>
@@ -110,6 +109,9 @@
             <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Resynchronisation webhook</a>
           </div>
         </div>
+        <%# R9: Preferences is a FIRST-LEVEL Administration entry — the last one. %>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="/preferences"><i class="fas fa-sliders-h"></i> <%= t("nav.preferences") %></a>
         </div>
         </li>
         <% } %>

@@ -3,24 +3,24 @@
 
     Context: `card` — a TierView card (the same struct the old table row used).
 
-    It was a 4-cell table: animal | detail+source | due | status+buttons. The
-    medication page beside it renders a flex LINE, so switching kind changed
-    the whole shape of the page for no reason. This partial is that line:
-    R4-3.1's fixed-width leading column (the ℹ lands at the same x on every
-    row), the text block that grows and wraps, and ONE right-aligned button
-    group.
+    R9 layout parity with the medication tab (user review): the line reads
+    <ℹ> <animal> | <title> | <day badge> <time> <controls> on ONE line —
+    the same .plan-med-row zebra + compact font as the medication rows, the
+    same tinted animal cell, the day word as the same badge the medication
+    day badges use. The status BADGES are gone (the "Missing" bubble carried
+    no information the red row colour doesn't): late/missing rows colour the
+    line red (.plan-item-late / .plan-item-missing) and keep the status text
+    for assistive technology.
 
-    The tint now covers EVERY item (`.plan-item-line`), not only the late ones
-    — the requested "background line colour/style on all items". A scheduled
-    item used to sit on the bare page background with no band, which is why
-    the list read as a spreadsheet. `.plan-item-late` still overrides with the
-    light red, so red keeps meaning LATE (R4-3.3).
+    History note: the label conditions were once `<% if %>` (no `=`) — plush
+    only OUTPUTS the `<%= if %>` form, so the whole label block rendered
+    empty. Every conditional here is `<%= if %>`.
 
     The buttons keep their classes and data attributes, and apply/undo/skip/
     defer all live in the SAME parent (.plan-med-btns) — `_apply_toggle`
     pairs them with `btn.parentNode.querySelector(...)`, so a shared parent is
     a hard requirement, not a style choice. %>
-<div class="plan-med-line plan-item-line plan-item-<%= card.Status %>">
+<div class="plan-med-line plan-item-line plan-med-row plan-item-<%= card.Status %>">
   <div class="plan-med-lead">
     <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
       data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
@@ -28,40 +28,38 @@
       data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
       data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
   </div>
-  <%# Rev: the two label conditions were `<% if %>` (no `=`) — plush only
-      OUTPUTS the `<%= if %>` form, so every observation/care/weighing row
-      rendered with an EMPTY label block (no animal, no detail, no source)
-      while its ℹ/apply buttons carried the data. Same fix as the rest of
-      the file's conditionals. %>
-  <div class="plan-med-label">
+  <div class="plan-med-animal">
     <%= if (card.AnimalLink != "") { %>
       <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
     <% } else { %>
       <%= card.AnimalLabel %>
     <% } %>
+  </div>
+  <div class="plan-med-label">
     <%= if (card.Detail != "") { %>
       <%# R8-2: a title-shaped source name ("Traitement — Sexage") beside
           its own title reads twice — keep the TITLE only, and make IT the
           protocol link: the day-plan row navigates, the animal page opens
           its Details table and highlights the record (src= param). %>
       <%= if (card.SourceNameRedundant) { %>
-        — <strong><a href="<%= card.SourceLink %>"><%= card.Detail %></a></strong>
+        <strong><a href="<%= card.SourceLink %>"><%= card.Detail %></a></strong>
       <% } else { %>
-        — <strong><%= card.Detail %></strong>
+        <strong><%= card.Detail %></strong>
         <small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
       <% } %>
     <% } else { %>
-      — <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+      <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
     <% } %>
+    <span class="sr-only"><%= t("care_plan.status." + card.Status) %></span>
   </div>
   <div class="plan-med-btns">
-    <span class="text-nowrap mr-2"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></span>
+    <%# R9: the due label uses the MEDICATION day-badge language — the day
+        word rides in the same badge, the bare time follows. %>
+    <span class="text-nowrap mr-2">
+      <%= if (card.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= card.DueShortDate %></span> <% } else if (card.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(card.DueDayKey) %></span> <% } %>
+      <%= card.DueHM %>
+    </span>
     <span class="text-nowrap">
-      <%= if (card.Status == "late") { %>
-        <span class="badge badge-warning"><%= t("care_plan.status.late") %></span>
-      <% } else { %>
-        <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-      <% } %>
       <%= if (card.Applicable) { %>
         <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-apply-btn"
           data-source-type="<%= card.SourceType %>"

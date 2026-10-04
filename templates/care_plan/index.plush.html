@@ -179,7 +179,10 @@
                   page, sized from the longest label — a per-row min-width
                   would still leave the longest row wider, and a hard-coded px
                   would cut a long label (R4-7.24). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
+              <%# R9: the shared column width is gone — the cell sizes to
+                  its content so the line reads <info> <animal> | <drug> |
+                  <toggles> on ONE line (no long empty animal space). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>
@@ -221,7 +224,10 @@
                   page, sized from the longest label — a per-row min-width
                   would still leave the longest row wider, and a hard-coded px
                   would cut a long label (R4-7.24). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
+              <%# R9: the shared column width is gone — the cell sizes to
+                  its content so the line reads <info> <animal> | <drug> |
+                  <toggles> on ONE line (no long empty animal space). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>
@@ -263,7 +269,10 @@
                   page, sized from the longest label — a per-row min-width
                   would still leave the longest row wider, and a hard-coded px
                   would cut a long label (R4-7.24). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch">
+              <%# R9: the shared column width is gone — the cell sizes to
+                  its content so the line reads <info> <animal> | <drug> |
+                  <toggles> on ONE line (no long empty animal space). %>
+              <div class="mr-2 text-nowrap py-1 plan-med-animal">
                 <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
               </div>
               <%= partial("care_plan/med_series.plush.html") %>

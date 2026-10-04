@@ -15,25 +15,52 @@
   </thead>
   <tbody>
     <%= for (p) in preferences { %>
-      <%# A <form> cannot legally wrap <td>s (the browser empties it) —
-          the form lives in the last cell and the inputs join it via the
-          HTML5 form= attribute. %>
+      <%# R9: all three knobs are HOURS with −/+ steppers (the request:
+          "hours with +/- buttons"). The now window is stored in MINUTES
+          (column now_window_minutes) and shown as hours — the Save handler
+          multiplies by 60. A <form> cannot legally wrap <td>s (the browser
+          empties it), so the form lives in the last cell and the inputs
+          join it via the HTML5 form= attribute. %>
       <tr>
         <td class="align-middle"><%= t("care_plan.kind." + p.Kind) %></td>
-        <td class="align-middle" style="max-width: 12rem;">
-          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
-                 name="LateShowHours" value="<%= if (p.LateShowHours.Valid) { %><%= p.LateShowHours.Int %><% } %>"
-                 placeholder="<%= t("preferences.no_cap") %>" />
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="720" step="1" form="pref-<%= p.ID %>"
+                   name="LateShowHours" value="<%= if (p.LateShowHours.Valid) { %><%= p.LateShowHours.Int %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
         </td>
-        <td class="align-middle" style="max-width: 12rem;">
-          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
-                 name="FutureShowHours" value="<%= if (p.FutureShowHours.Valid) { %><%= p.FutureShowHours.Int %><% } %>"
-                 placeholder="<%= t("preferences.no_cap") %>" />
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="720" step="1" form="pref-<%= p.ID %>"
+                   name="FutureShowHours" value="<%= if (p.FutureShowHours.Valid) { %><%= p.FutureShowHours.Int %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
         </td>
-        <td class="align-middle" style="max-width: 12rem;">
-          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
-                 name="NowWindowMinutes" value="<%= if (p.NowWindowMinutes.Valid) { %><%= p.NowWindowMinutes.Int %><% } %>"
-                 placeholder="<%= t("preferences.no_cap") %>" />
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="168" step="1" form="pref-<%= p.ID %>"
+                   name="NowWindowHours" value="<%= if (p.NowWindowMinutes.Valid) { %><%= p.NowWindowMinutes.Int / 60 %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
         </td>
         <td class="align-middle">
           <form id="pref-<%= p.ID %>" action="/preferences/<%= p.ID %>/save" method="POST">
@@ -45,3 +72,28 @@
     <% } %>
   </tbody>
 </table>
+
+<script>
+(function () {
+  // R9: the −/+ steppers adjust the neighbouring hour field by one hour;
+  // empty means "no limit" — stepping from empty starts at the default 8
+  // (now window: 1). Buttons live outside the inputs' form: type="button",
+  // never submits.
+  var DEFAULT_STEP = 8;
+  var NOW_DEFAULT_STEP = 1;
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-pref-step]');
+    if (!btn) { return; }
+    var group = btn.closest('.input-group');
+    var input = group ? group.querySelector('input[type="number"]') : null;
+    if (!input) { return; }
+    ev.preventDefault();
+    var delta = parseInt(btn.getAttribute('data-pref-step'), 10);
+    var value = parseInt(input.value, 10);
+    var isNow = input.name === 'NowWindowHours';
+    if (isNaN(value)) { value = isNow ? NOW_DEFAULT_STEP : DEFAULT_STEP; if (delta < 0) { value = 0; } }
+    else { value = Math.max(0, value + delta); }
+    input.value = value;
+  });
+})();
+</script>

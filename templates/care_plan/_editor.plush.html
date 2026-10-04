@@ -238,9 +238,23 @@ window.planEditor = (function () {
     row.className = 'input-group input-group-sm mb-1';
     row.style.maxWidth = '12rem';
     var input = document.createElement('input');
-    input.type = 'time'; input.className = 'form-control';
+    input.type = 'text'; input.className = 'form-control';
     input.setAttribute('data-pe-slot', '1');
     if (value) { input.value = value; }
+    // R9: time ENTRY follows the UI language — "08:00 PM" is an EN
+    // approach; fr/de/nl must read 20:00. flatpickr is already localized
+    // from the lang cookie (application.js). The VALUE stays 24h "H:i"
+    // (the engine's format) for every language; EN gets a 12h alt display
+    // on top of it. Fallback without flatpickr: plain 24h text field.
+    if (window.flatpickr) {
+      var isEn = (window.CREAVES_UI_LANG || 'fr') === 'en';
+      window.flatpickr(input, {
+        enableTime: true, noCalendar: true, allowInput: true,
+        dateFormat: 'H:i', time_24hr: !isEn,
+        altInput: isEn, altFormat: 'h:i K',
+        onClose: function () { sync(root); },
+      });
+    }
     var del = document.createElement('button');
     del.type = 'button'; del.className = 'btn btn-outline-danger';
     del.textContent = '×'; del.title = '×';
@@ -268,6 +282,18 @@ window.planEditor = (function () {
     $all(root, '[data-pe-weekday]').forEach(function (cb) {
       cb.checked = !!(s.weekdays && s.weekdays.indexOf(parseInt(cb.value, 10)) >= 0);
     });
+    // R9: the anchor DATE entry is localized too — flatpickr renders the
+    // month/day names per UI language while the value stays ISO "Y-m-d"
+    // (the schedule document's format).
+    var anchorDate = $(root, '[data-pe="anchorDate"]');
+    if (window.flatpickr && anchorDate) {
+      if (!anchorDate._flatpickr) {
+        window.flatpickr(anchorDate, { dateFormat: 'Y-m-d', allowInput: true, altInput: true, altFormat: 'j F Y' });
+      } else {
+        // Re-opened editor: the alt display must follow the raw value.
+        anchorDate._flatpickr.setDate(anchorDate.value || '', false);
+      }
+    }
   }
 
   // --- Payload <-> fields --------------------------------------------------

@@ -188,3 +188,56 @@ func TestTomorrowSlotLabelInAllLocales(t *testing.T) {
 func indexOf(s, sub string) int {
 	return strings.Index(s, sub)
 }
+
+// R9 next-in-future rule (user review): past 12:00 the day plan showed the
+// same treatment TWICE — yesterday's slot as LATE and today's as due now.
+// A past-due slot is shown only while the series has nothing due now; once
+// the next occurrence is due, it takes the series over and the stale past
+// one leaves. Done slots (the day's record) always survive.
+func TestScopeSeriesDropsPastWhenDueNow(t *testing.T) {
+	day := time.Date(2026, 10, 2, 0, 0, 0, 0, time.Local)
+	yest := day.AddDate(0, 0, -1)
+	now := day.Add(13 * time.Hour) // 13:00 — past the 12:00 slot
+
+	series := r47Series("Citramox 0.02 ml",
+		r47Slot(yest, 12, careplan.StatusLate), // yesterday 12:00, missed
+		r47Slot(day, 12, careplan.StatusDue),   // today 12:00, due NOW
+		r47Slot(day.AddDate(0, 0, 1), 12, careplan.StatusScheduled),
+	)
+
+	got := scopeSeriesToToday(series, now)
+	times := r47SlotTimes(got)
+	require.NotContains(t, times, yest.Add(12*time.Hour),
+		"the stale past slot must leave once today's slot is due")
+	require.Contains(t, times, day.Add(12*time.Hour),
+		"the due-now slot stays")
+
+	// The done record of today survives the purge (applied 08:00).
+	withDone := r47Series("Amox 1 ml",
+		r47Slot(yest, 12, careplan.StatusLate),
+		r47Slot(day, 8, careplan.StatusApplied),
+		r47Slot(day, 12, careplan.StatusDue),
+	)
+	withDone.Rows[0].Slots[1].Done = true
+	got2 := scopeSeriesToToday(withDone, now)
+	times2 := r47SlotTimes(got2)
+	require.NotContains(t, times2, yest.Add(12*time.Hour))
+	require.Contains(t, times2, day.Add(8*time.Hour), "the done slot is the record")
+}
+
+// The counterpart: with NO slot due now (the next treatment is still in the
+// future), the past-due slot STAYS — it is the series' actionable work.
+func TestScopeSeriesKeepsPastWhenNextIsFuture(t *testing.T) {
+	day := time.Date(2026, 10, 2, 0, 0, 0, 0, time.Local)
+	yest := day.AddDate(0, 0, -1)
+	now := day.Add(7 * time.Hour) // 07:00 — before today's 08:00 slot
+
+	series := r47Series("Panacur 0.48 g",
+		r47Slot(yest, 20, careplan.StatusLate),    // yesterday 20:00, missed
+		r47Slot(day, 8, careplan.StatusScheduled), // today 08:00 — still future
+	)
+
+	got := scopeSeriesToToday(series, now)
+	require.Contains(t, r47SlotTimes(got), yest.Add(20*time.Hour),
+		"the past slot is the only actionable work — it stays")
+}

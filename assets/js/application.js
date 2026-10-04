@@ -68,6 +68,9 @@ DataTable.type('num-comma', {
         case 'en-US': lang = 'en'; break;
         default: lang = 'fr';
     }
+    // R9: single source of the normalized UI language for other scripts
+    // (the plan editor's localized time entry reads this).
+    window.CREAVES_UI_LANG = lang;
     if (window.jQuery && jQuery.fn && jQuery.fn.select2) {
         jQuery.fn.select2.defaults.set('language', lang);
     }
