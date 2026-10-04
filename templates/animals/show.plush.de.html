@@ -500,8 +500,6 @@
         <% } %>
       </div>
     <% } %>
-      </div>
-    <% } %>
 
     <% let entriesMap = animal.Treatments.TreatmentEntriesMap() %>
     <% let orderedTMKey = entriesMap.OrderedKeys() %>
@@ -723,7 +721,9 @@
             <table class="table table-sm table-hover table-bordered mb-2" id="planTraceTable">
               <tbody>
                 <%= for (src) in animalProtocolTrace.Sources { %>
-                  <tr class="plan-trace-<%= src.SourceType %>">
+                  <%# R8-2: the row id the day-plan `src=` deep link
+                      highlights — Details opens and this row is marked. %>
+                  <tr class="plan-trace-<%= src.SourceType %>" data-source-id="<%= src.SourceID %>">
                     <td class="align-middle">
                       <span class="badge badge-<%= if (src.SourceType == "animal") { %>primary<% } else { %>secondary<% } %>" title="<%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated_hint") %><% } else { %><%= t("care_plan.protocol_trace.rule_source_hint") %><% } %>"><%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated") %><% } else { %><%= t("care_plan.protocol_trace.rule_source") %><% } %></span>
                     </td>
@@ -821,7 +821,15 @@
                       <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
                       <span>
                         <%= if (item.Detail != "") { %>
-                          <strong><%= item.Detail %></strong> <small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small>
+                          <strong><%= item.Detail %></strong>
+                          <%# Rev: a feeding source name repeats the diet
+                              ("Alimentation — <diet>", truncated mid-word in
+                              the converted data) — next to the Detail it is
+                              the same sentence twice, so when the name adds
+                              nothing the row keeps kind + nourriture only.
+                              The protocol itself stays in the Details table
+                              above. %>
+                          <%= if (!item.SourceNameRedundant) { %><small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small><% } %>
                         <% } else { %>
                           <a href="<%= item.SourceLink %>"><%= item.SourceName %></a>
                         <% } %>
@@ -890,6 +898,12 @@
                               data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
                               data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
                               title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                          <% } else if (item.Tier == 0) { %>
+                            <%# Rev: a missed occurrence past its apply window
+                                used to render as a red row with an EMPTY
+                                action slot and no explanation. The lock says
+                                why there is no button (§10-A1 hors délai). %>
+                            <span class="plan-item-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒</span>
                           <% } %>
                         </span>
                       </span>
@@ -1319,6 +1333,23 @@ $(".nav-tabs").find("a").each(function(key, val) {
 if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   $("#nav-audit-tab").click();
 }
+
+// R8-2: a day-plan row deep-links its producing protocol via ?src=<id>.
+// The Details trace table is collapsed by default, which made the link
+// read as dead — open it and highlight + scroll to the matching row.
+(function () {
+  var src = new URLSearchParams(window.location.search).get('src');
+  if (!src) { return; }
+  var row = document.querySelector('#planDetails tr[data-source-id="' + src + '"]');
+  if (!row) { return; }
+  $('#planDetails').collapse('show');
+  $('#planDetailsHead button').removeClass('collapsed').attr('aria-expanded', 'true');
+  row.classList.add('plan-trace-highlight');
+  // Wait for the collapse animation before scrolling, or the target y is wrong.
+  $('#planDetails').on('shown.bs.collapse', function () {
+    row.scrollIntoView({ block: 'center' });
+  });
+})();
 </script>
 
 <div class="modal fade" id="guestQRModal" tabindex="-1" role="dialog" aria-labelledby="guestQRModalLabel" aria-hidden="true">

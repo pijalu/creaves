@@ -63,11 +63,6 @@
             <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
             <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
             <% } %>
-            <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
-            <a class="dropdown-item" href="/feeding_guides"><i class="fas fa-utensils"></i> Voedingsgidsen</a>
-            <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Zorgnotitiesjablonen</a>
-            <a class="dropdown-item" href="/care_rules"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_rules") %></a>
-            <a class="dropdown-item" href="/care_matchers"><i class="fas fa-filter"></i> <%= t("nav.care_plan_matchers") %></a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reistypes</a>
             <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
@@ -80,6 +75,18 @@
           </div>
         </div>
 
+<!-- R8-4: protocol-related entries grouped (was scattered in Configuration) -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_protocols") %></a>
+          <div class="dropdown-menu">
+          <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
+          <a class="dropdown-item" href="/feeding_guides"><i class="fas fa-utensils"></i> Voedingsgidsen</a>
+          <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Zorgnotitiesjablonen</a>
+          <a class="dropdown-item" href="/care_rules"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_rules") %></a>
+          <a class="dropdown-item" href="/care_matchers"><i class="fas fa-filter"></i> <%= t("nav.care_plan_matchers") %></a>
+          </div>
+        </div>
+
         <!-- Systeem sub-menu -->
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> Systeem</a>
@@ -89,6 +96,7 @@
           <% } %>
             <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Gebruikers</a>
             <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Onderhoud</a>
+            <a class="dropdown-item" href="/preferences"><i class="fas fa-sliders-h"></i> <%= t("nav.preferences") %></a>
             <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuratie</a>
           </div>
         </div>

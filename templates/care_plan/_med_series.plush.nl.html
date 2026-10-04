@@ -73,7 +73,10 @@
                 button (outside it: the toggle JS rewrites the button
                 text on apply/undo, the badge stays). %>
             <span class="plan-med-cell">
-              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%# Rev: the "tomorrow" bucket divider ALREADY says the day —
+                  its slots skip the per-slot day badge, which used to print
+                  the same word twice ("Tomorrow tomorrow"). %>
+              <%= if (slot.Slot != "tomorrow" && slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.Slot != "tomorrow" && slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
               <%= if (slot.Applied) { %>
                 <%# R5-2c: ONE toggle per slot — the done button stays
                     live (re-click undoes, no confirm, no reload). %>

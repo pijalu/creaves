@@ -72,6 +72,9 @@ func SeedMatchers() []seedMatcherDef {
 		{Key: "SM11", Name: "Bébé (tous types)", Expression: `animal_age = "bébé"`},
 		{Key: "SM12", Name: "Juvénile (tous types)", Expression: `animal_age = "juvénile"`},
 		{Key: "SM13", Name: "Gavage forcé", Expression: `force_feed = true`},
+		// R8-3: zone-attribute field — occupied cages of "requires cleanup"
+		// zones (zones.requires_cleanup) join the cleanup list.
+		{Key: "SM14", Name: "Zone à nettoyer", Expression: `zone_requires_cleanup = true`},
 		// Derived composite matchers (§7.4 SR1/SR4/SR6/SR12 conditions).
 		{Key: "SR1*", Name: "Hérisson bébé < 300 g (dérivé SM1)", Derived: true,
 			Expression: herisson + ` AND animal_age = "bébé" AND weight_g < 300`},
@@ -125,6 +128,11 @@ func SeedRules() []seedRuleDef {
 			Drug: "Catosal 10%", DosageTable: true, DurationDays: 3,
 			Note:         "+ Réhydratation (SC)",
 			ScheduleJSON: `{"times":["08:00"],"every_days":1,"anchor":"intake","duration_days":3}`},
+		// R8-3: general cleanup enforcement — every occupied cage of a zone
+		// flagged "requires cleanup" gets a daily cleanup occurrence.
+		{Key: "SR13", Name: "Nettoyage des cages occupées", Kind: careplan.KindCleanup, MatcherKey: "SM14",
+			Note:         "Nettoyage cage + eau fraîche",
+			ScheduleJSON: `{"times":["09:00"],"every_days":1,"anchor":"intake","grace_minutes":180,"miss_after_hours":24}`},
 	}
 }
 
@@ -142,6 +150,9 @@ func buildSeedMatcher(def seedMatcherDef) *models.CareMatcher {
 // the caller; feeding-kind seeds ship active (§8.1 step 1), everything
 // else is an inactive draft for admin review.
 func buildSeedRule(def seedRuleDef, matcherID uuid.NullUUID, caretypeID string) (*models.CareRule, error) {
+	// R8-3: SR13 ENFORCES cleanup on flagged zones — it ships active (the
+	// whole point of the rule); everything else stays an inactive draft.
+	active := def.Kind == careplan.KindFeeding || def.Key == "SR13"
 	r := &models.CareRule{
 		Name:            def.Name,
 		Description:     nulls.NewString(fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)),
@@ -149,7 +160,7 @@ func buildSeedRule(def seedRuleDef, matcherID uuid.NullUUID, caretypeID string) 
 		ActionPayload:   buildSeedPayload(def, caretypeID),
 		Schedule:        []byte(def.ScheduleJSON),
 		MatcherID:       matcherID,
-		Active:          def.Kind == careplan.KindFeeding,
+		Active:          active,
 		StopOnOuttake:   true,
 		LatchMembership: def.DurationDays > 0,
 	}

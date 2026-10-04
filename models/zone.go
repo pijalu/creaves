@@ -13,12 +13,16 @@ import (
 
 // Zone is used by pop to map your zones database table to your go code.
 type Zone struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Zone      string    `json:"zone" db:"zone"`
-	Type      string    `json:"type" db:"type"`
-	Default   bool      `json:"default" db:"default"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID      uuid.UUID `json:"id" db:"id"`
+	Zone    string    `json:"zone" db:"zone"`
+	Type    string    `json:"type" db:"type"`
+	Default bool      `json:"default" db:"default"`
+	// R8-3: zones flagged this way put their OCCUPIED cages on the day
+	// plan's cleanup list (rule SR13 "Nettoyage des cages occupées",
+	// matcher field zone_requires_cleanup).
+	RequiresCleanup bool      `json:"requires_cleanup" db:"requires_cleanup"`
+	CreatedAt       time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at" db:"updated_at"`
 }
 
 type ZoneKey struct {

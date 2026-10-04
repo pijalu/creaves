@@ -211,7 +211,8 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #6c757d;
-  border-top: 1px solid #dee2e6;
+  text-align: center;
+  border-top: 1px solid #adb5bd;
   margin: 0.25rem 0;
   padding-top: 0.15rem;
   // R4-7.8: a bucket caption reserves the same height whether or not it
@@ -266,4 +267,38 @@
 .plan-item-view:focus {
   text-decoration: none;
   filter: brightness(0.92);
+}
+
+// Rev: the day-plan work rows sat on the tinted tier panels with transparent
+// backgrounds — 160+ identical pink lines with nothing for the eye to track.
+// The zebra alternates a slightly darker band (light red / lighter red on
+// the late panel; the same dark/light reading on the yellow/green ones).
+.plan-feeding-row:nth-of-type(even) {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+// Medication has no table — the per-animal lines are the rows.
+.plan-med-row:nth-child(even) {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+// Rev: the feeding ROW is the detail-modal affordance (click anywhere that
+// is not a chip/button/expand header).
+.plan-feeding-row {
+  cursor: pointer;
+}
+.plan-feeding-row:focus {
+  outline: 2px solid #80bdff;
+  outline-offset: -2px;
+}
+
+// Rev: the cage-cleanup table gets the same dark/light zebra as the
+// feeding table — same table language, same readability need.
+.plan-cage-row:nth-of-type(even) {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+
+// R8-2: the trace row a day-plan `src=` deep link points at — one clear
+// emphasis while the Details table is open; nothing sticky.
+.plan-trace-highlight {
+  background-color: #fff3cd !important;
+  box-shadow: inset 3px 0 0 #ffc107;
 }

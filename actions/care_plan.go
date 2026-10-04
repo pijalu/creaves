@@ -67,6 +67,32 @@ func CarePlanIndex(c buffalo.Context) error {
 		kindFilter = kind
 	}
 
+	// R8-5: per-kind view caps from /preferences (late max age, future
+	// horizon). NULL = no cap = seeded default. Applied to the PLAN ITEMS
+	// before the view model derives tiers/counts, so badges, lists and
+	// counters cannot disagree. Hidden work stays on the animal Plan tab.
+	prefs, err := preferencesByKind(tx)
+	if err != nil {
+		return err
+	}
+	if len(prefs) > 0 {
+		kept := plan.Items[:0:0]
+		for i := range plan.Items {
+			src := plan.Items[i].Occurrence.Source
+			if src == nil {
+				kept = append(kept, plan.Items[i])
+				continue
+			}
+			if p, ok := prefs[src.ActionKind()]; ok {
+				if capped := applyPreferenceCaps([]careplan.PlanItem{plan.Items[i]}, p, now); len(capped) == 0 {
+					continue
+				}
+			}
+			kept = append(kept, plan.Items[i])
+		}
+		plan.Items = kept
+	}
+
 	// Work screen (Phase 2, U2): ONE density + zone filter.
 	//
 	// R4-7.18: the compact/detailed toggle is gone. Measured on the live

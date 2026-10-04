@@ -1,0 +1,47 @@
+<div class="py-4 mb-2">
+  <h3><%= t("preferences.title") %></h3>
+  <p class="text-muted"><%= t("preferences.intro") %></p>
+</div>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <tr>
+      <th><%= t("preferences.kind") %></th>
+      <th><%= t("preferences.late_show_hours") %></th>
+      <th><%= t("preferences.future_show_hours") %></th>
+      <th><%= t("preferences.now_window_minutes") %></th>
+      <th>&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for (p) in preferences { %>
+      <%# A <form> cannot legally wrap <td>s (the browser empties it) —
+          the form lives in the last cell and the inputs join it via the
+          HTML5 form= attribute. %>
+      <tr>
+        <td class="align-middle"><%= t("care_plan.kind." + p.Kind) %></td>
+        <td class="align-middle" style="max-width: 12rem;">
+          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
+                 name="LateShowHours" value="<%= if (p.LateShowHours.Valid) { %><%= p.LateShowHours.Int %><% } %>"
+                 placeholder="<%= t("preferences.no_cap") %>" />
+        </td>
+        <td class="align-middle" style="max-width: 12rem;">
+          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
+                 name="FutureShowHours" value="<%= if (p.FutureShowHours.Valid) { %><%= p.FutureShowHours.Int %><% } %>"
+                 placeholder="<%= t("preferences.no_cap") %>" />
+        </td>
+        <td class="align-middle" style="max-width: 12rem;">
+          <input class="form-control" type="number" min="0" step="1" form="pref-<%= p.ID %>"
+                 name="NowWindowMinutes" value="<%= if (p.NowWindowMinutes.Valid) { %><%= p.NowWindowMinutes.Int %><% } %>"
+                 placeholder="<%= t("preferences.no_cap") %>" />
+        </td>
+        <td class="align-middle">
+          <form id="pref-<%= p.ID %>" action="/preferences/<%= p.ID %>/save" method="POST">
+            <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>" />
+            <button class="btn btn-warning" role="submit"><i class="fa fa-edit"></i> <%= t("preferences.save") %></button>
+          </form>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

@@ -4,3 +4,5 @@
   translation: "Zone was successfully updated."
 - id: "zone.destroyed.success"
   translation: "Zone was successfully destroyed."
+- id: "zone.requires_cleanup"
+  translation: "Requires cleanup"

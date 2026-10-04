@@ -28,15 +28,28 @@
       data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
       data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
   </div>
+  <%# Rev: the two label conditions were `<% if %>` (no `=`) — plush only
+      OUTPUTS the `<%= if %>` form, so every observation/care/weighing row
+      rendered with an EMPTY label block (no animal, no detail, no source)
+      while its ℹ/apply buttons carried the data. Same fix as the rest of
+      the file's conditionals. %>
   <div class="plan-med-label">
-    <% if (card.AnimalLink != "") { %>
+    <%= if (card.AnimalLink != "") { %>
       <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
     <% } else { %>
       <%= card.AnimalLabel %>
     <% } %>
-    <% if (card.Detail != "") { %>
-      — <strong><%= card.Detail %></strong>
-      <small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+    <%= if (card.Detail != "") { %>
+      <%# R8-2: a title-shaped source name ("Traitement — Sexage") beside
+          its own title reads twice — keep the TITLE only, and make IT the
+          protocol link: the day-plan row navigates, the animal page opens
+          its Details table and highlights the record (src= param). %>
+      <%= if (card.SourceNameRedundant) { %>
+        — <strong><a href="<%= card.SourceLink %>"><%= card.Detail %></a></strong>
+      <% } else { %>
+        — <strong><%= card.Detail %></strong>
+        <small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+      <% } %>
     <% } else { %>
       — <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
     <% } %>

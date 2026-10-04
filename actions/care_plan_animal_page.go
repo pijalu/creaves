@@ -398,6 +398,9 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 	// R4-7: recent misses leave the list (they can no longer be applied);
 	// their number rides on the day's last row as one pill.
 	d.Items = dayItemsWithoutMisses(d.Items, now, &d)
+	// Rev: the same feeding requirement at several times of the day lists
+	// ONCE — one row, joined times, latest occurrence's state.
+	d.Items = mergeSameSourceFeedings(d.Items)
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
 			d.OpenCount++
@@ -454,7 +457,92 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		cv.FulfillmentLink = cardFulfillmentLink(app.FulfillmentType, app.FulfillmentID, app.FulfillmentDeleted,
 			fmt.Sprintf("/animals/%d#nav-plan", animal.ID))
 	}
+	// Rev: feeding source names embed the diet ("Alimentation — <diet>"),
+	// so beside the Detail the name reads as the same sentence twice, cut
+	// off mid-word. When the name adds nothing the Detail doesn't already
+	// say, the row renders kind + nourriture/régime only (the protocol
+	// stays reachable from the Details table above).
+	cv.SourceNameRedundant = sourceNameRedundantWithDetail(src, cv.SourceName, cv.Detail)
 	return cv
+}
+
+// sourceNameRedundantWithDetail reports whether a row's source name is just
+// the detail text again (possibly truncated): the name core (kind prefix,
+// conversion markers and the "…" cut mark stripped) is a prefix of the Detail
+// or vice versa. R8-2: applies to feeding ("Alimentation — <diet>") AND the
+// title-shaped kinds observation/care/weighing ("Traitement — Sexage" beside
+// detail "Sexage" reads the title twice); medication keeps its drug + dosage
+// name (real information beyond the prompt).
+func sourceNameRedundantWithDetail(src careplan.PlanSource, name, detail string) bool {
+	if src == nil {
+		return false
+	}
+	switch src.ActionKind() {
+	case careplan.KindFeeding, careplan.KindObservation, careplan.KindCare, careplan.KindWeighing:
+	default:
+		return false
+	}
+	detail = strings.TrimSpace(detail)
+	if detail == "" {
+		return false
+	}
+	core := strings.TrimSpace(DisplayName(name))
+	if core == "" {
+		return true // nothing but the kind prefix — the Detail is the content
+	}
+	// "Alimentation — <diet>": the text after the FIRST dash is the diet the
+	// name repeats. (A diet itself can contain dashes, so first only.)
+	if i := strings.Index(core, "—"); i >= 0 {
+		core = strings.TrimSpace(core[i+len("—"):])
+	}
+	// truncateWords marks its cut with "…"; the detail continues where the
+	// name stopped.
+	core = strings.TrimSuffix(core, "…")
+	core = strings.TrimSpace(core)
+	if core == "" {
+		return true
+	}
+	return strings.HasPrefix(detail, core) || strings.HasPrefix(core, detail) || strings.Contains(detail, core)
+}
+
+// mergeSameSourceFeedings folds a day's feeding rows that share a source
+// (only the time differs) into ONE row per requirement: times join in the
+// due label ("10:00 · 18:00"), and the status/action comes from the LATEST
+// occurrence ("keep the latest late") — the row the caregiver can still
+// act on. Other kinds keep their per-occurrence rows (their action inputs
+// are per occurrence). Rows are keyed by source across the WHOLE day list,
+// not adjacent runs — an observation at 12:00 used to split a feeding's
+// 10:00/18:00 pair apart.
+func mergeSameSourceFeedings(items []CardView) []CardView {
+	type srcKey struct{ typ, id string }
+	latest := map[srcKey]int{} // source → index in items of the latest row so far
+	merged := make([]bool, len(items))
+	for i := range items {
+		it := &items[i]
+		if it.ActionKind != careplan.KindFeeding {
+			continue
+		}
+		k := srcKey{it.SourceType, it.SourceID}
+		j, seen := latest[k]
+		latest[k] = i
+		if !seen {
+			continue
+		}
+		// Same requirement, later occurrence: the surviving row (at the
+		// later position) keeps the latest's status/action/fulfillment and
+		// joins the times; the earlier row is dropped.
+		if items[j].DueHM != it.DueHM {
+			it.DueHM = items[j].DueHM + " · " + it.DueHM
+		}
+		merged[j] = true
+	}
+	out := items[:0:0]
+	for i := range items {
+		if !merged[i] {
+			out = append(out, items[i])
+		}
+	}
+	return out
 }
 
 // animalPlanTodayItem pairs an accordion row with its due time (sort

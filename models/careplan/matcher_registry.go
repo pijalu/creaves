@@ -236,6 +236,9 @@ func buildDefaultFields() []FieldProvider {
 		strField("zone", eqInRegex, func(a *AnimalContext) string { return a.Zone }),
 		{Key: "cage", LabelKey: "careplan.field.cage", Type: TypeString, Ops: withCIOps(eqInRegex),
 			Resolve: func(a *AnimalContext) ResolvedValue { return strValueKeepEmpty(a.Cage) }},
+		// R8-3: the zone asks for cage cleanup — the general cleanup rule
+		// matches on it (seeds SR13).
+		boolField("zone_requires_cleanup", func(a *AnimalContext) bool { return a.ZoneRequiresCleanup }),
 		numField("days_in_care", func(a *AnimalContext) float64 { return float64(a.DaysInCare()) }),
 		boolField("has_parasites", func(a *AnimalContext) bool { return a.HasParasites }),
 		boolField("has_wounds", func(a *AnimalContext) bool { return a.HasWounds }),

@@ -220,6 +220,18 @@ func RunCarePlanConverter(db *pop.Connection) (*ConversionReport, error) {
 	return report, nil
 }
 
+// SeedLibraryOnce re-runs ONLY the idempotent seed-library step (R8-3):
+// matchers insert-once by name, rules guarded by name existence. Lets
+// post-cutover DBs (converter marker already present) pick up new seed
+// rows — e.g. the SR13 cleanup rule — via `buffalo task careplan:seed`.
+func SeedLibraryOnce(db *pop.Connection) (*ConversionReport, error) {
+	report := &ConversionReport{GeneratedAt: time.Now().Format(time.RFC3339)}
+	if err := convertSeedLibrary(db, report); err != nil {
+		return nil, err
+	}
+	return report, nil
+}
+
 // ---------------------------------------------------------------------------
 // Step 1 — seed library (§7.4 / §8.1)
 // ---------------------------------------------------------------------------

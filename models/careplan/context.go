@@ -25,7 +25,11 @@ type AnimalContext struct {
 	Gender  string
 	Zone    string
 	Cage    string // "" = no cage (virtual « sans cage » bucket)
-	Feeding string // current diet free text
+	// R8-3: the animal's zone asks for cage cleanup (zones.requires_cleanup)
+	// — matchable as zone_requires_cleanup so a general rule can put every
+	// occupied cage of such zones on the cleanup list.
+	ZoneRequiresCleanup bool
+	Feeding             string // current diet free text
 
 	ForceFeed bool
 

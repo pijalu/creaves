@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -643,8 +644,11 @@ func GroupCards(items []careplan.PlanItem, d *DayPlan) ([]*CageCard, []*FeedingC
 			card.Items = append(card.Items, it)
 		case careplan.GroupingCageDiet:
 			p := parsePlanPayload(src)
+			// Rev: the GROUPING key collapses punctuation-adjacent spaces
+			// (see foodGroupKey); the DISPLAYED Food stays the wording-
+			// faithful normalizeFood output of the card's first member.
 			food := normalizeFood(p.Food)
-			k := dietKey{zone, cage, food}
+			k := dietKey{zone, cage, foodGroupKey(p.Food)}
 			card, ok := dietGroups[k]
 			if !ok {
 				card = &FeedingCard{Zone: zone, Cage: cage, Food: food, ForceFeed: p.ForceFeed}
@@ -733,9 +737,23 @@ func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string,
 
 // normalizeFood is the diet grouping key (bugs.md U1): case- and
 // whitespace-insensitive — "Croquettes  + VDF" and "croquettes + vdf"
-// are the same ration.
+// are the same ration. It is ALSO the displayed food text, so it stays
+// wording-faithful; see foodGroupKey for the grouping-only variant.
 func normalizeFood(food string) string {
 	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(food)), " "))
+}
+
+// punctuationSpaces strips the spaces around list punctuation.
+var punctuationSpaces = regexp.MustCompile(`\s*([/:,;+|-])\s*`)
+
+// foodGroupKey is the GROUPING key of a ration: normalizeFood plus the
+// punctuation-adjacent spaces, which are not diet content — the live data
+// fragments one ration into sibling rows over them ("graine pigeon / eau"
+// vs "graine pigeon/ eau", "graines pigeon // eau" vs "graines pigeon//eau").
+// Only whitespace variants merge; genuinely different wordings still group
+// apart. The card keeps normalizeFood's output as its displayed Food.
+func foodGroupKey(food string) string {
+	return punctuationSpaces.ReplaceAllString(normalizeFood(food), "$1")
 }
 
 // GroupCageCards groups the plan items whose kind uses cage grouping

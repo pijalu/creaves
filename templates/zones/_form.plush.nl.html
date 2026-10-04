@@ -2,5 +2,8 @@
 <%= f.SelectTag("Type", {label:"Type", options: {"intern aan het centrum": "internal", "extern aan het centrum": "external"} } ) %>
 
 <%= f.CheckboxTag("Default", {label:"Standaard", unchecked: false}) %>
+<%# R8-3: occupied cages of a "requires cleanup" zone land on the day
+    plan's cleanup list (general rule zone_requires_cleanup). %>
+<%= f.CheckboxTag("RequiresCleanup", {unchecked: false, label: t("zone.requires_cleanup")}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Opslaan</button>

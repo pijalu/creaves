@@ -171,7 +171,7 @@
             `_plan_med_toggle` partial owns them). %>
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[0] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
               <%# R4-7.15: the ANIMAL column. It had no width and no
                   background, so the labels stopped reading as a column
                   (measured: 13 distinct widths across 36 cells, every one
@@ -213,7 +213,7 @@
             `_plan_med_toggle` partial owns them). %>
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[1] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
               <%# R4-7.15: the ANIMAL column. It had no width and no
                   background, so the labels stopped reading as a column
                   (measured: 13 distinct widths across 36 cells, every one
@@ -255,7 +255,7 @@
             `_plan_med_toggle` partial owns them). %>
         <div class="px-2 py-1">
           <%= for (mg) in view.MedTiers[2] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1">
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
               <%# R4-7.15: the ANIMAL column. It had no width and no
                   background, so the labels stopped reading as a column
                   (measured: 13 distinct widths across 36 cells, every one
@@ -315,7 +315,17 @@
             <table class="table table-hover table-bordered mb-0">
               <tbody>
                 <%= for (fi, fcard) in view.FeedTiers[ti] { %>
-                  <tr class="plan-feeding-row">
+                  <%# Rev: the row itself opens the shared read-only detail
+                      modal — full ration text, EVERY due time, group status —
+                      the same planDetailModal the medication ℹ buttons fill.
+                      Chips/expand/apply keep their own behavior (the JS
+                      guards the row click against interactive children). %>
+                  <tr class="plan-feeding-row" tabindex="0" role="button"
+                      data-animal-label="<%= fcard.Cage %> (<%= fcard.AnimalCount %>)"
+                      data-detail="<%= fcard.Food %>"
+                      data-kind="feeding"
+                      data-due="<%= fcard.DetailTimes %>"
+                      data-status="<%= fcard.GroupStatus %>">
                     <td>
                       <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
                       <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
@@ -350,7 +360,10 @@
                           <span class="plan-feed-when">
                             <%# The header must still say WHAT is due while the
                                 list is closed, or collapsing hides the work. %>
-                            <%= if (fcard.FirstTimeLabel != "") { %><%= t("care_plan.feeding.earliest") %> <%= fcard.FirstTimeLabel %><% } %>
+                            <%# R8-1: the collapsed header keeps the DAY — a
+                                late group must not read "from 18:00" with
+                                no hint it is yesterday's 18:00. %>
+                            <%= if (fcard.FirstTimeLabel != "") { %><%= t("care_plan.feeding.earliest") %> <%= if (fcard.FirstTimeShortDate != "") { %><%= fcard.FirstTimeShortDate %> <% } else if (fcard.FirstTimeDayKey != "") { %><%= t(fcard.FirstTimeDayKey) %> <% } %><%= fcard.FirstTimeLabel %><% } %>
                             <% if (len(fcard.TimeGroups) > 1) { %> · +<%= len(fcard.TimeGroups) - 1 %><% } %>
                           </span>
                           <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
@@ -639,25 +652,44 @@
   });
 
   // --- Detail popup (read-only, shared partial) -----------------------------
+  // Rev: one filler shared by the ℹ buttons AND the feeding rows (the row
+  // is the click affordance there — the ration text and times only live in
+  // this modal).
+  function fillPlanDetail(el) {
+    document.getElementById('planDetailAnimal').textContent = el.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (el.getAttribute('data-animal-link')) { aLink.setAttribute('href', el.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+    else { aLink.classList.add('d-none'); }
+    document.getElementById('planDetailDetail').textContent = el.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = el.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (el.getAttribute('data-source-link')) { sLink.setAttribute('href', el.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+    else { sLink.classList.add('d-none'); }
+    document.getElementById('planDetailKind').textContent = i18n.kinds[el.getAttribute('data-kind')] || el.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = el.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = i18n.status[el.getAttribute('data-status')] || el.getAttribute('data-status') || '—';
+    var rem = el.getAttribute('data-remaining');
+    document.getElementById('planDetailRemainingDt').classList.toggle('d-none', !rem);
+    document.getElementById('planDetailRemainingDd').classList.toggle('d-none', !rem);
+    if (rem) { document.getElementById('planDetailRemaining').textContent = rem; }
+    $('#planDetailModal').modal('show');
+  }
   Array.prototype.forEach.call(document.querySelectorAll('.plan-detail-btn'), function (btn) {
-    btn.addEventListener('click', function () {
-      document.getElementById('planDetailAnimal').textContent = btn.getAttribute('data-animal-label') || '—';
-      var aLink = document.getElementById('planDetailAnimalLink');
-      if (btn.getAttribute('data-animal-link')) { aLink.setAttribute('href', btn.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
-      else { aLink.classList.add('d-none'); }
-      document.getElementById('planDetailDetail').textContent = btn.getAttribute('data-detail') || '—';
-      document.getElementById('planDetailSource').textContent = btn.getAttribute('data-source-name') || '—';
-      var sLink = document.getElementById('planDetailSourceLink');
-      if (btn.getAttribute('data-source-link')) { sLink.setAttribute('href', btn.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
-      else { sLink.classList.add('d-none'); }
-      document.getElementById('planDetailKind').textContent = i18n.kinds[btn.getAttribute('data-kind')] || btn.getAttribute('data-kind') || '—';
-      document.getElementById('planDetailDue').textContent = btn.getAttribute('data-due') || '—';
-      document.getElementById('planDetailStatus').textContent = i18n.status[btn.getAttribute('data-status')] || btn.getAttribute('data-status') || '—';
-      var rem = btn.getAttribute('data-remaining');
-      document.getElementById('planDetailRemainingDt').classList.toggle('d-none', !rem);
-      document.getElementById('planDetailRemainingDd').classList.toggle('d-none', !rem);
-      if (rem) { document.getElementById('planDetailRemaining').textContent = rem; }
-      $('#planDetailModal').modal('show');
+    btn.addEventListener('click', function () { fillPlanDetail(btn); });
+  });
+  // Rev: a feeding row click opens the details; clicks on chips, expand
+  // headers and apply buttons keep their own behavior. Enter/Space toggle
+  // it for keyboard users (R3-4 language).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-row[data-detail]'), function (tr) {
+    tr.addEventListener('click', function (ev) {
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      fillPlanDetail(tr);
+    });
+    tr.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      ev.preventDefault();
+      fillPlanDetail(tr);
     });
   });
 

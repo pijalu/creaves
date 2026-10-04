@@ -17,8 +17,8 @@ import (
 // The MySQL round-trip (idempotency, marker, report) lives in
 // care_plan_converter_mysql_test.go.
 
-// TestSeedMatcherCount pins the §7.4 canonical seed set: exactly 13
-// canonical matchers (SM1–SM13) plus the 4 clearly-marked composite
+// TestSeedMatcherCount pins the canonical seed set: the §7.4 13 canonical
+// matchers (SM1–SM13) + R8-3 SM14, plus the 4 clearly-marked composite
 // matchers needed by SR1/SR4/SR6/SR12 (care_rules reference one matcher).
 func TestSeedMatcherCount(t *testing.T) {
 	canonical, derived := 0, 0
@@ -32,7 +32,7 @@ func TestSeedMatcherCount(t *testing.T) {
 			t.Errorf("canonical matcher %q must be keyed SM…", def.Key)
 		}
 	}
-	if canonical != 13 {
+	if canonical != 14 {
 		t.Errorf("want 13 canonical seed matchers (SM1–SM13), got %d", canonical)
 	}
 	if derived != 4 {
@@ -51,16 +51,16 @@ func TestSeedMatcherExpressionsParse(t *testing.T) {
 	}
 }
 
-// TestSeedRuleCount pins SR1–SR12.
+// TestSeedRuleCount pins SR1–SR13 (R8-3 adds the cleanup rule).
 func TestSeedRuleCount(t *testing.T) {
-	if n := len(SeedRules()); n != 12 {
-		t.Fatalf("want 12 seed rules (SR1–SR12), got %d", n)
+	if n := len(SeedRules()); n != 13 {
+		t.Fatalf("want 13 seed rules (SR1–SR13), got %d", n)
 	}
 	keys := map[string]bool{}
 	for _, r := range SeedRules() {
 		keys[r.Key] = true
 	}
-	for i := 1; i <= 12; i++ {
+	for i := 1; i <= 13; i++ {
 		k := "SR" + string(rune('0'+i))
 		if i == 10 {
 			k = "SR10"
@@ -92,8 +92,13 @@ func TestSeedRulesValidate(t *testing.T) {
 		if def.Kind == careplan.KindFeeding && !rule.Active {
 			t.Errorf("seed rule %s: feeding-kind seeds must ship active (§8.1 step 1)", def.Key)
 		}
-		if def.Kind != careplan.KindFeeding && rule.Active {
+		// R8-3: SR13 ships ACTIVE — it exists to enforce cleanup on flagged
+		// zones, an inactive copy would enforce nothing.
+		if def.Kind != careplan.KindFeeding && rule.Active && def.Key != "SR13" {
 			t.Errorf("seed rule %s: non-feeding seeds must be inactive drafts (§8.1 step 1)", def.Key)
+		}
+		if def.Key == "SR13" && !rule.Active {
+			t.Errorf("seed rule SR13 must ship active (R8-3 enforcement)")
 		}
 		wantLatch := def.DurationDays > 0
 		if rule.LatchMembership != wantLatch {

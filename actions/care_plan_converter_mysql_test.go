@@ -202,10 +202,10 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, report)
 
-	// Seed library: 13 canonical + 4 derived matchers, SR1–SR12.
-	require.Equal(t, int64(17), int64(report.Seeds.MatchersInserted), "seed matchers inserted")
-	require.Equal(t, 12, report.Seeds.RulesInserted+report.Seeds.RulesSkipped, "SR1–SR12 accounted")
-	require.Equal(t, 12, report.Seeds.RulesInserted, "all 12 seeds insert on a clean run")
+	// Seed library: 13 canonical + SM14 (R8-3) + 4 derived matchers, SR1–SR13.
+	require.Equal(t, int64(18), int64(report.Seeds.MatchersInserted), "seed matchers inserted")
+	require.Equal(t, 13, report.Seeds.RulesInserted+report.Seeds.RulesSkipped, "SR1–SR13 accounted")
+	require.Equal(t, 13, report.Seeds.RulesInserted, "all 13 seeds insert on a clean run")
 
 	// Feeding: one cluster rule (5 identical-schedule animals), three
 	// per-animal plans (2 unique diets + 1 empty-diet fallback + 1
@@ -232,8 +232,8 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 
 	// DB state: absolute counts hold only for converter-attributable rows;
 	// unrelated fixtures may exist, hence report-driven deltas.
-	require.Equal(t, rulesBefore+int64(12+report.Feeding.RulesCreated), count("SELECT count(*) as c FROM care_rules"))
-	require.Equal(t, matchersBefore+int64(17+report.Feeding.RulesCreated), count("SELECT count(*) as c FROM care_matchers"))
+	require.Equal(t, rulesBefore+int64(13+report.Feeding.RulesCreated), count("SELECT count(*) as c FROM care_rules"))
+	require.Equal(t, matchersBefore+int64(18+report.Feeding.RulesCreated), count("SELECT count(*) as c FROM care_matchers"))
 	require.Equal(t, plansBefore+int64(report.Feeding.PlansCreated+report.Treatments.PlansCreated),
 		count("SELECT count(*) as c FROM care_animal_plans"))
 

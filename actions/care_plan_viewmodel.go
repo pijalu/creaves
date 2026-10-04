@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -83,6 +84,11 @@ type CardView struct {
 	AnimalLink      string // /animals/{id}#nav-plan — empty without an animal row
 	SourceLink      string // /care_rules/{id} (rule) or /animals/{id}#nav-plan (animal plan)
 	FulfillmentLink string // done rows: /cares|/treatments/{fid} — empty otherwise
+	// Rev: feeding source names repeat the diet text (the conversion names
+	// them "Alimentation — <diet>"), so next to the Detail the name is the
+	// same sentence twice, truncated mid-word. When true the row renders
+	// the Detail alone (kind + nourriture/régime).
+	SourceNameRedundant bool
 }
 
 // TierLink is one pill of the summary strip (R4-7.21): a jump link to a
@@ -151,6 +157,14 @@ type FeedingGroupView struct {
 	AnimalCount    int
 	AnimalCountCap string
 	FirstTimeLabel string // the earliest sub-group's time, for the header
+	// R8-1: the earliest sub-group's day parts, so the COLLAPSED group
+	// header can say "from yesterday 18:00" / "from 02/10 18:00" instead of
+	// a bare "from 18:00" that hides how late the group is.
+	FirstTimeDayKey    string // care_plan.time.yesterday / .tomorrow ("" when today)
+	FirstTimeShortDate string // "02/01" beyond one day
+	// Rev: every sub-group's time joined ("08:00 · 17:00") for the read-only
+	// detail modal — the row shows the earliest, the modal shows them all.
+	DetailTimes string
 	// R4-4.3: the group's urgency tier — the most urgent NON-superseded
 	// chip's tier, the same late → now → later language the medication
 	// sections use. -1 when the group has no open work.
@@ -1060,6 +1074,20 @@ func finalizeFeedingChips(fv *FeedingGroupView) {
 	if len(fv.TimeGroups) > 0 {
 		// The header time IS the first sub-group's, so the two cannot drift.
 		fv.FirstTimeLabel = fv.TimeGroups[0].Label
+		fv.FirstTimeDayKey = fv.TimeGroups[0].DayKey
+		fv.FirstTimeShortDate = fv.TimeGroups[0].ShortDate
+		// Rev: the detail modal lists every sub-group's time, not just the
+		// earliest — the row collapses them, the modal must not. Sorted by
+		// due time: the fold keeps first-seen order, which can interleave
+		// days ("17:00 · 09:00").
+		groups := make([]FeedingTimeGroup, len(fv.TimeGroups))
+		copy(groups, fv.TimeGroups)
+		sort.SliceStable(groups, func(i, j int) bool { return groups[i].DueAt.Before(groups[j].DueAt) })
+		labels := make([]string, 0, len(groups))
+		for i := range groups {
+			labels = append(labels, groups[i].Label)
+		}
+		fv.DetailTimes = strings.Join(labels, " · ")
 	}
 }
 
@@ -1716,6 +1744,11 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		Applicable:   it.Applicable,
 		NeedsInput:   src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
 	}
+	// R8-2: observation/care/weighing (and feeding) source names repeat the
+	// detail title ("Traitement — Sexage" beside "Sexage") — the day-plan
+	// row keeps kind + title only.
+	cv.SourceNameRedundant = sourceNameRedundantWithDetail(src, cv.SourceName, cv.Detail)
+
 	if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 		cv.AnimalLabel = animalLabel(a)
 		cv.Zone = a.Zone.String
@@ -1782,11 +1815,17 @@ func animalTreatmentLink(animalID int, back string) string {
 
 // cardSourceLink: rule → rule show; animal plan → the animal's Plan tab
 // (§7.2a). The back param returns to the work screen.
+// R8-2: animal-plan links carry `src=<sourceID>` so the Protocol tab can
+// open its Details trace table and highlight the producing protocol — the
+// tab's Details card is collapsed by default, which made the link dead.
 func cardSourceLink(sourceType, sourceID string, animalID int, back string) string {
 	if sourceType == string(careplan.SourceRule) {
 		return fmt.Sprintf("/care_rules/%s?back=%s", sourceID, url.QueryEscape(back))
 	}
-	return cardAnimalLink(animalID, back)
+	// `src` MUST precede the #nav-plan fragment — a param after the hash
+	// is part of the fragment and invisible to the server/URLSearchParams.
+	return fmt.Sprintf("/animals/%d?back=%s&src=%s#nav-plan",
+		animalID, url.QueryEscape(back), url.QueryEscape(sourceID))
 }
 
 // cardFulfillmentLink targets the care/treatment record of an applied

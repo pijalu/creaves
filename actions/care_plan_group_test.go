@@ -188,3 +188,33 @@ func TestPlanJSONRowsDetailAndDisplayName(t *testing.T) {
 	require.NoError(t, err)
 	require.NotContains(t, string(raw), "detail")
 }
+
+// Rev: punctuation-adjacent spaces are not diet content — the live data
+// fragmented one ration into sibling cage × diet rows over them
+// ("graine pigeon / eau" vs "graine pigeon/ eau"). The grouping key must
+// merge whitespace variants while the DISPLAYED food stays faithful.
+func TestFoodGroupKeyMergesPunctuationSpaceVariants(t *testing.T) {
+	require.Equal(t,
+		foodGroupKey("graine pigeon / eau"),
+		foodGroupKey("graine pigeon/ eau"),
+		"space before the slash must not split one ration")
+	require.Equal(t,
+		foodGroupKey("graines pigeon // eau"),
+		foodGroupKey("graines pigeon//eau"),
+		"double-slash spacing variants merge")
+	require.Equal(t,
+		foodGroupKey("Graines  +  Grit ,  Eau"),
+		foodGroupKey("graines+grit,eau"),
+		"case/space-insensitive, punctuation-adjacent-space-insensitive")
+	// The displayed food stays wording-faithful (only case + whitespace).
+	require.Equal(t, "graine pigeon / eau", normalizeFood("Graine PIGEON  / eau"))
+	// Genuinely different wordings still group apart.
+	require.NotEqual(t,
+		foodGroupKey("graines pigeon, eau"),
+		foodGroupKey("graines tourterelles, eau"),
+		"different seeds are different rations")
+	require.NotEqual(t,
+		foodGroupKey("gavage 3x/j nutribird 1/2"),
+		foodGroupKey("gavage 3x/j: nutribird 1/2"),
+		"a colon is wording, not spacing — stays apart")
+}

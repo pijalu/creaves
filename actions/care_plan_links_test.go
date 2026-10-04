@@ -29,7 +29,9 @@ func TestCardLinks(t *testing.T) {
 	// Rule source → rule show; animal-plan source → the animal's Plan tab.
 	require.Equal(t, "/care_rules/abc-123?back=%2Fcare_plan",
 		cardSourceLink(string(careplan.SourceRule), "abc-123", 42, back))
-	require.Equal(t, "/animals/42?back=%2Fcare_plan#nav-plan",
+	// R8-2: animal-plan links carry src=<id> (before the fragment) so the
+	// Protocol tab opens its Details table and highlights the protocol.
+	require.Equal(t, "/animals/42?back=%2Fcare_plan&src=plan-1#nav-plan",
 		cardSourceLink(string(careplan.SourceAnimal), "plan-1", 42, back))
 
 	// Fulfillment links by type; deleted/none/none-id never link (§10-CP1).

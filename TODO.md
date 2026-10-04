@@ -132,6 +132,26 @@ Pure-Go engine per [docs/care-expert.md](./docs/care-expert.md). Key research/de
 - [ ] **CARE-PLAN-005**: Action payload validation per kind (§4.2: feeding/medication/care/cleanup/weighing/observation + `instructions`) — PENDING
 - [ ] **CARE-PLAN-006**: PlanSource interface + override resolver + status computation (§4.7/§6.1: slot-level & `replaces_kind` overrides, 8 statuses, apply window §10-A1, defer expiry §10-H1, per-kind grouping §6.2a, course latch §10-A4) — PENDING
 
+## Legacy Treatments Retirement ⏳ PENDING
+
+The legacy `/treatments` CRUD is still the dominant write path (~99% of
+treatment rows since the 2026-09-27 cutover bypass the care-plan engine).
+Full inventory, evidence, and discrete goals **G1–G6** are tracked in
+[docs/legacy-treatments-migration-plan.md](./docs/legacy-treatments-migration-plan.md):
+
+- [ ] **LEGACY-TREAT-001 (G1)**: remove the legacy create entry points (navbar New ▸ Treatment, "Add New treatment" on animal show/edit Treatment tab; all 4 locales)
+- [ ] **LEGACY-TREAT-002 (G2)**: one-off ad-hoc medication as a first-class engine source (protocol modal preset), incl. the wound-care `NoDrug` flow
+- [ ] **LEGACY-TREAT-003 (G3)**: gate legacy CRUD writes + bitmap toggle to admin; keep List/Show for history/fulfillment records
+- [ ] **LEGACY-TREAT-004 (G4)**: migrate open post-cutover legacy treatment schedules to `care_animal_plans` (idempotent grift, `careplan:fixnames` pattern)
+- [ ] **LEGACY-TREAT-005 (G5)**: collapse the Treatment tab into engine-only rendering; retire the legacy date-card block and the `animalPlanToday` shim
+- [ ] **LEGACY-TREAT-006 (G6)**: delete `TreatmentTemplate` flow + bitmap helpers; document `/treatments` CRUD retirement in `docs/care-expert.md` §8.3
+
+Fixed 2026-10-03 along the same report: the animal page's `#nav-treatment`
+pane closed early in `templates/animals/show.plush*.html`, pushing
+`#nav-plan`/`#nav-media`/`#nav-audit` out of `.tab-content` (tabs rendered
+stacked — "repeat of the animal content"; legacy treatment day cards leaked
+onto the Protocol tab).
+
 ## References
 
 - [PLAN.md](./PLAN.md) - Detailed implementation plan

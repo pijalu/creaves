@@ -126,6 +126,8 @@ func App() *buffalo.App {
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
+		app.GET("/preferences", PreferencesResource{}.List)
+		app.POST("/preferences/{preference_id}/save", PreferencesResource{}.Save)
 		// Sync configuration lives in the admin Synchronization area and
 		// always addresses the active config; the legacy per-config URL
 		// redirects there (see ConfigsResource.SyncEdit).

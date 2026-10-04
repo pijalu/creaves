@@ -207,6 +207,9 @@ func assemblePlanAnimals(tx *pop.Connection, now time.Time, animals []models.Ani
 	if err := pa.fillReferenceNames(tx); err != nil {
 		return nil, err
 	}
+	if err := pa.fillZoneRequiresCleanup(tx); err != nil {
+		return nil, err
+	}
 	if err := pa.fillSpeciesFields(tx); err != nil {
 		return nil, err
 	}
@@ -244,6 +247,29 @@ func (pa *planAnimals) fillReferenceNames(tx *pop.Connection) error {
 		ctx := pa.ctxs[id]
 		ctx.AnimalType = typeNames[row.AnimaltypeID]
 		ctx.AnimalAge = ageNames[row.AnimalageID]
+	}
+	return nil
+}
+
+// fillZoneRequiresCleanup flags every context whose zone is flagged
+// zones.requires_cleanup (R8-3): one read for the whole assembly, then a
+// map lookup per animal — no per-animal query.
+func (pa *planAnimals) fillZoneRequiresCleanup(tx *pop.Connection) error {
+	var zones []models.Zone
+	if err := tx.Where("requires_cleanup = ?", true).All(&zones); err != nil {
+		return err
+	}
+	if len(zones) == 0 {
+		return nil
+	}
+	flagged := make(map[string]bool, len(zones))
+	for i := range zones {
+		flagged[zones[i].Zone] = true
+	}
+	for id := range pa.ctxs {
+		if flagged[pa.ctxs[id].Zone] {
+			pa.ctxs[id].ZoneRequiresCleanup = true
+		}
 	}
 	return nil
 }

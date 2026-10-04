@@ -76,6 +76,20 @@ func convertedMatcherName(diet string) string {
 	return fmt.Sprintf("Régime « %s » (conversion)", truncateWords(diet, convertedDietBudget))
 }
 
+// RebuildConvertedFeedingName re-derives the conversion name of a feeding
+// plan/rule from its FULL diet text. Exported for the careplan:fixnames
+// maintenance grift, which repairs rows written by the earlier byte-based
+// truncation (names cut mid-word, e.g. "…1 dose d’e (conversion)").
+func RebuildConvertedFeedingName(diet string, fallback bool) string {
+	return convertedFeedingName(diet, fallback)
+}
+
+// RebuildConvertedMatcherName is the matcher-name counterpart of
+// RebuildConvertedFeedingName.
+func RebuildConvertedMatcherName(diet string) string {
+	return convertedMatcherName(diet)
+}
+
 // convertedDietBudget is how many characters of diet text survive inside the
 // conversion name. The wrappers ("Alimentation — " + " (conversion)" and
 // "Régime « " + " » (conversion)") are well under 40 characters, so 60 leaves

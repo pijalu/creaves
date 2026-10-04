@@ -1,0 +1,9 @@
+create_table("preferences") {
+	t.Column("id", "uuid", {"primary": true})
+	t.Column("kind", "string", {"unique": true})
+	t.Column("late_show_hours", "int", {"null": true})
+	t.Column("future_show_hours", "int", {"null": true})
+	t.Column("now_window_minutes", "int", {"null": true})
+	t.Column("created_at", "datetime")
+	t.Column("updated_at", "datetime")
+}
