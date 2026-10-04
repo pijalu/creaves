@@ -139,8 +139,6 @@ func (v DiscoveriesResource) Create(c buffalo.Context) error {
 		}
 	}
 
-	c.Logger().Debugf("LaMerde: %v", verrs)
-
 	if verrs.HasAny() {
 		return responder.Wants("html", func(c buffalo.Context) error {
 			// Make the errors available inside the html template

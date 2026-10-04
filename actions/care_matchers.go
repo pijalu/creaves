@@ -63,8 +63,12 @@ type matcherPreviewItem struct {
 // previewMatcherExpression evaluates a DSL expression against every
 // in-care animal (§7.1-3) returning the full annotated set (count +
 // per-animal why). Broken expressions fail with the parser's token-level
-// error, never a 500.
-func previewMatcherExpression(tx *pop.Connection, expression string, limit int) ([]matcherPreviewItem, int, error) {
+// error, never a 500. speciesT maps a canonical species base to its
+// localized display name (speciesDisplayOf — identity in tests).
+func previewMatcherExpression(tx *pop.Connection, expression string, limit int, speciesT func(string) string) ([]matcherPreviewItem, int, error) {
+	if speciesT == nil {
+		speciesT = func(b string) string { return b }
+	}
 	node, err := careplan.ParseValidatedWith(expression, careplan.DefaultRegistry())
 	if err != nil {
 		return nil, 0, err
@@ -91,6 +95,7 @@ func previewMatcherExpression(tx *pop.Connection, expression string, limit int) 
 		}
 		item := matcherPreviewItem{AnimalID: id, Match: ok}
 		if a, present := pa.rows[id]; present {
+			a.Species = speciesT(a.Species)
 			item.Label = animalLabel(a)
 			item.Cage = a.Cage.String
 			item.Zone = a.Zone.String
@@ -133,7 +138,7 @@ func CareMatcherPreview(c buffalo.Context) error {
 	if err := c.Bind(&in); err != nil {
 		return err
 	}
-	items, matches, err := previewMatcherExpression(tx, in.Expression, 50)
+	items, matches, err := previewMatcherExpression(tx, in.Expression, 50, speciesDisplayOf(c))
 	if err != nil {
 		return planError(c, http.StatusUnprocessableEntity, err)
 	}

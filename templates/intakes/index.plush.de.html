@@ -9,13 +9,21 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    
+    <th>Datum</th>
+    <th>Allgemeinzustand</th>
+    <th>Wunden</th>
+    <th>Parasiten</th>
+    <th>Bemerkungen</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (intake) in intakes { %>
       <tr>
-        
+        <td class="align-middle"><%= intake.DateFormated() %></td>
+        <td class="align-middle"><%= intake.General %></td>
+        <td class="align-middle"><%= bool2html(intake.HasWounds) %> <%= intake.Wounds %></td>
+        <td class="align-middle"><%= bool2html(intake.HasParasites) %> <%= intake.Parasites %></td>
+        <td class="align-middle"><%= intake.Remarks %></td>
         <td>
           <div class="float-right">
             <%= linkTo(intakePath({ intake_id: intake.ID }), {class: "btn btn-info", title: "Ansehen", body: "<i class='fa fa-eye'></i>"}) %>

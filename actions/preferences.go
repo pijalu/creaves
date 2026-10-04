@@ -147,9 +147,9 @@ func (v PreferencesResource) Save(c buffalo.Context) error {
 		return err
 	}
 	if verrs.HasAny() {
-		c.Flash().Add("danger", T.Translate(c, "preferences.update.error"))
+		c.Flash().Add("danger", T.Translate(c, "preferences.err"))
+		return c.Redirect(http.StatusSeeOther, "/preferences")
 	}
-	return c.Redirect(http.StatusSeeOther, "/preferences")
-	c.Flash().Add("success", T.Translate(c, "preferences.update.ok"))
+	c.Flash().Add("success", T.Translate(c, "preferences.ok"))
 	return c.Redirect(http.StatusSeeOther, "/preferences")
 }

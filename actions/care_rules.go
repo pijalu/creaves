@@ -368,7 +368,7 @@ func CareRulePreview(c buffalo.Context) error {
 	if err := tx.Find(matcher, rule.MatcherID.UUID); err != nil {
 		return planError(c, http.StatusNotFound, fmt.Errorf("rule matcher missing: %w", err))
 	}
-	items, matches, err := previewMatcherExpression(tx, matcher.Expression, 50)
+	items, matches, err := previewMatcherExpression(tx, matcher.Expression, 50, speciesDisplayOf(c))
 	if err != nil {
 		return planError(c, http.StatusUnprocessableEntity, err)
 	}

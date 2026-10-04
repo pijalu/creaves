@@ -552,6 +552,11 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	// The day-plan label convention (§10.5-N1: `472/26 · Hérisson · A12`)
+	// reads species straight off this row; resolve it to the localized
+	// display name so the Treatment/Protocol tabs agree with the animals
+	// list. Display only — the row is request-scoped and read-only here.
+	animal.Species = speciesDisplayOf(c)(animal.Species)
 
 	//c.Logger().Debugf("Loaded animal: %v", animal)
 

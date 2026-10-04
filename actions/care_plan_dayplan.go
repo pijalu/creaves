@@ -11,6 +11,7 @@ import (
 	"creaves/models"
 	"creaves/models/careplan"
 
+	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gofrs/uuid"
 )
@@ -38,6 +39,34 @@ func (d *DayPlan) ContextOf(animalID int) *careplan.AnimalContext {
 func (d *DayPlan) AnimalRow(animalID int) (models.Animal, bool) {
 	a, ok := d.Animals.rows[animalID]
 	return a, ok
+}
+
+// speciesDisplayOf returns the request's base→localized species mapper
+// (the request-scoped tspecies helper), or the identity function when it
+// is unavailable (grifts, tests). Used so animal labels carry the SAME
+// localized species names as the animals list (which routes every
+// species through tspecies) instead of the raw canonical French base.
+func speciesDisplayOf(c buffalo.Context) func(string) string {
+	if t, ok := c.Value("tspecies").(func(interface{}) string); ok {
+		return func(b string) string { return t(b) }
+	}
+	return func(b string) string { return b }
+}
+
+// localizePlanSpecies rewrites the plan's animal display rows so the
+// species name is the localized one for the current UI language. The
+// matcher contexts (Animals.ctxs) are untouched — this is display only,
+// and the plan is assembled fresh per request, so the mutation cannot
+// leak between requests. Call it once after BuildDayPlan, before any
+// view model consumes the labels.
+func localizePlanSpecies(c buffalo.Context, plan *DayPlan) {
+	t := speciesDisplayOf(c)
+	for id, a := range plan.Animals.rows {
+		if s := t(a.Species); s != a.Species {
+			a.Species = s
+			plan.Animals.rows[id] = a
+		}
+	}
 }
 
 // maxTime returns the later of a and b (Go 1.18 has no generic max).

@@ -1,11 +1,11 @@
 <div class="container p-3 my-3 border">
     <h4>Algemeen</h4>  
     <div class="form-row">  
-        <%= f.InputTag("Discovery.PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postcode"}) %>
-        <%= f.InputTag("Discovery.City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Stad"}) %>
+        <%= f.InputTag("PostalCode", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Postcode"}) %>
+        <%= f.InputTag("City", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Stad"}) %>
     
         <script>
-        $('input[name="Discovery.PostalCode"]').autoComplete({
+        $('input[name="PostalCode"]').autoComplete({
             delay: 250,
             minChars: 1,
             source: function(term, response){
@@ -13,12 +13,12 @@
             }
         });
 
-        $('input[name="Discovery.City"]').autoComplete({
+        $('input[name="City"]').autoComplete({
             delay: 250,
             minChars: 0,
             cache: 0,
             source: function(term, response){
-                var postalCode = $('input[name="Discovery.PostalCode"]').val();
+                var postalCode = $('input[name="PostalCode"]').val();
                 $.getJSON('/suggestions/locality', { z: postalCode, l: term }, function(data){ response(data); });
             }
         });

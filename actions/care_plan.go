@@ -54,6 +54,9 @@ func CarePlanIndex(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	// Species labels must match the animals list (tspecies-localized),
+	// not the raw canonical-French base stored on animals.species.
+	localizePlanSpecies(c, plan)
 
 	// ?kind=<action_kind> narrows the JSON read model to one kind (§8.3:
 	// the retired /feeding page redirects here with kind=feeding). The

@@ -100,6 +100,9 @@ func ReportsCareScheduleIndex(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	// Species labels must match the animals list (tspecies-localized),
+	// not the raw canonical-French base stored on animals.species.
+	localizePlanSpecies(c, plan)
 
 	group := c.Param("group")
 	switch group {

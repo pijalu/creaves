@@ -1,14 +1,14 @@
-<h3 class="d-inline-block">Animals in alert</h3>
+<h3 class="d-inline-block"><%= t("dashboard.alerts.title") %></h3>
 <%= if (len(openCares)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Date</th>
-    <th>Animal</th>
-    <th>Zone</th>
-    <th>Cage</th>
-    <th>Species</th>
-    <th>Note</th>
+    <th><%= t("dashboard.col.date") %></th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.zone") %></th>
+    <th><%= t("dashboard.col.cage") %></th>
+    <th><%= t("dashboard.col.species") %></th>
+    <th><%= t("dashboard.col.note") %></th>
   </thead>
   <tbody>
     <%= for (care) in openCares { %>
@@ -33,29 +33,29 @@
 </table>
 </div>
 <%} else {%>
-<p>None</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
 
-<h3 class="d-inline-block">Animals with weight loss</h3> <i class="fas fa-question-circle text-muted" title="Data computed as of <%= animalsWithWeightLossCachedAt.Format("02/01/2006 at 15:04") %> (cached for up to 12h)"></i>
+<h3 class="d-inline-block"><%= t("dashboard.weight_loss.title") %></h3> <i class="fas fa-question-circle text-muted" title="<%= t("dashboard.weight_loss.cached_prefix") %><%= animalsWithWeightLossCachedAt.Format("02/01/2006 at 15:04") %><%= t("dashboard.weight_loss.cached_suffix") %>"></i>
 <%= if (len(animalsWithWeightLoss)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Animal</th>
-    <th>Zone</th>
-    <th>Cage</th>
-    <th>Species</th>
-    <th>Age</th>
-    <th>Weights</th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.zone") %></th>
+    <th><%= t("dashboard.col.cage") %></th>
+    <th><%= t("dashboard.col.species") %></th>
+    <th><%= t("dashboard.col.age") %></th>
+    <th><%= t("dashboard.col.weights") %></th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
       <tr>
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Ready for release"><i class="fas fa-dove"></i></span><% } %>
+          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="<%= t("care_plan.animal.ready_for_release") %>"><i class="fas fa-dove"></i></span><% } %>
         </td>
         <td class="align-middle"><%= tbase("zones", "zone", animal.Zone) %></td>
         <td class="align-middle"><%= animal.Cage %></td>
@@ -78,7 +78,7 @@
 </table>
 </div>
   <%} else {%>
-<p>None</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 <h3 class="d-inline-block"><%= t("dashboard.medication_today.title") %></h3>
@@ -137,15 +137,15 @@
 
 <br/>
 
-<h3 class="d-inline-block">Veterinary visits today</h3>
+<h3 class="d-inline-block"><%= t("dashboard.vet_visits.title") %></h3>
 <%= if (len(todaysVetVisits)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Time</th>
-    <th>Animal</th>
-    <th>Veterinary</th>
-    <th>Diagnostic</th>
+    <th><%= t("dashboard.col.time") %></th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.veterinary") %></th>
+    <th><%= t("dashboard.col.diagnostic") %></th>
   </thead>
   <tbody>
     <%= for (vv) in todaysVetVisits { %>
@@ -160,29 +160,29 @@
 </table>
 </div>
   <%} else {%>
-<p>None</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
 <h3 class="d-inline-block" id="todos">TODOs (<%= len(dashboardTodos) %>)</h3>
-<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> All</a>
+<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> <%= t("dashboard.todos.all") %></a>
 <%= if (len(dashboardTodos)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th></th>
-    <th>Description</th>
-    <th>Date</th>
-    <th>Actions</th>
+    <th><%= t("dashboard.col.description") %></th>
+    <th><%= t("dashboard.col.date") %></th>
+    <th><%= t("dashboard.col.actions") %></th>
   </thead>
   <tbody>
     <%= for (v) in dashboardTodos { %>
       <tr>
         <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="Open TODO"><%= v.Todo.Description %></a></td>
+        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="<%= t("dashboard.todos.open") %>"><%= v.Todo.Description %></a></td>
         <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
         <td class="align-middle">
-          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('Mark this TODO as done?');">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('<%= t("dashboard.todos.confirm_done") %>');">
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <input type="hidden" name="redirect" value="/#todos">
             <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Done</button>
@@ -194,19 +194,19 @@
 </table>
 </div>
 <%} else {%>
-<p>None</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Log entries (last 24h)</h3>
+<h3 class="d-inline-block"><%= t("dashboard.log.title") %></h3>
 <%= if (len(lastLogentries)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>CreatedAt</th>
-    <th>UpdatedAt</th>
-    <th>User</th>
-    <th>Description</th>
+    <th><%= t("dashboard.col.created_at") %></th>
+    <th><%= t("dashboard.col.updated_at") %></th>
+    <th><%= t("dashboard.col.user") %></th>
+    <th><%= t("dashboard.col.description") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -227,17 +227,17 @@
 </table>
 </div>
 <%} else {%>
-<p>None</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 
 <br/>
-<h3>Statistics</h3>
-<h4 class="d-inline-block">Animals in cares</h4>
+<h3><%= t("dashboard.stats.title") %></h3>
+<h4 class="d-inline-block"><%= t("dashboard.stats.in_care") %></h4>
 <div class="table-responsive">
 <table class="table table-sm">
 <thead>
-    <th>Type</th>
-    <th>Count</th>
+    <th><%= t("dashboard.col.type") %></th>
+    <th><%= t("dashboard.col.count") %></th>
   </thead>
   <tbody>
   <%= for (ac) in animalCountPerType { %>

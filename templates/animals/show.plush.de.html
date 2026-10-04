@@ -3,7 +3,7 @@
   <%= if(animal.OuttakeID.Valid){ %>
   <h4><em>(Abgegeben)</em></h4>
   <% } %>
-  <h5><%= if (animal.Cage.Valid) {%>Cage <%= animal.Cage %> - <%}%> <%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
+  <h5><%= if (animal.Cage.Valid) {%>Käfig <%= animal.Cage %> - <%}%> <%= tspecies(animal.Species) %> (<%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %>) - <%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></h5>
 
   <div class="float-right mb-2">
     <%= linkTo(landingBack, {class: "btn btn-info"}) { %>
@@ -48,7 +48,7 @@
   <div class="tab-pane fade show active" id="nav-general" role="tabpanel" aria-labelledby="nav-general-tab">
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
-        <label class="small d-block">Type</label>
+        <label class="small d-block">Typ</label>
         <p class="d-inline-block"><%= tname("animaltypes", animal.Animaltype.ID, animal.Animaltype.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
@@ -78,7 +78,7 @@
         </script>
       </li>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Age</label>
+        <label class="small d-block">Alter</label>
         <p class="d-inline-block"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></p>
       </li>
       <li class="list-group-item pb-1">
@@ -108,7 +108,7 @@
         </p>
       </li>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Cage</label>
+        <label class="small d-block">Käfig</label>
         <p class="d-inline-block"><%= animal.Cage %></p>
       </li>
       <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %>
@@ -160,12 +160,12 @@
         </li>
 
         <li class="list-group-item pb-1">
-          <label class="small d-block">Date</label>
+          <label class="small d-block">Datum</label>
           <p class="d-inline-block"><%= animal.Discovery.DateFormated() %></p>
         </li>
         <%= if ( len(animal.Discovery.Note.Value()) > 0 ) {%>
         <li class="list-group-item pb-1">
-          <label class="small d-block">Note</label>
+          <label class="small d-block">Notiz</label>
           <p class="d-inline-block"><%= animal.Discovery.Note %></p>
         </li>
         <% } %>
@@ -194,7 +194,7 @@
             <p class="d-inline-block"><%= bool2html(animal.Discovery.Discoverer.ReturnRequest) %></p>
           </li>
           <li class="list-group-item pb-1">
-            <label class="small d-block">Contacts</label>
+            <label class="small d-block">Kontakte</label>
             <%= if ( len(animal.Discovery.Discoverer.Email.Value()) > 0 ) {%>
             <p class="d-inline-block"><i class="far fa-envelope"></i><%= animal.Discovery.Discoverer.Email %></p>
             <% } %>
@@ -210,7 +210,7 @@
   <div class="tab-pane fade" id="nav-intake" role="tabpanel" aria-labelledby="nav-intake-tab">
     <ul class="list-group mb-2 ">
       <li class="list-group-item pb-1">
-          <label class="small d-block">Date</label>
+          <label class="small d-block">Datum</label>
           <p class="d-inline-block"><%= animal.Intake.DateFormated() %></p>
       </li>
 
@@ -227,7 +227,7 @@
       </li>
 
       <li class="list-group-item pb-1">
-        <label class="small d-block">Parasites</label>
+        <label class="small d-block">Parasiten</label>
         <p class="d-inline-block"><%= bool2html(animal.Intake.HasParasites) %></p>
         <br/>
         <p class="d-inline-block"><%= animal.Intake.Parasites %></p>
@@ -319,11 +319,11 @@
       data-page-size="50"
     >
       <thead class="thead-light">
-        <th>Date</th>
+        <th>Datum</th>
         <th>Gewicht</th>
-        <th>Note</th>
+        <th>Notiz</th>
         <th><i class="fa fa-soap" aria-hidden="true"></i></th>
-        <th>Type</th>
+        <th>Typ</th>
         <th>&nbsp;</th>
       </thead>
       <tbody>
@@ -387,7 +387,7 @@
 
     <table class="table table-hover table-bordered">
       <thead class="thead-light">
-        <th>Date</th>
+        <th>Datum</th>
         <th>Tierarzt</th>
         <th>Benutzer</th>
         <th>Diagnose</th>
@@ -1151,11 +1151,11 @@
             <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Ausgang löschen", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         <% } %>
-        <label class="small d-block">Date</label>
+        <label class="small d-block">Datum</label>
         <p class="d-inline-block"><%= animal.Outtake.DateFormated() %></p>
       </li>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Type</label>
+        <label class="small d-block">Typ</label>
         <p class="d-inline-block"><%= tname("outtaketypes", animal.Outtake.Type.ID, animal.Outtake.Type.Name) %></p>
         <%= if (animal.Outtake.Type.Rating.Valid) { %><span class="badge ml-2 <%= if (animal.Outtake.Type.Rating.Int < 0) { %>badge-danger<% } else if (animal.Outtake.Type.Rating.Int > 0) { %>badge-success<% } else { %>badge-secondary<% } %>"><%= if (animal.Outtake.Type.Rating.Int < 0) { %>Negativ<% } else if (animal.Outtake.Type.Rating.Int > 0) { %>Positiv<% } else { %>Neutral<% } %></span><% } %>
       </li>
@@ -1172,7 +1172,7 @@
         <p class="d-inline-block"><%= stayDuration(animal.Outtake.StayDuration, "T", "h") %> <span class="badge badge-info"><%= stayDurationBucket(animal.Outtake.StayDuration, t("outtake.duration.bucket.under12"), t("outtake.duration.bucket.12to24"), t("outtake.duration.bucket.24to48"), t("outtake.duration.bucket.gt48")) %></span></p>
       </li>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Note</label>
+        <label class="small d-block">Notiz</label>
         <p class="d-inline-block"><%= animal.Outtake.Note %></p>
       </li>
     </ul>
