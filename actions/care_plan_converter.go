@@ -345,6 +345,19 @@ func saveSeedNameTranslations(tx *pop.Connection, table, id string, names map[st
 	return nil
 }
 
+// converterOwnedMatcher reports whether an existing matcher row belongs to
+// the converter and may be refreshed in place. Before R9-5 the description
+// carried "[source: care_plan_converter]"; since R9-5 all seeded and
+// converter-built rows stamp the user-facing DefaultRuleDescription, so
+// provenance must be recognized by the converter-reserved "(conversion)"
+// name suffix (convertedMatcherName / convertedFeedingName) as well.
+func converterOwnedMatcher(m models.CareMatcher) bool {
+	if strings.Contains(m.Description.String, ConverterTag) {
+		return true
+	}
+	return strings.HasSuffix(m.Name, " (conversion)")
+}
+
 func careRuleNameExists(tx *pop.Connection, name string) (bool, error) {
 	var n []struct {
 		C int64 `db:"c"`
@@ -408,7 +421,7 @@ func upsertClusterMatcher(tx *pop.Connection, report *ConversionReport, m *model
 		return uuid.NullUUID{UUID: existing.ID, Valid: true}, nil
 	}
 	switch {
-	case !strings.Contains(existing.Description.String, ConverterTag):
+	case !converterOwnedMatcher(existing):
 		line.Action, line.Reason = "skipped", "not converter-owned"
 	case handEdited(existing.CreatedAt, existing.UpdatedAt):
 		line.Action, line.Reason = "skipped", "hand-edited (updated_at ≠ created_at)"

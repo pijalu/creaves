@@ -172,8 +172,13 @@ func cleanupConverterRows(t *testing.T) {
 	db := models.DB
 	db.RawQuery("DELETE FROM care_plan_conversion").Exec()
 	db.RawQuery("DELETE FROM care_animal_plans WHERE created_by IS NULL").Exec()
-	db.RawQuery("DELETE FROM care_rules WHERE description LIKE ?", "%"+ConverterTag+"%").Exec()
-	db.RawQuery("DELETE FROM care_matchers WHERE description LIKE ?", "%"+ConverterTag+"%").Exec()
+	// Pre-R9-5 rows carry "[source: care_plan_converter]" in the description;
+	// post-R9-5 rows stamp DefaultRuleDescription and converter-built rows
+	// (cluster rule + matcher, per-animal plans) carry the "(conversion)"
+	// name suffix. Match all three so leftover converter rows never leak
+	// across tests regardless of the description scheme that wrote them.
+	db.RawQuery("DELETE FROM care_rules WHERE description LIKE ? OR description = ? OR name LIKE ?", "%"+ConverterTag+"%", DefaultRuleDescription, "% (conversion)%").Exec()
+	db.RawQuery("DELETE FROM care_matchers WHERE description LIKE ? OR description = ? OR name LIKE ?", "%"+ConverterTag+"%", DefaultRuleDescription, "% (conversion)%").Exec()
 }
 
 // TestCarePlanConverterRoundTrip runs the whole §8.1 sequence twice:
