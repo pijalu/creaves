@@ -1,0 +1,3 @@
+sql("CREATE PROCEDURE `_r95_rules`() BEGIN IF EXISTS (SELECT 1 FROM `information_schema`.`TABLES` WHERE `TABLE_SCHEMA` = DATABASE() AND `TABLE_NAME` = 'care_rules') THEN UPDATE `care_rules` SET `description` = 'Règles par défaut' WHERE `description` LIKE '%[source: care_plan_converter]'; END IF; END")
+sql("CALL `_r95_rules`()")
+sql("DROP PROCEDURE IF EXISTS `_r95_rules`")

@@ -51,6 +51,37 @@ func TestSeedMatcherExpressionsParse(t *testing.T) {
 	}
 }
 
+// TestSeedBuildersStampDefaultDescription pins R9-5: every seeded §7.4 rule
+// and matcher must carry the user-facing DefaultRuleDescription ("Règles par
+// défaut") and never leak the internal converter provenance string
+// ("Bibliothèque §7.4 KEY [source: care_plan_converter]") into the UI.
+func TestSeedBuildersStampDefaultDescription(t *testing.T) {
+	for _, def := range SeedMatchers() {
+		m := buildSeedMatcher(def)
+		if !m.Description.Valid || m.Description.String != DefaultRuleDescription {
+			t.Errorf("seed matcher %s: description = %q, want %q", def.Key, m.Description.String, DefaultRuleDescription)
+		}
+		if strings.Contains(m.Description.String, ConverterTag) {
+			t.Errorf("seed matcher %s: description leaks converter tag: %q", def.Key, m.Description.String)
+		}
+	}
+	// Feeding/care payloads embed a caretype_id; a dummy UUID satisfies the
+	// payload validator (no FK check at build time).
+	ct := uuid.Must(uuid.NewV4()).String()
+	for _, def := range SeedRules() {
+		r, err := buildSeedRule(def, uuid.NullUUID{}, ct)
+		if err != nil {
+			t.Fatalf("buildSeedRule %s: %v", def.Key, err)
+		}
+		if !r.Description.Valid || r.Description.String != DefaultRuleDescription {
+			t.Errorf("seed rule %s: description = %q, want %q", def.Key, r.Description.String, DefaultRuleDescription)
+		}
+		if strings.Contains(r.Description.String, ConverterTag) {
+			t.Errorf("seed rule %s: description leaks converter tag: %q", def.Key, r.Description.String)
+		}
+	}
+}
+
 // TestSeedRuleCount pins SR1–SR13 (R8-3 adds the cleanup rule).
 func TestSeedRuleCount(t *testing.T) {
 	if n := len(SeedRules()); n != 13 {

@@ -27,6 +27,14 @@ import (
 // can identify them (§8.2: "tagged created_by='care_plan_converter'").
 const ConverterTag = "care_plan_converter"
 
+// DefaultRuleDescription is the user-facing description stamped on every
+// seeded (default) §7.4 rule and matcher (R9-5). It replaces the previous
+// internal provenance string ("Bibliothèque §7.4 KEY [source:
+// care_plan_converter]"), which leaked the converter tag into the UI. The
+// provenance of a seeded row is still recoverable via created_by=
+// ConverterTag; the description is display text, not metadata.
+const DefaultRuleDescription = "Règles par défaut"
+
 // seedMatcherDef is one §7.4 seed matcher row.
 type seedMatcherDef struct {
 	Key        string // SM1..SM13 (or "SR1*" for derived)
@@ -141,7 +149,7 @@ func SeedRules() []seedRuleDef {
 func buildSeedMatcher(def seedMatcherDef) *models.CareMatcher {
 	return &models.CareMatcher{
 		Name:        def.Name,
-		Description: nulls.NewString(fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)),
+		Description: nulls.NewString(DefaultRuleDescription),
 		Expression:  def.Expression,
 	}
 }
@@ -155,7 +163,7 @@ func buildSeedRule(def seedRuleDef, matcherID uuid.NullUUID, caretypeID string) 
 	active := def.Kind == careplan.KindFeeding || def.Key == "SR13"
 	r := &models.CareRule{
 		Name:            def.Name,
-		Description:     nulls.NewString(fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)),
+		Description:     nulls.NewString(DefaultRuleDescription),
 		ActionKind:      def.Kind,
 		ActionPayload:   buildSeedPayload(def, caretypeID),
 		Schedule:        []byte(def.ScheduleJSON),
