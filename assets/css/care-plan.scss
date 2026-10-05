@@ -108,6 +108,19 @@
   color: #495057;
 }
 
+  // R9-1: an applied feeding animal row goes light-green so the caregiver
+  // SEES what was just recorded (the apply check swaps to an undo control in
+  // place). Same light-green family as the "later" tier (#d4edda) so the
+  // applied state reads as one visual language across the plan. Toggled by
+  // markApplied/markOpen in _apply_toggle.plush.*.html.
+  .plan-animal-row.plan-animal-applied {
+    background: #d4edda;
+    border-radius: 0.25rem;
+  }
+  .plan-animal-row.plan-animal-applied .plan-feeding-chip {
+    color: #155724;
+  }
+
 // R4-7.6's `.plan-chip-due` was removed together with its markup: the expected
 // time is now the sub-group label (R4-7.14b), so no rule targets a per-chip
 // time span any more.

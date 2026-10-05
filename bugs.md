@@ -61,7 +61,41 @@ a single-animal row and a multi-animal group, assert the light-green class +
 visible undo, click undo, assert the open state returns and the DB
 `cares`/application row is removed. Repeat across en/fr/de/nl.
 
-**Status**: open.
+**Status**: **fixed 2026-10-05**.
+
+**Fix**: the applied state is toggled in the shared `planApply` helpers so every
+apply path (single `.plan-feeding-one`, group batch `flipBatchRow`, undo)
+gets it for free:
+- `templates/care_plan/_apply_toggle.plush.html` (+ byte-identical fr/de/nl
+  forks, propagated with `cp`): `markApplied` now adds `plan-animal-applied`
+  to the closest `.plan-animal-row`; `markOpen` removes it. The existing
+  apply↔undo button swap (`pairApply`/`pairUndo`) was already wired — the
+  apply button becomes the undo button in place, no reload.
+- `assets/css/care-plan.scss`: new rule
+  `.plan-animal-row.plan-animal-applied { background: #d4edda; … }` (same
+  `#d4edda`/`#155724` family as the existing applied med slot — one visual
+  language for "applied"). No new user-facing text ⇒ no new `t()` keys.
+
+**Validation (e2e, agent-browser, `/care_plan?kind=feeding`, en UI)**:
+- Single animal 8429: apply → apply-check hidden, undo shown,
+  `plan-animal-applied` present, row background `rgb(212, 237, 218)`
+  (#d4edda); `care_plan_applications` row inserted (`source_type=rule`).
+  Undo → apply shown, undo hidden, green removed (background transparent);
+  DB row deleted.
+- Group row (animals 8429/8430/8432/8433/8435/8513): "Apply cage" → confirm
+  → all 6 `.plan-animal-row` got `plan-animal-applied` (6/6 green), group
+  apply button hidden. The 6 recorded applications were left in the dev DB
+  (valid test data from the restored Oct-2 dump, today's date).
+- Webpack rebuilt; new CSS confirmed in
+  `public/assets/application.72c03ba1d68a4fa50d8e.css`. Locale forks of
+  `_apply_toggle` verified byte-identical (`md5 f6c159c…` ×4); CSS is shared.
+
+**Quality gates**: `go vet ./...` exit 0; `staticcheck ./...` exit 0;
+`gofmt -l .` flags only pre-existing test files (Go-version doc drift), none
+touched by this fix. gocognit/gocyclo/go-test: **N/A — zero Go lines changed**
+(scss + 4 template forks only); the DB-backed suite remains contaminated by
+the restored production dump (pre-existing
+`TestCarePlanConverterMarkerV2Refresh` failure, documented under R9-5).
 
 ### R9-2 Medication page needs a "Done" collapsible + per-slot green undo; "done" only when ALL repeats applied
 

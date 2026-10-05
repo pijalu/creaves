@@ -294,6 +294,10 @@
     btn.disabled = false;
     var undo = pairUndo(btn);
     if (undo) { undo.classList.remove('d-none'); }
+    // R9-1: tint the applied feeding animal row light-green so the recorded
+    // feeding is visible at a glance.
+    var row = btn.closest ? btn.closest('.plan-animal-row') : null;
+    if (row) { row.classList.add('plan-animal-applied'); }
   }
 
   // markOpen flips an applied row back to its apply check (undo clicked).
@@ -305,6 +309,9 @@
     btn.disabled = false;
     var apply = pairApply(btn);
     if (apply) { apply.classList.remove('d-none'); }
+    // R9-1: undo removes the light-green applied tint.
+    var row = btn.closest ? btn.closest('.plan-animal-row') : null;
+    if (row) { row.classList.remove('plan-animal-applied'); }
   }
 
   // Delegated (R4-2.2): one listener covers every page that includes this
