@@ -63,7 +63,8 @@ between rows only) — all four locales.
 
 ## Status
 
-**Verified.** Fixed in Phase 1 (medication line responsive ladder).
+**Verified.** Fixed in Phase 1 (medication line responsive ladder), commit
+`5f4242b` (feature/care-expert).
 
 ### Fix
 
