@@ -74,8 +74,10 @@ func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 	}
 	for _, f := range forks {
 		raw := readTemplate(t, f)
-		require.Equal(t, 3, strings.Count(raw, `class="mr-2 text-nowrap py-1 plan-med-animal"`), f+
-			": every medication tier body (late/now/later) carries the animal cell")
+		// R9-2: now FOUR medication tier bodies — late/now/later + the new
+		// Done collapsible — each renders its per-line animal cell.
+		require.Equal(t, 4, strings.Count(raw, `class="mr-2 text-nowrap py-1 plan-med-animal"`), f+
+			": every medication tier body (late/now/later/done) carries the animal cell")
 		// R9: the ONE page-wide width is gone — the user asked for the
 		// animal cell to size to its content so the whole line reads on a
 		// single line (<info> <animal> | <drug> | <toggles>) without the

@@ -171,7 +171,79 @@ collapsible look/label, the per-slot undo, and the treatment link in both
 popups. Unit-test `fillMedTiers` for the partial-application tier rule. Sweep
 en/fr/de/nl.
 
-**Status**: open.
+**Status**: **fixed 2026-10-05**.
+
+**Fix** (branch `feature/care-expert`):
+
+- **Done tier routing** — `actions/care_plan_viewmodel.go`:
+  - New `DayPlanView` fields `MedDone []MedTierLine`, `MedDoneCount`,
+    `MedDoneCountCap` (after `MedTiers`).
+  - `fillMedTiers`: a fully-terminal series (`seriesTierOrMinus < 0`) goes to
+    the new `collectDoneSeries` helper; a series that is NOT fully terminal
+    overall but whose TODAY-scoped slots are all terminal ("done for today",
+    future slots still open) is ALSO appended to `MedDone`. Tail sorts
+    `MedDone` by `medDoneFirstDue` (earliest slot) and sets the count/cap.
+  - `collectDoneSeries`: scopes the series to today; returns (series leaves
+    the screen) only when nothing of it is due today; otherwise appends a
+    single-series `MedGroupView` to `v.MedDone`.
+  - `scopeSeriesToToday` `!ok` branch (no open slot ≤ endOfDay) now KEEPS
+    today's terminal/done record instead of always emptying — the applied
+    slot stays visible in Done rather than vanishing in the evening.
+- **Done tier markup/CSS** — `templates/care_plan/index.plush.html` (+ fr/de/nl):
+  `.plan-tier-done` (darker green `#b7dfc2`/`#9fd0ae`, header `#0f4a1f`) after
+  `.plan-tier-later`; `#tier-done` collapsible (collapsed default, badge
+  `view.MedDoneCountCap`), body loops `view.MedDone` reusing `_med_series`.
+  Guarded by `view.Kind == "medication" && len(view.MedDone) > 0` (no empty tier).
+- **Popup treatment link** — `_item_detail_modal.plush.*.html` ×4 gained a
+  Treatment row (`#planDetailTreatmentDt/Dd/Link`); `_med_series.plush.*.html`
+  ×4 `plan-detail-btn` carries `data-treatment-link` = `slot.ViewLink`
+  (treatment record when applied, else the animal Treatment tab);
+  `index.plush.*.html` `fillPlanDetail` and `animals/show.plush.*.html` both
+  populate the row — the SAME link in the care-plan popup and the animal-page
+  popup (shared modal). New `care_plan.detail.treatment` key in all 4 locales
+  (Treatment / Traitement / Behandlung / Behandeling).
+- `care_plan.tier.done` keys already existed (Done / Terminé / Erledigt / Klaar).
+
+**Tests** (`actions/care_plan_round9_done_tier_test.go`, all PASS):
+`TestFillMedTiersFullyAppliedSeriesGoesToDone`, `...PartialSeriesStaysOpenWithAppliedVisible`,
+`...UndoneSeriesLeavesDone`, `...DoneForTodayWithFutureOpenSlots`,
+`...DoneCountTracksSeries`. Updated `care_plan_round7_med_scope_test.go`
+(`EmptyInEvening`, `DropsScopedOutSeries`) and
+`care_plan_r415_animal_column_test.go` (count 3→4) for the new semantics.
+
+**e2e (agent-browser, `/care_plan?kind=medication`, direct-run binary)**:
+- Applied the Baycox 12:00 slot for animal 10214 → after refresh the series
+  landed in **Done** (`data-done-count=1`, header "Done"), toggle green
+  `✓ 12:00` `btn-success plan-med-unapply`, label "Baycox 5 % (PER OS) — 0.10 ml".
+- **Undo**: clicked the green toggle → `care_plan_applications` row deleted
+  (1→0), button flipped back to `○ 12:00` `btn-warning plan-med-apply`;
+  re-tiered out of Done on reload.
+- **Popup treatment link** (care-plan popup): `data-treatment-link` =
+  `/treatments/305a8dac…?back=…`; Treatment dt/dd visible, href set, modal open.
+- **Animal-page popup** (`/animals/10214`): modal opens, Treatment row shown,
+  label "Citramox L.A. (48H) — 0.03 ml IM", fallback href `/animals/10214?back=#nav-treatment`.
+- **Empty Done tier**: with nothing done, `#tier-done` is absent (no empty header).
+- **Locale sweep** (all on the Done tier + popup): EN Done/Treatment ·
+  FR Terminé/Traitement · DE Erledigt/Behandlung · NL Klaar/Behandeling.
+  (`data-done-count=1` in every locale.)
+
+**Quality gates** (run separately, on the R9-2 tree):
+- `go vet ./...` — exit 0.
+- `staticcheck ./...` — exit 0.
+- `gocognit -over 15 .` — `fillMedTiers`=14, `collectDoneSeries`=1,
+  `medDoneFirstDue`=4, `scopeSeriesToToday`=7; the only >15 in the file is the
+  pre-existing `buildMedGroups`=31 (unchanged). Clean for R9-2 code.
+- `gocyclo -over 12 .` — all R9-2 functions ≤ limit; `buildMedGroups`=19
+  pre-existing/unchanged.
+- `go test -count=1 -race -cover ./actions/` — all R9-2 / med-scope / animal-cell /
+  seed tests PASS (60.4% coverage). Two failures are **pre-existing on a clean
+  tree** against the restored prod dump, NOT caused by R9-2:
+  `TestCarePlanConverterRoundTrip`, `TestCarePlanConverterMarkerV2Refresh`.
+
+**Data note**: the e2e apply/undo round-trips on animal 10214 were undone via
+the UI, leaving no orphan rows. The original debug fulfillment treatment
+(`305a8dac…`) created during R9-2 diagnosis was removed by its own undo path
+(undo deletes the application + its fulfillment record) — DB left consistent.
 
 ### R9-3 Dashboard medication lines show stray slot labels and don't stack on narrow screens
 

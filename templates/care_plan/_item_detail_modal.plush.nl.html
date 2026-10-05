@@ -16,6 +16,11 @@
           <dd class="col-sm-8"><span id="planDetailDetail"></span></dd>
           <dt class="col-sm-4"><%= t("care_plan.detail.source") %></dt>
           <dd class="col-sm-8"><a href="#" id="planDetailSourceLink"><span id="planDetailSource"></span></a></dd>
+          <%# R9-2: a direct link to the treatment (the treatment record
+              when applied, else the animal's Treatment tab) — the opener
+              fills it from data-treatment-link (slot.ViewLink). %>
+          <dt class="col-sm-4 d-none" id="planDetailTreatmentDt"><%= t("care_plan.detail.treatment") %></dt>
+          <dd class="col-sm-8 d-none" id="planDetailTreatmentDd"><a href="#" id="planDetailTreatmentLink"><i class="fa fa-eye"></i> <span id="planDetailTreatment"></span></a></dd>
           <dt class="col-sm-4"><%= t("care_plan.field.action_kind") %></dt>
           <dd class="col-sm-8"><span id="planDetailKind"></span></dd>
           <dt class="col-sm-4"><%= t("care_plan.col.due") %></dt>

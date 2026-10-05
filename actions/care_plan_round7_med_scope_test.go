@@ -98,8 +98,9 @@ func TestScopeSeriesToTodayKeepsNearerNext(t *testing.T) {
 	}
 }
 
-// The perfect case the user described: once the day's work is done, the
-// compact medication screen is EMPTY in the evening — no leftover tomorrow.
+// R9-2 supersedes R4-7.7's "empty in the evening": a fully-applied series
+// no longer disappears — it keeps its today's done record so the new Done
+// tier can render it. Only a series with NOTHING due today leaves.
 func TestScopeSeriesToTodayEmptyInEvening(t *testing.T) {
 	day := time.Date(2026, 10, 2, 0, 0, 0, 0, time.Local)
 	now := day.Add(22 * time.Hour) // 22:00
@@ -114,8 +115,12 @@ func TestScopeSeriesToTodayEmptyInEvening(t *testing.T) {
 
 	got := scopeSeriesToToday(series, now)
 
-	require.Empty(t, got.Rows, "nothing open today: the series is dropped entirely")
-	require.Equal(t, "Amox", got.Label, "the label survives so the caller can skip it")
+	// R9-2: the day's two applied occurrences stay visible (the Done tier
+	// renders them); tomorrow's scheduled slot is dropped.
+	times := r47SlotTimes(got)
+	require.Equal(t, []time.Time{day.Add(8 * time.Hour), day.Add(20 * time.Hour)}, times,
+		"today's done record survives for the Done tier; tomorrow leaves")
+	require.Equal(t, "Amox", got.Label)
 }
 
 // At most ONE later slot survives, not the whole rest of the schedule.
@@ -138,14 +143,17 @@ func TestScopeSeriesToTodayKeepsAtMostOneLaterSlot(t *testing.T) {
 }
 
 // fillMedTiers drops a series that scoping emptied — the caller chain must
-// not render an empty medication line.
+// not render an empty medication line. R9-2: a fully-applied series is NOT
+// dropped anymore — it moves to MedDone; only a series with nothing due
+// today leaves the screen. Here "All done" was applied today, so it lands
+// in MedDone and stays OUT of the open tiers.
 func TestFillMedTiersDropsScopedOutSeries(t *testing.T) {
 	day := time.Date(2026, 10, 2, 0, 0, 0, 0, time.Local)
 	groups := []MedGroupView{{
 		AnimalID: 1, AnimalLabel: "Fox-1", AnimalLink: "/animals/1",
 		Series: []MedSeriesView{
 			{Key: "a", Label: "All done", Rows: []MedSeriesRow{{Slots: []MedSlotView{
-				{DueAt: day.Add(8 * time.Hour), Status: string(careplan.StatusApplied), Done: true},
+				{DueAt: day.Add(8 * time.Hour), Status: string(careplan.StatusApplied), Done: true, Applied: true},
 			}}}},
 			{Key: "b", Label: "Pending", Rows: []MedSeriesRow{{Slots: []MedSlotView{
 				{DueAt: day.Add(20 * time.Hour), Status: string(careplan.StatusLate)},
@@ -159,11 +167,14 @@ func TestFillMedTiersDropsScopedOutSeries(t *testing.T) {
 	for _, tier := range v.MedTiers {
 		for _, line := range tier {
 			require.NotEqual(t, "All done", line.Series[0].Label,
-				"an all-done series renders no line in the evening")
+				"an all-done series renders no line in the OPEN tiers")
 		}
 	}
 	require.Len(t, v.MedTiers[0], 1)
 	require.Equal(t, "Pending", v.MedTiers[0][0].Series[0].Label)
+	// R9-2: the fully-applied series is in the Done section, not dropped.
+	require.Len(t, v.MedDone, 1)
+	require.Equal(t, "All done", v.MedDone[0].Series[0].Label)
 }
 
 // The "tomorrow" bucket label must exist in EVERY locale — a missing key

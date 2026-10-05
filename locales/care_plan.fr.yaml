@@ -356,6 +356,8 @@
   translation: "Détails"
 - id: "care_plan.detail.source"
   translation: "Source"
+- id: "care_plan.detail.treatment"
+  translation: "Traitement"
 - id: "care_plan.message.error_title"
   translation: "Une erreur est survenue"
 - id: "care_plan.schedule_human.every_day_at"

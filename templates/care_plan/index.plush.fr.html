@@ -26,6 +26,10 @@
   .plan-tier-late  { background: #f8d7da; border-color: #f5c6cb; }
   .plan-tier-now   { background: #fff3cd; border-color: #ffeeba; }
   .plan-tier-later { background: #d4edda; border-color: #c3e6cb; }
+  /* R9-2: the medication "Done" tier — same look as "Later" but a darker
+     green so a finished series reads apart from the still-open later work. */
+  .plan-tier-done  { background: #b7dfc2; border-color: #9fd0ae; }
+  .plan-tier-done  .plan-tier-header { color: #0f4a1f; }
   .plan-tier-header {
     display: flex; align-items: center; gap: 0.5rem;
     padding: 0.5rem 0.75rem; cursor: pointer; user-select: none;
@@ -286,6 +290,34 @@
             <% } %>
           </div>
       <% } %>
+      </div>
+    </div>
+    <% } %>
+
+    <%# R9-2: the medication "Done" tier — a series lands here ONLY when
+        EVERY repeated occurrence is applied (100%). Same header/collapse
+        markup and `_med_series` line layout as the open tiers, darker
+        green, labelled "Done", collapsed by default. Each green ✓ toggle
+        stays a live undo (re-click returns the series to its open tier on
+        the next refresh). Medication-only. %>
+    <%= if (view.Kind == "medication" && len(view.MedDone) > 0) { %>
+    <div class="plan-tier plan-tier-done" id="tier-done" data-done-count="<%= view.MedDoneCount %>">
+      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-done-rows" aria-expanded="false" role="button" tabindex="0">
+        <span><%= t("care_plan.tier.done") %></span>
+        <span class="badge badge-pill badge-success"><%= view.MedDoneCountCap %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse plan-tier-body" id="tier-done-rows">
+        <div class="px-2 py-1">
+          <%= for (mg) in view.MedDone { %>
+            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
+              <div class="mr-2 text-nowrap py-1 plan-med-animal">
+                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
+              </div>
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
+          <% } %>
+        </div>
       </div>
     </div>
     <% } %>
@@ -674,6 +706,14 @@
     var sLink = document.getElementById('planDetailSourceLink');
     if (el.getAttribute('data-source-link')) { sLink.setAttribute('href', el.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
     else { sLink.classList.add('d-none'); }
+    // R9-2: direct treatment link (record when applied, else Treatment tab).
+    var tLink = el.getAttribute('data-treatment-link');
+    document.getElementById('planDetailTreatmentDt').classList.toggle('d-none', !tLink);
+    document.getElementById('planDetailTreatmentDd').classList.toggle('d-none', !tLink);
+    if (tLink) {
+      document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+      document.getElementById('planDetailTreatment').textContent = el.getAttribute('data-detail') || tLink;
+    }
     document.getElementById('planDetailKind').textContent = i18n.kinds[el.getAttribute('data-kind')] || el.getAttribute('data-kind') || '—';
     document.getElementById('planDetailDue').textContent = el.getAttribute('data-due') || '—';
     document.getElementById('planDetailStatus').textContent = i18n.status[el.getAttribute('data-status')] || el.getAttribute('data-status') || '—';

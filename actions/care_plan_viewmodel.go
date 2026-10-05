@@ -321,6 +321,15 @@ type DayPlanView struct {
 	// per (animal × drug series) — `<animal> — <medication> | hour toggles`
 	// — instead of the ordinary table rows the other kinds render.
 	MedTiers [3][]MedTierLine
+	// R9-2: MedDone holds the fully-applied medication series — every
+	// repeated occurrence recorded (green ✓ toggles). A series is Done ONLY
+	// when 100% of its occurrences are applied; a partially-applied one
+	// stays in late/now/later by its next OPEN slot. MedDoneCount/
+	// MedDoneCountCap feed the Done collapsible's badge (same unit as the
+	// lines it lists: one per fully-done animal × drug series).
+	MedDone         []MedTierLine
+	MedDoneCount    int
+	MedDoneCountCap string
 	// R4-7.15: the medication page's animal COLUMN. It had no width and no
 	// background at all, so the labels stopped reading as a column — measured
 	// 13 distinct widths across 36 cells (168..181px, one 239px outlier) and
@@ -563,7 +572,8 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	for _, g := range groups {
 		for _, series := range g.Series {
 			if seriesTierOrMinus(series) < 0 {
-				continue // every slot terminal — nothing to work on
+				v.collectDoneSeries(g, series, now)
+				continue
 			}
 			// R4-7.7: the work screen shows TODAY. A series with no open
 			// occurrence left for today disappears (in the evening the table
@@ -572,7 +582,16 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 			// entry, so a far-off tomorrow slot never competes with work
 			// that is due now. Everything else waits for its own day.
 			series = scopeSeriesToToday(series, now)
-			if len(series.Rows) == 0 || seriesTierOrMinus(series) < 0 {
+			if len(series.Rows) == 0 {
+				continue
+			}
+			if seriesTierOrMinus(series) < 0 {
+				// R9-2: today's occurrences of this series are ALL applied
+				// (its only open slots are future days, which scoping
+				// dropped) — the series is Done FOR TODAY and joins the Done
+				// tier showing today's applied record.
+				g.Series = []MedSeriesView{series}
+				v.MedDone = append(v.MedDone, g)
 				continue
 			}
 			tier, first := seriesTier(series)
@@ -598,7 +617,41 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 			return v.MedTiers[i][a].Series[0].FirstDueAt.Before(v.MedTiers[i][b].Series[0].FirstDueAt)
 		})
 	}
+	// R9-2: the Done section lists each fully-done series once, in a
+	// stable order (by its earliest applied occurrence) so the refresh
+	// re-sorts in place. The badge counts these series.
+	sort.SliceStable(v.MedDone, func(a, b int) bool {
+		return medDoneFirstDue(v.MedDone[a]).Before(medDoneFirstDue(v.MedDone[b]))
+	})
+	v.MedDoneCount = len(v.MedDone)
+	v.MedDoneCountCap = BadgeCap(v.MedDoneCount)
 	v.MedAnimalColCh = medAnimalColCh(v.MedTiers)
+}
+
+
+// collectDoneSeries routes a fully-terminal series to the Done tier (R9-2):
+// every occurrence applied. When the series still owns a visible occurrence
+// for today it is a DONE series and joins MedDone — it no longer disappears
+// in the evening. With nothing due today it leaves the screen entirely.
+func (v *DayPlanView) collectDoneSeries(g MedGroupView, series MedSeriesView, now time.Time) {
+	series = scopeSeriesToToday(series, now)
+	if len(series.Rows) == 0 {
+		return // nothing of this series belongs to today
+	}
+	g.Series = []MedSeriesView{series}
+	v.MedDone = append(v.MedDone, g)
+}
+
+// medDoneFirstDue is the sort key of a Done line: the earliest occurrence
+// of its series (all applied) — the order the work was recorded.
+func medDoneFirstDue(line MedTierLine) time.Time {
+	var first time.Time
+	for _, s := range flatSlots(line.Series[0]) {
+		if first.IsZero() || s.DueAt.Before(first) {
+			first = s.DueAt
+		}
+	}
+	return first
 }
 
 // medAnimalColCh is the shared animal-column width for the whole medication
@@ -1558,10 +1611,19 @@ func seriesTierOrMinus(series MedSeriesView) int {
 func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
 	endOfDay := endOfDayOf(now)
 
-	// Without an open slot due today there is no work to scope around.
+	// Without an open slot due today there is no open WORK to scope around —
+	// but a fully-applied series still owns today's DONE record (R9-2): keep
+	// the day's terminal slots so the Done tier can render them. With no
+	// slot due today at all (open or terminal) the series leaves the screen.
 	urgentDue, ok := mostUrgentSlotDue(series, endOfDay)
 	if !ok {
-		return emptySeries(series)
+		kept := todaysSlots(series, endOfDay)
+		if len(kept) == 0 {
+			return emptySeries(series)
+		}
+		out := series
+		out.Rows = chunkSeriesRows(kept)
+		return out
 	}
 
 	// The one later slot worth showing: the nearest open one, and only when

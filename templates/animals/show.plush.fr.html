@@ -1399,6 +1399,18 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
       if (btn.getAttribute('data-source-link')) { sLink.setAttribute('href', btn.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
       else { sLink.classList.add('d-none'); }
     }
+    // R9-2: direct treatment link (record when applied, else Treatment tab).
+    var tLink = btn.getAttribute('data-treatment-link');
+    var tDt = document.getElementById('planDetailTreatmentDt');
+    var tDd = document.getElementById('planDetailTreatmentDd');
+    if (tDt && tDd) {
+      tDt.classList.toggle('d-none', !tLink);
+      tDd.classList.toggle('d-none', !tLink);
+      if (tLink) {
+        document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+        document.getElementById('planDetailTreatment').textContent = btn.getAttribute('data-detail') || tLink;
+      }
+    }
     document.getElementById('planDetailKind').textContent = btn.getAttribute('data-kind') || '—';
     document.getElementById('planDetailDue').textContent = btn.getAttribute('data-due') || '—';
     document.getElementById('planDetailStatus').textContent = btn.getAttribute('data-status') || '—';

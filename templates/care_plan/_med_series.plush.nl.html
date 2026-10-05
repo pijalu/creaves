@@ -47,6 +47,7 @@
           data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
           data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0].Slots[0].SourceName %>" data-source-link="<%= series.Rows[0].Slots[0].SourceLink %>"
           data-kind="medication" data-due="<%= series.Rows[0].Slots[0].DueAtHM %>"
+          data-treatment-link="<%= series.Rows[0].Slots[0].ViewLink %>"
           data-status="<%= series.Rows[0].Slots[0].Status %>" data-remaining="">ℹ</button>
         <%# Dash-7 (§8.2): the deep-link eye — dashboard only. The care
             plan never sets the flag, so it renders no eye there. %>
