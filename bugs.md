@@ -203,33 +203,31 @@ causes to check, in order:
 - Whether cleanup has its own `kind=` view / section, or is expected on the
   default `/care_plan` page.
 
-**Resolution — NOT a code defect (configuration gap).** Reproduced live via
-agent-browser on 2026-10-05 (`/care_plan?kind=cleanup`, admin):
-- SR13 (`Nettoyage des cages occupées`, active) + SM14
-  (`zone_requires_cleanup = true`) both present in DB.
-- The full wiring is correct: `fillZoneRequiresCleanup`
-  (`care_plan_service.go:278`) flags matcher contexts from
-  `zones.requires_cleanup`; the viewmodel renders `KindCleanup` under the
-  **Cleanup** kind (`care_plan_viewmodel.go:337,1231,1294`) on
-  `/care_plan?kind=cleanup`.
-- **Root cause: no zone had `requires_cleanup=1`**, so SM14 matched zero
-  animals and SR13 produced zero occurrences — the correct behaviour.
-- **Proof**: flagging zone E (`UPDATE zones SET requires_cleanup=1 WHERE
-  zone='E'`) immediately produced **19 cleanup occurrences** ("Cleanup 19"
-  badge, per-cage "Apply cage (N)" buttons) on `/care_plan?kind=cleanup`.
-  Restored the flag to 0 after the check.
+**Resolution — root cause: at the cutover almost no zone was flagged
+`requires_cleanup` (11 of 12 unflagged in the 2026-10-02 baseline), so SM14
+(`zone_requires_cleanup = true`) matched zero animals and the active SR13
+produced zero occurrences.** The wiring itself is correct end-to-end:
+`fillZoneRequiresCleanup` (`care_plan_service.go:278`) flags matcher contexts
+from `zones.requires_cleanup`; the viewmodel renders `KindCleanup` under the
+**Cleanup** kind (`care_plan_viewmodel.go:337,1231,1294`) on
+`/care_plan?kind=cleanup`.
 
-**Fix**: none required in code. The rule activates per-zone via the existing
-**Zones admin** checkbox `RequiresCleanup` (`/zones`, column "Requires
-cleanup", form `templates/zones/_form.plush.*.html`). To get cleanup work in
-the plan, flag the zone(s) that need daily cleaning. The report's rule edit
-URL pointed at SR13 itself, which was always healthy.
+**Fix** (per direction: flag every zone during migration): data migration
+`migrations/20261005090080_zones_requires_cleanup_default_true.up.fizz` —
+`UPDATE zones SET requires_cleanup = 1 WHERE requires_cleanup = 0`. Every
+existing zone joins the daily cleanup plan; an admin can still unflag a zone
+via `/zones` (`RequiresCleanup` checkbox, `templates/zones/_form.plush.*.html`).
 
-**Validation**: e2e evidence above (URL + rendered "Cleanup 19" + apply
-buttons) captured with the flag on; flag restored off. No template/locale
-change needed (no new UI).
+**Validation** — restored the 2026-10-02 production dump as base, ran
+`buffalo pop migrate up` (25 migrations incl. the new one), booted the app,
+logged in as admin, e2e via agent-browser on 2026-10-05:
+- DB: all 12 zones `requires_cleanup=1` (baseline had 11 at 0).
+- `/care_plan?kind=cleanup` → **"Cleanup 99+"** badge, per-cage
+  "Apply cage (N)" buttons (228 apply controls), rule name "Nettoyage des
+  cages occupées" rendered.
+- Manual apply/undo of a cage cleanup records and reverses without error.
 
-**Status**: closed 2026-10-05 — works as designed; documented how to enable.
+**Status**: fixed 2026-10-05 (migration, validated on the Oct-2 dump).
 
 ### R9-5 Default (seeded) rule descriptions carry a converter tag instead of "Règles par défaut"
 
@@ -243,24 +241,43 @@ where `ConverterTag = "care_plan_converter"` (l.28). The user-facing
 description therefore reads e.g.
 `Bibliothèque §7.4 SR13 [source: care_plan_converter]`.
 
-**Expected**: the converter must create these default entries with a
-description of **"Règles par défaut"** (default rules) instead of the
-internal `[source: care_plan_converter]` provenance string. (If provenance
-must be kept, move it to a non-display field, not the user-facing
-description.)
+**Fix** (2026-10-05): two parts.
+1. **Seed definition** — `actions/care_plan_seeds.go`: added
+   `DefaultRuleDescription = "Règles par défaut"` (next to `ConverterTag`)
+   and made `buildSeedMatcher` / `buildSeedRule` stamp it instead of
+   `fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", …)`. Provenance stays
+   recoverable via `created_by = ConverterTag`; the description is display
+   text, not metadata.
+2. **Backfill for existing rows** — migrations
+   `20261005090090_backfill_default_rule_description_care_rules.up.fizz` and
+   `20261005090100_backfill_default_rule_description_care_matchers.up.fizz`
+   update rows whose description still matches
+   `'%[source: care_plan_converter]'` (a hand-edited description never
+   matches, so user edits win). Each is wrapped in a guarded stored
+   procedure so it is a no-op when the table doesn't exist yet (baseline
+   dumps predate `care_rules`).
 
-**Scope note**: this changes the seed definition. Because the seed is
-idempotent and skips existing rows, existing databases need a one-time
-update of the already-seeded default rows' `description` (additive,
-non-destructive migration or a guarded backfill task) — not just a change to
-the format string.
+**Regression pin**: `TestSeedBuildersStampDefaultDescription`
+(`actions/care_plan_converter_test.go`) — every §7.4 seed rule/matcher
+description equals `DefaultRuleDescription` and contains no converter tag.
 
-**Test approach**: re-seed a fresh DB and assert default rule/matcher
-descriptions read "Règles par défaut"; run the backfill on a copy of the
-existing data and assert the SR13/SM14/etc. descriptions are updated.
-Verify in the UI (care-rules list + edit) in all four locales.
+**Validation** — restored the 2026-10-02 production dump, `buffalo pop
+migrate up`, booted, e2e via agent-browser on 2026-10-05:
+- `/care_rules` lists §7.4 defaults (Pesée hebdo juvéniles, Blessés —
+  contrôle quotidien, …) with description **"Règles par défaut"**.
+- DB: 0 §7.4 rows carry `[source: care_plan_converter]`; cluster conversion
+  rules keep their own "Cluster alimentation ×N [source: …]" text (a
+  separate, out-of-scope provenance string, not a §7.4 default).
+- `go vet`/`staticcheck` clean; gocognit/gocyclo show no new flag on the
+  seed builders.
 
-**Status**: open.
+**Note**: the cluster conversion rules (`Alimentation — … (conversion)`,
+description "Cluster alimentation ×N [source: care_plan_converter]") are a
+different, intentional provenance label for converted feeding clusters, not
+the §7.4 default set. Left as-is; flag separately if those should also be
+relabeled.
+
+**Status**: fixed 2026-10-05.
 
 ### R9-6 Care rules / matchers must support localization (name in every language, incl. dropdowns)
 
