@@ -129,7 +129,10 @@ func (v CareRulesResource) List(c buffalo.Context) error {
 	}).Respond(c)
 }
 
-// Show gets one rule. GET /care_rules/{care_rule_id}
+// Show gets one rule. GET /care_rules/{care_rule_id} — JSON API plus the
+// read-only HTML detail page (defect D2), content-negotiated like List.
+// The back link honours ?back= (sanitized to a local path) so the
+// care_plan source links round-trip to the work screen.
 func (v CareRulesResource) Show(c buffalo.Context) error {
 	if !requireAdminForPlan(c) {
 		return nil
@@ -139,7 +142,24 @@ func (v CareRulesResource) Show(c buffalo.Context) error {
 	if err := tx.Find(rule, c.Param("care_rule_id")); err != nil {
 		return planError(c, http.StatusNotFound, err)
 	}
-	return c.Render(http.StatusOK, renderJSON(rule))
+	return responder.Wants("html", func(c buffalo.Context) error {
+		matcherNames, err := matcherNamesByID(tx)
+		if err != nil {
+			return err
+		}
+		c.Set("rule", rule)
+		c.Set("matcherName", matcherNames[rule.MatcherID.UUID])
+		back := localBackParam(c.Param("back"))
+		if back == "" {
+			back = "/care_rules"
+		}
+		c.Set("backTarget", unwrapBackChain(back))
+		c.Set("payloadStr", string(rule.ActionPayload))
+		c.Set("scheduleStr", string(rule.Schedule))
+		return c.Render(http.StatusOK, r.HTML("care_rules/show.plush.html"))
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusOK, renderJSON(rule))
+	}).Respond(c)
 }
 
 // setRuleContext loads everything the rule editor page needs (matcher
