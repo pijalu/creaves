@@ -1,0 +1,2051 @@
+<html>
+  <head>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    </meta>
+    <meta charset="utf-8">
+    </meta>
+    <title>
+      "Creaves"
+    </title>
+    <link href="/assets/application.HASH.css" media="screen" rel="stylesheet">
+    </link>
+    <meta content="authenticity_token" name="csrf-param">
+    </meta>
+    <meta content="CSRF" name="csrf-token">
+    </meta>
+    <link href="/assets/images/favicon.ico" rel="icon">
+    </link>
+    <script src="/assets/application.HASH.js" type="text/javascript">
+    </script>
+    <style>
+      "/* R4-7.9: the expanded bar is the DEFAULT down to md (768px) — below
+       lg the icon-only bar still fits comfortably, and collapsing it into a
+       hamburger there wasted the space ("hamburger is shown when there is
+       *still* important space avl"). Below md the labels are force-visible
+       again, because in the collapsed vertical menu they cost no width;
+       between md and xl they stay hidden (icon-only band), and at xl+ they
+       show unless the measured overflow probe (bottom of the page) says the
+       verbose locale does not fit. */
+    @media (max-width: 767.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R3-1b: at xl+ the labels show — but a verbose locale (or a narrow
+       xl window) still overflows the bar and pushes the search box out
+       (horizontal page scroll). The script below marks the bar
+       .nav-compact whenever it actually overflows; here the compact state
+       hides the labels again (icons + tooltips). */
+    @media (min-width: 768px) { nav.navbar.nav-compact .nav-label { display: none !important; } }"
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+      <a class="navbar-brand" href="/">
+        <img alt="Creaves-App" src="/assets/images/creaves-app-small.png" style="height:32px;">
+        </img>
+      </a>
+      <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbarSupportedContent" data-toggle="collapse" type="button">
+        <span class="navbar-toggler-icon">
+        </span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="adminDropdown" role="button" title="Administration">
+              <i class="fas fa-cog">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Administration"
+              </span>
+            </a>
+            <div aria-labelledby="adminDropdown" class="dropdown-menu">
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-tools">
+                  </i>
+                  "Configuration"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/drugs/">
+                    <i class="fas fa-pills">
+                    </i>
+                    "Drugs"
+                  </a>
+                  <a class="dropdown-item" href="/animalages/">
+                    <i class="fas fa-hourglass-half">
+                    </i>
+                    "Animal age"
+                  </a>
+                  <a class="dropdown-item" href="/traveltypes/">
+                    <i class="fas fa-car">
+                    </i>
+                    "Travel types"
+                  </a>
+                  <a class="dropdown-item" href="/localities/">
+                    <i class="fas fa-map-marker-alt">
+                    </i>
+                    "Localities"
+                  </a>
+                  <a class="dropdown-item" href="/zones/">
+                    <i class="fas fa-map">
+                    </i>
+                    "Zones"
+                  </a>
+                  <a class="dropdown-item" href="/translations">
+                    <i class="fas fa-language">
+                    </i>
+                    "Translations"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-clipboard-check">
+                  </i>
+                  "Protocols"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/caretypes/">
+                    <i class="fas fa-hand-holding-heart">
+                    </i>
+                    "Care types"
+                  </a>
+                  <a class="dropdown-item" href="/feeding_guides">
+                    <i class="fas fa-utensils">
+                    </i>
+                    "Feeding guides"
+                  </a>
+                  <a class="dropdown-item" href="/care_templates">
+                    <i class="fas fa-sticky-note">
+                    </i>
+                    "Care note templates"
+                  </a>
+                  <a class="dropdown-item" href="/care_rules">
+                    <i class="fas fa-clipboard-check">
+                    </i>
+                    "Care rules"
+                  </a>
+                  <a class="dropdown-item" href="/care_matchers">
+                    <i class="fas fa-filter">
+                    </i>
+                    "Matcher library"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-server">
+                  </i>
+                  "System"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/users/">
+                    <i class="fas fa-users">
+                    </i>
+                    "Users"
+                  </a>
+                  <a class="dropdown-item" href="/maintenance">
+                    <i class="fas fa-wrench">
+                    </i>
+                    "Maintenance"
+                  </a>
+                  <a class="dropdown-item" href="/config">
+                    <i class="fas fa-sliders-h">
+                    </i>
+                    "Configuration"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-sync-alt">
+                  </i>
+                  "Synchronization"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/sync_configuration">
+                    <i class="fas fa-plug">
+                    </i>
+                    "Sync configuration"
+                  </a>
+                  <a class="dropdown-item" href="/event_streams">
+                    <i class="fas fa-stream">
+                    </i>
+                    "Event Stream"
+                  </a>
+                  <a class="dropdown-item" href="/webhook_resync">
+                    <i class="fas fa-sync-alt">
+                    </i>
+                    "Webhook resync"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/preferences">
+                <i class="fas fa-sliders-h">
+                </i>
+                "Preferences"
+              </a>
+            </div>
+          </li>
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="reportDropdown" role="button" title="Reports">
+              <i class="fas fa-chart-bar">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Reports"
+              </span>
+            </a>
+            <div aria-labelledby="reportDropdown" class="dropdown-menu">
+              <a class="dropdown-item" href="/registertable/">
+                <i class="fas fa-table">
+                </i>
+                "Register"
+              </a>
+              <a class="dropdown-item" href="/registersnapshot/">
+                <i class="fas fa-camera">
+                </i>
+                "Snapshot"
+              </a>
+              <a class="dropdown-item" href="/reports/annual">
+                <i class="fas fa-calendar-alt">
+                </i>
+                "Statistics"
+              </a>
+              <a class="dropdown-item" href="/reports/corpses">
+                <i class="fas fa-skull">
+                </i>
+                "Corpse register"
+              </a>
+              <a class="dropdown-item" href="/reports/care_schedule">
+                <i class="fas fa-calendar-alt">
+                </i>
+                "Care schedule"
+              </a>
+              <a class="dropdown-item" href="/reports/discoverers">
+                <i class="fas fa-user-tag">
+                </i>
+                "Discoverers"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/export/view">
+                <i class="fas fa-table">
+                </i>
+                "Exports"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/export/excel/">
+                <i class="fas fa-file-excel">
+                </i>
+                "Excel exports"
+              </a>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/dashboard/" title="Dashboard">
+              <i class="fas fa-tachometer-alt">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Dashboard"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/care_plan?kind=feeding" title="Feeding">
+              <i class="fas fa-utensils">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Feeding"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/care_plan" title="Day plan">
+              <i class="fas fa-calendar-check">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Day plan"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/logentries/" title="Log entries">
+              <i class="fas fa-clipboard-list">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Log entries"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/todos" title="TODOs">
+              <i class="fas fa-tasks">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "TODOs"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/animals/" title="Animals">
+              <i class="fas fa-paw">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Animals"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/reception/new/" title="Reception">
+              <i class="fas fa-plus-circle">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Reception"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="newEntryDropdown" role="button" title="New">
+              <i class="fas fa-plus">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "New"
+              </span>
+            </a>
+            <div aria-labelledby="newEntryDropdown" class="dropdown-menu">
+              <a class="dropdown-item" href="/cares/new/">
+                <i class="fas fa-hand-holding-heart">
+                </i>
+                "Cares"
+              </a>
+              <a class="dropdown-item" href="/veterinaryvisits/new/">
+                <i class="fas fa-stethoscope">
+                </i>
+                "Veterinary"
+              </a>
+              <a class="dropdown-item" href="/treatments/new/">
+                <i class="fas fa-syringe">
+                </i>
+                "Treatment"
+              </a>
+              <a class="dropdown-item" href="/outtakes/new/">
+                <i class="fas fa-sign-out-alt">
+                </i>
+                "Outcome"
+              </a>
+            </div>
+          </li>
+        </ul>
+        <form action="/animals/" class="form-inline my-2 my-lg-0 ml-2" method="GET" role="search">
+          <input aria-label="Search animal" autocomplete="off" class="form-control form-control-sm mr-sm-1" id="navbarAnimalSearch" name="animal_year_number" pattern="[0-9]+(/[0-9]{2})?" placeholder="N° 123/22" required="" style="max-width: 9rem;" type="search">
+          </input>
+          <script>
+            "// Same in-care suggestions as the landing "Animal number" field.
+          $('#navbarAnimalSearch').autoComplete({
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+              }
+          });"
+          </script>
+          <button class="btn btn-outline-light btn-sm my-2 my-sm-0" title="Search animal" type="submit">
+            <i class="fas fa-search">
+            </i>
+          </button>
+        </form>
+        <ul class="navbar-nav">
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="userDropdown" role="button">
+              <i class="fas fa-user">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "ADMIN"
+              </span>
+            </a>
+            <div aria-labelledby="userDropdown" class="dropdown-menu dropdown-menu-right">
+              <a class="dropdown-item" href="/travels/">
+                <i class="fas fa-suitcase">
+                </i>
+                "Travels"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/lang/?lang=en-US&url=%2Fcare_plan%2F%3Fkind%3Dobservation">
+                "English"
+              </a>
+              <a class="dropdown-item" href="/lang/?lang=de&url=%2Fcare_plan%2F%3Fkind%3Dobservation">
+                "Deutsch"
+              </a>
+              <a class="dropdown-item" href="/lang/?lang=nl&url=%2Fcare_plan%2F%3Fkind%3Dobservation">
+                "Nederlands"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/users/UUID/edit/?self=true">
+                <i class="fas fa-user-edit">
+                </i>
+                "Edit"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" data-method="DELETE" href="/auth/">
+                <i class="fas fa-sign-out-alt">
+                </i>
+                "logout"
+              </a>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <script>
+      "(function () {
+    /* R3-1b: MEASURED progressive collapse — the static xl breakpoint
+       still overflows in verbose locales (labels + icons wider than the
+       window → search box clipped, horizontal page scroll). Whenever the
+       expanded bar does not fit, hide the labels (icons + tooltips);
+       probe again when the window grows. */
+    var navbar = document.querySelector('nav.navbar');
+    if (!navbar) { return; }
+    var lastW = 0;
+    function fits() { return navbar.scrollWidth <= navbar.clientWidth + 1; }
+    function apply() {
+      var w = window.innerWidth;
+      if (w < 768) { navbar.classList.remove('nav-compact'); lastW = w; return; }
+      if (!navbar.classList.contains('nav-compact')) {
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      } else if (w > lastW) {
+        navbar.classList.remove('nav-compact');
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      }
+      lastW = w;
+    }
+    window.addEventListener('resize', apply);
+    window.addEventListener('load', apply);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(apply); }
+    apply();
+  })();"
+    </script>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+        </div>
+      </div>
+      <style>
+        "/* Feeding chip status dots (bugs.md U1) — bootstrap contextual palette. */
+  .plan-dot-applied { color: #28a745; }
+  .plan-dot-due { color: #007bff; }
+  /* R4-7.14: this was amber (#e0a800) — the same colour as the "due now"
+     tier it sits next to. Late is the only red in this palette, and the dot
+     is the per-GROUP signal the tier header cannot give (one header, many
+     groups), so it has to match the section the row is in. */
+  .plan-dot-late { color: #dc3545; }
+  .plan-dot-missing { color: #dc3545; }
+  .plan-dot-scheduled { color: #6c757d; }
+  .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
+  .plan-feeding-chip { text-decoration: none; }
+  .plan-feeding-chip:hover { text-decoration: none; background-color: #e2e6ea; }
+
+  /* The three urgency sections are the screen's anchor targets (fix 2:
+     late · now · later, always in this order) — offset the scroll so a
+     jumped section is not hidden behind the fixed topbar. */
+  #tier-late, #tier-now, #tier-later { scroll-margin-top: 60px; }
+
+  /* R3-3/R3-4: each tier is ONE bordered, light-tinted section — header
+     (tier name + count pill + chevron) and collapse body inside the same
+     border, no more loose button toggles. Tints are the Bootstrap alert
+     palette (late red · now yellow · later green). */
+  .plan-tier { border: 1px solid; border-radius: 0.35rem; margin-bottom: 0.75rem; overflow: hidden; }
+  .plan-tier-late  { background: #f8d7da; border-color: #f5c6cb; }
+  .plan-tier-now   { background: #fff3cd; border-color: #ffeeba; }
+  .plan-tier-later { background: #d4edda; border-color: #c3e6cb; }
+  /* R9-2: the medication "Done" tier — same look as "Later" but a darker
+     green so a finished series reads apart from the still-open later work. */
+  .plan-tier-done  { background: #b7dfc2; border-color: #9fd0ae; }
+  .plan-tier-done  .plan-tier-header { color: #0f4a1f; }
+  .plan-tier-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; cursor: pointer; user-select: none;
+    font-weight: 600;
+  }
+  .plan-tier-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-tier-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-tier-late  .plan-tier-header { color: #721c24; }
+  .plan-tier-now   .plan-tier-header { color: #856404; }
+  .plan-tier-later .plan-tier-header { color: #155724; }
+
+  /* R4-7.14: the collapse body used to be forced to solid white, which
+     painted a white table over the tier's own tint — a row in the "Late"
+     section was as white as a row in "Later", so the colour carried no
+     information at the row level, only at the border. Measured before:
+     rowBg=rgba(0,0,0,0) inside paneBg=rgb(255,255,255).
+     The body now inherits the tier tint, and the TABLE and its cells go
+     transparent so nothing re-covers it. The tint stays a wash: the row text
+     is dark on all three, so contrast is unchanged from the white body. */
+  .plan-tier-body { background: transparent; }
+  .plan-tier-body .table,
+  .plan-tier-body .table tbody,
+  .plan-tier-body .table td,
+  .plan-tier-body .table th { background-color: transparent; }
+  .plan-tier-body .table { margin-bottom: 0; }
+  /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
+     red; a tint-preserving hover keeps the urgency readable while pointing. */
+  .plan-tier-body .table-hover tbody tr:hover > td {
+    background-color: rgba(255, 255, 255, 0.45);
+  }
+  /* R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
+     multi-animal row collapses behind a header that carries the count and the
+     earliest time — so the closed state still says what is due rather than
+     hiding it. */
+  .plan-feed-animals { min-width: 12rem; }
+  .plan-feed-header {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.15rem 0; cursor: pointer; user-select: none;
+    font-size: 0.875rem;
+  }
+  .plan-feed-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-feed-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-feed-count { font-weight: 600; }
+  .plan-feed-when { color: #6c757d; }
+  .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
+  .plan-time-group:first-child { border-top: 0; padding-top: 0; }
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }"
+      </style>
+      <div class="py-4 mb-2">
+        <h3 class="d-inline-block">
+          "Day plan"
+        </h3>
+        <span class="text-muted ml-2" id="plan-updated-at">
+          "Updated at TIME"
+        </span>
+      </div>
+      <div class="mb-2" id="planSummaryStrip">
+        <a class="badge badge-danger mr-1" href="#tier-late">
+          "Late"
+          <span class="badge badge-pill badge-light ml-1">
+            "2"
+          </span>
+        </a>
+        <a class="badge badge-warning mr-1" href="#tier-now">
+          "Now"
+          <span class="badge badge-pill badge-light ml-1">
+            "3"
+          </span>
+        </a>
+        <a class="badge badge-success mr-1" href="#tier-later">
+          "Later"
+          <span class="badge badge-pill badge-light ml-1">
+            "3"
+          </span>
+        </a>
+      </div>
+      <ul class="nav nav-tabs mb-2" id="planKindTabs">
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=feeding">
+            "Feeding"
+            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+              "1"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=medication">
+            "Medication"
+            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+              "2"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=care">
+            "Care"
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=cleanup">
+            "Cleanup"
+            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+              "1"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=weighing">
+            "Weighing"
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="?kind=observation">
+            "Observation"
+            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+              "8"
+            </span>
+          </a>
+        </li>
+      </ul>
+      <div class="dropdown mb-3" id="planZoneDropdown">
+        <button aria-expanded="false" aria-haspopup="true" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" id="planZoneToggle" type="button">
+          "Zone: All"
+          <span class="badge badge-pill badge-primary ml-1">
+            "8"
+          </span>
+        </button>
+        <div aria-labelledby="planZoneToggle" class="dropdown-menu" id="planZoneMenu">
+          <a class="dropdown-item active" data-zone="" href="?kind=observation">
+            "All"
+            <span class="badge badge-pill badge-primary ml-1">
+              "8"
+            </span>
+          </a>
+          <a class="dropdown-item active" data-zone="" href="?zone=&kind=observation">
+            <span class="badge badge-pill badge-primary ml-1">
+              "8"
+            </span>
+          </a>
+        </div>
+      </div>
+      <div id="planSections">
+        <div class="plan-tier plan-tier-late" id="tier-late">
+          <div aria-expanded="true" class="plan-tier-header" data-target="#tier-late-rows" data-toggle="collapse" role="button" tabindex="0">
+            <span>
+              "Late"
+            </span>
+            <span class="badge badge-pill badge-danger">
+              "2"
+            </span>
+            <span class="plan-tier-chevron">
+              <i class="fas fa-chevron-down">
+              </i>
+            </span>
+          </div>
+          <div class="collapse show plan-tier-body" id="tier-late-rows">
+            <div class="px-2">
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-late">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A1 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-L-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Late"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-danger btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-danger btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-late">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A2 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-L-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Late"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-danger btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-danger btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="plan-tier plan-tier-now" id="tier-now">
+          <div aria-expanded="true" class="plan-tier-header" data-target="#tier-now-rows" data-toggle="collapse" role="button" tabindex="0">
+            <span>
+              "Now"
+            </span>
+            <span class="badge badge-pill badge-warning">
+              "3"
+            </span>
+            <span class="plan-tier-chevron">
+              <i class="fas fa-chevron-down">
+              </i>
+            </span>
+          </div>
+          <div class="collapse show plan-tier-body" id="tier-now-rows">
+            <div class="px-2">
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A1 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-N-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Due"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-warning btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-N-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A2 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-N-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Due"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-warning btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-N-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A2 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-H-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Due"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-warning btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-H-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="plan-tier plan-tier-later" id="tier-later">
+          <div aria-expanded="true" class="plan-tier-header" data-target="#tier-later-rows" data-toggle="collapse" role="button" tabindex="0">
+            <span>
+              "Later"
+            </span>
+            <span class="badge badge-pill badge-success">
+              "3"
+            </span>
+            <span class="plan-tier-chevron">
+              <i class="fas fa-chevron-down">
+              </i>
+            </span>
+          </div>
+          <div class="collapse show plan-tier-body" id="tier-later-rows">
+            <div class="px-2">
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A1 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-H-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Scheduled"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "tomorrow"
+                    </span>
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-light border btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-H-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-light border btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A1 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-F-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Scheduled"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "tomorrow"
+                    </span>
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-light border btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-light border btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
+                </div>
+                <div class="plan-med-animal">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                    "YEARNUM · CP-A2 · CP-MARKER"
+                  </a>
+                </div>
+                <div class="plan-med-label">
+                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                    "ROBS-F-MARKER"
+                  </a>
+                  <span class="sr-only">
+                    "Scheduled"
+                  </span>
+                </div>
+                <div class="plan-med-btns">
+                  <span class="text-nowrap mr-2">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "tomorrow"
+                    </span>
+                    "HHMM"
+                  </span>
+                  <span class="text-nowrap">
+                    <button class="btn btn-light border btn-sm ml-1 plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" title="Apply" type="button">
+                      <i class="far fa-clock">
+                      </i>
+                    </button>
+                    <button class="btn btn-light border btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                      <i class="fas fa-undo">
+                      </i>
+                    </button>
+                    <button class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="skip" data-source-id="UUID" data-source-type="rule" title="Skip" type="button">
+                      "⏭"
+                    </button>
+                    <button class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-mode="defer" data-source-id="UUID" data-source-type="rule" title="Defer" type="button">
+                      "🚫"
+                    </button>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="plan-tier plan-tier-history" id="plan-history">
+          <div aria-expanded="false" class="plan-tier-header" data-target="#plan-history-rows" data-toggle="collapse" role="button" tabindex="0">
+            <span>
+              "History"
+            </span>
+            <span class="badge badge-pill badge-secondary">
+              "1"
+            </span>
+            <span class="plan-tier-chevron">
+              <i class="fas fa-chevron-down">
+              </i>
+            </span>
+          </div>
+          <div class="collapse plan-tier-body" id="plan-history-rows">
+            <table class="table table-sm table-hover table-bordered mb-0">
+              <tbody>
+                <tr class="plan-item text-muted">
+                  <td>
+                    <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
+                      "YEARNUM · CP-A1 · CP-MARKER"
+                    </a>
+                  </td>
+                  <td>
+                    <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                      "ROBS-H-MARKER"
+                    </a>
+                  </td>
+                  <td class="text-nowrap">
+                    "HHMM"
+                  </td>
+                  <td class="text-nowrap">
+                    <span class="badge badge-success">
+                      "Done"
+                    </span>
+                    <a class="btn btn-outline-success btn-sm ml-1" href="/cares/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
+                      "View record"
+                    </a>
+                    <button class="btn btn-outline-secondary btn-sm ml-1 plan-history-undo" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" type="button">
+                      "Undo"
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="applied" title="Details" type="button">
+                      "ℹ"
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planApplyModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Confirm application"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-2">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8" id="planApplyAnimal">
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planApplyDetail">
+                  </span>
+                  <br>
+                  </br>
+                  <small class="text-muted" id="planApplySource">
+                  </small>
+                </dd>
+              </dl>
+              <div class="alert alert-info small" id="planApplyExpect">
+              </div>
+              <div class="form-group d-none" id="planApplyAnswerGroup">
+                <label for="planApplyAnswer">
+                  "Answer"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyAnswer" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planApplyWeightGroup">
+                <label for="planApplyWeight">
+                  "Weight (g)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyWeight" placeholder="850 g" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planApplyDosageGroup">
+                <label for="planApplyDosage">
+                  "Dosage"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyDosage" placeholder="0.1 ml" type="text">
+                </input>
+              </div>
+              <div class="form-group mb-0">
+                <label for="planApplyNote">
+                  "Note (optional)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyNote" type="text">
+                </input>
+              </div>
+              <div class="alert alert-danger d-none mt-2 mb-0" id="planApplyError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-success" id="planApplySubmit" type="button">
+                "Confirm"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planDetailModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Entry details"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-0">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8">
+                  <a href="#" id="planDetailAnimalLink">
+                    <span id="planDetailAnimal">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailDetail">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Source"
+                </dt>
+                <dd class="col-sm-8">
+                  <a href="#" id="planDetailSourceLink">
+                    <span id="planDetailSource">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4 d-none" id="planDetailTreatmentDt">
+                  "Treatment"
+                </dt>
+                <dd class="col-sm-8 d-none" id="planDetailTreatmentDd">
+                  <a href="#" id="planDetailTreatmentLink">
+                    <i class="fa fa-eye">
+                    </i>
+                    <span id="planDetailTreatment">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4">
+                  "Action kind"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailKind">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Due"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailDue">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Status"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailStatus">
+                  </span>
+                </dd>
+                <dt class="col-sm-4 d-none" id="planDetailRemainingDt">
+                  "more occurrences of this group"
+                </dt>
+                <dd class="col-sm-8 d-none" id="planDetailRemainingDd">
+                  "+"
+                  <span id="planDetailRemaining">
+                  </span>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planSkipDeferModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="planSkipDeferTitle">
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-2" id="planSkipDeferContext">
+              </p>
+              <div class="form-group">
+                <label for="planSkipDeferReason">
+                  "Reason (mandatory)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planSkipDeferReason" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planSkipDeferHoursGroup">
+                <label for="planSkipDeferHours">
+                  "Defer by (hours)"
+                </label>
+                <input class="form-control" id="planSkipDeferHours" min="1" step="1" type="number" value="1">
+                </input>
+              </div>
+              <div class="alert alert-danger d-none" id="planSkipDeferError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" id="planSkipDeferSubmit" type="button">
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planDosageModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Dosage cannot be computed automatically"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning" id="planDosageDetail">
+              </div>
+              <p class="text-muted d-none" id="planDosageWeight">
+              </p>
+              <input autocomplete="off" class="form-control" id="planDosageInput" placeholder="0.1 ml" type="text">
+              </input>
+              <div class="alert alert-danger d-none mt-2" id="planDosageError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" id="planDosageSubmit" type="button">
+                "Apply with this dosage"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planMessageModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="planMessageTitle">
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <pre class="mb-0" id="planMessageBody" style="white-space:pre-wrap;font-family:inherit;">
+              </pre>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" data-dismiss="modal" type="button">
+                "OK"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        "(function () {
+  // R4-4.1 (shared): every action announces itself so a page with the
+  // auto-refresh timer holds the reload off for the visibility floor.
+  var ACTION_VISIBILITY_MS = 30000;
+  var lastActionAt = 0;
+  function markAction() { lastActionAt = Date.now(); }
+  window.planMarkAction = markAction;
+
+  var inFlight = 0;
+  function track(p) {
+    inFlight++;
+    return p.then(function (v) { inFlight--; return v; }, function (e) { inFlight--; throw e; });
+  }
+  function busy() { return inFlight > 0; }
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  // {ref, btn} awaiting a manual dosage (§10-B6); btn is flipped in place
+  // once the dosage is recorded (R5-2c: no full reload).
+  var pending = null;
+  // §6.2-2 (A1): recording a clearly late occurrence is an explicit act —
+  // one confirm, once, before the POST.
+  var lateConfirm = "Record this missed occurrence after the fact?";
+  function lateBlocked(btn) {
+    return btn.getAttribute('data-late') === 'true' && !window.confirm(lateConfirm);
+  }
+  var i18n = {
+    errorTitle: "Something went wrong",
+    expect: {
+      feeding:    "The feeding will be recorded as done and the entry will be marked as applied.",
+      medication: "The treatment will be marked as given for this slot. You can undo it if needed.",
+      care:       "The care will be recorded and the entry will be marked as applied.",
+      cleanup:    "The cleaning will be recorded and the entry will be marked as applied.",
+      weighing:   "The weighing will be recorded with the weight below.",
+      observation:"The observation answer will be recorded. An alert answer creates a warning care and a follow-up plan."
+    },
+    answerRequired: "An answer is required for an observation.",
+    weightRequired: "A weight is required for a weighing.",
+    status: {
+      scheduled: "Scheduled",
+      due:       "Due",
+      late:      "Late",
+      missing:   "Missing",
+      applied:   "Done",
+      skipped:   "Skipped",
+      deferred:  "Deferred",
+      overridden:"Replaced by animal protocol"
+    },
+    kinds: {
+      feeding:    "Feeding",
+      medication: "Medication",
+      care:       "Care",
+      cleanup:    "Cleanup",
+      weighing:   "Weighing",
+      observation:"Observation"
+    },
+    batchSummary: "You are about to mark {count} entry(ies) for cage {cage} ({what}) as applied."
+  };
+
+  function showMessage(title, body) {
+    document.getElementById('planMessageTitle').textContent = title;
+    document.getElementById('planMessageBody').textContent = body;
+    $('#planMessageModal').modal('show');
+  }
+
+  function applyItem(ref, extra) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
+    }
+    return track(fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
+    }));
+  }
+
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
+    document.getElementById('planDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('planDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = "Last recorded weight" + ": " + warn.last_weight + " g (" + when + ")";
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('planDosageInput').value = '';
+    document.getElementById('planDosageError').classList.add('d-none');
+    $('#planDosageModal').modal('show');
+  }
+
+  // --- One-toggle apply/unapply (bugs.md R5-2c, D-a) -----------------------
+  // ONE policy for dashboard AND work screen: confirm only when fields are
+  // needed (weighing → weight, observation → answer); everything else
+  // toggles INSTANTLY — no confirm, no reload. The button flips in place;
+  // the view link is a sibling that never moves. Medication dosage stays
+  // optional: a 422 dosage_required opens the dosage dialog.
+  var applyRef = null;
+
+  function openApply(btn) {
+    applyRef = {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind')
+    };
+    document.getElementById('planApplyAnimal').textContent = btn.getAttribute('data-animal-label') || '';
+    document.getElementById('planApplyDetail').textContent = btn.getAttribute('data-detail') || '';
+    document.getElementById('planApplySource').textContent = btn.getAttribute('data-source-name') || '';
+    document.getElementById('planApplyExpect').textContent = i18n.expect[applyRef.kind] || '';
+    document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
+    document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
+    document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
+    applyRef.late = btn.classList.contains('plan-late-btn');
+    document.getElementById('planApplyAnswer').value = '';
+    document.getElementById('planApplyWeight').value = '';
+    document.getElementById('planApplyDosage').value = '';
+    document.getElementById('planApplyNote').value = '';
+    document.getElementById('planApplyError').classList.add('d-none');
+    $('#planApplyModal').modal('show');
+  }
+
+  // One-toggle dispatch (D-a): input kinds open the modal, everything
+  // else applies instantly and flips the button in place.
+  //
+  // R4-2.2: a FEEDING entry rendered on an animal tab (class
+  // plan-feeding-entry) is an input kind too — the caregiver confirms the
+  // ration in the prefilled modal instead of a bare instant click.
+  function isInputKind(btn) {
+    var kind = btn.getAttribute('data-kind');
+    if (kind === 'weighing' || kind === 'observation') { return true; }
+    return kind === 'feeding' && btn.classList.contains('plan-feeding-entry');
+  }
+
+  // R3-2: one row = one toggle pair — the apply check (`.plan-apply-btn` /
+  // `.plan-feeding-one`) and its undo sibling (`.plan-unapply-btn`) swap
+  // visibility in place; no reload, no waiting for the auto-refresh.
+  function pairApply(btn) { return btn.parentNode.querySelector('.plan-apply-btn, .plan-feeding-one'); }
+  function pairUndo(btn) { return btn.parentNode.querySelector('.plan-unapply-btn'); }
+
+  // markApplied flips an apply check to its undo control IN PLACE (R3-2):
+  // check hides, undo shows; the next full render (auto-refresh) moves
+  // the row to its tier/history. Shim over setToggleState (Phase 0b t7).
+  function markApplied(ref) {
+    markAction();
+    setToggleState(ref && ref.btn, true);
+  }
+
+  // markOpen flips an applied row back to its apply check (undo clicked).
+  function markOpen(ref) {
+    markAction();
+    setToggleState(ref && ref.btn, false);
+  }
+
+  // setToggleState (Phase 0b t7): THE single toggle-flip routine. ONE
+  // place owns how a toggle button looks in its applied vs open state —
+  // every page that flips a toggle calls this (directly or via the
+  // markApplied/markOpen shims below).
+  //
+  // Two button families:
+  //   med slot (`.plan-med-slot`) — ONE button stays live; applied ↔ open
+  //     swaps its classes/glyph in place. Colour comes from the button's
+  //     own data-tier-class (R4-1.1), so an unapplied late slot returns to
+  //     its tier colour instead of a hardcoded yellow.
+  //   pair rows (`.plan-apply-btn` / `.plan-feeding-one` ↔ `.plan-unapply-btn`)
+  //     — two sibling buttons swap visibility; the applied state also tints
+  //     the enclosing `.plan-animal-row` (R9-1).
+  function setToggleState(btn, applied) {
+    if (!btn) { return; }
+    if (btn.classList.contains('plan-med-slot')) {
+      var hm = btn.textContent.replace('○', '').replace('✓', '')
+        .replace('–', '').replace('⊘', '').replace('⏸', '').trim();
+      if (applied) {
+        btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border',
+          'plan-med-apply', 'plan-med-urgent', 'plan-med-future');
+        btn.classList.add('btn-success', 'plan-med-unapply');
+        btn.textContent = '✓ ' + hm;
+      } else {
+        btn.classList.remove('btn-success', 'plan-med-unapply');
+        var tier = btn.getAttribute('data-tier-class') || 'btn-warning';
+        tier.split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+        btn.classList.add('plan-med-apply');
+        btn.textContent = '○ ' + hm;
+      }
+      btn.disabled = false;
+      return;
+    }
+    // Pair rows: keep the exact pre-refactor flip behaviour.
+    markAction();
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var sib = applied ? pairUndo(btn) : pairApply(btn);
+    if (sib) { sib.classList.remove('d-none'); }
+    var row = btn.closest ? btn.closest('.plan-animal-row') : null;
+    if (row) { row.classList.toggle('plan-animal-applied', !!applied); }
+  }
+  window.planSetToggleState = setToggleState;
+
+  // Delegated (R4-2.2): one listener covers every page that includes this
+  // partial — the work screen, the dashboard and the animal tabs — and
+  // buttons rendered later by another script.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-apply-btn, .plan-feeding-one') : null;
+    if (!btn || btn.disabled) { return; }
+    if (lateBlocked(btn)) { return; }
+    if (isInputKind(btn)) { openApply(btn); return; }
+    instantApply(btn);
+  });
+
+  function instantApply(btn) {
+    markAction();
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    applyItem(ref).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  // In-place undo (R3-2): same /care_plan/unapply call as the history
+  // undo, but flips the row's toggle back instead of reloading.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-unapply-btn') : null;
+    if (!btn || btn.disabled) { return; }
+    instantUnapply(btn);
+  });
+
+  function instantUnapply(btn) {
+    markAction();
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    track(fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: ref.sourceType, source_id: ref.sourceId,
+        animal_id: ref.animalId, due_at: ref.dueAt,
+        delete_fulfillment: true
+      })
+    })).then(function (r) {
+      if (r.status === 200) { markOpen(ref); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind'),
+      hm: btn.textContent.replace('○', '').replace('✓', '').replace('–', '').replace('⊘', '').replace('⏸', '').trim()
+    };
+  }
+
+  document.getElementById('planApplySubmit').addEventListener('click', function () {
+    if (!applyRef) { return; }
+    var errBox = document.getElementById('planApplyError');
+    var extra = { note: document.getElementById('planApplyNote').value.trim() };
+    if (applyRef.kind === 'observation') {
+      extra.answer = document.getElementById('planApplyAnswer').value.trim();
+      if (!extra.answer) {
+        errBox.textContent = i18n.answerRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.kind === 'weighing') {
+      extra.weight = document.getElementById('planApplyWeight').value.trim();
+      if (!extra.weight) {
+        errBox.textContent = i18n.weightRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.late) { extra.late = true; }
+    if (applyRef.kind === 'medication') {
+      extra.dosage = document.getElementById('planApplyDosage').value.trim();
+    }
+    var ref = applyRef;
+    this.disabled = true;
+    var submitBtn = this;
+    applyItem(ref, extra).then(function (res) {
+      submitBtn.disabled = false;
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planApplyModal').modal('hide');
+        markApplied(ref);
+        return;
+      }
+      $('#planApplyModal').modal('hide');
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, ref.btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  });
+
+  // --- Skip / defer -----------------------------------------------------------
+  // Shared skip/defer modal (§7.3.1): skip = reason only; defer = reason +
+  // hours (default +1h, §10-L3 → RFC3339 now+Nh). Empty reason stays
+  // client-side — the server enforces 422 too (§10-CP4).
+  var sdRef = null;
+  var sdMode = 'skip';
+  var sdLabels = {
+    skip: {title: "Skip this occurrence", submit: "Skip"},
+    defer: {title: "Defer this occurrence", submit: "Defer"}
+  };
+
+  function openSkipDefer(btn) {
+    sdMode = btn.getAttribute('data-mode');
+    sdRef = {
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at')
+    };
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels[sdMode].title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels[sdMode].submit;
+    document.getElementById('planSkipDeferContext').textContent =
+      (btn.getAttribute('data-animal-label') || '') + (btn.getAttribute('data-detail') ? ' — ' + btn.getAttribute('data-detail') : '');
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.toggle('d-none', sdMode !== 'defer');
+    $('#planSkipDeferModal').modal('show');
+  }
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-skip-btn, .plan-defer-btn') : null;
+    if (!btn) { return; }
+    openSkipDefer(btn);
+  });
+
+  document.getElementById('planSkipDeferSubmit').addEventListener('click', function () {
+    if (!sdRef) { return; }
+    var reason = document.getElementById('planSkipDeferReason').value.trim();
+    var errBox = document.getElementById('planSkipDeferError');
+    if (!reason) {
+      errBox.textContent = "A reason is mandatory";
+      errBox.classList.remove('d-none');
+      return;
+    }
+    var body = {
+      source_type: sdRef.sourceType, source_id: sdRef.sourceId,
+      animal_id: sdRef.animalId, due_at: sdRef.dueAt,
+      status: sdMode === 'defer' ? 'deferred' : 'skipped',
+      note: reason
+    };
+    if (sdMode === 'defer') {
+      var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+      if (!hours || hours < 1) { hours = 1; }
+      body.deferred_until = new Date(Date.now() + hours * 3600000).toISOString();
+    }
+    fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 201) { window.location.reload(); return; }
+      r.json().then(function (j) {
+        errBox.textContent = (j && (j.detail || j.error)) || ('HTTP ' + r.status);
+        errBox.classList.remove('d-none');
+      });
+    });
+  });
+
+  document.getElementById('planDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('planDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending.ref;
+    applyItem(ref, {dosage: dosage}).then(function (res) {
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
+      var box = document.getElementById('planDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
+    });
+  });
+
+
+  // Phase 1 / D1 (guideline §5 level 2 + §6.2): bucket-fit pass over the
+  // medication button groups. CSS alone cannot know whether a series
+  // FITS on one row, so this measures after layout:
+  //   - a group whose buttons wrapped onto several rows is STACKED: it
+  //     gets .plan-med-btns--stacked (full-width row under the label,
+  //     right-aligned) and its .plan-med-bucket captions stay visible —
+  //     the labelled band between the button rows;
+  //   - a group that fits one row keeps shape A and its captions are
+  //     HIDDEN (the slot title already carries the bucket name) — the
+  //     caption never sits inline between two buttons of the same row.
+  // No-JS fallback: captions render visible and each forces its own row
+  // (flex-basis 100%), so the inline-caption defect cannot reappear.
+  function fitMedBuckets() {
+    Array.prototype.forEach.call(document.querySelectorAll('.plan-med-btns'), function (g) {
+      var buckets = g.querySelectorAll('.plan-med-bucket');
+      if (!buckets.length) { return; }
+      g.classList.remove('plan-med-btns--stacked');
+      Array.prototype.forEach.call(buckets, function (b) { b.classList.add('d-none'); });
+      var cells = g.querySelectorAll('.plan-med-cell');
+      var tops = {};
+      var rows = 0;
+      Array.prototype.forEach.call(cells, function (c) {
+        var y = c.offsetTop;
+        if (!tops[y]) { tops[y] = true; rows++; }
+      });
+      if (rows > 1) {
+        g.classList.add('plan-med-btns--stacked');
+        Array.prototype.forEach.call(buckets, function (b) { b.classList.remove('d-none'); });
+      }
+    });
+  }
+  var fitBucketsTimer = null;
+  function scheduleFitMedBuckets() {
+    if (fitBucketsTimer) { clearTimeout(fitBucketsTimer); }
+    fitBucketsTimer = setTimeout(fitMedBuckets, 120);
+  }
+  window.addEventListener('load', fitMedBuckets);
+  window.addEventListener('resize', scheduleFitMedBuckets);
+  // A tier collapse/expand re-flows every group inside it (Bootstrap
+  // slides over ~350 ms — re-measure once it settles).
+  document.addEventListener('click', function (ev) {
+    var h = ev.target.closest ? ev.target.closest('.plan-tier-header[data-toggle="collapse"]') : null;
+    if (h) { setTimeout(fitMedBuckets, 400); }
+  });
+
+  // R4-4.1: the age of the last action, for a page's auto-refresh guard.
+  window.planActionAge = function () { return Date.now() - lastActionAt; };
+  // R4-2.2: pages that still own page-specific scripts (batch apply,
+  // detail popup, history) reuse these instead of re-implementing them.
+  window.planApply = {
+    csrf: csrf, i18n: i18n, track: track, busy: busy,
+    applyItem: applyItem, showMessage: showMessage, markApplied: markApplied,
+    markAction: markAction, setToggleState: setToggleState,
+    pending: function () { return pending; }
+  };
+})();"
+      </script>
+      <div aria-hidden="true" class="modal fade" id="planBatchModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Confirm application"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p id="planBatchSummary">
+              </p>
+              <div class="alert alert-info small">
+                "A record will be created for each entry. Use the × button of a card instead if you want to dismiss it without applying."
+              </div>
+              <div class="alert alert-danger d-none" id="planBatchError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-success" id="planBatchSubmit" type="button">
+                "Confirm"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        "(function () {
+  // Auto-refresh (§10-CP6c): reload every 60 s unless a modal is open OR a
+  // request is still in flight — refreshing away an in-progress dosage
+  // entry or a just-sent apply would lose work (round-2 §7.3).
+  // R4-4.1: a change the caregiver just made must stay visible long enough
+  // to be SEEN. The old single 60 s timer armed at page load meant an
+  // apply at T=59 s was wiped by the reload one second later. Every action
+  // records its time in the SHARED apply partial; the refresh defers
+  // itself while the page was changed less than 30 s ago (the requested
+  // floor). One 5 s interval checks the due time — no chained setTimeout,
+  // no drift.
+  var RELOAD_PERIOD_MS = 60000;
+  var TICK_MS = 5000;
+  var nextReloadAt = Date.now() + RELOAD_PERIOD_MS;
+  var csrf = planApply.csrf;
+  var i18n = planApply.i18n;
+  var track = planApply.track;
+  var showMessage = planApply.showMessage;
+  var markApplied = planApply.markApplied;
+  var applyItem = planApply.applyItem;
+
+  function scheduleReload() {
+    setInterval(function () {
+      if (Date.now() < nextReloadAt) { return; }              // not due yet
+      if (window.planActionAge() < 30000) { return; } // R4-4.1 floor
+      if (jQuery('.modal').is(':visible') || planApply.busy()) { return; }
+      window.location.reload();
+    }, TICK_MS);
+  }
+  scheduleReload();
+
+  // R3-4: tier headers are divs (not buttons) — give them keyboard
+  // collapse toggling (Enter/Space) to match the click affordance.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-tier-header[data-toggle="collapse"]'), function (h) {
+    h.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jQuery(h).trigger('click'); }
+    });
+  });
+
+  // --- Detail popup (read-only, shared partial) -----------------------------
+  // Rev: one filler shared by the ℹ buttons AND the feeding rows (the row
+  // is the click affordance there — the ration text and times only live in
+  // this modal).
+  function fillPlanDetail(el) {
+    document.getElementById('planDetailAnimal').textContent = el.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (el.getAttribute('data-animal-link')) { aLink.setAttribute('href', el.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+    else { aLink.classList.add('d-none'); }
+    document.getElementById('planDetailDetail').textContent = el.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = el.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (el.getAttribute('data-source-link')) { sLink.setAttribute('href', el.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+    else { sLink.classList.add('d-none'); }
+    // R9-2: direct treatment link (record when applied, else Treatment tab).
+    var tLink = el.getAttribute('data-treatment-link');
+    document.getElementById('planDetailTreatmentDt').classList.toggle('d-none', !tLink);
+    document.getElementById('planDetailTreatmentDd').classList.toggle('d-none', !tLink);
+    if (tLink) {
+      document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+      document.getElementById('planDetailTreatment').textContent = el.getAttribute('data-detail') || tLink;
+    }
+    document.getElementById('planDetailKind').textContent = i18n.kinds[el.getAttribute('data-kind')] || el.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = el.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = i18n.status[el.getAttribute('data-status')] || el.getAttribute('data-status') || '—';
+    var rem = el.getAttribute('data-remaining');
+    document.getElementById('planDetailRemainingDt').classList.toggle('d-none', !rem);
+    document.getElementById('planDetailRemainingDd').classList.toggle('d-none', !rem);
+    if (rem) { document.getElementById('planDetailRemaining').textContent = rem; }
+    $('#planDetailModal').modal('show');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-detail-btn'), function (btn) {
+    btn.addEventListener('click', function () { fillPlanDetail(btn); });
+  });
+  // Rev: a feeding row click opens the details; clicks on chips, expand
+  // headers and apply buttons keep their own behavior. Enter/Space toggle
+  // it for keyboard users (R3-4 language).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-row[data-detail]'), function (tr) {
+    tr.addEventListener('click', function (ev) {
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      fillPlanDetail(tr);
+    });
+    tr.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      ev.preventDefault();
+      fillPlanDetail(tr);
+    });
+  });
+
+  // --- Batch apply (feeding group / cage rows) ------------------------------
+  var batchBtn = null;
+  function openBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    batchBtn = btn;
+    var what = btn.getAttribute('data-food') || btn.getAttribute('data-source-name') || '';
+    var summary = i18n.batchSummary
+      .replace('{count}', refs.length)
+      .replace('{cage}', btn.getAttribute('data-cage') || '')
+      .replace('{what}', what);
+    document.getElementById('planBatchSummary').textContent = summary;
+    document.getElementById('planBatchError').classList.add('d-none');
+    $('#planBatchModal').modal('show');
+  }
+
+  // §10.1-5/N2: a batch stays source×cage-scoped — one batch call per
+  // source, sequentially, then one reload (bugs.md U1/U6).
+  function runBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    var bySource = {};
+    refs.forEach(function (r) {
+      var k = r.source_type + '|' + r.source_id;
+      (bySource[k] = bySource[k] || []).push(r);
+    });
+    var failures = [];
+    var chain = Promise.resolve();
+    Object.keys(bySource).forEach(function (k) {
+      var items = bySource[k];
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/apply_batch', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({items: items})
+        }).then(function (r) {
+          return r.json().then(function (j) {
+            if (r.status !== 200) {
+              failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
+              return;
+            }
+            (j.results || []).forEach(function (it) {
+              if (it.status === 'error') {
+                failures.push(it.animal_id + ': ' + (it.error || ''));
+              }
+            });
+          });
+        }));
+      });
+    });
+    return chain.then(function () { return failures; });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
+    btn.addEventListener('click', function () { openBatch(btn); });
+  });
+
+  document.getElementById('planBatchSubmit').addEventListener('click', function () {
+    if (!batchBtn) { return; }
+    var btn = batchBtn;
+    this.disabled = true;
+    var submitBtn = this;
+    $('#planBatchModal').modal('hide');
+    runBatch(btn).then(function (failures) {
+      submitBtn.disabled = false;
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        // R3-2: no reload — flip the group's per-animal checks to their
+        // undo controls and retire the global apply until the refresh.
+        flipBatchRow(btn);
+      }
+    });
+  });
+
+  // flipBatchRow marks every applicable chip of the batch row as applied
+  // (check → undo) and hides the exhausted global apply button.
+  function flipBatchRow(btn) {
+    var row = btn.closest('tr');
+    if (!row) { window.location.reload(); return; }
+    Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
+      markApplied({btn: b});
+    });
+    btn.classList.add('d-none');
+  }
+
+  // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
+  // R5-2c/S9: the history late-record button REUSES the apply modal for
+  // input kinds (observation → answer, weighing → weight, §10-L1): a
+  // blind confirm-POST would 4xx ("answer is required"). openApply marks
+  // the ref late (plan-late-btn class) so the submit records after the
+  // fact (bypasses only the apply-window 409).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
+      if (!window.confirm(lateConfirm)) { return; }
+      fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          late: true
+        })
+      }).then(function (r) {
+        if (r.status === 201) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // --- History: free undo (A8) ----------------------------------------------
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-history-undo'), function (btn) {
+    btn.addEventListener('click', function () {
+      fetch('/care_plan/unapply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          delete_fulfillment: true
+        })
+      }).then(function (r) {
+        if (r.status === 200) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // Zone dropdown memory (bugs.md U3): the legacy feeding screen remembered
+  // its tab in location.hash — replicate with a z- prefix so the tier
+  // anchors (#tier-*) never collide. A remembered zone only applies when
+  // the URL carries no explicit ?zone= filter.
+  var zoneTabs = document.querySelectorAll('#planZoneMenu a[data-zone]');
+  Array.prototype.forEach.call(zoneTabs, function (tab) {
+    tab.addEventListener('click', function () {
+      var z = tab.getAttribute('data-zone');
+      try { history.replaceState(null, '', z ? '#z-' + z : window.location.pathname + window.location.search); }
+      catch (e) { /* older browsers: ignore */ }
+    });
+  });
+  var zoneParam = new URLSearchParams(window.location.search).get('zone');
+  if (!zoneParam && window.location.hash.indexOf('#z-') === 0) {
+    var remembered = decodeURIComponent(window.location.hash.substring(3));
+    var match = null;
+    Array.prototype.forEach.call(zoneTabs, function (tab) {
+      if (tab.getAttribute('data-zone') === remembered) { match = tab; }
+    });
+    if (match) { window.location.replace(match.getAttribute('href')); }
+  }
+})();"
+      </script>
+    </div>
+  </body>
+</html>

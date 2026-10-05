@@ -316,21 +316,35 @@
   box-shadow: inset 3px 0 0 #ffc107;
 }
 
-// R9: COMPACT SINGLE-LINE medication rows — <info> <animal> | <drug> |
-// <toggles>. The utility flex-wrap classes on the line are deliberately
-// overridden (higher-specificity selectors, no !important): the caregiver
-// scans one line per animal×drug, the label ellipsizes instead of pushing
-// the toggles to a second line.
+// R9 + Phase 1 (D1, guideline §5): medication rows are COMPACT but never
+// clipped — the responsive fall-back ladder replaces the old global
+// single-line overrides (which forced `nowrap` everywhere and ellipsized
+// the label, so narrow viewports overflowed / cut text). The ladder, in
+// order, never skipping a level:
+//   Level 1 — shrink the animal: `_plan_med_row` renders the year/number
+//     only (mg.AnimalYear); the full label rides in the cell's title and
+//     the ℹ modal. (Template change, always on.)
+//   Level 2 — buttons stack under the drug label: the line WRAPS again
+//     (the R9 `nowrap` overrides are gone); `.plan-med-btns` keeps its R4
+//     base (`flex: 0 1 auto; margin-left: auto; flex-wrap: wrap;
+//     justify-content: flex-end`), so a group that no longer fits beside
+//     the label drops to its own full-width row, right-aligned.
+//   Level 3 — full stack (media query below): animal line, then the label
+//     wrapping multiline (white-space: normal, NO ellipsis — R4-7.24), then
+//     the buttons wrapping multiline, left-aligned.
+// The row-kind lines (.plan-item-line) keep the compact single-line
+// treatment for now — their ladder is their own defect (D3/D4 scope).
 div.plan-med-row.d-flex,
 .plan-med-row.plan-item-line {
-  flex-wrap: nowrap;
   font-size: 0.85rem;
   background-color: transparent; // the tinted tier panel + zebra carry the line
 }
-.plan-med-row .plan-med-line {
+// Row-kind lines stay one-line compact (Phase 1 scopes the ladder to the
+// medication rows only).
+.plan-item-line.plan-med-line {
   flex-wrap: nowrap;
 }
-.plan-med-btns {
+.plan-item-line .plan-med-btns {
   flex-wrap: nowrap;
 }
 .plan-med-row .plan-med-slot {
@@ -345,23 +359,85 @@ div.plan-med-row.d-flex,
   border-right: 1px solid #dee2e6;
   padding-right: 0.5rem;
 }
-.plan-med-label {
+// The label pipe stays on the medication rows; the row-kind lines keep the
+// full R9 ellipsis (their ladder is out of Phase-1 scope). Medication
+// labels never ellipsize (R4-7.24 "never cut a description"): level 2 lets
+// the buttons drop under the label, level 3 wraps the label itself.
+.plan-item-line .plan-med-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.plan-med-label {
   border-right: 1px solid #dee2e6;
   padding-right: 0.5rem;
   margin-right: 0.5rem;
 }
 // R9: on the DAY-PLAN rows the drug label shrinks-to-fit its text (pipe
 // hugs the text, toggles right-align) instead of growing and dragging the
-// pipe to the far edge; long drug texts ellipsize at 34 ch. With a wide
-// button group the label keeps a 12 ch floor — the drug name must stay
-// readable (the Late row squeezed it to a few characters otherwise).
+// pipe to the far edge. With a wide button group the label keeps a 12 ch
+// floor — the drug name must stay readable (the Late row squeezed it to a
+// few characters otherwise). At the floor the §5 ladder continues: the
+// label text WRAPS (no 34 ch ellipsis cut) and the group drops below.
 div.plan-med-row .plan-med-label {
   flex: 0 1 auto;
   max-width: 34ch;
   min-width: 12ch;
+}
+// Level 2: the R4 base `.plan-med-btns` (flex: 0 1 auto; margin-left:
+// auto; flex-wrap: wrap; justify-content: flex-end) IS the ladder step —
+// with the R9 `nowrap` override gone, a group that no longer fits beside
+// the label wraps to its own row and stays right-aligned (the auto left
+// margin carries it to the right edge). A group that still fits keeps
+// shape A (everything on one line) — an unconditional `flex-basis: 100%`
+// would stack even at 1600 px, which is exactly the dash-med-cell override
+// and NOT the care-plan ladder.
+div.plan-med-row:not(.plan-item-line) .plan-med-btns {
+  max-width: 100%;
+}
+// Level 2 confirmed (§6 caption rule): the bucket-fit JS in
+// `_apply_toggle` MEASURES each group after layout — a group whose buttons
+// actually wrapped gets `.plan-med-btns--stacked`: full-width (so the
+// labelled bucket band spans the whole row, not just the button clump) and
+// right-aligned; a group that fits one line keeps shape A and its bucket
+// captions stay hidden (the slot title already carries the bucket name).
+// No-JS fallback: captions visible, each forcing its own row — never
+// inline between two buttons (D1 defect 2 cannot reappear without JS).
+div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
+  flex: 1 1 100%;
+}
+// Level 3 (guideline §5): narrow viewport — the FULL stack:
+//   animal number
+//   <ℹ> item details (multiline, no ellipsis)
+//   <toggle 1><toggle 2><…>   (multiline, left-aligned)
+@media (max-width: 767.98px) {
+  div.plan-med-row:not(.plan-item-line) .plan-med-animal {
+    flex: 1 1 100%;
+    border-right: none;
+    padding-right: 0;
+  }
+  div.plan-med-row:not(.plan-item-line) .med-series {
+    flex: 1 1 100%;
+  }
+  div.plan-med-row:not(.plan-item-line) .plan-med-label {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+  div.plan-med-row:not(.plan-item-line) .plan-med-btns {
+    flex: 1 1 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  div.plan-med-row:not(.plan-item-line) .plan-med-cell {
+    justify-content: flex-start;
+  }
 }
 // R9: a MISSING row reads red like a LATE one (the removed "Missing"
 // bubble must not take the colour signal with it).

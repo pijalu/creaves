@@ -285,34 +285,61 @@
 
   // markApplied flips an apply check to its undo control IN PLACE (R3-2):
   // check hides, undo shows; the next full render (auto-refresh) moves
-  // the row to its tier/history.
+  // the row to its tier/history. Shim over setToggleState (Phase 0b t7).
   function markApplied(ref) {
     markAction();
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.add('d-none');
-    btn.disabled = false;
-    var undo = pairUndo(btn);
-    if (undo) { undo.classList.remove('d-none'); }
-    // R9-1: tint the applied feeding animal row light-green so the recorded
-    // feeding is visible at a glance.
-    var row = btn.closest ? btn.closest('.plan-animal-row') : null;
-    if (row) { row.classList.add('plan-animal-applied'); }
+    setToggleState(ref && ref.btn, true);
   }
 
   // markOpen flips an applied row back to its apply check (undo clicked).
   function markOpen(ref) {
     markAction();
-    var btn = ref.btn;
+    setToggleState(ref && ref.btn, false);
+  }
+
+  // setToggleState (Phase 0b t7): THE single toggle-flip routine. ONE
+  // place owns how a toggle button looks in its applied vs open state —
+  // every page that flips a toggle calls this (directly or via the
+  // markApplied/markOpen shims below).
+  //
+  // Two button families:
+  //   med slot (`.plan-med-slot`) — ONE button stays live; applied ↔ open
+  //     swaps its classes/glyph in place. Colour comes from the button's
+  //     own data-tier-class (R4-1.1), so an unapplied late slot returns to
+  //     its tier colour instead of a hardcoded yellow.
+  //   pair rows (`.plan-apply-btn` / `.plan-feeding-one` ↔ `.plan-unapply-btn`)
+  //     — two sibling buttons swap visibility; the applied state also tints
+  //     the enclosing `.plan-animal-row` (R9-1).
+  function setToggleState(btn, applied) {
     if (!btn) { return; }
+    if (btn.classList.contains('plan-med-slot')) {
+      var hm = btn.textContent.replace('○', '').replace('✓', '')
+        .replace('–', '').replace('⊘', '').replace('⏸', '').trim();
+      if (applied) {
+        btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border',
+          'plan-med-apply', 'plan-med-urgent', 'plan-med-future');
+        btn.classList.add('btn-success', 'plan-med-unapply');
+        btn.textContent = '✓ ' + hm;
+      } else {
+        btn.classList.remove('btn-success', 'plan-med-unapply');
+        var tier = btn.getAttribute('data-tier-class') || 'btn-warning';
+        tier.split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+        btn.classList.add('plan-med-apply');
+        btn.textContent = '○ ' + hm;
+      }
+      btn.disabled = false;
+      return;
+    }
+    // Pair rows: keep the exact pre-refactor flip behaviour.
+    markAction();
     btn.classList.add('d-none');
     btn.disabled = false;
-    var apply = pairApply(btn);
-    if (apply) { apply.classList.remove('d-none'); }
-    // R9-1: undo removes the light-green applied tint.
+    var sib = applied ? pairUndo(btn) : pairApply(btn);
+    if (sib) { sib.classList.remove('d-none'); }
     var row = btn.closest ? btn.closest('.plan-animal-row') : null;
-    if (row) { row.classList.remove('plan-animal-applied'); }
+    if (row) { row.classList.toggle('plan-animal-applied', !!applied); }
   }
+  window.planSetToggleState = setToggleState;
 
   // Delegated (R4-2.2): one listener covers every page that includes this
   // partial — the work screen, the dashboard and the animal tabs — and
@@ -513,6 +540,51 @@
   });
 
 
+  // Phase 1 / D1 (guideline §5 level 2 + §6.2): bucket-fit pass over the
+  // medication button groups. CSS alone cannot know whether a series
+  // FITS on one row, so this measures after layout:
+  //   - a group whose buttons wrapped onto several rows is STACKED: it
+  //     gets .plan-med-btns--stacked (full-width row under the label,
+  //     right-aligned) and its .plan-med-bucket captions stay visible —
+  //     the labelled band between the button rows;
+  //   - a group that fits one row keeps shape A and its captions are
+  //     HIDDEN (the slot title already carries the bucket name) — the
+  //     caption never sits inline between two buttons of the same row.
+  // No-JS fallback: captions render visible and each forces its own row
+  // (flex-basis 100%), so the inline-caption defect cannot reappear.
+  function fitMedBuckets() {
+    Array.prototype.forEach.call(document.querySelectorAll('.plan-med-btns'), function (g) {
+      var buckets = g.querySelectorAll('.plan-med-bucket');
+      if (!buckets.length) { return; }
+      g.classList.remove('plan-med-btns--stacked');
+      Array.prototype.forEach.call(buckets, function (b) { b.classList.add('d-none'); });
+      var cells = g.querySelectorAll('.plan-med-cell');
+      var tops = {};
+      var rows = 0;
+      Array.prototype.forEach.call(cells, function (c) {
+        var y = c.offsetTop;
+        if (!tops[y]) { tops[y] = true; rows++; }
+      });
+      if (rows > 1) {
+        g.classList.add('plan-med-btns--stacked');
+        Array.prototype.forEach.call(buckets, function (b) { b.classList.remove('d-none'); });
+      }
+    });
+  }
+  var fitBucketsTimer = null;
+  function scheduleFitMedBuckets() {
+    if (fitBucketsTimer) { clearTimeout(fitBucketsTimer); }
+    fitBucketsTimer = setTimeout(fitMedBuckets, 120);
+  }
+  window.addEventListener('load', fitMedBuckets);
+  window.addEventListener('resize', scheduleFitMedBuckets);
+  // A tier collapse/expand re-flows every group inside it (Bootstrap
+  // slides over ~350 ms — re-measure once it settles).
+  document.addEventListener('click', function (ev) {
+    var h = ev.target.closest ? ev.target.closest('.plan-tier-header[data-toggle="collapse"]') : null;
+    if (h) { setTimeout(fitMedBuckets, 400); }
+  });
+
   // R4-4.1: the age of the last action, for a page's auto-refresh guard.
   window.planActionAge = function () { return Date.now() - lastActionAt; };
   // R4-2.2: pages that still own page-specific scripts (batch apply,
@@ -520,7 +592,8 @@
   window.planApply = {
     csrf: csrf, i18n: i18n, track: track, busy: busy,
     applyItem: applyItem, showMessage: showMessage, markApplied: markApplied,
-    markAction: markAction, pending: function () { return pending; }
+    markAction: markAction, setToggleState: setToggleState,
+    pending: function () { return pending; }
   };
 })();
 </script>

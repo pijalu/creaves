@@ -1,0 +1,37 @@
+<%# ONE medication row (Phase 0b): the line for a single (animal × drug
+    series) inside a medication tier. Extracted from `_plan_tier_med_rows`
+    so the row shell (animal cell + `_med_series`) is a named component —
+    the tier body partial owns the loop, this partial owns the line.
+
+    Context: `mg` — a MedGroupView, propagated from the caller's
+    `for (mg) in medGroups` loop (the same mechanism `_med_series` uses).
+
+    R3-5: one line per (animal x drug series) — the shared `_med_series`
+    partial renders the hour-toggle buttons; the renamed
+    plan-med-apply/plan-med-unapply classes keep these slots OUT of this
+    page's table apply/undo bindings (the `_plan_med_toggle` partial owns
+    them).
+
+    R4-7.15: the ANIMAL column. It had no width and no background, so the
+    labels stopped reading as a column (measured: 13 distinct widths
+    across 36 cells, every one `bg=rgba(0,0,0,0)`). The width is ONE value
+    for the whole page, sized from the longest label — a per-row min-width
+    would still leave the longest row wider, and a hard-coded px would cut
+    a long label (R4-7.24).
+    R9: the shared column width is gone — the cell sizes to its content so
+    the line reads <info> <animal> | <drug> | <toggles> on ONE line (no
+    long empty animal space).
+
+    Phase 1 / D1 (guideline §5 level 1 — shrink the animal): the cell
+    renders the YEAR/NUMBER only (`mg.AnimalYear`, e.g. "1234/26"), the
+    dashboard sibling-table parity form. The full label stays one hover
+    away in the cell's `title` and one click away in the ℹ detail modal
+    (the ℹ button carries `data-animal-label`). A short, fixed-shape cell
+    is what lets the §5 ladder start: the drug label and the toggles get
+    the width the long label used to burn. %>
+<div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
+  <div class="mr-2 text-nowrap py-1 plan-med-animal" title="<%= mg.AnimalLabel %>">
+    <a href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
+  </div>
+  <%= partial("care_plan/med_series.plush.html") %>
+</div>
