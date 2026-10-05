@@ -383,3 +383,45 @@ div.plan-med-row .plan-med-label {
   border-left: 3px solid #dc3545 !important;
   padding-left: 0.65rem;
 }
+
+// ---------------------------------------------------------------------------
+// R9-3: the DASHBOARD medication cell (`.dash-med-cell`, dashboard.plush.html)
+// must STACK on a narrow cell instead of forcing one line. The compact
+// single-line rules above (`.plan-med-row .plan-med-line`,
+// `.plan-med-btns`, `.plan-med-label`) are tuned for the care-plan page's wide
+// rows and force `nowrap` + an ellipsized label; inside a dashboard `<td>`
+// that either overflows or clips the buttons. Scoped to `.dash-med-cell`
+// (higher specificity than the rules it overrides) so the care plan keeps its
+// compact one-line rows and only the dashboard re-flows:
+//   - the line WRAPS (shape B → C) instead of staying on one line;
+//   - the label grows and wraps (no ellipsis clip) so it never truncates
+//     (R4-7.24 "never cut a description");
+//   - the button group wraps UNDER the label (its own line when it does not
+//     fit) instead of overflowing the cell.
+.dash-med-cell .plan-med-line {
+  flex-wrap: wrap;
+}
+.dash-med-cell .plan-med-label {
+  // Undo the care-plan single-line treatment: grow + wrap, never clip.
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
+}
+.dash-med-cell .plan-med-btns {
+  // Let the group wrap and drop to its own line under the label when the
+  // cell is too narrow (shape C), instead of forcing one row that overflows.
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: 0;
+}
+.dash-med-cell .plan-med-cell {
+  // Buttons align left within the wrapped group (the group is full-width).
+  justify-content: flex-start;
+}

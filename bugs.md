@@ -278,7 +278,57 @@ multi-treatment animal (assert no `soir`/`midi`/etc. label between buttons on
 one line) and at several viewport widths (1600/1024/767 px) asserting the
 buttons wrap under the label with no horizontal overflow. Sweep en/fr/de/nl.
 
-**Status**: open.
+**Status**: **fixed 2026-10-05**.
+
+**Root cause**: the dashboard medication cell reused the shared `_med_series`
+partial with no "compact" signal, so the R4-2.4 labelled bucket divider
+(`.plan-med-bucket`) rendered between buttons (Defect A). And the global
+compact single-line rules (`assets/css/care-plan.scss:330–355` —
+`.plan-med-row .plan-med-line { flex-wrap: nowrap }`, `.plan-med-btns {
+flex-wrap: nowrap }`, `.plan-med-label { white-space: nowrap; ellipsis }`)
+apply to `.plan-med-row` on BOTH the care plan and the dashboard, so the
+dashboard `<td>` could not re-flow (Defect B).
+
+**Fix** (branch `feature/care-expert`):
+
+- **Defect A (no bucket label on the dashboard)** — `_med_series.plush.html`
+  (+fr/de/nl): the divider is gated on `row.DividerBefore && !medSeriesCompact`.
+  The dashboard templates (4 forks) declare `<% let medSeriesCompact = true %>`
+  next to the existing `medSeriesEye`; the care plan never sets it, so its
+  dividers stay. The buttons still flow — only the caption is dropped.
+- **Defect B (stacking)** — the dashboard cell wrapper became
+  `<div class="… dash-med-cell">` (4 forks), and `assets/css/care-plan.scss`
+  gained a `.dash-med-cell`-scoped override block (higher specificity than the
+  rules it overrides, so the care plan is untouched): `.plan-med-line` wraps,
+  `.plan-med-label` grows/wraps with no ellipsis clip (R4-7.24), and
+  `.plan-med-btns` takes `flex: 1 1 100%` + `flex-wrap: wrap` so the buttons
+  drop to their own line UNDER the label (shape C) instead of overflowing.
+- Webpack bundle rebuilt (`npm run build` → `application.ce7c78f9…css`).
+
+**Tests** (`actions/care_plan_series_test.go`, PASS): new
+`TestMedSeriesCompactSuppressesBucketLabel` renders the SAME multi-bucket
+series through all 4 `_med_series` forks — with `medSeriesCompact` (dashboard)
+it asserts `plan-med-bucket` is ABSENT and both `○ 08:00`/`○ 18:00` buttons are
+kept; without it (care plan) it asserts the divider STAYS. Existing
+`TestMedSeriesPartialRenders` (care-plan divider present) still passes.
+
+**e2e (agent-browser, `/dashboard/`, direct-run binary)**:
+- Computed styles in `.dash-med-cell`: `plan-med-line flex-wrap=wrap`,
+  `plan-med-btns flex-wrap=wrap flex-basis=100%`, `plan-med-label
+  white-space=normal overflow=visible`; `nBuckets=0` inside dash cells.
+- Viewport sweep: **1600px** `hOverflow=0 btnOverflowPx=0`; **1024px** and
+  **767px** `hOverflow=0 btnOverflowPx=0` AND `anyBtnStackedUnderLabel=true`
+  (buttons drop under the label — shape C, no horizontal scroll).
+- Care-plan regression: `/care_plan?kind=medication` shows no `dash-med-cell`
+  (override is dashboard-scoped); bucket logic unchanged there.
+- Locale sweep en/fr/de/nl: med table renders 5 rows, `dashBuckets=0` in each.
+
+**Quality gates** (run separately, on the R9-3 tree): `go vet ./...` exit 0;
+`staticcheck ./...` exit 0; `gocognit -over 15` — new test fn =1; `gocyclo
+-over 12` — new test fn =2; `go test -count=1 -race -cover ./actions/` — all
+PASS (60.4%) except the two PRE-EXISTING converter failures
+(`TestCarePlanConverterRoundTrip`, `TestCarePlanConverterMarkerV2Refresh`,
+unchanged by R9-3). `TestCarePlanPagesAllLocales` / `TestLocaleKeyParity` PASS.
 
 ### R9-4 Cleanup care-rules don't trigger / don't appear in the care plan
 

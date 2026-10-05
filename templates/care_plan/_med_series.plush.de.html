@@ -64,8 +64,10 @@
       <div class="plan-med-btns">
         <%= for (ri, row) in series.Rows { %>
           <%# R4-2.4: the bucket change is LABELLED, not implied by an
-              empty rule — the morning/noon/evening grouping is explicit. %>
-          <%= if (row.DividerBefore) { %>
+              empty rule — the morning/noon/evening grouping is explicit.
+              R9-3: on the DASHBOARD (medSeriesCompact) the label is noise
+              on a single line — the buttons flow without it. %>
+          <%= if (row.DividerBefore && !medSeriesCompact) { %>
             <div class="plan-med-bucket"><%= t("care_plan.slot." + row.Slots[0].Slot) %></div>
           <% } %>
           <%= for (slot) in row.Slots { %>

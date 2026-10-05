@@ -197,6 +197,62 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 	}
 }
 
+// TestMedSeriesCompactSuppressesBucketLabel (R9-3): on the dashboard the
+// morning/noon/evening bucket divider is noise on a single line — the buttons
+// flow without it. Rendering the SAME multi-bucket series with
+// `medSeriesCompact` set (the dashboard flag) drops the divider while keeping
+// every button; without the flag (the care plan) the divider stays. All four
+// locale forks behave identically.
+func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
+	mg := MedGroupView{
+		AnimalID:    1,
+		AnimalLabel: "472/26",
+		Series: []MedSeriesView{{
+			Key:   "Citramox — 0.5 ml",
+			Label: "Citramox — 0.5 ml",
+			Rows: []MedSeriesRow{
+				{Slots: []MedSlotView{
+					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "08:00", Status: "due", Applicable: true,
+						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T08:00:00+02:00", SourceName: "Citramox AM"},
+				}},
+				{DividerBefore: true, Slots: []MedSlotView{
+					{Slot: "evening", Detail: "Citramox — 0.5 ml", DueAtHM: "18:00", Status: "scheduled", Applicable: true,
+						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T18:00:00+02:00", SourceName: "Citramox AM"},
+				}},
+			},
+		}},
+	}
+	forks := []string{
+		"../templates/care_plan/_med_series.plush.html",
+		"../templates/care_plan/_med_series.plush.de.html",
+		"../templates/care_plan/_med_series.plush.fr.html",
+		"../templates/care_plan/_med_series.plush.nl.html",
+	}
+	for _, f := range forks {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+
+		// Dashboard context: medSeriesCompact set — no bucket label.
+		dashCtx := plush.NewContextWith(map[string]interface{}{
+			"mg": mg, "t": func(s string) string { return s },
+			"medSeriesCompact": true,
+		})
+		dash, err := plush.Render(string(raw), dashCtx)
+		require.NoError(t, err, f)
+		require.NotContains(t, dash, "plan-med-bucket", f+" (dashboard: no bucket label)")
+		require.Contains(t, dash, "○ 08:00", f+" (buttons kept)")
+		require.Contains(t, dash, "○ 18:00", f+" (buttons kept)")
+
+		// Care-plan context: flag unset — bucket divider stays.
+		planCtx := plush.NewContextWith(map[string]interface{}{
+			"mg": mg, "t": func(s string) string { return s },
+		})
+		plan, err := plush.Render(string(raw), planCtx)
+		require.NoError(t, err, f)
+		require.Contains(t, plan, "plan-med-bucket", f+" (care plan: bucket label kept)")
+	}
+}
+
 // TestMedSlotLateAllowed: the A1 plumbing — a past-due, unapplied,
 // non-applicable occurrence flags LateAllowed (the dimmed series button
 // records it with the late acknowledgment); future and done slots never.

@@ -94,6 +94,10 @@
     </thead>
     <tbody>
       <% let medSeriesEye = true %>
+      <%# R9-3: dashboard medication lines are COMPACT — no bucket label
+          between the buttons, and the buttons stack under the label on a
+          narrow cell (shape C). %>
+      <% let medSeriesCompact = true %>
       <%= for (mg) in medicationCards { %>
         <%# Dash-9 (§8.1): animals outtaken TODAY stay in the table —
             subdued outtaken row class + ready-for-release dove badge.
@@ -120,7 +124,7 @@
             <%= tspecies(mg.Species) %> (<%= gender %>)
           </td>
           <td class="align-middle">
-            <div class="bg-white border rounded px-2 py-1">
+            <div class="bg-white border rounded px-2 py-1 dash-med-cell">
               <%= partial("care_plan/med_series.plush.html") %>
             </div>
           </td>
