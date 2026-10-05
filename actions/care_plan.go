@@ -404,6 +404,7 @@ func CarePlanApply(c buffalo.Context) error {
 		}
 		return planError(c, http.StatusUnprocessableEntity, err)
 	}
+	queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)
 	return c.Render(http.StatusCreated, renderJSON(app))
 }
 
@@ -441,6 +442,7 @@ func CarePlanUnapply(c buffalo.Context) error {
 	}
 	auditAnimalChange(c, tx, in.AnimalID, models.AuditEntityCarePlanApplication,
 		auditEntityID(auditApp.ID), models.AuditActionDelete, *auditApp, nil)
+	queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"status":              "unapplied",
 		"deleted_fulfillment": deleted,
@@ -544,6 +546,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 		}
 		results = append(results, res)
 	}
+	queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)
 	return c.Render(http.StatusOK, renderJSON(map[string]interface{}{
 		"applied": applied,
 		"cage":    cageRef,

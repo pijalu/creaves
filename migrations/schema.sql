@@ -361,6 +361,8 @@ CREATE TABLE `cares` (
   KEY `cares_date_idx` (`date`),
   KEY `cares_date_type_id_animal_id_idx` (`date`,`type_id`,`animal_id`),
   KEY `cares_animal_id_date_idx` (`animal_id`,`date`),
+  KEY `cares_animal_id_weight_date_idx` (`animal_id`,`weight`,`date`),
+  KEY `cares_animal_id_type_id_date_idx` (`animal_id`,`type_id`,`date`),
   CONSTRAINT `cares_ibfk_1` FOREIGN KEY (`type_id`) REFERENCES `caretypes` (`id`),
   CONSTRAINT `cares_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`),
   CONSTRAINT `cares_ibfk_3` FOREIGN KEY (`link_to_id`) REFERENCES `cares` (`id`)
@@ -1164,4 +1166,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-04 10:53:40
+-- Dump completed on 2026-10-04 21:52:15

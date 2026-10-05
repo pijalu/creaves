@@ -406,15 +406,32 @@ buffalo task event:snapshot:stats
 
 ## Performance Notes
 
-Critical for multi-user deployment on limited hardware.
+Critical for multi-user deployment on limited hardware. Full assessment with
+measurements: [docs/performance-assessment-2026-10-04.md](./docs/performance-assessment-2026-10-04.md).
 
-### Known Bottlenecks
-- **Reference data fetched from DB on every request**: `actions/typehelper.go` loads animal types, care types, zones, etc. without caching
-- **User re-fetched from DB every request**: `actions/users.go:SetCurrentUser` does `tx.Find(u, uid)` on every authenticated request
-- **Landing page loads ALL animals**: `actions/landing.go` loads every in-care animal without pagination
-- **N+1 queries**: Some handlers still use `EnrichAnimals` (older) instead of `EnrichAnimalsOptimized`
-- **No connection pool tuning**: `models/models.go` uses default Pop connection settings
-- **Eager() overuse**: Many handlers use `tx.Eager()` which can generate unexpected queries
+### Implemented optimizations
+- **Reference data cache**: `actions/refcache.go` caches animaltypes, zones,
+  caretypes, etc. (single-flight loads, 60s TTL backstop, post-commit
+  invalidation from the admin CRUD resources).
+- **User lookup cache**: `SetCurrentUser` resolves through `cachedUserByID`.
+- **Bulk enrichment**: listings use `EnrichAnimalsOptimized` (and the
+  `NoTreatments` variant when the template renders no treatments); the
+  today-treatments query bulk-loads `treatment_time_entries` (no nested-eager
+  N+1).
+- **Care-plan assemblies**: fill pipeline is bulk; the in-care animal load
+  uses two indexed queries (never an OR-of-IN, which full-scans); the
+  landing badge is a 30s-TTL cache invalidated post-commit by the apply
+  paths (`CountOpenItemsCached`).
+- **Hot-path indexes on `cares`**: `(animal_id, weight, date)` for the
+  latest-weight lookup, `(animal_id, type_id, date)` for the warning query.
+- **Connection pool caps**: `database.yml` (pool/idlepool/connmaxlifetime).
+- **Weight-loss cache**: dashboard data cached per day, weight-touching
+  writes invalidate.
+
+### Known residual costs (measured, acceptable at current scale)
+- Each plan page still builds its §6.1 assembly per request (~35ms at
+  production-scale dev data). See "Residual opportunities" in the
+  assessment doc before adding a plan-level cache.
 
 ### Implementation Tracking
 
@@ -423,8 +440,8 @@ See [TODO.md](./TODO.md) for complete list of pending and completed TODOs with i
 **Quick Status:**
 - ✅ **Phase 1: Foundation** - Event stream table, schema design, instance identifiers - COMPLETED
 - ✅ **Phase 2: Event Production** - Event producer hooks in discoveries/animals/outtakes - COMPLETED
-- 🔄 **Phase 3: Consolidation** - Event processor, consolidated view - IN PROGRESS
-- ⏳ **Phase 4: Performance** - Caching, pagination, connection pooling - PENDING
+- ✅ **Phase 3: Consolidation** - Event processor, consolidated view - COMPLETED
+- ✅ **Phase 4: Performance** - Caching, pagination, connection pooling, hot-path indexes, N+1 removal - COMPLETED (round 10; see docs/performance-assessment-2026-10-04.md)
 
 ## Testing Requirements
 

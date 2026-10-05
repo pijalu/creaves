@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"creaves/models"
@@ -364,6 +365,49 @@ func occurrenceKeyParts(sourceType, sourceID string, animalID int, dueAt time.Ti
 // pipeline as BuildDayPlan but only materializes occurrences up to the
 // badge horizon — no occurrence due after now+lookahead can be open or
 // late, so the +2 day display window is never generated (M3).
+// dayPlanBadgeTTL bounds the staleness of the cached landing badge counts.
+const dayPlanBadgeTTL = 30 * time.Second
+
+var dayPlanBadgeCache = struct {
+	sync.Mutex
+	valid bool
+	open  int
+	late  int
+	at    time.Time
+}{}
+
+// InvalidateDayPlanBadgeCache drops the cached landing badge counts.
+// Queued post-commit by the plan-application write paths (apply/unapply/
+// batch); any path that misses the hook degrades to at most
+// dayPlanBadgeTTL of staleness on a decorative badge.
+func InvalidateDayPlanBadgeCache() {
+	dayPlanBadgeCache.Lock()
+	dayPlanBadgeCache.valid = false
+	dayPlanBadgeCache.Unlock()
+}
+
+// CountOpenItemsCached is CountOpenItems behind a short-TTL cache for the
+// landing badge. The count runs the FULL day-plan assembly (§6.1) and the
+// landing is the most-hit page, so every landing request paid ~55ms of
+// assembly for two advisory numbers (round 10; docs/performance-
+// assessment-2026-10-04.md). The badge always round-trips through the
+// real work screen, so bounded staleness is acceptable.
+func CountOpenItemsCached(tx *pop.Connection, now time.Time) (open, late int) {
+	dayPlanBadgeCache.Lock()
+	defer dayPlanBadgeCache.Unlock()
+	if dayPlanBadgeCache.valid && now.Sub(dayPlanBadgeCache.at) < dayPlanBadgeTTL {
+		return dayPlanBadgeCache.open, dayPlanBadgeCache.late
+	}
+	o, l, err := CountOpenItems(tx, now)
+	if err != nil {
+		// A planning failure degrades to zero (landing contract) — and
+		// must not poison the cache with that zero.
+		return 0, 0
+	}
+	dayPlanBadgeCache.valid, dayPlanBadgeCache.open, dayPlanBadgeCache.late, dayPlanBadgeCache.at = true, o, l, now
+	return o, l
+}
+
 func CountOpenItems(tx *pop.Connection, now time.Time) (open, late int, err error) {
 	from, to := DefaultPlanWindow(now)
 	pa, err := loadAnimalContexts(tx, now)

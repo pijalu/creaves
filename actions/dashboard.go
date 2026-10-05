@@ -43,6 +43,20 @@ JOIN
         WHERE
           reset_warning = TRUE OR warning = TRUE
       )
+      -- Perf (round 10): the outer WHERE only keeps in-care animals, so
+      -- computing last-care groups for every animal ever recorded
+      -- (~3.3k groups over 373k cares) was discarded at the join.
+      -- Restricting the aggregate to in-care animals drops the dashboard
+      -- query from ~41ms to ~7.6ms on the production-scale dev dataset
+      -- (docs/performance-assessment-2026-10-04.md).
+      AND animal_id IN (
+        SELECT
+          id
+        FROM
+          animals
+        WHERE
+          outtake_id IS NULL
+      )
     GROUP BY
       animal_id
   ) AS last_cares ON c.animal_id = last_cares.animal_id AND c.date = last_cares.last_care_date

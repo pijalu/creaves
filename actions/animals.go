@@ -172,12 +172,38 @@ func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments
 		var allTreatments models.Treatments
 		// Parameterized placeholder expansion — string-building the list
 		// would interpolate values into SQL text.
-		// Eager: per-time entries are the read model (bugs.md R5-3c, U25/D-e).
-		if err := tx.Eager().Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
+		// Perf (round 10): the former tx.Eager() here loaded EVERY
+		// association at level 2 — and Pop's nested has_many eager issues
+		// ONE QUERY PER PARENT ROW, so a landing page with N today-
+		// treatments paid 2N extra queries (N × treatment_time_entries
+		// "WHERE treatment_id = ?" + N × animals "WHERE id = ?" for the
+		// unused belongs_to). The only consumer is Treatments.TodayStatitics()
+		// (the −−− clock dots), which reads Entries — loaded below in ONE
+		// bulk query with the association's own order_by.
+		if err := tx.Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
 			return nil, err
 		}
-		// Group treatments by animal ID
+		// Bulk-load the per-time entries of the collected treatments
+		// (bugs.md R5-3c read model) — one query, no N+1.
+		treatmentIds := make([]uuid.UUID, 0, len(allTreatments))
 		for _, t := range allTreatments {
+			treatmentIds = append(treatmentIds, t.ID)
+		}
+		entriesByTreatment := make(map[uuid.UUID]models.TreatmentTimeEntries, len(allTreatments))
+		if len(treatmentIds) > 0 {
+			var allEntries models.TreatmentTimeEntries
+			if err := tx.Where("treatment_id IN (?)", treatmentIds).Order("due_at asc").All(&allEntries); err != nil {
+				return nil, err
+			}
+			for _, e := range allEntries {
+				entriesByTreatment[e.TreatmentID] = append(entriesByTreatment[e.TreatmentID], e)
+			}
+		}
+		// Group treatments by animal ID and attach their bulk-loaded
+		// entries (association order_by due_at asc — the bulk query above
+		// already ordered by it, and the map append preserves that order).
+		for _, t := range allTreatments {
+			t.Entries = entriesByTreatment[t.ID]
 			treatments[t.AnimalID] = append(treatments[t.AnimalID], t)
 		}
 	}
@@ -521,8 +547,10 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		return err
 	}
 
-	// Preload required for "list"
-	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
+	// Preload required for "list" — NoTreatments: the animals index never
+	// renders Treatments (round 10: the with-treatments variant paid ~10
+	// nested-eager queries per request for data the template drops).
+	if _, err := EnrichAnimalsOptimizedNoTreatments(animals, c); err != nil {
 		return err
 	}
 

@@ -166,16 +166,37 @@ func loadAnimalContextsScoped(tx *pop.Connection, now time.Time, ids []int) (*pl
 // ReverifyItem uses this too: a today-outtaken animal's occurrences stay
 // reproducible (their past items are recordable via the late path, §6.2-2).
 func loadAnimalContextsIncludingTodayOuttaken(tx *pop.Connection, now time.Time, ids []int) (*planAnimals, error) {
-	var animals []models.Animal
 	todayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	q := tx.Where("outtake_id IS NULL OR outtake_id IN (SELECT id FROM outtakes WHERE date >= ?)", todayStart).
-		Eager("Outtake")
+
+	// Perf (round 10): the former single OR-of-IN query (in-care OR
+	// outtaken-today) made MySQL abandon the outtake_id index and
+	// full-scan all ~10k animals on EVERY plan assembly (~20ms,
+	// docs/performance-assessment-2026-10-04.md). Two indexed loads
+	// instead: the in-care set via the covering outtake_id index, and
+	// the few today-outtaken animals via their (indexed) outtake rows
+	// — then one in-memory merge.
+	inCare := []models.Animal{}
+	q := tx.Where("outtake_id IS NULL")
 	if ids != nil {
 		q = q.Where("id in (?)", ids)
 	}
-	if err := q.All(&animals); err != nil {
+	if err := q.All(&inCare); err != nil {
 		return nil, err
 	}
+	animals := inCare
+
+	// Today-outtaken: only when not scoped, or when the scope may contain
+	// them (the scoped plan work with today-outtaken animals, §6.2).
+	outtaken := []models.Animal{}
+	oq := tx.Where("outtake_id IN (SELECT id FROM outtakes WHERE date >= ?)", todayStart).
+		Eager("Outtake")
+	if ids != nil {
+		oq = oq.Where("id in (?)", ids)
+	}
+	if err := oq.All(&outtaken); err != nil {
+		return nil, err
+	}
+	animals = append(animals, outtaken...)
 	return assemblePlanAnimals(tx, now, animals)
 }
 

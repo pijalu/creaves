@@ -98,10 +98,10 @@ func LandingIndex(c buffalo.Context) error {
 	// Care plan badge (§7.2): open items (due/late/missing) on today's
 	// plan. A planning failure degrades to zero — the badge is decorative.
 	// M3: dedicated count path, no full day-plan materialization.
-	dayOpen, dayLate := 0, 0
-	if o, l, perr := CountOpenItems(tx, time.Now()); perr == nil {
-		dayOpen, dayLate = o, l
-	}
+	// Round 10: short-TTL cached — the count is a full §6.1 assembly and
+	// the landing is the most-hit page (invalidated post-commit by the
+	// apply paths; 30s backstop).
+	dayOpen, dayLate := CountOpenItemsCached(tx, time.Now())
 	c.Set("dayPlanOpen", dayOpen)
 	c.Set("dayPlanLate", dayLate)
 
