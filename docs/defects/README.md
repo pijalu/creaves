@@ -20,7 +20,7 @@ mapped test IDs / status.
 | [D3](d3-cleanup-format-divergent.md) | Cleanup format divergent: no tiers, no per-occurrence toggles, untranslated zone | `/care_plan?kind=cleanup` | high | §1, §2, §3 | open |
 | [D4](d4-row-kind-toggle-parity.md) | Observation/care/weighing rows: no tier-coloured buttons, no immediate colour flip | `/care_plan?kind=observation` (care, weighing) | high | §2 | open |
 | [D5](d5-animal-nav-plan-format-divergence.md) | Animal `#nav-plan` non-med rows use a third format | `/animals/{id}#nav-plan` | medium | §2, §3, §4.3 | open |
-| [D6](d6-care-rules-list-no-sort-filter.md) | `/care_rules` list: no sort / filter / search / paging | `/care_rules` | low | — (admin UX) | open |
+| [D6](d6-care-rules-list-no-sort-filter.md) | `/care_rules` list: no sort / filter / search / paging | `/care_rules` | low | — (admin UX) | **verified** 2026-10-05 |
 | [D7](d7-zone-show-missing-fields-i18n.md) | `/zones/{id}`: `RequiresCleanup` missing, hardcoded English labels | `/zones/{id}` | medium | — (i18n rule) | open |
 
 ## Test matrix (row IDs)

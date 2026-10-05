@@ -49,4 +49,29 @@ search, pagination; JSON branch byte-stable) — all four locales.
 
 ## Status
 
-**Open.** Fix owner: Phase 6 (`/care_rules` sorting/filtering/search/paging).
+**Verified 2026-10-05** (Phase 6).
+
+Fix: `List` forks per content type — the HTML branch paginates
+(`PaginateFromParams`), filters (`kind`, `active`, `matcher_id`, `q` on
+LOWER(name)/LOWER(description)) and sorts via the `careRuleSortColumns`
+whitelist (`name|kind|priority|active`, `dir=asc|desc`, name-asc tiebreak);
+the JSON branch keeps the historical full-set contract. New
+`actions/care_rule_sort.go`; filter bar + sortable headers + chips + pager in
+`templates/care_rules/index.plush.html` (×4 identical forks, all labels via
+`t()`; new keys `care_plan.rules.search_label`, `care_plan.rules.search_placeholder`,
+`care_plan.action.search`, `care_plan.action.reset` in the four
+`locales/care_plan.*.yaml`).
+
+Verification: unit pins (`TestCareRuleSortClauses*`) + HTTP suite
+(`care_rules_list_test.go`: 6-T1 sort asc/desc ×4 columns, 6-T2 filters
+alone/combined, 6-T3 q case-insensitive name+description, 6-T4 page slicing +
+pager links carrying filters, 6-T5 JSON byte-stable full set ignoring params,
+6-T6 four-locale controls sweep) — `go test ./actions -count=1` → ok 13.9s.
+Live agent-browser (admin, dev DB 21 rules + 3 D6PROBE rows): filter form
+`#care_rules_filters` with q/kind/active/matcher_id + submit + reset;
+headers link sort=name|kind|priority|active, Priority click →
+`dir=asc&sort=priority` with ▲, second state `dir=desc` with ▼; q=D6PROBE →
+exactly 3 rows, Name click → `dir=desc&q=D6PROBE&sort=name` with rows
+reversed (Charlie, Bravo, Alpha); `?per_page=5` → `.pagination` with 5 pages,
+page 2 keeps `per_page=5`; fr locale renders Rechercher / Réinitialiser les
+filtres / Recherche / Nom ou description…. Probe rows deleted after the run.

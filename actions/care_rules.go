@@ -107,24 +107,60 @@ type CareRulesResource struct {
 
 // List gets all rules. GET /care_rules — JSON API plus the HTML rules
 // list page (§7.2), content-negotiated like the other admin surfaces.
+//
+// Defect D6: the HTML branch supports whitelist sorting (sort=name|kind|
+// priority|active, dir=asc|desc), filters (kind, active, matcher_id), a
+// case-insensitive q= substring search over name+description and pagination
+// via PaginateFromParams. The JSON branch deliberately keeps the historical
+// contract: the full set, unsorted, no filters — API consumers (the care-plan
+// engine) read it as-is.
 func (v CareRulesResource) List(c buffalo.Context) error {
 	if !requireAdminForPlan(c) {
 		return nil
 	}
 	tx := planTx(c)
-	rules := &models.CareRules{}
-	if err := tx.All(rules); err != nil {
-		return err
-	}
-	matcherNames, err := matcherNamesByID(tx)
-	if err != nil {
-		return err
-	}
 	return responder.Wants("html", func(c buffalo.Context) error {
+		rules := &models.CareRules{}
+		// Paginate HTML results. Params "page" and "per_page" control
+		// pagination; defaults page=1 per_page=20.
+		q := tx.PaginateFromParams(c.Params())
+		q = applyCareRuleListFilters(q, c)
+		q = applyCareRuleSort(q, c)
+		if err := q.All(rules); err != nil {
+			return err
+		}
+		matcherNames, err := matcherNamesByID(tx)
+		if err != nil {
+			return err
+		}
+		// Matcher dropdown for the matcher_id filter (name-ordered).
+		matchers := &models.CareMatchers{}
+		if err := tx.Order("name asc").All(matchers); err != nil {
+			return err
+		}
+		c.Set("pagination", q.Paginator)
 		c.Set("rules", []models.CareRule(*rules))
 		c.Set("matcherNames", matcherNames)
+		c.Set("matchers", matchers)
+		c.Set("actionKinds", planActionKinds())
+		// Sticky filter values for the filter bar.
+		c.Set("filterKind", strings.TrimSpace(c.Param("kind")))
+		c.Set("filterActive", strings.ToLower(strings.TrimSpace(c.Param("active"))))
+		c.Set("filterMatcherID", strings.TrimSpace(c.Param("matcher_id")))
+		c.Set("filterQ", strings.TrimSpace(c.Param("q")))
+		// Chip label for the matcher filter: resolve the name when the
+		// matcher_id param parses (invalid values render no chip).
+		filterMatcherName := ""
+		if id, err := uuid.FromString(c.Param("matcher_id")); err == nil {
+			filterMatcherName = matcherNames[id]
+		}
+		c.Set("filterMatcherName", filterMatcherName)
 		return c.Render(http.StatusOK, r.HTML("care_rules/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
+		rules := &models.CareRules{}
+		if err := tx.All(rules); err != nil {
+			return err
+		}
 		return c.Render(http.StatusOK, renderJSON(rules))
 	}).Respond(c)
 }
