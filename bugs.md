@@ -27,6 +27,285 @@ round is closed.
 
 ## Open items
 
+Round 9 — caregiver UX + data quality round: care-plan feeding/medication
+feedback states, dashboard medication presentation, cleanup-rule activation,
+default-rule naming, and reference-data localization. Reported against the
+local dev instance (admin session) on 2026-10-05.
+
+### R9-1 Feeding apply gives no feedback — row must go light-green with an undo
+
+**Severity**: medium (usability: the caregiver gets no confirmation a feeding
+was recorded). **Found**: 2026-10-05, on `/care_plan`.
+
+**Defect**: applying a feeding (per-animal `.plan-feeding-one` or group
+`.plan-feeding-apply`) records the care but the row keeps its original look —
+there is no applied state. The medication slots turn green (`✓ HH:MM`
+btn-success) and re-click to undo (R5-2c); the feeding row does not, and its
+undo control (`.plan-unapply-btn`, `index.plush.html:416`) stays `d-none`.
+
+**Expected** (all four `index.plush.*` forks):
+- After a successful apply, the **applied** feeding row (or the applied
+  animal chip in a multi-animal group) switches to a **light-green**
+  background/state so it is easy to **see what was applied** — mirroring the
+  medication "applied" visual language.
+- The **apply button becomes an undo button** in place (same control,
+  toggled): clicking it reverses the record (same `_apply_toggle` undo path
+  as the history undo at `index.plush.html:573`) and restores the open state
+  — no page reload. This matches the existing per-slot undo toggle: the
+  hidden `.plan-unapply-btn` (`index.plush.html:416`) is the swap target.
+- Group rows: only the animals actually applied turn green; the row stays
+  actionable for the remaining open animals.
+
+**Test approach**: e2e via agent-browser on `/care_plan?kind=feeding` — apply
+a single-animal row and a multi-animal group, assert the light-green class +
+visible undo, click undo, assert the open state returns and the DB
+`cares`/application row is removed. Repeat across en/fr/de/nl.
+
+**Status**: open.
+
+### R9-2 Medication page needs a "Done" collapsible + per-slot green undo; "done" only when ALL repeats applied
+
+**Severity**: high (core workflow: a partially-completed repeat treatment
+currently has no correct home). **Found**: 2026-10-05, on
+`/care_plan?kind=medication`.
+
+**Current behaviour** (`actions/care_plan_viewmodel.go` `fillMedTiers`,
+l.559–601): a medication series is placed in exactly one of the three open
+tiers (late/now/later) by its **most urgent OPEN slot**
+(`seriesTierOrMinus`). When every slot is terminal the series is dropped
+entirely (`continue` at l.566/576) — it never lands in a "done" section. The
+bottom **Historique** block (`index.plush.html:512–593`) is a separate,
+non-tier, outline-button collapsible that mixes terminal + superseded rows
+for every kind, not a medication "done" tier.
+
+**Defect / required changes**:
+
+1. **New "Done" collapsible** on `/care_plan?kind=medication`, styled and
+   behaving like the **"Plus tard / Later"** tier
+   (`index.plush.html:248–291`, `.plan-tier-later`, `#d4edda` background) but
+   with a **darker green** and labelled **"Done"** (new
+   `care_plan.tier.done` key in all four locales). Collapsed-by-default is
+   acceptable; it must follow the same header/collapse markup.
+
+2. **Done line look**: each fully-done animal × drug-series entry renders
+   with the **same `_med_series` line layout** as the open tiers, with the
+   **time toggle button(s) in green** (`✓ HH:MM` btn-success, the R4-1.1
+   applied state).
+
+3. **Toggle undo**: each green time button stays a live toggle — clicking it
+   undoes that treatment occurrence (existing `plan-med-unapply` path) and
+   the entry must return to its correct open tier without a reload.
+
+4. **Popup treatment link**: the medication detail popup
+   (`_item_detail_modal` / the `plan-detail-btn` data) must include a **link
+   to the treatment** (the source/animal treatment page). The same link must
+   also be visible in the **actual treatment popup on the animal page**
+   (`care_plan_animal_page` treatment tab detail modal).
+
+5. **KEY BUSINESS RULE — a treatment is "Done" ONLY when every repeated
+   occurrence is applied.** Until then the entry stays in
+   late/now/to-do(later), positioned by its **next open** time, and the
+   animal can move **between** late/now/to-do during the day as occurrences
+   are applied.
+
+   **The "green" applies to the toggle buttons of the APPLIED slots**: on a
+   series with multiple repeated treatments, the applied occurrences keep
+   their **green `✓ HH:MM` toggle visible** next to the still-open ones, so
+   the caregiver sees which doses are done at a glance. (This does NOT
+   recolor the open slots — they keep their R4-1.1 urgency colours: late red
+   / now yellow / later white. Green stays the applied-only signal.)
+
+   Worked example (animal 1234, treatment at 08:00 / 12:00 / 18:00):
+   - 11:00 — 08:00 is late → entry in **late**; apply 08:00 → 08:00 toggle
+     turns green (✓ 08:00), entry **moves to "now"** (12:00 next), 12:00 +
+     18:00 still to do.
+   - 12:00 — apply 12:00 → 12:00 toggle green, entry **moves to "to-do
+     (later)"** (18:00 next).
+   - 17:30 — apply 18:00 → all three toggles green → entry **moves to
+     "Done"**.
+
+   This changes `fillMedTiers`: a series with a mix of applied + open slots
+   must keep the applied slots visible (green toggles) alongside the open
+   ones, and the tier is decided by the next open slot — only a 100%-applied
+   series goes to the new Done section. `scopeSeriesToToday`/`seriesTierOrMinus`
+   must not hide the applied-but-same-day slots.
+
+**Test approach**: e2e via agent-browser on `/care_plan?kind=medication`
+replaying the 1234 08:00/12:00/18:00 timeline (assert tier placement +
+button colours at each step, and the final Done placement); assert the Done
+collapsible look/label, the per-slot undo, and the treatment link in both
+popups. Unit-test `fillMedTiers` for the partial-application tier rule. Sweep
+en/fr/de/nl.
+
+**Status**: open.
+
+### R9-3 Dashboard medication lines show stray slot labels and don't stack on narrow screens
+
+**Severity**: medium (readability + responsive layout on the landing page).
+**Found**: 2026-10-05, on `/dashboard/`.
+
+**Defect A — stray labels**: an animal with several treatments on one line
+renders the slot **bucket dividers** between the buttons, e.g.
+`<12:00>----soir----<18:00>`. These come from `_med_series.plush.html:67–69`
+(`row.DividerBefore` → `.plan-med-bucket` with `t("care_plan.slot.*")`).
+On a single dashboard line a bucket label is noise — the buttons should flow
+without it.
+
+**Defect B — no stacking**: when the viewport is too narrow to fit a full
+medication line, the buttons do not re-flow under the medication label. The
+`.plan-med-line` flex rules (A/B/C shapes, `assets/css/care-plan.scss`) were
+tuned for the care-plan page; the dashboard cell does not wrap gracefully.
+
+**Expected**:
+- On `/dashboard/`, a single-line medication entry renders its buttons with
+  **no bucket label** between them.
+- If the line cannot fit, the buttons **stack under the medication** label
+  (shape C) instead of overflowing; the layout should "stack" items to fit.
+- The dashboard medication table should **inherit the care-plan
+  `_med_series` / `.plan-med-line` styling** (it already reuses the partial
+  at `dashboard.plush.html:124`) so the presentation matches the care-plan
+  page's more natural sizing — verify the SCSS actually applies to the
+  dashboard container and extend it if scoped too narrowly.
+
+**Test approach**: e2e via agent-browser on `/dashboard/` with a
+multi-treatment animal (assert no `soir`/`midi`/etc. label between buttons on
+one line) and at several viewport widths (1600/1024/767 px) asserting the
+buttons wrap under the label with no horizontal overflow. Sweep en/fr/de/nl.
+
+**Status**: open.
+
+### R9-4 Cleanup care-rules don't trigger / don't appear in the care plan
+
+**Severity**: high (a seeded, active rule produces no visible work).
+**Found**: 2026-10-05, on
+`/care_rules/0673d743-753a-4bc9-a913-f3c0560fc409/edit/` (a cleanup rule) —
+the rule exists and is active, but no cleanup occurrence shows up in the
+care plan.
+
+**Context** (`actions/care_plan_seeds.go`): the cleanup enforcement is rule
+**SR13 "Nettoyage des cages occupées"** (`Kind: careplan.KindCleanup`,
+matcher **SM14** `zone_requires_cleanup = true`, ships **active**,
+l.131–135, 153–155). Cleanup occurrences should be generated for occupied
+cages of zones flagged `zones.requires_cleanup`.
+
+**Investigation needed** — reproduce and localize before fixing. Candidate
+causes to check, in order:
+- Whether the SR13/SM14 seed actually ran and the rule row is `Active` in the
+  DB (the edit page shows one rule; confirm it is SR13 and enabled).
+- Whether the SM14 matcher (`zone_requires_cleanup = true`) matches any
+  animal — i.e. whether any zone has `requires_cleanup` set and the matcher
+  field is populated by the assembly.
+- Whether the care-plan assembly pipeline
+  (`actions/care_plan_service.go` / `care_plan_dayplan.go`) **generates and
+  renders `KindCleanup` items** at all — a kind filter or a `kindMatch` /
+  section guard may silently drop cleanup occurrences even when the rule
+  fires.
+- Whether cleanup has its own `kind=` view / section, or is expected on the
+  default `/care_plan` page.
+
+**Resolution — NOT a code defect (configuration gap).** Reproduced live via
+agent-browser on 2026-10-05 (`/care_plan?kind=cleanup`, admin):
+- SR13 (`Nettoyage des cages occupées`, active) + SM14
+  (`zone_requires_cleanup = true`) both present in DB.
+- The full wiring is correct: `fillZoneRequiresCleanup`
+  (`care_plan_service.go:278`) flags matcher contexts from
+  `zones.requires_cleanup`; the viewmodel renders `KindCleanup` under the
+  **Cleanup** kind (`care_plan_viewmodel.go:337,1231,1294`) on
+  `/care_plan?kind=cleanup`.
+- **Root cause: no zone had `requires_cleanup=1`**, so SM14 matched zero
+  animals and SR13 produced zero occurrences — the correct behaviour.
+- **Proof**: flagging zone E (`UPDATE zones SET requires_cleanup=1 WHERE
+  zone='E'`) immediately produced **19 cleanup occurrences** ("Cleanup 19"
+  badge, per-cage "Apply cage (N)" buttons) on `/care_plan?kind=cleanup`.
+  Restored the flag to 0 after the check.
+
+**Fix**: none required in code. The rule activates per-zone via the existing
+**Zones admin** checkbox `RequiresCleanup` (`/zones`, column "Requires
+cleanup", form `templates/zones/_form.plush.*.html`). To get cleanup work in
+the plan, flag the zone(s) that need daily cleaning. The report's rule edit
+URL pointed at SR13 itself, which was always healthy.
+
+**Validation**: e2e evidence above (URL + rendered "Cleanup 19" + apply
+buttons) captured with the flag on; flag restored off. No template/locale
+change needed (no new UI).
+
+**Status**: closed 2026-10-05 — works as designed; documented how to enable.
+
+### R9-5 Default (seeded) rule descriptions carry a converter tag instead of "Règles par défaut"
+
+**Severity**: low (cosmetic / data quality on reference rows).
+**Found**: 2026-10-05, on the care-rules list / edit screens.
+
+**Defect** (`actions/care_plan_seeds.go:144` and `:158`): seeded matchers and
+rules are created with
+`Description: fmt.Sprintf("Bibliothèque §7.4 %s [source: %s]", def.Key, ConverterTag)`
+where `ConverterTag = "care_plan_converter"` (l.28). The user-facing
+description therefore reads e.g.
+`Bibliothèque §7.4 SR13 [source: care_plan_converter]`.
+
+**Expected**: the converter must create these default entries with a
+description of **"Règles par défaut"** (default rules) instead of the
+internal `[source: care_plan_converter]` provenance string. (If provenance
+must be kept, move it to a non-display field, not the user-facing
+description.)
+
+**Scope note**: this changes the seed definition. Because the seed is
+idempotent and skips existing rows, existing databases need a one-time
+update of the already-seeded default rows' `description` (additive,
+non-destructive migration or a guarded backfill task) — not just a change to
+the format string.
+
+**Test approach**: re-seed a fresh DB and assert default rule/matcher
+descriptions read "Règles par défaut"; run the backfill on a copy of the
+existing data and assert the SR13/SM14/etc. descriptions are updated.
+Verify in the UI (care-rules list + edit) in all four locales.
+
+**Status**: open.
+
+### R9-6 Care rules / matchers must support localization (name in every language, incl. dropdowns)
+
+**Severity**: high (breaks the project's all-language UI rule for a whole
+reference-data area). **Found**: 2026-10-05, on the care-rules / care-matchers
+view + edit screens.
+
+**Defect**: care rules and care matchers expose only a single `Name`
+(`models/care_rule.go:39`, `models/care_matcher.go`) with no localized
+variants. The edit screen renders a single free-text
+`<input name="Name" value="<%= rule.Name %>">` and the matcher dropdown
+renders the raw `m.Name`
+(`templates/care_rules/edit.plush.html:24–40`) — there is no translation
+lookup and no per-language name field. Other system reference records
+(zones, animal types, species, native statuses, …) resolve their display
+name through the `tname`/`tbase` helper backed by the translations table
+(`actions/tname.go`).
+
+**Expected** (follow the existing system-record localization pattern):
+- Care rules and care matchers must carry a **name in every supported
+  language** (`en-US`, `fr`, `de`, `nl`), surfaced through the same
+  translations-table / `tname` mechanism as other system records (add the
+  tables to the translatable set; species/zones already use a custom field
+  via `tnameDefaultField`).
+- The **edit and view screens must expose the localized names** the same way
+  other system records do (per-language name display/inputs), in all four
+  template forks.
+- **All seeded entries must ship localized names** (the §7.4 seed rules
+  SR1–SR13 and matchers SM1–SM14 need `fr`/`en-US`/`de`/`nl` names in the
+  seed/translation artifacts).
+- **Localization applies to dropdowns too**: the **Care Rules matcher
+  dropdown** (`edit.plush.html:37–40`) must render the **localized** matcher
+  name via `tname`, not the raw base `Name` — same for any other
+  rule/matcher select.
+
+**Test approach**: unit-test the `tname` resolution for `care_rules` and
+`care_matchers` across the four locales; e2e via agent-browser asserting the
+edit/view screens and the matcher dropdown show the localized name in each
+language; assert seeded rules carry localized names. Confirm all four
+template forks render the per-language name inputs.
+
+**Status**: open.
+
+---
+
 Round 8 — revalidation sweep of the Round-7 commits (care-plan-round / fixes),
 all findings reproduced live via agent-browser against the local dev instance
 (admin session, en-US) on 2026-10-03.
