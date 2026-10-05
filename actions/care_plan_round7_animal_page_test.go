@@ -82,12 +82,12 @@ func TestAnimalDayMissingPillInAllLocales(t *testing.T) {
 	}
 	for _, f := range forks {
 		raw := readTemplate(t, f)
-		require.Contains(t, raw, `class="badge badge-pill badge-danger ml-1"`, f,
+		require.Contains(t, raw, `class="badge badge-pill badge-danger"`, f,
 			"the missed-occurrences pill")
 		require.Contains(t, raw, `t("care_plan.animal_plans.missing", day.MissingCount)`, f,
 			"the pill label is localized with the count")
-		require.Contains(t, raw, `i == len(day.Items)-1`, f,
-			"the pill rides on the day's LAST row")
+		require.Contains(t, raw, `day.MissingCount > 0 && i == len(day.Items)-1`, f,
+			"the pill rides under the day's LAST row, only when there is a miss")
 		require.Contains(t, raw, "for (i, item) in day.Items", f, "the loop exposes the index")
 	}
 }
@@ -152,7 +152,11 @@ func statusKeysUsedByTemplates(t *testing.T) map[string]bool {
 	for _, f := range []string{
 		"../templates/care_plan/index.plush.html",
 		"../templates/care_plan/_med_series.plush.html",
-		"../templates/animals/show.plush.html",
+		// Phase 5 (D5): the animal page delegates every non-medication item
+		// row to `_plan_item_line`, so the literal `care_plan.status.*` keys
+		// the animal Protocol tab can render (done, out_of_window, …) now
+		// live in that shared component, not in show.plush.html itself.
+		"../templates/care_plan/_plan_item_line.plush.html",
 	} {
 		for _, key := range literalStatusKeys(readTemplate(t, f), validI18nKey) {
 			used[key] = true

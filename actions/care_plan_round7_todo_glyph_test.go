@@ -42,15 +42,17 @@ var todoGlyphControls = []string{
 // cage-apply (its last remaining control) moved into _plan_care_line. The
 // control-class strings left in index are JS selectors, which the scanner
 // below correctly ignores; scanning index would now be vacuous.
+// Phase 5 (D5) note: the animal show forks no longer render one either —
+// every non-medication item row (their last remaining to-do controls) is
+// delegated to the shared `_plan_item_line` partial, which stays in the
+// list below; scanning show.plush would now be vacuous.
 var carePlanToDoForks = []string{
-	"../templates/animals/show.plush.html",
-	"../templates/animals/show.plush.fr.html",
-	"../templates/animals/show.plush.de.html",
-	"../templates/animals/show.plush.nl.html",
 	// R4-7.16 moved the observation/care/weighing apply control out of the
 	// three duplicated tier tables into ONE shared partial; Phase 0b evolved
 	// it into `_plan_item_line`, which (like every care_plan component) is
 	// forked per locale — the four copies are byte-identical by policy.
+	// Phase 5 (D5): the animal page's rows render through this same partial,
+	// so these forks now cover BOTH pages' to-do controls.
 	"../templates/care_plan/_plan_item_line.plush.html",
 	"../templates/care_plan/_plan_item_line.plush.fr.html",
 	"../templates/care_plan/_plan_item_line.plush.de.html",
@@ -172,19 +174,21 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 // row-line partial became the forked `_plan_item_line` (1 clock x 4 forks).
 // Phase 3 (D3) moved that last index control into the forked `_plan_care_line`
 // partial, so the index forks no longer carry any clock and left the list.
-// The total is therefore 2 clocks x 4 feed-table forks + 1 x 4 animal forks +
-// 1 x 4 item-line forks + 1 x 4 care-line forks = 20. What must never change
-// is that EVERY to-do control carries the clock — that is asserted per control
-// by clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only
+// Phase 5 (D5) moved the animal page's rows into `_plan_item_line`, so the
+// show.plush forks no longer carry any clock either and left the list.
+// The total is therefore 2 clocks x 4 feed-table forks + 1 x 4 item-line
+// forks + 1 x 4 care-line forks = 16. What must never change is that EVERY
+// to-do control carries the clock — that is asserted per control by
+// clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only
 // a tripwire against a whole locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	total := 0
 	for _, f := range carePlanToDoForks {
 		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
 	}
-	require.GreaterOrEqual(t, total, 20,
-		"expected the clock 2x in each feed-table fork, 1x in each animal fork, "+
-			"1x in each item-line fork, and 1x in each care-line fork = 20")
+	require.GreaterOrEqual(t, total, 16,
+		"expected the clock 2x in each feed-table fork, "+
+			"1x in each item-line fork, and 1x in each care-line fork = 16")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the

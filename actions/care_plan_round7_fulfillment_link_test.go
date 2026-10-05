@@ -16,20 +16,26 @@ import (
 // An applied activity on the animal Protocol tab now links to the record that
 // was actually logged (the feeding / care entry), and the record's own back
 // button returns to the animal's Plan tab.
+//
+// Phase 5 (D5): the applied row markup moved out of the four animal show
+// forks into the shared `_plan_item_line` component (context var `card`),
+// which the animal page now renders for every non-medication item. The link
+// is therefore pinned on the four byte-identical item-line forks, and the
+// animal page is pinned separately for delegating to that component.
 func TestAnimalAppliedRowLinksToFulfillment(t *testing.T) {
 	forks := []string{
-		"../templates/animals/show.plush.html",
-		"../templates/animals/show.plush.fr.html",
-		"../templates/animals/show.plush.de.html",
-		"../templates/animals/show.plush.nl.html",
+		"../templates/care_plan/_plan_item_line.plush.html",
+		"../templates/care_plan/_plan_item_line.plush.fr.html",
+		"../templates/care_plan/_plan_item_line.plush.de.html",
+		"../templates/care_plan/_plan_item_line.plush.nl.html",
 	}
 	for _, f := range forks {
 		raw := readTemplate(t, f)
-		require.Contains(t, raw, `if (item.FulfillmentLink != "")`, f,
+		require.Contains(t, raw, `if (card.FulfillmentLink != "")`, f,
 			"the applied branch offers a link only when a fulfillment exists")
 		require.Contains(t, raw, `class="badge badge-success plan-item-view"`, f,
 			"the done badge doubles as the link to the logged record")
-		require.Contains(t, raw, `href="<%= item.FulfillmentLink %>"`, f,
+		require.Contains(t, raw, `href="<%= card.FulfillmentLink %>"`, f,
 			"the link targets the fulfillment record")
 		require.Contains(t, raw, `t("care_plan.animal_plans.view_record")`, f,
 			"the link carries an accessible label")

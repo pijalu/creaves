@@ -11,6 +11,10 @@
                    a single-animal page would pass false).
       showKind   — bool: render the kind badge instead (the animal page's
                    per-day list mixes kinds). The two flags are alternatives.
+      feedingEntry — bool (Phase 5 / D5): feeding toggles open the apply
+                   modal PREFILLED with the ration (plan-feeding-entry)
+                   instead of applying instantly — the animal page's
+                   convention (R4-2.2). The day plan omits the flag.
 
     Layout: <ℹ> <animal> | <title> | <toggle 1><toggle 2>… on ONE line —
     the .plan-med-row zebra + compact font, the tinted animal cell, the day
@@ -24,6 +28,13 @@
     restores the occurrence's CURRENT tier colour (§2.2/§2.4). When the group
     has a single occurrence (no Slots), the line renders the plain
     apply/undo pair driven by card.* — the pre-merge behaviour.
+
+    Terminal single rows (Phase 5 / D5 — the animal page's per-day list
+    interleaves done work with open work): an applied card renders the
+    green done badge doubling as the fulfillment-record link (R4-7.11b);
+    skipped/deferred render their status badge; a missed occurrence past
+    its apply window renders the 🔒 lock (§10-A1 hors délai) instead of a
+    dead action slot.
 
     §3.4 input kinds: weighing/observation toggles open the shared apply
     modal (the button carries data-kind + data-detail per occurrence); the
@@ -79,8 +90,10 @@
               <%# Merged occurrence toggles speak the §2.3 med-parity glyph
                   language (○ to-do · ✓ done) — NOT the legacy fa-clock of the
                   single-occurrence pair below. plan-item-slot-btn marks them
-                  so the R4-7.25 glyph pin (legacy controls) skips them. %>
-              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
+                  so the R4-7.25 glyph pin (legacy controls) skips them.
+                  plan-feeding-entry (feedingEntry callers only) routes a
+                  feeding toggle through the prefilled ration modal (R4-2.2). %>
+              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn<%= if (feedingEntry && card.ActionKind == "feeding") { %> plan-feeding-entry<% } %>"
                 data-source-type="<%= card.SourceType %>"
                 data-source-id="<%= card.SourceID %>"
                 data-animal-id="<%= card.AnimalID %>"
@@ -168,6 +181,27 @@
             data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
             data-mode="defer"
             data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
+        <% } else if (card.Status == "applied") { %>
+          <%# R4-7.11b: the DONE badge doubles as the door to the record
+              that was actually logged (feeding / care); back= returns to
+              the calling page. No fulfillment (or deleted) ⇒ a plain
+              badge, never a dead link. %>
+          <%= if (card.FulfillmentLink != "") { %>
+            <a class="badge badge-success plan-item-view" href="<%= card.FulfillmentLink %>"
+              title="<%= t("care_plan.animal_plans.view_record") %>" aria-label="<%= t("care_plan.animal_plans.view_record") %>"><%= t("care_plan.status.done") %> <i class="fas fa-external-link-alt"></i></a>
+          <% } else { %>
+            <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+          <% } %>
+          <%= if (card.RecordedLate) { %>
+            <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>
+          <% } %>
+        <% } else if (card.Status == "skipped" || card.Status == "deferred") { %>
+          <span class="badge badge-light"><%= t("care_plan.status." + card.Status) %></span>
+        <% } else { %>
+          <%# A missed occurrence past its apply window: no dead action
+              slot, the lock says why there is no button (§10-A1 hors
+              délai). %>
+          <span class="plan-item-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒</span>
         <% } %>
       </span>
     <% } %>

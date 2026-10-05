@@ -398,16 +398,26 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 	// R4-7: recent misses leave the list (they can no longer be applied);
 	// their number rides on the day's last row as one pill.
 	d.Items = dayItemsWithoutMisses(d.Items, now, &d)
-	// Rev: the same feeding requirement at several times of the day lists
-	// ONCE — one row, joined times, latest occurrence's state.
-	d.Items = mergeSameSourceFeedings(d.Items)
+	// Phase 5 / D5 (§3.1): repeats of the same requirement merge into ONE
+	// line with one tier-coloured toggle per open occurrence.
+	d.Items = mergeDayItems(d.Items, now)
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
 			d.OpenCount++
 			d.MedOpenCount++
 		}
 	}
+	// §1.4 (one unit, one number): the day badge counts open OCCURRENCES —
+	// every slot of a merged line, plus every standalone open row.
 	for _, item := range d.Items {
+		if len(item.Slots) > 0 {
+			for _, s := range item.Slots {
+				if openStatusAction(careplan.PlanStatus(s.Status)) {
+					d.OpenCount++
+				}
+			}
+			continue
+		}
 		if openStatusAction(careplan.PlanStatus(item.Status)) {
 			d.OpenCount++
 		}
@@ -426,10 +436,11 @@ func animalDayMedSlot(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 }
 
 // animalDayCardFor projects one NON-medication occurrence of the animal
-// into the compact CardView the R3-7 Protocol tab renders read-only
-// (label + localized kind chip + due label + status + source backlink —
-// no apply/undo buttons: the animal page keeps ONE interaction surface
-// for work, the togglable medication series).
+// into the CardView the shared `_plan_item_line` partial renders on the
+// Protocol tab (Phase 5 / D5): label + kind badge + source backlink +
+// per-occurrence tier-coloured toggle (open occurrences merge per source
+// into ONE line by mergeDayItems; terminal rows keep their per-occurrence
+// fulfillment link / state badge).
 func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Animal) CardView {
 	src := it.Occurrence.Source
 	parts := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now)
@@ -441,6 +452,7 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		ActionKind:   src.ActionKind(),
 		AnimalID:     animal.ID,
 		AnimalLabel:  animalLabel(*animal),
+		AnimalYear:   animal.YearNumberFormatted(),
 		DueAt:        it.Occurrence.DueAt,
 		DueHM:        parts.TimeHM,
 		DueDayKey:    parts.DayKey,
@@ -449,9 +461,17 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		Tier:         tierOrder(it.Status),
 		TierClass:    slotTierClass(tierOrder(it.Status)),
 		Applicable:   it.Applicable,
+		NeedsInput:   src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
+		LateAllowed:  it.Applicable && it.Occurrence.DueAt.Before(plan.Now),
+		Undoable:     it.Application != nil,
 		SourceLink:   cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
 	}
+	// Phase 5 / D5 (§4.3): the animal's own page omits the animal CELL, but
+	// the ℹ detail modal still names the animal as plain text (no link —
+	// identity is the page context; the show template hides the anchor).
+	cv.AnimalLink = fmt.Sprintf("/animals/%d", animal.ID)
 	if app := it.Application; app != nil {
+		cv.RecordedLate = app.AppliedAt.After(it.Occurrence.DueAt)
 		// R4-7.11b: the row's record of what was actually done. `back` is
 		// THIS page's Plan tab, so the record's own back button returns
 		// here instead of stranding the caregiver on a dead-end list.
@@ -506,41 +526,77 @@ func sourceNameRedundantWithDetail(src careplan.PlanSource, name, detail string)
 	return strings.HasPrefix(detail, core) || strings.HasPrefix(core, detail) || strings.Contains(detail, core)
 }
 
-// mergeSameSourceFeedings folds a day's feeding rows that share a source
-// (only the time differs) into ONE row per requirement: times join in the
-// due label ("10:00 · 18:00"), and the status/action comes from the LATEST
-// occurrence ("keep the latest late") — the row the caregiver can still
-// act on. Other kinds keep their per-occurrence rows (their action inputs
-// are per occurrence). Rows are keyed by source across the WHOLE day list,
-// not adjacent runs — an observation at 12:00 used to split a feeding's
-// 10:00/18:00 pair apart.
-func mergeSameSourceFeedings(items []CardView) []CardView {
+// mergeDayItems folds a day's non-medication rows per (source × animal)
+// group (Phase 5 / D5, guideline §3.1 — the same merge the day plan's
+// tierRows applies, here fed from the already-projected CardViews):
+// every OPEN occurrence of the group becomes one tier-coloured toggle
+// (ItemSlotView) on ONE representative line, due-time ordered; the line's
+// own tier/colour/due label is its most urgent slot's (late beats now
+// beats later, earliest due wins on a tie). Terminal occurrences
+// (applied/skipped/deferred) and non-applicable misses kept as history
+// stay SINGLE-occurrence lines — their fulfillment link / record state
+// is per occurrence (R4-7.11b). Rows are keyed by source across the
+// WHOLE day list, not adjacent runs; survivors keep their original
+// relative order (the representative sits at its first open occurrence).
+func mergeDayItems(items []CardView, now time.Time) []CardView {
 	type srcKey struct{ typ, id string }
-	latest := map[srcKey]int{} // source → index in items of the latest row so far
-	merged := make([]bool, len(items))
+	reps := map[srcKey]int{} // source → index in out of the representative row
+	out := make([]CardView, 0, len(items))
 	for i := range items {
-		it := &items[i]
-		if it.ActionKind != careplan.KindFeeding {
+		it := items[i]
+		if !openStatusAction(careplan.PlanStatus(it.Status)) {
+			out = append(out, it) // terminal / locked history row — stands alone
 			continue
 		}
 		k := srcKey{it.SourceType, it.SourceID}
-		j, seen := latest[k]
-		latest[k] = i
+		slot := ItemSlotView{
+			DueAt:        it.DueAt,
+			DueAtRFC:     it.DueAt.Format("2006-01-02T15:04:05Z07:00"),
+			DueHM:        it.DueHM,
+			DueDayKey:    it.DueDayKey,
+			DueShortDate: it.DueShortDate,
+			AnimalID:     it.AnimalID,
+			Status:       it.Status,
+			Tier:         it.Tier,
+			TierClass:    it.TierClass,
+			Applicable:   it.Applicable,
+			LateAllowed:  it.Applicable && it.DueAt.Before(now),
+			NeedsInput:   it.ActionKind == careplan.KindWeighing || it.ActionKind == careplan.KindObservation,
+		}
+		j, seen := reps[k]
 		if !seen {
+			it.Slots = []ItemSlotView{slot}
+			reps[k] = len(out)
+			out = append(out, it)
 			continue
 		}
-		// Same requirement, later occurrence: the surviving row (at the
-		// later position) keeps the latest's status/action/fulfillment and
-		// joins the times; the earlier row is dropped.
-		if items[j].DueHM != it.DueHM {
-			it.DueHM = items[j].DueHM + " · " + it.DueHM
+		rep := &out[j]
+		rep.Slots = append(rep.Slots, slot)
+		// The line's own tier/colour/due label is its MOST URGENT slot's
+		// (the work the caregiver must see first); on a tie the earliest
+		// due time wins.
+		if slot.Tier < rep.Tier || (slot.Tier == rep.Tier && slot.DueAt.Before(rep.DueAt)) {
+			rep.Tier, rep.TierClass = slot.Tier, slot.TierClass
+			rep.DueAt, rep.DueHM = slot.DueAt, slot.DueHM
+			rep.DueDayKey, rep.DueShortDate = slot.DueDayKey, slot.DueShortDate
+			rep.Status = slot.Status
 		}
-		merged[j] = true
 	}
-	out := items[:0:0]
-	for i := range items {
-		if !merged[i] {
-			out = append(out, items[i])
+	// Due-time order each line's slots and count the fold ("+N" badge).
+	for _, j := range reps {
+		rep := &out[j]
+		sort.SliceStable(rep.Slots, func(a, b int) bool {
+			return rep.Slots[a].DueAt.Before(rep.Slots[b].DueAt)
+		})
+		rep.Remaining = len(rep.Slots) - 1
+		rep.RemainingCap = BadgeCap(rep.Remaining)
+		// A merged line is actionable when ANY of its slots is.
+		rep.Applicable = false
+		for _, s := range rep.Slots {
+			if s.Applicable {
+				rep.Applicable = true
+				break
+			}
 		}
 	}
 	return out

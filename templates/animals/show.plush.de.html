@@ -817,97 +817,26 @@
                     <%= partial("care_plan/med_series.plush.html") %>
                   <% } %>
                   <%= for (i, item) in day.Items { %>
-                    <div class="d-flex align-items-center flex-wrap py-1 border-top mt-1<%= if (item.Tier == 0 && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %> plan-item-late<% } %>">
-                      <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + item.ActionKind) %></span>
-                      <span>
-                        <%= if (item.Detail != "") { %>
-                          <strong><%= item.Detail %></strong>
-                          <%# Rev: a feeding source name repeats the diet
-                              ("Alimentation — <diet>", truncated mid-word in
-                              the converted data) — next to the Detail it is
-                              the same sentence twice, so when the name adds
-                              nothing the row keeps kind + nourriture only.
-                              The protocol itself stays in the Details table
-                              above. %>
-                          <%= if (!item.SourceNameRedundant) { %><small class="text-muted">— <a href="<%= item.SourceLink %>"><%= item.SourceName %></a></small><% } %>
-                        <% } else { %>
-                          <a href="<%= item.SourceLink %>"><%= item.SourceName %></a>
-                        <% } %>
-                      <%# R4-7.2: the occurrences of the day already missed (nothing
-                          recorded, apply window closed) leave the list; their number
-                          rides here, on the last row of the day, as ONE pill — the
-                          caregiver learns work was missed without a wall of dead
-                          rows. %>
-                      <%= if (day.MissingCount > 0 && i == len(day.Items)-1) { %>
-                        <span class="badge badge-pill badge-danger ml-1" title="<%= t("care_plan.animal_plans.missing_hint") %>"><%= t("care_plan.animal_plans.missing", day.MissingCount) %></span>
-                      <% } %>
-                      </span>
-                      <span class="ml-auto text-nowrap">
-                        <%= dueLabel(item.DueHM, item.DueDayKey, item.DueShortDate) %>
-                        <%= if (item.Status == "applied") { %>
-                          <%# R4-7.11b: "a click on the action can be seen in
-                              the animal feeding" — the DONE badge doubles as
-                              the door to the record that was actually logged
-                              (feeding / care). The link carries back= this
-                              page's Plan tab, so the record's own back button
-                              returns here. No fulfillment (or deleted) ⇒ a
-                              plain badge, never a dead link. %>
-                          <%= if (item.FulfillmentLink != "") { %>
-                            <a class="badge badge-success plan-item-view" href="<%= item.FulfillmentLink %>"
-                              title="<%= t("care_plan.animal_plans.view_record") %>" aria-label="<%= t("care_plan.animal_plans.view_record") %>"><%= t("care_plan.status.done") %> <i class="fas fa-external-link-alt"></i></a>
-                          <% } else { %>
-                            <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
-                          <% } %>
-                        <% } else if (item.Status == "skipped") { %>
-                          <span class="badge badge-light"><%= t("care_plan.status.skipped") %></span>
-                        <% } else if (item.Status == "deferred") { %>
-                          <span class="badge badge-light"><%= t("care_plan.status.deferred") %></span>
-                        <% } else if (item.Tier == 0) { %>
-                          <%# R4-3.3: no redundant "Late" PILL — the row is
-                              RED (see .plan-item-late): the late state is
-                              carried by the row colour and by the apply
-                              affordance's own tier colour. The text stays
-                              for assistive technology. %>
-                          <span class="plan-item-late sr-only"><%= t("care_plan.status.late") %></span>
-                        <% } else { %>
-                          <span class="badge badge-light border"><%= t("care_plan.status." + item.Status) %></span>
-                        <% } %>
-                        <%# R4-2.2: the row is ACTIONABLE — one toggle pair
-                            per occurrence, bound by the shared apply
-                            partial (the same one visual language as the day
-                            plan). A feeding row opens the apply modal
-                            PREFILLED with its ration (plan-feeding-entry);
-                            other kinds apply instantly or open their own
-                            required inputs (observation answer, weighing
-                            weight). %>
-                        <span class="ml-2">
-                          <%= if (item.Applicable && item.Status != "applied" && item.Status != "skipped" && item.Status != "deferred") { %>
-                            <button type="button" class="btn <%= item.TierClass %> btn-sm plan-apply-btn<%= if (item.ActionKind == "feeding") { %> plan-feeding-entry<% } %>"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              data-kind="<%= item.ActionKind %>"
-                              data-animal-label="<%= item.AnimalLabel %>" data-detail="<%= item.Detail %>"
-                              data-source-name="<%= item.SourceName %>"
-                              title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
-                            <button type="button" class="btn <%= item.TierClass %> btn-sm ml-1 plan-unapply-btn d-none"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                          <% } else if (item.Undoable) { %>
-                            <button type="button" class="btn <%= item.TierClass %> btn-sm plan-unapply-btn d-none"
-                              data-source-type="<%= item.SourceType %>" data-source-id="<%= item.SourceID %>"
-                              data-animal-id="<%= item.AnimalID %>" data-due-at="<%= item.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                              title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                          <% } else if (item.Tier == 0) { %>
-                            <%# Rev: a missed occurrence past its apply window
-                                used to render as a red row with an EMPTY
-                                action slot and no explanation. The lock says
-                                why there is no button (§10-A1 hors délai). %>
-                            <span class="plan-item-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒</span>
-                          <% } %>
-                        </span>
-                      </span>
-                    </div>
+                    <%# Phase 5 / D5 (guideline §3/§4.3/§7): the day's
+                        non-medication occurrences render through the SAME
+                        shared line component as the day plan — ONE merged
+                        line per requirement with tier-coloured toggles
+                        (row state replaces the old status pills). No
+                        animal cell (identity is the page context); the
+                        kind badge stays (the per-day list mixes kinds).
+                        feedingEntry keeps the prefilled ration modal
+                        (R4-2.2). %>
+                    <%= partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: true, feedingEntry: true}) %>
+                    <%# R4-7.2: the occurrences of the day already missed
+                        (nothing recorded, apply window closed) leave the
+                        list; their number rides here, under the last row
+                        of the day, as ONE pill — the caregiver learns
+                        work was missed without a wall of dead rows. %>
+                    <%= if (day.MissingCount > 0 && i == len(day.Items)-1) { %>
+                      <div class="text-right py-1">
+                        <span class="badge badge-pill badge-danger" title="<%= t("care_plan.animal_plans.missing_hint") %>"><%= t("care_plan.animal_plans.missing", day.MissingCount) %></span>
+                      </div>
+                    <% } %>
                   <% } %>
                 </div>
               </div>

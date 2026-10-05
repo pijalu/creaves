@@ -347,6 +347,23 @@ func TestApplyToggleSharedByBothPages(t *testing.T) {
 		require.NoError(t, err, f)
 		s := string(raw)
 		require.Contains(t, s, `partial("care_plan/apply_toggle.plush.html")`, f, "animal tabs use the shared apply")
+		// Phase 5 (D5): the animal page's item rows render through the shared
+		// `_plan_item_line` component, so the plan-apply-btn / plan-feeding-entry
+		// classes no longer appear literally here — the page pins the delegation
+		// (with feedingEntry: true so feeding rows keep the prefilled modal),
+		// and the classes themselves are pinned on the partial's forks below.
+		require.Contains(t, s, `partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: true, feedingEntry: true})`,
+			f, "animal item rows delegate to the shared line with the feeding-entry flag")
+	}
+	for _, f := range []string{
+		"../templates/care_plan/_plan_item_line.plush.html",
+		"../templates/care_plan/_plan_item_line.plush.fr.html",
+		"../templates/care_plan/_plan_item_line.plush.de.html",
+		"../templates/care_plan/_plan_item_line.plush.nl.html",
+	} {
+		raw, err := os.ReadFile(f)
+		require.NoError(t, err, f)
+		s := string(raw)
 		require.Contains(t, s, "plan-apply-btn", f, "animal item rows are actionable")
 		require.Contains(t, s, "plan-feeding-entry", f, "feeding rows open the prefilled entry")
 	}

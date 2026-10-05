@@ -67,4 +67,41 @@ missing-count pill + fulfillment links kept) — all four locales.
 
 ## Status
 
-**Open.** Fix owner: Phase 5 (animal page `#nav-plan` format parity).
+**Verified — 2026-10-05** (fix owner: Phase 5, animal page `#nav-plan` format parity).
+
+### Fix
+
+- `templates/animals/show.plush.html` (x4): the ad-hoc 93-line occurrence
+  block replaced by the shared `_plan_item_line` partial, called with
+  `{card: item, showAnimal: false, showKind: true, feedingEntry: true}` —
+  no animal cell (§4.3), kind badge kept, feeding rows keep the prefilled
+  ration modal (R4-2.2). Missing-count pill preserved on the day's last row.
+- `templates/care_plan/_plan_item_line.plush.html` (x4, byte-identical):
+  new `feedingEntry` param (feeding toggles route to the apply modal);
+  terminal single rows render — applied → green done badge doubling as the
+  fulfillment-record link (R4-7.11b) + ⏱ late mark, skipped/deferred →
+  status badge, out-of-window open → 🔒 lock (§10-A1).
+- `actions/care_plan_animal_page.go`: `animalDayCardFor` fills the full
+  CardView contract (AnimalYear/AnimalLink/NeedsInput/LateAllowed/Undoable/
+  RecordedLate); `mergeDayItems` groups open occurrences per (source ×
+  animal) into ONE line with due-time-ordered `Slots`, rep re-tiered to the
+  most urgent slot; `OpenCount` counts occurrences per §1.4.
+
+### Verification (2026-10-05)
+
+- `go test ./actions -count=1` → ok (17.4s). Six new pins
+  (`care_plan_phase5_animal_plan_parity_test.go`): shared-line delegation
+  without animal cell x4 locales, medication block unchanged, shared apply
+  implementation, `mergeDayItems` repeat merging + re-tiering, out-of-window
+  lock + missing pill kept, R8-2 `?src=` deep-link JS intact. Six round-4/7
+  pins re-pointed to the component's new home (fulfillment link, status
+  keys, todo glyph, apply toggle) — not weakened.
+- agent-browser on dev server, `/animals/10350#nav-plan`: 20 `.plan-item-line`
+  rows, none with `.plan-med-animal`, kind badges present; feeding rule
+  renders ONE line with `○ 09:00` + `○ 18:00`; cleanup toggle
+  `btn-danger ○ 09:00` → click → `btn-success ✓ 09:00` in place, no reload,
+  no modal; undo restores `btn-danger ○`; feeding toggle opens
+  `#planApplyModal` (prefilled path); `?src=<id>` opens `#planDetails` and
+  highlights the trace row; console clean. Evidence:
+  `tmp/browser_evidence/phase5/summary.json` + screenshot. Temp data
+  created during the flip test was removed; dev DB restored.
