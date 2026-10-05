@@ -65,19 +65,23 @@ func TestMedAnimalColumnIsZeroWithoutMedication(t *testing.T) {
 // TestMedAnimalCellIsTintedInEveryFork: the second half of the request — the
 // SAME light red on every cell. The colour lives in the stylesheet, so the
 // template's job is to carry the class; pin the class, not the hex.
+//
+// Phase 0b: the FOUR hand-copied medication tier bodies (late/now/later +
+// Done) collapsed into the ONE `_plan_tier_med_rows` partial, whose row
+// shell then became the ONE `_plan_med_row` component — the animal cell
+// exists exactly once and every tier renders through it, so "every
+// tier carries the cell" now holds by construction.
 func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 	forks := []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/index.plush.fr.html",
-		"../templates/care_plan/index.plush.de.html",
-		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_med_row.plush.html",
+		"../templates/care_plan/_plan_med_row.plush.fr.html",
+		"../templates/care_plan/_plan_med_row.plush.de.html",
+		"../templates/care_plan/_plan_med_row.plush.nl.html",
 	}
 	for _, f := range forks {
 		raw := readTemplate(t, f)
-		// R9-2: now FOUR medication tier bodies — late/now/later + the new
-		// Done collapsible — each renders its per-line animal cell.
-		require.Equal(t, 4, strings.Count(raw, `class="mr-2 text-nowrap py-1 plan-med-animal"`), f+
-			": every medication tier body (late/now/later/done) carries the animal cell")
+		require.Equal(t, 1, strings.Count(raw, `class="mr-2 text-nowrap py-1 plan-med-animal"`), f+
+			": the ONE shared medication tier body carries the animal cell")
 		// R9: the ONE page-wide width is gone — the user asked for the
 		// animal cell to size to its content so the whole line reads on a
 		// single line (<info> <animal> | <drug> | <toggles>) without the

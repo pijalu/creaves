@@ -1158,12 +1158,30 @@
       btn.disabled = false;
       return;
     }
-    // Pair rows: keep the exact pre-refactor flip behaviour.
+    // Pair rows: visibility swap + IMMEDIATE colour flip (§2.2, Phase 4 /
+    // D4). The apply/undo pair both carry data-tier-class (the
+    // occurrence's CURRENT tier colour, §2.4): apply paints the visible
+    // undo green (btn-success — done), undo restores the apply's tier
+    // colour (which may differ from the colour it had before applying —
+    // §2.2). Feeding/cleanup rows (`.plan-animal-row`) keep their R9-1
+    // applied tint; those buttons carry no data-tier-class, so their
+    // colour is untouched.
     markAction();
     btn.classList.add('d-none');
     btn.disabled = false;
     var sib = applied ? pairUndo(btn) : pairApply(btn);
-    if (sib) { sib.classList.remove('d-none'); }
+    if (sib) {
+      sib.classList.remove('d-none');
+      var tier = sib.getAttribute('data-tier-class');
+      if (tier) {
+        sib.classList.remove('btn-danger', 'btn-warning', 'btn-light', 'border', 'btn-success');
+        if (applied) {
+          sib.classList.add('btn-success');
+        } else {
+          tier.split(/\s+/).forEach(function (c) { if (c) { sib.classList.add(c); } });
+        }
+      }
+    }
     var row = btn.closest ? btn.closest('.plan-animal-row') : null;
     if (row) { row.classList.toggle('plan-animal-applied', !!applied); }
   }

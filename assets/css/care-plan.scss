@@ -332,22 +332,17 @@
 //   Level 3 — full stack (media query below): animal line, then the label
 //     wrapping multiline (white-space: normal, NO ellipsis — R4-7.24), then
 //     the buttons wrapping multiline, left-aligned.
-// The row-kind lines (.plan-item-line) keep the compact single-line
-// treatment for now — their ladder is their own defect (D3/D4 scope).
+// The row-kind lines (.plan-item-line) now follow the SAME ladder (Phase
+// 4 / D4, guideline §5): level 1 shrinks the animal cell to the
+// year/number (card.AnimalYear, `_plan_item_line`), level 2 lets the
+// toggle group drop under the label, level 3 is the media query below.
 div.plan-med-row.d-flex,
 .plan-med-row.plan-item-line {
   font-size: 0.85rem;
   background-color: transparent; // the tinted tier panel + zebra carry the line
 }
-// Row-kind lines stay one-line compact (Phase 1 scopes the ladder to the
-// medication rows only).
-.plan-item-line.plan-med-line {
-  flex-wrap: nowrap;
-}
-.plan-item-line .plan-med-btns {
-  flex-wrap: nowrap;
-}
-.plan-med-row .plan-med-slot {
+.plan-med-row .plan-med-slot,
+.plan-med-row .plan-item-btn {
   font-size: 0.78rem;
   padding: 0.15rem 0.4rem;
 }
@@ -359,14 +354,16 @@ div.plan-med-row.d-flex,
   border-right: 1px solid #dee2e6;
   padding-right: 0.5rem;
 }
-// The label pipe stays on the medication rows; the row-kind lines keep the
-// full R9 ellipsis (their ladder is out of Phase-1 scope). Medication
-// labels never ellipsize (R4-7.24 "never cut a description"): level 2 lets
-// the buttons drop under the label, level 3 wraps the label itself.
+// The row-kind label follows the SAME §5 ladder as the medication label
+// (Phase 4 / D4): shrink-to-fit with a 12 ch floor, WRAPPING (never an
+// ellipsis cut — R4-7.24) when the toggle group needs the room.
 .plan-item-line .plan-med-label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: 0 1 auto;
+  max-width: 34ch;
+  min-width: 12ch;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 .plan-med-label {
   border-right: 1px solid #dee2e6;
@@ -436,6 +433,38 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
     justify-content: flex-start;
   }
   div.plan-med-row:not(.plan-item-line) .plan-med-cell {
+    justify-content: flex-start;
+  }
+}
+// Phase 4 / D4 (guideline §5): the SAME ladder for the row-kind lines
+// (.plan-item-line). Level 2 lets the toggle group drop under the label
+// (full-width, right-aligned); level 3 is the narrow full stack — animal
+// number, then the label wrapping multiline (no ellipsis), then the
+// toggles wrapping multiline, left-aligned. No horizontal scrollbar, no
+// clipped text, every toggle fully visible at every level.
+.plan-item-line .plan-med-btns {
+  max-width: 100%;
+}
+@media (max-width: 767.98px) {
+  .plan-item-line .plan-med-animal {
+    flex: 1 1 100%;
+    border-right: none;
+    padding-right: 0;
+  }
+  .plan-item-line .plan-med-label {
+    flex: 1 1 100%;
+    max-width: none;
+    min-width: 0;
+    border-right: none;
+    padding-right: 0;
+    margin-right: 0;
+  }
+  .plan-item-line .plan-med-btns {
+    flex: 1 1 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+  .plan-item-line .plan-med-cell {
     justify-content: flex-start;
   }
 }

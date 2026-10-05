@@ -114,23 +114,34 @@ func TestFeedingSectionRender(t *testing.T) {
 	fc := v.FeedTiers[0][0]
 	require.Len(t, fc.Chips, 2)
 
+	// Phase 0b: the feeding tier's table lives in the ONE
+	// `_plan_tier_feed_table` partial (the index only passes locals); the
+	// bordered panel + header live in the `_plan_tier` layout component.
 	ctx := plush.NewContextWith(map[string]interface{}{
-		"view": v,
-		"t":    func(s string) string { return s },
+		"feedCards": v.FeedTiers[0],
+		"ti":        0,
+		"t":         func(s string) string { return s },
 		"tbase": func(a, b, c string) string {
 			return c
 		},
-		"dueLabel": func(a, b, c string) string { return a },
-		// the index page includes JS/HTML partials this unit render does
-		// not exercise; stub them so the section markup is testable alone.
-		"partial":   func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
-		"partialIf": func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
+	})
+	tierCtx := plush.NewContextWith(map[string]interface{}{
+		"tierKey":        "late",
+		"tierId":         "feed-tier-",
+		"tierIdNum":      0,
+		"tierLabelKey":   "care_plan.tier.late",
+		"tierBadgeClass": "badge-secondary",
+		"tierCount":      "2",
+		"tierExpanded":   true,
+		"tierDoneCount":  0,
+		"yield":          "",
+		"t":              func(s string) string { return s },
 	})
 	forks := []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/index.plush.de.html",
-		"../templates/care_plan/index.plush.fr.html",
-		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	}
 	for _, f := range forks {
 		raw, err := os.ReadFile(f)
@@ -138,7 +149,11 @@ func TestFeedingSectionRender(t *testing.T) {
 		out, err := plush.Render(string(raw), ctx)
 		require.NoError(t, err, f)
 
-		require.Contains(t, out, `id="feed-tier-0"`, f, "feeding urgency sections")
+		tierRaw, err := os.ReadFile(tierPartialFor(f))
+		require.NoError(t, err, f)
+		tierOut, err := plush.Render(string(tierRaw), tierCtx)
+		require.NoError(t, err, f)
+		require.Contains(t, tierOut, `id="feed-tier-0"`, f, "feeding urgency sections")
 		require.Contains(t, out, "plan-dot-late", f, "one group dot, most urgent chip")
 		require.Equal(t, 1, strings.Count(out, `class="plan-dot plan-dot-`), f,
 			"exactly ONE dot per cage × diet card")
@@ -192,21 +207,19 @@ func TestFeedingSingleAnimalGroupOnly(t *testing.T) {
 	require.Len(t, v.Feedings, 1)
 	require.Len(t, v.FeedTiers[1][0].Chips, 1, "the lone due occurrence sits in the 'now' tier")
 
+	// Phase 0b: the feeding table markup lives in the ONE
+	// `_plan_tier_feed_table` partial; the index only passes locals.
 	ctx := plush.NewContextWith(map[string]interface{}{
-		"view":     v,
-		"t":        func(s string) string { return s },
-		"tbase":    func(a, b, c string) string { return c },
-		"dueLabel": func(a, b, c string) string { return a },
-		"partial":  func(name string, ctx map[string]interface{}) (string, error) { return "", nil },
-		"partialIf": func(name string, ctx map[string]interface{}) (string, error) {
-			return "", nil
-		},
+		"feedCards": v.FeedTiers[1],
+		"ti":        1,
+		"t":         func(s string) string { return s },
+		"tbase":     func(a, b, c string) string { return c },
 	})
 	forks := []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/index.plush.de.html",
-		"../templates/care_plan/index.plush.fr.html",
-		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	}
 	for _, f := range forks {
 		raw, err := os.ReadFile(f)
@@ -216,8 +229,7 @@ func TestFeedingSingleAnimalGroupOnly(t *testing.T) {
 
 		// Scope to the feeding table: the page's batch JS legitimately
 		// names the per-animal class it flips.
-		tier := out[strings.Index(out, `id="feed-tier-`):]
-		tier = tier[:strings.Index(tier, "</table>")]
+		tier := out[:strings.Index(out, "</table>")]
 
 		require.Contains(t, tier, "plan-feeding-apply", f, "the GROUP check stays")
 		require.NotContains(t, tier, "plan-feeding-one", f,
@@ -229,6 +241,12 @@ func TestFeedingSingleAnimalGroupOnly(t *testing.T) {
 		require.Contains(t, out, `aria-label="care_plan.card.apply_group (1)"`, f,
 			"the count still reaches assistive tech through the aria-label")
 	}
+}
+
+// tierPartialFor maps a forked body-partial path to the matching fork of the
+// `_plan_tier` layout component (same locale suffix).
+func tierPartialFor(bodyFork string) string {
+	return strings.Replace(bodyFork, "_plan_tier_feed_table", "_plan_tier", 1)
 }
 
 // buttonHTML returns the opening HTML of the first button whose class list

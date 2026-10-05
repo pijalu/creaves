@@ -36,6 +36,11 @@ type TierView struct {
 	Count    int
 	CountCap string
 	Cards    []CardView
+	// BadgeClass is the ONE colour policy of the tier header's count pill
+	// (late=danger · now=warning · later=success) — every tier panel on the
+	// page takes its badge class from here, so the header can never disagree
+	// with the urgency tint of the panel it heads.
+	BadgeClass string
 }
 
 // Tier key constants (care_plan.tier.* i18n suffixes).
@@ -64,10 +69,27 @@ type CardView struct {
 	DueShortDate string // "02/01" when beyond one day
 	Status       string
 	Tier         int // 0 late · 1 now · 2 later · 3 done (§U2 urgency)
+	// TierClass is the Bootstrap button class carrying the tier colour —
+	// slotTierClass(Tier), the ONE colour policy (R4-1.1) shared with the
+	// medication slots: late red · due-now yellow · future white · applied
+	// green. The apply/unapply toggles paint with it; the glyph and title
+	// stay the accessible label (colour is additive).
+	TierClass    string
 	Applicable   bool
 	Remaining    int    // compact: other open occurrences of the group ("+n")
 	RemainingCap string // BadgeCap(Remaining)
 	OverriddenBy string // detailed view only
+	// Phase 4 / D4 (§3.1): repeating occurrences of the same (source ×
+	// animal) merge into ONE line — Slots lists every open current
+	// occurrence in due-time order, each with its own tier-coloured
+	// toggle (the per-occurrence input modal is kept for weighing /
+	// observation). Empty for a single-occurrence row: the line renders
+	// its plain apply/undo pair then.
+	Slots []ItemSlotView
+	// Phase 4 / D4 (§5 level 1): the animal cell shrinks to the
+	// year/number (YearNumberFormatted) — the full label stays in the
+	// cell's title and the ℹ detail modal. Mirrors the medication row.
+	AnimalYear string
 	// History rows (§7.1): superseded open occurrences stay recordable —
 	// one click = "record anyway (late)" (§6.2-2, A1).
 	Superseded       bool
@@ -89,6 +111,27 @@ type CardView struct {
 	// same sentence twice, truncated mid-word. When true the row renders
 	// the Detail alone (kind + nourriture/régime).
 	SourceNameRedundant bool
+}
+
+// ItemSlotView is one open occurrence of a merged row-kind line (Phase 4 /
+// D4): the per-occurrence toggle of a (source × animal) group, carrying the
+// tier colour (§2.1), the due-time label and every data attribute the shared
+// toggle / input modal needs. It is the row-kind analogue of MedSlotView —
+// colour from the same slotTierClass policy (§2.4), glyph + localized title
+// stay the accessible label (§2.3), and data-tier-class rides on the button
+// so client-side undo restores the occurrence's CURRENT tier colour (§2.2).
+type ItemSlotView struct {
+	DueAt        time.Time
+	DueAtRFC     string // "2006-01-02T15:04:05Z07:00" (data-due-at)
+	DueHM        string // "15:04" — the toggle's visible time label
+	DueDayKey    string // "" | yesterday | tomorrow i18n key
+	DueShortDate string // "02/01" beyond one day
+	Status       string
+	Tier         int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
+	TierClass    string // slotTierClass(Tier) — the toggle's colour (§2.1)
+	Applicable   bool
+	LateAllowed  bool // past due + out of window → record-anyway (§6.2-2, A1)
+	NeedsInput   bool   // weighing / observation → the apply input modal
 }
 
 // TierLink is one pill of the summary strip (R4-7.21): a jump link to a
@@ -172,6 +215,9 @@ type FeedingGroupView struct {
 	TierKey   string // care_plan.tier.<key> i18n key ("" when untiered)
 	TierCount int    // groups in this tier (the tier section badge)
 	TierCap   string // capped TierCount
+	// Phase-0b: ONE colour policy (slotTierClass) — the group toggle
+	// button's tier colour, set in fillFeedTiers from Tier.
+	TierClass string
 	// R4-7.14: the EARLIEST due occurrence in the group that is real work
 	// (non-superseded + applicable). The sort key inside a tier, so the row
 	// the caregiver must act on first is the row they see first. The zero
@@ -298,6 +344,9 @@ type CareView struct {
 	ChipRefsJSON    string // JSON item refs of the applicable items (data-items)
 	ApplicableCount int
 	LateCount       int // applicable occurrences already past due (late tier)
+	// Phase-0b: ONE colour policy (slotTierClass) — the cage toggle
+	// button's tier colour: late occurrences → late tier, else now.
+	TierClass string
 }
 
 // DayPlanView is the full work-screen context value. Layout (bugs.md
@@ -344,11 +393,14 @@ type DayPlanView struct {
 	MedAnimalColCh int
 	Feedings       []FeedingGroupView // cage × diet groups (feeding kind only)
 	Cares          []CareView         // cage cleanup groups (cleanup kind only)
-	History        []CardView         // terminal + superseded rows, subdued
-	Zones          []ZoneTab          // without the "all" entry (rendered by the template)
-	Kinds          []KindChip
-	UpdatedAt      string // HH:MM of render (auto-refresh indicator, §10-CP6c)
-	View           string
+	// CareTiers[i] = the cleanup rows of urgency tier i (phase-0b §6 —
+	// the shared generic distribution; the section still renders flat).
+	CareTiers [3][]CareView
+	History   []CardView // terminal + superseded rows, subdued
+	Zones     []ZoneTab  // without the "all" entry (rendered by the template)
+	Kinds     []KindChip
+	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
+	View      string
 	// Detailed switches row density only: compact folds each
 	// (source × animal) group to its next open action ("+N" badge),
 	// detailed lists every open current occurrence.
@@ -502,6 +554,8 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 	// R4-4.3: feeding cards are grouped into the same late → now → later
 	// tiers as every other kind; R4-4.4: each card carries ONE group dot.
 	fillFeedTiers(v)
+	// Phase-0b §6: the cleanup rows join the same generic distribution.
+	fillCareTiers(v)
 
 	// Stage 4: tiers (late → now → later, due-time sorted) + the summary
 	// strip (occurrences, density-independent).
@@ -627,7 +681,6 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	v.MedDoneCountCap = BadgeCap(v.MedDoneCount)
 	v.MedAnimalColCh = medAnimalColCh(v.MedTiers)
 }
-
 
 // collectDoneSeries routes a fully-terminal series to the Done tier (R9-2):
 // every occurrence applied. When the series still owns a visible occurrence
@@ -776,9 +829,11 @@ func feedTierOpenCount(groups []FeedingGroupView) int {
 // keep tier -1 and stay out of the tier sections.
 func fillFeedTiers(v *DayPlanView) {
 	keys := []string{TierLate, TierNow, TierLater}
+	tiered := make([]FeedingGroupView, 0, len(v.Feedings))
 	for _, f := range v.Feedings {
 		tier, status := feedingGroupTier(f)
 		f.Tier = tier
+		f.TierClass = slotTierClass(tier)
 		f.GroupStatus = status
 		f.GroupStatusClass = "plan-dot-" + status
 		if tier < 0 || tier > 2 {
@@ -786,37 +841,29 @@ func fillFeedTiers(v *DayPlanView) {
 		}
 		f.TierKey = keys[tier]
 		f.FirstDueAt = firstChipDue(f)
-		v.FeedTiers[tier] = append(v.FeedTiers[tier], f)
+		tiered = append(tiered, f)
 	}
+	v.FeedTiers = fillTierBuckets(tiered, func(fa, fb FeedingGroupView) bool {
+		if fa.FirstDueAt.IsZero() != fb.FirstDueAt.IsZero() {
+			return fb.FirstDueAt.IsZero()
+		}
+		if fa.FirstDueAt.Equal(fb.FirstDueAt) {
+			if fa.Cage != fb.Cage {
+				return fa.Cage < fb.Cage
+			}
+			return fa.Food < fb.Food
+		}
+		return fa.FirstDueAt.Before(fb.FirstDueAt)
+	})
 	for i := range v.FeedTiers {
 		v.FeedTierCount[i] = len(v.FeedTiers[i])
 		v.FeedTierCap[i] = BadgeCap(v.FeedTierCount[i])
 		v.FeedTierOpen[i] = feedTierOpenCount(v.FeedTiers[i])
 		v.FeedTierOpenCap[i] = BadgeCap(v.FeedTierOpen[i])
 		// R4-7.14: within a tier, the row the caregiver must act on FIRST
-		// comes first. The tiers already encode urgency (late → now → later),
-		// but inside a tier the rows arrived in cage order, so "16:00, 18:00,
-		// 17:00, 16:00…" — the caregiver had to re-sort the section by eye.
-		// Earliest-due first, and the cage label breaks a tie so the order is
-		// stable between two refreshes (auto-refresh re-sorts in place).
-		//
-		// A group with NO open occurrence (FirstDueAt zero) sorts LAST: its
-		// due time is unknown, and an unknown due time is not "the most
-		// urgent". The zero time would otherwise win every comparison and
-		// float such a group to the very top of the section.
-		sort.SliceStable(v.FeedTiers[i], func(a, b int) bool {
-			fa, fb := v.FeedTiers[i][a], v.FeedTiers[i][b]
-			if fa.FirstDueAt.IsZero() != fb.FirstDueAt.IsZero() {
-				return fb.FirstDueAt.IsZero()
-			}
-			if fa.FirstDueAt.Equal(fb.FirstDueAt) {
-				if fa.Cage != fb.Cage {
-					return fa.Cage < fb.Cage
-				}
-				return fa.Food < fb.Food
-			}
-			return fa.FirstDueAt.Before(fb.FirstDueAt)
-		})
+		// comes first — the generic fill's sort above: earliest-due first,
+		// zero-due (no open occurrence) last, cage/food tiebreak, stable
+		// between two refreshes.
 	}
 }
 
@@ -864,26 +911,105 @@ func feedingGroupTier(f FeedingGroupView) (int, string) {
 	return best, status
 }
 
+// Openable is anything the generic tier-fill can distribute over the
+// three urgency tiers (phase-0b §6): a tier index (-1 or >2 = no open
+// work, skipped), the earliest open due time (the zero time sorts last)
+// and the open-occurrence count it contributes to the tier badge.
+// Implemented by CardView (row kinds), FeedingGroupView and CareView.
+type Openable interface {
+	TierOf() int
+	FirstDue() time.Time
+	OpenCount() int
+}
+
+// TierOf reports the row's urgency tier — recomputed from the status,
+// the exact semantics fillTiers always had (never the cached field).
+func (cv CardView) TierOf() int { return tierOrder(careplan.PlanStatus(cv.Status)) }
+
+// FirstDue is the row's due time (tier rows always carry one).
+func (cv CardView) FirstDue() time.Time { return cv.DueAt }
+
+// OpenCount is 1: one rendered row is one open action (the row-kind
+// tier badges count rows, R4-1.3 — unlike med/feed occurrence counts).
+func (cv CardView) OpenCount() int { return 1 }
+
+// TierOf reports the feeding group's tier, stamped by fillFeedTiers.
+func (f FeedingGroupView) TierOf() int { return f.Tier }
+
+// FirstDue is the group's earliest open occurrence (zero sorts last).
+func (f FeedingGroupView) FirstDue() time.Time { return f.FirstDueAt }
+
+// OpenCount is the group's applicable chips (occurrences, R4-7.21).
+func (f FeedingGroupView) OpenCount() int { return f.ApplicableCount }
+
+// TierOf reports the care row's urgency tier: any late occurrence puts
+// the row in the late tier, everything else is now (care rows only
+// exist with open applicable work — see careViewsOf).
+func (cv CareView) TierOf() int {
+	if cv.LateCount > 0 {
+		return 0
+	}
+	return 1
+}
+
+// FirstDue is unset for care rows (the flat cage table has no due
+// column); the zero time sorts a care bucket by the caller's tiebreak.
+func (cv CareView) FirstDue() time.Time { return time.Time{} }
+
+// OpenCount is the row's applicable occurrences.
+func (cv CareView) OpenCount() int { return cv.ApplicableCount }
+
+// fillTierBuckets is the ONE tier distribution (phase-0b §6): items are
+// appended to their TierOf() bucket (-1/>2 skipped) and each bucket is
+// stably sorted with less. Used by fillTiers (row kinds), fillFeedTiers
+// and fillCareTiers — the per-kind extras (TierKey stamping, badge
+// counters) stay at the call sites.
+func fillTierBuckets[T Openable](items []T, less func(a, b T) bool) [3][]T {
+	var out [3][]T
+	for _, it := range items {
+		t := it.TierOf()
+		if t < 0 || t > 2 {
+			continue
+		}
+		out[t] = append(out[t], it)
+	}
+	for i := range out {
+		b := out[i]
+		sort.SliceStable(b, func(x, y int) bool { return less(b[x], b[y]) })
+	}
+	return out
+}
+
 // fillTiers distributes the filtered open rows over the three urgency
 // tiers and sorts each tier by due time (§U2 screen order: late → now →
 // later, oldest first within a tier).
 func fillTiers(v *DayPlanView, rows []CardView) {
-	for _, cv := range rows {
-		tier := tierOrder(careplan.PlanStatus(cv.Status))
-		if tier < 0 || tier > 2 {
-			continue
-		}
-		v.Tiers[tier].Cards = append(v.Tiers[tier].Cards, cv)
-	}
+	buckets := fillTierBuckets(rows, func(a, b CardView) bool {
+		return a.DueAt.Before(b.DueAt)
+	})
 	keys := []string{TierLate, TierNow, TierLater}
+	badges := []string{"badge-danger", "badge-warning", "badge-success"}
 	for i := range v.Tiers {
+		v.Tiers[i].Cards = buckets[i]
 		v.Tiers[i].Key = keys[i]
+		v.Tiers[i].BadgeClass = badges[i]
 		v.Tiers[i].Count = len(v.Tiers[i].Cards)
 		v.Tiers[i].CountCap = BadgeCap(v.Tiers[i].Count)
-		sort.SliceStable(v.Tiers[i].Cards, func(a, b int) bool {
-			return v.Tiers[i].Cards[a].DueAt.Before(v.Tiers[i].Cards[b].DueAt)
-		})
 	}
+}
+
+// fillCareTiers distributes the cleanup rows over the same three urgency
+// tiers as every other section (phase-0b §6). The cleanup section still
+// renders its flat cage table — the buckets make the care rows first-
+// class citizens of the shared distribution (tier badges, future
+// per-tier rendering) without changing the screen.
+func fillCareTiers(v *DayPlanView) {
+	v.CareTiers = fillTierBuckets(v.Cares, func(a, b CareView) bool {
+		if a.Cage != b.Cage {
+			return a.Cage < b.Cage
+		}
+		return a.SourceName < b.SourceName
+	})
 }
 
 // groupedKind reports whether a kind renders as a grouped LIST section
@@ -904,43 +1030,83 @@ func isTierRow(it *careplan.PlanItem, now time.Time) bool {
 }
 
 // tierRows builds the tier rows (§U2): open, CURRENT occurrences of the
-// non-grouped kinds — MEDICATION INCLUDED (fix 6: one row per (source ×
-// animal) group with a "+N" badge and a day-aware due label replaces the
-// per-hour button series whose same-hour buttons repeated across the
-// multi-day window). Compact: the next open action per (source × animal);
-// detailed: every open current occurrence. Superseded and terminal
-// occurrences go to historyRows.
+// non-grouped kinds — MEDICATION INCLUDED (fix 6). Phase 4 / D4 (§3.1):
+// repeating occurrences of the same (source × animal) MERGE into ONE line —
+// the representative card carries a `Slots` list of every open current
+// occurrence (due-time ordered), each with its own tier-coloured toggle.
+// The line lands in its most urgent slot's tier; Remaining keeps the "+N"
+// fold count. Superseded and terminal occurrences go to historyRows.
 func (v *DayPlanView) tierRows(plan *DayPlan, detailed bool) []CardView {
+	_ = detailed // Phase 4: the merged (source × animal) line replaces both
+	// densities for the row kinds — every open current occurrence is a
+	// toggle on the ONE line, so compact/detailed no longer differ here.
 	now := plan.Now
-	rows := make([]CardView, 0, len(plan.Items))
-	if detailed {
-		for i := range plan.Items {
-			it := &plan.Items[i]
-			if !isTierRow(it, now) {
-				continue
-			}
-			rows = append(rows, v.cardFor(plan, it))
-		}
-		return rows
-	}
-	// Compact folds each (source × animal) group into its next open
-	// action. The fold runs over the CURRENT occurrences only: the
-	// earliest open occurrence of a group can be superseded (yesterday's
-	// missed weighing whose successor is imminent) — folding over all
-	// open items would hide the group's live work behind a history row
-	// (the "+N" badge counts remaining work, like statsOf).
 	current := make([]careplan.PlanItem, 0, len(plan.Items))
 	for i := range plan.Items {
 		if isTierRow(&plan.Items[i], now) {
 			current = append(current, plan.Items[i])
 		}
 	}
-	for _, n := range careplan.NextOpenPerGroup(current) {
-		cv := v.cardFor(plan, &n.Item)
-		cv.Remaining = n.Remaining
-		cv.RemainingCap = BadgeCap(n.Remaining)
-		rows = append(rows, cv)
+
+	// Group the current occurrences by (source × animal), first-seen order,
+	// then fold each group into ONE representative card with a Slots list.
+	type key struct {
+		typ, id string
+		animal  int
 	}
+	type acc struct {
+		rep   int // index into rows of the representative card
+		first time.Time
+	}
+	groups := map[key]*acc{}
+	order := []key{}
+	rows := make([]CardView, 0, len(current))
+	for i := range current {
+		it := &current[i]
+		src := it.Occurrence.Source
+		k := key{string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID}
+		slot := itemSlotFor(now, it)
+		g, ok := groups[k]
+		if !ok {
+			cv := v.cardFor(plan, it)
+			cv.Slots = []ItemSlotView{slot}
+			groups[k] = &acc{rep: len(rows), first: it.Occurrence.DueAt}
+			order = append(order, k)
+			rows = append(rows, cv)
+			continue
+		}
+		rep := &rows[g.rep]
+		rep.Slots = append(rep.Slots, slot)
+		// The line's own tier/colour/due label is its MOST URGENT slot's
+		// (the work the caregiver must see first) — late beats now beats
+		// later; on a tie the earliest due time wins.
+		if slot.Tier < rep.Tier || (slot.Tier == rep.Tier && it.Occurrence.DueAt.Before(rep.DueAt)) {
+			rep.Tier, rep.TierClass = slot.Tier, slot.TierClass
+			rep.DueAt, rep.DueHM = slot.DueAt, slot.DueHM
+			rep.DueDayKey, rep.DueShortDate = slot.DueDayKey, slot.DueShortDate
+			rep.Status = slot.Status
+		}
+		if it.Occurrence.DueAt.Before(g.first) {
+			g.first = it.Occurrence.DueAt
+		}
+	}
+
+	// Due-time order each line's slots, count the fold, then sort the lines
+	// by (tier, earliest due) so the urgent work reads first.
+	for _, k := range order {
+		rep := &rows[groups[k].rep]
+		sort.SliceStable(rep.Slots, func(i, j int) bool {
+			return rep.Slots[i].DueAt.Before(rep.Slots[j].DueAt)
+		})
+		rep.Remaining = len(rep.Slots) - 1
+		rep.RemainingCap = BadgeCap(rep.Remaining)
+	}
+	sort.SliceStable(rows, func(i, j int) bool {
+		if rows[i].Tier != rows[j].Tier {
+			return rows[i].Tier < rows[j].Tier
+		}
+		return rows[i].DueAt.Before(rows[j].DueAt)
+	})
 	return rows
 }
 
@@ -996,6 +1162,7 @@ func (v *DayPlanView) supersededRow(plan *DayPlan, it *careplan.PlanItem, now ti
 		cv.SupersededBy = it.NextDue.Format("15:04")
 	}
 	cv.Tier = tierOrder(it.Status)
+	cv.TierClass = slotTierClass(cv.Tier)
 	cv.LateAllowed = it.Occurrence.DueAt.Before(now)
 	return cv
 }
@@ -1018,6 +1185,7 @@ func (v *DayPlanView) terminalRow(plan *DayPlan, it *careplan.PlanItem, detailed
 	}
 	cv := v.cardFor(plan, it)
 	cv.Tier = tierOrder(it.Status)
+	cv.TierClass = slotTierClass(cv.Tier)
 	if it.Status == careplan.StatusOverridden {
 		cv.OverriddenBy = it.OverriddenBy
 	}
@@ -1237,6 +1405,10 @@ func careViewsOf(plan *DayPlan, selfPath string) []CareView {
 		}
 		cv.Count = cv.ApplicableCount
 		if cv.ApplicableCount > 0 {
+			cv.TierClass = slotTierClass(1)
+			if cv.LateCount > 0 {
+				cv.TierClass = slotTierClass(0)
+			}
 			if raw, err := jsonMarshal(refs); err == nil {
 				cv.ChipRefsJSON = string(raw)
 			}
@@ -1822,6 +1994,30 @@ func medSlotOf(due time.Time) string {
 
 // cardFor builds the base card of one plan item (labels via §10.5-N1,
 // conversion markers stripped, per-kind detail line — bugs.md U5).
+// itemSlotFor projects one open occurrence of a row-kind (source × animal)
+// group into its per-occurrence toggle (Phase 4 / D4, §2/§3). Colour comes
+// from the ONE slotTierClass policy (§2.4); weighing/observation keep
+// NeedsInput so the toggle opens the shared apply modal (§3.4).
+func itemSlotFor(now time.Time, it *careplan.PlanItem) ItemSlotView {
+	src := it.Occurrence.Source
+	parts := DueLabelPartsOf(it.Occurrence.DueAt, now)
+	kind := src.ActionKind()
+	slot := ItemSlotView{
+		DueAt:        it.Occurrence.DueAt,
+		DueAtRFC:     it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
+		DueHM:        parts.TimeHM,
+		DueDayKey:    parts.DayKey,
+		DueShortDate: parts.ShortDate,
+		Status:       string(it.Status),
+		Applicable:   it.Applicable,
+		NeedsInput:   kind == careplan.KindWeighing || kind == careplan.KindObservation,
+	}
+	slot.Tier = tierOrder(it.Status)
+	slot.TierClass = slotTierClass(slot.Tier)
+	slot.LateAllowed = it.Applicable && it.Occurrence.DueAt.Before(now)
+	return slot
+}
+
 func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 	src := it.Occurrence.Source
 	parts := DueLabelPartsOf(it.Occurrence.DueAt, plan.Now)
@@ -1838,6 +2034,7 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		DueShortDate: parts.ShortDate,
 		Status:       string(it.Status),
 		Tier:         tierOrder(it.Status),
+		TierClass:    slotTierClass(tierOrder(it.Status)),
 		Applicable:   it.Applicable,
 		NeedsInput:   src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
 	}
@@ -1848,6 +2045,7 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 
 	if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 		cv.AnimalLabel = animalLabel(a)
+		cv.AnimalYear = a.YearNumberFormatted()
 		cv.Zone = a.Zone.String
 		cv.Cage = a.Cage.String
 	}

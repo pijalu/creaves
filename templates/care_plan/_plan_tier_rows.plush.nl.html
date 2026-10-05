@@ -1,0 +1,13 @@
+<%# Body of a row-kind tier (observation / care / weighing): one
+    `_plan_item_line` per card. Rendered through the `_plan_tier` layout by
+    the caller, which passes `tierCards` (the tier's TierView cards) in the
+    partial data map.
+
+    The day plan is multi-animal, so every line shows its tinted animal
+    cell (showAnimal) and no kind badge (showKind) — the whole page is
+    already filtered to ONE kind by the tab bar. %>
+<div class="px-2">
+  <%= for (card) in tierCards { %>
+    <%= partial("care_plan/plan_item_line.plush.html", {showAnimal: true, showKind: false}) %>
+  <% } %>
+</div>

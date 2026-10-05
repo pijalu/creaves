@@ -48,8 +48,9 @@ func readPhase1File(t *testing.T, path string) string {
 }
 
 // TestPhase1LadderCSS (1-T1): the R9 global single-line overrides that
-// caused D1 are gone for medication rows, the ladder hooks exist, and the
-// row-kind compact treatment survives scoped to .plan-item-line.
+// caused D1 are gone for medication rows and the ladder hooks exist.
+// Phase 4 / D4 extended the SAME ladder to the row-kind lines
+// (.plan-item-line) — their old scoped nowrap/ellipsis overrides are gone.
 func TestPhase1LadderCSS(t *testing.T) {
 	css := readPhase1File(t, carePlanSCSS)
 
@@ -57,27 +58,31 @@ func TestPhase1LadderCSS(t *testing.T) {
 	require.NotContains(t, css, ".plan-med-row .plan-med-line {\n  flex-wrap: nowrap;",
 		"D1: the medication line must wrap (ladder level 2)")
 	// A bare global `.plan-med-btns { flex-wrap: nowrap }` is the exact
-	// rule D1 calls out (scss:333); only the row-kind scoped variant may
-	// keep nowrap.
+	// rule D1 calls out (scss:333); no variant may keep nowrap.
 	require.NotRegexp(t, `(?m)^\.plan-med-btns \{\s*\n\s*flex-wrap: nowrap;`,
 		"D1: no GLOBAL .plan-med-btns{flex-wrap:nowrap}")
-	// Medication labels never ellipsize (R4-7.24); the ellipsis treatment
-	// may only survive on the row-kind lines.
+	// Medication labels never ellipsize (R4-7.24).
 	require.NotRegexp(t, `(?m)^\.plan-med-label \{\s*\n\s*white-space: nowrap;`,
 		"D1: no ellipsis on the medication label")
-	require.Contains(t, css, ".plan-item-line .plan-med-label",
-		"row-kind lines keep their scoped compact label treatment")
-	require.Contains(t, css, ".plan-item-line.plan-med-line",
-		"row-kind lines keep their scoped single-line treatment")
 
-	// Ladder level 2 hook: the JS-confirmed stacked state is a full-width
-	// row; level 3: the full-stack media query.
-	require.Contains(t, css, ".plan-med-btns.plan-med-btns--stacked",
-		"level 2: JS-confirmed stacked groups go full-width")
+	// Phase 4 / D4 (§5): the row-kind lines follow the SAME ladder — the
+	// old scoped nowrap single-line override and the ellipsis label cut are
+	// REMOVED, and the row-kind level-3 full-stack hooks exist.
+	require.NotContains(t, css, ".plan-item-line.plan-med-line {\n  flex-wrap: nowrap;",
+		"D4: the row-kind line wraps (ladder level 2)")
+	require.NotRegexp(t, `(?m)\.plan-item-line \.plan-med-label \{\s*\n\s*white-space: nowrap;`,
+		"D4: no ellipsis on the row-kind label (R4-7.24)")
 	require.Contains(t, css, "@media (max-width: 767.98px)",
 		"level 3: the narrow-viewport full-stack media query")
+	require.Contains(t, css, ".plan-item-line .plan-med-animal {\n    flex: 1 1 100%;",
+		"D4 level 3: the row-kind animal line stacks first")
+
+	// Ladder level 2 hook: the JS-confirmed stacked state is a full-width
+	// row; level 3: the medication full-stack media query.
+	require.Contains(t, css, ".plan-med-btns.plan-med-btns--stacked",
+		"level 2: JS-confirmed stacked groups go full-width")
 	require.Contains(t, css, "div.plan-med-row:not(.plan-item-line) .plan-med-animal",
-		"level 3: the animal line stacks first")
+		"level 3: the medication animal line stacks first")
 }
 
 // TestPhase1MedRowAnimalYear (1-T2): level 1 — the care-plan medication

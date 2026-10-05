@@ -27,7 +27,19 @@ round is closed.
 
 ## Open items
 
-(none — Round 9 closed 2026-10-05; see the archive table below)
+### B10-1 — "Done" timestamps render in UTC, not the user's browser locale
+
+**Reported:** 2026-10-05 (caregiver feedback).
+
+**Symptom:** every "done" timestamp (applied/completed care entries — history rows, treatment-entry badges, toggle tooltips) is shown in UTC instead of the browser's local time. A care applied at 14:30 local reads `12:30` (or an ISO UTC string), which is actively misleading on the work screen.
+
+**Evidence (code):** the timestamps are formatted SERVER-side with the raw `time.Time` (UTC) instead of the client locale, e.g.:
+- `templates/animals/show.plush.html:611` — `entry.AppliedAt.Time.Format("15:04")` (Go/server tz).
+- `templates/care_plan/_plan_history_table.plush.html` — `data-due-at` is RFC-3339 UTC but the visible label is pre-formatted server-side (no client re-localization).
+
+**Expected:** any user-visible "done"/applied/history time is rendered in the user's browser locale + timezone (e.g. via `Date.prototype.toLocaleString` on an RFC-3339 data attribute, matching how the toggle `title` already localizes `data-due-at` in the treatment slot JS), in all 4 locales.
+
+**Scope check:** history table, animal-page treatment tab done badges, dashboard done rows, care_plan history section — audit every `Format(` on applied/terminal timestamps.
 
 
 ## Archived rounds

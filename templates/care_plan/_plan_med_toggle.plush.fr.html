@@ -88,31 +88,15 @@
       sourceType: btn.getAttribute('data-source-type'),
       sourceId: btn.getAttribute('data-source-id'),
       animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
-      dueAt: btn.getAttribute('data-due-at'),
-      hm: btn.textContent.replace('○', '').replace('✓', '')
-          .replace('–', '').replace('⊘', '').replace('⏸', '').trim()
+      dueAt: btn.getAttribute('data-due-at')
     };
   }
 
-  // markApplied flips the toggle button to its done state IN PLACE — the
-  // button stays live (re-click undoes); the view link is untouched.
-  function markApplied(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.remove('btn-warning', 'btn-light', 'plan-med-apply');
-    btn.classList.add('btn-success', 'plan-med-unapply');
-    btn.textContent = '✓ ' + ref.hm;
-    btn.disabled = false;
-  }
-
-  function markOpen(ref) {
-    var btn = ref.btn;
-    if (!btn) { return; }
-    btn.classList.remove('btn-success', 'plan-med-unapply');
-    btn.classList.add('btn-warning', 'plan-med-apply');
-    btn.textContent = '○ ' + ref.hm;
-    btn.disabled = false;
-  }
+  // Phase 0b t7: the toggle flip (classes, glyph, colour) lives ONCE in
+  // `care_plan/_apply_toggle.plush.html` as window.planSetToggleState —
+  // this partial keeps only the medication-specific bits (dosage dialog,
+  // late confirm, apply/unapply calls).
+  function flipTo(btn, applied) { window.planSetToggleState(btn, applied); }
 
   function showDosageDialog(ref, warn, btn) {
     pending = {ref: ref, btn: btn || null};
@@ -134,7 +118,7 @@
     var ref = btnRef(btn);
     btn.disabled = true;
     applyCall(ref).then(function (res) {
-      if (res.status === 201) { markApplied(ref); return; }
+      if (res.status === 201) { flipTo(ref.btn, true); return; }
       btn.disabled = false;
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
         showDosageDialog(ref, res.body, btn);
@@ -156,7 +140,7 @@
         delete_fulfillment: true
       })
     }).then(function (r) {
-      if (r.status === 200) { markOpen(ref); return; }
+      if (r.status === 200) { flipTo(ref.btn, false); return; }
       btn.disabled = false;
       r.json().then(function (j) {
         showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
@@ -189,7 +173,7 @@
     applyCall(ref, {dosage: dosage}).then(function (res) {
       if (res.status === 201) {
         $('#planMedDosageModal').modal('hide');
-        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        if (ref.btn) { flipTo(ref.btn, true); } else { window.location.reload(); }
         return;
       }
       var box = document.getElementById('planMedDosageError');

@@ -293,9 +293,12 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	// detailed: every open occurrence is its own tier row; overridden
 	// surfaces in the history section only in this density.
 	dv := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, now)
-	require.Len(t, dv.Tiers[0].Cards, 1)
-	require.Len(t, dv.Tiers[1].Cards, 1, "today's due slot")
-	require.Len(t, dv.Tiers[2].Cards, 1, "tomorrow's scheduled slot")
+	// Phase 4 / D4 (§3.1): repeating occurrences merge into ONE line per
+	// (source × animal) in BOTH densities — the three open occurrences of
+	// (med-1 × animal 1) fold to one line (tiered by its most urgent slot,
+	// late) carrying a Slots list; overridden stays detailed-only in history.
+	require.Len(t, dv.Tiers[0].Cards, 1, "merged line: one (med-1 × animal 1) line, late tier")
+	require.Len(t, dv.Tiers[0].Cards[0].Slots, 3, "the line carries every open occurrence as a toggle")
 	require.Len(t, dv.History, 2, "applied + overridden (detailed debug surface)")
 }
 

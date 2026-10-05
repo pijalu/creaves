@@ -182,8 +182,9 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		out, err := plush.Render(string(raw), plush.NewContextWith(map[string]interface{}{
-			"mg": meds[0],
-			"t":  func(s string) string { return s },
+			"mg":            meds[0],
+			"t":             func(s string) string { return s },
+			"partialFeeder": carePlanPartialFeeder(t),
 		}))
 		require.NoError(t, err, f)
 
@@ -226,8 +227,9 @@ func TestMedSeriesLayoutAndInfoFirst(t *testing.T) {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		out, err := plush.Render(string(raw), plush.NewContextWith(map[string]interface{}{
-			"mg": mg,
-			"t":  func(s string) string { return s },
+			"mg":            mg,
+			"t":             func(s string) string { return s },
+			"partialFeeder": carePlanPartialFeeder(t),
 		}))
 		require.NoError(t, err, f)
 
@@ -285,8 +287,9 @@ func TestMedSeriesNoRedundantLatePill(t *testing.T) {
 		require.NoError(t, err, f)
 		for _, mg := range meds {
 			out, err := plush.Render(string(raw), plush.NewContextWith(map[string]interface{}{
-				"mg": mg,
-				"t":  func(s string) string { return s },
+				"mg":            mg,
+				"t":             func(s string) string { return s },
+				"partialFeeder": carePlanPartialFeeder(t),
 			}))
 			require.NoError(t, err, f)
 			outs[f] += out

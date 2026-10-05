@@ -160,11 +160,12 @@ func TestGroupCheckIsCentredInItsRow(t *testing.T) {
 	require.Contains(t, css, "vertical-align: middle !important;",
 		"a `text-nowrap` cell must be told explicitly to centre; the default is top")
 
+	// Phase 0b moved the feeding table into the _plan_tier_feed_table partial.
 	for _, f := range []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/index.plush.fr.html",
-		"../templates/care_plan/index.plush.de.html",
-		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	} {
 		require.Contains(t, readTemplate(t, f), `class="text-nowrap plan-feed-check"`,
 			f+": the group check cell must carry the centring class")

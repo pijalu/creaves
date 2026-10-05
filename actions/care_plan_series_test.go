@@ -174,8 +174,9 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		ctx := plush.NewContextWith(map[string]interface{}{
-			"mg": mg,
-			"t":  func(s string) string { return s },
+			"mg":            mg,
+			"t":             func(s string) string { return s },
+			"partialFeeder": carePlanPartialFeeder(t),
 		})
 		out, err := plush.Render(string(raw), ctx)
 		require.NoError(t, err, f)
@@ -236,6 +237,7 @@ func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
 		dashCtx := plush.NewContextWith(map[string]interface{}{
 			"mg": mg, "t": func(s string) string { return s },
 			"medSeriesCompact": true,
+			"partialFeeder":    carePlanPartialFeeder(t),
 		})
 		dash, err := plush.Render(string(raw), dashCtx)
 		require.NoError(t, err, f)
@@ -246,6 +248,7 @@ func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
 		// Care-plan context: flag unset — bucket divider stays.
 		planCtx := plush.NewContextWith(map[string]interface{}{
 			"mg": mg, "t": func(s string) string { return s },
+			"partialFeeder": carePlanPartialFeeder(t),
 		})
 		plan, err := plush.Render(string(raw), planCtx)
 		require.NoError(t, err, f)

@@ -1,0 +1,62 @@
+<%# ONE medication slot toggle (Phase 0b — extracted from `_med_series`):
+    the button for a single (drug series × hour) occurrence, in ALL its
+    states. The variant logic lives here exactly once; `_med_series` owns
+    the rows/slots loops and the day badges around the button.
+
+    Context (both propagated from the caller's loops):
+      slot — the MedSlotView to render (tier class, status, flags, times,
+             data attributes).
+      mg   — the enclosing MedGroupView (animal id/label for the data
+             attributes).
+
+    States (colour = the slot's urgency tier, R4-1.1 — late red · due-now
+    yellow · future white · applied green; the glyph and the title carry
+    the state):
+      applied    → ✓ — ONE live toggle (R5-2c): re-click undoes, no
+                   confirm, no reload; disabled only when the record can
+                   no longer be undone (slot.CanUndo).
+      skipped    → ⊘ — terminal here, read-only (btn-light, disabled).
+      deferred   → ⏸ — terminal here, read-only (btn-light, disabled).
+      applicable → ○ — the to-do toggle; data-kind="medication" so the
+                   shared toggle JS can route it; the urgent slot of the
+                   series gets a red ring (plan-med-urgent, R4-1.2), its
+                   future siblings recede (plan-med-future).
+      late       → – — past-due, unapplied, out of the apply window but
+                   still clickable (§6.2-2): record anyway (late). The
+                   affordance (data-late) stays orthogonal to the colour.
+      otherwise  → – — disabled placeholder (a slot the caregiver can no
+                   longer act on); keeps the slot's tier colour. %>
+<%= if (slot.Applied) { %>
+  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
+    <%= if (!slot.CanUndo) { %>disabled <% } %>
+    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+    data-tier-class="<%= slot.TierClass %>"
+    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+    title="<%= t("care_plan.slot." + slot.Slot) %>">✓ <%= slot.DueAtHM %></button>
+<% } else if (slot.Status == "skipped") { %>
+  <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
+    title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></button>
+<% } else if (slot.Status == "deferred") { %>
+  <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
+    title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></button>
+<% } else if (slot.Applicable) { %>
+  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %><%= if (slot.Future) { %> plan-med-future<% } %>"
+    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+    data-kind="medication" data-tier-class="<%= slot.TierClass %>"
+    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+    data-source-name="<%= slot.SourceName %>"
+    title="<%= t("care_plan.apply.action") %> — <%= t("care_plan.slot." + slot.Slot) %>">○ <%= slot.DueAtHM %></button>
+<% } else if (slot.LateAllowed) { %>
+  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %>"
+    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+    data-kind="medication" data-late="true" data-tier-class="<%= slot.TierClass %>"
+    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+    data-source-name="<%= slot.SourceName %>"
+    title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueAtHM %></button>
+<% } else { %>
+  <button type="button" class="btn <%= slot.TierClass %> plan-med-slot plan-med-btn" disabled
+    title="<%= t("care_plan.slot." + slot.Slot) %>">– <%= slot.DueAtHM %></button>
+<% } %>

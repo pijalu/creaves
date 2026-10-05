@@ -655,6 +655,9 @@ type FeedingChip struct {
 	// (source × animal) beyond the displayed chip — rendered "+N" so the
 	// summary strip's occurrence counts stay visible (Zeigarnik).
 	Remaining int
+	// Phase-0b: ONE colour policy (slotTierClass) — the toggle button's
+	// tier colour, populated from the item status at build time.
+	TierClass string
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan
@@ -797,6 +800,7 @@ func feedingChipOf(it *careplan.PlanItem, src careplan.PlanSource, label string,
 		DueShortDate:  due.ShortDate,
 		Applicable:    it.Applicable,
 		OuttakenToday: outtakenToday,
+		TierClass:     slotTierClass(tierOrder(it.Status)),
 	}
 	if reason := SupersededReason(it, now); reason != "" {
 		chip.Superseded = true

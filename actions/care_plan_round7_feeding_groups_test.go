@@ -129,13 +129,15 @@ func TestFeedingRowHeaderStatesTheEarliestTime(t *testing.T) {
 }
 
 // TestFeedingRowMarkupCollapsesAndFoldsTheTime: the template, in all four
-// locale forks.
+// locale forks. Phase 0b moved the feeding cage×diet table out of
+// index.plush.html into the _plan_tier_feed_table partial (still x4 forks),
+// so that partial is what this scans.
 func TestFeedingRowMarkupCollapsesAndFoldsTheTime(t *testing.T) {
 	forks := []string{
-		"../templates/care_plan/index.plush.html",
-		"../templates/care_plan/index.plush.fr.html",
-		"../templates/care_plan/index.plush.de.html",
-		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	}
 	for _, f := range forks {
 		raw := readTemplate(t, f)

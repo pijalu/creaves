@@ -159,167 +159,57 @@
        below and never appear in the tiers. %>
   <%= if (view.Kind != "feeding" && view.Kind != "cleanup") { %>
 
-    <%= if (view.TierHasWork[0]) { %>
-    <div class="plan-tier plan-tier-late" id="tier-late">
-      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-late-rows" aria-expanded="true" role="button" tabindex="0">
-        <span><%= t("care_plan.tier.late") %></span>
-        <span class="badge badge-pill badge-danger"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[0] %><% } else { %><%= view.Tiers[0].CountCap %><% } %></span>
-        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-      </div>
-      <div class="collapse show plan-tier-body" id="tier-late-rows">
-<%= if (view.Kind == "medication") { %>
-        <%# R3-5: one line per (animal x drug series) — the shared
-            `_med_series` partial renders the hour-toggle buttons; the
-            renamed plan-med-apply/plan-med-unapply classes keep these
-            slots OUT of this page's table apply/undo bindings (the
-            `_plan_med_toggle` partial owns them). %>
-        <div class="px-2 py-1">
-          <%= for (mg) in view.MedTiers[0] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-              <%# R4-7.15: the ANIMAL column. It had no width and no
-                  background, so the labels stopped reading as a column
-                  (measured: 13 distinct widths across 36 cells, every one
-                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
-                  page, sized from the longest label — a per-row min-width
-                  would still leave the longest row wider, and a hard-coded px
-                  would cut a long label (R4-7.24). %>
-              <%# R9: the shared column width is gone — the cell sizes to
-                  its content so the line reads <info> <animal> | <drug> |
-                  <toggles> on ONE line (no long empty animal space). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal">
-                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
-              </div>
-              <%= partial("care_plan/med_series.plush.html") %>
-            </div>
-          <% } %>
-        </div>
-      <% } else { %>
-        <div class="px-2">
-            <%= for (card) in view.Tiers[0].Cards { %>
-              <%= partial("care_plan/plan_row_line.plush.html") %>
-            <% } %>
-          </div>
-      <% } %>
-      </div>
-    </div>
+    <%# Every tier panel renders through the ONE `_plan_tier` component
+        (used as a layout): the body partial is rendered first and the
+        tier wraps it in the bordered panel + header + collapse. %>
+    <%= for (ti) in [0, 1, 2] { %>
+    <%= if (view.TierHasWork[ti]) { %>
+    <%= if (view.Kind == "medication") { %>
+      <%= partial("care_plan/plan_tier_med_rows.plush.html", {
+        medGroups: view.MedTiers[ti],
+        tierKey: view.Tiers[ti].Key,
+        tierId: "tier-" + view.Tiers[ti].Key,
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+        tierBadgeClass: view.Tiers[ti].BadgeClass,
+        tierCount: view.MedTierOpenCap[ti],
+        tierExpanded: true,
+        tierDoneCount: 0,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } else { %>
+      <%= partial("care_plan/plan_tier_rows.plush.html", {
+        tierCards: view.Tiers[ti].Cards,
+        tierKey: view.Tiers[ti].Key,
+        tierId: "tier-" + view.Tiers[ti].Key,
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+        tierBadgeClass: view.Tiers[ti].BadgeClass,
+        tierCount: view.Tiers[ti].CountCap,
+        tierExpanded: true,
+        tierDoneCount: 0,
+        layout: "care_plan/plan_tier.plush.html"}) %>
     <% } %>
-
-    <%= if (view.TierHasWork[1]) { %>
-    <div class="plan-tier plan-tier-now" id="tier-now">
-      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-now-rows" aria-expanded="true" role="button" tabindex="0">
-        <span><%= t("care_plan.tier.now") %></span>
-        <span class="badge badge-pill badge-warning"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[1] %><% } else { %><%= view.Tiers[1].CountCap %><% } %></span>
-        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-      </div>
-      <div class="collapse show plan-tier-body" id="tier-now-rows">
-<%= if (view.Kind == "medication") { %>
-        <%# R3-5: one line per (animal x drug series) — the shared
-            `_med_series` partial renders the hour-toggle buttons; the
-            renamed plan-med-apply/plan-med-unapply classes keep these
-            slots OUT of this page's table apply/undo bindings (the
-            `_plan_med_toggle` partial owns them). %>
-        <div class="px-2 py-1">
-          <%= for (mg) in view.MedTiers[1] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-              <%# R4-7.15: the ANIMAL column. It had no width and no
-                  background, so the labels stopped reading as a column
-                  (measured: 13 distinct widths across 36 cells, every one
-                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
-                  page, sized from the longest label — a per-row min-width
-                  would still leave the longest row wider, and a hard-coded px
-                  would cut a long label (R4-7.24). %>
-              <%# R9: the shared column width is gone — the cell sizes to
-                  its content so the line reads <info> <animal> | <drug> |
-                  <toggles> on ONE line (no long empty animal space). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal">
-                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
-              </div>
-              <%= partial("care_plan/med_series.plush.html") %>
-            </div>
-          <% } %>
-        </div>
-      <% } else { %>
-        <div class="px-2">
-            <%= for (card) in view.Tiers[1].Cards { %>
-              <%= partial("care_plan/plan_row_line.plush.html") %>
-            <% } %>
-          </div>
-      <% } %>
-      </div>
-    </div>
     <% } %>
-
-    <%= if (view.TierHasWork[2]) { %>
-    <div class="plan-tier plan-tier-later" id="tier-later">
-      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-later-rows" aria-expanded="true" role="button" tabindex="0">
-        <span><%= t("care_plan.tier.later") %></span>
-        <span class="badge badge-pill badge-success"><%= if (view.Kind == "medication") { %><%= view.MedTierOpenCap[2] %><% } else { %><%= view.Tiers[2].CountCap %><% } %></span>
-        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-      </div>
-      <div class="collapse show plan-tier-body" id="tier-later-rows">
-<%= if (view.Kind == "medication") { %>
-        <%# R3-5: one line per (animal x drug series) — the shared
-            `_med_series` partial renders the hour-toggle buttons; the
-            renamed plan-med-apply/plan-med-unapply classes keep these
-            slots OUT of this page's table apply/undo bindings (the
-            `_plan_med_toggle` partial owns them). %>
-        <div class="px-2 py-1">
-          <%= for (mg) in view.MedTiers[2] { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-              <%# R4-7.15: the ANIMAL column. It had no width and no
-                  background, so the labels stopped reading as a column
-                  (measured: 13 distinct widths across 36 cells, every one
-                  `bg=rgba(0,0,0,0)`). The width is ONE value for the whole
-                  page, sized from the longest label — a per-row min-width
-                  would still leave the longest row wider, and a hard-coded px
-                  would cut a long label (R4-7.24). %>
-              <%# R9: the shared column width is gone — the cell sizes to
-                  its content so the line reads <info> <animal> | <drug> |
-                  <toggles> on ONE line (no long empty animal space). %>
-              <div class="mr-2 text-nowrap py-1 plan-med-animal">
-                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
-              </div>
-              <%= partial("care_plan/med_series.plush.html") %>
-            </div>
-          <% } %>
-        </div>
-      <% } else { %>
-        <div class="px-2">
-            <%= for (card) in view.Tiers[2].Cards { %>
-              <%= partial("care_plan/plan_row_line.plush.html") %>
-            <% } %>
-          </div>
-      <% } %>
-      </div>
-    </div>
     <% } %>
 
     <%# R9-2: the medication "Done" tier — a series lands here ONLY when
-        EVERY repeated occurrence is applied (100%). Same header/collapse
-        markup and `_med_series` line layout as the open tiers, darker
+        EVERY repeated occurrence is applied (100%). Same `_plan_tier`
+        component and `_med_series` line layout as the open tiers, darker
         green, labelled "Done", collapsed by default. Each green ✓ toggle
         stays a live undo (re-click returns the series to its open tier on
         the next refresh). Medication-only. %>
     <%= if (view.Kind == "medication" && len(view.MedDone) > 0) { %>
-    <div class="plan-tier plan-tier-done" id="tier-done" data-done-count="<%= view.MedDoneCount %>">
-      <div class="plan-tier-header" data-toggle="collapse" data-target="#tier-done-rows" aria-expanded="false" role="button" tabindex="0">
-        <span><%= t("care_plan.tier.done") %></span>
-        <span class="badge badge-pill badge-success"><%= view.MedDoneCountCap %></span>
-        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-      </div>
-      <div class="collapse plan-tier-body" id="tier-done-rows">
-        <div class="px-2 py-1">
-          <%= for (mg) in view.MedDone { %>
-            <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-              <div class="mr-2 text-nowrap py-1 plan-med-animal">
-                <a href="<%= mg.AnimalLink %>"><%= mg.AnimalLabel %></a>
-              </div>
-              <%= partial("care_plan/med_series.plush.html") %>
-            </div>
-          <% } %>
-        </div>
-      </div>
-    </div>
+    <%= partial("care_plan/plan_tier_med_rows.plush.html", {
+      medGroups: view.MedDone,
+      tierKey: "done",
+      tierId: "tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.MedDoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.MedDoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
     <% } %>
 
   <% } %>
@@ -346,161 +236,18 @@
     <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
     <%= for (ti) in [0, 1, 2] { %>
       <%= if (len(view.FeedTiers[ti]) > 0) { %>
-        <div class="plan-tier plan-tier-<%= view.FeedTiers[ti][0].TierKey %>" id="feed-tier-<%= ti %>">
-          <div class="plan-tier-header" data-toggle="collapse" data-target="#feed-tier-<%= ti %>-rows" aria-expanded="true" role="button" tabindex="0">
-            <span><%= t("care_plan.tier." + view.FeedTiers[ti][0].TierKey) %></span>
-            <span class="badge badge-pill badge-secondary"><%= view.FeedTierOpenCap[ti] %></span>
-            <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-          </div>
-          <div class="collapse show plan-tier-body" id="feed-tier-<%= ti %>-rows">
-            <table class="table table-hover table-bordered mb-0">
-              <tbody>
-                <%= for (fi, fcard) in view.FeedTiers[ti] { %>
-                  <%# Rev: the row itself opens the shared read-only detail
-                      modal — full ration text, EVERY due time, group status —
-                      the same planDetailModal the medication ℹ buttons fill.
-                      Chips/expand/apply keep their own behavior (the JS
-                      guards the row click against interactive children). %>
-                  <tr class="plan-feeding-row" tabindex="0" role="button"
-                      data-animal-label="<%= fcard.Cage %> (<%= fcard.AnimalCount %>)"
-                      data-detail="<%= fcard.Food %>"
-                      data-kind="feeding"
-                      data-due="<%= fcard.DetailTimes %>"
-                      data-status="<%= fcard.GroupStatus %>">
-                    <td>
-                      <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
-                      <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
-                      <br><span class="text-info"><%= fcard.Food %></span>
-                      <%= if (fcard.ForceFeed) { %>
-                        <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
-                      <% } %>
-                    </td>
-                    <%# R4-7.14c: with more than one animal the list COLLAPSES by
-                        default. Measured before: 29 of 162 rows held several
-                        animals, all expanded, and the row with 47 chips stood
-                        321 px tall — so the caregiver scrolled past an
-                        undifferentiated column of animal numbers to find the
-                        one due now. A single-animal row is one line with
-                        nothing to expand, so it renders open.
-
-                        R4-7.14b: the chips are folded into due-time
-                        sub-groups, so the expected time is stated ONCE per
-                        sub-group instead of once per animal. The chip keeps the
-                        same label, link and buttons; it loses the repeated
-                        time, which the sub-group header now carries.
-
-                        The collapse id is stable across a refresh (tier index +
-                        row index), so auto-refresh does not collapse a list the
-                        caregiver has just opened. %>
-                    <td class="plan-feed-animals">
-                      <%= if (fcard.Collapsible) { %>
-                        <div class="plan-feed-header" data-toggle="collapse" data-target="#feed-animals-<%= ti %>-<%= fi %>"
-                             aria-expanded="false" role="button" tabindex="0"
-                             title="<%= t("care_plan.feeding.show_animals") %>">
-                          <span class="badge badge-pill badge-light plan-feed-count"><%= fcard.AnimalCountCap %></span>
-                          <span class="plan-feed-when">
-                            <%# The header must still say WHAT is due while the
-                                list is closed, or collapsing hides the work. %>
-                            <%# R8-1: the collapsed header keeps the DAY — a
-                                late group must not read "from 18:00" with
-                                no hint it is yesterday's 18:00. %>
-                            <%= if (fcard.FirstTimeLabel != "") { %><%= t("care_plan.feeding.earliest") %> <%= if (fcard.FirstTimeShortDate != "") { %><%= fcard.FirstTimeShortDate %> <% } else if (fcard.FirstTimeDayKey != "") { %><%= t(fcard.FirstTimeDayKey) %> <% } %><%= fcard.FirstTimeLabel %><% } %>
-                            <% if (len(fcard.TimeGroups) > 1) { %> · +<%= len(fcard.TimeGroups) - 1 %><% } %>
-                          </span>
-                          <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
-                        </div>
-                        <div class="collapse" id="feed-animals-<%= ti %>-<%= fi %>">
-                      <% } %>
-                      <%= for (tg) in fcard.TimeGroups { %>
-                        <div class="plan-time-group">
-                          <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
-                            <%# Same day-aware expression the chip used to carry,
-                                so "tomorrow 16:00" and "02/01 16:00" still read
-                                as themselves — once per sub-group. %>
-                            <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
-                            <% if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
-                          </div>
-                      <%= for (chip) in tg.Chips { %>
-                        <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
-                          <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
-                            <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
-                          </a>
-                          <span class="d-flex align-items-center">
-                            <%= if (chip.Superseded) { %>
-                              <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
-                            <% } else { %>
-                              <%# R4-3.3: no redundant status PILL — the tier
-                                  section and the group dot carry the state.
-                                  The text stays for assistive tech only. %>
-                              <span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span>
-                              <%# R4-7.5: the per-ANIMAL check only earns its place when the
-                                  cage holds several animals; with a single one the GROUP check
-                                  does the whole job. The invisible spacer keeps the row footprint —
-                                  and the column alignment — identical either way. %>
-                              <%= if (len(fcard.Chips) > 1) { %>
-                                <%= if (chip.Applicable) { %>
-                                  <button type="button" class="btn btn-outline-secondary btn-sm plan-feeding-one"
-                                    data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
-                                    data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
-                                    data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                                    data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                    title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
-                                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-unapply-btn d-none"
-                                    data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                                    data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                                    title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
-                                <% } %>
-                              <% } else { %>
-                                <span class="plan-apply-space" aria-hidden="true"></span>
-                              <% } %>
-                            <% } %>
-                            <%= if (chip.OuttakenToday) { %>
-                              <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
-                            <% } %>
-                          </span>
-                        </div>
-                      <% } %>
-                        </div>
-                      <% } %>
-                      <%= if (fcard.Collapsible) { %>
-                        </div>
-                      <% } %>
-                    </td>
-                    <%# R4-7.14: the GROUP check was top-aligned inside a cell
-                        that grows with the animal list (measured: a 321 px cell
-                        with the button 10.5 px from the top and 280.5 px from
-                        the bottom), so on a cage with many animals the check
-                        floated at the top of an otherwise empty column and read
-                        as belonging to the FIRST animal only. plan-feed-check
-                        centres it in the row, where it belongs to the group. %>
-                    <td class="text-nowrap plan-feed-check">
-                      <%# R4-4.2: the count is a corner overlay, never a button
-                          child — the button keeps a constant width and the
-                          count stays visible at N=1. %>
-                      <%= if (fcard.ApplicableCount > 0) { %>
-                        <span class="position-relative d-inline-block">
-                          <button type="button" class="btn btn-outline-secondary plan-feeding-apply"
-                            data-items="<%= fcard.ChipRefsJSON %>"
-                            data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
-                            aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
-                            title="<%= t("care_plan.card.apply_group") %>">
-                            <i class="far fa-clock"></i>
-                          </button>
-                          <%# R4-7.5: a lone animal needs no counter — the pill only
-                              says "1" — and a darker badge stays readable
-                              against the row background. %>
-                          <%= if (len(fcard.Chips) > 1) { %>
-                            <span class="badge badge-pill badge-secondary plan-apply-count"><%= fcard.ApplicableCount %></span>
-                          <% } %>
-                        </span>
-                      <% } %>
-                    </td>
-                  </tr>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
+          <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+            feedCards: view.FeedTiers[ti],
+            ti: ti,
+            tierKey: view.FeedTiers[ti][0].TierKey,
+            tierId: "feed-tier-",
+            tierIdNum: ti,
+            tierLabelKey: "care_plan.tier." + view.FeedTiers[ti][0].TierKey,
+            tierBadgeClass: "badge-secondary",
+            tierCount: view.FeedTierOpenCap[ti],
+            tierExpanded: true,
+            tierDoneCount: 0,
+            layout: "care_plan/plan_tier.plush.html"}) %>
       <% } %>
     <% } %>
   <% } %>
@@ -522,7 +269,7 @@
               <%# R4-4.2: corner overlay count — the button keeps a constant
                   width and the count stays visible at N=1. %>
               <span class="position-relative d-inline-block">
-                <button type="button" class="btn btn-outline-secondary plan-cage-apply"
+                <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply"
                   data-items="<%= ccard.ChipRefsJSON %>"
                   data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
                   aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
@@ -542,86 +289,20 @@
        superseded rows of the ROW kinds — medication included (its done
        rows carry undo, fulfillment links and the late-record action). %>
   <%= if (len(view.History) > 0) { %>
-    <div class="mb-2">
-      <button class="btn btn-outline-secondary position-relative mb-1" type="button" data-toggle="collapse" data-target="#plan-history-rows" aria-expanded="false">
-        <%= t("care_plan.section.history") %>
-        <span class="badge badge-pill badge-secondary position-absolute" style="top:-0.6em;right:-0.6em;"><%= len(view.History) %></span>
-      </button>
-      <div class="collapse" id="plan-history-rows">
-        <table class="table table-sm table-hover table-bordered mb-0">
-          <tbody>
-            <%= for (card) in view.History { %>
-              <tr class="plan-item text-muted">
-                <td>
-                  <%= if (card.AnimalLink != "") { %>
-                    <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
-                  <% } else { %>
-                    <%= card.AnimalLabel %>
-                  <% } %>
-                </td>
-                <td>
-                  <%= if (card.Detail != "") { %>
-                    <strong><%= card.Detail %></strong>
-                    <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
-                  <% } else { %>
-                    <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
-                  <% } %>
-                </td>
-                <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
-                <td class="text-nowrap">
-                  <%= if (card.Superseded) { %>
-                    <span class="badge badge-light"<%= if (card.SupersededBy != "") { %> title="<%= t("care_plan.superseded.replaced_by") %> <%= card.SupersededBy %>"<% } %>><%= t("care_plan.status." + card.Status) %></span>
-                  <% } else if (card.Status == "applied") { %>
-                    <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
-                  <% } else if (card.Status == "skipped") { %>
-                    <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
-                  <% } else if (card.Status == "deferred") { %>
-                    <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
-                  <% } else if (card.Status == "overridden") { %>
-                    <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
-                  <% } else { %>
-                    <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
-                  <% } %>
-                  <%= if (card.RecordedLate) { %>
-                    <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>
-                  <% } %>
-                  <%= if (card.FulfillmentLink != "") { %>
-                    <a class="btn btn-outline-success btn-sm ml-1" href="<%= card.FulfillmentLink %>"><%= t("care_plan.fulfillment.view") %></a>
-                  <% } %>
-                  <%= if (card.Superseded && card.LateAllowed) { %>
-                    <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-late-btn" title="<%= t("care_plan.treatment.record_late") %>"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                      data-kind="<%= card.ActionKind %>"
-                      data-animal-label="<%= card.AnimalLabel %>"
-                      data-detail="<%= card.Detail %>"
-                      data-source-name="<%= card.SourceName %>">
-                      <%= t("care_plan.treatment.record_late") %>
-                    </button>
-                  <% } %>
-                  <%= if (card.Undoable) { %>
-                    <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-history-undo"
-                      data-source-type="<%= card.SourceType %>"
-                      data-source-id="<%= card.SourceID %>"
-                      data-animal-id="<%= card.AnimalID %>"
-                      data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>">
-                      <%= t("care_plan.action.undo") %>
-                    </button>
-                  <% } %>
-                  <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-                    data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-                    data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-                    data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-                    data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-                </td>
-              </tr>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <%# History is a first-class tier: it renders through the same
+        `_plan_tier` component as Late/Now/Later/Done, so it gains the
+        bordered panel by construction (it was a bare button before). %>
+    <%= partial("care_plan/plan_history_table.plush.html", {
+      historyCards: view.History,
+      tierKey: "history",
+      tierId: "plan-history",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.section.history",
+      tierBadgeClass: "badge-secondary",
+      tierCount: len(view.History),
+      tierExpanded: false,
+      tierDoneCount: 0,
+      layout: "care_plan/plan_tier.plush.html"}) %>
   <% } %>
 
 </div>

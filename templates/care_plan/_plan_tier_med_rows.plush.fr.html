@@ -1,0 +1,14 @@
+<%# Body of a medication tier (Late/Now/Later/Done): one line per
+    (animal × drug series). Rendered through the `_plan_tier` layout by
+    the caller, which passes `medGroups` (the tier's MedSeriesGroups) in
+    the partial data map.
+
+    Phase 0b: the row shell itself (animal cell + `_med_series`) is the
+    `_plan_med_row` component — this partial only owns the loop. The
+    loop variable `mg` propagates into the nested partial through the
+    shared template context (the same mechanism `_med_series` uses). %>
+<div class="px-2 py-1">
+  <%= for (mg) in medGroups { %>
+    <%= partial("care_plan/plan_med_row.plush.html") %>
+  <% } %>
+</div>

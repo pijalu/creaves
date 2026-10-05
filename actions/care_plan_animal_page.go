@@ -447,6 +447,7 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		DueShortDate: parts.ShortDate,
 		Status:       string(it.Status),
 		Tier:         tierOrder(it.Status),
+		TierClass:    slotTierClass(tierOrder(it.Status)),
 		Applicable:   it.Applicable,
 		SourceLink:   cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
 	}

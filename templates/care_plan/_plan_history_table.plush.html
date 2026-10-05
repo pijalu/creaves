@@ -1,0 +1,77 @@
+<%# Body of the History tier: terminal + superseded rows of the ROW kinds
+    — medication included (its done rows carry undo, fulfillment links and
+    the late-record action). Rendered through the `_plan_tier` layout by
+    the caller, which passes `historyCards` (view.History) in the partial
+    data map. %>
+<table class="table table-sm table-hover table-bordered mb-0">
+  <tbody>
+    <%= for (card) in historyCards { %>
+      <tr class="plan-item text-muted">
+        <td>
+          <%= if (card.AnimalLink != "") { %>
+            <a href="<%= card.AnimalLink %>"><%= card.AnimalLabel %></a>
+          <% } else { %>
+            <%= card.AnimalLabel %>
+          <% } %>
+        </td>
+        <td>
+          <%= if (card.Detail != "") { %>
+            <strong><%= card.Detail %></strong>
+            <br><small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
+          <% } else { %>
+            <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
+          <% } %>
+        </td>
+        <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+        <td class="text-nowrap">
+          <%= if (card.Superseded) { %>
+            <span class="badge badge-light"<%= if (card.SupersededBy != "") { %> title="<%= t("care_plan.superseded.replaced_by") %> <%= card.SupersededBy %>"<% } %>><%= t("care_plan.status." + card.Status) %></span>
+          <% } else if (card.Status == "applied") { %>
+            <span class="badge badge-success"><%= t("care_plan.status.applied") %></span>
+          <% } else if (card.Status == "skipped") { %>
+            <span class="badge badge-secondary"><%= t("care_plan.status.skipped") %></span>
+          <% } else if (card.Status == "deferred") { %>
+            <span class="badge badge-info"><%= t("care_plan.status.deferred") %></span>
+          <% } else if (card.Status == "overridden") { %>
+            <span class="badge badge-light"><%= t("care_plan.status.overridden") %></span>
+          <% } else { %>
+            <span class="badge badge-danger"><%= t("care_plan.status.missing") %></span>
+          <% } %>
+          <%= if (card.RecordedLate) { %>
+            <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>
+          <% } %>
+          <%= if (card.FulfillmentLink != "") { %>
+            <a class="btn btn-outline-success btn-sm ml-1" href="<%= card.FulfillmentLink %>"><%= t("care_plan.fulfillment.view") %></a>
+          <% } %>
+          <%= if (card.Superseded && card.LateAllowed) { %>
+            <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-late-btn" title="<%= t("care_plan.treatment.record_late") %>"
+              data-source-type="<%= card.SourceType %>"
+              data-source-id="<%= card.SourceID %>"
+              data-animal-id="<%= card.AnimalID %>"
+              data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+              data-kind="<%= card.ActionKind %>"
+              data-animal-label="<%= card.AnimalLabel %>"
+              data-detail="<%= card.Detail %>"
+              data-source-name="<%= card.SourceName %>">
+              <%= t("care_plan.treatment.record_late") %>
+            </button>
+          <% } %>
+          <%= if (card.Undoable) { %>
+            <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-history-undo"
+              data-source-type="<%= card.SourceType %>"
+              data-source-id="<%= card.SourceID %>"
+              data-animal-id="<%= card.AnimalID %>"
+              data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>">
+              <%= t("care_plan.action.undo") %>
+            </button>
+          <% } %>
+          <button type="button" class="btn btn-outline-secondary btn-sm ml-1 plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+            data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+            data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+            data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+            data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

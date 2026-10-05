@@ -48,10 +48,20 @@ var carePlanToDoForks = []string{
 	"../templates/animals/show.plush.de.html",
 	"../templates/animals/show.plush.nl.html",
 	// R4-7.16 moved the observation/care/weighing apply control out of the
-	// three duplicated tier tables into ONE shared, locale-agnostic partial.
-	// It is a to-do control like the others, so it belongs in this scan — and
-	// being locale-agnostic it exists ONCE, not per fork.
-	"../templates/care_plan/_plan_row_line.plush.html",
+	// three duplicated tier tables into ONE shared partial; Phase 0b evolved
+	// it into `_plan_item_line`, which (like every care_plan component) is
+	// forked per locale — the four copies are byte-identical by policy.
+	"../templates/care_plan/_plan_item_line.plush.html",
+	"../templates/care_plan/_plan_item_line.plush.fr.html",
+	"../templates/care_plan/_plan_item_line.plush.de.html",
+	"../templates/care_plan/_plan_item_line.plush.nl.html",
+	// Phase 0b moved the feeding cage×diet table (the plan-feeding-one and
+	// plan-feeding-apply controls) out of index into its own partial, still
+	// in four locale forks.
+	"../templates/care_plan/_plan_tier_feed_table.plush.html",
+	"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+	"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+	"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 }
 
 // isReplacesKindYesNo reports whether a line's check is the animal page's "does
@@ -104,6 +114,23 @@ func clockInsideToDoControls(t *testing.T, fork, raw string) int {
 			closing := strings.Index(tag, "</button>")
 			require.True(t, open >= 0 && closing > open,
 				fork+": unterminated "+c+" control")
+			// Phase 4 / D4: a MERGED occurrence toggle (plan-item-slot-btn)
+			// speaks the §2.3 med-parity glyph language (○ to-do · ✓ done)
+			// instead of the legacy fa-clock — like `_plan_slot_toggle`, which
+			// TestMedicationSlotsKeepTheirOwnPair pins separately. Skip it
+			// here; TestMergedItemSlotsKeepMedParityGlyph pins that pair.
+			// The needle sits inside the class attribute, so the slot marker
+			// may already lie BEHIND the scan position — re-anchor on the
+			// opening <button …> that owns this needle.
+			tagStart := strings.LastIndex(rest[:at], "<button")
+			require.True(t, tagStart >= 0, fork+": "+c+" needle outside any <button>")
+			if openTag := rest[tagStart:at]; strings.Contains(openTag, "plan-item-slot-btn") {
+				inner := tag[open+1 : closing]
+				require.NotContains(t, inner, `fa-check`,
+					fork+": a merged slot must never carry the done check")
+				rest = tag[closing:]
+				continue
+			}
 			inner := tag[open+1 : closing]
 			require.Contains(t, inner, `<i class="far fa-clock"></i>`,
 				fork+": "+c+" must open with the treatment page's clock")
@@ -131,9 +158,13 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 // half-apply to one locale. R4-7.16 changed the shape: the observation /
 // care / weighing apply control left the three duplicated tier tables of each
 // index fork and now lives in ONE shared partial, so the per-fork index count
-// fell from 6 to 3. The total is therefore 3 clocks x 4 index forks + 1 x 4
-// animal forks + 1 in the shared partial = 17. What must never change is that
-// EVERY to-do control carries the clock — that is asserted per control by
+// fell from 6 to 3. Phase 0b moved the two feeding controls out of index into
+// the _plan_tier_feed_table partial, so the per-fork index count fell to 1
+// (the cleanup cage-apply) while the feed-table forks carry 2 each, and the
+// row-line partial became the forked `_plan_item_line` (1 clock x 4 forks).
+// The total is therefore 1 clock x 4 index forks + 2 x 4 feed-table forks +
+// 1 x 4 animal forks + 1 x 4 item-line forks = 20. What must never change is
+// that EVERY to-do control carries the clock — that is asserted per control by
 // clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only a
 // tripwire against a whole locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
@@ -141,9 +172,9 @@ func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	for _, f := range carePlanToDoForks {
 		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
 	}
-	require.GreaterOrEqual(t, total, 17,
-		"expected the clock 3x in each index fork, 1x in each animal fork, "+
-			"and 1x in the shared row-line partial = 17")
+	require.GreaterOrEqual(t, total, 20,
+		"expected the clock 1x in each index fork, 2x in each feed-table fork, "+
+			"1x in each animal fork, and 1x in each item-line fork = 20")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the
@@ -171,18 +202,40 @@ func TestTreatmentPageKeepsTheReferencePair(t *testing.T) {
 // TestMedicationSlotsKeepTheirOwnPair: the medication slot buttons already
 // spoke this language — open `○`, applied `✓` in a green button. Pinned so the
 // glyph work never "simplifies" them into a check for an open slot.
+// Phase 0b: the slot button is the `_plan_slot_toggle` component (still x4).
 func TestMedicationSlotsKeepTheirOwnPair(t *testing.T) {
 	for _, f := range []string{
-		"../templates/care_plan/_med_series.plush.html",
-		"../templates/care_plan/_med_series.plush.fr.html",
-		"../templates/care_plan/_med_series.plush.de.html",
-		"../templates/care_plan/_med_series.plush.nl.html",
+		"../templates/care_plan/_plan_slot_toggle.plush.html",
+		"../templates/care_plan/_plan_slot_toggle.plush.fr.html",
+		"../templates/care_plan/_plan_slot_toggle.plush.de.html",
+		"../templates/care_plan/_plan_slot_toggle.plush.nl.html",
 	} {
 		raw := readTemplate(t, f)
 		require.Contains(t, raw, `>○ <%= slot.DueAtHM %>`,
 			f+": an open medication slot must stay an empty circle")
 		require.Contains(t, raw, `>✓ <%= slot.DueAtHM %>`,
 			f+": an applied medication slot must keep the check")
+	}
+}
+
+// TestMergedItemSlotsKeepMedParityGlyph (Phase 4 / D4, §2.3): a MERGED
+// occurrence toggle (plan-item-slot-btn) speaks the medication slot language —
+// open `○`, applied `✓` — never the legacy fa-clock and never a green to-do.
+// Pinned across the four item-line forks.
+func TestMergedItemSlotsKeepMedParityGlyph(t *testing.T) {
+	for _, f := range []string{
+		"../templates/care_plan/_plan_item_line.plush.html",
+		"../templates/care_plan/_plan_item_line.plush.fr.html",
+		"../templates/care_plan/_plan_item_line.plush.de.html",
+		"../templates/care_plan/_plan_item_line.plush.nl.html",
+	} {
+		raw := readTemplate(t, f)
+		require.Contains(t, raw, `plan-item-slot-btn plan-apply-btn`,
+			f+": the merged open toggle is a plan-item-slot-btn apply control")
+		require.Contains(t, raw, `>○ <%= slot.DueHM %>`,
+			f+": the open merged toggle stays an empty circle (med parity)")
+		require.Contains(t, raw, `>✓ <%= slot.DueHM %>`,
+			f+": the applied merged toggle keeps the check (med parity)")
 	}
 }
 

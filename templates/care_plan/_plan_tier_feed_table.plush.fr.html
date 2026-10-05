@@ -1,0 +1,163 @@
+<%# Body of a feeding tier (Late/Now/Later, grouped cage × diet): the
+    bordered table of feeding rows. Rendered through the `_plan_tier`
+    layout by the caller, which passes `feedCards` (view.FeedTiers[ti])
+    and `ti` (the tier index, used for stable collapse ids) in the partial
+    data map.
+
+    R4-4.3: urgency is the FIRST level — the cards are grouped into the
+    same late → now → later sections as every other kind (feeding holds
+    most of the workload, so it must not read as a flat list).
+    R4-4.4: ONE status dot per cage × diet group — the group's most
+    urgent chip, next to the label; per-animal nuance stays on the
+    chip's title (screen readers get it via the visually-hidden label).
+    R4-4.2: the "+N" count is a CORNER OVERLAY on the apply button, so
+    the button never changes width and never loses its count at N=1.
+    R4-3.3: no redundant "Late"/"Due" text per chip — the group dot and
+    the tier carry it; the status text stays available to assistive
+    technology (sr-only) and on hover. %>
+<table class="table table-hover table-bordered mb-0">
+  <tbody>
+    <%= for (fi, fcard) in feedCards { %>
+      <%# Rev: the row itself opens the shared read-only detail
+          modal — full ration text, EVERY due time, group status —
+          the same planDetailModal the medication ℹ buttons fill.
+          Chips/expand/apply keep their own behavior (the JS
+          guards the row click against interactive children). %>
+      <tr class="plan-feeding-row" tabindex="0" role="button"
+          data-animal-label="<%= fcard.Cage %> (<%= fcard.AnimalCount %>)"
+          data-detail="<%= fcard.Food %>"
+          data-kind="feeding"
+          data-due="<%= fcard.DetailTimes %>"
+          data-status="<%= fcard.GroupStatus %>">
+        <td>
+          <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
+          <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
+          <br><span class="text-info"><%= fcard.Food %></span>
+          <%= if (fcard.ForceFeed) { %>
+            <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
+          <% } %>
+        </td>
+        <%# R4-7.14c: with more than one animal the list COLLAPSES by
+            default. Measured before: 29 of 162 rows held several
+            animals, all expanded, and the row with 47 chips stood
+            321 px tall — so the caregiver scrolled past an
+            undifferentiated column of animal numbers to find the
+            one due now. A single-animal row is one line with
+            nothing to expand, so it renders open.
+
+            R4-7.14b: the chips are folded into due-time
+            sub-groups, so the expected time is stated ONCE per
+            sub-group instead of once per animal. The chip keeps the
+            same label, link and buttons; it loses the repeated
+            time, which the sub-group header now carries.
+
+            The collapse id is stable across a refresh (tier index +
+            row index), so auto-refresh does not collapse a list the
+            caregiver has just opened. %>
+        <td class="plan-feed-animals">
+          <%= if (fcard.Collapsible) { %>
+            <div class="plan-feed-header" data-toggle="collapse" data-target="#feed-animals-<%= ti %>-<%= fi %>"
+                 aria-expanded="false" role="button" tabindex="0"
+                 title="<%= t("care_plan.feeding.show_animals") %>">
+              <span class="badge badge-pill badge-light plan-feed-count"><%= fcard.AnimalCountCap %></span>
+              <span class="plan-feed-when">
+                <%# The header must still say WHAT is due while the
+                    list is closed, or collapsing hides the work. %>
+                <%# R8-1: the collapsed header keeps the DAY — a
+                    late group must not read "from 18:00" with
+                    no hint it is yesterday's 18:00. %>
+                <%= if (fcard.FirstTimeLabel != "") { %><%= t("care_plan.feeding.earliest") %> <%= if (fcard.FirstTimeShortDate != "") { %><%= fcard.FirstTimeShortDate %> <% } else if (fcard.FirstTimeDayKey != "") { %><%= t(fcard.FirstTimeDayKey) %> <% } %><%= fcard.FirstTimeLabel %><% } %>
+                <% if (len(fcard.TimeGroups) > 1) { %> · +<%= len(fcard.TimeGroups) - 1 %><% } %>
+              </span>
+              <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="collapse" id="feed-animals-<%= ti %>-<%= fi %>">
+          <% } %>
+          <%= for (tg) in fcard.TimeGroups { %>
+            <div class="plan-time-group">
+              <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
+                <%# Same day-aware expression the chip used to carry,
+                    so "tomorrow 16:00" and "02/01 16:00" still read
+                    as themselves — once per sub-group. %>
+                <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
+                <% if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
+              </div>
+          <%= for (chip) in tg.Chips { %>
+            <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
+              <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
+                <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
+              </a>
+              <span class="d-flex align-items-center">
+                <%= if (chip.Superseded) { %>
+                  <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
+                <% } else { %>
+                  <%# R4-3.3: no redundant status PILL — the tier
+                      section and the group dot carry the state.
+                      The text stays for assistive tech only. %>
+                  <span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span>
+                  <%# R4-7.5: the per-ANIMAL check only earns its place when the
+                      cage holds several animals; with a single one the GROUP check
+                      does the whole job. The invisible spacer keeps the row footprint —
+                      and the column alignment — identical either way. %>
+                  <%= if (len(fcard.Chips) > 1) { %>
+                    <%= if (chip.Applicable) { %>
+                      <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one"
+                        data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                        data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                        data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                        data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                        title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
+                      <button type="button" class="btn <%= chip.TierClass %> btn-sm ml-1 plan-unapply-btn d-none"
+                        data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                        data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                        title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                    <% } %>
+                  <% } else { %>
+                    <span class="plan-apply-space" aria-hidden="true"></span>
+                  <% } %>
+                <% } %>
+                <%= if (chip.OuttakenToday) { %>
+                  <span class="ml-1" title="<%= t("care_plan.animal.ready_for_release") %>">🕊️</span>
+                <% } %>
+              </span>
+            </div>
+          <% } %>
+            </div>
+          <% } %>
+          <%= if (fcard.Collapsible) { %>
+            </div>
+          <% } %>
+        </td>
+        <%# R4-7.14: the GROUP check was top-aligned inside a cell
+            that grows with the animal list (measured: a 321 px cell
+            with the button 10.5 px from the top and 280.5 px from
+            the bottom), so on a cage with many animals the check
+            floated at the top of an otherwise empty column and read
+            as belonging to the FIRST animal only. plan-feed-check
+            centres it in the row, where it belongs to the group. %>
+        <td class="text-nowrap plan-feed-check">
+          <%# R4-4.2: the count is a corner overlay, never a button
+              child — the button keeps a constant width and the
+              count stays visible at N=1. %>
+          <%= if (fcard.ApplicableCount > 0) { %>
+            <span class="position-relative d-inline-block">
+              <button type="button" class="btn <%= fcard.TierClass %> plan-feeding-apply"
+                data-items="<%= fcard.ChipRefsJSON %>"
+                data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
+                aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
+                title="<%= t("care_plan.card.apply_group") %>">
+                <i class="far fa-clock"></i>
+              </button>
+              <%# R4-7.5: a lone animal needs no counter — the pill only
+                  says "1" — and a darker badge stays readable
+                  against the row background. %>
+              <%= if (len(fcard.Chips) > 1) { %>
+                <span class="badge badge-pill badge-secondary plan-apply-count"><%= fcard.ApplicableCount %></span>
+              <% } %>
+            </span>
+          <% } %>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>

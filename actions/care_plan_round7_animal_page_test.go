@@ -2,6 +2,7 @@ package actions
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -273,4 +274,24 @@ func readTemplate(t *testing.T, path string) string {
 	raw, err := os.ReadFile(path)
 	require.NoError(t, err, path)
 	return string(raw)
+}
+
+// carePlanPartialFeeder returns a plush `partialFeeder` (the callback the
+// plush `partial()` helper consults for the partial's source) backed by the
+// templates directory on disk: "care_plan/plan_slot_toggle.plush.html"
+// resolves to templates/care_plan/_plan_slot_toggle.plush.html — the same
+// underscore convention Buffalo's renderer uses. Tests that render a
+// partial calling nested partials need this in their plush context,
+// otherwise plush fails with "could not find partial feeder from helpers".
+//
+// The nested partial renders with a CHILD of the test's context, so loop
+// variables (slot, mg, …) and helpers (t, dueLabel, …) propagate exactly
+// as they do in production.
+func carePlanPartialFeeder(t *testing.T) func(string) (string, error) {
+	t.Helper()
+	return func(name string) (string, error) {
+		dir, base := filepath.Split(name)
+		raw, err := os.ReadFile(filepath.Join("../templates", dir, "_"+base))
+		return string(raw), err
+	}
 }
