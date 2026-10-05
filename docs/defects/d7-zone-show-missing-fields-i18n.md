@@ -54,4 +54,20 @@ TM-8 (RequiresCleanup row rendered via bool2html; all labels/values through
 
 ## Status
 
-**Open.** Fix owner: Phase 7 (zones show completeness + i18n).
+**Verified** (Phase 7). Fix: `templates/zones/show.plush.html` rewritten —
+every label/value through `t()` (`zone.details`, `zone.back_to_all`,
+`zone.zone`, `zone.type`, `zone.type.external`, `zone.type.internal`,
+`zone.default`, `zone.edit`, `zone.destroy`, `zone.destroy.confirm`,
+`zone.requires_cleanup`), RequiresCleanup row added via `bool2html`; fr/de/nl
+forks byte-identical (copied from the base file); the 9 new keys translated
+in `locales/zones.{en-us,fr,de,nl}.yaml`.
+
+Evidence: `go test ./actions/ -run 'TestZoneShow' -count=1` → ok
+(`actions/zones_show_test.go`: 7-T1 all fields + back/edit/delete, 7-T1b
+internal branch, 7-T2 4-locale sweep with banned-English assertions).
+Live agent-browser sweep on dev (`/zones/4eafb532-…`, requires_cleanup=1):
+fr "Détails de la zone"/"externe au centre"/"Nettoyage requis ✓",
+en-US "Zone Details"/"external to the center"/"Requires cleanup ✓",
+de "Zonedetails"/"extern zum Zentrum"/"Reinigung erforderlich ✓",
+nl "Zonedetails"/"extern aan het centrum"/"Schoonmaak vereist ✓" —
+no English literal in fr/de/nl.
