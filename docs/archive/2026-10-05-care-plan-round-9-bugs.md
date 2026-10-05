@@ -416,6 +416,19 @@ relabeled.
 
 **Status**: fixed 2026-10-05.
 
+**Post-close fix (2026-10-05)**: removing the ConverterTag from descriptions
+broke two spots that still relied on it for provenance:
+`upsertClusterMatcher` misclassified the derived cluster matcher (built via
+`buildSeedMatcher`) as "not converter-owned" and skipped the R5-1e in-place
+expression refresh; `cleanupConverterRows` could no longer delete post-R9-5
+converter rows, so a stale species-only matcher from an interrupted run broke
+`TestCarePlanConverterMarkerV2Refresh`. Fixed by recognizing converter-owned
+matchers via the reserved "(conversion)" name suffix
+(`converterOwnedMatcher`) and extending the test cleanup to match the tag,
+`DefaultRuleDescription`, or the "(conversion)" suffix. Gates: vet +
+staticcheck clean, gocognit/gocyclo no flags on touched files,
+`go test -count=1 -race -cover ./...` all PASS (actions 60.7%).
+
 ### R9-6 Care rules / matchers must support localization (name in every language, incl. dropdowns)
 
 **Severity**: high (breaks the project's all-language UI rule for a whole
