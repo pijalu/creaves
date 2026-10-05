@@ -57,7 +57,7 @@ func TestBuildDayPlanViewLinks(t *testing.T) {
 	}
 	plan.Items = []careplan.PlanItem{it}
 
-	v := BuildDayPlanView(plan, ViewDetailed, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
+	v := BuildDayPlanView(plan, ViewDetailed, "", "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
 	require.Len(t, v.History, 1, "applied item lands in the history section")
 	card := v.History[0]
 	require.Equal(t, "/animals/1?back=%2Fcare_plan#nav-plan", card.AnimalLink)
@@ -76,7 +76,7 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 		testItem(src, 3, careplan.StatusApplied), // done: off the work screen in compact
 	}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
 	for ti := range v.Tiers {
 		require.Empty(t, v.Tiers[ti].Cards, "cleanup work leaves the tiers in compact")
 	}
@@ -98,7 +98,7 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	}
 
 	// Zone filter narrows the card list; counters stay unfiltered.
-	vz := BuildDayPlanView(plan, ViewCompact, "Z2", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
+	vz := BuildDayPlanView(plan, ViewCompact, "Z2", "", "", time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local))
 	require.Empty(t, vz.Cares)
 }
 
@@ -245,17 +245,17 @@ func TestCarePlanDayPlanHTMLLinks(t *testing.T) {
 // R4-7.18: the self URL no longer carries `view=` — the work screen has one
 // density, so the parameter was noise in every propagated link.
 func TestPlanSelfPathBack(t *testing.T) {
-	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", ""))
-	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "//evil.com"))
-	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "javascript:alert(1)"))
-	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "/\\evil.example"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "", ""))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "", "//evil.com"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "", "javascript:alert(1)"))
+	require.Equal(t, "/care_plan", planSelfPath(ViewCompact, "", "", "", "/\\evil.example"))
 
-	require.Equal(t, "/care_plan?back=%2F", planSelfPath(ViewCompact, "", "", "/"))
-	require.Equal(t, "/care_plan?back=%2Fdashboard", planSelfPath(ViewCompact, "", "", "/dashboard"))
+	require.Equal(t, "/care_plan?back=%2F", planSelfPath(ViewCompact, "", "", "", "/"))
+	require.Equal(t, "/care_plan?back=%2Fdashboard", planSelfPath(ViewCompact, "", "", "", "/dashboard"))
 
 	// The zone/kind filters are still carried; only the dead view param is gone.
 	require.Equal(t, "/care_plan?kind=feeding&zone=Z1",
-		planSelfPath(ViewCompact, "Z1", "feeding", ""))
+		planSelfPath(ViewCompact, "Z1", "feeding", "", ""))
 }
 
 // TestBuildDayPlanViewBackChain: the dashboard origin (back=/) survives the
@@ -268,13 +268,13 @@ func TestBuildDayPlanViewBackChain(t *testing.T) {
 	plan.Items = []careplan.PlanItem{it}
 	now := time.Date(2026, 9, 28, 10, 0, 0, 0, time.Local)
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now, "/")
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now, "/")
 	require.Equal(t, "/care_plan?back=%2F", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan%3Fback%3D%252F#nav-plan",
 		v.Tiers[1].Cards[0].AnimalLink)
 
 	// No incoming back → cards fall back to the plain self URL.
-	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	require.Equal(t, "/care_plan", v.SelfPath)
 	require.Equal(t, "/animals/1?back=%2Fcare_plan#nav-plan",
 		v.Tiers[1].Cards[0].AnimalLink)

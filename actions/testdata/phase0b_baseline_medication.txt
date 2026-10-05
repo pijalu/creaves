@@ -509,7 +509,10 @@
   .plan-feed-when { color: #6c757d; }
   .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
   .plan-time-group:first-child { border-top: 0; padding-top: 0; }
-  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }"
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
+  /* §4.2 grouping toggle: the leading label is a caption, not a button —
+     a .disabled .btn would show a not-allowed cursor on plain text. */
+  .plan-group-toggle .plan-group-label { cursor: default; pointer-events: none; opacity: 1; }"
       </style>
       <div class="py-4 mb-2">
         <h3 class="d-inline-block">

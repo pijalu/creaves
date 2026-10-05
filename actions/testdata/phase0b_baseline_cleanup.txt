@@ -509,7 +509,10 @@
   .plan-feed-when { color: #6c757d; }
   .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
   .plan-time-group:first-child { border-top: 0; padding-top: 0; }
-  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }"
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
+  /* §4.2 grouping toggle: the leading label is a caption, not a button —
+     a .disabled .btn would show a not-allowed cursor on plain text. */
+  .plan-group-toggle .plan-group-label { cursor: default; pointer-events: none; opacity: 1; }"
       </style>
       <div class="py-4 mb-2">
         <h3 class="d-inline-block">
@@ -520,6 +523,12 @@
         </span>
       </div>
       <div class="mb-2" id="planSummaryStrip">
+        <a class="badge badge-warning mr-1" href="#care-tier-1">
+          "Now"
+          <span class="badge badge-pill badge-light ml-1">
+            "2"
+          </span>
+        </a>
       </div>
       <ul class="nav nav-tabs mb-2" id="planKindTabs">
         <li class="nav-item">
@@ -586,41 +595,99 @@
           </a>
         </div>
       </div>
+      <div aria-label="Group by" class="btn-group btn-group-sm mb-3 plan-group-toggle" role="group">
+        <span class="btn btn-outline-secondary disabled plan-group-label">
+          "Group by"
+        </span>
+        <a class="btn btn-outline-secondary active" href="?kind=cleanup&group=cage">
+          "Cage"
+        </a>
+        <a class="btn btn-outline-secondary" href="?kind=cleanup&group=animal">
+          "Animal"
+        </a>
+      </div>
       <div id="planSections">
         <h5 class="mt-3">
           "Cage chores"
         </h5>
-        <table class="table table-hover table-bordered mb-3">
-          <tbody>
-            <tr class="plan-cage-row">
-              <td>
-                <strong>
-                  "CP-MARKER"
-                </strong>
-                <span class="text-muted">
-                </span>
-                <br>
-                </br>
-                <small class="text-muted">
-                  <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dcleanup">
-                    "RCLN-DOM-MARKER"
-                  </a>
-                </small>
-              </td>
-              <td class="text-nowrap">
-                <span class="position-relative d-inline-block">
-                  <button aria-label="Apply cage (2)" class="btn btn-warning plan-cage-apply" data-cage="CP-MARKER" data-items="[{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"}]" data-source-name="RCLN-DOM-MARKER" title="Apply cage" type="button">
-                    <i class="far fa-clock">
-                    </i>
-                  </button>
-                  <span class="badge badge-pill badge-secondary plan-apply-count">
-                    "2"
-                  </span>
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="plan-tier plan-tier-now" id="care-tier-1">
+          <div aria-expanded="true" class="plan-tier-header" data-target="#care-tier-1-rows" data-toggle="collapse" role="button" tabindex="0">
+            <span>
+              "Now"
+            </span>
+            <span class="badge badge-pill badge-warning">
+              "2"
+            </span>
+            <span class="plan-tier-chevron">
+              <i class="fas fa-chevron-down">
+              </i>
+            </span>
+          </div>
+          <div class="collapse show plan-tier-body" id="care-tier-1-rows">
+            <table class="table table-hover table-bordered mb-0">
+              <tbody>
+                <tr class="plan-cage-row plan-care-row" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-kind="cleanup" data-status="due" role="button" tabindex="0">
+                  <td>
+                    <strong>
+                      <span class="plan-dot plan-dot-due" title="Due">
+                        "●"
+                      </span>
+                      "CP-MARKER"
+                    </strong>
+                    <span class="text-muted">
+                    </span>
+                    <br>
+                    </br>
+                    <small class="text-muted">
+                      <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dcleanup">
+                        "RCLN-DOM-MARKER"
+                      </a>
+                    </small>
+                  </td>
+                  <td class="plan-care-slots">
+                    <div class="plan-time-group">
+                      <div class="plan-time-label" title="Scheduled time">
+                        "HHMM"
+                        <span class="badge badge-pill badge-light ml-1">
+                          "2"
+                        </span>
+                      </div>
+                      <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+                        <span class="plan-item-slot">
+                          <button class="btn btn-warning btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-warning" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-warning" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                        <span class="plan-item-slot">
+                          <button class="btn btn-warning btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-warning" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-warning" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-nowrap plan-feed-check">
+                    <span class="position-relative d-inline-block">
+                      <button aria-label="Apply cage (2)" class="btn btn-warning plan-cage-apply" data-cage="CP-MARKER" data-items="[{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"}]" data-source-name="RCLN-DOM-MARKER" title="Apply cage" type="button">
+                        <i class="far fa-clock">
+                        </i>
+                      </button>
+                      <span class="badge badge-pill badge-secondary plan-apply-count">
+                        "2"
+                      </span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <div aria-hidden="true" class="modal fade" id="planApplyModal" role="dialog" tabindex="-1">
         <div class="modal-dialog" role="document">

@@ -136,7 +136,7 @@ func TestBuildDayPlanViewFeedingCards(t *testing.T) {
 	items = append(items, over)
 	plan.Items = items
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	for ti := range v.Tiers {
 		require.Empty(t, v.Tiers[ti].Cards, "feeding never yields tier rows (compact)")
 	}
@@ -150,10 +150,10 @@ func TestBuildDayPlanViewFeedingCards(t *testing.T) {
 	require.Contains(t, fc.ChipRefsJSON, `"source_id":"src-B"`)
 
 	// zone filter narrows feeding cards
-	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", "", now)
 	require.Empty(t, v.Feedings)
 	// kind filter ≠ feeding hides feeding cards
-	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindCare, now)
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindCare, "", now)
 	require.Empty(t, v.Feedings)
 }
 

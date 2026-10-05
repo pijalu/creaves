@@ -140,10 +140,15 @@ func TestFillTierBucketsRealTypes(t *testing.T) {
 	})
 
 	t.Run("CareView: late occurrences pull the row into the late tier", func(t *testing.T) {
+		// Phase 3 / D3: TierOf() now returns the STAMPED Tier (fillCareTiers
+		// derives it from the most urgent open occurrence via careRowTier,
+		// tested in TestBuildDayPlanViewFillsCareTiers). fillTierBuckets
+		// distributes on that stamped tier — mirror the feeding subtest and
+		// stamp Tier explicitly.
 		cares := []CareView{
-			{Cage: "B", SourceName: "daily", ApplicableCount: 2},
-			{Cage: "A", SourceName: "weekly", ApplicableCount: 1, LateCount: 1},
-			{Cage: "C", SourceName: "daily", ApplicableCount: 4},
+			{Cage: "B", SourceName: "daily", Tier: 1, ApplicableCount: 2},
+			{Cage: "A", SourceName: "weekly", Tier: 0, ApplicableCount: 1, LateCount: 1},
+			{Cage: "C", SourceName: "daily", Tier: 1, ApplicableCount: 4},
 		}
 		got := fillTierBuckets(cares, func(a, b CareView) bool {
 			if a.Cage != b.Cage {
@@ -171,7 +176,7 @@ func TestBuildDayPlanViewFillsCareTiers(t *testing.T) {
 		testItem(clean, 2, careplan.StatusDue),
 	}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "cleanup", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "cleanup", "", now)
 	total := 0
 	for i := 0; i < 3; i++ {
 		total += len(v.CareTiers[i])

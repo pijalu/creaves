@@ -80,7 +80,7 @@ func TestFeedTiersFirstLevel(t *testing.T) {
 	d.Occurrence.DueAt = time.Date(2026, 9, 28, 10, 15, 0, 0, time.Local)
 	plan.Items = []careplan.PlanItem{l, d}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, "", now)
 	require.Len(t, v.Feedings, 2, "flat set unchanged (nav + filters)")
 	require.Len(t, v.FeedTiers[0], 1, "late feeding card")
 	require.Len(t, v.FeedTiers[1], 1, "due-now feeding card")
@@ -109,7 +109,7 @@ func TestFeedingSectionRender(t *testing.T) {
 	b.Occurrence.DueAt = time.Date(2026, 9, 28, 10, 15, 0, 0, time.Local)
 	plan.Items = []careplan.PlanItem{a, b}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, "", now)
 	require.Len(t, v.Feedings, 1)
 	fc := v.FeedTiers[0][0]
 	require.Len(t, fc.Chips, 2)
@@ -203,7 +203,7 @@ func TestFeedingSingleAnimalGroupOnly(t *testing.T) {
 	a.Occurrence.DueAt = time.Date(2026, 9, 28, 10, 15, 0, 0, time.Local)
 	plan.Items = []careplan.PlanItem{a}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, "", now)
 	require.Len(t, v.Feedings, 1)
 	require.Len(t, v.FeedTiers[1][0].Chips, 1, "the lone due occurrence sits in the 'now' tier")
 

@@ -113,7 +113,7 @@ func TestPhase1MedGroupAnimalYear(t *testing.T) {
 	due.Occurrence.DueAt = time.Date(2026, 10, 2, 12, 30, 0, 0, time.Local)
 	plan.Items = []careplan.PlanItem{due}
 
-	v := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, "", now)
 	var mg *MedGroupView
 	for i := range v.MedTiers {
 		for j := range v.MedTiers[i] {

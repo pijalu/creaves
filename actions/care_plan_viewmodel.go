@@ -126,6 +126,12 @@ type ItemSlotView struct {
 	DueHM        string // "15:04" — the toggle's visible time label
 	DueDayKey    string // "" | yesterday | tomorrow i18n key
 	DueShortDate string // "02/01" beyond one day
+	// AnimalID keys the apply/unapply ref (source_type × source_id ×
+	// animal_id × due_at). The merged-line partials read it from the
+	// CARD (one animal per merged group); the cleanup cage row folds
+	// SEVERAL animals' occurrences into one time sub-group, so the slot
+	// must carry its own (phase 3 / D3).
+	AnimalID     int
 	Status       string
 	Tier         int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
 	TierClass    string // slotTierClass(Tier) — the toggle's colour (§2.1)
@@ -225,6 +231,14 @@ type FeedingGroupView struct {
 	FirstDueAt       time.Time
 	GroupStatus      string // R4-4.4: the GROUP status (most urgent chip)
 	GroupStatusClass string // plan-dot-<status> — ONE dot per cage × diet
+	// group=animal rows (guideline §4.2/§4.3): ONE line per (animal × diet)
+	// with the same per-occurrence toggle — the tinted animal cell replaces
+	// the cage identity, the cage is demoted to a muted caption, and the
+	// batch apply-group button disappears (batch is inherently cage-scoped).
+	AnimalID    int
+	AnimalLabel string
+	AnimalYear  string
+	AnimalLink  string
 }
 
 // MedSlotView is one medication occurrence inside a per-animal medication
@@ -333,20 +347,59 @@ type MedGroupView struct {
 	Series []MedSeriesView
 }
 
-// CareView is one rendered cage (cleanup) row — one row per
-// (source × cage), bugs.md U6 fast action: one batch apply per cage.
+// CareTimeGroup is the cleanup analogue of FeedingTimeGroup (guideline
+// §3.2): one time sub-group of a cleanup row — the due time stated ONCE
+// as the sub-group label, with one per-occurrence toggle (ItemSlotView)
+// for every occurrence that shares it.
+type CareTimeGroup struct {
+	Label      string // "16:00"
+	DayKey     string // care_plan.time.yesterday / .tomorrow ("" when today)
+	ShortDate  string // "02/01" beyond one day
+	DueAt      time.Time
+	Slots      []ItemSlotView
+	Count      int
+	CountCap   string
+	Applicable int // occurrences in this sub-group still actionable
+}
+
+// CareView is one rendered cleanup row (guideline §3/§4): ONE line per
+// (source × cage) in the default cage grouping, or one line per
+// (source × animal) under group=animal. The line carries its open
+// occurrences as time-grouped toggle slots (per-occurrence toggles,
+// tier-coloured like every other kind), plus the group-apply batch
+// refs (cage grouping keeps the apply-cage affordance).
 type CareView struct {
-	Zone            string
-	Cage            string
-	SourceName      string
-	SourceLink      string
+	Zone       string
+	Cage       string
+	SourceName string
+	SourceLink string
+	// SourceType/SourceID ride on every per-occurrence toggle (the apply
+	// ref) — the slots alone do not carry them (same shape as CardView's
+	// merged Slots, which read them from the card).
+	SourceType      string
+	SourceID        string
 	Count           int    // open, non-scheduled occurrences on the row
 	ChipRefsJSON    string // JSON item refs of the applicable items (data-items)
 	ApplicableCount int
 	LateCount       int // applicable occurrences already past due (late tier)
-	// Phase-0b: ONE colour policy (slotTierClass) — the cage toggle
-	// button's tier colour: late occurrences → late tier, else now.
-	TierClass string
+	// group=animal rows: the tinted animal cell (§4.3) — year/number
+	// display (§5 level 1), full label on the title, plan-tab link.
+	AnimalID    int
+	AnimalLabel string
+	AnimalYear  string
+	AnimalLink  string
+	// §3.2: the occurrences folded into due-time sub-groups — the time is
+	// the sub-group label, stated once; each slot is one toggle.
+	TimeGroups []CareTimeGroup
+	// Tier/TierClass/GroupStatus: the row's urgency tier — its most urgent
+	// open occurrence (the same most-urgent rule as feedingGroupTier) —
+	// the ONE slotTierClass colour policy and the group dot. Stamped by
+	// fillCareTiers.
+	Tier             int
+	TierClass        string
+	GroupStatus      string
+	GroupStatusClass string
+	FirstDueAt       time.Time // earliest applicable open occurrence (tier sort)
 }
 
 // DayPlanView is the full work-screen context value. Layout (bugs.md
@@ -393,14 +446,22 @@ type DayPlanView struct {
 	MedAnimalColCh int
 	Feedings       []FeedingGroupView // cage × diet groups (feeding kind only)
 	Cares          []CareView         // cage cleanup groups (cleanup kind only)
-	// CareTiers[i] = the cleanup rows of urgency tier i (phase-0b §6 —
-	// the shared generic distribution; the section still renders flat).
-	CareTiers [3][]CareView
-	History   []CardView // terminal + superseded rows, subdued
-	Zones     []ZoneTab  // without the "all" entry (rendered by the template)
-	Kinds     []KindChip
-	UpdatedAt string // HH:MM of render (auto-refresh indicator, §10-CP6c)
-	View      string
+	// CareTiers[i] = the cleanup rows of urgency tier i (guideline §1 —
+	// the shared generic distribution, phase-0b §6). CareTierOpen[i]
+	// counts the tier's OPEN APPLICABLE OCCURRENCES — the summary-strip
+	// unit (§1.4, R4-1.3/R4-7.21 precedent).
+	CareTiers        [3][]CareView
+	CareTierOpen     [3]int
+	CareTierOpenCap  [3]string
+	History          []CardView // terminal + superseded rows, subdued
+	Zones            []ZoneTab  // without the "all" entry (rendered by the template)
+	Kinds            []KindChip
+	UpdatedAt        string // HH:MM of render (auto-refresh indicator, §10-CP6c)
+	View             string
+	// Group is the feeding/cleanup grouping level (guideline §4.2):
+	// "cage" (default — one line per cage × diet/cleanup) or "animal"
+	// (one line per animal, same per-occurrence toggles).
+	Group string
 	// Detailed switches row density only: compact folds each
 	// (source × animal) group to its next open action ("+N" badge),
 	// detailed lists every open current occurrence.
@@ -508,7 +569,7 @@ var actionKinds = []string{
 // current occurrence. now drives UpdatedAt. back (R5-2d, optional) is the
 // page's own incoming back target (sanitized); it is embedded in the self
 // URL so every card link chains the ORIGINAL origin through the round trip.
-func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, back ...string) *DayPlanView {
+func BuildDayPlanView(plan *DayPlan, view, zone, kind, group string, now time.Time, back ...string) *DayPlanView {
 	backIn := ""
 	if len(back) > 0 {
 		backIn = back[0]
@@ -519,15 +580,16 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 		Detailed:  detailed,
 		Zone:      zone,
 		Kind:      kind,
+		Group:     group,
 		UpdatedAt: now.Format("15:04"),
-		SelfPath:  planSelfPath(view, zone, kind, backIn),
+		SelfPath:  planSelfPath(view, zone, kind, group, backIn),
 	}
 
 	// Stage 1–2: build every section UNFILTERED (engine → display layer).
 	rows := v.tierRows(plan, detailed)
 	history := v.historyRows(plan, detailed)
-	feeds := feedingViewsOf(plan, v.SelfPath)
-	cares := careViewsOf(plan, v.SelfPath)
+	feeds := feedingViewsOf(plan, v.SelfPath, group)
+	cares := careViewsOf(plan, v.SelfPath, group)
 
 	// Stage 5 for the nav: the zone matrix comes from the unfiltered open
 	// card sets — the zone item of zone Z counts the rows the ACTIVE kind
@@ -573,15 +635,17 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind string, now time.Time, bac
 }
 
 // fillTierHasWork records, per urgency tier, whether anything renders in it.
-// Feeding fills FeedTiers, medication fills MedTiers, every other row kind
-// fills Tiers[i].Cards. The summary strip is gated on this too (R4-7.21):
-// a pill whose section does not exist is a dead jump target that also
-// advertised work the page never shows.
+// Feeding fills FeedTiers, cleanup fills CareTiers, medication fills
+// MedTiers, every other row kind fills Tiers[i].Cards. The summary strip is
+// gated on this too (R4-7.21): a pill whose section does not exist is a dead
+// jump target that also advertised work the page never shows.
 func fillTierHasWork(v *DayPlanView, kind string) {
 	for i := 0; i < 3; i++ {
 		switch {
-		case kind == careplan.KindFeeding || kind == careplan.KindCleanup:
+		case kind == careplan.KindFeeding:
 			v.TierHasWork[i] = len(v.FeedTiers[i]) > 0
+		case kind == careplan.KindCleanup:
+			v.TierHasWork[i] = len(v.CareTiers[i]) > 0
 		case kind == careplan.KindMedication:
 			v.TierHasWork[i] = len(v.MedTiers[i]) > 0
 		default:
@@ -597,20 +661,25 @@ func fillTierHasWork(v *DayPlanView, kind string) {
 func tierLinks(v *DayPlanView, kind string) []TierLink {
 	keys := [3]string{TierLate, TierNow, TierLater}
 	classes := [3]string{"badge-danger mr-1", "badge-warning mr-1", "badge-success mr-1"}
-	feed := kind == careplan.KindFeeding || kind == careplan.KindCleanup
+	feed := kind == careplan.KindFeeding
+	cleanup := kind == careplan.KindCleanup
 	out := make([]TierLink, 0, 3)
 	for i := 0; i < 3; i++ {
 		if !v.TierHasWork[i] {
 			continue
 		}
 		tl := TierLink{Key: keys[i], Class: classes[i]}
-		if feed {
+		switch {
+		case feed:
 			tl.ID = "feed-tier-" + fmt.Sprint(i)
 			tl.Num, tl.Cap = v.FeedTierOpen[i], v.FeedTierOpenCap[i]
-		} else if kind == careplan.KindMedication {
+		case cleanup:
+			tl.ID = "care-tier-" + fmt.Sprint(i)
+			tl.Num, tl.Cap = v.CareTierOpen[i], v.CareTierOpenCap[i]
+		case kind == careplan.KindMedication:
 			tl.ID = "tier-" + keys[i]
 			tl.Num, tl.Cap = v.MedTierOpen[i], v.MedTierOpenCap[i]
-		} else {
+		default:
 			tl.ID = "tier-" + keys[i]
 			tl.Num, tl.Cap = v.Tiers[i].Count, v.Tiers[i].CountCap
 		}
@@ -942,19 +1011,12 @@ func (f FeedingGroupView) FirstDue() time.Time { return f.FirstDueAt }
 // OpenCount is the group's applicable chips (occurrences, R4-7.21).
 func (f FeedingGroupView) OpenCount() int { return f.ApplicableCount }
 
-// TierOf reports the care row's urgency tier: any late occurrence puts
-// the row in the late tier, everything else is now (care rows only
-// exist with open applicable work — see careViewsOf).
-func (cv CareView) TierOf() int {
-	if cv.LateCount > 0 {
-		return 0
-	}
-	return 1
-}
+// TierOf reports the care row's urgency tier, stamped by fillCareTiers
+// (the most urgent open occurrence of the row).
+func (cv CareView) TierOf() int { return cv.Tier }
 
-// FirstDue is unset for care rows (the flat cage table has no due
-// column); the zero time sorts a care bucket by the caller's tiebreak.
-func (cv CareView) FirstDue() time.Time { return time.Time{} }
+// FirstDue is the row's earliest open occurrence (zero sorts last).
+func (cv CareView) FirstDue() time.Time { return cv.FirstDueAt }
 
 // OpenCount is the row's applicable occurrences.
 func (cv CareView) OpenCount() int { return cv.ApplicableCount }
@@ -998,18 +1060,94 @@ func fillTiers(v *DayPlanView, rows []CardView) {
 	}
 }
 
-// fillCareTiers distributes the cleanup rows over the same three urgency
-// tiers as every other section (phase-0b §6). The cleanup section still
-// renders its flat cage table — the buckets make the care rows first-
-// class citizens of the shared distribution (tier badges, future
-// per-tier rendering) without changing the screen.
+// fillCareTiers stamps every cleanup row with its urgency tier (its MOST
+// URGENT open occurrence — the same most-urgent rule as feedingGroupTier),
+// its group dot and its earliest open due time, then distributes the rows
+// over the three urgency tiers via the shared generic distribution
+// (phase-0b §6). The per-tier open counters speak OCCURRENCES — the same
+// unit as the summary strip (§1.4).
 func fillCareTiers(v *DayPlanView) {
-	v.CareTiers = fillTierBuckets(v.Cares, func(a, b CareView) bool {
+	tiered := make([]CareView, 0, len(v.Cares))
+	for _, cv := range v.Cares {
+		tier, status := careRowTier(cv)
+		cv.Tier = tier
+		cv.TierClass = slotTierClass(tier)
+		cv.GroupStatus = status
+		cv.GroupStatusClass = "plan-dot-" + status
+		cv.FirstDueAt = firstCareDue(cv)
+		if tier < 0 || tier > 2 {
+			continue
+		}
+		tiered = append(tiered, cv)
+	}
+	v.CareTiers = fillTierBuckets(tiered, func(a, b CareView) bool {
+		if a.FirstDueAt.IsZero() != b.FirstDueAt.IsZero() {
+			return b.FirstDueAt.IsZero()
+		}
+		if !a.FirstDueAt.Equal(b.FirstDueAt) {
+			return a.FirstDueAt.Before(b.FirstDueAt)
+		}
 		if a.Cage != b.Cage {
 			return a.Cage < b.Cage
 		}
 		return a.SourceName < b.SourceName
 	})
+	for i := range v.CareTiers {
+		v.CareTierOpen[i] = careTierOpenCount(v.CareTiers[i])
+		v.CareTierOpenCap[i] = BadgeCap(v.CareTierOpen[i])
+	}
+}
+
+// careRowTier reports the cleanup row's urgency tier and the status of its
+// most urgent open occurrence — the GroupStatus dot's one status (R4-4.4
+// parity). -1 / "" when the row has no open work (care rows are built only
+// with open applicable work, so this is the defensive path).
+func careRowTier(cv CareView) (int, string) {
+	best := 3
+	status := ""
+	for _, tg := range cv.TimeGroups {
+		for _, s := range tg.Slots {
+			t := tierOrder(careplan.PlanStatus(s.Status))
+			if t < 0 || t > 2 {
+				continue
+			}
+			if t < best || (t == best && status == "") {
+				best = t
+				status = s.Status
+			}
+		}
+	}
+	if best > 2 {
+		return -1, ""
+	}
+	return best, status
+}
+
+// firstCareDue reports the row's earliest APPLICABLE open occurrence — the
+// tier sort key (firstChipDue parity). The zero time sorts last.
+func firstCareDue(cv CareView) time.Time {
+	var first time.Time
+	for _, tg := range cv.TimeGroups {
+		for _, s := range tg.Slots {
+			if !s.Applicable {
+				continue
+			}
+			if first.IsZero() || s.DueAt.Before(first) {
+				first = s.DueAt
+			}
+		}
+	}
+	return first
+}
+
+// careTierOpenCount totals the OPEN APPLICABLE OCCURRENCES of a cleanup
+// tier — the unit the summary strip speaks (feedTierOpenCount parity).
+func careTierOpenCount(rows []CareView) int {
+	n := 0
+	for _, cv := range rows {
+		n += cv.ApplicableCount
+	}
+	return n
 }
 
 // groupedKind reports whether a kind renders as a grouped LIST section
@@ -1347,16 +1485,21 @@ func foldChipsByTime(chips []FeedingChip) []FeedingTimeGroup {
 	return groups
 }
 
-// feedingViewsOf builds every feeding card (cage × diet, bugs.md U1) with
-// its deduped chips (§6.2-3) — unfiltered; §7.2 stage 3 filters in one
-// pass. OPEN work only: superseded and scheduled chips stay off the work
-// cards (superseded ones resurface in the history section, WP4).
-func feedingViewsOf(plan *DayPlan, selfPath string) []FeedingGroupView {
+// feedingViewsOf builds every feeding row (guideline §4): ONE row per
+// (cage × diet, bugs.md U1) with its deduped chips (§6.2-3) in the default
+// cage grouping — or ONE row per (animal × diet) under group=animal, with
+// the same per-occurrence toggle (§4.2). Unfiltered; §7.2 stage 3 filters
+// in one pass. OPEN work only: superseded and scheduled chips stay off the
+// work cards (superseded ones resurface in the history section, WP4).
+func feedingViewsOf(plan *DayPlan, selfPath, group string) []FeedingGroupView {
 	_, feedings := GroupCards(plan.Items, plan)
 	// CP4 honesty: open CURRENT feeding occurrences per (source × animal)
 	// — the chip badge's "+N" remaining (the workload the deduped chip
 	// stands for).
 	openCurrent := openCurrentCounts(plan)
+	if group == "animal" {
+		return feedingAnimalViewsOf(feedings, plan, openCurrent, selfPath)
+	}
 	out := make([]FeedingGroupView, 0, len(feedings))
 	for _, fc := range feedings {
 		if fv, ok := feedingViewOf(fc, openCurrent, selfPath); ok {
@@ -1366,10 +1509,49 @@ func feedingViewsOf(plan *DayPlan, selfPath string) []FeedingGroupView {
 	return out
 }
 
-// careItemCounts folds one cleanup item into its cage card (late /
-// applicable counters) and appends its batch ref. Returns false when the
-// item is not applicable open work (scheduled never renders).
-func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) ([]map[string]interface{}, bool) {
+// feedingAnimalViewsOf builds the group=animal feeding rows (guideline
+// §4.2): ONE line per (animal × diet) — the tinted animal cell replaces
+// the cage identity — carrying the animal's deduped chip with the SAME
+// per-occurrence toggle as the cage row. NO batch apply-group button
+// (§4.3: batch is inherently cage-scoped), so ChipRefsJSON stays empty.
+// Rows keep the (cage × diet) card order, chips keep their in-card order.
+func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent map[string]int, selfPath string) []FeedingGroupView {
+	out := make([]FeedingGroupView, 0, len(feedings))
+	for _, fc := range feedings {
+		fv, ok := feedingViewOf(fc, openCurrent, selfPath)
+		if !ok {
+			continue
+		}
+		for _, chip := range fv.Chips {
+			row := FeedingGroupView{
+				Zone:      fv.Zone,
+				Cage:      fv.Cage,
+				Food:      fv.Food,
+				ForceFeed: fv.ForceFeed,
+				AnimalID:  chip.AnimalID,
+				Chips:     []FeedingChip{chip},
+			}
+			if a, ok := plan.AnimalRow(chip.AnimalID); ok {
+				row.AnimalLabel = animalLabel(a)
+				row.AnimalYear = a.YearNumberFormatted()
+			}
+			row.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
+			if chip.Applicable {
+				row.ApplicableCount = 1
+			}
+			// Single-chip row: one time sub-group, never collapsible — one
+			// line with nothing to expand (R4-7.14c).
+			finalizeFeedingChips(&row)
+			out = append(out, row)
+		}
+	}
+	return out
+}
+
+// careItemCounts folds one cleanup item into its row (late / applicable
+// counters) and returns its batch ref. Returns false when the item is not
+// applicable open work (scheduled never renders).
+func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) (map[string]interface{}, bool) {
 	if !openStatusAction(it.Status) || it.Status == careplan.StatusScheduled || !it.Applicable {
 		return nil, false
 	}
@@ -1377,18 +1559,24 @@ func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) 
 		cv.LateCount++
 	}
 	cv.ApplicableCount++
-	return []map[string]interface{}{{
+	return map[string]interface{}{
 		"source_type": srcType,
 		"source_id":   srcID,
 		"animal_id":   it.Occurrence.AnimalID,
 		"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
-	}}, true
+	}, true
 }
 
-// careViewsOf builds every cage cleanup card (bugs.md U6: one batch apply
-// per cage) — unfiltered; applicable, non-scheduled items only.
-func careViewsOf(plan *DayPlan, selfPath string) []CareView {
+// careViewsOf builds every cleanup row (guideline §4): ONE row per
+// (source × cage) in the default cage grouping — the cage keeps its batch
+// apply (bugs.md U6) — or ONE row per (source × animal) under
+// group=animal. Every row carries its open occurrences as time-grouped
+// toggle slots (§3). Unfiltered; applicable, non-scheduled items only.
+func careViewsOf(plan *DayPlan, selfPath, group string) []CareView {
 	cares, _ := GroupCards(plan.Items, plan)
+	if group == "animal" {
+		return careAnimalViewsOf(cares, plan, selfPath)
+	}
 	out := make([]CareView, 0, len(cares))
 	for _, cc := range cares {
 		cv := CareView{
@@ -1396,26 +1584,105 @@ func careViewsOf(plan *DayPlan, selfPath string) []CareView {
 			Cage:       cc.Cage,
 			SourceName: DisplayName(cc.Source.Name()),
 			SourceLink: cardSourceLink(string(cc.Source.SourceType()), cc.Source.SourceID(), 0, selfPath),
+			SourceType: string(cc.Source.SourceType()),
+			SourceID:   cc.Source.SourceID(),
 		}
 		var refs []map[string]interface{}
 		for i := range cc.Items {
-			if r, ok := careItemCounts(&cv, string(cc.Source.SourceType()), cc.Source.SourceID(), &cc.Items[i]); ok {
-				refs = append(refs, r...)
+			if r, ok := careItemCounts(&cv, cv.SourceType, cv.SourceID, &cc.Items[i]); ok {
+				refs = append(refs, r)
+				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, itemSlotFor(plan.Now, &cc.Items[i]))
 			}
 		}
 		cv.Count = cv.ApplicableCount
-		if cv.ApplicableCount > 0 {
-			cv.TierClass = slotTierClass(1)
-			if cv.LateCount > 0 {
-				cv.TierClass = slotTierClass(0)
+		if cv.ApplicableCount == 0 {
+			continue
+		}
+		if raw, err := jsonMarshal(refs); err == nil {
+			cv.ChipRefsJSON = string(raw)
+		}
+		out = append(out, cv)
+	}
+	return out
+}
+
+// careAnimalViewsOf builds the group=animal rows (guideline §4.2): ONE
+// line per (source × animal) — the tinted animal cell replaces the cage
+// identity — with the same per-occurrence toggles as the cage rows. Rows
+// sort by zone, cage, then animal year number (the round order).
+func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []CareView {
+	out := make([]CareView, 0, len(cares))
+	for _, cc := range cares {
+		byAnimal := map[int]*CareView{}
+		var ids []int
+		for i := range cc.Items {
+			it := &cc.Items[i]
+			cv, ok := byAnimal[it.Occurrence.AnimalID]
+			if !ok {
+				cv = &CareView{
+					Zone:       cc.Zone,
+					Cage:       cc.Cage,
+					SourceName: DisplayName(cc.Source.Name()),
+					SourceType: string(cc.Source.SourceType()),
+					SourceID:   cc.Source.SourceID(),
+					AnimalID:   it.Occurrence.AnimalID,
+				}
+				if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
+					cv.AnimalLabel = animalLabel(a)
+					cv.AnimalYear = a.YearNumberFormatted()
+				}
+				cv.AnimalLink = cardAnimalLink(cv.AnimalID, selfPath)
+				cv.SourceLink = cardSourceLink(cv.SourceType, cv.SourceID, cv.AnimalID, selfPath)
+				byAnimal[it.Occurrence.AnimalID] = cv
+				ids = append(ids, it.Occurrence.AnimalID)
 			}
-			if raw, err := jsonMarshal(refs); err == nil {
-				cv.ChipRefsJSON = string(raw)
+			if _, ok := careItemCounts(cv, cv.SourceType, cv.SourceID, it); ok {
+				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, itemSlotFor(plan.Now, it))
 			}
-			out = append(out, cv)
+		}
+		sort.Ints(ids)
+		for _, id := range ids {
+			cv := byAnimal[id]
+			cv.Count = cv.ApplicableCount
+			if cv.ApplicableCount == 0 {
+				continue
+			}
+			out = append(out, *cv)
 		}
 	}
 	return out
+}
+
+// foldCareTimeGroup appends one occurrence slot to the row's due-time
+// sub-groups (foldChipsByTime parity, guideline §3.2): items arrive
+// chronologically, so a stable first-seen walk yields ascending groups.
+func foldCareTimeGroup(groups []CareTimeGroup, slot ItemSlotView) []CareTimeGroup {
+	key := slot.DueDayKey + "|" + slot.DueShortDate + "|" + slot.DueHM
+	for i := range groups {
+		g := &groups[i]
+		if g.DayKey+"|"+g.ShortDate+"|"+g.Label == key {
+			g.Slots = append(g.Slots, slot)
+			g.Count++
+			g.CountCap = BadgeCap(g.Count)
+			if slot.Applicable {
+				g.Applicable++
+			}
+			return groups
+		}
+	}
+	g := CareTimeGroup{
+		Label:     slot.DueHM,
+		DayKey:    slot.DueDayKey,
+		ShortDate: slot.DueShortDate,
+		DueAt:     slot.DueAt,
+		Slots:     []ItemSlotView{slot},
+		Count:     1,
+		CountCap:  BadgeCap(1),
+	}
+	if slot.Applicable {
+		g.Applicable = 1
+	}
+	return append(groups, g)
 }
 
 // navZoneTabs builds the zone column of the nav matrix: the count of
@@ -1973,7 +2240,7 @@ func animalItemDeepLink(animalID int, srcType, srcID, dueRFC string) string {
 func BuildDashboardMedView(plan *DayPlan, zone string) []MedGroupView {
 	v := &DayPlanView{
 		View:     ViewCompact,
-		SelfPath: planSelfPath(ViewCompact, "", "", "/"),
+		SelfPath: planSelfPath(ViewCompact, "", "", "", "/"),
 	}
 	return v.buildMedGroups(plan, zone, true)
 }
@@ -2008,6 +2275,7 @@ func itemSlotFor(now time.Time, it *careplan.PlanItem) ItemSlotView {
 		DueHM:        parts.TimeHM,
 		DueDayKey:    parts.DayKey,
 		DueShortDate: parts.ShortDate,
+		AnimalID:     it.Occurrence.AnimalID,
 		Status:       string(it.Status),
 		Applicable:   it.Applicable,
 		NeedsInput:   kind == careplan.KindWeighing || kind == careplan.KindObservation,
@@ -2068,7 +2336,11 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 // compact/detailed toggle rendered identically for five of the six kinds), so
 // carrying the parameter in every propagated URL was noise. The parameter is
 // still ACCEPTED on the way in, so old links and bookmarks keep working.
-func planSelfPath(view, zone, kind, back string) string {
+//
+// Guideline §4.2: `group` IS emitted (cage ⇄ animal grouping of the
+// feeding/cleanup sections) — it is a real layout choice, not a density
+// alias, so a round trip must return to the same grouping.
+func planSelfPath(view, zone, kind, group, back string) string {
 	_ = view // kept for call-site symmetry; the work screen has one density
 	q := url.Values{}
 	if zone != "" {
@@ -2076,6 +2348,9 @@ func planSelfPath(view, zone, kind, back string) string {
 	}
 	if kind != "" {
 		q.Set("kind", kind)
+	}
+	if group != "" {
+		q.Set("group", group)
 	}
 	if b := localBackParam(back); b != "" {
 		q.Set("back", b)

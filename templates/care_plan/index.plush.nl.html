@@ -77,6 +77,9 @@
   .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
   .plan-time-group:first-child { border-top: 0; padding-top: 0; }
   .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
+  /* §4.2 grouping toggle: the leading label is a caption, not a button —
+     a .disabled .btn would show a not-allowed cursor on plain text. */
+  .plan-group-toggle .plan-group-label { cursor: default; pointer-events: none; opacity: 1; }
 </style>
 <div class="py-4 mb-2">
   <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
@@ -112,7 +115,7 @@
 <ul class="nav nav-tabs mb-2" id="planKindTabs">
   <%= for (kc) in view.Kinds { %>
     <li class="nav-item">
-      <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>">
+      <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Group != "") { %>&group=<%= view.Group %><% } %>">
         <%= t("care_plan.kind." + kc.Kind) %>
         <%= if (kc.Count > 0) { %>
           <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;"><%= kc.CountCap %></span>
@@ -131,12 +134,12 @@
     <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneCap %></span>
   </button>
   <div class="dropdown-menu" id="planZoneMenu" aria-labelledby="planZoneToggle">
-    <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="<%= if (view.Kind != "") { %>?kind=<%= view.Kind %><% } %>">
+    <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="<%= if (view.Kind != "") { %>?kind=<%= view.Kind %><% } %><%= if (view.Group != "") { %><%= if (view.Kind != "") { %>&<% } else { %>?<% } %>group=<%= view.Group %><% } %>">
       <%= t("care_plan.zone.all") %>
       <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneAllCap %></span>
     </a>
     <%= for (zt) in view.Zones { %>
-      <a class="dropdown-item<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %>">
+      <a class="dropdown-item<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %><%= if (view.Group != "") { %>&group=<%= view.Group %><% } %>">
         <%= zt.Name %>
         <%= if (zt.Count > 0) { %>
           <span class="badge badge-pill badge-primary ml-1"><%= zt.CountCap %></span>
@@ -145,6 +148,24 @@
     <% } %>
   </div>
 </div>
+
+<%# Guideline §4.2: cage⇄animal grouping toggle — a view preference of
+    the feeding and cleanup sections (one line per cage × source, or one
+    line per animal with the same toggles). Rendered only on those two
+    kinds; the choice persists via planSelfPath/the kind & zone links. %>
+<%= if (view.Kind == "feeding" || view.Kind == "cleanup") { %>
+  <div class="btn-group btn-group-sm mb-3 plan-group-toggle" role="group" aria-label="<%= t("care_plan.group.label") %>">
+    <span class="btn btn-outline-secondary disabled plan-group-label"><%= t("care_plan.group.label") %></span>
+    <a class="btn btn-outline-secondary<%= if (view.Group != "animal") { %> active<% } %>"
+       href="?kind=<%= view.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>&group=cage">
+      <%= t("care_plan.group.cage") %>
+    </a>
+    <a class="btn btn-outline-secondary<%= if (view.Group == "animal") { %> active<% } %>"
+       href="?kind=<%= view.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>&group=animal">
+      <%= t("care_plan.group.animal") %>
+    </a>
+  </div>
+<% } %>
 
 <%= if (len(view.Tiers[0].Cards) == 0 && len(view.Tiers[1].Cards) == 0 && len(view.Tiers[2].Cards) == 0 && len(view.MedTiers[0]) == 0 && len(view.MedTiers[1]) == 0 && len(view.MedTiers[2]) == 0 && len(view.Feedings) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
   <div class="alert alert-success"><%= t("care_plan.day.empty") %></div>
@@ -239,6 +260,7 @@
           <%= partial("care_plan/plan_tier_feed_table.plush.html", {
             feedCards: view.FeedTiers[ti],
             ti: ti,
+            group: view.Group,
             tierKey: view.FeedTiers[ti][0].TierKey,
             tierId: "feed-tier-",
             tierIdNum: ti,
@@ -252,37 +274,31 @@
     <% } %>
   <% } %>
 
-  <%# --- Nettoyage: LIST (fix 3) — one row per cage; no cards.
-       Only under kind=cleanup. %>
+  <%# --- Nettoyage (phase 3 / D3): TIERED sections (late → now → later),
+       one row per (source × cage) — or per (source × animal) under
+       group=animal — through the shared `_plan_tier` layout and the
+       `_plan_care_line` row partial. The tier header badge counts the
+       tier's OPEN APPLICABLE OCCURRENCES (CareTierOpenCap) — the
+       summary-strip unit (§1.4). Only under kind=cleanup. %>
   <%= if (len(view.Cares) > 0) { %>
     <h5 class="mt-3"><%= t("care_plan.cage_cards") %></h5>
-    <table class="table table-hover table-bordered mb-3">
-      <tbody>
-        <%= for (ccard) in view.Cares { %>
-          <tr class="plan-cage-row">
-            <td>
-              <strong><%= ccard.Cage %></strong>
-              <span class="text-muted"><%= ccard.Zone %></span>
-              <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
-            </td>
-            <td class="text-nowrap">
-              <%# R4-4.2: corner overlay count — the button keeps a constant
-                  width and the count stays visible at N=1. %>
-              <span class="position-relative d-inline-block">
-                <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply"
-                  data-items="<%= ccard.ChipRefsJSON %>"
-                  data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
-                  aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
-                  title="<%= t("care_plan.card.apply_cage") %>">
-                  <i class="far fa-clock"></i>
-                </button>
-                <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>
-              </span>
-            </td>
-          </tr>
-        <% } %>
-      </tbody>
-    </table>
+    <%= for (ti) in [0, 1, 2] { %>
+      <%= if (len(view.CareTiers[ti]) > 0) { %>
+        <%= partial("care_plan/plan_tier_care_table.plush.html", {
+          careCards: view.CareTiers[ti],
+          ti: ti,
+          group: view.Group,
+          tierKey: view.Tiers[ti].Key,
+          tierId: "care-tier-",
+          tierIdNum: ti,
+          tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+          tierBadgeClass: view.Tiers[ti].BadgeClass,
+          tierCount: view.CareTierOpenCap[ti],
+          tierExpanded: true,
+          tierDoneCount: 0,
+          layout: "care_plan/plan_tier.plush.html"}) %>
+      <% } %>
+    <% } %>
   <% } %>
 
   <%# --- Historique (subdued, collapsed by default): terminal +

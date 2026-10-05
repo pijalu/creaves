@@ -51,7 +51,7 @@ func TestMedSlotTiering(t *testing.T) {
 	skipped.Occurrence.DueAt = at(2, 9)
 	plan.Items = []careplan.PlanItem{late, due, future, done, skipped}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	meds := v.buildMedGroups(plan, "", false)
 	require.Len(t, meds, 1)
 	byDay := map[string]MedSlotView{}
@@ -89,7 +89,7 @@ func TestMedSeriesLateSlotDominant(t *testing.T) {
 	future.Applicable = false
 	plan.Items = []careplan.PlanItem{late, future}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	meds := v.buildMedGroups(plan, "", false)
 	require.Len(t, meds, 1)
 	require.Len(t, meds[0].Series, 1)
@@ -131,7 +131,7 @@ func TestMedTierBadgeCountsOccurrences(t *testing.T) {
 	f.Occurrence.DueAt = at(3, 8)
 	plan.Items = []careplan.PlanItem{l1, l2, f}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	require.Len(t, v.MedTiers[0], 1, "one series in the late tier")
 	require.Equal(t, 2, v.MedTierOpen[0], "badge counts occurrences, not series")
 	require.Equal(t, "2", v.MedTierOpenCap[0])
@@ -168,7 +168,7 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 	done.Occurrence.DueAt = at(2, 8)
 	plan.Items = []careplan.PlanItem{late, due, fut, done}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	meds := v.buildMedGroups(plan, "", false)
 	require.Len(t, meds, 1)
 
@@ -268,7 +268,7 @@ func TestMedSeriesNoRedundantLatePill(t *testing.T) {
 	defer_.Occurrence.DueAt = at(2, 20)
 	plan.Items = []careplan.PlanItem{late, skip, defer_}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	meds := v.buildMedGroups(plan, "", false)
 	require.Len(t, meds, 3, "one group per animal fixture")
 

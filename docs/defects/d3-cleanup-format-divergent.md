@@ -62,4 +62,55 @@ locales.
 
 ## Status
 
-**Open.** Fix owner: Phase 3 (cleanup parity with feeding/medication).
+**Verified** — fixed in Phase 3 (cleanup parity with feeding/medication).
+
+### Fix
+
+- `actions/care_plan_viewmodel.go`: `CareView` extended with `TimeGroups
+  []CareTimeGroup` (due-time sub-groups, one slot per occurrence, folding
+  mirrors `foldChipsByTime`), `Tier`/`TierClass`/`GroupStatus`/
+  `GroupStatusClass` (most-urgent-open rule, same as `feedingGroupTier`),
+  `AnimalID` on `ItemSlotView` (per-occurrence apply key), and
+  `careAnimalViewsOf` (group=animal rows). `fillCareTiers` distributes rows
+  into `v.CareTiers` via the shared tier pipeline; `tierLinks` builds the
+  cleanup strip pills from the same `CareTierOpenCap` counters (§1.4: strip
+  == badge by construction). `Group` threaded through `DayPlanView` /
+  `BuildDayPlanView` / `planSelfPath` / `defaultWorkKind`; `group` param
+  parsed + whitelisted (`cage`|`animal`) in `actions/care_plan.go`.
+- `templates/care_plan/_plan_care_line.plush.html` (new, ×4 locales):
+  shared cleanup row — time sub-group label stated once per due time (+
+  count pill), one `.plan-item-slot` apply/undo pair per occurrence
+  (`○ HH:MM` tier-coloured `plan-apply-btn` / `✓ HH:MM` btn-success
+  `plan-unapply-btn`, `data-tier-class` for undo restore), batch
+  `plan-cage-apply` group check in cage mode only, zone via `tbase()`.
+- `templates/care_plan/_plan_tier_care_table.plush.html` (new, ×4): tier
+  loop partial; `index.plush.html` (×4) renders `care-tier-0/1/2`
+  `.plan-tier` sections with header badges, plus the `.plan-group-toggle`
+  Cage⇄Animal control (feeding + cleanup) and `&group=` persistence on
+  every kind tab / zone link. Feeding table renders the animal cell +
+  single-chip rows in animal mode (§4.2) with no batch check (§4.3).
+- Locales: `care_plan.group.{label,cage,animal}` in en-us/fr/de/nl.
+
+### Verification (2026-10-05, dev server + agent-browser)
+
+- Tiered sections: `care-tier-0` `.plan-tier` with badge 22; summary strip
+  pill `Late 22` (same unit, §1.4). Time sub-group `19:30` label once with
+  count pill 11 + 11 per-occurrence toggles; second group `21:30` ×11.
+- Immediate flip (§2.2): click `○ 19:30` btn-danger → in-place swap to
+  `✓ 19:30` btn-success, no modal, no reload, open toggles 22→21; undo
+  restores `btn-danger` via `data-tier-class`.
+- Batch group check: `plan-cage-apply` → #planBatchModal → Confirm → all
+  21 row toggles flip to green undo buttons.
+- group=animal (cleanup): 11 `.plan-care-animal` cells (one line per
+  animal), 22 per-occurrence toggles, zero batch buttons; Animal pill
+  active. group=animal (feeding): 191 `.plan-feed-animal` cells, 191
+  toggles, zero batch buttons. Kind tabs carry `&group=animal`; reload
+  preserves the active mode.
+- Locales: fr "Regrouper par / Cage / Animal", de "Gruppieren nach /
+  Käfig / Tier", nl "Groeperen op / Kooi / Dier", en "Group by / Cage /
+  Animal"; zone name via `tbase()` (D3 item 3).
+- `go test ./actions -count=1` green (10 `TestPhase3*` tests pin 3-T1…
+  3-T6: tiered render, time-label-once, toggle pair contract, late red,
+  batch flip refs, group=animal lines + persistence, badge==strip unit).
+- Console clean; temp verification rule/matcher/applications removed from
+  the dev DB after the run.

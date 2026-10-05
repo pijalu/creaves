@@ -69,7 +69,7 @@ func TestPhase4LateObservationToggleIsRed(t *testing.T) {
 	}
 	plan.Items = items
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "observation", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "observation", "", now)
 	require.NotEmpty(t, v.Tiers[0].Cards, "the late observation must land on the late tier")
 	card := v.Tiers[0].Cards[0]
 	require.Equal(t, 0, card.Tier, "line tier = most urgent slot (late)")
@@ -104,7 +104,7 @@ func TestPhase4MergedLineColourFollowsMostUrgentSlot(t *testing.T) {
 		phase4Item(obs, 1, careplan.StatusDue, now.Add(30*time.Minute)),
 	}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "observation", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "observation", "", now)
 	require.Empty(t, v.Tiers[1].Cards, "the whole group rides the late tier")
 	require.Empty(t, v.Tiers[2].Cards)
 	require.Len(t, v.Tiers[0].Cards, 1, "one merged line for (source × animal)")
@@ -137,7 +137,7 @@ func TestPhase4ThreeTimesADayRendersOneLine(t *testing.T) {
 	}
 
 	for _, view := range []string{ViewCompact, ViewDetailed} {
-		v := BuildDayPlanView(plan, view, "", "care", now)
+		v := BuildDayPlanView(plan, view, "", "care", "", now)
 		require.Len(t, v.Tiers[1].Cards, 2, view+": one line per (source × animal)")
 		var merged CardView
 		for _, c := range v.Tiers[1].Cards {
@@ -275,7 +275,7 @@ func TestPhase4WeighingSlotFlagsInput(t *testing.T) {
 	plan.Items = []careplan.PlanItem{
 		phase4Item(weigh, 1, careplan.StatusDue, now.Add(30*time.Minute)),
 	}
-	v := BuildDayPlanView(plan, ViewCompact, "", "weighing", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "weighing", "", now)
 	require.Len(t, v.Tiers[1].Cards, 1)
 	slot := v.Tiers[1].Cards[0].Slots[0]
 	require.True(t, slot.NeedsInput, "weighing toggles keep the modal input")

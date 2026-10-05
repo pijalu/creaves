@@ -24,11 +24,28 @@
           Chips/expand/apply keep their own behavior (the JS
           guards the row click against interactive children). %>
       <tr class="plan-feeding-row" tabindex="0" role="button"
-          data-animal-label="<%= fcard.Cage %> (<%= fcard.AnimalCount %>)"
+          data-animal-label="<%= if (group == "animal") { %><%= fcard.AnimalLabel %><% } else { %><%= fcard.Cage %> (<%= fcard.AnimalCount %>)<% } %>"
           data-detail="<%= fcard.Food %>"
           data-kind="feeding"
           data-due="<%= fcard.DetailTimes %>"
           data-status="<%= fcard.GroupStatus %>">
+        <%= if (group == "animal") { %>
+          <%# §4.3: the tinted animal cell — year/number display (§5 level 1),
+              full label on the title, plan-tab link; cage demoted to a muted
+              caption, the diet stays. NO batch apply-group (cage-scoped). %>
+          <td class="plan-med-animal plan-feed-animal" title="<%= fcard.AnimalLabel %>">
+            <%= if (fcard.AnimalLink != "") { %>
+              <a href="<%= fcard.AnimalLink %>"><strong><%= fcard.AnimalYear %></strong></a>
+            <% } else { %>
+              <strong><%= fcard.AnimalYear %></strong>
+            <% } %>
+            <br><small class="text-muted"><%= fcard.Cage %></small>
+            <br><span class="text-info"><%= fcard.Food %></span>
+            <%= if (fcard.ForceFeed) { %>
+              <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
+            <% } %>
+          </td>
+        <% } else { %>
         <td>
           <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
           <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
@@ -37,6 +54,7 @@
             <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
           <% } %>
         </td>
+        <% } %>
         <%# R4-7.14c: with more than one animal the list COLLAPSES by
             default. Measured before: 29 of 162 rows held several
             animals, all expanded, and the row with 47 chips stood
@@ -98,8 +116,10 @@
                   <%# R4-7.5: the per-ANIMAL check only earns its place when the
                       cage holds several animals; with a single one the GROUP check
                       does the whole job. The invisible spacer keeps the row footprint —
-                      and the column alignment — identical either way. %>
-                  <%= if (len(fcard.Chips) > 1) { %>
+                      and the column alignment — identical either way.
+                      §4.2: under group=animal every row IS one animal and there is
+                      no group check, so the per-animal toggle always renders. %>
+                  <%= if (len(fcard.Chips) > 1 || group == "animal") { %>
                     <%= if (chip.Applicable) { %>
                       <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one"
                         data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
@@ -134,7 +154,10 @@
             the bottom), so on a cage with many animals the check
             floated at the top of an otherwise empty column and read
             as belonging to the FIRST animal only. plan-feed-check
-            centres it in the row, where it belongs to the group. %>
+            centres it in the row, where it belongs to the group.
+            §4.3: under group=animal the batch check disappears —
+            batch is inherently cage-scoped. %>
+        <%= if (group != "animal") { %>
         <td class="text-nowrap plan-feed-check">
           <%# R4-4.2: the count is a corner overlay, never a button
               child — the button keeps a constant width and the
@@ -157,6 +180,7 @@
             </span>
           <% } %>
         </td>
+        <% } %>
       </tr>
     <% } %>
   </tbody>

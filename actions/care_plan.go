@@ -111,6 +111,12 @@ func CarePlanIndex(c buffalo.Context) error {
 	// view.
 	view := ViewCompact
 	zone := c.Param("zone")
+	// Guideline §4: cage⇄animal grouping view preference (feeding +
+	// cleanup rows). Whitelisted: cage (default) | animal.
+	group := c.Param("group")
+	if group != "animal" && group != "cage" {
+		group = ""
+	}
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// CP2: the screen renders the unfiltered plan; the view model
@@ -124,7 +130,7 @@ func CarePlanIndex(c buffalo.Context) error {
 			}
 			if !exists {
 				c.Flash().Add("warning", T.Translate(c, "care_plan.zone.unknown"))
-				return c.Redirect(http.StatusFound, planSelfPath(view, "", defaultWorkKind(plan, view, "", now, c.Param("back")), c.Param("back")))
+				return c.Redirect(http.StatusFound, planSelfPath(view, "", defaultWorkKind(plan, view, "", group, now, c.Param("back")), group, c.Param("back")))
 			}
 		}
 		// Fix 5: the kind tabs have NO "all" entry — the screen always
@@ -132,9 +138,9 @@ func CarePlanIndex(c buffalo.Context) error {
 		// that has open work in the active zone (feeding fallback).
 		kind := kindFilter
 		if kind == "" {
-			kind = defaultWorkKind(plan, view, zone, now, c.Param("back"))
+			kind = defaultWorkKind(plan, view, zone, group, now, c.Param("back"))
 		}
-		c.Set("view", BuildDayPlanView(plan, view, zone, kind, now, c.Param("back")))
+		c.Set("view", BuildDayPlanView(plan, view, zone, kind, group, now, c.Param("back")))
 		return c.Render(http.StatusOK, r.HTML("/care_plan/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		rows := planJSONRows(narrowPlanByKind(plan, kindFilter))
@@ -147,8 +153,8 @@ func CarePlanIndex(c buffalo.Context) error {
 // defaultWorkKind picks the kind tab the work screen opens on (fix 5 —
 // there is no "all/TOUT" tab): the first kind in display order with open
 // work in the ACTIVE zone, falling back to feeding.
-func defaultWorkKind(plan *DayPlan, view, zone string, now time.Time, back string) string {
-	nav := BuildDayPlanView(plan, view, zone, "", now, back)
+func defaultWorkKind(plan *DayPlan, view, zone, group string, now time.Time, back string) string {
+	nav := BuildDayPlanView(plan, view, zone, "", group, now, back)
 	for _, kc := range nav.Kinds {
 		if kc.Count > 0 {
 			return kc.Kind

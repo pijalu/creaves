@@ -63,16 +63,16 @@ func TestCarePlanOneDensityForEveryKind(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 
 	for _, kind := range []string{"", "observation", "care", "weighing", "feeding"} {
-		c := BuildDayPlanView(plan, ViewCompact, "", kind, now)
-		d := BuildDayPlanView(plan, ViewDetailed, "", kind, now)
+		c := BuildDayPlanView(plan, ViewCompact, "", kind, "", now)
+		d := BuildDayPlanView(plan, ViewDetailed, "", kind, "", now)
 		require.Equal(t, c.Stats, d.Stats,
 			"kind=%q: the summary must not depend on the density", kind)
 	}
 
 	// Sanity: the projection still accepts both values (the constant is part
 	// of the model); it is the REQUEST HANDLER that pins one density.
-	c := BuildDayPlanView(plan, ViewCompact, "", "", now)
-	d := BuildDayPlanView(plan, ViewDetailed, "", "", now)
+	c := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
+	d := BuildDayPlanView(plan, ViewDetailed, "", "", "", now)
 	require.False(t, c.Detailed)
 	require.True(t, d.Detailed)
 }
@@ -81,8 +81,8 @@ func TestCarePlanOneDensityForEveryKind(t *testing.T) {
 // the dead density parameter — it is copied, bookmarked and read by caregivers.
 func TestPlanSelfPathCarriesNoViewParam(t *testing.T) {
 	for _, view := range []string{ViewCompact, ViewDetailed, ""} {
-		got := planSelfPath(view, "Z1", "feeding", "/animals/1#nav-plan")
+		got := planSelfPath(view, "Z1", "feeding", "", "/animals/1#nav-plan")
 		require.NotContains(t, got, "view=", "view=%q leaked into %q", view, got)
 	}
-	require.True(t, strings.HasPrefix(planSelfPath(ViewCompact, "", "", ""), "/care_plan"))
+	require.True(t, strings.HasPrefix(planSelfPath(ViewCompact, "", "", "", ""), "/care_plan"))
 }

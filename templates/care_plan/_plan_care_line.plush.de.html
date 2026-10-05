@@ -1,0 +1,146 @@
+<%# ONE cleanup row (guideline §3/§4, phase 3 / D3), in the SAME visual
+    language as the feeding tier rows and the medication/item lines.
+
+    Context (partial data map):
+      ccard  — a CareView (one cleanup line: (source × cage) under the
+               default cage grouping, or (source × animal) under
+               group=animal). ccard.TimeGroups folds the open occurrences
+               into due-time sub-groups (§3.2), each slot one toggle.
+      ti     — tier index (0 late · 1 now · 2 later), for stable collapse ids.
+      ri     — row index inside the tier (stable collapse ids).
+      group  — view.Group: "cage" (default) renders the cage cell + the
+               apply-cage group check; "animal" renders the tinted animal
+               cell instead and drops the batch button (§4.3 — batch is
+               inherently cage-scoped).
+
+    Layout: ONE <tr> per cleanup line —
+      <cage+zone+source> | <time sub-group label once + per-occurrence
+      toggles> | <apply-cage group check (cage grouping only)>
+
+    §3.2 time-grouping: the due time is the sub-group label, stated ONCE
+    per sub-group (`plan-time-group`/`plan-time-label`, the feeding
+    classes), with one apply/undo slot pair per occurrence — the SAME
+    .plan-item-slot parent contract `_apply_toggle` requires
+    (btn.parentNode.querySelector), so a shared parent per occurrence is
+    a hard requirement, not a style choice.
+
+    §2 toggle colours: every toggle carries slot.TierClass (the ONE
+    slotTierClass policy) + data-tier-class so undo restores the
+    occurrence's CURRENT tier colour (§2.2/§2.4). Apply speaks the §2.3
+    med-parity glyph language (○ to-do · ✓ done).
+
+    §4.3 animal grouping: one line per animal — the tinted animal cell
+    (year/number display, §5 level 1) replaces the cage cell; the cage is
+    demoted to a muted label. NO batch group-check (batch is cage-scoped).
+
+    Cleanup occurrences need no input (no weighing/observation modal), so
+    the toggles are the instant-apply kind — `_apply_toggle` routes them
+    through instantApply, flipping the colour immediately (§2.2). %>
+<tr class="plan-cage-row plan-care-row" tabindex="0" role="button"
+    data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+    data-detail="<%= ccard.SourceName %>"
+    data-kind="cleanup"
+    data-status="<%= ccard.GroupStatus %>">
+  <%= if (group == "animal") { %>
+    <%# §4.3: the tinted animal cell — year/number display, full label +
+        plan-tab link, the cage demoted to a muted caption. %>
+    <td class="plan-med-animal plan-care-animal" title="<%= ccard.AnimalLabel %>">
+      <%= if (ccard.AnimalLink != "") { %>
+        <a href="<%= ccard.AnimalLink %>"><strong><%= ccard.AnimalYear %></strong></a>
+      <% } else { %>
+        <strong><%= ccard.AnimalYear %></strong>
+      <% } %>
+      <br><small class="text-muted"><%= ccard.Cage %></small>
+      <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+    </td>
+  <% } else { %>
+    <td>
+      <strong><span class="plan-dot <%= ccard.GroupStatusClass %>" title="<%= t("care_plan.status." + ccard.GroupStatus) %>">●</span> <%= ccard.Cage %></strong>
+      <span class="text-muted"><%= tbase("zones", "zone", ccard.Zone) %></span>
+      <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+    </td>
+  <% } %>
+  <td class="plan-care-slots">
+    <%= for (tg) in ccard.TimeGroups { %>
+      <div class="plan-time-group">
+        <%# §3.2: the due time stated ONCE per sub-group — same day-aware
+            expression the feeding time label uses ("tomorrow 16:00" /
+            "02/01 16:00" / "16:00"). %>
+        <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
+          <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
+          <%= if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
+        </div>
+        <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+        <%= for (slot) in tg.Slots { %>
+          <span class="plan-item-slot">
+            <%= if (slot.Applicable) { %>
+              <%# §2.3 med-parity glyphs (○ to-do · ✓ done); tier colour via
+                  slotTierClass, data-tier-class for the undo restore. %>
+              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
+                data-source-type="<%= ccard.SourceType %>"
+                data-source-id="<%= ccard.SourceID %>"
+                data-animal-id="<%= slot.AnimalID %>"
+                data-due-at="<%= slot.DueAtRFC %>"
+                data-kind="cleanup"
+                data-tier-class="<%= slot.TierClass %>"
+                data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+                data-detail="<%= ccard.SourceName %>"
+                data-source-name="<%= ccard.SourceName %>"
+                title="<%= t("care_plan.apply.action") %>">○ <%= slot.DueHM %></button>
+              <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
+                data-source-type="<%= ccard.SourceType %>"
+                data-source-id="<%= ccard.SourceID %>"
+                data-animal-id="<%= slot.AnimalID %>"
+                data-due-at="<%= slot.DueAtRFC %>"
+                data-kind="cleanup"
+                data-tier-class="<%= slot.TierClass %>"
+                title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
+            <% } else if (slot.LateAllowed) { %>
+              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
+                data-source-type="<%= ccard.SourceType %>"
+                data-source-id="<%= ccard.SourceID %>"
+                data-animal-id="<%= slot.AnimalID %>"
+                data-due-at="<%= slot.DueAtRFC %>"
+                data-kind="cleanup" data-late="true"
+                data-tier-class="<%= slot.TierClass %>"
+                data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+                data-detail="<%= ccard.SourceName %>"
+                data-source-name="<%= ccard.SourceName %>"
+                title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueHM %></button>
+              <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
+                data-source-type="<%= ccard.SourceType %>"
+                data-source-id="<%= ccard.SourceID %>"
+                data-animal-id="<%= slot.AnimalID %>"
+                data-due-at="<%= slot.DueAtRFC %>"
+                data-kind="cleanup"
+                data-tier-class="<%= slot.TierClass %>"
+                title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
+            <% } else { %>
+              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn" disabled
+                title="<%= t("care_plan.status." + slot.Status) %>">– <%= slot.DueHM %></button>
+            <% } %>
+          </span>
+        <% } %>
+        </span>
+      </div>
+    <% } %>
+  </td>
+  <%= if (group != "animal") { %>
+    <td class="text-nowrap plan-feed-check">
+      <%= if (ccard.ApplicableCount > 0) { %>
+        <span class="position-relative d-inline-block">
+          <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply"
+            data-items="<%= ccard.ChipRefsJSON %>"
+            data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
+            aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
+            title="<%= t("care_plan.card.apply_cage") %>">
+            <i class="far fa-clock"></i>
+          </button>
+          <%= if (ccard.ApplicableCount > 1) { %>
+            <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>
+          <% } %>
+        </span>
+      <% } %>
+    </td>
+  <% } %>
+</tr>

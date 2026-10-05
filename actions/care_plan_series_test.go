@@ -49,7 +49,7 @@ func TestMedSeriesGroupsByDrugAndDosage(t *testing.T) {
 	dos.Occurrence.DueAt = day(9, 0)
 	plan.Items = []careplan.PlanItem{s1, s2, s3, dos}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	meds := v.buildMedGroups(plan, "", false) // per-animal slot cards = dashboard projection
 	require.Len(t, meds, 1)
 	series := meds[0].Series
@@ -276,7 +276,7 @@ func TestMedSlotLateAllowed(t *testing.T) {
 	done.Applicable = false
 	plan.Items = []careplan.PlanItem{late, future, done}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	meds := v.buildMedGroups(plan, "", false)
 	require.Len(t, meds, 1)
 	slots := meds[0].Slots

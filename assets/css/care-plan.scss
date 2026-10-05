@@ -108,6 +108,14 @@
   color: #495057;
 }
 
+// §4.2 grouping toggle: the leading label is a caption, not a button — a
+// .disabled .btn would show a not-allowed cursor on plain text.
+.plan-group-toggle .plan-group-label {
+  cursor: default;
+  pointer-events: none;
+  opacity: 1;
+}
+
   // R9-1: an applied feeding animal row goes light-green so the caregiver
   // SEES what was just recorded (the apply check swaps to an undo control in
   // place). Same light-green family as the "later" tier (#d4edda) so the

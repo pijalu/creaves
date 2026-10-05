@@ -39,7 +39,7 @@ func TestTierOrder(t *testing.T) {
 func TestBuildDayPlanViewEmpty(t *testing.T) {
 	plan := &DayPlan{Animals: &planAnimals{}}
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	require.NotNil(t, v)
 	require.Equal(t, "10:30", v.UpdatedAt)
 	for ti := range v.Tiers {
@@ -84,7 +84,7 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 	// compact, unfiltered: three open med rows — now: 08:30 (animal 1)
 	// then 09:00 (animal 3), later: 18:00 (animal 1); the applied
 	// occurrence is history. Feeding is its own section, never a row.
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	require.Len(t, v.Tiers[1].Cards, 2, "due med rows in the now tier")
 	require.Equal(t, 1, v.Tiers[1].Cards[0].AnimalID)
 	require.Equal(t, "08:30", v.Tiers[1].Cards[0].DueHM)
@@ -100,27 +100,27 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 	require.Contains(t, v.Tiers[1].Cards[0].AnimalLink, "/animals/1?back=")
 
 	// zone filter narrows to Z1 animals (1 and 2): rows of animal 3 gone
-	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", "", now)
 	require.Len(t, v.Tiers[1].Cards, 1)
 	require.Len(t, v.Tiers[2].Cards, 1)
 	// S2 badge parity: the toggle-button badge equals the visible count
 	// (2 rows + 1 feeding card)
 	require.Equal(t, "3", v.ZoneCap)
-	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "Z2", "", "", now)
 	require.Len(t, v.Tiers[1].Cards, 1)
 	require.Equal(t, "1", v.ZoneCap)
 	require.Equal(t, 3, v.Tiers[1].Cards[0].AnimalID)
 	// no zone selected → button badge = all-zones cap
-	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	require.Equal(t, v.ZoneAllCap, v.ZoneCap)
 
 	// kind filter = medication keeps ONLY the med rows (feeding section gone)
-	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	require.Len(t, v.Tiers[1].Cards, 2)
 	require.Len(t, v.Tiers[2].Cards, 1)
 	require.Empty(t, v.Feedings)
 	// kind = feeding: no med rows anywhere, feeding section only
-	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, "", now)
 	for ti := range v.Tiers {
 		require.Empty(t, v.Tiers[ti].Cards)
 	}
@@ -128,7 +128,7 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 
 	// detailed: every open occurrence gets its own row — same med set,
 	// one row per occurrence (morning 08:30, evening 18:00, Z2 09:00)
-	d := BuildDayPlanView(plan, ViewDetailed, "", "", now)
+	d := BuildDayPlanView(plan, ViewDetailed, "", "", "", now)
 	require.Len(t, d.Tiers[1].Cards, 2)
 	require.Len(t, d.Tiers[2].Cards, 1)
 }
@@ -284,7 +284,7 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	// /care_plan tier projection over the same plan (fix 6): compact
 	// folds the three open occurrences of (med-1 × animal 1) into ONE
 	// late row with a "+2" remaining badge — no per-slot button series.
-	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	require.Len(t, v.Tiers[0].Cards, 1, "one folded row: yesterday's late slot is the next open action")
 	require.Equal(t, 1, v.Tiers[0].Cards[0].AnimalID)
 	require.Equal(t, 2, v.Tiers[0].Cards[0].Remaining, "due today + scheduled tomorrow fold into the +N badge")
@@ -292,7 +292,7 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.Equal(t, 1, v.History[0].AnimalID)
 	// detailed: every open occurrence is its own tier row; overridden
 	// surfaces in the history section only in this density.
-	dv := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, now)
+	dv := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, "", now)
 	// Phase 4 / D4 (§3.1): repeating occurrences merge into ONE line per
 	// (source × animal) in BOTH densities — the three open occurrences of
 	// (med-1 × animal 1) fold to one line (tiered by its most urgent slot,
@@ -338,7 +338,7 @@ func TestBuildDayPlanViewFeedingDedup(t *testing.T) {
 
 	plan.Items = []careplan.PlanItem{due, missed, late, other, sched}
 
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	require.Len(t, v.Feedings, 1)
 	fc := v.Feedings[0]
 	require.Len(t, fc.Chips, 2, "one chip per animal — duplicates deduped")
@@ -380,7 +380,7 @@ func TestCardNeedsInput(t *testing.T) {
 		careplan.KindWeighing:    true,
 		careplan.KindObservation: true,
 	}
-	v := BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	for kind, want := range kinds {
 		src := testSource(kind, "src-"+kind, "S "+kind, map[string]interface{}{"food": "x"})
 		it := testItem(src, 1, careplan.StatusDue)

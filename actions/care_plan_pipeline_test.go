@@ -139,10 +139,10 @@ func TestFilterStatsMatchVisibleSet(t *testing.T) {
 	kinds := append([]string{""}, actionKinds...)
 
 	for _, view := range []string{ViewCompact, ViewDetailed} {
-		ref := BuildDayPlanView(plan, view, "", "", now)
+		ref := BuildDayPlanView(plan, view, "", "", "", now)
 		for _, zone := range zones {
 			for _, kind := range kinds {
-				v := BuildDayPlanView(plan, view, zone, kind, now)
+				v := BuildDayPlanView(plan, view, zone, kind, "", now)
 				ctx := fmt.Sprintf("view=%s zone=%q kind=%q", view, zone, kind)
 				assertRowsFiltered(t, v, zone, kind, ctx)
 				require.Equal(t, expectedStats(plan, zone, kind, now), v.Stats, ctx+" summary strip vs independent count")
@@ -219,18 +219,18 @@ func assertNavBadges(t *testing.T, plan *DayPlan, v *DayPlanView, view, zone, ki
 	t.Helper()
 	sumZ := 0
 	for _, zt := range v.Zones {
-		fv := BuildDayPlanView(plan, view, zt.Name, kind, now)
+		fv := BuildDayPlanView(plan, view, zt.Name, kind, "", now)
 		require.Equal(t, zt.Count, openTotal(fv), ctx+" zone tab "+zt.Name)
 		sumZ += zt.Count
 	}
 	require.Equal(t, v.ZoneAll, sumZ, ctx+" zone total")
 	sumK := 0
 	for _, kc := range v.Kinds {
-		fv := BuildDayPlanView(plan, view, zone, kc.Kind, now)
+		fv := BuildDayPlanView(plan, view, zone, kc.Kind, "", now)
 		require.Equal(t, kc.Count, openTotal(fv), ctx+" kind chip "+kc.Kind)
 		sumK += kc.Count
 	}
-	require.Equal(t, openTotal(BuildDayPlanView(plan, view, zone, "", now)), sumK,
+	require.Equal(t, openTotal(BuildDayPlanView(plan, view, zone, "", "", now)), sumK,
 		ctx+" kind chips partition the active zone's workload")
 }
 
@@ -242,8 +242,8 @@ func TestCompactAndDetailedSameGroups(t *testing.T) {
 	plan := pipelinePlan()
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 
-	c := BuildDayPlanView(plan, ViewCompact, "", "", now)
-	d := BuildDayPlanView(plan, ViewDetailed, "", "", now)
+	c := BuildDayPlanView(plan, ViewCompact, "", "", "", now)
+	d := BuildDayPlanView(plan, ViewDetailed, "", "", "", now)
 	require.False(t, c.Detailed)
 	require.True(t, d.Detailed)
 
@@ -358,7 +358,7 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	// medication × Z1: exactly animal 1's med ROW in the "now" tier
 	// (fix 6 — medication is tier rows, no med section); its applied
 	// occurrence surfaces as a history row; no feeding/cleanup section.
-	v := BuildDayPlanView(plan, ViewCompact, "Z1", careplan.KindMedication, now)
+	v := BuildDayPlanView(plan, ViewCompact, "Z1", careplan.KindMedication, "", now)
 	require.Len(t, v.Tiers[1].Cards, 1)
 	require.Equal(t, 1, v.Tiers[1].Cards[0].AnimalID)
 	require.Empty(t, v.Tiers[0].Cards)
@@ -370,7 +370,7 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 
 	// feeding × Z2: exactly the Z2 feeding card; feeding never yields
 	// tier rows nor history rows (grouped kinds stay on their section)
-	v = BuildDayPlanView(plan, ViewCompact, "Z2", careplan.KindFeeding, now)
+	v = BuildDayPlanView(plan, ViewCompact, "Z2", careplan.KindFeeding, "", now)
 	require.Len(t, v.Feedings, 1)
 	require.Equal(t, "Z2", v.Feedings[0].Zone)
 	require.Equal(t, "C9", v.Feedings[0].Cage)
@@ -381,7 +381,7 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 	require.Empty(t, v.History)
 
 	// zone tabs under an active kind count only that kind's cards
-	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, now)
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindFeeding, "", now)
 	require.Len(t, v.Zones, 2)
 	byZone := map[string]int{}
 	for _, zt := range v.Zones {
@@ -391,7 +391,7 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 
 	// kind chips under an active zone count only that zone's cards —
 	// CARE and MEDICATION included (both are tier rows now)
-	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "Z1", "", "", now)
 	chips := map[string]int{}
 	for _, kc := range v.Kinds {
 		chips[kc.Kind] = kc.Count
@@ -407,7 +407,7 @@ func TestKindZoneCombinationFilters(t *testing.T) {
 
 	// kind chips under NO zone count the whole day's workload — the care
 	// row (animal 3) and the second weighing row (animal 3) show up here
-	v = BuildDayPlanView(plan, ViewCompact, "", "", now)
+	v = BuildDayPlanView(plan, ViewCompact, "", "", "", now)
 	chips = map[string]int{}
 	for _, kc := range v.Kinds {
 		chips[kc.Kind] = kc.Count
