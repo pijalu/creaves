@@ -20,7 +20,7 @@
   <tbody>
     <%= for (rule) in rules { %>
       <tr>
-        <td class="align-middle"><%= richPlanName(rule.Name, rule.ActionKind, rule.ActionPayload) %></td>
+        <td class="align-middle"><%= richPlanName(tname("care_rules", rule.ID, rule.Name), rule.ActionKind, rule.ActionPayload) %></td>
         <td class="align-middle"><%= rule.Description %></td>
         <td class="align-middle"><span class="badge badge-secondary"><%= t("care_plan.kind." + rule.ActionKind) %></span></td>
         <td class="align-middle"><%= matcherNames[rule.MatcherID.UUID] %></td>

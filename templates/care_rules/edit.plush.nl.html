@@ -37,7 +37,8 @@
       <select class="form-control" id="RuleMatcherID" name="MatcherID">
         <option value=""><%= t("care_plan.matcher.none") %></option>
         <%= for (m) in matchers { %>
-          <option value="<%= m.ID %>" <%= if (rule.MatcherID.Valid && rule.MatcherID.UUID.String() == m.ID.String()) { %>selected<% } %>><%= m.Name %></option>
+          <%# R9-6: the matcher dropdown renders the LOCALIZED matcher name. %>
+          <option value="<%= m.ID %>" <%= if (rule.MatcherID.Valid && rule.MatcherID.UUID.String() == m.ID.String()) { %>selected<% } %>><%= tname("care_matchers", m.ID, m.Name) %></option>
         <% } %>
       </select>
       <small class="text-muted"><%= t("care_plan.matcher.none_hint") %></small>
@@ -90,6 +91,9 @@
       </div>
     </div>
   </div>
+
+  <%# R9-6: per-language name/description inputs (translations table). %>
+  <%= partial("translations/fields.html") %>
 
   <button type="submit" class="btn btn-success"><%= t("care_plan.action.save") %></button>
   <%= linkTo("/care_rules", {class: "btn btn-warning", body: t("care_plan.action.cancel")}) %>

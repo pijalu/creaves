@@ -17,7 +17,7 @@
   <tbody>
     <%= for (matcher) in matchers { %>
       <tr>
-        <td class="align-middle"><%= displayPlanName(matcher.Name) %></td>
+        <td class="align-middle"><%= displayPlanName(tname("care_matchers", matcher.ID, matcher.Name)) %></td>
         <td class="align-middle"><%= matcher.Description %></td>
         <td class="align-middle">
           <%= humanMatcher(matcher.Expression) %>

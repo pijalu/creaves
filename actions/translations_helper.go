@@ -69,6 +69,10 @@ func translationValueByCanonicalValue(tx *pop.Connection, table, id, field, loca
 		"entry_causes":    {"cause": true, "detail": true, "nature": true, "indication": true},
 		"native_statuses": {"status": true, "indication": true, "precision": true},
 		"subside_groups":  {"group": true},
+		// R9-6: care rules / matchers expose a localized name like every other
+		// reference record.
+		"care_rules":    {"name": true, "description": true},
+		"care_matchers": {"name": true},
 	}
 	if !allowed[table][field] {
 		return "", nil

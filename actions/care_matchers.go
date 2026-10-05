@@ -369,6 +369,10 @@ func (v CareMatchersResource) New(c buffalo.Context) error {
 	}
 	matcher := &models.CareMatcher{}
 	setMatcherContext(c, matcher)
+	// R9-6: per-language name input.
+	if err := setTranslationValues(c, planTx(c), "care_matchers", "", []string{"name"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("care_matchers/new.plush.html"))
 }
 
@@ -384,6 +388,10 @@ func (v CareMatchersResource) Edit(c buffalo.Context) error {
 		return planError(c, http.StatusNotFound, err)
 	}
 	setMatcherContext(c, matcher)
+	// R9-6: per-language name input.
+	if err := setTranslationValues(c, tx, "care_matchers", matcher.ID.String(), []string{"name"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("care_matchers/edit.plush.html"))
 }
 
@@ -409,6 +417,10 @@ func (v CareMatchersResource) Create(c buffalo.Context) error {
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
 		}).Respond(c)
+	}
+	// R9-6: persist per-language name.
+	if err := saveTranslations(c, tx, "care_matchers", matcher.ID.String(), []string{"name"}); err != nil {
+		return err
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/care_matchers")
@@ -446,6 +458,10 @@ func (v CareMatchersResource) Update(c buffalo.Context) error {
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
 		}).Respond(c)
+	}
+	// R9-6: persist per-language name.
+	if err := saveTranslations(c, tx, "care_matchers", matcher.ID.String(), []string{"name"}); err != nil {
+		return err
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
 		return c.Redirect(http.StatusSeeOther, "/care_matchers")

@@ -183,6 +183,10 @@ func (v CareRulesResource) New(c buffalo.Context) error {
 	if err := setRuleContext(c, tx, rule); err != nil {
 		return err
 	}
+	// R9-6: per-language name/description inputs.
+	if err := setTranslationValues(c, tx, "care_rules", "", []string{"name", "description"}); err != nil {
+		return err
+	}
 	return c.Render(http.StatusOK, r.HTML("care_rules/new.plush.html"))
 }
 
@@ -199,6 +203,10 @@ func (v CareRulesResource) Edit(c buffalo.Context) error {
 		return planError(c, http.StatusNotFound, err)
 	}
 	if err := setRuleContext(c, tx, rule); err != nil {
+		return err
+	}
+	// R9-6: per-language name/description inputs.
+	if err := setTranslationValues(c, tx, "care_rules", rule.ID.String(), []string{"name", "description"}); err != nil {
 		return err
 	}
 	return c.Render(http.StatusOK, r.HTML("care_rules/edit.plush.html"))
@@ -229,6 +237,10 @@ func (v CareRulesResource) Create(c buffalo.Context) error {
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
 		}).Respond(c)
+	}
+	// R9-6: persist per-language name/description.
+	if err := saveTranslations(c, tx, "care_rules", rule.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
 		flashPlanRuleWarnings(c, rule)
@@ -270,6 +282,10 @@ func (v CareRulesResource) Update(c buffalo.Context) error {
 		}).Wants("json", func(c buffalo.Context) error {
 			return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
 		}).Respond(c)
+	}
+	// R9-6: persist per-language name/description.
+	if err := saveTranslations(c, tx, "care_rules", rule.ID.String(), []string{"name", "description"}); err != nil {
+		return err
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
 		flashPlanRuleWarnings(c, rule)

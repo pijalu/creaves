@@ -234,6 +234,10 @@ var translationBaseFields = map[string]string{
 	"drugs":        "name",
 	"outtaketypes": "name",
 	"species":      "creaves_species",
+	// R9-6: care rules / matchers carry a localized name like every other
+	// reference record.
+	"care_rules":    "name",
+	"care_matchers": "name",
 }
 
 // loadBaseTranslationMap loads translated values keyed by canonical French value.
@@ -249,7 +253,7 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 		Value string `db:"value"`
 	}
 	// Table and field are selected only from the fixed reference mappings below.
-	allowed := map[string]bool{"animaltypes": true, "animalages": true, "caretypes": true, "outtaketypes": true, "species": true, "zones": true, "native_statuses": true, "subside_groups": true, "entry_causes": true}
+	allowed := map[string]bool{"animaltypes": true, "animalages": true, "caretypes": true, "outtaketypes": true, "species": true, "zones": true, "native_statuses": true, "subside_groups": true, "entry_causes": true, "care_rules": true, "care_matchers": true}
 	if !allowed[table] {
 		return out
 	}

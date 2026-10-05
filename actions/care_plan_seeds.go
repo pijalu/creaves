@@ -144,6 +144,57 @@ func SeedRules() []seedRuleDef {
 	}
 }
 
+// SeedMatcherNameTranslations returns the localized display names of the
+// §7.4 seed matchers (SM1–SM14 + derived SR*), keyed by seed Key. The
+// canonical French name stays in care_matchers.name (the base column, fr);
+// these are the en-US/de/nl translations written to the translations table
+// when a matcher is first seeded (R9-6).
+func SeedMatcherNameTranslations() map[string]map[string]string {
+	return map[string]map[string]string{
+		"SM1":   {"en-US": "Baby hedgehog", "de": "Baby-Igel", "nl": "Babyegel"},
+		"SM2":   {"en-US": "Juvenile hedgehog", "de": "Junger Igel", "nl": "Jonge egel"},
+		"SM3":   {"en-US": "Adult hedgehog", "de": "Erwachsener Igel", "nl": "Volwassen egel"},
+		"SM4":   {"en-US": "Pigeons and doves", "de": "Tauben", "nl": "Duiven"},
+		"SM5":   {"en-US": "Birds of prey", "de": "Greifvögel", "nl": "Roofvogels"},
+		"SM6":   {"en-US": "Canids", "de": "Hundeartige", "nl": "Hondachtigen"},
+		"SM7":   {"en-US": "Ticks on admission", "de": "Zecken bei Aufnahme", "nl": "Teken bij opname"},
+		"SM8":   {"en-US": "Fleas on admission", "de": "Flöhe bei Aufnahme", "nl": "Vlooien bij opname"},
+		"SM9":   {"en-US": "Myiasis on admission", "de": "Myiasis bei Aufnahme", "nl": "Myiasis bij opname"},
+		"SM10":  {"en-US": "Wounded", "de": "Verletzt", "nl": "Gewond"},
+		"SM11":  {"en-US": "Baby (all types)", "de": "Baby (alle Typen)", "nl": "Baby (alle types)"},
+		"SM12":  {"en-US": "Juvenile (all types)", "de": "Jungtier (alle Typen)", "nl": "Jong (alle types)"},
+		"SM13":  {"en-US": "Force feeding", "de": "Zwangsfütterung", "nl": "Gedwongen voeding"},
+		"SM14":  {"en-US": "Zone to clean", "de": "Zu reinigende Zone", "nl": "Te reinigen zone"},
+		"SR1*":  {"en-US": "Baby hedgehog < 300 g (derived SM1)", "de": "Baby-Igel < 300 g (abgeleitet SM1)", "nl": "Babyegel < 300 g (afgeleid SM1)"},
+		"SR4*":  {"en-US": "Baby pigeons and doves (derived SM4+SM11)", "de": "Tauben-Jungtiere (abgeleitet SM4+SM11)", "nl": "Babyduiven (afgeleid SM4+SM11)"},
+		"SR6*":  {"en-US": "Baby canids (derived SM6+SM11)", "de": "Hundeartigen-Jungtiere (abgeleitet SM6+SM11)", "nl": "Babyhondachtigen (afgeleid SM6+SM11)"},
+		"SR12*": {"en-US": "Baby or juvenile hedgehog (derived SM1 OR SM2)", "de": "Baby- oder junger Igel (abgeleitet SM1 ODER SM2)", "nl": "Baby- of jonge egel (afgeleid SM1 OF SM2)"},
+	}
+}
+
+// SeedRuleNameTranslations returns the localized display names of the §7.4
+// seed rules (SR1–SR13), keyed by seed Key. The canonical French name stays
+// in care_rules.name (the base column, fr); these are the en-US/de/nl
+// translations written to the translations table when a rule is first
+// seeded (R9-6).
+func SeedRuleNameTranslations() map[string]map[string]string {
+	return map[string]map[string]string{
+		"SR1":  {"en-US": "Baby hedgehog — force feeding", "de": "Baby-Igel — Zwangsfütterung", "nl": "Babyegel — gavage"},
+		"SR2":  {"en-US": "Juvenile hedgehog — 2 meals/day", "de": "Junger Igel — 2 Mahlzeiten/Tag", "nl": "Jonge egel — 2 maaltijden/dag"},
+		"SR3":  {"en-US": "Pigeons and doves — seeds AM/PM", "de": "Tauben — Körner AM/PM", "nl": "Duiven — zaden AM/PM"},
+		"SR4":  {"en-US": "Baby pigeons and doves — NB force feeding", "de": "Tauben-Jungtiere — NB Zwangsfütterung", "nl": "Babyduiven — NB gavage"},
+		"SR5":  {"en-US": "Birds of prey — feeding", "de": "Greifvögel — Fütterung", "nl": "Roofvogels — voeding"},
+		"SR6":  {"en-US": "Baby canids — group feeding", "de": "Hundeartigen-Jungtiere — Gruppenfütterung", "nl": "Babyhondachtigen — groepsvoeding"},
+		"SR7":  {"en-US": "Ticks → Ivomec 5d", "de": "Zecken → Ivomec 5T", "nl": "Teken → Ivomec 5d"},
+		"SR8":  {"en-US": "Fleas → Sarnacuran", "de": "Flöhe → Sarnacuran", "nl": "Vlooien → Sarnacuran"},
+		"SR9":  {"en-US": "Daily cleaning", "de": "Tägliche Reinigung", "nl": "Dagelijkse reiniging"},
+		"SR10": {"en-US": "Weekly weighing juveniles", "de": "Wöchentliches Wiegen Jungtiere", "nl": "Wekelijkse weging jongen"},
+		"SR11": {"en-US": "Wounded — daily check", "de": "Verletzte — tägliche Kontrolle", "nl": "Gewonden — dagelijkse controle"},
+		"SR12": {"en-US": "Hedgehog — Catosal + Rehydration", "de": "Igel — Catosal + Rehydratation", "nl": "Egel — Catosal + Rehydratatie"},
+		"SR13": {"en-US": "Cleaning of occupied cages", "de": "Reinigung belegter Käfige", "nl": "Reiniging bezette kooien"},
+	}
+}
+
 // buildSeedMatcher materializes one seed matcher model (expression parse
 // checked by Validate at save time).
 func buildSeedMatcher(def seedMatcherDef) *models.CareMatcher {

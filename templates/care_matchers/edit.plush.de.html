@@ -37,6 +37,9 @@
     </div>
   </div>
 
+  <%# R9-6: per-language name input (translations table). %>
+  <%= partial("translations/fields.html") %>
+
   <button type="submit" class="btn btn-success"><%= t("care_plan.action.save") %></button>
   <%= linkTo("/care_matchers", {class: "btn btn-warning", body: t("care_plan.action.cancel")}) %>
 </form>

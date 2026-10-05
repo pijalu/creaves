@@ -239,60 +239,108 @@ func SeedLibraryOnce(db *pop.Connection) (*ConversionReport, error) {
 func convertSeedLibrary(tx *pop.Connection, report *ConversionReport) error {
 	// Canonical + derived matchers; existing rows (by name) are left alone.
 	matcherIDs := make(map[string]uuid.NullUUID)
+	matcherTr := SeedMatcherNameTranslations()
 	for _, def := range SeedMatchers() {
-		id, inserted, err := insertMatcherOnce(tx, buildSeedMatcher(def))
+		id, err := seedOneMatcher(tx, report, def, matcherTr[def.Key])
 		if err != nil {
 			return err
 		}
 		matcherIDs[def.Key] = id
-		if inserted {
-			report.Seeds.MatchersInserted++
-		} else {
-			report.Seeds.MatchersSkipped++
-		}
 	}
 	feedID, careID, err := resolveSeedCaretypes(tx)
 	if err != nil {
 		return err
 	}
+	ruleTr := SeedRuleNameTranslations()
 	for _, def := range SeedRules() {
-		var ctID string
-		switch {
-		case def.CaretypeName == "":
-			ctID = ""
-		case def.Kind == careplan.KindFeeding:
-			ctID = feedID
-			if ctID == "" {
-				report.Seeds.RulesSkipped++
-				report.Seeds.Skipped = append(report.Seeds.Skipped, def.Key+" "+def.Name+" (caretype Repas/Alimentation introuvable)")
-				continue
-			}
-		default:
-			ctID = careID
-			if ctID == "" {
-				report.Seeds.RulesSkipped++
-				report.Seeds.Skipped = append(report.Seeds.Skipped, def.Key+" "+def.Name+" (caretype Soin introuvable)")
-				continue
-			}
-		}
-		rule, err := buildSeedRule(def, matcherIDs[def.MatcherKey], ctID)
-		if err != nil {
-			report.Seeds.RulesSkipped++
-			report.Seeds.Skipped = append(report.Seeds.Skipped, err.Error())
-			continue
-		}
-		exists, err := careRuleNameExists(tx, rule.Name)
-		if err != nil {
+		if err := seedOneRule(tx, report, def, matcherIDs[def.MatcherKey], feedID, careID, ruleTr[def.Key]); err != nil {
 			return err
 		}
-		if exists {
+	}
+	return nil
+}
+
+// seedOneMatcher inserts one §7.4 seed matcher if absent (deduped by name)
+// and, on insert, ships its localized display names (R9-6).
+func seedOneMatcher(tx *pop.Connection, report *ConversionReport, def seedMatcherDef, names map[string]string) (uuid.NullUUID, error) {
+	id, inserted, err := insertMatcherOnce(tx, buildSeedMatcher(def))
+	if err != nil {
+		return uuid.NullUUID{}, err
+	}
+	if !inserted {
+		report.Seeds.MatchersSkipped++
+		return id, nil
+	}
+	report.Seeds.MatchersInserted++
+	// R9-6: ship the localized names of the freshly seeded matcher (fr stays
+	// the base care_matchers.name column). Insert-only — an existing matcher
+	// is untouched, so administrator edits survive.
+	if err := saveSeedNameTranslations(tx, "care_matchers", id.UUID.String(), names); err != nil {
+		return uuid.NullUUID{}, err
+	}
+	return id, nil
+}
+
+// seedOneRule resolves the caretype, builds and inserts one §7.4 seed rule
+// if absent (deduped by name), and on insert ships its localized display
+// names (R9-6). Rules whose caretype is missing are skipped with a report
+// line (§4.2 payload needs a real id).
+func seedOneRule(tx *pop.Connection, report *ConversionReport, def seedRuleDef, matcherID uuid.NullUUID, feedID, careID string, names map[string]string) error {
+	var ctID string
+	switch {
+	case def.CaretypeName == "":
+		ctID = ""
+	case def.Kind == careplan.KindFeeding:
+		ctID = feedID
+		if ctID == "" {
 			report.Seeds.RulesSkipped++
+			report.Seeds.Skipped = append(report.Seeds.Skipped, def.Key+" "+def.Name+" (caretype Repas/Alimentation introuvable)")
+			return nil
+		}
+	default:
+		ctID = careID
+		if ctID == "" {
+			report.Seeds.RulesSkipped++
+			report.Seeds.Skipped = append(report.Seeds.Skipped, def.Key+" "+def.Name+" (caretype Soin introuvable)")
+			return nil
+		}
+	}
+	rule, err := buildSeedRule(def, matcherID, ctID)
+	if err != nil {
+		report.Seeds.RulesSkipped++
+		report.Seeds.Skipped = append(report.Seeds.Skipped, err.Error())
+		return nil
+	}
+	exists, err := careRuleNameExists(tx, rule.Name)
+	if err != nil {
+		return err
+	}
+	if exists {
+		report.Seeds.RulesSkipped++
+		return nil
+	}
+	if err := tx.Create(rule); err != nil {
+		return err
+	}
+	report.Seeds.RulesInserted++
+	// R9-6: ship the localized names of the freshly seeded rule.
+	return saveSeedNameTranslations(tx, "care_rules", rule.ID.String(), names)
+}
+
+// saveSeedNameTranslations writes the en-US/de/nl display-name translations
+// of one freshly seeded care rule/matcher. It runs only on the insert path
+// (existing rows are skipped by name), so it is naturally idempotent and
+// never overwrites an administrator's edits. The canonical French name
+// remains the base column; no fr row is generated (R9-6).
+func saveSeedNameTranslations(tx *pop.Connection, table, id string, names map[string]string) error {
+	for _, loc := range []string{"en-US", "de", "nl"} {
+		v := names[loc]
+		if v == "" {
 			continue
 		}
-		if err := tx.Create(rule); err != nil {
-			return err
+		if err := models.SaveTranslation(tx, table, id, "name", loc, v); err != nil {
+			return fmt.Errorf("seed translation %s/%s/%s: %w", table, id, loc, err)
 		}
-		report.Seeds.RulesInserted++
 	}
 	return nil
 }

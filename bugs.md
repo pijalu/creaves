@@ -475,7 +475,83 @@ edit/view screens and the matcher dropdown show the localized name in each
 language; assert seeded rules carry localized names. Confirm all four
 template forks render the per-language name inputs.
 
-**Status**: open.
+**Status**: fixed 2026-10-05.
+
+**Fix** (existing `tname`/translations-table pattern, no schema change; the
+canonical French name stays the base column):
+- `actions/tname.go` — `translationBaseFields` and the
+  `loadBaseTranslationMap` whitelist gained `care_rules:name` and
+  `care_matchers:name`, so the per-request bulk preloader resolves both
+  tables by record id.
+- `actions/translations_helper.go` — form-whitelist gained
+  `care_rules:{name,description}` and `care_matchers:{name}` so the shared
+  `translations/_fields` partial + `setTranslationValues`/`saveTranslations`
+  wiring applies (rule descriptions are translatable too; matcher names
+  only).
+- `actions/care_rules.go` / `actions/care_matchers.go` — New/Edit load
+  existing translations, Create/Update persist them.
+- Templates (all 4 forks each): `care_rules/index` renders
+  `richPlanName(tname("care_rules", rule.ID, rule.Name), …)`;
+  `care_matchers/index` renders `displayPlanName(tname(…))`;
+  `care_rules/edit`+`new` render the matcher dropdown via
+  `tname("care_matchers", m.ID, m.Name)` and embed the translations partial;
+  `care_matchers/edit`+`new` embed the translations partial.
+- `actions/care_plan_seeds.go` — `SeedMatcherNameTranslations()` /
+  `SeedRuleNameTranslations()` map every seed key (SM1–SM14 + 4 derived,
+  SR1–SR13) to its en-US/de/nl display names.
+- `actions/care_plan_converter.go` — `convertSeedLibrary` refactored into
+  `seedOneMatcher`/`seedOneRule` helpers; on insert each calls
+  `saveSeedNameTranslations` (insert-only via `models.SaveTranslation`), so
+  fresh seeds ship their localized names while existing rows and admin edits
+  are never clobbered. Side effect: `convertSeedLibrary` complexity dropped
+  from gocognit 24 / gocyclo 14 to under both gates.
+- Dev DB backfill: 93 idempotent `INSERT … ON DUPLICATE KEY UPDATE value=value`
+  statements (18 matchers + 13 rules × 3 locales, matched by canonical French
+  name) applied to the dev database; re-apply is a no-op.
+
+**Tests** (`actions/care_plan_round9_localize_test.go`):
+`TestSeedNameTranslationsComplete` (every seed key carries en-US/de/nl
+names), `TestSeedNameTranslationsNoStrayKeys` (no orphan translation keys),
+`TestTnameCareRuleMatcherLocalization` (MySQL-backed: fr falls back to base;
+en/de/nl resolve for both tables), `TestSeedLibraryEmitsNameTranslations`
+(drives the real `convertSeedLibrary` on a purged seed library: 18 matchers +
+13 rules each carry 3 locale names, tname spot-checks, second run is a strict
+no-op; cleanup re-purges so the shared test DB keeps the empty seed library
+`TestCarePlanConverterRoundTrip` requires).
+
+**e2e** (agent-browser, admin session, rebuilt binary): all four locales
+verified — care_rules index de shows "Reinigung belegter Käfige" /
+"Baby-Igel — Zwangsfütterung" (conversion-era rows stay French by design);
+care_matchers index de "Baby-Igel"/"Zu reinigende Zone", en-US "Baby
+hedgehog"/"Zone to clean", nl "Babyegel"/"Te reinigen zone"; SR13 rule edit
+in de: base name input keeps the canonical French "Nettoyage des cages
+occupées", the matcher dropdown is localized ("Baby-Igel", "Zu reinigende
+Zone", "Kein Matcher (alle Tiere)"), six pre-filled `tr_*` inputs
+(`tr_en_US_name`=Cleaning of occupied cages, `tr_de_name`=Reinigung belegter
+Käfige, `tr_nl_name`=Reiniging bezette kooien, plus empty descriptions);
+SM14 matcher edit in de shows base "Zone à nettoyer" + 3 `tr_*` name inputs.
+
+**Quality gates** (run separately): `go vet ./...` exit 0; `staticcheck
+./...` exit 0; `gocognit -over 15 .` / `gocyclo -over 12 .` — no new flags,
+`convertSeedLibrary` no longer flagged (pre-existing flags in `tname.go`,
+`translations_helper.go`, `care_rules.go` unchanged from HEAD);
+`go test -count=1 -race -cover ./...` — all packages PASS (actions 60.7%)
+except the PRE-EXISTING `TestCarePlanConverterMarkerV2Refresh`, reproduced
+identically on HEAD (stash-verified on a pristine `creaves_test`: fails at
+`care_plan_converter_mysql_test.go:353` with and without the R9-6 tree).
+
+**Environment note** (creaves_test rebuild, 2026-10-05): recreating
+`creaves_test` from scratch hits two pre-existing migration-chain issues,
+worked around locally (NOT code-fixed, out of scope): (1)
+`20261008100000_create_attachment_blobs.up.sql` fails with Error 3780 —
+fizz creates `attachments.id` as `char(36) utf8mb4_general_ci` while the raw
+SQL FK targets the table default `utf8mb4_0900_ai_ci`; workaround: create the
+table with matching collation by hand + `INSERT INTO schema_migration`. (2)
+fizz-created tables land in `utf8mb4_general_ci` while raw-SQL migrations use
+`utf8mb4_0900_ai_ci`, breaking collation-sensitive joins (event_streams DLQ
+filters) with Error 1267; workaround: `ALTER TABLE … CONVERT TO CHARACTER SET
+utf8mb4 COLLATE utf8mb4_0900_ai_ci` for all diverging tables with
+`FOREIGN_KEY_CHECKS=0`.
 
 ---
 
