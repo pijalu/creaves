@@ -123,3 +123,11 @@ retained) — all four locales, on observation + care + weighing.
    - Temp fixture rules (`TEST-D4 — contrôle 3x/jour`, reactivated weighing
      rule) removed from the dev DB after the sweep; test care entries
      cleaned.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `a08e4b2` (Phase 0b + Phase 4: row-kind toggle line parity on shared plan components).
+- `go test ./actions ./models` → all green (Phase 0b/4 pins included).
+- Sweep ×4 locales: `/care_plan?kind=observation` (and feeding) → HTTP 200 in all locales; console + page errors empty.

@@ -114,3 +114,11 @@ locales.
   batch flip refs, group=animal lines + persistence, badge==strip unit).
 - Console clean; temp verification rule/matcher/applications removed from
   the dev DB after the run.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `2099f6c` (Phase 3: cleanup parity — tiered sections, per-occurrence toggles, cage⇄animal grouping).
+- `go test ./actions ./models` → all green (3-T1…3-T6 included).
+- Sweep ×4 locales: `/care_plan?kind=cleanup` → HTTP 200 in all locales; console + page errors empty.

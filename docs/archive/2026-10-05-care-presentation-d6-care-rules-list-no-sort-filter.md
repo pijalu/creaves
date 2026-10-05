@@ -75,3 +75,11 @@ exactly 3 rows, Name click → `dir=desc&q=D6PROBE&sort=name` with rows
 reversed (Charlie, Bravo, Alpha); `?per_page=5` → `.pagination` with 5 pages,
 page 2 keeps `per_page=5`; fr locale renders Rechercher / Réinitialiser les
 filtres / Recherche / Nom ou description…. Probe rows deleted after the run.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `1da9e7e` (Phase 6: `/care_rules` list sorting, filtering, search and paging).
+- `go test ./actions ./models` → all green (6-T1…6-T6 included).
+- Sweep ×4 locales: `/care_rules` → HTTP 200 in all locales; console + page errors empty.

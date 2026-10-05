@@ -128,3 +128,13 @@ between rows only) — all four locales.
     stacked captions localized (`Avond` under nl).
 - Residual scope note: row-kind lines (`.plan-item-line`) keep the compact
   single-line treatment — their ladder belongs to D3/D4.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commits: `5f4242b` (Phase 1: responsive ladder + bucket divider), `da3701f` (ref record).
+- `go test ./actions ./models` → `ok creaves/actions 17.157s`, `ok creaves/models 0.581s`.
+- `npm run build` → webpack 5.111.1 compiled; new digests `application.5e6078ac981991b8c195.js`, `application.3923f4c5795d07e387e8.css`; `public/assets/manifest.json` updated.
+- Sweep ×4 locales (fr/en-US/de/nl, admin session): `/care_plan?kind=medication` → HTTP 200 in all locales; browser console + page errors empty in all four.
+- TM-1/TM-2 ladder + bucket captions unchanged (unit pins green; dashboard `.dash-med-cell` R9-3 override verified intact — see D-round summary).

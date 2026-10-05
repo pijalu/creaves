@@ -1,41 +1,40 @@
-# Defect log — care presentation contract (round 2026-10)
+# Defect log — care presentation contract (round 2026-10) — CLOSED
 
 Normative reference: [`docs/care-presentation-guideline.md`](../care-presentation-guideline.md).
-A deviation from that contract is a defect; each entry below records the violated
-guideline section, a measured observation on the local dev instance (admin session),
-the file:line root cause, reproduction steps, and the test-matrix rows that gate the
-fix. Test data prerequisites: [`docs/care-plan-test-data.md`](../care-plan-test-data.md).
 
-Entry format follows the archived round-9 bug log
-(`docs/archive/2026-10-05-care-plan-round-9-bugs.md`): ID / date / URL / severity /
-observed (measured) / expected (guideline ref) / repro steps / root cause (file:line) /
-mapped test IDs / status.
+**All entries D1–D7 fixed, verified, and archived 2026-10-05 (Phase 8
+regression sweep).** The archived entries, with fix commit refs and per-phase +
+Phase 8 verification evidence, live in `docs/archive/`:
 
-## Entries
+| ID | Title | Fix commit | Archived entry |
+|----|-------|-----------|----------------|
+| D1 | Medication line: responsive stacking + bucket divider | `5f4242b` (+`da3701f`) | [2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md](../archive/2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md) |
+| D2 | `/care_rules/{id}` raw JSON for browser GET | `2f51d6e` | [2026-10-05-care-presentation-d2-care-rules-show-raw-json.md](../archive/2026-10-05-care-presentation-d2-care-rules-show-raw-json.md) |
+| D3 | Cleanup format divergent (tiers, toggles, zone i18n) | `2099f6c` | [2026-10-05-care-presentation-d3-cleanup-format-divergent.md](../archive/2026-10-05-care-presentation-d3-cleanup-format-divergent.md) |
+| D4 | Observation/care/weighing toggle parity | `a08e4b2` | [2026-10-05-care-presentation-d4-row-kind-toggle-parity.md](../archive/2026-10-05-care-presentation-d4-row-kind-toggle-parity.md) |
+| D5 | Animal `#nav-plan` non-med format divergence | `b65fe35` | [2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md](../archive/2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md) |
+| D6 | `/care_rules` list sort/filter/search/paging | `1da9e7e` | [2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md](../archive/2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md) |
+| D7 | `/zones/{id}` RequiresCleanup + i18n | `aab947c` | [2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md](../archive/2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md) |
 
-| ID | Title | URL | Severity | Guideline § | Status |
-|----|-------|-----|----------|-------------|--------|
-| [D1](d1-medication-line-responsive-bucket-divider.md) | Medication line: no responsive stacking + bucket divider rendering defect | `/care_plan?kind=medication` | medium | §5, §6 | open |
-| [D2](d2-care-rules-show-raw-json.md) | `/care_rules/{id}` returns raw JSON for browser GET | `/care_rules/{id}` | medium | — (UX routing) | open |
-| [D3](d3-cleanup-format-divergent.md) | Cleanup format divergent: no tiers, no per-occurrence toggles, untranslated zone | `/care_plan?kind=cleanup` | high | §1, §2, §3 | open |
-| [D4](d4-row-kind-toggle-parity.md) | Observation/care/weighing rows: no tier-coloured buttons, no immediate colour flip | `/care_plan?kind=observation` (care, weighing) | high | §2 | open |
-| [D5](d5-animal-nav-plan-format-divergence.md) | Animal `#nav-plan` non-med rows use a third format | `/animals/{id}#nav-plan` | medium | §2, §3, §4.3 | open |
-| [D6](d6-care-rules-list-no-sort-filter.md) | `/care_rules` list: no sort / filter / search / paging | `/care_rules` | low | — (admin UX) | **verified** 2026-10-05 |
-| [D7](d7-zone-show-missing-fields-i18n.md) | `/zones/{id}`: `RequiresCleanup` missing, hardcoded English labels | `/zones/{id}` | medium | — (i18n rule) | **verified** 2026-10-05 |
+Phase 8 sweep evidence (2026-10-05, admin session on dev):
 
-## Test matrix (row IDs)
+- `go test ./actions ./models` → `ok creaves/actions 17.157s`, `ok creaves/models 0.581s`.
+- `npm run build` → webpack 5.111.1 compiled; digests `application.5e6078ac981991b8c195.js`,
+  `application.3923f4c5795d07e387e8.css`, `care-plan.31d6cfe0d16ae931b73c.js`;
+  `public/assets/manifest.json` updated.
+- Browser sweep (agent-browser, authenticated): every defect URL
+  (`/care_plan?kind=medication|cleanup|observation|feeding`, `/animals/2058#nav-plan`,
+  `/care_rules`, `/care_rules/02aae3db-…`, `/zones/4eafb532-…`, `/dashboard`)
+  × fr/en-US/de/nl → **36/36 HTTP 200, zero console errors, zero page errors**.
+- R4-4.1 auto-refresh floor e2e: apply at T+54s → page alive at T+64…85s polls,
+  reload at T+85–90s (≥30s after last action). In-place toggle flip confirmed.
+- Dashboard medication cell (R9-3 `.dash-med-cell`) unchanged: computed styles
+  `flex-wrap:wrap` / label `white-space:normal` / btn group `flex-basis:100%`;
+  in-place apply from dashboard works, no reload, no console errors.
 
-The regression sweep (Phase 8) executes this matrix. Each defect maps to the rows
-that must pass for it to close; each row runs in **all four locales**
-(en-US / fr / de / nl) against the seeded data checklist.
+The test matrix rows TM-1…TM-8 (formerly below) are covered by the per-phase
+test pins (1-T1…7-T2) referenced inside each archived entry.
 
-| Row | Surface | Check | Gates |
-|-----|---------|-------|-------|
-| TM-1 | `/care_plan?kind=medication` | Responsive ladder §5: at 1600/1280/1024/767 px — level 1 animal shrink, level 2 buttons under label, level 3 full stack; no horizontal overflow, no clipped button | D1 |
-| TM-2 | `/care_plan?kind=medication` | Bucket captions §6: caption band between button rows of a stacked series; omitted when the series fits one row; never inline between two buttons | D1 |
-| TM-3 | `/care_rules/{id}` (browser GET, `Accept: text/html`) | HTML detail page (name, kind badge, matcher, priority, active, validity, payload/schedule, edit/delete, back); `Accept: application/json` still returns JSON | D2 |
-| TM-4 | `/care_plan?kind=cleanup` | Tier sections §1 (Late/Now/Later/Done/History, panel + count pill + collapse), per-occurrence toggles §2 (colour = state, immediate flip), zone name localized | D3 |
-| TM-5 | `/care_plan?kind=observation` (+ care, weighing) | Toggle colour semantics §2: red/yellow/white/green by state, immediate in-place flip on click, undo restores current tier colour, glyph + `title` + `sr-only` retained | D4 |
-| TM-6 | `/animals/{id}#nav-plan` | Shared `_plan_item_line` for non-med rows (§3): `ℹ`-led line, no animal cell (§4.3), tier-coloured toggles, missing-count pill + fulfillment links kept | D5 |
-| TM-7 | `/care_rules` | Sortable columns (name/kind/priority/active, asc/desc), filters (kind, active, matcher), case-insensitive `q=` search on name+description, pagination; JSON branch unchanged (full set) | D6 |
-| TM-8 | `/zones/{id}` | `RequiresCleanup` row rendered (bool2html); Type/Default/RequiresCleanup labels + values via `t()`; zero hardcoded English in fr/de/nl | D7 |
+New defects against the care presentation contract should open fresh entries in
+this directory following the format documented in
+`docs/archive/2026-10-05-care-plan-round-9-bugs.md`.

@@ -105,3 +105,11 @@ missing-count pill + fulfillment links kept) — all four locales.
   highlights the trace row; console clean. Evidence:
   `tmp/browser_evidence/phase5/summary.json` + screenshot. Temp data
   created during the flip test was removed; dev DB restored.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `b65fe35` (Phase 5: animal `#nav-plan` non-medication rows render the shared plan-item line).
+- `go test ./actions ./models` → all green (Phase 5 pins included).
+- Sweep ×4 locales: `/animals/2058` (`#nav-plan`) → HTTP 200 in all locales; console + page errors empty.

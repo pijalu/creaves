@@ -71,3 +71,11 @@ en-US "Zone Details"/"external to the center"/"Requires cleanup ✓",
 de "Zonedetails"/"extern zum Zentrum"/"Reinigung erforderlich ✓",
 nl "Zonedetails"/"extern aan het centrum"/"Schoonmaak vereist ✓" —
 no English literal in fr/de/nl.
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `aab947c` (Phase 7: `/zones/{id}` shows RequiresCleanup + full fr/en/de/nl i18n).
+- `go test ./actions ./models` → all green (7-T1 `TestZoneShowAllFields`, 7-T2 `TestZoneShowAllLocales` included).
+- Sweep ×4 locales: `/zones/4eafb532-2dee-48dc-96df-9cfd48c58d49` → HTTP 200 in all locales; console + page errors empty; localized labels re-confirmed live (fr "Nettoyage requis", en-US "Requires cleanup", de "Reinigung erforderlich", nl "Schoonmaak vereist").

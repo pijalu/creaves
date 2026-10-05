@@ -100,3 +100,11 @@ TM-3 (HTML page on browser GET; JSON branch unchanged) — all four locales.
     `/care_rules`).
 - `go test ./actions -count=1` — full suite `ok 12.581s` (no regressions;
   JSON API consumers unaffected).
+
+---
+
+## Phase 8 regression (2026-10-05) — ARCHIVED
+
+Fix commit: `2f51d6e` (Phase 2: care rule show page HTML).
+- `go test ./actions ./models` → all green (2-T1…2-T6 included).
+- Sweep ×4 locales: `/care_rules/02aae3db-bd94-41ea-b9b5-d4e214bf95b8` → HTTP 200 HTML (fr/en-US/de/nl); console + page errors empty. JSON branch unchanged (Accept: application/json still JSON — pinned by 2-T1).
