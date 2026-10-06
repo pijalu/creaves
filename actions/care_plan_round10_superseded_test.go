@@ -30,11 +30,14 @@ func TestB10_6TreatmentSupersededByPlan(t *testing.T) {
 	sched := []byte(`{"times":["08:00"],"every_days":1,"anchor":"fixed","anchor_date":"2026-10-06"}`)
 
 	plans := models.CareAnimalPlans{
-		// Converter-made observation plan for the drug (created_by NULL).
+		// Converter-made observation plan for the drug (created_by NULL),
+		// prompt ENRICHED with the dosage by the B10-6 migration — the
+		// treatment stores the site in the dosage column, so the match must
+		// accept the "drug (dosage)" composite too.
 		{
 			ID:            uuid.Must(uuid.NewV4()),
 			ActionKind:    "observation",
-			ActionPayload: []byte(`{"prompt":"Nettoyage Fistule"}`),
+			ActionPayload: []byte(`{"prompt":"Nettoyage Fistule (Dessus oeil droit)"}`),
 			Schedule:      sched,
 			Active:        true,
 		},
@@ -67,9 +70,9 @@ func TestB10_6TreatmentSupersededByPlan(t *testing.T) {
 
 	animal := &models.Animal{ID: 1, Treatments: models.Treatments{
 		{ID: uuid.Must(uuid.NewV4()), Date: today.AddDate(0, 0, -3), Drug: "Nettoyage Fistule"}, // past: history, untouched
-		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "nettoyage fistule "},                  // today, case/space-insensitive core
-		{ID: uuid.Must(uuid.NewV4()), Date: today.AddDate(0, 0, 4), Drug: "Nettoyage Fistule"},  // future
-		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "citramox l.a."},                       // medication core
+		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "Nettoyage Fistule", Dosage: "Dessus oeil droit"}, // today: composite match
+		{ID: uuid.Must(uuid.NewV4()), Date: today.AddDate(0, 0, 4), Drug: "Nettoyage Fistule", Dosage: "Dessus oeil droit"}, // future
+		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "citramox l.a."},                       // medication core (bare drug)
 		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "Soins plaie"},                         // caretaker core: not marked
 		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "Vieux protocole"},                     // inactive plan: not marked
 		{ID: uuid.Must(uuid.NewV4()), Date: today, Drug: "Autre chose"},                         // no plan at all
@@ -80,7 +83,7 @@ func TestB10_6TreatmentSupersededByPlan(t *testing.T) {
 
 	marked := func(i int) bool { return superseded[animal.Treatments[i].ID.String()] }
 	require.False(t, marked(0), "past treatments are history, never hidden")
-	require.True(t, marked(1))
+	require.True(t, marked(1), "the enriched prompt matches the drug (dosage) composite")
 	require.True(t, marked(2))
 	require.True(t, marked(3))
 	require.False(t, marked(4), "caretaker-authored plans never auto-dedupe")

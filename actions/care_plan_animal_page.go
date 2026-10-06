@@ -666,7 +666,14 @@ func treatmentSupersededByPlan(plans models.CareAnimalPlans, animal *models.Anim
 		if t.Date.Before(today) {
 			continue
 		}
-		if cores[normalizeWorkLabel(t.Drug)] {
+		// The converted plan core may carry the application site — the
+		// observation prompt after the dosage enrichment is "Drug (site)"
+		// while the treatment stores the site in the dosage column. Match
+		// the bare drug OR the "drug (dosage)" composite (same keys the
+		// today-card dedupe indexes).
+		if cores[normalizeWorkLabel(t.Drug)] ||
+			(strings.TrimSpace(t.Dosage) != "" &&
+				cores[normalizeWorkLabel(t.Drug+" ("+t.Dosage+")")]) {
 			superseded[t.ID.String()] = true
 		}
 	}

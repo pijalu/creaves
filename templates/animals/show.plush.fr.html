@@ -1327,7 +1327,11 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   var parts = med.split(':');
   var srcId = parts.length > 1 ? parts[1] : med;
   $('#nav-treatment-tab').tab('show');
-  var line = document.querySelector('#treatmentPlan .plan-med-line[data-source-id="' + srcId + '"]');
+  // Days render newest-first, so the bare first match would be a FUTURE
+  // day's series. Prefer TODAY's (the dashboard link is about the work at
+  // hand); fall back to the first occurrence (e.g. no series today).
+  var line = document.querySelector('#treatmentPlan .card:not(.greyout) .plan-med-line[data-source-id="' + srcId + '"]') ||
+             document.querySelector('#treatmentPlan .plan-med-line[data-source-id="' + srcId + '"]');
   if (!line) { return; }
   line.classList.add('plan-trace-highlight');
   var body = line.closest('.collapse');
