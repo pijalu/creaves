@@ -152,14 +152,15 @@ func TestFeedingRowMarkupCollapsesAndFoldsTheTime(t *testing.T) {
 		require.Equal(t, 1, strings.Count(raw, `class="collapse" id="feed-animals-`),
 			f+": one collapse target per row, not one per time group")
 
-		// R4-7.14b: the chips come from the time sub-groups, and the time is
-		// the sub-group label — not a per-chip annotation.
+		// R4-7.14b: the chips come from the time sub-groups. bugs.md second
+		// batch #3 (2026-10-27) dropped the sub-group time LABEL: no time on
+		// top of the animal — each toggle carries its own time (B10-3).
 		require.Contains(t, raw, "for (tg) in fcard.TimeGroups",
 			f+": the chips must be folded into time sub-groups")
 		require.Contains(t, raw, "for (chip) in tg.Chips",
 			f+": the chip list must come from a sub-group")
-		require.Contains(t, raw, `class="plan-time-label"`,
-			f+": the time needs a sub-group label")
+		require.NotContains(t, raw, "plan-time-label",
+			f+": bugs.md #3 — no time label above the animal; the button carries the time")
 		// B10-3: the per-chip time is BACK — ON the toggle (○ HH:MM ⇄
 		// ✓ HH:MM, the §2.3 med-parity nomenclature), not as a repeated
 		// text annotation.

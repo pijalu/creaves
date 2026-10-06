@@ -1,7 +1,6 @@
 package grifts
 
 import (
-	"fmt"
 	"io/fs"
 	"path"
 	"regexp"
@@ -175,6 +174,8 @@ var templateLocales = []string{"fr", "de", "nl"}
 // normalizeTemplate reduces a plush template to its structural skeleton:
 //
 //   - HTML comments removed
+//   - plush comments <%# ... %> removed (they render nothing; translated
+//     comment copy is a text-only diff)
 //   - plush expressions <% ... %> / <%= ... %> kept, but with string literals
 //     and whitespace collapsed (translated literals like
 //     {"data-confirm": "Sind Sie sicher?"} must not count as drift)
@@ -203,8 +204,25 @@ func normalizeTemplate(t *testing.T, src string) string {
 		s = s[:i] + s[i+j+3:]
 	}
 
-	// 2. plush expressions: strip quoted literals, collapse whitespace,
-	//    neutralize inner angle brackets
+	// 1b. plush comments <%# ... %> — they render nothing, so translated
+	// comment copy is a text-only diff exactly like HTML comments.
+	for {
+		i := strings.Index(s, "<%#")
+		if i < 0 {
+			break
+		}
+		j := strings.Index(s[i:], "%>")
+		if j < 0 {
+			t.Fatalf("unterminated plush comment near %q", clip(s[i:], 60))
+		}
+		s = s[:i] + s[i+j+2:]
+	}
+
+	// 2. plush expressions: strip quoted literals, remove whitespace
+	//    entirely ("<% } %>" vs "<%}%>", `{ label: "·" }` vs
+	//    `{label:"·"}` are formatting noise — string literals are already
+	//    erased, so no literal content is affected), neutralize inner angle
+	//    brackets
 	var b strings.Builder
 	b.Grow(len(s))
 	for {
@@ -219,9 +237,10 @@ func normalizeTemplate(t *testing.T, src string) string {
 			t.Fatalf("unterminated plush expression near %q", clip(s[i:], 60))
 		}
 		expr := normalizeQuotes(s[i : i+j+2])
+		expr = stripWS(expr)
 		expr = strings.ReplaceAll(expr, "<", "\x01")
 		expr = strings.ReplaceAll(expr, ">", "\x02")
-		b.WriteString(collapseWS(expr))
+		b.WriteString(expr)
 		s = s[i+j+2:]
 	}
 	s = b.String()
@@ -243,6 +262,21 @@ func normalizeTemplate(t *testing.T, src string) string {
 // a plush expression's neutralized close, and the next tag start (<) or
 // expression open. Sentinels keep expressions opaque to the eraser.
 var tagGapRe = regexp.MustCompile(`(\x02|>)[^<\x01]*(\x01|<)`)
+
+// stripWS removes every whitespace byte — used inside plush expressions
+// where whitespace never carries meaning (literals are erased first).
+func stripWS(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case ' ', '\t', '\n', '\r':
+		default:
+			b.WriteByte(s[i])
+		}
+	}
+	return b.String()
+}
 
 // normalizeQuotes removes "..." and '...' literals so translated copy inside
 // attributes/JS cannot mask real structural drift (and vice versa).
@@ -348,68 +382,10 @@ func clip(s string, n int) string {
 	return s[:n] + "…"
 }
 
-// knownVariantDrift records base templates whose existing locale variants
-// predate this check and still carry structural drift (documented as debt in
-// I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4). Drift on these is logged,
-// not failed; drift on ANY other template fails the test (ratchet: existing
-// debt frozen, new drift blocked). Entries disappear as debt is paid down.
-var knownVariantDrift = map[string]bool{
-	"animalages/_form.plush.html":                  true,
-	"animals/_form.plush.html":                     true,
-	"animals/edit.plush.html":                      true,
-	"animals/show.plush.html":                      true,
-	"animaltypes/_form.plush.html":                 true,
-	"animaltypes/index.plush.html":                 true,
-	"animaltypes/show.plush.html":                  true,
-	"application.plush.html":                       true,
-	"auth/new.plush.html":                          true,
-	"cares/_form.plush.html":                       true,
-	"cares/index.plush.html":                       true,
-	"cares/new.plush.html":                         true,
-	"caretypes/_form.plush.html":                   true,
-	"dashboard/dashboard.plush.html":               true,
-	"drugs/_form.plush.html":                       true,
-	"drugs/show.plush.html":                        true,
-	"entry_causes/_form.plush.html":                true,
-	"entry_causes/index.plush.html":                true,
-	"entry_causes/show.plush.html":                 true,
-	"feeding/index.plush.html":                     true,
-	"landing/index.plush.html":                     true,
-	"localities/_form.plush.html":                  true,
-	"logentries/_form.plush.html":                  true,
-	"maintenance/index.plush.html":                 true,
-	"native_statuses/_form.plush.html":             true,
-	"native_statuses/index.plush.html":             true,
-	"native_statuses/show.plush.html":              true,
-	"outtakes/_form.plush.html":                    true,
-	"outtakes/edit.plush.html":                     true,
-	"outtakes/show.plush.html":                     true,
-	"outtaketypes/_form.plush.html":                true,
-	"outtaketypes/show.plush.html":                 true,
-	"reception/new.plush.html":                     true,
-	"registersnapshot/registersnapshot.plush.html": true,
-	"registertable/registertable.plush.html":       true,
-	"species/_form.plush.html":                     true,
-	"species/index.plush.html":                     true,
-	"species/show.plush.html":                      true,
-	"subside_groups/_form.plush.html":              true,
-	"subside_groups/index.plush.html":              true,
-	"subside_groups/show.plush.html":               true,
-	"travels/_form.plush.html":                     true,
-	"travels/new.plush.html":                       true,
-	"traveltypes/_form.plush.html":                 true,
-	"traveltypes/index.plush.html":                 true,
-	"treatments/_form.plush.html":                  true,
-	"treatments/new.plush.html":                    true,
-	"treatments/show.plush.html":                   true,
-	"users/_aform.plush.html":                      true,
-	"users/_form.plush.html":                       true,
-	"users/new.plush.html":                         true,
-	"veterinaryvisits/_form.plush.html":            true,
-	"veterinaryvisits/new.plush.html":              true,
-	"zones/_form.plush.html":                       true,
-	"zones/show.plush.html":                        true,
-}
+// The historical ratchet (knownVariantDrift, 55 frozen pairs — documented as
+// debt in I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4) was fully paid down on
+// 2026-10-27: every base/variant pair is structurally identical, so there is
+// no whitelist left and ANY drift now fails the test.
 
 // TestTemplateVariantStructuralParity proves each .plush.fr/.de/.nl.html
 // variant is a pure text translation of its base .plush.html: identical tag
@@ -444,7 +420,6 @@ func TestTemplateVariantStructuralParity(t *testing.T) {
 	sort.Strings(bases)
 
 	variantsFound := 0
-	known := 0
 	for _, p := range bases {
 		src, err := fs.ReadFile(templates.FS(), p)
 		if err != nil {
@@ -472,16 +447,10 @@ func TestTemplateVariantStructuralParity(t *testing.T) {
 				if start < 0 {
 					start = 0
 				}
-				detail := fmt.Sprintf("%s vs %s: structural drift at offset %d\nbase : %s\nvar  : %s",
+				t.Errorf("NEW drift — fix the template pair or, if text-only, extend the eraser: %s vs %s: structural drift at offset %d\nbase : %s\nvar  : %s",
 					p, vp, i, clip(want[start:], 120), clip(got[start:], 120))
-				if knownVariantDrift[p] {
-					known++
-					t.Logf("KNOWN debt: %s", detail)
-				} else {
-					t.Errorf("NEW drift — fix the template pair or, if text-only, extend the eraser: %s", detail)
-				}
 			}
 		}
 	}
-	t.Logf("checked %d base templates, %d variants, %d pairs with known (frozen) drift", len(bases), variantsFound, known)
+	t.Logf("checked %d base templates, %d variants, zero drift whitelisted", len(bases), variantsFound)
 }

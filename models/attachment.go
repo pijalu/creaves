@@ -27,6 +27,10 @@ type Attachment struct {
 	StoragePath string    `json:"-" db:"storage_path"`
 	Kind        string    `json:"kind" db:"kind"`
 	UploadedBy  nulls.UUID `json:"uploaded_by" db:"uploaded_by"`
+	// Comment is the optional free-text detail the caregiver attaches to
+	// the media (bugs.md 2026-10-27 #7) — set at upload, editable later by
+	// the uploader or an admin.
+	Comment nulls.String `json:"comment" db:"comment"`
 }
 
 // Attachments is a slice of Attachment.
@@ -59,6 +63,9 @@ var (
 	AttachmentMaxImageSize int64 = 10 << 20 // 10 MB
 	AttachmentMaxVideoSize int64 = 100 << 20 // 100 MB
 )
+
+// AttachmentCommentMaxRunes caps the media comment (bugs.md 2026-10-27 #7).
+const AttachmentCommentMaxRunes = 500
 
 // AttachmentMaxSize returns the size limit for a content type.
 func AttachmentMaxSize(contentType string) int64 {
@@ -99,6 +106,11 @@ func (a *Attachment) Validate(tx *pop.Connection) (*validate.Errors, error) {
 	errs := validate.NewErrors()
 	if a.AnimalID == 0 {
 		errs.Add("animal_id", "animal must be set")
+	}
+	// bugs.md 2026-10-27 #7: the comment is a caption, not a journal —
+	// cap it so a gallery card stays a card.
+	if len([]rune(a.Comment.String)) > AttachmentCommentMaxRunes {
+		errs.Add("comment", fmt.Sprintf("comment must be at most %d characters", AttachmentCommentMaxRunes))
 	}
 	if strings.TrimSpace(a.Filename) == "" {
 		errs.Add("filename", "filename must not be blank")

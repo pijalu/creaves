@@ -151,5 +151,9 @@ func TestFillMedTiersDoneCountTracksSeries(t *testing.T) {
 
 	require.Equal(t, 2, v.MedDoneCount, "two fully-applied series")
 	require.Equal(t, "2", v.MedDoneCountCap)
-	require.Len(t, v.MedDone, 2)
+	// Bug 2026-10-06 #6: the animal's two done series merge into ONE rendered
+	// line (a single animal cell with both series stacked inside) — the badge
+	// still counts the two series.
+	require.Len(t, v.MedDone, 1, "one merged line for the animal")
+	require.Len(t, v.MedDone[0].Series, 2, "both done series inside the merged line")
 }

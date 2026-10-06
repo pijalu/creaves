@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -111,13 +112,21 @@ func AttachmentsCreate(c buffalo.Context) error {
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, redir)
 	}
+	// bugs.md 2026-10-27 #7: the optional comment rides the same multipart
+	// form; trimmed here, length-capped by the model validation below.
+	a.Comment = nulls.NewString(strings.TrimSpace(c.Request().FormValue("comment")))
 
 	rel := filepath.Join("animal-"+strconv.Itoa(animalID), a.ID.String()+attachmentExtension(a.ContentType))
 	a.StoragePath = filepath.ToSlash(rel)
 
 	if verrs, err := tx.ValidateAndCreate(a); err != nil || verrs.HasAny() {
+		// validate/v3 has no Has(); Get(key) returns the messages for a key.
+		if err == nil && len(verrs.Get("comment")) > 0 {
+			c.Flash().Add("danger", T.Translate(c, "attachments.comment.too_long"))
+		} else {
+			c.Flash().Add("danger", T.Translate(c, "attachments.upload.failed"))
+		}
 		c.Logger().Errorf("attachments: db create failed: %v %v", verrs, err)
-		c.Flash().Add("danger", T.Translate(c, "attachments.upload.failed"))
 		return c.Redirect(http.StatusSeeOther, redir)
 	}
 	// Same transaction as the row insert: a blob failure rolls back both.
@@ -240,6 +249,49 @@ func AttachmentsDestroy(c buffalo.Context) error {
 
 	auditAnimalChange(c, tx, a.AnimalID, models.AuditEntityAttachment, auditEntityID(a.ID), models.AuditActionDelete, a, nil)
 	c.Flash().Add("success", T.Translate(c, "attachments.destroyed.success"))
+	return c.Redirect(http.StatusSeeOther, attachmentsRedirectURL(c, a.AnimalID))
+}
+
+// AttachmentsUpdateComment edits the media comment (bugs.md 2026-10-27
+// #7): only its uploader or an admin, same rule as delete. A
+// whitespace-only value clears the comment; the model caps the length.
+func AttachmentsUpdateComment(c buffalo.Context) error {
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	user := GetCurrentUser(c)
+	if user == nil {
+		return c.Error(http.StatusUnauthorized, fmt.Errorf("not authenticated"))
+	}
+	a, err := loadAttachment(tx, c)
+	if err != nil {
+		return err
+	}
+	isOwner := a.UploadedBy.Valid && a.UploadedBy.UUID == user.ID
+	if !isOwner && !user.Admin {
+		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	}
+
+	comment := strings.TrimSpace(c.Request().FormValue("comment"))
+	if len([]rune(comment)) > models.AttachmentCommentMaxRunes {
+		c.Flash().Add("danger", T.Translate(c, "attachments.comment.too_long"))
+		return c.Redirect(http.StatusSeeOther, attachmentsRedirectURL(c, a.AnimalID))
+	}
+	before := a.Comment
+	if comment == "" {
+		a.Comment = nulls.String{}
+	} else {
+		a.Comment = nulls.NewString(comment)
+	}
+	if verrs, err := tx.ValidateAndUpdate(a); err != nil || verrs.HasAny() {
+		a.Comment = before
+		c.Flash().Add("danger", T.Translate(c, "attachments.comment.too_long"))
+		return c.Redirect(http.StatusSeeOther, attachmentsRedirectURL(c, a.AnimalID))
+	}
+
+	auditAnimalChange(c, tx, a.AnimalID, models.AuditEntityAttachment, auditEntityID(a.ID), models.AuditActionUpdate, before, a)
+	c.Flash().Add("success", T.Translate(c, "attachments.comment.updated"))
 	return c.Redirect(http.StatusSeeOther, attachmentsRedirectURL(c, a.AnimalID))
 }
 

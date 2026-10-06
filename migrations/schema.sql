@@ -1,6 +1,6 @@
 -- MySQL dump 10.13  Distrib 8.4.11, for macos27.0 (arm64)
 --
--- Host: localhost    Database: creaves
+-- Host: localhost    Database: creaves_mig
 -- ------------------------------------------------------
 -- Server version	8.4.11
 
@@ -157,6 +157,7 @@ CREATE TABLE `attachments` (
   `uploaded_by` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `comment` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_attachments_animal` (`animal_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -1166,4 +1167,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-06 11:10:15
+-- Dump completed on 2026-10-06 21:27:20

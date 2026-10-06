@@ -25,7 +25,7 @@
             <a href="<%= card.SourceLink %>"><%= card.SourceName %></a>
           <% } %>
         </td>
-        <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %></td>
+        <td class="text-nowrap"><%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %><%= if (card.AppliedAtRFC != "") { %> · <time class="js-local-time" datetime="<%= card.AppliedAtRFC %>"></time><% } %></td>
         <td class="text-nowrap">
           <%= if (card.Superseded) { %>
             <span class="badge badge-light"<%= if (card.SupersededBy != "") { %> title="<%= t("care_plan.superseded.replaced_by") %> <%= card.SupersededBy %>"<% } %>><%= t("care_plan.status." + card.Status) %></span>

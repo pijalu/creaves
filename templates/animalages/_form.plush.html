@@ -1,6 +1,6 @@
-<%= f.InputTag("Name") %>
-<%= f.TextAreaTag("Description", {rows: 10}) %>
-<%= f.CheckboxTag("Default", {unchecked: false}) %>
+<%= f.InputTag("Name", {label:"Name"}) %>
+<%= f.TextAreaTag("Description", {rows: 10, label:"Description"}) %>
+<%= f.CheckboxTag("Default", {label:"Default", unchecked: false}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" type="submit">Save</button>
 <script type="text/javascript">

@@ -163,7 +163,12 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 	due.Occurrence.DueAt = at(2, 12)
 	fut := testItem(med, 1, careplan.StatusScheduled)
 	fut.Occurrence.DueAt = at(3, 12)
-	fut.Applicable = false
+	// Bug 2026-10-06 #4: a future slot inside the window IS applicable (the
+	// §10-A1 window runs until the next occurrence of the source) — it
+	// renders as the white ○ toggle. Non-applicable future slots cannot be
+	// produced by genuine plan state; the 🔒 lock covers the hors-délai
+	// leftovers (overridden / past the record-late bound).
+	fut.Applicable = true
 	done := testItem(med, 1, careplan.StatusApplied)
 	done.Occurrence.DueAt = at(2, 8)
 	plan.Items = []careplan.PlanItem{late, due, fut, done}
@@ -195,10 +200,13 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 		require.Contains(t, out, "plan-med-urgent", f, "the urgent slot is dominant")
 		require.Contains(t, out, "plan-med-future", f, "the future slot recedes")
 		require.Contains(t, out, "plan-med-btn", f, "fixed-width button (R4-3.2)")
-		// every painted slot keeps its glyph — colour is never the only signal
-		for _, glyph := range []string{"✓ 08:00", "– 12:00", "○ 12:00"} {
+		// Bug 2026-10-06 #4: every ACTIONABLE slot carries the same ○ to-do
+		// glyph (the old `–` late glyph is gone); colour is never the only
+		// signal — the late slot's title carries "record late".
+		for _, glyph := range []string{"✓ 08:00", "○ 12:00"} {
 			require.Contains(t, out, glyph, f)
 		}
+		require.NotContains(t, out, ">– ", f, "the dimmed late glyph is gone")
 		require.False(t, strings.Contains(out, `class="btn  btn-sm`), f, "empty tier class")
 	}
 }

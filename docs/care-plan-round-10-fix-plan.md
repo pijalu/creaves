@@ -1,10 +1,92 @@
-# Care plan round 10 — fix plan (B10-2 … B10-7)
+# Care plan round 10 — fix plan (B10-1 … B10-10)
 
 Companion of `bugs.md` round 10. Each bug: root cause → fix → test approach →
 validation. Session constraints apply (bugs.md): real production data — no
 destructive migrations; every UI change lands in all four locales
 (`en-US`, `fr`, `de`, `nl`).
 
+## B10-1 — browser-local done timestamps
+
+**Fix.** Applied-at timestamps now remain RFC-3339 instants in markup and are formatted with `Date.toLocaleTimeString` in the viewer's browser. Animal Treatment badges/tooltips, legacy-treatment badges and care-plan History rows are covered across `en-US`, `fr`, `de`, and `nl`; no server timezone formatting remains for applied timestamps.
+
+**Tests/validation.** `TestBuildDayPlanViewMedTiers` pins the UTC RFC-3339 value passed to the client formatter. Focused locale render tests pass. Authenticated agent-browser login and `/care_plan` + `/animals/8635` smoke loaded; existing production-backed records on these screens had no completed timestamp. Non-mutating browser E2E then appended a synthetic DOM `<time class="js-local-time" datetime="2026-10-06T13:13:00Z">` on the treatments page and ran the page's exact formatter; authenticated session `b10` reported browser timezone `Europe/Brussels` and rendered `03:13 PM`, matching `toLocaleTimeString`. This confirms formatter behavior without changing any data; production record formatting itself remains unavailable for read-only verification. Repeated synthetic check after app locale switches fr/de/nl produced the same `03:13 PM` each time because formatter intentionally uses browser default locale (`undefined`), not app locale; this validates stable local-time conversion, not locale-specific time notation.
+
+---
+
+## B10-10 — cleanup cage grouping and table-cell efficiency
+
+**Root cause.** Cleanup cage rows rendered an independent time label and one
+button per animal per due-time group. The apply-cage control carried only a
+clock, so its scope/time were unclear. Feeding animal mode repeated animal link
+and time in its second cell after the first identity cell already provided both.
+Animal cells had only `min-width`, leaving table layout to allocate inconsistent
+widths; action controls were not anchored to the right edge.
+
+**Fix.** Care viewmodel now derives row collapse state, total item count, and
+earliest due label. Cage rows collapse their occurrence toggles under a count
+header; batch `○ time` control carries earliest day-aware time, with count overlay.
+Cage-mode per-animal toggles omit repeated time; animal-mode single actions retain
+time. Feeding animal rows suppress redundant animal link and time label in second
+cell while preserving time on action toggle. Shared care-table CSS keeps identity
+columns stable, allows feeding content column to use remaining width, and right
+aligns cleanup actions. Summary badges are inline inside nav tabs; selecting a
+tier shortcut collapses other tier panels. Changes applied to all four localized
+template forks.
+
+**Tests/validation.** Added cleanup batch/time/collapse pins, viewmodel count/time
+assertions, and B10-10 duplicate-cell test. Updated glyph pins and phase0b DOM
+goldens. Fresh focused verification in the actual checkout:
+
+- Fresh rerun: `go test ./actions -run 'Test(CarePlan|Round10|TreatmentTimeEntries|AnimalPlanToday)' -count=1` — PASS (`ok creaves/actions 3.033s`).
+- Fresh rerun: `go test ./actions -run 'Test(Phase3|B10_10|Round10|TreatmentTimeEntries|AnimalPlanToday|CarePlan)' -count=1` — PASS (`ok creaves/actions 3.296s`). Explicit B10-9/B10-10/Phase3/phase0b subset — PASS (`ok creaves/actions 0.892s`): `go test ./actions -run '^Test(B10_9PreferenceCapsLateAndFutureBoundaries|B10_10FeedingAnimalModeDoesNotRepeatAnimalCell|CarePlanPhase0bDOMEquivalence|Phase3CleanupRendersTieredSections|Phase3CageRowStatesTimeOncePerOccurrenceGroup|Phase3CleanupTogglePairContract|Phase3GroupAnimalOneLinePerAnimal|Phase3GroupChoicePersists|Phase3GroupAnimalRendersHTTP|Phase3TierBadgesSpeakSummaryStripUnit|Phase3CleanupTierTableContract)$' -count=1`. Locale/template/B10-10 tests — PASS (`ok creaves/actions 2.197s`): `go test ./actions -run 'Test.*(Locale|Localization|TemplateVariant|B10_10)' -count=1`.
+- Four-locale parity: fresh SHA-1 identical for `_plan_care_line` (`82603adc6f6e017c63bd2b95e28c8f5c8f82b903`), `_plan_history_table` (`211923a023da95cc83a8a98841f818283c44bef5`), and `_plan_tier_feed_table` (`6e2fceacca408bd1bcdb3f8633fffc3e9d7c650f`) variants across en-US/fr/de/nl; localized `index` forks intentionally differ in existing translated copy; localization/template tests pass for structure/convention.
+- `git diff --check` — PASS.
+- Authenticated read-only agent-browser session `b10` at `http://127.0.0.1:3000`: login at `/auth/new` redirected to `/`; `/care_plan?kind=cleanup` rendered 98 cleanup tasks and cage rows including `Bac noir E` and `E1 - Aqua7 E` with collapsed count `2`, plus batch toggle `○ 09:00`; `S10 S` showed count `11` and `○ 09:00`. This verifies collapse/count and visible batch time; earliest-of-multiple-due-times was not distinguishable because observed groups showed 09:00. `/care_plan?kind=feeding&group=animal` rendered animal identity/location/species on one line (e.g. `R24 · R · West European Hedgehog`), feeding detail in following cell, and `○ 09:00`; no repeated animal link or separate duplicate time appeared there. No apply/toggle controls used; no data changed. Four-locale template parity confirmed by focused localization/template tests. Fresh read-only live locale switching in session `b10` to French, German, and Dutch at `/lang/?lang=<locale>&url=%2Fcare_plan%3Fkind%3Dcleanup` rendered translated page headings (`Nettoyage` / `Reinigung` / `Schoonmaak`); German and Dutch headings localized while existing task labels remain source copy. en-US route is the initial English view. All visible due groups showed 09:00, so earliest-time selection remains unverified; no apply/toggle controls used and no data changed.
+
+**Closure:** B10-10 remains recorded as fixed in `docs/archive/2026-10-06-care-plan-round-10-bugs.md`; round handover archived at `docs/archive/2026-10-06-care-plan-round-10-handover.md`. Focused tests, phase0b DOM test, diff check, and authenticated read-only browser assertions for collapsed counts, 09:00 batch control, and feeding animal-cell deduplication passed. Live locale switching to fr/de/nl verified on cleanup route; earliest-time selection remains unverified because all observed groups showed 09:00. B10-9 remains closed as not reproduced.
+
+---
+
+
+## B10-9 — investigate work-screen age caps
+
+**Finding / root cause.** `CarePlanIndex` loads saved rows with
+`preferencesByKind(tx)` and applies the matching kind's caps to sourced items
+before building the view model (`actions/care_plan.go:77-96`). The cap function
+removes `late`/`missing` items at or beyond `late_show_hours`, and scheduled
+items at or beyond `future_show_hours` (`actions/preferences.go:71-96`). The tier
+builder merely sorts/classifies survivors; it cannot restore capped items. This
+inclusive cutoff was confirmed after the prior B10-9 investigation; it is a UI
+contract change, not evidence that the original incident reproduced.
+Preference rows are seeded on the admin preferences page, not the work screen;
+a missing row is uncapped. Authenticated browser check of `/preferences` showed
+persisted defaults of 8 h late + future per kind and 1 h now window for all six
+kinds. Terminal application rows are preserved in History by design and must not
+be mistaken for open late work. JSON read-model requests intentionally do not
+apply these UI caps.
+
+**Incident result: closed as not reproduced on available instance.** The report
+omits occurrence identity/status/due time and request format. Authenticated
+`/care_plan?kind=medication` showed four HTML History rows and no stale open rows;
+the JSON read model returned zero late/missing items older than 8 h and five
+older terminal items. This is consistent with terminal History being retained
+and JSON being uncapped, not with a demonstrated HTML cap failure. Reopen only
+with an identified late/missing OPEN row older than its persisted kind cap on
+HTML `/care_plan`, including animal/source, due timestamp, and saved preference.
+Do not reopen the incident or claim it reproduced without that counterexample. The separately confirmed inclusive cap-boundary change is a preference/UI contract, not an incident finding.
+
+**Regression test/evidence.** Original test `TestB10_9PreferenceCapsLateAndFutureBoundaries` treated exact cap as included; Goal 1 replaces that contract with `TestPreferenceCapsExcludeAtAndBeyondLateAndFutureBoundaries`, asserting exact and beyond cutoff exclusion, just-inside retention, and unchanged terminal rows. The live preferences page showed 8 h late/future values and 1 h now window for all six kinds; handler loads persisted values and applies caps before viewmodel construction.
+
+
+The user also reported variable-width Animal cells on `/care_plan`. Set fixed
+11rem width/min/max on shared per-animal columns in all four localized index
+forks; medication label overflow ellipsizes. Updated phase0b golden baseline
+because rendered style is intentionally different. Verification:
+`PHASE0B_RECORD=1 go test ./actions -run '^TestCarePlanPhase0bDOMEquivalence$' -count=1` — PASS.
+
+---
+
+Companion of `bugs.md` round 10. Each bug: root cause → fix → test approach →
 Shared verification for every item:
 
 ```bash

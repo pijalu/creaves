@@ -62,67 +62,54 @@
     </td>
   <% } %>
   <td class="plan-care-slots">
-    <%= for (tg) in ccard.TimeGroups { %>
-      <div class="plan-time-group">
-        <%# §3.2: the due time stated ONCE per sub-group — same day-aware
-            expression the feeding time label uses ("tomorrow 16:00" /
-            "02/01 16:00" / "16:00"). %>
-        <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
-          <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
-          <%= if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
-        </div>
-        <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
-        <%= for (slot) in tg.Slots { %>
-          <span class="plan-item-slot">
-            <%= if (slot.Applicable) { %>
-              <%# §2.3 med-parity glyphs (○ to-do · ✓ done); tier colour via
-                  slotTierClass, data-tier-class for the undo restore. %>
-              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
-                data-source-type="<%= ccard.SourceType %>"
-                data-source-id="<%= ccard.SourceID %>"
-                data-animal-id="<%= slot.AnimalID %>"
-                data-due-at="<%= slot.DueAtRFC %>"
-                data-kind="cleanup"
-                data-tier-class="<%= slot.TierClass %>"
-                data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
-                data-detail="<%= ccard.SourceName %>"
-                data-source-name="<%= ccard.SourceName %>"
-                title="<%= t("care_plan.apply.action") %>">○ <%= slot.DueHM %></button>
-              <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
-                data-source-type="<%= ccard.SourceType %>"
-                data-source-id="<%= ccard.SourceID %>"
-                data-animal-id="<%= slot.AnimalID %>"
-                data-due-at="<%= slot.DueAtRFC %>"
-                data-kind="cleanup"
-                data-tier-class="<%= slot.TierClass %>"
-                title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
-            <% } else if (slot.LateAllowed) { %>
-              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
-                data-source-type="<%= ccard.SourceType %>"
-                data-source-id="<%= ccard.SourceID %>"
-                data-animal-id="<%= slot.AnimalID %>"
-                data-due-at="<%= slot.DueAtRFC %>"
-                data-kind="cleanup" data-late="true"
-                data-tier-class="<%= slot.TierClass %>"
-                data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
-                data-detail="<%= ccard.SourceName %>"
-                data-source-name="<%= ccard.SourceName %>"
-                title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueHM %></button>
-              <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
-                data-source-type="<%= ccard.SourceType %>"
-                data-source-id="<%= ccard.SourceID %>"
-                data-animal-id="<%= slot.AnimalID %>"
-                data-due-at="<%= slot.DueAtRFC %>"
-                data-kind="cleanup"
-                data-tier-class="<%= slot.TierClass %>"
-                title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
-            <% } else { %>
-              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn" disabled
-                title="<%= t("care_plan.status." + slot.Status) %>">– <%= slot.DueHM %></button>
+    <%= if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1)) { %>
+      <div class="plan-feed-header" data-toggle="collapse" data-target="#care-slots-<%= ti %>-<%= ri %>" aria-expanded="false" role="button" tabindex="0" title="<%= t("care_plan.feeding.show_animals") %>">
+        <span class="badge badge-pill badge-light plan-feed-count"><%= ccard.AnimalCountCap %></span>
+        <span class="plan-feed-when"><% if (len(ccard.TimeGroups) > 1) { %>+<%= len(ccard.TimeGroups) - 1 %><% } %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse" id="care-slots-<%= ti %>-<%= ri %>">
+    <% } %>
+    <%= if (group != "animal" && ccard.AnimalCount == 1) { %>
+      <%# Bug 2026-10-27 #5: a single-animal cage renders NO per-animal
+          toggle — the Apply-all button in the last column already covers
+          every occurrence of the row (the group check does the whole job,
+          the feeding table's §4.2 rule). The invisible spacer keeps the
+          row footprint; there is nothing to expand, so the collapsible
+          header above is skipped for this row too. %>
+      <span class="plan-apply-space" aria-hidden="true"></span>
+    <% } else { %>
+      <%= for (tg) in ccard.TimeGroups { %>
+        <div class="plan-time-group">
+          <%# §3.2: the due time stated ONCE per sub-group — same day-aware
+              expression the feeding time label uses ("tomorrow 16:00" /
+              "02/01 16:00" / "16:00"); the toggle itself carries it
+              (○ HH:MM) via the shared slot partial. %>
+          <%= if (group != "animal") { %>
+            <%# Bug 2026-10-27 #5: a multi-animal cage renders ONE LINE per
+                animal (plan-animal-row, the feeding-table row class): the
+                animal number link, then that animal's own time-bearing
+                toggles — no interleaved wrap. tg.AnimalLines is pre-folded
+                by the view model, ascending animal id. %>
+            <%= for (line) in tg.AnimalLines { %>
+              <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                <a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>"><%= line.AnimalYear %></a>
+                <%= for (slot) in line.Slots { %>
+                  <%= partial("care_plan/plan_care_slot.plush.html") %>
+                <% } %>
+              </div>
             <% } %>
-          </span>
-        <% } %>
-        </span>
+          <% } else { %>
+            <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+            <%= for (slot) in tg.Slots { %>
+              <%= partial("care_plan/plan_care_slot.plush.html") %>
+            <% } %>
+            </span>
+          <% } %>
+        </div>
+      <% } %>
+    <% } %>
+    <%= if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1)) { %>
       </div>
     <% } %>
   </td>
@@ -130,12 +117,12 @@
     <td class="text-nowrap plan-feed-check">
       <%= if (ccard.ApplicableCount > 0) { %>
         <span class="position-relative d-inline-block">
-          <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply"
+          <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply<%= if (ccard.Partial) { %> plan-cage-apply-partial<% } %>"
             data-items="<%= ccard.ChipRefsJSON %>"
             data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
             aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
             title="<%= t("care_plan.card.apply_cage") %>">
-            <i class="far fa-clock"></i>
+            ○ <%= if (ccard.FirstTimeShortDate != "") { %><%= ccard.FirstTimeShortDate %> <% } else if (ccard.FirstTimeDayKey != "") { %><%= t(ccard.FirstTimeDayKey) %> <% } %><%= ccard.FirstTimeLabel %>
           </button>
           <%= if (ccard.ApplicableCount > 1) { %>
             <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>

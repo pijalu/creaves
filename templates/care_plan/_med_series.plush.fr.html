@@ -45,7 +45,7 @@
         B10-5: on the animal page the caller sets medSeriesRow so the line
         picks up the SAME .plan-med-row compact row treatment as the item
         lines — one visual family. %>
-    <div class="d-flex align-items-start plan-med-line<%= if (medSeriesRow) { %> plan-med-row<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
+    <div class="d-flex align-items-start plan-med-line<%= if (medSeriesRow) { %> plan-med-row plan-item-line<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
       data-source-type="<%= series.Rows[0].Slots[0].SourceType %>"
       data-source-id="<%= series.Rows[0].Slots[0].SourceID %>">
       <%# R4-3.1: fixed-width leading column — ℹ first, so the ℹ buttons

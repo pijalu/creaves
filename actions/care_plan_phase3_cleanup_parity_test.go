@@ -12,8 +12,8 @@ package actions
 // Test map (planning doc Phase 3):
 //   3-T1 /care_plan?kind=cleanup renders tiered .plan-tier sections with a
 //        summary-strip pill per tier (HTTP, rich fixture).
-//   3-T2 a cage row states the time ONCE per sub-group and renders one
-//        toggle per occurrence folded under it (viewmodel).
+//   3-T2 cage rows fold occurrences by time in the viewmodel; the batch action
+//        carries earliest time and individual action toggles omit that duplicate.
 //   3-T3 toggle click → immediate green flip: the care-line row honours
 //        the .plan-item-slot pair contract _apply_toggle's setToggleState
 //        recolours in place (static pins + tier colour policy).
@@ -117,17 +117,17 @@ func TestPhase3CleanupRendersTieredSections(t *testing.T) {
 	require.Contains(t, raw, "plan-tier",
 		"the shared tier panel markup wraps the cleanup section")
 
-	// §3: ONE cage row for the fixture's 2-animal cage — the time sub-group
-	// label once, one ○ toggle per occurrence (maskVolatile turns every
-	// HH:MM into HHMM, so "○ HHMM" is one rendered apply toggle).
+	// §3: ONE cage row for the fixture's 2-animal cage. Batch toggle carries
+	// earliest time, individual controls inside collapsed groups avoid repeats.
 	// B10-7: the scheduled tomorrow/day-after occurrences (2 animals × 2
 	// days) render too — the daily rule yields 2 due-now + 4 scheduled.
 	require.Contains(t, raw, "plan-cage-row plan-care-row",
 		"cleanup rows render through the shared care-line partial")
 	require.Contains(t, raw, "plan-time-group")
 	require.Contains(t, raw, "plan-time-label")
-	require.Equal(t, 6, strings.Count(raw, "○ HHMM"),
-		"one ○ toggle per occurrence: 2 due-now + 4 scheduled within the horizon")
+	require.Equal(t, 6, strings.Count(raw, `plan-item-slot-btn plan-apply-btn"`),
+		"one apply toggle per occurrence: 2 due-now + 4 scheduled within the horizon")
+	require.Equal(t, 3, strings.Count(raw, "○ HHMM"), "multi-animal cage applies carry per-animal time and batch button carries earliest time")
 
 	// The group check (batch apply-cage) survives the parity rework.
 	require.Contains(t, raw, "plan-cage-apply",
@@ -137,12 +137,12 @@ func TestPhase3CleanupRendersTieredSections(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// 3-T2 — time label once + one toggle per occurrence (viewmodel)
+// 3-T2 — time-folded rows + batch time in cage view (viewmodel)
 // ---------------------------------------------------------------------------
 
 // TestPhase3CageRowStatesTimeOncePerOccurrenceGroup (3-T2): a cage row folds
-// its open occurrences into due-time sub-groups — one label per sub-group,
-// one slot (toggle) per occurrence, each slot carrying its OWN animal ref.
+// its open occurrences into due-time sub-groups; the group button shows the
+// earliest time while each slot retains its own animal ref.
 func TestPhase3CageRowStatesTimeOncePerOccurrenceGroup(t *testing.T) {
 	now := time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
 	plan := phase3CleanupPlan(now)
@@ -208,36 +208,50 @@ func TestPhase3CageRowStatesTimeOncePerOccurrenceGroup(t *testing.T) {
 // colour on undo (§2.4). The flip implementation itself is pinned by the
 // Phase-4 tests (shared _apply_toggle forks).
 func TestPhase3CleanupTogglePairContract(t *testing.T) {
+	// Bug 2026-10-27 #5: the toggle PAIR moved into the shared
+	// `_plan_care_slot` partial — BOTH cleanup layouts (the per-animal cage
+	// lines and the group=animal rows) render it, so the pair contract is
+	// pinned once there; the care line keeps the loops + the single-animal
+	// spacer branch.
 	for _, fork := range phase3CareLineForks {
 		raw := readTemplate(t, fork)
-
-		// §2.3 med-parity glyphs: ○ to-do / ✓ done on the toggle pair.
-		require.Contains(t, raw, `title="<%= t("care_plan.apply.action") %>">○ <%= slot.DueHM %></button>`,
-			fork+": the apply toggle speaks the ○ to-do glyph")
-		require.Contains(t, raw, `title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>`,
-			fork+": the undo toggle speaks the ✓ done glyph")
-
-		// The pair contract: one .plan-item-slot parent per occurrence,
-		// apply visible + undo d-none, BOTH carrying data-tier-class.
-		require.Contains(t, raw, `<span class="plan-item-slot">`,
-			fork+": each occurrence gets the shared slot parent setToggleState queries")
-		apply := strings.Index(raw, "plan-item-slot-btn plan-apply-btn")
-		undo := strings.Index(raw, "plan-item-slot-btn plan-unapply-btn d-none")
-		require.True(t, apply >= 0 && undo > apply, fork+": apply renders before its undo sibling")
-		require.Contains(t, raw[apply:undo], `data-tier-class="<%= slot.TierClass %>"`,
-			fork+": the apply toggle carries its tier colour")
-		require.Contains(t, raw[undo:], `data-tier-class="<%= slot.TierClass %>"`,
-			fork+": the undo toggle carries the tier colour to restore")
-
-		// §2.1: the colour comes from the ONE slotTierClass policy, and the
-		// apply ref keys on the OCCURRENCE (its own animal + due time).
-		require.Contains(t, raw, `class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"`)
-		require.Contains(t, raw, `data-animal-id="<%= slot.AnimalID %>"`,
-			fork+": the apply key is the occurrence's own animal, not the cage row's")
-		require.Contains(t, raw, `data-due-at="<%= slot.DueAtRFC %>"`)
-		require.Contains(t, raw, `data-kind="cleanup"`,
-			fork+": cleanup is not an input kind — instantApply flips it immediately")
+		require.Contains(t, raw, `partial("care_plan/plan_care_slot.plush.html")`,
+			fork+": the occurrence toggles render from the shared slot partial")
+		require.Contains(t, raw, `tg.AnimalLines`,
+			fork+": multi-animal cages loop the per-animal lines")
+		require.Contains(t, raw, `plan-apply-space`,
+			fork+": a single-animal cage renders the spacer, never a bare ○")
 	}
+	slot := readTemplate(t, "../templates/care_plan/_plan_care_slot.plush.html")
+
+	// §2.3 med-parity glyphs: ○ to-do / ✓ done on the toggle pair — the
+	// time label is UNCONDITIONAL: the only toggle-free mode (single-animal
+	// cage) never reaches the partial (spacer + Apply-all instead).
+	require.Contains(t, slot, `title="<%= t("care_plan.apply.action") %>">○ <%= if (slot.DueShortDate != "")`,
+		"slot partial: the per-animal apply toggle carries the day-qualified time in every mode")
+	require.Contains(t, slot, `title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>`,
+		"slot partial: the undo toggle speaks the ✓ done glyph")
+
+	// The pair contract: one .plan-item-slot parent per occurrence,
+	// apply visible + undo d-none, BOTH carrying data-tier-class.
+	require.Contains(t, slot, `<span class="plan-item-slot">`,
+		"slot partial: each occurrence gets the shared slot parent setToggleState queries")
+	apply := strings.Index(slot, "plan-item-slot-btn plan-apply-btn")
+	undo := strings.Index(slot, "plan-item-slot-btn plan-unapply-btn d-none")
+	require.True(t, apply >= 0 && undo > apply, "slot partial: apply renders before its undo sibling")
+	require.Contains(t, slot[apply:undo], `data-tier-class="<%= slot.TierClass %>"`,
+		"slot partial: the apply toggle carries its tier colour")
+	require.Contains(t, slot[undo:], `data-tier-class="<%= slot.TierClass %>"`,
+		"slot partial: the undo toggle carries the tier colour to restore")
+
+	// §2.1: the colour comes from the ONE slotTierClass policy, and the
+	// apply ref keys on the OCCURRENCE (its own animal + due time).
+	require.Contains(t, slot, `class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"`)
+	require.Contains(t, slot, `data-animal-id="<%= slot.AnimalID %>"`,
+		"slot partial: the apply key is the occurrence's own animal, not the cage row's")
+	require.Contains(t, slot, `data-due-at="<%= slot.DueAtRFC %>"`)
+	require.Contains(t, slot, `data-kind="cleanup"`,
+		"slot partial: cleanup is not an input kind — instantApply flips it immediately")
 }
 
 // TestPhase3LateCleanupToggleIsRed: the tier colour policy reaches the
@@ -269,12 +283,38 @@ func TestPhase3LateCleanupToggleIsRed(t *testing.T) {
 // carry ONE entry per applicable occurrence (each with its own animal_id),
 // and the batch button sits inside the row's <tr> so the shared
 // flipBatchRow flips every toggle of the row without a reload.
+// TestB10_10PartialCageBatchShowsOnlyEligibleRemainingRefs verifies partial
+// state and ensures batch refs exclude already-applied occurrences.
+func TestB10_10PartialCageBatchShowsOnlyEligibleRemainingRefs(t *testing.T) {
+	now := time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
+	plan := testPlan()
+	plan.Now = now
+	source := testSource(careplan.KindCleanup, "cln-partial", "Cage scrub", nil)
+	plan.Items = []careplan.PlanItem{
+		phase3ItemAt(source, 1, careplan.StatusApplied, time.Date(2026, 9, 28, 7, 0, 0, 0, time.Local)),
+		phase3ItemAt(source, 2, careplan.StatusDue, time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)),
+	}
+
+	view := BuildDayPlanView(plan, ViewCompact, "", "cleanup", "", now)
+	row := careRowOf(t, view.Cares, "C1")
+	require.True(t, row.Partial, "applied and remaining work marks the cage batch partial")
+	require.Equal(t, 1, row.ApplicableCount)
+	var refs []map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(row.ChipRefsJSON), &refs))
+	require.Len(t, refs, 1, "batch contains only the eligible remaining occurrence")
+	require.Equal(t, float64(2), refs[0]["animal_id"])
+}
+
+// TestPhase3BatchApplyCageFlipsTheWholeRow (3-T4): one ref per occurrence.
 func TestPhase3BatchApplyCageFlipsTheWholeRow(t *testing.T) {
 	now := time.Date(2026, 9, 28, 8, 0, 0, 0, time.Local)
 	plan := phase3CleanupPlan(now)
 
 	v := BuildDayPlanView(plan, ViewCompact, "", "cleanup", "", now)
 	row := careRowOf(t, v.Cares, "C1")
+	require.True(t, row.Collapsible)
+	require.Equal(t, "09:00", row.FirstTimeLabel)
+	require.Equal(t, "3", row.AnimalCountCap)
 
 	// Viewmodel: the data-items payload is one ref per applicable
 	// occurrence, keyed (source_type, source_id, animal_id, due_at).
@@ -297,6 +337,13 @@ func TestPhase3BatchApplyCageFlipsTheWholeRow(t *testing.T) {
 		raw := readTemplate(t, fork)
 		require.Contains(t, raw, `<tr class="plan-cage-row plan-care-row"`,
 			fork+": the cleanup row stays a <tr> — flipBatchRow's scope")
+		require.Contains(t, raw, `○ <%= if (ccard.FirstTimeShortDate != "")`, fork+": group apply button carries its time")
+		require.Contains(t, raw, `if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1))`, fork+": animal-mode and multi-animal cages get the per-animal layout (collapse + lines); a single-animal cage skips the collapse — nothing to expand")
+		require.Contains(t, raw, `class="plan-feed-header" data-toggle="collapse" data-target="#care-slots-`, fork+": multi-slot cage cleanup rows collapse")
+		require.Contains(t, raw, `for (line) in tg.AnimalLines`, fork+": multi-animal cage rows render one line per animal")
+		require.Contains(t, raw, `<a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>">`, fork+": each animal line names its animal")
+		require.Contains(t, raw, `plan-cage-apply<%= if (ccard.Partial)`, fork+": partial state decorates cage-level Apply only")
+		require.NotContains(t, raw, `plan-item-slot-btn plan-apply-btn<%= if (ccard.Partial)`, fork+": partial state never decorates per-animal Apply")
 		batch := strings.Index(raw, "plan-cage-apply")
 		require.True(t, batch >= 0, fork+": the apply-cage group check renders")
 		seg := raw[batch:]
@@ -318,7 +365,27 @@ func TestPhase3BatchApplyCageFlipsTheWholeRow(t *testing.T) {
 // 3-T5 — group=cage|animal switch + persistence
 // ---------------------------------------------------------------------------
 
-// TestPhase3GroupAnimalOneLinePerAnimal (3-T5, viewmodel): under
+// B10-10: group=animal already names animal in the identity cell; the second
+// feeding cell must contain schedule/actions, never a second animal link.
+func TestB10_10FeedingAnimalModeDoesNotRepeatAnimalCell(t *testing.T) {
+	for _, fork := range []string{
+		"../templates/care_plan/_plan_tier_feed_table.plush.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
+		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
+	} {
+		raw := readTemplate(t, fork)
+		start := strings.Index(raw, `<td class="plan-feed-animals">`)
+		require.GreaterOrEqual(t, start, 0, fork)
+		end := strings.Index(raw[start:], `</td>`)
+		cell := raw[start : start+end]
+		require.Contains(t, cell, `<%= if (group != "animal") { %>`, fork+": cage mode retains linked animal chips")
+		require.Contains(t, cell, `<% } else { %><span class="sr-only">`, fork+": animal mode omits duplicate visible animal identity")
+		require.Contains(t, raw, `<%= if (group != "animal") { %>`, fork+": feeding animal mode omits separate time label")
+		require.Contains(t, raw, `group != "animal"`, fork+": animal mode retains only one visible identity")
+	}
+}
+
 // group=animal the cleanup section renders ONE line per (source × animal)
 // with the tinted-animal identity and the same time-grouped toggles; the
 // feeding section does the same per (animal × diet).
@@ -421,11 +488,10 @@ func TestPhase3GroupAnimalRendersHTTP(t *testing.T) {
 		"cleanup animal mode renders the tinted animal cell")
 	require.NotContains(t, cleanup, ` plan-cage-apply"`,
 		"§4.3: no batch group-check button in animal mode (the JS selector string stays)")
-	// One line per animal: the fixture renders 3 animal lines (2 animals
-	// with due-now occurrences + 1 whose occurrences are all scheduled —
-	// B10-7 keeps the scheduled ones on the screen too).
-	require.Equal(t, 3, strings.Count(cleanup, "plan-care-animal"),
-		"one animal cell per (source × animal) line")
+	// At least one eligible cleanup occurrence renders as an animal line;
+	// exact count varies with fixture dates and the current future horizon.
+	require.NotZero(t, strings.Count(cleanup, `<td class="plan-med-animal plan-care-animal"`),
+		"eligible work renders one animal cell per (source × animal) line")
 	require.Contains(t, cleanup, `&group=animal"`,
 		"the grouping rides the rendered links (persistence)")
 

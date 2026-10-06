@@ -32,6 +32,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// startup_v3 one-shot migration (bugs.md t10, 2026-10-27): retire the
+	// converter's cage-name/species-sweep cluster rules in favor of
+	// per-animal plans — "cage names are per centers". Same failure
+	// contract: a failed migration aborts the boot.
+	if err := actions.RunCarePlanMigrationAtBoot(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

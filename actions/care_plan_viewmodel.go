@@ -64,8 +64,9 @@ type CardView struct {
 	// B10-2: the per-animal loc line (Zone · Cage · Espèce) — species comes
 	// from the plan's display rows, already request-localized by
 	// localizePlanSpecies.
-	Species     string
-	DueAt       time.Time
+	Species      string
+	DueAt        time.Time
+	AppliedAtRFC string // Applied timestamp as RFC-3339 UTC for browser-local rendering
 	// §6.2-5 date-aware due label parts (compose with t(): bare time only
 	// for today, day word yesterday/tomorrow, short date beyond).
 	DueHM        string
@@ -135,13 +136,14 @@ type ItemSlotView struct {
 	// CARD (one animal per merged group); the cleanup cage row folds
 	// SEVERAL animals' occurrences into one time sub-group, so the slot
 	// must carry its own (phase 3 / D3).
-	AnimalID     int
-	Status       string
-	Tier         int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
-	TierClass    string // slotTierClass(Tier) — the toggle's colour (§2.1)
-	Applicable   bool
-	LateAllowed  bool // past due + out of window → record-anyway (§6.2-2, A1)
-	NeedsInput   bool   // weighing / observation → the apply input modal
+	AnimalID    int
+	AnimalYear  string // cage-group numbered line label
+	Status      string
+	Tier        int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
+	TierClass   string // slotTierClass(Tier) — the toggle's colour (§2.1)
+	Applicable  bool
+	LateAllowed bool // past due + out of window → record-anyway (§6.2-2, A1)
+	NeedsInput  bool // weighing / observation → the apply input modal
 }
 
 // TierLink is one pill of the summary strip (R4-7.21): a jump link to a
@@ -190,10 +192,10 @@ type FeedingTimeGroup struct {
 
 // FeedingGroupView is one rendered feeding row (cage × diet, bugs.md U1).
 type FeedingGroupView struct {
-	Zone            string
-	Cage            string
-	Food            string
-	ForceFeed       bool
+	Zone      string
+	Cage      string
+	Food      string
+	ForceFeed bool
 	// B10-2: group=animal rows carry the animal's species for the
 	// Zone · Cage · Espèce loc line (already request-localized).
 	Species         string
@@ -363,6 +365,19 @@ type CareTimeGroup struct {
 	Count      int
 	CountCap   string
 	Applicable int // occurrences in this sub-group still actionable
+	// Bug 2026-10-27 #5: cage rows with SEVERAL animals render ONE LINE
+	// per animal (number link + its time-bearing toggles) instead of one
+	// wrapping flex row. Empty for single-animal cages (spacer) and for
+	// group=animal rows (each row IS one animal).
+	AnimalLines []CareAnimalLine
+}
+
+// CareAnimalLine is one animal's line inside a multi-animal cleanup cage
+// row: the number link plus that animal's occurrence toggles.
+type CareAnimalLine struct {
+	AnimalID   int
+	AnimalYear string
+	Slots      []ItemSlotView
 }
 
 // CareView is one rendered cleanup row (guideline §3/§4): ONE line per
@@ -372,8 +387,8 @@ type CareTimeGroup struct {
 // tier-coloured like every other kind), plus the group-apply batch
 // refs (cage grouping keeps the apply-cage affordance).
 type CareView struct {
-	Zone       string
-	Cage       string
+	Zone string
+	Cage string
 	// B10-2: group=animal rows carry the animal's species for the
 	// Zone · Cage · Espèce loc line (already request-localized).
 	Species    string
@@ -382,12 +397,19 @@ type CareView struct {
 	// SourceType/SourceID ride on every per-occurrence toggle (the apply
 	// ref) — the slots alone do not carry them (same shape as CardView's
 	// merged Slots, which read them from the card).
-	SourceType      string
-	SourceID        string
-	Count           int    // open, applicable occurrences on the row
-	ChipRefsJSON    string // JSON item refs of the applicable items (data-items)
-	ApplicableCount int
-	LateCount       int // applicable occurrences already past due (late tier)
+	SourceType         string
+	SourceID           string
+	Count              int    // open, applicable occurrences on the row
+	ChipRefsJSON       string // JSON item refs of the applicable items (data-items)
+	ApplicableCount    int
+	AnimalCount        int
+	Collapsible        bool
+	AnimalCountCap     string
+	Partial            bool
+	FirstTimeLabel     string
+	FirstTimeDayKey    string
+	FirstTimeShortDate string
+	LateCount          int // applicable occurrences already past due (late tier)
 	// group=animal rows: the tinted animal cell (§4.3) — year/number
 	// display (§5 level 1), full label on the title, plan-tab link.
 	AnimalID    int
@@ -456,14 +478,14 @@ type DayPlanView struct {
 	// the shared generic distribution, phase-0b §6). CareTierOpen[i]
 	// counts the tier's OPEN APPLICABLE OCCURRENCES — the summary-strip
 	// unit (§1.4, R4-1.3/R4-7.21 precedent).
-	CareTiers        [3][]CareView
-	CareTierOpen     [3]int
-	CareTierOpenCap  [3]string
-	History          []CardView // terminal + superseded rows, subdued
-	Zones            []ZoneTab  // without the "all" entry (rendered by the template)
-	Kinds            []KindChip
-	UpdatedAt        string // HH:MM of render (auto-refresh indicator, §10-CP6c)
-	View             string
+	CareTiers       [3][]CareView
+	CareTierOpen    [3]int
+	CareTierOpenCap [3]string
+	History         []CardView // terminal + superseded rows, subdued
+	Zones           []ZoneTab  // without the "all" entry (rendered by the template)
+	Kinds           []KindChip
+	UpdatedAt       string // HH:MM of render (auto-refresh indicator, §10-CP6c)
+	View            string
 	// Group is the feeding/cleanup grouping level (guideline §4.2):
 	// "cage" (default — one line per cage × diet/cleanup) or "animal"
 	// (one line per animal, same per-occurrence toggles).
@@ -550,13 +572,30 @@ func openStatusAction(s careplan.PlanStatus) bool {
 }
 
 // actionKinds lists the known kinds in display order (chip bar).
+// Bugs.md second batch #8 (2026-10-27): importance order — Medication,
+// Care, Feeding, Observation, Weighing, Cleanup. defaultWorkKind lands
+// on the first kind that has open work, so the work screen opens on the
+// most important kind that needs attention.
 var actionKinds = []string{
-	careplan.KindFeeding,
 	careplan.KindMedication,
 	careplan.KindCare,
-	careplan.KindCleanup,
-	careplan.KindWeighing,
+	careplan.KindFeeding,
 	careplan.KindObservation,
+	careplan.KindWeighing,
+	careplan.KindCleanup,
+}
+
+// actionKindRank returns the kind's position in the importance order
+// (bugs.md second batch #8) — the ONE rank the animal protocol tab's
+// per-day kind sort also follows, so the work screen and the animal
+// view read in the same sequence. Unknown kinds sort last.
+func actionKindRank(kind string) int {
+	for i, k := range actionKinds {
+		if k == kind {
+			return i
+		}
+	}
+	return len(actionKinds)
 }
 
 // BuildDayPlanView projects the day plan into the work-screen view model
@@ -628,6 +667,12 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind, group string, now time.Ti
 	// Stage 4: tiers (late → now → later, due-time sorted) + the summary
 	// strip (occurrences, density-independent).
 	fillTiers(v, openRows)
+	// Bug 2026-10-06 #7: the row-kind lines (care/observation/weighing) share
+	// the medication page's computed animal-column width — ONE animal-cell
+	// treatment for every kind, same column order, same alignment.
+	if kind != careplan.KindFeeding && kind != careplan.KindCleanup && kind != careplan.KindMedication {
+		v.MedAnimalColCh = cardAnimalColCh(v.Tiers)
+	}
 	// R3-5: the medication kind renders hour-toggle lines instead of the
 	// ordinary table rows — one `<animal> — <series> | [HH:MM]…` line per
 	// (animal × drug series), placed in its most urgent open slot's tier.
@@ -741,6 +786,17 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	for i := 0; i < 3; i++ {
 		v.MedTierOpenCap[i] = BadgeCap(v.MedTierOpen[i])
 	}
+	// Bug 2026-10-06 #6: all drug series of ONE animal read as ONE block —
+	// the animal cell renders ONCE per animal per tier, its series stacked
+	// inside the shared row ("1 cell for the animal instead of repeats").
+	// The merge stays WITHIN a tier: the Late → Now → Later sections carry
+	// the urgency, so an animal present in several tiers still shows once
+	// per tier it occupies. Done lines merge the same way (one animal row
+	// with its finished series).
+	for i := 0; i < 3; i++ {
+		v.MedTiers[i] = mergeMedLinesByAnimal(v.MedTiers[i])
+	}
+	v.MedDone = mergeMedLinesByAnimal(v.MedDone)
 	for i := 0; i < 3; i++ {
 		sort.SliceStable(v.MedTiers[i], func(a, b int) bool {
 			return v.MedTiers[i][a].Series[0].FirstDueAt.Before(v.MedTiers[i][b].Series[0].FirstDueAt)
@@ -752,7 +808,14 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	sort.SliceStable(v.MedDone, func(a, b int) bool {
 		return medDoneFirstDue(v.MedDone[a]).Before(medDoneFirstDue(v.MedDone[b]))
 	})
-	v.MedDoneCount = len(v.MedDone)
+	// Bug 2026-10-06 #6: done LINES merge per animal (one row per animal),
+	// but the badge still counts the done SERIES it lists — same number as
+	// before the merge, one unit (series) everywhere.
+	doneSeries := 0
+	for _, g := range v.MedDone {
+		doneSeries += len(g.Series)
+	}
+	v.MedDoneCount = doneSeries
 	v.MedDoneCountCap = BadgeCap(v.MedDoneCount)
 	v.MedAnimalColCh = medAnimalColCh(v.MedTiers)
 }
@@ -768,6 +831,39 @@ func (v *DayPlanView) collectDoneSeries(g MedGroupView, series MedSeriesView, no
 	}
 	g.Series = []MedSeriesView{series}
 	v.MedDone = append(v.MedDone, g)
+}
+
+// mergeMedLinesByAnimal implements bugs.md 2026-10-06 #6: one rendered line
+// (one animal cell) per ANIMAL, all its series stacked inside it, instead of
+// one line per (animal × series). Series within a merged line sort by their
+// tier-placing due time, so the block reads most-urgent-first; the pre-merge
+// distribution order breaks ties. Lines merge only WITHIN one tier list —
+// urgency sections stay intact.
+func mergeMedLinesByAnimal(lines []MedTierLine) []MedTierLine {
+	if len(lines) < 2 {
+		return lines
+	}
+	byAnimal := map[int]int{}
+	out := make([]MedTierLine, 0, len(lines))
+	for _, g := range lines {
+		at, ok := byAnimal[g.AnimalID]
+		if !ok {
+			byAnimal[g.AnimalID] = len(out)
+			cp := g
+			cp.Series = append([]MedSeriesView(nil), g.Series...)
+			out = append(out, cp)
+			continue
+		}
+		out[at].Series = append(out[at].Series, g.Series...)
+		out[at].OpenCount += g.OpenCount
+	}
+	for i := range out {
+		line := &out[i]
+		sort.SliceStable(line.Series, func(a, b int) bool {
+			return line.Series[a].FirstDueAt.Before(line.Series[b].FirstDueAt)
+		})
+	}
+	return out
 }
 
 // medDoneFirstDue is the sort key of a Done line: the earliest occurrence
@@ -796,6 +892,28 @@ func medAnimalColCh(tiers [3][]MedTierLine) int {
 	for i := range tiers {
 		for _, g := range tiers[i] {
 			if n := utf8.RuneCountInString(g.AnimalLabel); n > widest {
+				widest = n
+			}
+		}
+	}
+	if widest == 0 {
+		return 0
+	}
+	return widest + room
+}
+
+// cardAnimalColCh is the row-kind analogue of medAnimalColCh (bugs.md
+// 2026-10-06 #7): the shared animal-column width for the care/observation/
+// weighing lines, sized from the longest label across the three tiers so the
+// cells read as one column (R4-7.15) and no label is ever cut (R4-7.24).
+func cardAnimalColCh(tiers [3]TierView) int {
+	// Same spare column as medAnimalColCh: `ch` is the width of "0", so a
+	// label of narrow glyphs renders wider than its rune count.
+	const room = 1
+	widest := 0
+	for i := range tiers {
+		for _, c := range tiers[i].Cards {
+			if n := utf8.RuneCountInString(c.AnimalLabel); n > widest {
 				widest = n
 			}
 		}
@@ -1276,9 +1394,15 @@ func (v *DayPlanView) historyRows(plan *DayPlan, detailed bool) []CardView {
 	for i := range plan.Items {
 		it := &plan.Items[i]
 		src := it.Occurrence.Source
-		if src == nil || groupedKind(src.ActionKind()) {
+		if src == nil {
 			continue
 		}
+		// Bug 2026-10-06 #2: feeding and cleanup are GROUPED kinds on the
+		// work screen, but their terminal + superseded occurrences belong to
+		// History like every other kind — an action that was done must move
+		// to the history section, never just disappear (the grouped work
+		// tables render OPEN work only, so without this the applied row
+		// vanished on the next render).
 		if openStatusAction(it.Status) {
 			if IsCurrent(it, now) {
 				continue // current open work → tierRows
@@ -1336,6 +1460,7 @@ func (v *DayPlanView) terminalRow(plan *DayPlan, it *careplan.PlanItem, detailed
 	cv.Undoable = it.Application != nil
 	if it.Application != nil {
 		cv.RecordedLate = it.Application.AppliedAt.After(it.Occurrence.DueAt)
+		cv.AppliedAtRFC = it.Application.AppliedAt.Format(time.RFC3339)
 	}
 	return cv, true
 }
@@ -1438,10 +1563,22 @@ func finalizeFeedingChips(fv *FeedingGroupView) {
 	fv.AnimalCountCap = BadgeCap(fv.AnimalCount)
 	fv.Collapsible = fv.AnimalCount > 1
 	if len(fv.TimeGroups) > 0 {
-		// The header time IS the first sub-group's, so the two cannot drift.
-		fv.FirstTimeLabel = fv.TimeGroups[0].Label
-		fv.FirstTimeDayKey = fv.TimeGroups[0].DayKey
-		fv.FirstTimeShortDate = fv.TimeGroups[0].ShortDate
+		// Bug 2026-10-27 #1: the header's (and the group Apply button's)
+		// "earliest" quotes the earliest APPLICABLE sub-group — both speak
+		// about actionable work; a locked earlier occurrence is neither due
+		// nor applied by the batch. Falls back to the first open sub-group
+		// when nothing is applicable (all locked): the time still tells what
+		// the row is about.
+		first := fv.TimeGroups[0]
+		for _, g := range fv.TimeGroups {
+			if g.Applicable > 0 {
+				first = g
+				break
+			}
+		}
+		fv.FirstTimeLabel = first.Label
+		fv.FirstTimeDayKey = first.DayKey
+		fv.FirstTimeShortDate = first.ShortDate
 		// Rev: the detail modal lists every sub-group's time, not just the
 		// earliest — the row collapses them, the modal must not. Sorted by
 		// due time: the fold keeps first-seen order, which can interleave
@@ -1601,13 +1738,22 @@ func careViewsOf(plan *DayPlan, selfPath, group string) []CareView {
 			SourceID:   cc.Source.SourceID(),
 		}
 		var refs []map[string]interface{}
+		completedAnimals := map[int]bool{}
 		for i := range cc.Items {
+			if cc.Items[i].Status == careplan.StatusApplied {
+				completedAnimals[cc.Items[i].Occurrence.AnimalID] = true
+			}
 			if r, ok := careItemCounts(&cv, cv.SourceType, cv.SourceID, &cc.Items[i]); ok {
 				refs = append(refs, r)
-				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, itemSlotFor(plan.Now, &cc.Items[i]))
+				slot := itemSlotFor(plan.Now, &cc.Items[i])
+				if animal, ok := plan.AnimalRow(slot.AnimalID); ok {
+					slot.AnimalYear = animal.YearNumberFormatted()
+				}
+				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, slot)
 			}
 		}
-		cv.Count = cv.ApplicableCount
+		finalizeCareRow(&cv)
+		cv.Partial = cv.ApplicableCount > 0 && len(completedAnimals) > 0
 		if cv.ApplicableCount == 0 {
 			continue
 		}
@@ -1657,7 +1803,7 @@ func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []Care
 		sort.Ints(ids)
 		for _, id := range ids {
 			cv := byAnimal[id]
-			cv.Count = cv.ApplicableCount
+			finalizeCareRow(cv)
 			if cv.ApplicableCount == 0 {
 				continue
 			}
@@ -1667,7 +1813,59 @@ func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []Care
 	return out
 }
 
-// foldCareTimeGroup appends one occurrence slot to the row's due-time
+func finalizeCareRow(cv *CareView) {
+	cv.Count = cv.ApplicableCount
+	count := 0
+	animals := map[int]bool{}
+	for _, group := range cv.TimeGroups {
+		count += group.Count
+		for _, slot := range group.Slots {
+			animals[slot.AnimalID] = true
+		}
+	}
+	cv.AnimalCount = len(animals)
+	cv.AnimalCountCap = BadgeCap(count)
+	cv.Collapsible = count > 1
+	if cv.AnimalCount > 1 {
+		// Bug 2026-10-27 #5: a multi-animal cage row folds each time-group's
+		// slots into per-animal lines (ascending animal id) so the template
+		// renders one line per animal — number link + its own toggles —
+		// instead of one interleaved wrapping run. Single-animal cages keep
+		// AnimalLines empty: the template renders the spacer there.
+		for gi := range cv.TimeGroups {
+			cv.TimeGroups[gi].AnimalLines = animalLinesOf(cv.TimeGroups[gi].Slots)
+		}
+	}
+	if len(cv.TimeGroups) > 0 {
+		first := cv.TimeGroups[0]
+		cv.FirstTimeLabel = first.Label
+		cv.FirstTimeDayKey = first.DayKey
+		cv.FirstTimeShortDate = first.ShortDate
+	}
+}
+
+// animalLinesOf folds a time-group's slots into per-animal lines, ascending
+// animal id, preserving each animal's due-time slot order (bug #5, 2026-10-27).
+func animalLinesOf(slots []ItemSlotView) []CareAnimalLine {
+	byID := map[int]*CareAnimalLine{}
+	var ids []int
+	for _, s := range slots {
+		line, ok := byID[s.AnimalID]
+		if !ok {
+			line = &CareAnimalLine{AnimalID: s.AnimalID, AnimalYear: s.AnimalYear}
+			byID[s.AnimalID] = line
+			ids = append(ids, s.AnimalID)
+		}
+		line.Slots = append(line.Slots, s)
+	}
+	sort.Ints(ids)
+	out := make([]CareAnimalLine, 0, len(ids))
+	for _, id := range ids {
+		out = append(out, *byID[id])
+	}
+	return out
+}
+
 // sub-groups (foldChipsByTime parity, guideline §3.2): items arrive
 // chronologically, so a stable first-seen walk yields ascending groups.
 func foldCareTimeGroup(groups []CareTimeGroup, slot ItemSlotView) []CareTimeGroup {
@@ -2097,8 +2295,10 @@ func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
 	// treatment twice. A PAST-due slot is shown only while the next
 	// treatment is still in the future; once an occurrence of the series
 	// is DUE now (the caregiver is on it), the stale past ones leave —
-	// the due slot carries the series from here. (The preference caps
-	// already filtered the too-old past slots upstream.)
+	// the due slot carries the series from here. (Terminal — applied or
+	// overridden — occurrences from BEFORE today are already gone:
+	// todaysSlots keeps only today's record; the preference caps cannot
+	// do that job because they only prune OPEN work.)
 	if hasDueNowSlot(kept) {
 		kept = dropPastDueSlots(kept)
 	}
@@ -2174,13 +2374,24 @@ func nearestLaterSlot(series MedSeriesView, endOfDay time.Time) (time.Time, bool
 // todaysSlots keeps every slot due up to the end of today — the open ones and
 // the terminal ones (the day's record). A slot that is neither open nor
 // terminal is dropped: there is nothing to do and nothing to remember.
+// Terminal occurrences (applied/overridden) from BEFORE today are dropped
+// too: the work screen records TODAY's work, not history (bug #3b — the
+// stale "hier ✓" undo entries). The preference caps cannot prune these:
+// applyPreferenceCaps only filters open Late/Missing/Scheduled slots, so
+// the day boundary here is the only guard.
 func todaysSlots(series MedSeriesView, endOfDay time.Time) []MedSlotView {
+	dayStart := time.Date(endOfDay.Year(), endOfDay.Month(), endOfDay.Day(), 0, 0, 0, 0, endOfDay.Location())
 	var kept []MedSlotView
 	for _, s := range flatSlots(series) {
 		if s.DueAt.After(endOfDay) {
 			continue
 		}
-		if !s.Done && !s.Overridden && tierOrder(careplan.PlanStatus(s.Status)) > 2 {
+		if s.Done || s.Overridden {
+			// Terminal occurrence: only today's record survives the day scope.
+			if s.DueAt.Before(dayStart) {
+				continue
+			}
+		} else if tierOrder(careplan.PlanStatus(s.Status)) > 2 {
 			continue
 		}
 		kept = append(kept, s)
@@ -2381,26 +2592,29 @@ func cardAnimalLink(animalID int, back string) string {
 	return fmt.Sprintf("/animals/%d?back=%s#nav-plan", animalID, url.QueryEscape(back))
 }
 
-// cardAnimalTreatmentLink targets the animal's Treatment tab scrolled to a
-// SPECIFIC medication series (B10-4): `?med=<source_type>:<source_id>` —
-// the show page activates the tab, opens the series' day card when it is a
+// cardAnimalTreatmentLink targets the animal's PROTOCOL tab scrolled to a
+// SPECIFIC medication series (B10-4; retargeted from the retired Treatment
+// tab by bugs.md 2026-10-27 #2): `?med=<source_type>:<source_id>` —
+// the show page activates the protocol tab (which renders the series since
+// the Treatment tab was retired), opens the series' day card when it is a
 // future one, and highlights + scrolls to the matching `.plan-med-line`.
 func cardAnimalTreatmentLink(animalID int, back, srcType, srcID string) string {
 	if animalID == 0 {
 		return ""
 	}
-	return fmt.Sprintf("/animals/%d?back=%s&med=%s#nav-treatment",
+	return fmt.Sprintf("/animals/%d?back=%s&med=%s#nav-plan",
 		animalID, url.QueryEscape(back), url.QueryEscape(srcType+":"+srcID))
 }
 
-// animalTreatmentLink targets the animal's Treatment tab — the fallback
+// animalTreatmentLink targets the animal's PROTOCOL tab — the fallback
 // of the R5-2b unconditional view link (no fulfillment record yet). Like
-// cardAnimalLink the back param goes before the #nav-treatment fragment.
+// cardAnimalLink the back param goes before the #nav-plan fragment
+// (retargeted from the retired Treatment tab, bugs.md 2026-10-27 #2).
 func animalTreatmentLink(animalID int, back string) string {
 	if animalID == 0 {
 		return ""
 	}
-	return fmt.Sprintf("/animals/%d?back=%s#nav-treatment", animalID, url.QueryEscape(back))
+	return fmt.Sprintf("/animals/%d?back=%s#nav-plan", animalID, url.QueryEscape(back))
 }
 
 // cardSourceLink: rule → rule show; animal plan → the animal's Plan tab

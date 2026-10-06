@@ -1,11 +1,11 @@
 <%= f.InputTag("ID") %>
-<%= f.InputTag("Country") %>
-<%= f.InputTag("Region") %>
-<%= f.InputTag("Province") %>
-<%= f.InputTag("Municipality") %>
-<%= f.CheckboxTag("SubMunicipality", {unchecked: false}) %>
-<%= f.InputTag("PostalCode") %>
-<%= f.InputTag("Locality") %>
-<%= f.InputTag("Zoning") %>
-<%= f.InputTag("Direction") %>
+<%= f.InputTag("Country", {label:"Country"}) %>
+<%= f.InputTag("Region", {label:"Region"}) %>
+<%= f.InputTag("Province", {label:"Province"}) %>
+<%= f.InputTag("Municipality", {label:"Municipality"}) %>
+<%= f.CheckboxTag("SubMunicipality", {label:"Sub-municipality", unchecked: false}) %>
+<%= f.InputTag("PostalCode", {label:"Postal code"}) %>
+<%= f.InputTag("Locality", {label:"Locality"}) %>
+<%= f.InputTag("Zoning", {label:"Zoning"}) %>
+<%= f.InputTag("Direction", {label:"Direction"}) %>
 <button class="btn btn-success" role="submit">Save</button>

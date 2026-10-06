@@ -207,6 +207,31 @@ func TestToggleEntryHTMLRedirect(t *testing.T) {
 	require.Equal(t, "/treatments/"+tr.ID.String(), resp.Header.Get("Location"))
 }
 
+func TestAnimalAndTreatmentAppliedTimesUseBrowserLocaleInAllForks(t *testing.T) {
+	for _, path := range []string{
+		"../templates/animals/show.plush.html",
+		"../templates/animals/show.plush.fr.html",
+		"../templates/animals/show.plush.de.html",
+		"../templates/animals/show.plush.nl.html",
+	} {
+		raw := readTemplate(t, path)
+		require.Contains(t, raw, `data-applied-at="<%= entry.AppliedAt.Time.Format("2006-01-02T15:04:05Z07:00") %>"`, path)
+		require.Contains(t, raw, `data-applied-at="<%= prow.AppliedAt %>"`, path)
+		require.Contains(t, raw, `toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})`, path)
+		require.NotContains(t, raw, `entry.AppliedAt.Time.Format("15:04")`, path)
+	}
+	for _, path := range []string{
+		"../templates/treatments/show.plush.html",
+		"../templates/treatments/show.plush.fr.html",
+		"../templates/treatments/show.plush.de.html",
+		"../templates/treatments/show.plush.nl.html",
+	} {
+		raw := readTemplate(t, path)
+		require.Contains(t, raw, `entry.AppliedAt.Time.Format("2006-01-02T15:04:05Z07:00")`, path)
+		require.Contains(t, raw, `toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})`, path)
+	}
+}
+
 // TestTreatmentsShowRendersEntryRows guards the R5-3c read path (bugs.md
 // U25/D-e): the show page renders one row per expected time from the
 // eager-loaded entries. Regression: a plush for-loop written as
@@ -215,6 +240,9 @@ func TestToggleEntryHTMLRedirect(t *testing.T) {
 // identifier" — so the page must actually be rendered in a test.
 func TestTreatmentsShowRendersEntryRows(t *testing.T) {
 	_, tr, entries := toggleEntryFixture(t)
+	entries[0].Status = models.TreatmentEntryStatusDone
+	entries[0].AppliedAt = nulls.NewTime(time.Date(tr.Date.Year(), tr.Date.Month(), tr.Date.Day(), 12, 34, 0, 0, time.UTC))
+	require.NoError(t, models.DB.Update(&entries[0]))
 	client, baseURL := planAdminClient(t)
 
 	req, err := http.NewRequest("GET", baseURL+"/treatments/"+tr.ID.String(), nil)
@@ -234,6 +262,13 @@ func TestTreatmentsShowRendersEntryRows(t *testing.T) {
 		require.Contains(t, html, `data-entry-id="`+e.ID.String()+`"`, "missing entry row for %s", e.TimeLabel)
 		require.Contains(t, html, "<strong>"+e.TimeLabel+"</strong>")
 	}
+	require.Contains(t, html, `class="js-local-time" datetime="`+time.Date(tr.Date.Year(), tr.Date.Month(), tr.Date.Day(), 12, 34, 0, 0, time.UTC).Format(time.RFC3339)+`"`)
+	for _, fork := range []string{"../templates/treatments/show.plush.html", "../templates/treatments/show.plush.fr.html", "../templates/treatments/show.plush.de.html", "../templates/treatments/show.plush.nl.html"} {
+		template := readTemplate(t, fork)
+		require.Contains(t, template, `toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})`, fork)
+		require.Contains(t, template, `entry.AppliedAt.Time.Format("2006-01-02T15:04:05Z07:00")`, fork)
+	}
+
 	require.Contains(t, html, "entry-toggle", "per-entry toggle buttons missing")
 	require.NotContains(t, html, "Schedule (Morning", "legacy 3-bucket schedule block must stay removed (R5-3c)")
 }

@@ -73,8 +73,22 @@
     display: block; font-size: 0.78rem; color: #6c757d;
     max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem; }
+  /* Natural table sizing keeps each table's animal column keyed to its own
+     longest cell. Bug 2026-10-06 #1: `width: max-content` made Chrome resolve
+     the column against the TABLE's one-line width (~1466 px) and the tier
+     panel clipped the Apply column out of view — rule removed; the diet text
+     wraps instead and the table can never exceed its panel. */
+    .plan-tier-body table { table-layout: auto; max-width: 100%; }
+    .plan-med-animal { min-width: 0; }
+    .plan-feed-animal, .plan-care-animal { white-space: nowrap; }
+    .plan-feed-animal .text-info, .plan-care-animal .text-info { white-space: normal; }
+  .plan-feed-animals { width: auto; min-width: 0; }
+  .plan-feed-check, .plan-cage-apply { text-align: right; }
+  .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .plan-care-slots .plan-time-label { flex: 1 1 auto; }
+  .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
   @media (max-width: 991.98px) { .plan-loc { display: none; } }
+  .plan-tab-count { vertical-align: middle; }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.15rem 0; cursor: pointer; user-select: none;
@@ -112,12 +126,14 @@
      strip can no longer contradict the header it points at. view.Stats still
      counts the workload for the nav/zone tabs, which are workload-wide by
      design. %>
+<%= if (view.Kind != "feeding") { %>
 <div class="mb-2" id="planSummaryStrip">
   <%= for (sl) in view.TierLinks { %>
     <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
   <% } %>
 </div>
 
+<% } %>
 <%# Kind = primary nav (fix 5 — NO "all/TOUT" tab, the handler picks the
      active kind): counts are open occurrences of the kind in the ACTIVE
      zone. One kind on screen at a time — feeding never mixes with
@@ -128,7 +144,7 @@
       <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Group != "") { %>&group=<%= view.Group %><% } %>">
         <%= t("care_plan.kind." + kc.Kind) %>
         <%= if (kc.Count > 0) { %>
-          <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;"><%= kc.CountCap %></span>
+          <span class="badge badge-pill badge-primary ml-1 plan-tab-count"><%= kc.CountCap %></span>
         <% } %>
       </a>
     </li>
@@ -264,7 +280,13 @@
        the tier carry it; the status text stays available to assistive
        technology (sr-only) and on hover. %>
   <%= if (len(view.Feedings) > 0) { %>
+    <div id="feedingTabContent">
     <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
+    <div class="mb-2" id="planSummaryStrip">
+      <%= for (sl) in view.TierLinks { %>
+        <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
+      <% } %>
+    </div>
     <%= for (ti) in [0, 1, 2] { %>
       <%= if (len(view.FeedTiers[ti]) > 0) { %>
           <%= partial("care_plan/plan_tier_feed_table.plush.html", {
@@ -282,6 +304,7 @@
             layout: "care_plan/plan_tier.plush.html"}) %>
       <% } %>
     <% } %>
+    </div>
   <% } %>
 
   <%# --- Nettoyage (phase 3 / D3): TIERED sections (late → now → later),
@@ -476,6 +499,26 @@
       (bySource[k] = bySource[k] || []).push(r);
     });
     var failures = [];
+    // Bug 2026-10-06 #5: a batch item that went hors délai between render and
+    // confirm is past-due work the caregiver just confirmed — record it late
+    // instead of surfacing the §10-A1 409. Future-due items stay unrecordable.
+    function lateRetryOne(ref) {
+      var due = Date.parse(ref.due_at);
+      if (isNaN(due) || due > Date.now()) {
+        return Promise.reject(new Error('future occurrence'));
+      }
+      return track(fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: ref.source_type, source_id: ref.source_id,
+          animal_id: ref.animal_id, due_at: ref.due_at,
+          late: true
+        })
+      }).then(function (r) {
+        return r.json().then(function (j) { return {status: r.status, body: j}; });
+      }));
+    }
     var chain = Promise.resolve();
     Object.keys(bySource).forEach(function (k) {
       var items = bySource[k];
@@ -490,17 +533,50 @@
               failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
               return;
             }
+            var retries = [];
+            var retryErrors = [];
             (j.results || []).forEach(function (it) {
-              if (it.status === 'error') {
+              if (it.status !== 'error') { return; }
+              if (!/apply window/i.test(it.error || '')) {
                 failures.push(it.animal_id + ': ' + (it.error || ''));
+                return;
               }
+              var ref = null;
+              items.forEach(function (r) { if (r.animal_id === it.animal_id && !ref) { ref = r; } });
+              if (!ref) { failures.push(it.animal_id + ': ' + (it.error || '')); return; }
+              retries.push(lateRetryOne(ref).catch(function (err) {
+                retryErrors.push(it.animal_id + ': ' + ((err && err.message) || 'record failed'));
+              }));
             });
+            if (retries.length) {
+              return Promise.all(retries).then(function () {
+                retryErrors.forEach(function (m) { failures.push(m); });
+              });
+            }
           });
         }));
       });
     });
     return chain.then(function () { return failures; });
   }
+
+  // Selecting an urgency shortcut keeps only its target section expanded.
+  document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link) { return; }
+    var target = link.getAttribute('href').slice(1);
+    var feedingPanel = document.getElementById('feedingTabContent');
+    var scope = feedingPanel && feedingPanel.contains(link) ? feedingPanel : document.getElementById('planSections');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
+      var body = tier.querySelector('.plan-tier-body');
+      if (body && tier.id !== target && body.classList.contains('show')) {
+        $(body).collapse('hide');
+      }
+      if (body && tier.id === target && !body.classList.contains('show')) {
+        $(body).collapse('show');
+      }
+    });
+  });
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
     btn.addEventListener('click', function () { openBatch(btn); });
@@ -535,6 +611,14 @@
     btn.classList.add('d-none');
   }
 
+  // Render recorded completion times in the viewer's browser locale/timezone.
+  Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {
+    var appliedAt = new Date(el.getAttribute('datetime'));
+    if (!isNaN(appliedAt.getTime())) {
+      el.textContent = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    }
+  });
+
   // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
   // R5-2c/S9: the history late-record button REUSES the apply modal for
   // input kinds (observation → answer, weighing → weight, §10-L1): a
@@ -543,7 +627,7 @@
   // fact (bypasses only the apply-window 409).
   Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
     btn.addEventListener('click', function () {
-      if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
+      if (isInputKind(btn)) { openApply(btn); return; }
       if (!window.confirm(lateConfirm)) { return; }
       fetch('/care_plan/apply', {
         method: 'POST', credentials: 'same-origin',

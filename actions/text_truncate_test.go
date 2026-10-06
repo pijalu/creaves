@@ -147,10 +147,13 @@ func TestConverterNeverCutsANameWithAByteSlice(t *testing.T) {
 		require.NotContains(t, src, banned,
 			"R4-7.24: a byte slice cuts a name mid-rune/mid-word — use truncateWords")
 	}
-	require.Contains(t, src, "convertedMatcherName(diet)",
-		"the matcher name must route through the rune-safe helper")
-	require.Equal(t, 2, strings.Count(src, "convertedFeedingName("),
-		"both converted feeding name sites (rule + per-animal plan) must use the helper")
+	// v3: the converter no longer builds cluster matchers at all, so the
+	// matcher-naming call site is gone from the converter (the helper itself
+	// survives in text_truncate.go for the careplan:fixnames grift).
+	require.NotContains(t, src, "convertedMatcherName(diet)",
+		"v3: the converter must not build matchers — no matcher naming call site")
+	require.Equal(t, 1, strings.Count(src, "convertedFeedingName("),
+		"the per-animal plan is the only converted feeding name site (v3: no cluster rules)")
 }
 
 // TestConvertedNamesKeepAWholeWord: the visible tail of a converted name must

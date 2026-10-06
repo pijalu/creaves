@@ -99,7 +99,8 @@
   function flipTo(btn, applied) { window.planSetToggleState(btn, applied); }
 
   function showDosageDialog(ref, warn, btn) {
-    pending = {ref: ref, btn: btn || null};
+    // Bug 2026-10-06 #5: the dosage resubmit keeps the slot's late semantics.
+    pending = {ref: ref, btn: btn || null, late: !!(btn && btn.getAttribute('data-late') === 'true')};
     document.getElementById('planMedDosageDetail').textContent = warn.detail || '';
     var wBox = document.getElementById('planMedDosageWeight');
     if (warn.last_weight) {
@@ -114,11 +115,27 @@
     $('#planMedDosageModal').modal('show');
   }
 
-  function applySlot(btn) {
+  // Bug 2026-10-06 #5: an occurrence that went hors délai between render and
+  // click (the auto-refresh holds off, but the page can still be stale) is
+  // PAST-DUE work the caregiver just confirmed — record it late instead of
+  // surfacing the §10-A1 409. Future-due refs stay unrecordable (the server
+  // keeps that bound; lateRecordAllowed rejects late on future-due).
+  function isPastDue(ref) {
+    var due = Date.parse(ref.dueAt);
+    return !isNaN(due) && due <= Date.now();
+  }
+  function applySlot(btn, retriedLate) {
     var ref = btnRef(btn);
     btn.disabled = true;
-    applyCall(ref).then(function (res) {
+    var extra = null;
+    if (btn.getAttribute('data-late') === 'true' || retriedLate) { extra = { late: true }; }
+    applyCall(ref, extra).then(function (res) {
       if (res.status === 201) { flipTo(ref.btn, true); return; }
+      if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+        // confirm ⇒ execute: one late-record retry, no error dialog.
+        applySlot(btn, true);
+        return;
+      }
       btn.disabled = false;
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
         showDosageDialog(ref, res.body, btn);
@@ -170,7 +187,9 @@
     var dosage = document.getElementById('planMedDosageInput').value.trim();
     if (!dosage) { return; }
     var ref = pending.ref;
-    applyCall(ref, {dosage: dosage}).then(function (res) {
+    var extra = {dosage: dosage};
+    if (pending.late) { extra.late = true; }
+    applyCall(ref, extra).then(function (res) {
       if (res.status === 201) {
         $('#planMedDosageModal').modal('hide');
         if (ref.btn) { flipTo(ref.btn, true); } else { window.location.reload(); }

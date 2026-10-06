@@ -31,8 +31,6 @@ type feedingEntry struct {
 	Label    string
 	Times    []careplan.TimeOfDay
 	Force    bool
-	Species  string
-	Cage     string
 	Diet     string
 	// Fallback marks best-effort conversions (incomplete legacy data): the
 	// plan is still created — the no-loss rule — but flagged "à vérifier".
@@ -69,13 +67,6 @@ func NormalizeDiet(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-// escapeDSLQuote makes free text safe inside a DSL string literal (`\"` and
-// `\\` are the only escapes, §5.2).
-func escapeDSLQuote(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	return strings.ReplaceAll(s, `"`, `\"`)
-}
-
 // timesKey renders a slot list as a canonical CSV key.
 func timesKey(times []careplan.TimeOfDay) string {
 	parts := make([]string, len(times))
@@ -98,19 +89,21 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 	report.Feeding.AnimalsConsidered = len(animals)
 	report.coverage = map[int][]careplan.TimeOfDay{}
 
-	// Cluster key (§8.1 step 2, H2 fix): diet × exact slot set × force_feed.
-	// Same-diet animals with different times or force flags get separate
-	// rules — never a modal/averaged schedule that matches nobody's reality.
-	clusters := map[string][]feedingEntry{}
+	// v3 (bugs.md t10, 2026-10-27 user ruling): "cage names are per
+	// centers — eliminate the cage-name matchers; in doubt, migrate to the
+	// animal; this general rule must apply to all centers". The former
+	// cluster rules (species IN … AND cage …) were center-scoped by cage
+	// names and over-swept same-species animals housed elsewhere (v1 even
+	// shipped species-only zombies that survived their own diet). Every
+	// feeding animal now gets its OWN plan carrying exactly its legacy
+	// slots — no rules, no matchers, nothing cage-scoped, and identical
+	// semantics in every center.
+	sort.Slice(animals, func(i, j int) bool { return animals[i].ID < animals[j].ID })
 	for _, a := range animals {
 		entry := feedingEntry{
 			AnimalID: a.ID,
 			Label:    animalLabel(a),
 			Force:    a.ForceFeed,
-			Species:  strings.TrimSpace(a.Species),
-			// Cage kept raw (not trimmed): the matcher must reproduce the stored
-			// spelling so eval resolves the exact same value.
-			Cage: a.Cage.String,
 		}
 		if !a.FeedingStart.Valid || !a.FeedingEnd.Valid {
 			// No-loss fallback (§8.1): keep the animal covered with what we
@@ -137,170 +130,13 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			entry.Fallback = true
 		}
 		entry.Diet = diet
-		key := diet + "|" + timesKey(entry.Times)
-		if entry.Force {
-			key += "|F"
-		}
-		clusters[key] = append(clusters[key], entry)
-	}
-
-	// Deterministic cluster order.
-	keys := make([]string, 0, len(clusters))
-	for k := range clusters {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, key := range keys {
-		entries := clusters[key]
-		report.Feeding.Clusters++
-		if len(entries) >= FeedingClusterThreshold {
-			converted, err := convertFeedingCluster(tx, report, entries, feedCareID)
-			if err != nil {
-				return err
-			}
-			for _, e := range entries {
-				if !converted[e.AnimalID] {
-					if err := createConvertedFeedingPlan(tx, report, e, feedCareID); err != nil {
-						return err
-					}
-				}
-			}
-			continue
-		}
-		for _, e := range entries {
-			if err := createConvertedFeedingPlan(tx, report, e, feedCareID); err != nil {
-				return err
-			}
+		if err := createConvertedFeedingPlan(tx, report, entry, feedCareID); err != nil {
+			return err
 		}
 	}
 	reconcileFeeding(report, animals)
 	return nil
 }
-
-// convertFeedingCluster turns one ≥threshold (diet × slots × force) cluster
-// into a rule whose matcher is `species IN (...)` narrowed to the cages its
-// members actually live in (`AND cage …`, R5-1d) — a species-only matcher
-// would sweep same-species animals housed elsewhere into the rule. All
-// members share the exact same slot set and force flag (cluster key) — the
-// rule's schedule is the first entry's. Returns the animal ids covered by
-// the rule; members whose species name is empty must be converted as
-// per-animal plans by the caller.
-func convertFeedingCluster(tx *pop.Connection, report *ConversionReport, entries []feedingEntry, feedCareID string) (map[int]bool, error) {
-	diet := entries[0].Diet
-	species := map[string]bool{}
-	for _, e := range entries {
-		if e.Species != "" {
-			species[e.Species] = true
-		}
-	}
-	names := make([]string, 0, len(species))
-	for s := range species {
-		names = append(names, s)
-	}
-	sort.Strings(names)
-	covered := map[int]bool{}
-	if len(names) == 0 {
-		return covered, nil
-	}
-	for _, e := range entries {
-		if e.Species != "" {
-			covered[e.AnimalID] = true
-		}
-	}
-	quoted := make([]string, len(names))
-	for i, s := range names {
-		quoted[i] = fmt.Sprintf(`"%s"`, escapeDSLQuote(s))
-	}
-	expr := "species IN (" + strings.Join(quoted, ", ") + ") AND " + cageClause(entries, covered)
-
-	matcher := buildSeedMatcher(seedMatcherDef{
-		Key: "CONV", Derived: true,
-		Name:       convertedMatcherName(diet),
-		Expression: expr,
-	})
-	// R5-1e: on re-runs the existing matcher row is refreshed in place
-	// (same ID) unless hand-edited — see upsertClusterMatcher.
-	matcherID, err := upsertClusterMatcher(tx, report, matcher)
-	if err != nil {
-		return nil, err
-	}
-	// R4-7.24: the diet is shortened at a WORD boundary in RUNES, not cut
-	// mid-word by a byte slice — a cut name is a critical UI defect.
-	ruleName := convertedFeedingName(diet, false)
-	exists, err := careRuleNameExists(tx, ruleName)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		// Marker deleted and converter re-run: keep the existing rule and
-		// mark its members converted (no duplicate).
-		for _, e := range entries {
-			if covered[e.AnimalID] {
-				report.coverage[e.AnimalID] = e.Times
-				report.Feeding.Lines = append(report.Feeding.Lines,
-					ConversionLine{e.AnimalID, e.Label, "règle cluster (existante)"})
-			}
-		}
-		return covered, nil
-	}
-	rule := &models.CareRule{
-		Name:          ruleName,
-		Description:   nulls.NewString(fmt.Sprintf("Cluster alimentation ×%d [source: %s]", len(entries), ConverterTag)),
-		ActionKind:    careplan.KindFeeding,
-		ActionPayload: buildSeedPayload(seedRuleDef{Kind: careplan.KindFeeding, PayloadFood: diet, ForceFeed: entries[0].Force}, feedCareID),
-		Schedule:      []byte(buildConvertedScheduleJSON(entries[0].Times)),
-		MatcherID:     matcherID,
-		Active:        true,
-		StopOnOuttake: true,
-	}
-	verrs, err := tx.ValidateAndCreate(rule)
-	if err != nil {
-		return nil, err
-	}
-	if verrs.HasAny() {
-		return nil, fmt.Errorf("converted feeding rule invalid: %v", verrs)
-	}
-	report.Feeding.RulesCreated++
-	for _, e := range entries {
-		if covered[e.AnimalID] {
-			report.coverage[e.AnimalID] = e.Times
-			report.Feeding.Lines = append(report.Feeding.Lines,
-				ConversionLine{e.AnimalID, e.Label, fmt.Sprintf("règle cluster #%s", rule.ID)})
-		}
-	}
-	return covered, nil
-}
-
-// cageClause renders the cage narrowing of a cluster matcher (bugs.md
-// U26/U27 R5-1d). Values come from the covered members only (empty-species
-// members become per-animal plans and must not widen the clause). The CI
-// operators (=* for one enclosure, INCI for several) keep case-variant
-// cage spellings of the same enclosure matching; the empty string is a
-// real value (the « sans cage » bucket) — cage resolves keep-empty, so
-// `cage INCI ("", …)` still covers those members. Deterministic order.
-func cageClause(entries []feedingEntry, covered map[int]bool) string {
-	cages := map[string]bool{}
-	for _, e := range entries {
-		if covered[e.AnimalID] {
-			cages[e.Cage] = true
-		}
-	}
-	values := make([]string, 0, len(cages))
-	for c := range cages {
-		values = append(values, c)
-	}
-	sort.Strings(values)
-	quoted := make([]string, len(values))
-	for i, c := range values {
-		quoted[i] = fmt.Sprintf(`"%s"`, escapeDSLQuote(c))
-	}
-	if len(values) == 1 {
-		return fmt.Sprintf("cage =* %s", quoted[0])
-	}
-	return "cage INCI (" + strings.Join(quoted, ", ") + ")"
-}
-
 func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, feedCareID string) error {
 	// R4-7.24: word-boundary, rune-safe shortening (see text_truncate.go).
 	name := convertedFeedingName(e.Diet, e.Fallback)

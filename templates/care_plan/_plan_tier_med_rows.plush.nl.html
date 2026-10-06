@@ -1,7 +1,8 @@
-<%# Body of a medication tier (Late/Now/Later/Done): one line per
-    (animal × drug series). Rendered through the `_plan_tier` layout by
-    the caller, which passes `medGroups` (the tier's MedSeriesGroups) in
-    the partial data map.
+<%# Body of a medication tier (Late/Now/Later/Done): one line per ANIMAL
+    (bugs.md 2026-10-06 #6 — the animal's drug series stack inside its one
+    merged row). Rendered through the `_plan_tier` layout by the caller,
+    which passes `medGroups` (the tier's merged MedSeriesGroups) in the
+    partial data map.
 
     Phase 0b: the row shell itself (animal cell + `_med_series`) is the
     `_plan_med_row` component — this partial only owns the loop. The

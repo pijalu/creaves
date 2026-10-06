@@ -85,12 +85,13 @@ func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 		// tables' animal cells.
 		require.Equal(t, 1, strings.Count(raw, `class="mr-2 py-1 plan-med-animal"`), f+
 			": the ONE shared medication tier body carries the animal cell")
-		// R9: the ONE page-wide width is gone — the user asked for the
-		// animal cell to size to its content so the whole line reads on a
-		// single line (<info> <animal> | <drug> | <toggles>) without the
-		// long empty tail the widest-label width produced.
-		require.NotContains(t, raw, `min-width: <%= view.MedAnimalColCh %>ch`, f+
-			": the page-wide animal column must not come back (R9 single-line layout)")
+		// Bug 2026-10-27 #3a: the ONE page-wide width is WIRED AGAIN — R9's
+		// removal let every cell size its own content and the labels stopped
+		// reading as a column (the reported defect). The width is a MIN-width
+		// (never cuts a long label, R4-7.24) computed once from the widest
+		// label on the page; the loc line still wraps beneath the year.
+		require.Contains(t, raw, `style="min-width: <%= view.MedAnimalColCh %>ch"`, f+
+			": the shared animal-column width must be wired onto the cell")
 	}
 }
 

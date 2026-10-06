@@ -1,6 +1,6 @@
 <%= f.InputTag("ID") %>
-<%= f.InputTag("Group") %>
-<%= f.InputTag("Size") %>
-<%= f.InputTag("Amount") %>
+<%= f.InputTag("Group", {label:"Group"}) %>
+<%= f.InputTag("Size", {label:"Size"}) %>
+<%= f.InputTag("Amount", {label:"Amount"}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Save</button>

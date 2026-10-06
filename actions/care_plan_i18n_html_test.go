@@ -315,8 +315,9 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 				"%s /dashboard/ must not render the eye view button", lang)
 			require.Contains(t, string(raw), "planDetailModal').modal('show')",
 				"%s /dashboard/ must carry the detail-popup opener (B10-4)", lang)
-			require.Contains(t, string(raw), "#nav-treatment",
-				"%s /dashboard/ animal link must target the treatment tab", lang)
+			require.Contains(t, string(raw), "#nav-plan",
+				"%s /dashboard/ animal link must target the protocol tab (bugs.md 2026-10-27 #2: the "+
+					"Treatment tab retired — the medication series render there)", lang)
 		})
 	}
 }
@@ -371,11 +372,13 @@ func TestAnimalShowPlanTodayRowsAllLocales(t *testing.T) {
 			// U26 (fix 7): the dedicated Today block is gone.
 			require.NotContains(t, unescaped, "animalTodayBlock",
 				"%s animal show must not render the old TODAY block", lang)
-			// R3-6: the Treatment tab rebuilds on the care-plan engine —
-			// per-day cards of the shared medication series, hour buttons
-			// togglable in place via the shared toggle partial.
-			require.Contains(t, string(raw), "treatmentPlan",
-				"%s animal show must render the R3-6 per-day treatment plan", lang)
+			// R3-6 (+ bugs.md 2026-10-27 #2): the per-day care plan — per-day
+			// cards of the shared medication series, hour buttons togglable
+			// in place via the shared toggle partial — renders on the
+			// PROTOCOL tab (`#animalCarePlan`) since the Treatment tab
+			// retired and its `#treatmentPlan` container went with it.
+			require.Contains(t, string(raw), "animalCarePlan",
+				"%s animal show must render the per-day plan on the protocol tab", lang)
 			require.Contains(t, string(raw), "plan-med-slot",
 				"%s animal show must render togglable series hour buttons", lang)
 			require.Contains(t, string(raw), "planMedMessageModal",

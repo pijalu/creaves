@@ -31,7 +31,6 @@
     <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Intake</a>
     <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Care</a>
     <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Veterinary</a>
-    <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Treatment</a>
     <a class="nav-item nav-link" id="nav-plan-tab" data-toggle="tab" href="#nav-plan" role="tab" aria-controls="nav-plan" aria-selected="false"><%= t("care_plan.animal_plans.tab") %></a>
     <a class="nav-item nav-link" id="nav-media-tab" data-toggle="tab" href="#nav-media" role="tab" aria-controls="nav-media" aria-selected="false">Media</a>
 
@@ -417,300 +416,6 @@
     </table>
   </div>
 
-  <div class="tab-pane fade" id="nav-treatment" role="tabpanel" aria-labelledby="nav-treatment-tab">
-    <% contentFor("eveningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
-    <% } %>
-
-    <% contentFor("morningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
-    <% } %>
-
-    <% contentFor("noonSVG") { %>
-        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-    </g>
-    <%}%>
-
-    <div class="py-4 mb-2">
-      <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
-          Add New treatment
-        <% } %>
-      </div>
-    </div>
-    </br>
-
-    <%# R3-6: the Treatment tab is REBUILT on the care-plan engine — the
-        old static clock badges (R5-4b) are gone. The animal's medication
-        occurrences render as per-day series with TOGGLABLE hour buttons
-        (the shared `_med_series` + `_plan_med_toggle` partials), over a
-        history+future window (14d back, 5d forward cap for open-ended
-        protocols). Legacy manual treatments stay below, read-only. %>
-    <%# R4-7.23: this tab is MEDICATION-only (see the AnimalTreatmentDay
-        doc: "the Treatment tab ignores Items and keeps its medication-only
-        focus"). Two ways it contradicted that and advertised work it never
-        showed — measured on animals/10312, an animal whose protocols are all
-        feeding/care: 7 day cards, each badged "3", each with an EMPTY body,
-        because the card body renders the medication series alone.
-          - a day with no medication series renders no card at all (an empty
-            card under a count is worse than no card);
-          - the badge counts MedOpenCount — the open medication SLOTS — not
-            OpenCount, which also counts the non-medication items that only
-            the Protocol tab lists. A badge must count what is under it.
-        The non-medication work is not lost: the Protocol tab is the animal's
-        complete care plan and renders it, day for day. %>
-    <%= if (len(animalMedicationDays) > 0) { %>
-      <div id="treatmentPlan">
-        <%= for (day) in animalMedicationDays { %>
-          <div class="card <%= if (day.Future) { %>greyout<% } %> mb-1">
-            <div class="card-header py-2 <%= if (day.Current) { %>alert-info<% } %>" id="tp-head-<%= day.DateKey %>">
-              <h5 class="mb-0 d-flex align-items-center">
-                <button type="button" class="btn btn-link <%= if (!day.Current) { %>collapsed<% } %> p-0" data-toggle="collapse" data-target="#tp-<%= day.DateKey %>" aria-expanded="<%= if (day.Current) { %>true<% } else { %>false<% } %>" aria-controls="tp-<%= day.DateKey %>">
-                  <%= day.Date.Format("02/01/2006") %>
-                </button>
-                <%= if (day.MedOpenCount > 0) { %>
-                  <span class="badge badge-pill badge-warning ml-2"><%= day.MedOpenCount %></span>
-                <% } %>
-              </h5>
-            </div>
-            <div id="tp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="tp-head-<%= day.DateKey %>" data-parent="#treatmentPlan">
-              <div class="card-body py-2">
-                <% let mg = day.Group %>
-                <%= partial("care_plan/med_series.plush.html") %>
-              </div>
-            </div>
-          </div>
-        <% } %>
-      </div>
-    <% } %>
-
-    <%# Rev: the pane's own closing div used to sit here (one level too
-        many) — it closed #nav-treatment right after the engine days, so
-        the legacy-treatments accordion and EVERY later pane (#nav-plan,
-        #nav-media, #nav-audit) fell OUT of .tab-content and rendered
-        unconditionally: the Protocol tab showed the Treatment tab's
-        legacy cards stacked under it ("repeat of the animal content"). %>
-
-    <%# Legacy manual treatments (read-only history below the engine
-        plan). R3-6: the bitmap/clock badges stay static — the live work
-        moved to the engine series above. %>
-    <% let entriesMap = animal.Treatments.TreatmentEntriesMap() %>
-    <% let orderedTMKey = entriesMap.OrderedKeys() %>
-    <div id="accordion">
-      <% let ct_id=1 %>
-      <%= for (dateKey) in orderedTMKey {%>
-      <% let treatmentRows = entriesMap[dateKey] %>
-      <div class="card <%= if (dateKey.Future) { %>greyout<% }%>">
-        <div class="card-header <%= if (dateKey.Current) {%>alert-info<%}%>" id="heading<%= ct_id %>">
-          <h5 class="mb-0">
-            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
-            <%= dateKey.DateFmt %>
-            </button>
-          </h5>
-        </div>
-        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
-          <div class="card-body">
-            <ul class="list-group list-group-flush">
-              <%= for (row) in treatmentRows {%>
-              <% let trt = row.Treatment %>
-              <%= if (!dateKey.Past && treatmentSupersededByPlan[trt.ID.String()]) { %>
-                <%# B10-6: TODAY + FUTURE treatment rows the protocol
-                    already covers render SUPERSEDED — muted label with
-                    the "covered by protocol" badge and NO action badges:
-                    the data stays, but the legacy copy no longer reads as
-                    active work (the protocol drives it). Past days keep
-                    rendering normally — they are history. %>
-                <li class="list-group-item plan-legacy-superseded">
-                  <div class="container">
-                    <div class="row">
-                      <div class="col-sm">
-                        <s><%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)</s>
-                        <span class="badge badge-light border ml-1" title="<%= t("care_plan.animal_plans.superseded_by_protocol_hint") %>"><%= t("care_plan.animal_plans.superseded_by_protocol") %></span>
-                        <%= if (trt.Remarks.Value() != "") {%>
-                          <p><em><%= trt.Remarks %></em></p>
-                        <%}%>
-                        <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
-                          <p class="mb-0 small">
-                            <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
-                          </p>
-                        <% } %>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              <% } else { %>
-              <li class="list-group-item">
-                <div class="container">
-                  <div class="row">
-                    <div class="col-sm">
-                      <%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)
-                        <%= if (trt.Remarks.Value() != "") {%>
-                        <p><em><%= trt.Remarks %></em></p>
-                      <%}%>
-                      <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
-                        <p class="mb-0 small">
-                          <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
-                        </p>
-                      <% } %>
-                    </div>
-                    <div class="col-sm">
-                      <p class="d-inline-block">
-                      <%= if (len(row.Entries) == 0) { %>
-                        <%# Legacy bitmap fallback: no per-time entries yet
-                            (not migrated) — keep the original 3-dot block. %>
-                        <%
-                          let morning = trt.ScheduleStatusMorning()
-                          let noon = trt.ScheduleStatusNoon()
-                          let evening = trt.ScheduleStatusEvening()
-                        %>
-                        <%= if (!morning.Valid) { %>
-                          <button type="button" class="btn btn-light disabled" title="Not required on the morning">
-                            <i class="fas fa-minus" ></i>
-                          </button>
-                        <% } else if (morning.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("morningSVG") %>
-                          </span>
-                        <% } else { %>
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                          <% } %>
-                            <%= contentOf("morningSVG") %>
-                          </span>
-                        <% }%>
-                        &nbsp;
-                        <%= if (!noon.Valid) { %>
-                          <button type="button" class="btn btn-light disabled" title="Not required at noon">
-                            <i class="fas fa-minus"></i>
-                          </button>
-                        <% } else if (noon.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("noonSVG") %>
-                          </span>
-                        <% } else { %>
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                          <% } %>
-                            <%= contentOf("noonSVG") %>
-                          </span>
-                        <% }%>
-                        &nbsp;
-                        <%= if (!evening.Valid) { %>
-                          <button type="button" class="btn btn-light disabled">
-                            <i class="fas fa-minus" ></i>
-                          </button>
-                        <% } else if (evening.Bool) {%>
-                          <span class="badge badge-success py-2 px-2">
-                            <%= contentOf("eveningSVG") %>
-                          </span>
-                        <% } else { %>
-                          <%= if (dateKey.Past) { %>
-                            <span class="badge badge-danger py-2 px-2">
-                          <% } else { %>
-                            <span class="badge badge-warning py-2 px-2">
-                          <% } %>
-                            <%= contentOf("eveningSVG") %>
-                          </span>
-                        <% }%>
-                      <% } else { %>
-                        <%# R5-3/R5-4b: one dot per expected time — green done,
-                            warning todo (danger on past days), grey skipped. %>
-                        <%= for (entry) in row.Entries { %>
-                          <%= if (entry.Status == "done") { %>
-                            <span class="badge badge-success py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.done") %><%= if (entry.AppliedAt.Valid) { %> <%= entry.AppliedAt.Time.Format("15:04") %><% } %>">
-                              <%= contentOf(entryClock(entry.TimeLabel)) %>
-                            </span>
-                          <% } else if (entry.Status == "skipped") { %>
-                            <button type="button" class="btn btn-light disabled" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.skipped") %>">
-                              <i class="fas fa-minus" ></i>
-                            </button>
-                          <% } else { %>
-                            <%= if (dateKey.Past) { %>
-                              <span class="badge badge-danger py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
-                            <% } else { %>
-                              <span class="badge badge-warning py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
-                            <% } %>
-                              <%= contentOf(entryClock(entry.TimeLabel)) %>
-                            </span>
-                          <% } %>
-                          &nbsp;
-                        <% } %>
-                      <% } %>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </li>
-              <% } %>
-              <%}%>
-              <%= if (dateKey.Current && len(animalPlanToday) > 0) { %>
-              <%# U26 (fix 7): today's plan occurrences — same list-group
-                  item look as the legacy rows (label + protocol backlink +
-                  clock badge); duplicates of legacy treatments are deduped
-                  server-side, so new never stacks on top of old. %>
-              <%= for (prow) in animalPlanToday { %>
-              <li class="list-group-item">
-                <div class="container">
-                  <div class="row">
-                    <div class="col-sm">
-                      <%= tdrug(prow.Label) %>
-                      <%= if (prow.ProtocolName != "") { %>
-                      <p class="mb-0 small">
-                        <a href="<%= prow.ProtocolHref %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= prow.ProtocolName %></a>
-                      </p>
-                      <% } %>
-                    </div>
-                    <div class="col-sm">
-                      <p class="d-inline-block">
-                      <%= if (prow.Status == "done") { %>
-                        <span class="badge badge-success py-2 px-2" title="<%= prow.DueHM %><%= if (prow.AppliedAt != "") { %> <%= prow.AppliedAt %><% } %>">
-                          <%= contentOf(entryClock(prow.DueHM)) %>
-                        </span>
-                      <% } else if (prow.Status == "skipped") { %>
-                        <button type="button" class="btn btn-light disabled" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.skipped") %>">
-                          <i class="fas fa-minus" ></i>
-                        </button>
-                      <% } else if (prow.Status == "missed") { %>
-                        <span class="badge badge-danger py-2 px-2" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.pending") %>">
-                          <%= contentOf(entryClock(prow.DueHM)) %>
-                        </span>
-                      <% } else { %>
-                        <span class="badge badge-warning py-2 px-2" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.pending") %>">
-                          <%= contentOf(entryClock(prow.DueHM)) %>
-                        </span>
-                      <% } %>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </li>
-              <% } %>
-              <% } %>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <% let ct_id = ct_id + 1 %>
-      <%}%>
-    </div>
-  </div>
 
   <div class="tab-pane fade" id="nav-plan" role="tabpanel" aria-labelledby="nav-plan-tab">
     <div class="p-3">
@@ -844,6 +549,12 @@
               <div id="acp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="acp-head-<%= day.DateKey %>" data-parent="#animalCarePlan">
                 <div class="card-body py-2">
                   <%= if (len(day.Group.Series) > 0) { %>
+                    <%# Bug 2026-10-06 #8: the medication block carries its OWN
+                        .plan-kind-separator title like every other kind group
+                        (the separators must cover EVERY type: medication,
+                        care, feeding, observation, weighing, cleanup), first
+                        in the day-plan importance order. %>
+                    <div class="plan-kind-separator"><%= t("care_plan.kind.medication") %></div>
                     <% let mg = day.Group %>
                     <% let medSeriesRow = true %>
                     <%= partial("care_plan/med_series.plush.html") %>
@@ -887,6 +598,255 @@
         </div>
       <% } %>
   </div>
+    <%# Bug 2026-10-27 #2: the Treatment tab is retired — the per-day
+        togglable medication series it rendered are the same series the
+        protocol tab renders (protocol adds the non-medication kinds and
+        counts ALL open work on the day badge). The tab's UNIQUE content,
+        the legacy manual-treatments journal, stays available here as a
+        collapsed history card below the live plan. Legacy treatments are
+        still creatable from the animal edit page and the global New menu. %>
+      <div class="card mt-2">
+        <div class="card-header py-2" id="planLegacyJournalHead">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link collapsed p-0" data-toggle="collapse" data-target="#planLegacyJournal" aria-expanded="false" aria-controls="planLegacyJournal">
+              <%= t("care_plan.animal_plans.legacy_treatments") %>
+            </button>
+          </h5>
+        </div>
+        <div id="planLegacyJournal" class="collapse" aria-labelledby="planLegacyJournalHead">
+          <div class="card-body py-2">
+  <% contentFor("eveningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("morningSVG") { %>
+    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
+    </g>
+    <% } %>
+
+    <% contentFor("noonSVG") { %>
+        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
+    <g fill="none" stroke="currentColor">
+      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
+      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
+    </g>
+    <%}%>
+
+    <% let entriesMap = animal.Treatments.TreatmentEntriesMap() %>
+    <% let orderedTMKey = entriesMap.OrderedKeys() %>
+    <div id="accordion">
+      <% let ct_id=1 %>
+      <%= for (dateKey) in orderedTMKey {%>
+      <% let treatmentRows = entriesMap[dateKey] %>
+      <div class="card <%= if (dateKey.Future) { %>greyout<% }%>">
+        <div class="card-header <%= if (dateKey.Current) {%>alert-info<%}%>" id="heading<%= ct_id %>">
+          <h5 class="mb-0">
+            <button type="button" class="btn btn-link <%= if (!dateKey.Current) {%>collapsed<%}%>" data-toggle="collapse" data-target="#collapse<%= ct_id %>" aria-expanded="true" aria-controls="collapse<%= ct_id %>">
+            <%= dateKey.DateFmt %>
+            </button>
+          </h5>
+        </div>
+        <div id="collapse<%= ct_id %>" class="collapse <%= if (dateKey.Current) {%>show<%}%>" aria-labelledby="heading<%= ct_id %>" data-parent="#accordion">
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <%= for (row) in treatmentRows {%>
+              <% let trt = row.Treatment %>
+              <%= if (!dateKey.Past && treatmentSupersededByPlan[trt.ID.String()]) { %>
+                <%# B10-6: TODAY + FUTURE treatment rows the protocol
+                    already covers render SUPERSEDED — muted label with
+                    the "covered by protocol" badge and NO action badges:
+                    the data stays, but the legacy copy no longer reads as
+                    active work (the protocol drives it). Past days keep
+                    rendering normally — they are history. %>
+                <li class="list-group-item plan-legacy-superseded">
+                  <div class="container">
+                    <div class="row">
+                      <div class="col-sm">
+                        <s><%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)</s>
+                        <span class="badge badge-light border ml-1" title="<%= t("care_plan.animal_plans.superseded_by_protocol_hint") %>"><%= t("care_plan.animal_plans.superseded_by_protocol") %></span>
+                        <%= if (trt.Remarks.Value() != "") {%>
+                          <p><em><%= trt.Remarks %></em></p>
+                        <%}%>
+                        <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
+                          <p class="mb-0 small">
+                            <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
+                          </p>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              <% } else { %>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)
+                        <%= if (trt.Remarks.Value() != "") {%>
+                        <p><em><%= trt.Remarks %></em></p>
+                      <%}%>
+                      <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
+                        <p class="mb-0 small">
+                          <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
+                        </p>
+                      <% } %>
+                    </div>
+                    <div class="col-sm">
+                      <p class="d-inline-block">
+                      <%= if (len(row.Entries) == 0) { %>
+                        <%# Legacy bitmap fallback: no per-time entries yet
+                            (not migrated) — keep the original 3-dot block. %>
+                        <%
+                          let morning = trt.ScheduleStatusMorning()
+                          let noon = trt.ScheduleStatusNoon()
+                          let evening = trt.ScheduleStatusEvening()
+                        %>
+                        <%= if (!morning.Valid) { %>
+                          <button type="button" class="btn btn-light disabled" title="Not required on the morning">
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (morning.Bool) {%>
+                          <span class="badge badge-success py-2 px-2">
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span class="badge badge-danger py-2 px-2">
+                          <% } else { %>
+                            <span class="badge badge-warning py-2 px-2">
+                          <% } %>
+                            <%= contentOf("morningSVG") %>
+                          </span>
+                        <% }%>
+                        &nbsp;
+                        <%= if (!noon.Valid) { %>
+                          <button type="button" class="btn btn-light disabled" title="Not required at noon">
+                            <i class="fas fa-minus"></i>
+                          </button>
+                        <% } else if (noon.Bool) {%>
+                          <span class="badge badge-success py-2 px-2">
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span class="badge badge-danger py-2 px-2">
+                          <% } else { %>
+                            <span class="badge badge-warning py-2 px-2">
+                          <% } %>
+                            <%= contentOf("noonSVG") %>
+                          </span>
+                        <% }%>
+                        &nbsp;
+                        <%= if (!evening.Valid) { %>
+                          <button type="button" class="btn btn-light disabled">
+                            <i class="fas fa-minus" ></i>
+                          </button>
+                        <% } else if (evening.Bool) {%>
+                          <span class="badge badge-success py-2 px-2">
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% } else { %>
+                          <%= if (dateKey.Past) { %>
+                            <span class="badge badge-danger py-2 px-2">
+                          <% } else { %>
+                            <span class="badge badge-warning py-2 px-2">
+                          <% } %>
+                            <%= contentOf("eveningSVG") %>
+                          </span>
+                        <% }%>
+                      <% } else { %>
+                        <%# R5-3/R5-4b: one dot per expected time — green done,
+                            warning todo (danger on past days), grey skipped. %>
+                        <%= for (entry) in row.Entries { %>
+                          <%= if (entry.Status == "done") { %>
+                            <span class="badge badge-success py-2 px-2<%= if (entry.AppliedAt.Valid) { %> js-applied-at<% } %>"<%= if (entry.AppliedAt.Valid) { %> data-applied-at="<%= entry.AppliedAt.Time.Format("2006-01-02T15:04:05Z07:00") %>" data-applied-title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.done") %>"<% } %> title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.done") %>">
+                              <%= contentOf(entryClock(entry.TimeLabel)) %>
+                            </span>
+                          <% } else if (entry.Status == "skipped") { %>
+                            <button type="button" class="btn btn-light disabled" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.skipped") %>">
+                              <i class="fas fa-minus" ></i>
+                            </button>
+                          <% } else { %>
+                            <%= if (dateKey.Past) { %>
+                              <span class="badge badge-danger py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
+                            <% } else { %>
+                              <span class="badge badge-warning py-2 px-2" title="<%= entry.TimeLabel %> · <%= t("treatment.entries.status.pending") %>">
+                            <% } %>
+                              <%= contentOf(entryClock(entry.TimeLabel)) %>
+                            </span>
+                          <% } %>
+                          &nbsp;
+                        <% } %>
+                      <% } %>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <% } %>
+              <%}%>
+              <%= if (dateKey.Current && len(animalPlanToday) > 0) { %>
+              <%# U26 (fix 7): today's plan occurrences — same list-group
+                  item look as the legacy rows (label + protocol backlink +
+                  clock badge); duplicates of legacy treatments are deduped
+                  server-side, so new never stacks on top of old. %>
+              <%= for (prow) in animalPlanToday { %>
+              <li class="list-group-item">
+                <div class="container">
+                  <div class="row">
+                    <div class="col-sm">
+                      <%= tdrug(prow.Label) %>
+                      <%= if (prow.ProtocolName != "") { %>
+                      <p class="mb-0 small">
+                        <a href="<%= prow.ProtocolHref %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= prow.ProtocolName %></a>
+                      </p>
+                      <% } %>
+                    </div>
+                    <div class="col-sm">
+                      <p class="d-inline-block">
+                      <%= if (prow.Status == "done") { %>
+                        <span class="badge badge-success py-2 px-2<%= if (prow.AppliedAt != "") { %> js-applied-at<% } %>"<%= if (prow.AppliedAt != "") { %> data-applied-at="<%= prow.AppliedAt %>" data-applied-title="<%= prow.DueHM %> · <%= t("treatment.entries.status.done") %>"<% } %> title="<%= prow.DueHM %> · <%= t("treatment.entries.status.done") %>">
+                          <%= contentOf(entryClock(prow.DueHM)) %>
+                        </span>
+                      <% } else if (prow.Status == "skipped") { %>
+                        <button type="button" class="btn btn-light disabled" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.skipped") %>">
+                          <i class="fas fa-minus" ></i>
+                        </button>
+                      <% } else if (prow.Status == "missed") { %>
+                        <span class="badge badge-danger py-2 px-2" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.pending") %>">
+                          <%= contentOf(entryClock(prow.DueHM)) %>
+                        </span>
+                      <% } else { %>
+                        <span class="badge badge-warning py-2 px-2" title="<%= prow.DueHM %> · <%= t("treatment.entries.status.pending") %>">
+                          <%= contentOf(entryClock(prow.DueHM)) %>
+                        </span>
+                      <% } %>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <% } %>
+              <% } %>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <% let ct_id = ct_id + 1 %>
+      <%}%>
+    </div>
+          </div>
+        </div>
+      </div>
 </div>
 
   <%# R4-7.1: the shared toggle/apply partials render at PAGE LEVEL (here,
@@ -1077,10 +1037,12 @@
     <div class="py-4 mb-2">
       <form action="/animals/<%= animal.ID %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
         <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
-        <div class="custom-file mr-2" style="max-width:360px">
+        <!-- bugs.md 2026-10-27 #7: wide enough that the hint stays visible. -->
+        <div class="custom-file mr-2" style="width:24rem;max-width:100%">
           <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required onchange="var l=this.nextElementSibling; l.textContent = this.files.length ? this.files[0].name : l.dataset.placeholder; l.classList.toggle('text-muted', this.files.length === 0);">
-          <label class="custom-file-label text-muted" for="attachmentFile" data-placeholder="Choose file (photo or video)">Choose file (photo or video)</label>
+          <label class="custom-file-label text-muted" for="attachmentFile" data-placeholder="<%= t("attachments.upload.choose_file") %>"><%= t("attachments.upload.choose_file") %></label>
         </div>
+        <input name="comment" class="form-control mr-2" style="width:16rem;max-width:100%" placeholder="<%= t("attachments.upload.comment_placeholder") %>" aria-label="<%= t("attachments.upload.comment_placeholder") %>" />
         <button type="submit" class="btn btn-primary">Upload</button>
       </form>
     </div>
@@ -1099,10 +1061,22 @@
             <small class="text-muted d-block text-truncate" title="<%= a.Filename %>"><%= a.Filename %></small>
             <small class="text-muted d-block"><%= a.CreatedAt.Format("2006-01-02 15:04") %></small>
             <%= if (current_user.Admin || (a.UploadedBy.Valid && a.UploadedBy.UUID == current_user.ID)) { %>
+            <!-- bugs.md 2026-10-27 #7: comment is editable by its owner or an admin. -->
+            <form method="post" action="/attachments/<%= a.ID %>/comment" class="mt-1">
+              <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
+              <div class="input-group input-group-sm">
+                <input name="comment" class="form-control" value="<%= a.Comment.String %>" placeholder="<%= t("attachments.upload.comment_placeholder") %>" />
+                <div class="input-group-append">
+                  <button type="submit" class="btn btn-outline-secondary" title="<%= t("attachments.comment.save") %>"><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                </div>
+              </div>
+            </form>
             <form method="post" action="/attachments/<%= a.ID %>/delete" class="mt-1" data-confirm="Delete this attachment?">
               <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
               <button type="submit" class="btn btn-danger btn-sm"><i class="fa fa-trash" aria-hidden="true"></i></button>
             </form>
+            <% } else if (a.Comment.Valid) { %>
+            <small class="d-block text-truncate mt-1" title="<%= a.Comment.String %>"><%= a.Comment.String %></small>
             <% } %>
           </div>
         </div>
@@ -1323,21 +1297,23 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   });
 })();
 
-// B10-4: the dashboard medication table's animal link lands HERE with
-// ?med=<source_type>:<source_id> and #nav-treatment — the Treatment tab
-// activates, the target series' day card opens (future days are collapsed),
-// and the matching med series line scrolls into view, highlighted.
+// B10-4, retargeted by bugs.md 2026-10-27 #2: the dashboard medication
+// table's animal link lands HERE with ?med=<source_type>:<source_id> and
+// #nav-plan — the PROTOCOL tab activates (it renders the medication series
+// since the Treatment tab was retired), the target series' day card opens
+// (future days are collapsed), and the matching med series line scrolls
+// into view, highlighted.
 (function () {
   var med = new URLSearchParams(window.location.search).get('med');
   if (!med) { return; }
   var parts = med.split(':');
   var srcId = parts.length > 1 ? parts[1] : med;
-  $('#nav-treatment-tab').tab('show');
+  $('#nav-plan-tab').tab('show');
   // Days render newest-first, so the bare first match would be a FUTURE
   // day's series. Prefer TODAY's (the dashboard link is about the work at
   // hand); fall back to the first occurrence (e.g. no series today).
-  var line = document.querySelector('#treatmentPlan .card:not(.greyout) .plan-med-line[data-source-id="' + srcId + '"]') ||
-             document.querySelector('#treatmentPlan .plan-med-line[data-source-id="' + srcId + '"]');
+  var line = document.querySelector('#animalCarePlan .card:not(.greyout) .plan-med-line[data-source-id="' + srcId + '"]') ||
+             document.querySelector('#animalCarePlan .plan-med-line[data-source-id="' + srcId + '"]');
   if (!line) { return; }
   line.classList.add('plan-trace-highlight');
   var body = line.closest('.collapse');
@@ -1417,6 +1393,11 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
     if (remDd) { remDd.classList.add('d-none'); }
     $('#planDetailModal').modal('show');
   });
+  document.querySelectorAll('.js-applied-at').forEach(function (el) {
+    var appliedAt = new Date(el.getAttribute('data-applied-at'));
+    if (isNaN(appliedAt.getTime())) { return; }
+    var time = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    el.setAttribute('title', (el.getAttribute('data-applied-title') || '') + ' · ' + time);
+  });
 })();
 </script>
-

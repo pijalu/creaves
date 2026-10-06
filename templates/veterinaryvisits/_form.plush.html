@@ -18,8 +18,8 @@
     label: "User",
     options: selectUsers, 
     required:"required"}) %>
-<%= f.InputTag("Veterinary")%>
-<%= f.TextAreaTag("Diagnostic", {rows: 10}) %>
+<%= f.InputTag("Veterinary", {label:"Veterinary"})%>
+<%= f.TextAreaTag("Diagnostic", {label:"Diagnostic", rows: 10}) %>
 <button class="btn btn-success" role="submit">Save</button>
 <script type="text/javascript">
 $( document ).ready(function(){

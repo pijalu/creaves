@@ -74,7 +74,7 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 	evening.Occurrence.DueAt = time.Date(2026, 9, 28, 18, 0, 0, 0, time.Local)
 	done := testItem(medMorning, 2, careplan.StatusApplied)
 	done.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)
-	done.Application = &careplan.ApplicationView{Status: "applied"}
+	done.Application = &careplan.ApplicationView{Status: "applied", AppliedAt: time.Date(2026, 9, 28, 9, 5, 0, 0, time.UTC)}
 	otherZone := testItem(medMorning, 3, careplan.StatusDue)
 	otherZone.Occurrence.DueAt = time.Date(2026, 9, 28, 9, 0, 0, 0, time.Local)
 	feeding := testItem(feed, 1, careplan.StatusDue)
@@ -95,6 +95,8 @@ func TestBuildDayPlanViewMedTiers(t *testing.T) {
 	require.Len(t, v.History, 1, "applied med is history, undoable")
 	require.Equal(t, 2, v.History[0].AnimalID)
 	require.True(t, v.History[0].Undoable)
+	require.Equal(t, "2026-09-28T09:05:00Z", v.History[0].AppliedAtRFC,
+		"history timestamp stays an instant for browser-local rendering")
 	require.Len(t, v.Feedings, 1)
 	require.Equal(t, "Itra — 0.1 ml", v.Tiers[1].Cards[0].Detail, "drug — dosage detail line, marker stripped (U5)")
 	require.Contains(t, v.Tiers[1].Cards[0].AnimalLink, "/animals/1?back=")
@@ -270,17 +272,20 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.False(t, meds[0].Slots[1].Applied)
 	require.True(t, meds[0].Slots[0].Applied)
 	// R5-2b: unconditional view link — dashboard mode points back at /
-	require.Contains(t, meds[0].Slots[0].ViewLink, "back=%2F#nav-treatment",
-		"no fulfillment yet: view link targets the animal Treatment tab, back=dashboard")
+	// (bugs.md 2026-10-27 #2: the link targets the protocol tab — the
+	// Treatment tab retired and the medication series render there).
+	require.Contains(t, meds[0].Slots[0].ViewLink, "back=%2F#nav-plan",
+		"no fulfillment yet: view link targets the animal protocol tab, back=dashboard")
 	require.Contains(t, meds[0].Slots[0].ViewLink, "/animals/1?")
 	// Dash-2 (round-2 §8.1): year-number-only button text — sibling-table
 	// parity; the full label stays on the card/detail modal.
 	require.Equal(t, "11/26", meds[0].AnimalYear)
-	// B10-4: the dashboard animal link opens the Treatment tab scrolled to
-	// the row's FIRST medication series (?med=<type>:<id> deep link).
+	// B10-4 (+ bugs.md 2026-10-27 #2): the dashboard animal link opens the
+	// PROTOCOL tab scrolled to the row's FIRST medication series (?med= deep
+	// link) — the Treatment tab retired, the series render on the protocol tab.
 	require.Contains(t, meds[0].AnimalLink, "/animals/1?")
 	require.Contains(t, meds[0].AnimalLink, "med=rule%3Amed-1")
-	require.Contains(t, meds[0].AnimalLink, "#nav-treatment")
+	require.Contains(t, meds[0].AnimalLink, "#nav-plan")
 
 	// /care_plan tier projection over the same plan (fix 6): compact
 	// folds the three open occurrences of (med-1 × animal 1) into ONE

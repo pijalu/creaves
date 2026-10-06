@@ -55,17 +55,11 @@ Everything below is verifiable from `bugs.md`, the commits, and the running app
 
 ## 4. Open items (logged in bugs.md, NOT started)
 
-### B10-1 — "Done" timestamps render in UTC (pre-existing, untouched)
-Server-side `Format(` on applied/terminal timestamps; needs client-side
-localization like the toggle tooltips. Scope list in bugs.md.
+### B10-1 — browser-local done timestamps
+**Implemented and verified in checkout.** Applied timestamps are emitted as RFC-3339 instants and formatted with `Date.toLocaleTimeString` in all four locale forks on animal Treatment badges/tooltips, legacy-treatment badges, and care-plan History. `TestBuildDayPlanViewMedTiers` pins the UTC RFC-3339 value; focused localization/template tests pass. Authenticated read-only smoke loaded `/care_plan` and `/animals/8635`; those production-backed screens contained no completed timestamp. Non-mutating browser E2E appended synthetic `<time class="js-local-time" datetime="2026-10-06T13:13:00Z">` on `/treatments` and ran the exact formatter; session `b10` timezone `Europe/Brussels` rendered `03:13 PM` (matching `toLocaleTimeString`). Formatter behavior verified without writes; live persisted-record rendering remains unverified. No production data changed.
 
 ### B10-9 — Entries older than the 8 h window still render on the work screen
-Reported on `/care_plan?kind=medication` "and other". NOT investigated.
-Start at `actions/preferences.go applyPreferenceCaps` + its call site
-`CarePlanIndex` (actions/care_plan.go:81-97); check whether the complaint is
-about open LATE rows vs the by-design History tier, and whether the caps are
-actually loaded/seeded for the request. Note the JSON branch applies no caps
-by design.
+**CLOSED — not reproduced on available instance.** `CarePlanIndex` loads per-kind saved caps and applies them before viewmodel construction; strict-over-limit late/missing and scheduled rows are dropped, exact boundaries remain. Authenticated read-only `/preferences` showed 8 h late/future + 1 h now values for all six kinds. `/care_plan?kind=medication` showed four History rows and no old open rows; the uncapped JSON read model's older rows were terminal items, retained in History by design. Boundary regression test passes. No cap change warranted. Reopen only with identified late/missing OPEN row beyond persisted kind cap on HTML route, with source, due timestamp and preference.
 
 ### B10-10 — Cleanup cage grouping redesign (user spec, verbatim)
 > cages chores does not make much sense: One single button - the apply all
@@ -73,27 +67,10 @@ by design.
 > collapsible as feeding: One button for all, with time, collapsible with the
 > list / per animal button. Avoid repeats of time!
 
-Today a cleanup cage row renders one `○ HH:MM` toggle PER ANIMAL under each
-time label (time repeats N times, no collapse). Make it feeding-parity:
-- ONE batch button for the cage group that CARRIES the time
-  (`○ HH:MM` + the existing corner count overlay), posting the existing
-  `/care_plan/apply_batch`;
-- collapsible header (count + earliest time) like `.plan-feed-header`;
-- per-animal toggle rows inside the expanded list, each carrying its own
-  time only where it differs (day qualifiers), otherwise the group time.
-Touch points: `_plan_care_line.plush.html` (×4 forks),
-`careViewsOf`/`foldCareTimeGroup` in actions/care_plan_viewmodel.go,
-glyph pins in `care_plan_round7_todo_glyph_test.go` (`plan-cage-apply`
-currently pinned to the bare fa-clock — B10-10 gives it a time), phase0b
-baselines, and `flipBatchRow` in index.plush.html JS (it flips the per-animal
-toggles — keep that contract).
+**CLOSED — fixed; focused tests and available read-only E2E pass.** Cleanup cage rows collapse occurrence toggles under count headers; batch button carries `○ HH:MM`; animal-mode action toggles retain time. Feeding animal mode no longer repeats identity/time in second cell. Four shared care partial forks have exact parity. Authenticated session `b10` showed 98 cleanup tasks, `Bac noir E` count 2, `S10 S` count 11, and 09:00 batch controls; feeding animal view showed identity/detail separation. Live fr/de/nl route headings localized. Earliest-time choice among distinct times remains unverified because all observed groups displayed 09:00; no Apply used.
 
 ## 5. Suggested next steps
 
-1. B10-9 investigation (small, engine-side) then B10-10 (medium, template +
-   viewmodel) — both fit the established round pattern: bugs.md entry → plan
-   section → fix → gates → agent-browser e2e (4 locales) → commit per bug.
-2. B10-1 (UTC timestamps) remains the oldest open UX complaint.
-3. Consider archiving round 10 to `docs/archive/` once B10-9/B10-10 close
-   (bugs.md convention), using `docs/care-plan-round-10-fix-plan.md` as the
-   companion plan (append B10-8/B10-9/B10-10 sections there as they land).
+1. B10-9 closed as not reproduced; B10-10 fixed with documented tests and read-only E2E, with earliest-time selection caveat.
+2. B10-1 implemented, four-locale templates and focused tests pass; synthetic browser fixture confirms UTC-to-browser-local formatting without data mutation. No persisted applied row available for read-only E2E.
+3. After remaining queued round-10 objectives are validated, archive this handover under `docs/archive/` per `bugs.md` convention; retain companion plan with all evidence/caveats.

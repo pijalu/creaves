@@ -1,4 +1,4 @@
-<html>
+<html lang="fr">
   <head>
     <meta content="width=device-width, initial-scale=1" name="viewport">
     </meta>
@@ -506,8 +506,26 @@
     display: block; font-size: 0.78rem; color: #6c757d;
     max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
-  .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem; }
+  /* Natural table sizing keeps each table's animal column keyed to its own
+     longest cell; content from sibling tiers/tables cannot widen it.
+     Bug 2026-10-06 #1: `width: max-content` on the cell made Chrome resolve
+     the column against the TABLE's one-line width — with the nowrap animal
+     cell the column blew up to ~1466 px inside an 1110 px tier panel, and
+     the panel's overflow:hidden clipped the right-aligned Apply column out
+     of view. The rule is GONE: auto layout keys the column to its content,
+     the diet text wraps instead of widening the column, and the table can
+     never exceed its panel. */
+  .plan-tier-body table { table-layout: auto; max-width: 100%; }
+  .plan-med-animal { min-width: 0; }
+  .plan-feed-animal, .plan-care-animal { white-space: nowrap; }
+  .plan-feed-animal .text-info, .plan-care-animal .text-info { white-space: normal; }
+  .plan-feed-animals { width: auto; min-width: 0; }
+  .plan-feed-check, .plan-cage-apply { text-align: right; }
+  .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .plan-care-slots .plan-time-label { flex: 1 1 auto; }
+  .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
   @media (max-width: 991.98px) { .plan-loc { display: none; } }
+  .plan-tab-count { vertical-align: middle; }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.15rem 0; cursor: pointer; user-select: none;
@@ -554,17 +572,9 @@
       </div>
       <ul class="nav nav-tabs mb-2" id="planKindTabs">
         <li class="nav-item">
-          <a class="nav-link" href="?kind=feeding">
-            "Feeding"
-            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
-              "1"
-            </span>
-          </a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link" href="?kind=medication">
             "Medication"
-            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
               "2"
             </span>
           </a>
@@ -575,10 +585,18 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="?kind=cleanup">
-            "Cleanup"
-            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
+          <a class="nav-link" href="?kind=feeding">
+            "Feeding"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
               "1"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="?kind=observation">
+            "Observation"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "8"
             </span>
           </a>
         </li>
@@ -588,10 +606,10 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link active" href="?kind=observation">
-            "Observation"
-            <span class="badge badge-pill badge-primary position-relative" style="top:-0.4em;">
-              "8"
+          <a class="nav-link" href="?kind=cleanup">
+            "Cleanup"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "1"
             </span>
           </a>
         </li>
@@ -633,19 +651,19 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-late-rows">
             <div class="px-2">
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A1"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -694,19 +712,19 @@
                   </span>
                 </div>
               </div>
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A2"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -773,19 +791,19 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-now-rows">
             <div class="px-2">
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A1"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -834,19 +852,19 @@
                   </span>
                 </div>
               </div>
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A2"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-N-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -895,19 +913,19 @@
                   </span>
                 </div>
               </div>
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="due" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A2"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="due" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -974,19 +992,19 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-later-rows">
             <div class="px-2">
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="scheduled" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A1"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-H-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1025,19 +1043,19 @@
                   </span>
                 </div>
               </div>
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A1"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="DDMM HHMM" data-kind="observation" data-remaining="0" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1048,19 +1066,6 @@
                   </span>
                 </div>
                 <div class="plan-med-btns">
-                  <span class="plan-med-cell">
-                    <span class="badge badge-light border plan-med-day" title="RFC">
-                      "tomorrow"
-                    </span>
-                    <span class="plan-item-slot">
-                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                        "○ HHMM"
-                      </button>
-                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
-                        "✓ HHMM"
-                      </button>
-                    </span>
-                  </span>
                   <span class="plan-med-cell">
                     <span class="badge badge-light border plan-med-day" title="RFC">
                       "DDMM"
@@ -1076,19 +1081,19 @@
                   </span>
                 </div>
               </div>
-              <div class="plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
-                    "ℹ"
-                  </button>
-                </div>
-                <div class="plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
+                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
                   <span class="plan-loc">
                     "CP-MARKER ·  · CP-A2"
                   </span>
+                </div>
+                <div class="plan-med-lead">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="DDMM HHMM" data-kind="observation" data-remaining="0" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                    "ℹ"
+                  </button>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1099,19 +1104,6 @@
                   </span>
                 </div>
                 <div class="plan-med-btns">
-                  <span class="plan-med-cell">
-                    <span class="badge badge-light border plan-med-day" title="RFC">
-                      "tomorrow"
-                    </span>
-                    <span class="plan-item-slot">
-                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                        "○ HHMM"
-                      </button>
-                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
-                        "✓ HHMM"
-                      </button>
-                    </span>
-                  </span>
                   <span class="plan-med-cell">
                     <span class="badge badge-light border plan-med-day" title="RFC">
                       "DDMM"
@@ -1163,7 +1155,9 @@
                     </a>
                   </td>
                   <td class="text-nowrap">
-                    "HHMM"
+                    "HHMM ·"
+                    <time class="js-local-time" datetime="RFC">
+                    </time>
                   </td>
                   <td class="text-nowrap">
                     <span class="badge badge-success">
@@ -1561,7 +1555,10 @@
     document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
     document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
     document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
-    applyRef.late = btn.classList.contains('plan-late-btn');
+    // Bug 2026-10-06 #5: the late semantics travel on the BUTTON (data-late),
+    // not only on the history Record-late class — a weighing/observation
+    // late-recordable toggle opens this modal and must submit late:true.
+    applyRef.late = btn.classList.contains('plan-late-btn') || btn.getAttribute('data-late') === 'true';
     document.getElementById('planApplyAnswer').value = '';
     document.getElementById('planApplyWeight').value = '';
     document.getElementById('planApplyDosage').value = '';
@@ -1675,12 +1672,29 @@
     instantApply(btn);
   });
 
-  function instantApply(btn) {
+  // Bug 2026-10-06 #5: an occurrence that went hors délai between render and
+  // click (auto-refresh holds off 30 s after actions; a page can still be
+  // stale) is PAST-DUE work the caregiver just confirmed — one late-record
+  // retry instead of the §10-A1 409 dialog. Future-due refs stay
+  // unrecordable (the server rejects late on future-due occurrences).
+  function isPastDue(ref) {
+    var due = Date.parse(ref.dueAt);
+    return !isNaN(due) && due <= Date.now();
+  }
+
+  function instantApply(btn, retriedLate) {
     markAction();
     var ref = btnRef(btn);
     btn.disabled = true;
-    applyItem(ref).then(function (res) {
+    var extra = null;
+    if (btn.getAttribute && btn.getAttribute('data-late') === 'true') { extra = { late: true }; }
+    else if (retriedLate) { extra = { late: true }; }
+    applyItem(ref, extra).then(function (res) {
       if (res.status === 201) { markApplied(ref); return; }
+      if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+        instantApply(btn, true);
+        return;
+      }
       btn.disabled = false;
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
         showDosageDialog(ref, res.body, btn);
@@ -1756,23 +1770,35 @@
       extra.dosage = document.getElementById('planApplyDosage').value.trim();
     }
     var ref = applyRef;
+    var modalSubmit = this;
     this.disabled = true;
-    var submitBtn = this;
-    applyItem(ref, extra).then(function (res) {
-      submitBtn.disabled = false;
-      if (res.status === 201) {
-        // R5-2c: no reload — flip the originating button in place.
+    var submit = function (retriedLate) {
+      if (retriedLate && !extra.late) { extra.late = true; }
+      applyItem(ref, extra).then(function (res) {
+        modalSubmit.disabled = false;
+        if (res.status === 201) {
+          // R5-2c: no reload — flip the originating button in place.
+          $('#planApplyModal').modal('hide');
+          markApplied(ref);
+          return;
+        }
         $('#planApplyModal').modal('hide');
-        markApplied(ref);
-        return;
-      }
-      $('#planApplyModal').modal('hide');
-      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
-        showDosageDialog(ref, res.body, ref.btn);
-        return;
-      }
-      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
-    });
+        // Bug 2026-10-06 #5: a modal held open across the next slot boundary
+        // (auto-refresh pauses while a modal is visible) made the occurrence
+        // hors délai before Confirm — execute it as a late record instead of
+        // surfacing the §10-A1 409. Future-due refs stay unrecordable.
+        if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+          submit(true);
+          return;
+        }
+        if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+          showDosageDialog(ref, res.body, ref.btn);
+          return;
+        }
+        showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+      });
+    };
+    submit(false);
   });
 
   // --- Skip / defer -----------------------------------------------------------
@@ -2070,6 +2096,26 @@
       (bySource[k] = bySource[k] || []).push(r);
     });
     var failures = [];
+    // Bug 2026-10-06 #5: a batch item that went hors délai between render and
+    // confirm is past-due work the caregiver just confirmed — record it late
+    // instead of surfacing the §10-A1 409. Future-due items stay unrecordable.
+    function lateRetryOne(ref) {
+      var due = Date.parse(ref.due_at);
+      if (isNaN(due) || due > Date.now()) {
+        return Promise.reject(new Error('future occurrence'));
+      }
+      return track(fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: ref.source_type, source_id: ref.source_id,
+          animal_id: ref.animal_id, due_at: ref.due_at,
+          late: true
+        })
+      }).then(function (r) {
+        return r.json().then(function (j) { return {status: r.status, body: j}; });
+      }));
+    }
     var chain = Promise.resolve();
     Object.keys(bySource).forEach(function (k) {
       var items = bySource[k];
@@ -2084,17 +2130,50 @@
               failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
               return;
             }
+            var retries = [];
+            var retryErrors = [];
             (j.results || []).forEach(function (it) {
-              if (it.status === 'error') {
+              if (it.status !== 'error') { return; }
+              if (!/apply window/i.test(it.error || '')) {
                 failures.push(it.animal_id + ': ' + (it.error || ''));
+                return;
               }
+              var ref = null;
+              items.forEach(function (r) { if (r.animal_id === it.animal_id && !ref) { ref = r; } });
+              if (!ref) { failures.push(it.animal_id + ': ' + (it.error || '')); return; }
+              retries.push(lateRetryOne(ref).catch(function (err) {
+                retryErrors.push(it.animal_id + ': ' + ((err && err.message) || 'record failed'));
+              }));
             });
+            if (retries.length) {
+              return Promise.all(retries).then(function () {
+                retryErrors.forEach(function (m) { failures.push(m); });
+              });
+            }
           });
         }));
       });
     });
     return chain.then(function () { return failures; });
   }
+
+  // Selecting an urgency shortcut keeps only its target section expanded.
+  document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link) { return; }
+    var target = link.getAttribute('href').slice(1);
+    var feedingPanel = document.getElementById('feedingTabContent');
+    var scope = feedingPanel && feedingPanel.contains(link) ? feedingPanel : document.getElementById('planSections');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
+      var body = tier.querySelector('.plan-tier-body');
+      if (body && tier.id !== target && body.classList.contains('show')) {
+        $(body).collapse('hide');
+      }
+      if (body && tier.id === target && !body.classList.contains('show')) {
+        $(body).collapse('show');
+      }
+    });
+  });
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
     btn.addEventListener('click', function () { openBatch(btn); });
@@ -2129,6 +2208,14 @@
     btn.classList.add('d-none');
   }
 
+  // Render recorded completion times in the viewer's browser locale/timezone.
+  Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {
+    var appliedAt = new Date(el.getAttribute('datetime'));
+    if (!isNaN(appliedAt.getTime())) {
+      el.textContent = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    }
+  });
+
   // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
   // R5-2c/S9: the history late-record button REUSES the apply modal for
   // input kinds (observation → answer, weighing → weight, §10-L1): a
@@ -2137,7 +2224,7 @@
   // fact (bypasses only the apply-window 409).
   Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
     btn.addEventListener('click', function () {
-      if (isInputKind(btn.getAttribute('data-kind'))) { openApply(btn); return; }
+      if (isInputKind(btn)) { openApply(btn); return; }
       if (!window.confirm(lateConfirm)) { return; }
       fetch('/care_plan/apply', {
         method: 'POST', credentials: 'same-origin',

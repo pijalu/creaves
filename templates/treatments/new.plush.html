@@ -41,7 +41,7 @@ $( document ).ready(function(){
   <ul class="list-group mb-2 ">
     <li class="list-group-item pb-1">
       <label class="small d-block">Species</label>
-        <%= if (treatmentTemplate.Animal.Species) {%>
+        <%= if (tspecies(treatmentTemplate.Animal.Species)) {%>
         <p class="d-inline-block"><%= tspecies(treatmentTemplate.Animal.Species) %> (<%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %>)</p>
       <% } else {%>
         <p class="d-inline-block"><%= tspecies(treatmentTemplate.Animal.Species) %> <%= tname("animaltypes", treatmentTemplate.Animal.Animaltype.ID, treatmentTemplate.Animal.Animaltype.Name) %></p>
@@ -174,7 +174,7 @@ $( document ).ready(function(){
           $(document).on('change', '#NoDrug', toggleDrugFields);
           $(document).ready(toggleDrugFields);
         </script>
-        <%= f.InputTag("Drug", {required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <%= f.InputTag("Drug", {label:"Drug", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Drug"]').autoComplete({
               delay: 250,
@@ -200,7 +200,7 @@ $( document ).ready(function(){
               });
           }
         </script>
-        <%= f.InputTag("Dosage", { required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
+        <%= f.InputTag("Dosage", {label:"Dosage", required:"required", bootstrap:{form-group-class:"form-group col-md-12"}})%>
         <script>
           $('input[name="Dosage"]').autoComplete({
               delay: 250,
@@ -211,7 +211,7 @@ $( document ).ready(function(){
           });
         </script>
 
-        <%= f.TextAreaTag("Remarks", {rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>
+        <%= f.TextAreaTag("Remarks", {label:"Remarks", rows: 10, bootstrap:{form-group-class:"form-group col-md-12"}}) %>
     </div>
   
   <button class="btn btn-success" role="submit">Save</button>

@@ -46,7 +46,7 @@
             <td class="text-nowrap"><strong><%= entry.TimeLabel %></strong></td>
             <td class="text-nowrap">
               <%= if (entry.Status == "done") { %>
-                <span class="badge badge-success entry-status" title="<%= t("treatment.entries.status.done") %>"><i class="fas fa-check"></i> <%= t("treatment.entries.status.done") %><%= if (entry.AppliedAt.Valid) { %> · <%= entry.AppliedAt.Time.Format("15:04") %><% } %></span>
+                <span class="badge badge-success entry-status" title="<%= t("treatment.entries.status.done") %>"><i class="fas fa-check"></i> <%= t("treatment.entries.status.done") %><%= if (entry.AppliedAt.Valid) { %> · <time class="js-local-time" datetime="<%= entry.AppliedAt.Time.Format("2006-01-02T15:04:05Z07:00") %>"></time><% } %></span>
               <% } else if (entry.Status == "skipped") { %>
                 <span class="badge badge-secondary entry-status" title="<%= t("treatment.entries.status.skipped") %>"><i class="fas fa-minus"></i> <%= t("treatment.entries.status.skipped") %></span>
               <% } else { %>
@@ -112,5 +112,11 @@
         if (r.ok) { window.location.reload(); }
       });
     });
+  });
+  document.querySelectorAll('time.js-local-time').forEach(function (el) {
+    var appliedAt = new Date(el.getAttribute('datetime'));
+    if (!isNaN(appliedAt.getTime())) {
+      el.textContent = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    }
   });
 </script>

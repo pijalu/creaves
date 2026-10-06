@@ -25,10 +25,13 @@ import (
 // preferenceKinds lists the day-plan action kinds, in display order.
 var preferenceKinds = actionKinds
 
-// R9 default view caps: late work disappears after 8 h, future work beyond
-// an 8 h horizon, and the "now" window is 60 min. An admin can change or
+// R9 default view caps — widened 2026-10-27 (user authorization, bugs.md
+// second batch): late work stays visible for 24 h, future work up to a
+// 24 h horizon, "now" window 60 min. The previous 8 h caps hid e.g. the
+// 10:00 feeding slots after 18:00, taking the Apply buttons away from
+// caregivers while the work was still pending. An admin can change or
 // clear any of them per kind; empty = no cap.
-var preferenceDefaults = struct{ lateHours, futureHours, nowMinutes int }{8, 8, 60}
+var preferenceDefaults = struct{ lateHours, futureHours, nowMinutes int }{24, 24, 60}
 
 // PreferencesEnsureSeeded creates any missing per-kind row with the R9
 // defaults (idempotent — safe on every request path that needs the settings).
@@ -69,8 +72,8 @@ func preferencesByKind(tx *pop.Connection) (map[string]models.Preference, error)
 }
 
 // applyPreferenceCaps narrows ONE kind's plan items to the view caps
-// (R8-5): late/missing occurrences older than late_show_hours leave, and
-// later-tier occurrences beyond future_show_hours leave. Everything else
+// (R8-5): late/missing occurrences at or older than late_show_hours leave,
+// and scheduled occurrences at or beyond future_show_hours leave. Everything else
 // passes untouched. Called per kind in CarePlanIndex BEFORE the view model
 // builds tiers/counts, so badges and lists cannot disagree.
 func applyPreferenceCaps(items []careplan.PlanItem, p models.Preference, now time.Time) []careplan.PlanItem {
@@ -83,11 +86,11 @@ func applyPreferenceCaps(items []careplan.PlanItem, p models.Preference, now tim
 		status := it.Status
 		switch {
 		case (status == careplan.StatusLate || status == careplan.StatusMissing) && p.LateShowHours.Valid:
-			if now.Sub(it.Occurrence.DueAt) > time.Duration(p.LateShowHours.Int)*time.Hour {
+			if now.Sub(it.Occurrence.DueAt) >= time.Duration(p.LateShowHours.Int)*time.Hour {
 				continue
 			}
 		case status == careplan.StatusScheduled && p.FutureShowHours.Valid:
-			if it.Occurrence.DueAt.Sub(now) > time.Duration(p.FutureShowHours.Int)*time.Hour {
+			if it.Occurrence.DueAt.Sub(now) >= time.Duration(p.FutureShowHours.Int)*time.Hour {
 				continue
 			}
 		}
@@ -119,34 +122,64 @@ func (v PreferencesResource) List(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("/preferences/index.plush.html"))
 }
 
-// PreferencesSave handles the POST of one kind's caps (list page form).
-func (v PreferencesResource) Save(c buffalo.Context) error {
+// PreferencesSaveAll handles the POST of ALL kinds' caps at once (bugs.md
+// 2026-10-06 #3): the list page has exactly ONE save button and it persists
+// every modified value on the page. Fields arrive per kind as
+// late[<kind>] / future[<kind>] / now[<kind>]; an empty or absent value
+// means "no cap" (NULL — the seeded behavior), and the now window stays
+// edited in HOURS, stored in MINUTES (×60, same as the old per-row save).
+func (v PreferencesResource) SaveAll(c buffalo.Context) error {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return fmt.Errorf("no transaction found")
 	}
-	p := &models.Preference{}
-	if err := tx.Find(p, c.Param("preference_id")); err != nil {
-		return c.Error(http.StatusNotFound, err)
-	}
-	// Nulls first: an empty field means "no cap" (the seeded behavior).
-	p.LateShowHours = nulls.Int{}
-	p.FutureShowHours = nulls.Int{}
-	p.NowWindowMinutes = nulls.Int{}
-	if err := c.Bind(p); err != nil {
+	if err := c.Request().ParseForm(); err != nil {
 		return err
 	}
-	// R9: the now window is edited in HOURS (NowWindowHours) and stored in
-	// minutes (column now_window_minutes) — one unit in the UI, matching
-	// the other two knobs.
-	if h, err := strconv.Atoi(strings.TrimSpace(c.Request().FormValue("NowWindowHours"))); err == nil && h > 0 {
-		p.NowWindowMinutes = nulls.Int{Int: h * 60, Valid: true}
-	}
-	verrs, err := tx.ValidateAndUpdate(p)
-	if err != nil {
+	var prefs []models.Preference
+	if err := tx.Order("created_at").All(&prefs); err != nil {
 		return err
 	}
-	if verrs.HasAny() {
+	invalid := false
+	for i := range prefs {
+		p := &prefs[i]
+		// Nulls first: an absent/empty field means "no cap" — a kind the
+		// user never touched keeps its stored value via the repopulated
+		// inputs, a cleared field deliberately clears the cap.
+		p.LateShowHours = nulls.Int{}
+		p.FutureShowHours = nulls.Int{}
+		p.NowWindowMinutes = nulls.Int{}
+		kind := p.Kind
+		if s := strings.TrimSpace(c.Request().PostForm.Get("late[" + kind + "]")); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				p.LateShowHours = nulls.Int{Int: n, Valid: true}
+			} else {
+				invalid = true
+			}
+		}
+		if s := strings.TrimSpace(c.Request().PostForm.Get("future[" + kind + "]")); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				p.FutureShowHours = nulls.Int{Int: n, Valid: true}
+			} else {
+				invalid = true
+			}
+		}
+		if s := strings.TrimSpace(c.Request().PostForm.Get("now[" + kind + "]")); s != "" {
+			if h, err := strconv.Atoi(s); err == nil && h > 0 {
+				p.NowWindowMinutes = nulls.Int{Int: h * 60, Valid: true}
+			} else {
+				invalid = true
+			}
+		}
+		verrs, err := tx.ValidateAndUpdate(p)
+		if err != nil {
+			return err
+		}
+		if verrs.HasAny() {
+			invalid = true
+		}
+	}
+	if invalid {
 		c.Flash().Add("danger", T.Translate(c, "preferences.err"))
 		return c.Redirect(http.StatusSeeOther, "/preferences")
 	}

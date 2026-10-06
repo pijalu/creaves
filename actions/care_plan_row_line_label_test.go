@@ -40,6 +40,10 @@ func TestPlanRowLineLabelRenders(t *testing.T) {
 	ctx.Set("card", card)
 	ctx.Set("showAnimal", true)
 	ctx.Set("showKind", false)
+	// Bug 2026-10-06 #7: the animal cell shares the page's computed column
+	// width (view.MedAnimalColCh) — the day-plan context always carries the
+	// view, the test mirrors that.
+	ctx.Set("view", DayPlanView{MedAnimalColCh: 12})
 	ctx.Set("t", func(s string, h plush.HelperContext) (string, error) { return s, nil })
 	// B10-2: the loc line (Cage · Zone · Espèce) renders through tbase/tspecies.
 	ctx.Set("tbase", func(group, field, base string, h plush.HelperContext) (string, error) { return base, nil })

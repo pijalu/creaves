@@ -161,16 +161,22 @@ func TestFeedingSectionRender(t *testing.T) {
 			"count is a corner overlay badge, rendered at N=2 (darker badge: R4-7.5)")
 		require.Contains(t, out, `class="sr-only"`, f, "status stays available to assistive tech")
 		require.Contains(t, out, `aria-label="care_plan.card.apply_group (2)"`, f, "count in the a11y label")
-		// R4-7.6 asked the chip to show its expected time; R4-7.14b moved
-		// that time ONTO the sub-group, because six animals fed at 08:00
-		// printed 08:00 six times. The time is still on screen, and it is
-		// still the same time — stated once per sub-group, not per animal.
-		require.Equal(t, 2, strings.Count(out, `class="plan-time-label"`), f,
-			"R4-7.14b: one time label per sub-group (08:00 and 10:15 here)")
+		// R4-7.6 asked the chip to show its expected time; R4-7.14b moved it
+		// onto the sub-group header; bugs.md second batch #3 (2026-10-27)
+		// removed that header entirely: NO time on top of the animal — the
+		// time lives in the toggle itself (○ HH:MM ⇄ ✓ HH:MM, B10-3) and in
+		// the batch Apply (○ earliest applicable). The button between the
+		// animal and its check is the only place the time is stated.
+		require.NotContains(t, out, "plan-time-label", f,
+			"bugs.md #3: no time label above the animal — the button carries the time")
+		require.Contains(t, out, "○ 08:00", f,
+			"the per-animal toggle carries its own due time (B10-3)")
+		require.Contains(t, out, `class="d-flex align-items-center ml-2"`, f,
+			"bugs.md #3: visible space between the animal and its buttons")
 		require.Contains(t, out, "care_plan.feeding.earliest 08:00", f,
-			"R4-7.14c: the collapsed header states the earliest time")
+			"R4-7.14c: the collapsed header still states the earliest time")
 		require.NotContains(t, out, "plan-chip-due", f,
-			"R4-7.14b: no animal repeats a time the sub-group already states")
+			"no chip repeats a time its toggle already carries")
 		require.Contains(t, out, "plan-feeding-one", f,
 			"R4-7.5: with several animals the per-animal check stays")
 		require.NotContains(t, out, "plan-apply-space", f,

@@ -178,7 +178,7 @@ type AnimalPlanTodayRow struct {
 	// Status is "done", "skipped" (skipped or deferred) or "pending";
 	// open occurrences due earlier today are "missed".
 	Status string
-	// AppliedAt is the "15:04" apply time of done rows ("" otherwise).
+	// AppliedAt is an RFC3339 timestamp for client-local display (zero otherwise).
 	AppliedAt string
 	// Protocol backlink of the source plan / care rule (same fields as
 	// TreatmentProtocolLink — Rule opens the care-rules library).
@@ -387,9 +387,12 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 	d.Items = mergeDayItems(d.Items, now)
 	// B10-5: the day's entries render kind-GROUPED under .plan-kind-separator
 	// titles — a stable kind sort keeps each group contiguous (the template
-	// emits one separator per kind change).
+	// emits one separator per kind change). Bugs.md second batch #8: the sort
+	// follows the SAME importance rank as the day-plan tabs (medication leads
+	// via the series block; then care → feeding → observation → weighing →
+	// cleanup), not alphabetical order.
 	sort.SliceStable(d.Items, func(i, j int) bool {
-		return d.Items[i].ActionKind < d.Items[j].ActionKind
+		return actionKindRank(d.Items[i].ActionKind) < actionKindRank(d.Items[j].ActionKind)
 	})
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
@@ -729,13 +732,13 @@ func animalPlanTodayLabel(kind string, src careplan.PlanSource) (label, dedupe s
 
 // animalPlanTodayStatus folds the occurrence status into the accordion
 // badge kind: "done", "skipped" (skipped or deferred) or "pending";
-// open occurrences due earlier today are "missed". appliedAt is the
-// "15:04" apply time of done rows.
+// open occurrences due earlier today are "missed". appliedAt is an RFC3339
+// timestamp for client-local display on the browser.
 func animalPlanTodayStatus(it *careplan.PlanItem, now time.Time) (status, appliedAt string) {
 	switch it.Status {
 	case careplan.StatusApplied:
 		if it.Application != nil {
-			return "done", it.Application.AppliedAt.Format("15:04")
+			return "done", it.Application.AppliedAt.Format(time.RFC3339)
 		}
 		return "done", ""
 	case careplan.StatusSkipped, careplan.StatusDeferred:

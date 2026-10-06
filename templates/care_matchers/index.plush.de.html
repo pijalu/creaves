@@ -7,7 +7,18 @@
   </div>
 </div>
 
-<table class="table table-hover table-bordered">
+<%# Bug 2026-10-27 #6: the library needs filter/search — with the seeded
+    library finding one matcher meant reading every row. Client-side
+    filter over the three visible columns (name, description,
+    expression), case-insensitive, with a visible hit counter; no server
+    round-trip, no page reload, works with the browser's own find too. %>
+<div class="form-inline mb-2" id="matcherFilterBar">
+  <input type="search" class="form-control form-control-sm mr-2" id="matcherFilter"
+         placeholder="<%= t("care_plan.matchers.filter_placeholder") %>" autocomplete="off">
+  <span class="text-muted small" id="matcherFilterCount"></span>
+</div>
+
+<table class="table table-hover table-bordered" id="matcherTable">
   <thead class="thead-light">
     <th><%= t("care_plan.field.name") %></th>
     <th><%= t("care_plan.field.description") %></th>
@@ -36,3 +47,26 @@
     <% } %>
   </tbody>
 </table>
+
+<script>
+(function () {
+  var input = document.getElementById('matcherFilter');
+  var table = document.getElementById('matcherTable');
+  var count = document.getElementById('matcherFilterCount');
+  if (!input || !table || !count) { return; }
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+  function apply() {
+    var q = input.value.trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (r) {
+      var hit = !q || r.textContent.toLowerCase().indexOf(q) >= 0;
+      r.style.display = hit ? '' : 'none';
+      if (hit) { visible++; }
+    });
+    // Locale-neutral "hits / total" — the numbers carry the information.
+    count.textContent = visible + ' / ' + rows.length;
+  }
+  input.addEventListener('input', apply);
+  apply();
+})();
+</script>

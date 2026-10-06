@@ -177,10 +177,10 @@ func TestAnimalsShowTreatmentTabFromEntries(t *testing.T) {
 
 	// Legacy treatment without entries → bitmap fallback block, no crash.
 	legacyTr := &models.Treatment{
-		Date:     today,
-		AnimalID: animalID,
-		Drug:     "LegacyDrug-" + f.marker,
-		Dosage:   "1 ml",
+		Date:       today,
+		AnimalID:   animalID,
+		Drug:       "LegacyDrug-" + f.marker,
+		Dosage:     "1 ml",
 		Timebitmap: models.Treatement_MORNING,
 	}
 	require.NoError(t, models.DB.Create(legacyTr))
@@ -207,11 +207,16 @@ func TestAnimalsShowTreatmentTabFromEntries(t *testing.T) {
 		"exactly one protocol backlink (the protocol-backed row)")
 
 	// Legacy bitmap fallback still renders for the entry-less treatment
-	// (MORNING bitmap: noon/evening are "not required" minus-buttons).
+	// (MORNING bitmap: noon/evening are "not required" minus-buttons) —
+	// now inside the legacy-treatments journal on the protocol tab
+	// (bugs.md 2026-10-27 #2: the Treatment tab retired, its unique
+	// journal moved there as a collapsed history card).
 	require.Contains(t, html, "Not required at noon", "legacy 3-dot fallback kept")
-
-	// Add New treatment button (original look kept).
-	require.Contains(t, html, "Add New treatment")
+	require.Contains(t, html, `id="planLegacyJournal"`, "the legacy journal lives in the protocol tab")
+	// The legacy per-animal "Add New treatment" shortcut is gone with the
+	// tab; legacy treatments remain creatable from the edit page and the
+	// global New menu.
+	require.NotContains(t, html, "Add New treatment")
 }
 
 // TestAnimalPlanTodayRows: the Treatment tab's plan rows (bugs.md U26 —
@@ -252,7 +257,7 @@ func TestAnimalPlanTodayRows(t *testing.T) {
 	// Sorted by due time, one row per occurrence with its status.
 	require.Equal(t, "07:00", rows[0].DueHM)
 	require.Equal(t, "done", rows[0].Status)
-	require.Equal(t, "07:05", rows[0].AppliedAt)
+	require.Equal(t, "2026-09-28T07:05:00+02:00", rows[0].AppliedAt)
 	require.Equal(t, "08:00", rows[1].DueHM)
 	require.Equal(t, "missed", rows[1].Status)
 	require.Equal(t, "Nettoyage Fistule", rows[1].Label)

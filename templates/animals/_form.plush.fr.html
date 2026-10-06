@@ -1,4 +1,3 @@
-
 <div class="d-flex justify-content-end">
 <button class="btn btn-success" role="submit">Sauvegarder</button>
 <script type="text/javascript">
@@ -148,12 +147,14 @@ $( document ).ready(function(){
     </div>
     <div class="form-row">
       <div class="form-group col-md-12">
+                <div class="form-group">
                   <label>Sexe</label>
                   <select class="form-control" id="animal-Gender" name="Gender">
                     <option value="" <%= if (animal.Gender.Value() == "") {%> selected <%}%> >Inconnu</option>
                     <option value="M" <%= if (animal.Gender && animal.Gender.Value() == "M") {%> selected <%}%> >Mâle</option>
                     <option value="F" <%= if (animal.Gender && animal.Gender.Value() == "F") {%> selected <%}%> >Femelle</option>
                   </select>
+                </div>
         </div>
     </div>
     <div class="form-row">
@@ -433,6 +434,9 @@ $( document ).ready(function(){
       <%= f.InputTag("Discovery.Discoverer.Phone", {bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
       </div>
 
+      <div class="form-row">
+          <%= f.TextAreaTag("Discovery.Discoverer.Note", {rows: 2, bootstrap:{form-group-class:"form-group col-md-12"}, label:"Note"}) %>
+      </div>
 
       <div class="form-row">
           <%= if (!current_user.IsRestricted()) { %>
@@ -534,7 +538,7 @@ $( document ).ready(function(){
               </a>
               <div class="collapse" id="Remarks">
                   <div class="card card-body">
-                      <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="5"><%= animal.Intake.Remarks%></textarea>
+                      <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="5"><%= animal.Intake.Remarks%></textarea>
                   </div>
               </div>
             </div>

@@ -29,7 +29,7 @@
           <div class="sign-form">
             <%= form_for(user, {action: authPath(), method: "POST"}) { %>
               <%= f.InputTag("Login") %>
-              <%= f.InputTag("Password", {type: "password"}) %>
+              <%= f.InputTag("Password", {label:"Passwort", type: "password"}) %>
               <button class="btn btn-success">Anmelden!</button>
             <% } %>
           </div>

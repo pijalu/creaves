@@ -34,7 +34,7 @@ $( document ).ready(function(){
       </div>
       <div class="form-row">
         <div class="form-group col-md-12">
-                <%= f.InputTag("Species", {required: "required"})%>
+                <%= f.InputTag("Species", {label:"Species", required: "required"})%>
                 <script>
                 $('input[name="Species"]').autoComplete({
                     delay: 250,
@@ -922,7 +922,7 @@ $( document ).ready(function(){
     </div>
     <div class="form-row">
         <div class="form-group col-md-12">
-            <%= f.InputTag("Outtake.Location") %>
+            <%= f.InputTag("Outtake.Location", {label:"Location"}) %>
         </div>
     </div>
     <div class="form-row">

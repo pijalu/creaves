@@ -21,6 +21,9 @@
     R9: the shared column width is gone — the cell sizes to its content so
     the line reads <info> <animal> | <drug> | <toggles> on ONE line (no
     long empty animal space).
+    Bug 2026-10-27 #3a: that R9 removal is REVERTED — without the shared
+    width the labels stopped reading as a column; the min-width comes back
+    on the cell (see the comment at the div).
 
     Phase 1 / D1 (guideline §5 level 1 — shrink the animal): the cell
     renders the YEAR/NUMBER only (`mg.AnimalYear`, e.g. "1234/26"), the
@@ -30,7 +33,13 @@
     is what lets the §5 ladder start: the drug label and the toggles get
     the width the long label used to burn. %>
 <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-  <div class="mr-2 py-1 plan-med-animal" title="<%= mg.AnimalLabel %>">
+  <%# Bug 2026-10-27 #3a: the shared animal-column width is WIRED AGAIN —
+      R9 dropped it and the labels stopped reading as a column (each cell
+      sized its own content). One page-wide value, computed from the widest
+      label (rune count + 1 spare ch); `min-width` never cuts a long label
+      (R4-7.24), it only aligns the shorter ones. No text-nowrap: the cell
+      may still wrap (B10-2). %>
+  <div class="mr-2 py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch" title="<%= mg.AnimalLabel %>">
     <a href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
     <%# B10-2: the per-animal loc line — Cage · Zone · Espèce, collapses on
         narrow screens (the cell no longer forces text-nowrap so it can wrap

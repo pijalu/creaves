@@ -80,7 +80,11 @@ func TestBuildDayPlanViewCareCards(t *testing.T) {
 	for ti := range v.Tiers {
 		require.Empty(t, v.Tiers[ti].Cards, "cleanup work leaves the tiers in compact")
 	}
-	require.Empty(t, v.History, "grouped kinds show their done state on the section card, never as history rows")
+	// Bug 2026-10-06 #2: a done action never disappears — grouped kinds
+	// (cleanup/feeding) now land in the History section like every other
+	// kind (the compact view still dedupes one row per source × animal).
+	require.Len(t, v.History, 1, "the applied cleanup occurrence shows in history")
+	require.Equal(t, "applied", v.History[0].Status)
 	require.Len(t, v.Cares, 1)
 	cc := v.Cares[0]
 	require.Equal(t, "C1", cc.Cage)

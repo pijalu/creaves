@@ -256,7 +256,10 @@
     document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
     document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
     document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
-    applyRef.late = btn.classList.contains('plan-late-btn');
+    // Bug 2026-10-06 #5: the late semantics travel on the BUTTON (data-late),
+    // not only on the history Record-late class — a weighing/observation
+    // late-recordable toggle opens this modal and must submit late:true.
+    applyRef.late = btn.classList.contains('plan-late-btn') || btn.getAttribute('data-late') === 'true';
     document.getElementById('planApplyAnswer').value = '';
     document.getElementById('planApplyWeight').value = '';
     document.getElementById('planApplyDosage').value = '';
@@ -370,12 +373,29 @@
     instantApply(btn);
   });
 
-  function instantApply(btn) {
+  // Bug 2026-10-06 #5: an occurrence that went hors délai between render and
+  // click (auto-refresh holds off 30 s after actions; a page can still be
+  // stale) is PAST-DUE work the caregiver just confirmed — one late-record
+  // retry instead of the §10-A1 409 dialog. Future-due refs stay
+  // unrecordable (the server rejects late on future-due occurrences).
+  function isPastDue(ref) {
+    var due = Date.parse(ref.dueAt);
+    return !isNaN(due) && due <= Date.now();
+  }
+
+  function instantApply(btn, retriedLate) {
     markAction();
     var ref = btnRef(btn);
     btn.disabled = true;
-    applyItem(ref).then(function (res) {
+    var extra = null;
+    if (btn.getAttribute && btn.getAttribute('data-late') === 'true') { extra = { late: true }; }
+    else if (retriedLate) { extra = { late: true }; }
+    applyItem(ref, extra).then(function (res) {
       if (res.status === 201) { markApplied(ref); return; }
+      if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+        instantApply(btn, true);
+        return;
+      }
       btn.disabled = false;
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
         showDosageDialog(ref, res.body, btn);
@@ -451,23 +471,35 @@
       extra.dosage = document.getElementById('planApplyDosage').value.trim();
     }
     var ref = applyRef;
+    var modalSubmit = this;
     this.disabled = true;
-    var submitBtn = this;
-    applyItem(ref, extra).then(function (res) {
-      submitBtn.disabled = false;
-      if (res.status === 201) {
-        // R5-2c: no reload — flip the originating button in place.
+    var submit = function (retriedLate) {
+      if (retriedLate && !extra.late) { extra.late = true; }
+      applyItem(ref, extra).then(function (res) {
+        modalSubmit.disabled = false;
+        if (res.status === 201) {
+          // R5-2c: no reload — flip the originating button in place.
+          $('#planApplyModal').modal('hide');
+          markApplied(ref);
+          return;
+        }
         $('#planApplyModal').modal('hide');
-        markApplied(ref);
-        return;
-      }
-      $('#planApplyModal').modal('hide');
-      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
-        showDosageDialog(ref, res.body, ref.btn);
-        return;
-      }
-      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
-    });
+        // Bug 2026-10-06 #5: a modal held open across the next slot boundary
+        // (auto-refresh pauses while a modal is visible) made the occurrence
+        // hors délai before Confirm — execute it as a late record instead of
+        // surfacing the §10-A1 409. Future-due refs stay unrecordable.
+        if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+          submit(true);
+          return;
+        }
+        if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+          showDosageDialog(ref, res.body, ref.btn);
+          return;
+        }
+        showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+      });
+    };
+    submit(false);
   });
 
   // --- Skip / defer -----------------------------------------------------------

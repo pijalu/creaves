@@ -65,10 +65,10 @@
             nothing to expand, so it renders open.
 
             R4-7.14b: the chips are folded into due-time
-            sub-groups, so the expected time is stated ONCE per
-            sub-group instead of once per animal. The chip keeps the
-            same label, link and buttons; it loses the repeated
-            time, which the sub-group header now carries.
+            sub-groups. Bug 2026-10-27 #3: no time label ON TOP of
+            the animal any more — the sub-group header is gone; each
+            toggle button carries its own time (○/✓ HH:MM, B10-3)
+            and the batch Apply carries the earliest due time.
 
             The collapse id is stable across a refresh (tier index +
             row index), so auto-refresh does not collapse a list the
@@ -94,19 +94,14 @@
           <% } %>
           <%= for (tg) in fcard.TimeGroups { %>
             <div class="plan-time-group">
-              <div class="plan-time-label" title="<%= t("care_plan.feeding.at_time") %>">
-                <%# Same day-aware expression the chip used to carry,
-                    so "tomorrow 16:00" and "02/01 16:00" still read
-                    as themselves — once per sub-group. %>
-                <%= if (tg.ShortDate != "") { %><%= tg.ShortDate %> <%= tg.Label %><% } else if (tg.DayKey != "") { %><%= t(tg.DayKey) %> <%= tg.Label %><% } else { %><%= tg.Label %><% } %>
-                <% if (tg.Applicable > 0) { %><span class="badge badge-pill badge-light ml-1"><%= tg.CountCap %></span><% } %>
-              </div>
           <%= for (chip) in tg.Chips { %>
             <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
-              <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
-                <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
-              </a>
-              <span class="d-flex align-items-center">
+              <%= if (group != "animal") { %>
+                              <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
+                                <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
+                              </a>
+                            <% } else { %><span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span><% } %>
+              <span class="d-flex align-items-center ml-2">
                 <%= if (chip.Superseded) { %>
                   <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
                 <% } else { %>
@@ -173,7 +168,11 @@
                 data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
                 aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
                 title="<%= t("care_plan.card.apply_group") %>">
-                <i class="far fa-clock"></i>
+                <%# Bug 2026-10-27 #1/#2: the batch button CARRIES the due time
+                    (○ earliest applicable occurrence, day-qualified like the
+                    cleanup Apply-all button) — the bare clock icon said
+                    nothing about WHAT time the batch applies. %>
+                ○ <%= if (fcard.FirstTimeShortDate != "") { %><%= fcard.FirstTimeShortDate %> <% } else if (fcard.FirstTimeDayKey != "") { %><%= t(fcard.FirstTimeDayKey) %> <% } %><%= fcard.FirstTimeLabel %>
               </button>
               <%# R4-7.5: a lone animal needs no counter — the pill only
                   says "1" — and a darker badge stays readable

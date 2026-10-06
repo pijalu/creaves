@@ -139,8 +139,8 @@
 })();
 </script>
 <% } else { %>
-<%= f.InputTag("Location") %>
-<%= f.InputTag("PreciseLocation") %>
+<%= f.InputTag("Location", {label: "Locatie"}) %>
+<%= f.InputTag("PreciseLocation", {label: "Adres, precieze locatie"}) %>
 <script>
 $('input[name="Location"]').autoComplete({
     delay: 250,

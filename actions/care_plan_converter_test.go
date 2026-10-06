@@ -48,6 +48,12 @@ func TestSeedMatcherExpressionsParse(t *testing.T) {
 		if _, err := careplan.ParseValidatedWith(def.Expression, careplan.DefaultRegistry()); err != nil {
 			t.Errorf("seed matcher %s (%s): %v", def.Key, def.Name, err)
 		}
+		// bugs.md t10 (2026-10-27 user ruling): cage names are per-center —
+		// no DEFAULT matcher may ever predicate on them. The `cage` field
+		// stays DSL-resolvable for hand-made rules; seeds must not use it.
+		if strings.Contains(strings.ToLower(def.Expression), "cage ") {
+			t.Errorf("seed matcher %s (%s) predicates on cage names: %s", def.Key, def.Name, def.Expression)
+		}
 	}
 }
 
@@ -291,59 +297,26 @@ func TestReconcileFeeding(t *testing.T) {
 	}
 }
 
-// TestCageClauseConversion pins the R5-1d cage narrowing emitted by the
-// feeding-cluster converter: single enclosure → `cage =*`, several →
-// `cage INCI`, the « sans cage » bucket kept as an empty literal, values
-// sorted and DSL-escaped, and non-covered members (empty species) excluded.
-// Every emitted clause must also be valid matcher DSL over the default
-// registry — a converter that emits unparseable expressions would strand
-// the whole cluster at boot.
-func TestCageClauseConversion(t *testing.T) {
-	entries := []feedingEntry{
-		{AnimalID: 1, Species: "Renard roux", Cage: "Enclos Renards"},
-		{AnimalID: 2, Species: "Renard roux", Cage: "enclos renards"},
-		{AnimalID: 3, Species: "Renard roux", Cage: "VE5"},
-		{AnimalID: 4, Species: "", Cage: "IGNORED-EMPTY-SPECIES"},
-	}
-	covered := map[int]bool{1: true, 2: true, 3: true} // 4: per-animal plan
-
-	got := cageClause(entries, covered)
-	// byte-sorted (sort.Strings): uppercase before lowercase
-	want := `cage INCI ("Enclos Renards", "VE5", "enclos renards")`
-	if got != want {
-		t.Errorf("cageClause multi = %q, want %q", got, want)
-	}
-	if _, err := careplan.ParseValidatedWith("species IN (\"X\") AND "+got, careplan.DefaultRegistry()); err != nil {
-		t.Errorf("emitted clause must parse: %v (clause: %s)", err, got)
-	}
-
-	single := cageClause(entries[:1], covered)
-	if want := `cage =* "Enclos Renards"`; single != want {
-		t.Errorf("cageClause single = %q, want %q", single, want)
-	}
-	if _, err := careplan.ParseValidatedWith("species IN (\"X\") AND "+single, careplan.DefaultRegistry()); err != nil {
-		t.Errorf("emitted clause must parse: %v (clause: %s)", err, single)
-	}
-
-	// An empty cage is a real value (the « sans cage » bucket) and must be
-	// kept as an empty literal — cage resolves keep-empty so it matches.
-	mixed := []feedingEntry{
-		{AnimalID: 1, Species: "Hérisson", Cage: ""},
-		{AnimalID: 2, Species: "Hérisson", Cage: "Box 3"},
-	}
-	got = cageClause(mixed, map[int]bool{1: true, 2: true})
-	if want := `cage INCI ("", "Box 3")`; got != want {
-		t.Errorf("cageClause with empty = %q, want %q", got, want)
-	}
-	if _, err := careplan.ParseValidatedWith("species IN (\"X\") AND "+got, careplan.DefaultRegistry()); err != nil {
-		t.Errorf("emitted clause must parse: %v (clause: %s)", err, got)
-	}
-
-	// Free-text cages are DSL-escaped like every string literal.
-	esc := cageClause(
-		[]feedingEntry{{AnimalID: 1, Species: "Renard", Cage: `box "7"`}},
-		map[int]bool{1: true})
-	if want := `cage =* "box \"7\""`; esc != want {
-		t.Errorf("cageClause escaped = %q, want %q", esc, want)
+// TestConvertDataEmitsNoCageMatchers pins the v3 direction (bugs.md t10,
+// 2026-10-27 user ruling: "cage names are per centers — eliminate the
+// cage-name matchers; in doubt, migrate to the animal"). The feeding
+// converter builds per-animal plans only: it must not construct cluster
+// matchers, cage clauses, or rules at all. Any of these symbols coming
+// back into care_plan_convert_data.go is a regression toward cage-scoped
+// matchers, which cannot survive a center's cage renaming and (see the
+// 2026-10-27 clone audit) silently over-sweep same-species animals housed
+// elsewhere.
+func TestConvertDataEmitsNoCageMatchers(t *testing.T) {
+	src := readTemplate(t, "../actions/care_plan_convert_data.go")
+	for _, banned := range []string{
+		"cage INCI",                  // cage-scoped cluster matcher (R5-1d, retired)
+		"cage =*",                    // ditto, single-enclosure form
+		"cageClause",                 // the clause builder
+		"upsertClusterMatcher",       // matcher upsert (no converter matchers anymore)
+		"convertedMatcherName(diet)", // matcher naming (no converter matchers anymore)
+	} {
+		if strings.Contains(src, banned) {
+			t.Errorf("v3 regression: care_plan_convert_data.go contains %q — the converter must not emit cage-scoped cluster matchers", banned)
+		}
 	}
 }

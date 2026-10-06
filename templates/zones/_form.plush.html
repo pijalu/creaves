@@ -1,7 +1,7 @@
-<%= f.InputTag("Zone") %>
+<%= f.InputTag("Zone", {label:"Zone"}) %>
 <%= f.SelectTag("Type", {label:"Type", options: {"internal": "internal", "external": "external"} } ) %>
 
-<%= f.CheckboxTag("Default", {unchecked: false}) %>
+<%= f.CheckboxTag("Default", {label:"Default", unchecked: false}) %>
 
 <%# R8-3: occupied cages of a "requires cleanup" zone land on the day
     plan's cleanup list (general rule zone_requires_cleanup). %>

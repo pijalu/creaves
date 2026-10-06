@@ -223,6 +223,38 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //   - B10-7: scheduled cleanup occurrences within the future horizon render
 //     as open work — the cleanup baseline gained the "tomorrow HHMM" time
 //     group and its ○/✓ slots; feeding/medication/observation 0-diff.
+//   - B10-10: cleanup group rows collapse with count/extra-time header; cage
+//     group apply carries earliest time, while per-animal toggles retain time.
+//   - Bug 2026-10-27 #1/#2: the feeding group Apply button quotes the earliest
+//     applicable occurrence ("○ HHMM", day-qualified) — the bare clock icon
+//     is gone; feeding 1-line delta, other kinds 0-diff.
+//   - Bug 2026-10-27 #3a: the medication animal cell wires the shared column
+//     width again (style=min-width NNch from the widest label).
+//   - Bug 2026-10-27 #5: a multi-animal cleanup cage renders ONE line per
+//     animal (.plan-animal-row: number link at line level + its toggles);
+//     single-animal cages would render the .plan-apply-space spacer (the
+//     rich fixture has none — covered by the viewmodel test + E2E).
+//   - Bug 2026-10-27 #4: observation/care/weighing item lines adopt the med
+//     row layout classes (d-flex align-items-start flex-wrap border-bottom
+//     py-1); text colour delta is text-info on the task (not in the DOM
+//     normalization, which drops classes' effect but keeps attribute lists).
+//   - Bug 2026-10-27 #3b + #8 (second review batch): the kind tab bar follows
+//     the importance order Medication · Care · Feeding · Observation ·
+//     Weighing · Cleanup on every kind tab (order-only delta, counts
+//     unchanged); the feeding chip rows lose the `plan-time-label` sub-group
+//     header (no time on top of the animal — each ○/✓ toggle carries its own
+//     time) and their button wrapper gains ml-2 spacing. Verified by diff:
+//     medication/cleanup/observation tab-order only; feeding the three
+//     markup lines above, nothing else.
+//   - Bug 2026-10-27 #2 (Treatment tab retired): the med-line animal links
+//     and ℹ detail buttons retarget #nav-treatment → #nav-plan (the series
+//     render on the protocol tab now). Verified by diff: medication tab
+//     fragment swaps only; feeding/cleanup/observation 0-diff.
+//   - Parity batch 2026-10-27 (TestTemplateVariantStructuralParity debt paydown):
+//     base application layout gained <html lang="<%= uiLang() %>"> — the fr/de/nl
+//     forks already carried a (hardcoded) lang attribute, so the rendered root
+//     gains lang=<locale>; one-line delta on every kind tab, no other change
+//     (verified by the equivalence diff on re-record).
 func TestCarePlanPhase0bDOMEquivalence(t *testing.T) {
 	f, client, baseURL := planFixtureRich(t)
 	_ = f

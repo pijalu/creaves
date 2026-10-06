@@ -37,18 +37,16 @@ var todoGlyphControls = []string{
 	"plan-cage-apply",
 }
 
-// todoControlGlyph returns the glyph a to-do control must carry (B10-3):
-// the per-occurrence toggles speak the §2.3 med-parity language — the
-// button CARRIES the time (`○ HH:MM` to-do, `✓ HH:MM` done) — while the
-// cage-level GROUP buttons keep the legacy fa-clock, since they apply many
-// occurrences at once and no single time fits them.
+// todoControlGlyph returns the glyph a to-do control must carry: every
+// control now speaks the §2.3 med-parity language — the button CARRIES its
+// time (`○ HH:MM` per occurrence; ○ + earliest due time for the cage-level
+// GROUP buttons). Bug 2026-10-27 #1/#2: the feeding group button joins —
+// the bare fa-clock said nothing about WHAT time the batch applies, so
+// there is no clock-only control left in the plan components (the clock
+// survives only on the treatment page, pinned separately).
 func todoControlGlyph(c string) string {
-	switch c {
-	case "plan-feeding-apply", "plan-cage-apply":
-		return `<i class="far fa-clock"></i>`
-	default:
-		return "○ "
-	}
+	_ = c
+	return "○ "
 }
 
 // carePlanToDoForks: every locale fork that renders a to-do control.
@@ -80,8 +78,11 @@ var carePlanToDoForks = []string{
 	"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	// Phase 3 (D3) moved the cleanup block out of index into this tiered
 	// care-line partial: the per-occurrence toggles are merged slot buttons
-	// (med-parity glyphs, skipped by clockInsideToDoControls) while the
-	// cage-apply batch button keeps the legacy fa-clock (1 clock x 4 forks).
+	// (med-parity glyphs) while the cage-apply batch button carries ○ + its
+	// earliest due time (B10-10). Bug 2026-10-27 #5: the per-occurrence pair
+	// itself lives in the shared `_plan_care_slot` partial — NOT scanned
+	// here (it holds only merged slot toggles, which the scanner skips; its
+	// pair contract is pinned by TestPhase3CleanupTogglePairContract).
 	"../templates/care_plan/_plan_care_line.plush.html",
 	"../templates/care_plan/_plan_care_line.plush.fr.html",
 	"../templates/care_plan/_plan_care_line.plush.de.html",
@@ -192,20 +193,23 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 // show.plush forks no longer carry any clock either and left the list.
 // B10-3 renamed the nomenclature: the per-occurrence toggles carry the
 // §2.3 med-parity `○ HH:MM` time glyph instead of the fa-clock, so only
-// the GROUP buttons keep the clock — 1 x 4 feed-table forks
-// (plan-feeding-apply) + 1 x 4 care-line forks (plan-cage-apply) = 8.
-// What must never change is that EVERY to-do control carries ITS glyph —
-// that is asserted per control by clockInsideToDoControls in
-// TestNoCheckMarksAToDoItem; this floor is only a tripwire against a whole
-// locale losing the swap.
+// the feeding GROUP buttons keep the clock — 1 x 4 feed-table forks = 4;
+// cleanup's group button now carries ○ + its earliest due time (B10-10).
+// Bug 2026-10-27 #1/#2 closed the swap: the feeding group button carries
+// `○ <earliest applicable time>` too — no plan control is clock-only any
+// more. The floor below counts the TIME-bearing group Apply labels
+// (`○ <%= if (` day-qualification) across the scanned forks: 1 feed-table
+// + 1 care-line per locale = 8. What must never change is that EVERY to-do
+// control carries ITS glyph — that is asserted per control by
+// clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only
+// a tripwire against a whole locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	total := 0
 	for _, f := range carePlanToDoForks {
-		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
+		total += strings.Count(readTemplate(t, f), `○ <%= if (`)
 	}
 	require.GreaterOrEqual(t, total, 8,
-		"expected the clock 1x in each feed-table fork (the group apply) "+
-			"and 1x in each care-line fork (the cage apply) = 8")
+		"expected the time-bearing ○ group-Apply label once per locale in the feeding table and the cleanup line (2 x 4 forks)")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the

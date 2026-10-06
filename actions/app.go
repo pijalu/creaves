@@ -127,7 +127,9 @@ func App() *buffalo.App {
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
 		app.GET("/preferences", PreferencesResource{}.List)
-		app.POST("/preferences/{preference_id}/save", PreferencesResource{}.Save)
+		// Bug 2026-10-06 #3: ONE save for the whole preferences page —
+		// the bulk handler persists every kind's caps in one POST.
+		app.POST("/preferences/save", PreferencesResource{}.SaveAll)
 		// Sync configuration lives in the admin Synchronization area and
 		// always addresses the active config; the legacy per-config URL
 		// redirects there (see ConfigsResource.SyncEdit).
@@ -232,6 +234,8 @@ func App() *buffalo.App {
 		app.POST("/animals/{animal_id}/attachments", AttachmentsCreate)
 		app.GET("/attachments/{attachment_id}", AttachmentsServe)
 		app.POST("/attachments/{attachment_id}/delete", AttachmentsDestroy)
+		// bugs.md 2026-10-27 #7: attachments carry an editable comment.
+		app.POST("/attachments/{attachment_id}/comment", AttachmentsUpdateComment)
 		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
 		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
 		app.GET("/suggestions/animaltype_default_species", SuggestionsAnimaltypeDefault)

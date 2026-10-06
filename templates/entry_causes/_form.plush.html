@@ -1,7 +1,7 @@
 <%= f.InputTag("ID") %>
-<%= f.InputTag("Cause") %>
-<%= f.InputTag("Detail") %>
-<%= f.InputTag("Nature") %>
-<%= f.InputTag("Indication") %>
+<%= f.InputTag("Cause", {label:"Cause"}) %>
+<%= f.InputTag("Detail", {label:"Detail"}) %>
+<%= f.InputTag("Nature", {label:"Nature"}) %>
+<%= f.InputTag("Indication", {label:"Indication"}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Save</button>

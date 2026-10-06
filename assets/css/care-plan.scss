@@ -417,32 +417,28 @@ div.plan-med-row.d-flex,
   border-right: 1px solid #dee2e6;
   padding-right: 0.5rem;
 }
-// The row-kind label follows the SAME §5 ladder as the medication label
-// (Phase 4 / D4): shrink-to-fit with a 12 ch floor, WRAPPING (never an
-// ellipsis cut — R4-7.24) when the toggle group needs the room.
+// Bugs.md second batch #1 (2026-10-27): the description takes ALL
+// available space in EVERY care table — the 34 ch shrink-to-fit cap made
+// cleanup/feeding labels stop at ~a third of the row while the medication
+// series grew. The label grows (like the medication base rule), wraps when
+// the right-aligned button group needs the room, and never clips.
 .plan-item-line .plan-med-label {
-  flex: 0 1 auto;
-  max-width: 34ch;
-  min-width: 12ch;
+  flex: 1 1 auto;
+  min-width: 0;
   white-space: normal;
   overflow: visible;
-  text-overflow: clip;
 }
 .plan-med-label {
   border-right: 1px solid #dee2e6;
   padding-right: 0.5rem;
   margin-right: 0.5rem;
 }
-// R9: on the DAY-PLAN rows the drug label shrinks-to-fit its text (pipe
-// hugs the text, toggles right-align) instead of growing and dragging the
-// pipe to the far edge. With a wide button group the label keeps a 12 ch
-// floor — the drug name must stay readable (the Late row squeezed it to a
-// few characters otherwise). At the floor the §5 ladder continues: the
-// label text WRAPS (no 34 ch ellipsis cut) and the group drops below.
+// R9 comment superseded (bugs.md second batch #1, 2026-10-27): the label
+// GROWS to take all available space — same presentation in every kind's
+// table — and wraps when the button group needs the row.
 div.plan-med-row .plan-med-label {
-  flex: 0 1 auto;
-  max-width: 34ch;
-  min-width: 12ch;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 // Level 2: the R4 base `.plan-med-btns` (flex: 0 1 auto; margin-left:
 // auto; flex-wrap: wrap; justify-content: flex-end) IS the ladder step —
@@ -592,4 +588,24 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
 .dash-med-cell .plan-med-cell {
   // Buttons align left within the wrapped group (the group is full-width).
   justify-content: flex-start;
+}
+
+// Bug 2026-10-06 #4: terminal states (skipped ⊘ / deferred ⏸) and hors-délai
+// positions (🔒 §10-A1) render as NON-INTERACTIVE markers at the SAME size as
+// the toggle buttons (btn-sm metrics) — never as oversized disabled buttons,
+// never as clickable controls. Same font-size/padding as .btn-sm so a series
+// row keeps one uniform rhythm.
+.plan-med-state {
+  display: inline-block;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: 400;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.2rem;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.plan-med-locked {
+  // The lock is not a failure colour — muted, like the history rows.
+  color: #6c757d;
 }

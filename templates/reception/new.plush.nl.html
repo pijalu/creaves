@@ -128,7 +128,7 @@
                 });
                 </script>
 
-                <%= f.InputTag("Species", {required: "required"})%>
+                <%= f.InputTag("Species", {label:"Soort", required: "required"})%>
                 <div id="nativeGroupHint"></div>
                                   <div id="speciesTypeHint" class="alert alert-danger d-none">Type en soort komen niet overeen</div>
                                                                       <div id="speciesUnknownHint" class="alert alert-danger d-none">onbekende soort</div>
@@ -476,6 +476,10 @@
                     <div class="form-row">
                     <%= f.InputTag("Discovery.Discoverer.Email", {placeholder:"toto@creaves.be",  bootstrap:{form-group-class:"form-group col-md-6"}, label:"E-mail"}) %>
                     <%= f.InputTag("Discovery.Discoverer.Phone", {type: "tel", placeholder:"+32470112233", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Telefoon"}) %>
+                    </div>
+
+                    <div class="form-row">
+                        <%= f.TextAreaTag("Discovery.Discoverer.Note", {rows: 2, bootstrap:{form-group-class:"form-group col-md-12"}, label:"Opmerking"}) %>
                     </div>
 
                     <div class="form-row">

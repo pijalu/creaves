@@ -15,17 +15,24 @@
       applied    → ✓ — ONE live toggle (R5-2c): re-click undoes, no
                    confirm, no reload; disabled only when the record can
                    no longer be undone (slot.CanUndo).
-      skipped    → ⊘ — terminal here, read-only (btn-light, disabled).
-      deferred   → ⏸ — terminal here, read-only (btn-light, disabled).
+      skipped    → ⊘ — terminal state rendered as a NON-INTERACTIVE marker
+                   at the same size as the toggles (bugs.md 2026-10-06 #4:
+                   no oversized disabled button; a state is not an action).
+      deferred   → ⏸ — same marker treatment as skipped.
       applicable → ○ — the to-do toggle; data-kind="medication" so the
                    shared toggle JS can route it; the urgent slot of the
                    series gets a red ring (plan-med-urgent, R4-1.2), its
                    future siblings recede (plan-med-future).
-      late       → – — past-due, unapplied, out of the apply window but
-                   still clickable (§6.2-2): record anyway (late). The
-                   affordance (data-late) stays orthogonal to the colour.
-      otherwise  → – — disabled placeholder (a slot the caregiver can no
-                   longer act on); keeps the slot's tier colour. %>
+      late       → ○ — past-due, unapplied, out of the apply window but
+                   still clickable (§6.2-2): record anyway (late). Bugs.md
+                   2026-10-06 #4: the to-do glyph is the SAME ○ as every
+                   other actionable toggle (the old `–` read as a
+                   different, unexplained control); the "record late"
+                   title and the confirm dialog keep the semantics.
+      otherwise  → 🔒 — hors délai (§10-A1): NO action affordance at all
+                   (bugs.md 2026-10-06 #5 directive — instead of a control
+                   that errors on confirm, a non-interactive lock marker
+                   keeps the slot's place in the series). %>
 <%= if (slot.Applied) { %>
   <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
     <%= if (!slot.CanUndo) { %>disabled <% } %>
@@ -35,11 +42,9 @@
     data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
     title="<%= t("care_plan.slot." + slot.Slot) %>">✓ <%= slot.DueAtHM %></button>
 <% } else if (slot.Status == "skipped") { %>
-  <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
-    title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></button>
+  <span class="badge badge-light border plan-med-state" title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></span>
 <% } else if (slot.Status == "deferred") { %>
-  <button type="button" class="btn btn-light plan-med-slot plan-med-btn" disabled
-    title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></button>
+  <span class="badge badge-light border plan-med-state" title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></span>
 <% } else if (slot.Applicable) { %>
   <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %><%= if (slot.Future) { %> plan-med-future<% } %>"
     data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
@@ -55,8 +60,7 @@
     data-kind="medication" data-late="true" data-tier-class="<%= slot.TierClass %>"
     data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
     data-source-name="<%= slot.SourceName %>"
-    title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueAtHM %></button>
+    title="<%= t("care_plan.treatment.record_late") %>">○ <%= slot.DueAtHM %></button>
 <% } else { %>
-  <button type="button" class="btn <%= slot.TierClass %> plan-med-slot plan-med-btn" disabled
-    title="<%= t("care_plan.slot." + slot.Slot) %>">– <%= slot.DueAtHM %></button>
+  <span class="plan-item-locked plan-med-state plan-med-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒 <%= slot.DueAtHM %></span>
 <% } %>

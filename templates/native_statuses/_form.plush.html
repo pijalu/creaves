@@ -1,7 +1,7 @@
 <%= f.InputTag("ID") %>
-<%= f.InputTag("Status") %>
-<%= f.InputTag("Indication") %>
-<%= f.CheckboxTag("Freeable", {unchecked: false}) %>
-<%= f.InputTag("Precision") %>
+<%= f.InputTag("Status", {label:"Status"}) %>
+<%= f.InputTag("Indication", {label:"Indication"}) %>
+<%= f.CheckboxTag("Freeable", {label:"Freeable", unchecked: false}) %>
+<%= f.InputTag("Precision", {label:"Precision"}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Save</button>

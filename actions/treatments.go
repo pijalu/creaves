@@ -397,7 +397,7 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	// Every entry of the submission was already recorded: the form was
 	// double-submitted. Warn the user and redirect without creating anything.
 	if created == 0 && len(treatments) > 0 && (verrs == nil || !verrs.HasAny()) {
-		return duplicateSubmissionRedirect(c, "treatment.duplicate.prevented", "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
+		return duplicateSubmissionRedirect(c, "treatment.duplicate.prevented", "/animals/%v/#nav-plan", treatmentTemplate.AnimalID)
 	}
 
 	if verrs.HasAny() {
@@ -425,8 +425,10 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 			// and redirect to the show page
 			return c.Redirect(http.StatusSeeOther, back)
 		}
-		// and redirect to the animal page
-		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
+		// and redirect to the animal page (protocol tab — it hosts the
+		// legacy-treatments journal since the Treatment tab retired,
+		// bugs.md 2026-10-27 #2)
+		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-plan", treatmentTemplate.AnimalID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, r.JSON(treatments))
 	}).Wants("xml", func(c buffalo.Context) error {

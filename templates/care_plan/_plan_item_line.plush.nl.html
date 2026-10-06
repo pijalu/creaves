@@ -17,9 +17,12 @@
                    page separates its per-day entries by kind with
                    .plan-kind-separator titles instead.
 
-    Layout: <ℹ> <animal> | <title> | <toggle 1><toggle 2>… on ONE line —
-    the .plan-med-row zebra + compact font, the tinted animal cell, the day
-    word as a badge. Late/missing rows colour the line red
+    Layout (bugs.md 2026-10-06 #7 — the care table MUST read like the
+    medication table): <animal> <ℹ> <title> | <toggle 1><toggle 2>… on ONE
+    line — the animal cell FIRST (the same column order as the medication
+    rows), then the ℹ lead, sized by the SAME shared per-page animal-column
+    width (view.MedAnimalColCh). The .plan-med-row zebra + compact font,
+    the day word as a badge. Late/missing rows colour the line red
     (.plan-item-late / .plan-item-missing) and keep the status text for
     assistive technology.
 
@@ -43,16 +46,16 @@
     share a .plan-item-slot parent — `_apply_toggle` pairs buttons with
     `btn.parentNode.querySelector(...)`, so a shared parent per occurrence
     is a hard requirement, not a style choice. %>
-<div class="plan-med-line plan-item-line plan-med-row plan-item-<%= card.Status %>">
-  <div class="plan-med-lead">
-    <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
-      data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
-      data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
-      data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
-      data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
-  </div>
+<%# Bug 2026-10-27 #4: the wrapper adopts the medication ROW layout classes
+    (d-flex align-items-start flex-wrap + border-bottom py-1) — the care
+    group=animal table must read like the medication table, same cell
+    rhythm, same row rule. plan-item-<status> still colours the line. %>
+<div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-<%= card.Status %>">
   <%= if (showAnimal) { %>
-  <div class="plan-med-animal" title="<%= card.AnimalLabel %>">
+  <%# Bug 2026-10-06 #7: the animal cell leads the line — the SAME column
+      order as the medication rows — and shares the page's computed animal
+      column width so both tables' cells align down the page. %>
+  <div class="plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch" title="<%= card.AnimalLabel %>">
     <%= if (card.AnimalLink != "") { %>
       <a href="<%= card.AnimalLink %>"><%= card.AnimalYear %></a>
     <% } else { %>
@@ -63,14 +66,24 @@
     <span class="plan-loc"><%= card.Cage %> · <%= tbase("zones", "zone", card.Zone) %> · <%= tspecies(card.Species) %></span>
   </div>
   <% } %>
+  <div class="plan-med-lead">
+    <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+      data-animal-label="<%= card.AnimalLabel %>" data-animal-link="<%= card.AnimalLink %>"
+      data-detail="<%= card.Detail %>" data-source-name="<%= card.SourceName %>" data-source-link="<%= card.SourceLink %>"
+      data-kind="<%= card.ActionKind %>" data-due="<%= dueLabel(card.DueHM, card.DueDayKey, card.DueShortDate) %>"
+      data-status="<%= card.Status %>" data-remaining="<%= card.RemainingCap %>">ℹ</button>
+  </div>
   <div class="plan-med-label">
     <%= if (card.Detail != "") { %>
       <%# R8-2: a title-shaped source name beside its own title reads twice —
           keep the TITLE only, and make IT the protocol link. %>
       <%= if (card.SourceNameRedundant) { %>
-        <strong><a href="<%= card.SourceLink %>"><%= card.Detail %></a></strong>
+        <%# Bug 2026-10-27 #4: text-info on the task text — a DISTINCT task
+            colour (the feeding page's diet-label treatment), so the task
+            no longer reads in the same colour as the animal cell. %>
+        <strong class="text-info"><a href="<%= card.SourceLink %>"><%= card.Detail %></a></strong>
       <% } else { %>
-        <strong><%= card.Detail %></strong>
+        <strong class="text-info"><%= card.Detail %></strong>
         <small class="text-muted"><a href="<%= card.SourceLink %>"><%= card.SourceName %></a></small>
       <% } %>
     <% } else { %>
@@ -114,6 +127,11 @@
                 data-tier-class="<%= slot.TierClass %>"
                 title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
             <% } else if (slot.LateAllowed) { %>
+              <%# Bug 2026-10-06 #4: the late-recordable toggle speaks the SAME
+                  ○ to-do glyph as every other actionable control (the old
+                  `–` read as an unexplained different button); the tooltip
+                  and the confirm dialog carry the "record late" semantics
+                  and the submit sends late:true (bugs.md 2026-10-06 #5). %>
               <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
                 data-source-type="<%= card.SourceType %>"
                 data-source-id="<%= card.SourceID %>"
@@ -124,7 +142,7 @@
                 data-animal-label="<%= card.AnimalLabel %>"
                 data-detail="<%= card.Detail %>"
                 data-source-name="<%= card.SourceName %>"
-                title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueHM %></button>
+                title="<%= t("care_plan.treatment.record_late") %>">○ <%= slot.DueHM %></button>
               <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
                 data-source-type="<%= card.SourceType %>"
                 data-source-id="<%= card.SourceID %>"
@@ -134,8 +152,10 @@
                 data-tier-class="<%= slot.TierClass %>"
                 title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
             <% } else { %>
-              <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn" disabled
-                title="<%= t("care_plan.status." + slot.Status) %>">– <%= slot.DueHM %></button>
+              <%# Bug 2026-10-06 #4/#5: hors délai = NO action affordance. The
+                  dead disabled button is replaced by a non-interactive lock
+                  marker (§10-A1) at toggle size. %>
+              <span class="plan-item-locked plan-med-state" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒 <%= slot.DueHM %></span>
             <% } %>
           </span>
         </span>

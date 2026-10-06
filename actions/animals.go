@@ -722,12 +722,11 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 	}
 	treatDays := animalTreatmentDays(treatPlan, animal)
 	c.Set("animalTreatmentDays", treatDays)
-	// R4-7.23: the Treatment tab body renders the medication series
-	// alone, so only the days that HAVE one can be shown there — a day
-	// card with an empty body under a count is worse than no card. The
-	// Protocol tab keeps the unfiltered list (it lists the
-	// non-medication items too), so no work is lost.
-	c.Set("animalMedicationDays", medicationOnlyDays(treatDays))
+	// Bugs.md 2026-10-27 #2: the Treatment tab is retired — the show page
+	// renders the FULL day list (medication series + non-medication items)
+	// on the protocol tab, so the old medication-only projection
+	// (medicationOnlyDays) has no renderer any more. The function stays
+	// (tested); nothing consumes the filtered list.
 	c.Set("planActionKinds", planActionKinds())
 	// Structured editors (bugs.md U17): caretype/drug dropdown data.
 	return setPlanEditorData(c, tx)

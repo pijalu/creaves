@@ -8,7 +8,7 @@
             <p>Étape 0: Nombre d'animaux</p>
         </div>
         <div class="stepwizard-step">
-            <a href="#step-1" type="button" class="btn btn-default btn-circle disabled" >1</a>
+            <a href="#step-1" type="button" class="btn btn-default btn-circle disabled">1</a>
             <p>Étape 1: Remplir les informations sur l'animal</p>
         </div>
         <div class="stepwizard-step">
@@ -483,6 +483,9 @@
                     <%= f.InputTag("Discovery.Discoverer.Phone", {type: "tel", placeholder:"+32470112233", bootstrap:{form-group-class:"form-group col-md-6"}, label:"Téléphone"}) %>
                     </div>
 
+                    <div class="form-row">
+                        <%= f.TextAreaTag("Discovery.Discoverer.Note", {rows: 2, bootstrap:{form-group-class:"form-group col-md-12"}, label:"Note"}) %>
+                    </div>
 
                     <div class="form-row">
                         <%= if (!current_user.IsRestricted()) { %>
@@ -609,7 +612,7 @@
                 </a>
                 <div class="collapse" id="Remarks">
                     <div class="card card-body">
-                        <textarea class="form-control col-md-12" id="animal-Intake.Parasites" name="Intake.Remarks" rows="5"></textarea>
+                        <textarea class="form-control col-md-12" id="animal-Intake.Remarks" name="Intake.Remarks" rows="5"></textarea>
                     </div>
                 </div>
                 </div>

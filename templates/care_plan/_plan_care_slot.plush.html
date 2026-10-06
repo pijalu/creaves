@@ -1,0 +1,62 @@
+<%# ONE cleanup occurrence slot — the shared toggle pair behind
+    `_plan_care_line`'s per-animal cage lines (bug 2026-10-27 #5) and its
+    group=animal rows. Extracted from the former single inline loop so the
+    two branch layouts render identical toggles from ONE source.
+
+    Context (inherited from `_plan_care_line`): ccard — the CareView row;
+    slot — the ItemSlotView occurrence; group — "cage" | "animal" (labels
+    the undo batch targets). The time label is ALWAYS on: the day badge
+    ("02/01" / "tomorrow") when the occurrence is not today, then HH:MM —
+    the bare-○ single-animal cage case is gone (spacer + Apply-all).
+
+    §2.3 med-parity glyphs (○ to-do · ✓ done); tier colour via slotTierClass,
+    data-tier-class for the undo restore. ONE .plan-item-slot parent per
+    occurrence — `_apply_toggle` pairs buttons with
+    btn.parentNode.querySelector, so a shared parent per occurrence is a
+    hard requirement, not a style choice. %>
+<span class="plan-item-slot">
+  <%= if (slot.Applicable) { %>
+    <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup"
+      data-tier-class="<%= slot.TierClass %>"
+      data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+      data-detail="<%= ccard.SourceName %>"
+      data-source-name="<%= ccard.SourceName %>"
+      title="<%= t("care_plan.apply.action") %>">○ <%= if (slot.DueShortDate != "") { %><%= slot.DueShortDate %> <% } else if (slot.DueDayKey != "") { %><%= t(slot.DueDayKey) %> <% } %><%= slot.DueHM %></button>
+    <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup"
+      data-tier-class="<%= slot.TierClass %>"
+      title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
+  <% } else if (slot.LateAllowed) { %>
+    <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup" data-late="true"
+      data-tier-class="<%= slot.TierClass %>"
+      data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+      data-detail="<%= ccard.SourceName %>"
+      data-source-name="<%= ccard.SourceName %>"
+      title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueHM %></button>
+    <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup"
+      data-tier-class="<%= slot.TierClass %>"
+      title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
+  <% } else { %>
+    <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn" disabled
+      title="<%= t("care_plan.status." + slot.Status) %>">– <%= slot.DueHM %></button>
+  <% } %>
+</span>

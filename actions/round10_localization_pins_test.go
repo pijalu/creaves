@@ -3,6 +3,7 @@ package actions
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,9 +15,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Round 10 (docs/round-10-full-assessment.md) pins. Each finding below
-// shipped broken and was found by crawling all screens in all four
-// languages; the pins keep the class of bug out.
+// B10-1: applied timestamps stay machine-readable in markup and must be
+// formatted by browser locale/timezone on every supported template fork.
+func TestAppliedTimestampsUseBrowserLocalizationInAllLocales(t *testing.T) {
+	for _, path := range []string{
+		"../templates/animals/show.plush.html",
+		"../templates/animals/show.plush.fr.html",
+		"../templates/animals/show.plush.de.html",
+		"../templates/animals/show.plush.nl.html",
+		"../templates/treatments/show.plush.html",
+		"../templates/treatments/show.plush.fr.html",
+		"../templates/treatments/show.plush.de.html",
+		"../templates/treatments/show.plush.nl.html",
+		"../templates/care_plan/index.plush.html",
+		"../templates/care_plan/index.plush.fr.html",
+		"../templates/care_plan/index.plush.de.html",
+		"../templates/care_plan/index.plush.nl.html",
+		"../templates/care_plan/_plan_history_table.plush.html",
+		"../templates/care_plan/_plan_history_table.plush.fr.html",
+		"../templates/care_plan/_plan_history_table.plush.de.html",
+		"../templates/care_plan/_plan_history_table.plush.nl.html",
+	} {
+		raw, err := os.ReadFile(path)
+		require.NoError(t, err)
+		markup := string(raw)
+		if strings.Contains(path, "animals/show") {
+			require.Contains(t, markup, "data-applied-at=", path)
+			require.Contains(t, markup, "toLocaleTimeString(undefined", path)
+		} else if strings.Contains(path, "treatments/show") {
+			require.Contains(t, markup, "datetime=", path)
+			require.Contains(t, markup, "toLocaleTimeString(undefined", path)
+		} else if strings.Contains(path, "_plan_history_table") {
+			require.Contains(t, markup, "AppliedAtRFC", path)
+			require.Contains(t, markup, "js-local-time", path)
+		} else {
+			require.Contains(t, markup, "js-local-time", path)
+			require.Contains(t, markup, "toLocaleTimeString(undefined", path)
+		}
+	}
+}
 
 // R10-1: /discoveries/new + /discoveries/{id}/edit returned 500 in every
 // locale — the form is bound to the Discovery model itself, so

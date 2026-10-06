@@ -184,13 +184,22 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		require.Contains(t, out, "Citramox — 0.5 ml", f)
 		require.Contains(t, out, "✓ 08:00", f)            // applied, undoable
 		require.Contains(t, out, "plan-med-unapply", f)   // undo hook present (R3-5 renamed)
-		require.Contains(t, out, "data-late=\"true\"", f) // late-recordable dimmed
-		require.Contains(t, out, "– 09:00", f)            // late button
-		require.Contains(t, out, "○ 12:00", f)            // open apply
-		require.Contains(t, out, "plan-med-apply", f)     // apply hook present (R3-5 renamed)
-		require.Contains(t, out, "⊘ 12:30", f)            // skipped
-		require.Contains(t, out, "⏸ 13:00", f)            // deferred
-		require.Contains(t, out, "– 10:00", f)            // out of window, locked
+		require.Contains(t, out, "data-late=\"true\"", f) // late-recordable
+		// Bug 2026-10-06 #4: the late-recordable toggle speaks the SAME ○
+		// to-do glyph as every other actionable control (no `–` anywhere).
+		require.Contains(t, out, "○ 09:00", f)        // late button (to-do glyph)
+		require.Contains(t, out, "○ 12:00", f)        // open apply
+		require.Contains(t, out, "plan-med-apply", f) // apply hook present (R3-5 renamed)
+		// Bug 2026-10-06 #4: terminal states are non-interactive markers at
+		// toggle size — never oversized disabled buttons.
+		require.Contains(t, out, "⊘ 12:30", f) // skipped marker
+		require.Contains(t, out, "⏸ 13:00", f) // deferred marker
+		require.Contains(t, out, "plan-med-state", f)
+		// Bug 2026-10-06 #5: hors délai = NO action affordance — a lock
+		// marker keeps the slot's place in the series.
+		require.Contains(t, out, "🔒 10:00", f)      // out of window, locked
+		require.Contains(t, out, "plan-med-locked", f) // lock marker hook
+		require.NotContains(t, out, ">– ", f)          // the old dimmed glyph is gone
 		require.Contains(t, out, "plan-med-bucket", f) // LABELLED bucket divider (R4-2.4)
 		require.NotContains(t, out, "<%= for (", f, "unrendered plush tag")
 		require.Contains(t, out, `data-animal-id="1"`, f, "apply hooks carry the animal")
