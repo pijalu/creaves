@@ -226,6 +226,78 @@ re-record (documented delta); cleanup tab renders the scheduled time groups
 and count overlays.
 
 
+---
+
+### B10-8 — "Abused" medications (cleanings, casts, checks…) should be cares, not observations
+
+**Reported:** 2026-10-06 ("the fistule and similar 'abused' medication should
+become cares").
+
+**Symptom:** the legacy `treatments.drug` column carries many NON-drug entries
+("Nettoyage Fistule", cast/bandage changes, "Voir dent", douches…). The
+converter routed those unknown-drug series to observation plans, which ask a
+yes/no question instead of recording a performed care.
+
+**Fixed:** commit 55b5d0b (2026-10-06). Converter routes wound-care +
+unknown-drug series to CARE plans typed "Soin" (payload note = the legacy
+drug line + site, instructions = remarks); known drug without posology stays
+observation; no caretype → legacy observation routing. Migration
+`20261026110000_b10_8_abused_medication_to_care` re-kinded the 22 existing
+converted plans (Traitement — → Soin —). Superseded matcher understands the
+care core (note/instructions). E2E: 8635 protocol tab groups the entry under
+Care; `/care_plan?kind=care` renders + toggles the converted plans.
+
+---
+
+### B10-9 — Work-screen entries older than the 8 h window still render
+
+**Reported:** 2026-10-06 (`/care_plan?kind=medication` "and other").
+
+**Symptom:** occurrences older than the per-kind 8 h caps
+(`preferences.late_show_hours`) still appear on the work screen.
+
+**Status:** OPEN — not investigated yet.
+
+**Investigation pointers:** the caps live in `actions/preferences.go`
+(`applyPreferenceCaps`, applied per item in `CarePlanIndex` —
+actions/care_plan.go:81-97). Candidate gaps to check: (1) the tier
+distribution `fillTierBuckets`/`slotTierClass` may still list LATE items the
+caps kept yesterday-side (window starts today-1, `planWindowPastDays = 1`);
+(2) the History tier deliberately shows terminal rows — confirm the complaint
+is about OPEN late rows, not history; (3) the JSON branch
+(`narrowPlanByKind`) applies NO caps by design; (4) verify the seeded
+preference rows are actually loaded (`preferencesByKind`) for the request —
+a missing row means "no cap".
+
+---
+
+### B10-10 — Cleanup cage grouping: batch button should speak the time-toggle language and collapse like feeding
+
+**Reported:** 2026-10-06 (`/care_plan?kind=cleanup&group=cage`).
+
+**Symptom:** a cleanup cage row renders one `○ HH:MM` toggle PER ANIMAL under
+each time-group label — the time repeats once per animal, and the row has no
+collapse, so a 12-animal cage shows 12 identical times.
+
+**Expected (user spec):** follow the feeding row pattern — ONE batch button
+for the whole cage group that CARRIES the time (repeat the toggle-with-time
+nomenclature: `○ HH:MM` applied for all), a collapsible header with the
+count/earliest time, and the per-animal buttons inside the expanded list.
+"Avoid repeats of time" — the time is stated ONCE per group.
+
+**Status:** OPEN — not started.
+
+**Implementation pointers:** feeding's pattern is
+`_plan_tier_feed_table.plush.html` (collapsible `.plan-feed-header` +
+`foldChipsByTime` time-groups + `.plan-feeding-apply` batch button with the
+`plan-apply-count` corner overlay); cleanup rows are `_plan_care_line.plush.html`
++ `careViewsOf`/`careAnimalViewsOf` in actions/care_plan_viewmodel.go. The
+batch endpoint (`/care_plan/apply_batch`) already handles the whole cage in
+one call per source. Glyph pins to update: `care_plan_round7_todo_glyph_test.go`
+(`plan-cage-apply` currently expects the bare fa-clock — B10-10 gives it a
+time) and the phase0b golden baselines.
+
+
 ## Archived rounds
 
 | Round | File |
