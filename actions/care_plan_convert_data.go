@@ -412,38 +412,7 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 	if err != nil {
 		return err
 	}
-	type series struct {
-		animalID int
-		drug     string
-		dosage   string
-		remarks  string
-		bitmap   int
-		first    time.Time
-		last     time.Time
-		dates    map[string]bool
-	}
-	groups := map[string]*series{}
-	order := []string{}
-	for _, t := range rows {
-		key := fmt.Sprintf("%d|%s|%s|%d", t.AnimalID, t.Drug, t.Dosage, t.Timebitmap)
-		s, ok := groups[key]
-		if !ok {
-			s = &series{
-				animalID: t.AnimalID, drug: t.Drug, dosage: t.Dosage,
-				remarks: t.Remarks.String, bitmap: t.Timebitmap,
-				first: t.Date, last: t.Date, dates: map[string]bool{},
-			}
-			groups[key] = s
-			order = append(order, key)
-		}
-		if t.Date.Before(s.first) {
-			s.first = t.Date
-		}
-		if t.Date.After(s.last) {
-			s.last = t.Date
-		}
-		s.dates[t.Date.Format("2006-01-02")] = true
-	}
+	groups, order := groupTreatmentSeries(rows)
 	report.Treatments.Series = len(groups)
 
 	for _, key := range order {
@@ -456,48 +425,7 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 		label := fmt.Sprintf("animal %d", s.animalID)
 
 		// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped.
-		// Known drug + dosage → medication plan (verbatim dosage).
-		// Wound care, unknown drug, or empty dosage → observation plan
-		// flagged "(à vérifier)" so the workflow survives without inventing
-		// a posology.
-		_, knownDrug := known[NormalizeDiet(s.drug)]
-		asMedication := s.drug != models.WoundCareDrugName && knownDrug && strings.TrimSpace(s.dosage) != ""
-
-		var name, kind string
-		var payload []byte
-		var reason string
-		switch {
-		case asMedication:
-			name = "Traitement — " + s.drug
-			kind = careplan.KindMedication
-			payload = []byte(buildSeedPayload(seedRuleDef{
-				Kind: careplan.KindMedication, Drug: s.drug, Dosage: s.dosage, Note: s.remarks,
-			}, ""))
-			reason = fmt.Sprintf("série %s → plan médication", s.drug)
-		case s.drug == models.WoundCareDrugName:
-			name = "Soin de plaie (conversion) (à vérifier)"
-			kind = careplan.KindObservation
-			payload = observationPayload("Soin de plaie — contrôle", s.remarks)
-			reason = "série soin de plaie → plan observation (à vérifier)"
-		case !knownDrug:
-			// B10-6: the dosage of a legacy treatment series is often the
-			// application SITE ("Dessus oeil droit") — the converter used to
-			// drop it, so the protocol lost precision the treatment row
-			// still showed. Carry it into the prompt.
-			prompt := s.drug
-			if strings.TrimSpace(s.dosage) != "" {
-				prompt = s.drug + " (" + s.dosage + ")"
-			}
-			name = "Traitement — " + prompt + " (à vérifier)"
-			kind = careplan.KindObservation
-			payload = observationPayload(prompt, s.remarks)
-			reason = fmt.Sprintf("drug inconnu — converti en observation, à vérifier (%s)", s.drug)
-		default: // known drug, empty dosage
-			name = "Traitement — " + s.drug + " (à vérifier)"
-			kind = careplan.KindObservation
-			payload = observationPayload(s.drug, s.remarks)
-			reason = fmt.Sprintf("série %s sans posologie — converti en observation, à vérifier", s.drug)
-		}
+		name, kind, payload, reason := treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
 
 		p := &models.CareAnimalPlan{
 			AnimalID:      s.animalID,
@@ -540,6 +468,99 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 	return nil
 }
 
+// treatmentSeries groups the future-dated treatments into conversion
+// series keyed by (animal × drug × dosage × bitmap) — the converter's
+// unit of work (§8.1).
+type treatmentSeries struct {
+	animalID int
+	drug     string
+	dosage   string
+	remarks  string
+	bitmap   int
+	first    time.Time
+	last     time.Time
+	dates    map[string]bool
+}
+
+// groupTreatmentSeries folds the rows into their series, insertion-ordered.
+func groupTreatmentSeries(rows []models.Treatment) (map[string]*treatmentSeries, []string) {
+	groups := map[string]*treatmentSeries{}
+	order := []string{}
+	for _, t := range rows {
+		key := fmt.Sprintf("%d|%s|%s|%d", t.AnimalID, t.Drug, t.Dosage, t.Timebitmap)
+		s, ok := groups[key]
+		if !ok {
+			s = &treatmentSeries{
+				animalID: t.AnimalID, drug: t.Drug, dosage: t.Dosage,
+				remarks: t.Remarks.String, bitmap: t.Timebitmap,
+				first: t.Date, last: t.Date, dates: map[string]bool{},
+			}
+			groups[key] = s
+			order = append(order, key)
+		}
+		if t.Date.Before(s.first) {
+			s.first = t.Date
+		}
+		if t.Date.After(s.last) {
+			s.last = t.Date
+		}
+		s.dates[t.Date.Format("2006-01-02")] = true
+	}
+	return groups, order
+}
+
+// treatmentSeriesRouting is the M5 series router (B10-8): known drug +
+// dosage → medication plan (verbatim dosage); wound care and unknown drug
+// → CARE plan typed "Soin" — the legacy "drug" column carries many
+// NON-drug entries (fistula cleaning, casts, bandage changes, checks…)
+// and those fulfill as cares, not observations. A KNOWN drug without
+// posology stays a flagged observation: the product is real, the schedule
+// needs human verification. Without a resolvable caretype the legacy
+// observation routing is kept (the converter never breaks).
+func treatmentSeriesRouting(tx *pop.Connection, known map[string]struct{}, drug, dosage, remarks string) (name, kind string, payload []byte, reason string) {
+	_, knownDrug := known[NormalizeDiet(drug)]
+	careTypeID := convertedCareTypeID(tx)
+	switch {
+	case drug != models.WoundCareDrugName && knownDrug && strings.TrimSpace(dosage) != "":
+		return "Traitement — " + drug, careplan.KindMedication,
+			[]byte(buildSeedPayload(seedRuleDef{
+				Kind: careplan.KindMedication, Drug: drug, Dosage: dosage, Note: remarks,
+			}, "")),
+			fmt.Sprintf("série %s → plan médication", drug)
+	case drug == models.WoundCareDrugName && careTypeID != "":
+		return "Soin de plaie (conversion) (à vérifier)", careplan.KindCare,
+			carePayloadJSON(careTypeID, "Soin de plaie — contrôle", remarks),
+			"série soin de plaie → plan soin (conversion)"
+	case !knownDrug && careTypeID != "":
+		// B10-6: the dosage of a legacy treatment series is often the
+		// application SITE ("Dessus oeil droit") — carry it into the
+		// content line.
+		prompt := drug
+		if strings.TrimSpace(dosage) != "" {
+			prompt = drug + " (" + dosage + ")"
+		}
+		return "Soin — " + prompt + " (à vérifier)", careplan.KindCare,
+			carePayloadJSON(careTypeID, prompt, remarks),
+			fmt.Sprintf("médication abusive — converti en soin, à vérifier (%s)", drug)
+	case drug == models.WoundCareDrugName:
+		return "Soin de plaie (conversion) (à vérifier)", careplan.KindObservation,
+			observationPayload("Soin de plaie — contrôle", remarks),
+			"série soin de plaie → plan observation (à vérifier, pas de caretype)"
+	case !knownDrug:
+		prompt := drug
+		if strings.TrimSpace(dosage) != "" {
+			prompt = drug + " (" + dosage + ")"
+		}
+		return "Traitement — " + prompt + " (à vérifier)", careplan.KindObservation,
+			observationPayload(prompt, remarks),
+			fmt.Sprintf("drug inconnu — converti en observation, à vérifier (%s)", drug)
+	default: // known drug, empty dosage
+		return "Traitement — " + drug + " (à vérifier)", careplan.KindObservation,
+			observationPayload(drug, remarks),
+			fmt.Sprintf("série %s sans posologie — converti en observation, à vérifier", drug)
+	}
+}
+
 // knownDrugNames loads the drugs table once, case-folded for comparison.
 func knownDrugNames(tx *pop.Connection) (map[string]struct{}, error) {
 	var drugs []models.Drug
@@ -559,6 +580,32 @@ func observationPayload(prompt, note string) []byte {
 	m := map[string]any{"prompt": prompt}
 	if strings.TrimSpace(note) != "" {
 		m["note"] = note
+	}
+	return []byte(marshalSeed(m))
+}
+
+// convertedCareTypeID resolves the "Soin" caretype the converter attaches
+// to care plans built from non-drug treatment series (B10-8). Falls back
+// to the seeded default caretype; "" when no reference data resolves —
+// the caller then keeps the legacy observation routing.
+func convertedCareTypeID(tx *pop.Connection) string {
+	var ct models.Caretype
+	if err := tx.Where("name = ?", "Soin").First(&ct); err == nil {
+		return ct.ID.String()
+	}
+	if id, err := defaultCareType(tx); err == nil {
+		return id.String()
+	}
+	return ""
+}
+
+// carePayloadJSON builds the §4.2 care payload of a converted plan: the
+// content line rides in note (planDetail renders note || instructions),
+// the legacy remarks move to instructions.
+func carePayloadJSON(caretypeID, note, instructions string) []byte {
+	m := map[string]any{"caretype_id": caretypeID, "note": note}
+	if strings.TrimSpace(instructions) != "" {
+		m["instructions"] = instructions
 	}
 	return []byte(marshalSeed(m))
 }

@@ -49,6 +49,15 @@ func TestB10_6TreatmentSupersededByPlan(t *testing.T) {
 			Schedule:      sched,
 			Active:        true,
 		},
+		// B10-8: a converter-made CARE plan (abused medication converted)
+		// carries the legacy drug line in note — its core matches too.
+		{
+			ID:            uuid.Must(uuid.NewV4()),
+			ActionKind:    "care",
+			ActionPayload: []byte(`{"caretype_id":"soin","note":"Nettoyage Fistule (Dessus oeil droit)"}`),
+			Schedule:      sched,
+			Active:        true,
+		},
 		// Caretaker-authored plan with the same core: NEVER auto-dedupes.
 		{
 			ID:            uuid.Must(uuid.NewV4()),

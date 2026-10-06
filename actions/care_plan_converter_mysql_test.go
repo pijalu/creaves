@@ -283,20 +283,35 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 
 	// M5 routing: the three edge series became flagged OBSERVATION plans
 	// (observation payload requires a "prompt"; medication requires dosage).
-	assertObservationPlan := func(animalID int, nameLike string) models.CareAnimalPlan {
+	// B10-8: unknown-drug and wound-care series convert to CARE plans
+	// typed "Soin" (the legacy drug column carried non-drug entries); a
+	// KNOWN drug without posology stays a flagged observation.
+	assertConvertedPlan := func(animalID int, nameLike, wantKind string) models.CareAnimalPlan {
 		var p models.CareAnimalPlan
 		require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", animalID, nameLike).First(&p))
 		require.Contains(t, p.Name, "(à vérifier)")
-		var payload struct {
-			Prompt string `json:"prompt"`
+		require.Equal(t, wantKind, p.ActionKind, "routing kind")
+		if wantKind == careplan.KindCare {
+			var payload struct {
+				CaretypeID   string `json:"caretype_id"`
+				Note         string `json:"note"`
+				Instructions string `json:"instructions"`
+			}
+			require.NoError(t, json.Unmarshal(p.ActionPayload, &payload))
+			require.NotEmpty(t, payload.CaretypeID, "care plan must carry its caretype")
+			require.NotEmpty(t, payload.Note, "care plan must carry the content line in note")
+		} else {
+			var payload struct {
+				Prompt string `json:"prompt"`
+			}
+			require.NoError(t, json.Unmarshal(p.ActionPayload, &payload))
+			require.NotEmpty(t, payload.Prompt, "observation plan must carry a prompt")
 		}
-		require.NoError(t, json.Unmarshal(p.ActionPayload, &payload))
-		require.NotEmpty(t, payload.Prompt, "observation plan must carry a prompt")
 		return p
 	}
-	assertObservationPlan(fx.animalIDs[10], "Traitement — Produit inconnu XYZ%")
-	assertObservationPlan(fx.animalIDs[11], "Soin de plaie (conversion)%")
-	assertObservationPlan(fx.animalIDs[12], "Traitement — Ivomec 1% (à vérifier)")
+	assertConvertedPlan(fx.animalIDs[10], "Soin — Produit inconnu XYZ%", careplan.KindCare)
+	assertConvertedPlan(fx.animalIDs[11], "Soin de plaie (conversion)%", careplan.KindCare)
+	assertConvertedPlan(fx.animalIDs[12], "Traitement — Ivomec 1% (à vérifier)", careplan.KindObservation)
 
 	// No medication plan may exist for the unknown drug (invented dosage).
 	n, err := db.Where("animal_id = ? AND name = ?", fx.animalIDs[10], "Traitement — Produit inconnu XYZ").Count(&models.CareAnimalPlan{})
@@ -468,7 +483,7 @@ func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
 		Name string `db:"name"`
 	}
 	require.NoError(t, db.RawQuery(
-		"SELECT name FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Traitement — Prodiplas%'",
+		"SELECT name FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Soin — Prodiplas%'",
 		animalID).All(&names))
 	require.Len(t, names, 2,
 		"both case-variant series must convert to distinct plans (utf8mb4_0900_ai_ci collision)")
@@ -476,9 +491,10 @@ func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
 	for _, n := range names {
 		got[n.Name] = true
 	}
-	// B10-6: the series dosage ("oreille") rides in the converted name.
-	require.True(t, got["Traitement — ProdiplasT-T (oreille) (à vérifier)"])
-	require.True(t, got["Traitement — Prodiplast-T (oreille) (à vérifier)"])
+	// B10-6: the series dosage ("oreille") rides in the converted content
+	// line; B10-8: unknown drugs convert to CARE plans ("Soin — …").
+	require.True(t, got["Soin — ProdiplasT-T (oreille) (à vérifier)"])
+	require.True(t, got["Soin — Prodiplast-T (oreille) (à vérifier)"])
 
 	// Re-run after marker wipe: still exactly two plans (idempotency holds
 	// with the binary collation too).
@@ -490,7 +506,7 @@ func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
 		C int64 `db:"c"`
 	}
 	require.NoError(t, db.RawQuery(
-		"SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Traitement — Prodiplas%'",
+		"SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL AND name LIKE 'Soin — Prodiplas%'",
 		animalID).All(&c))
 	require.Equal(t, int64(2), c[0].C, "idempotent re-run must not duplicate either plan")
 }

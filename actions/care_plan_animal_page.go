@@ -633,12 +633,42 @@ func animalPlanLegacyDrugs(plan *DayPlan, animal *models.Animal, superseded map[
 // startup converter turned future treatment series into care-animal plans
 // but left the source rows live, so the Treatment tab showed the same
 // requirement twice and the legacy copy still read as active work.
-// Matching is by normalized drug name — the converter's observation plans
-// carry the drug as payload prompt, its medication plans as payload drug.
-// Past treatments stay untouched (they are history, never hidden), and
-// caretaker-authored plans never auto-dedupe anything.
+// Matching is by normalized content core — the converter's plans carry the
+// legacy drug line in the payload per kind (medication drug, observation
+// prompt, care note — B10-8), matched against the treatment's bare drug OR
+// its "drug (dosage)" composite. Past treatments stay untouched (they are
+// history, never hidden), and caretaker-authored plans never auto-dedupe
+// anything.
 func treatmentSupersededByPlan(plans models.CareAnimalPlans, animal *models.Animal, today time.Time) map[string]bool {
 	superseded := map[string]bool{}
+	cores := convertedPlanCores(plans)
+	if len(cores) == 0 {
+		return superseded
+	}
+	for i := range animal.Treatments {
+		t := &animal.Treatments[i]
+		if t.Date.Before(today) {
+			continue
+		}
+		// The converted plan core may carry the application site — the
+		// converted content line after the dosage enrichment is "Drug
+		// (site)" while the treatment stores the site in the dosage
+		// column. Match the bare drug OR the "drug (dosage)" composite
+		// (same keys the today-card dedupe indexes).
+		if cores[normalizeWorkLabel(t.Drug)] ||
+			(strings.TrimSpace(t.Dosage) != "" &&
+				cores[normalizeWorkLabel(t.Drug+" ("+t.Dosage+")")]) {
+			superseded[t.ID.String()] = true
+		}
+	}
+	return superseded
+}
+
+// convertedPlanCores collects the identifying content core of every ACTIVE
+// converter-made plan (B10-6), per kind: medication drug, observation
+// prompt, care note (falling back to instructions — B10-8 converted cares
+// carry the legacy drug line there).
+func convertedPlanCores(plans models.CareAnimalPlans) map[string]bool {
 	cores := map[string]bool{}
 	for i := range plans {
 		p := &plans[i]
@@ -651,33 +681,20 @@ func treatmentSupersededByPlan(plans models.CareAnimalPlans, animal *models.Anim
 		}
 		payload := parsePlanPayload(src)
 		core := payload.Drug
-		if p.ActionKind == careplan.KindObservation {
+		switch p.ActionKind {
+		case careplan.KindObservation:
 			core = payload.Prompt
+		case careplan.KindCare:
+			core = payload.Note
+			if strings.TrimSpace(core) == "" {
+				core = payload.Instructions
+			}
 		}
 		if core = normalizeWorkLabel(core); core != "" {
 			cores[core] = true
 		}
 	}
-	if len(cores) == 0 {
-		return superseded
-	}
-	for i := range animal.Treatments {
-		t := &animal.Treatments[i]
-		if t.Date.Before(today) {
-			continue
-		}
-		// The converted plan core may carry the application site — the
-		// observation prompt after the dosage enrichment is "Drug (site)"
-		// while the treatment stores the site in the dosage column. Match
-		// the bare drug OR the "drug (dosage)" composite (same keys the
-		// today-card dedupe indexes).
-		if cores[normalizeWorkLabel(t.Drug)] ||
-			(strings.TrimSpace(t.Dosage) != "" &&
-				cores[normalizeWorkLabel(t.Drug+" ("+t.Dosage+")")]) {
-			superseded[t.ID.String()] = true
-		}
-	}
-	return superseded
+	return cores
 }
 
 // animalPlanTodayKind reports whether the action kind shows on the
