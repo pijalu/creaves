@@ -66,6 +66,10 @@ var phase0bVolatile = []struct {
 	// Every due-time label (HH:MM) derives from the fixture's wall-clock
 	// "now", so it differs between the baseline run and the check run.
 	{regexp.MustCompile(`\b\d{2}:\d{2}\b`), "HHMM"},
+	// Day-qualifier badges ("DD/MM", DueLabelPartsOf) drift with the wall
+	// clock the same way the HH:MM labels do — a baseline recorded
+	// yesterday fails today on the "later" tier alone. Mask them.
+	{regexp.MustCompile(`\b\d{2}/\d{2}\b`), "DDMM"},
 	// The medication SLOT BUCKET word rides on toggle titles
 	// (`title="Apply — Noon"`, `title="Evening"`) and flips when the
 	// wall clock crosses a bucket boundary between runs — same structural
@@ -216,6 +220,9 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //     verified 0-diff outside the history block on all 4 kind tabs.
 //   - Toggle buttons lose the hardcoded btn-outline-secondary (colour now
 //     comes from the tier policy, §2).
+//   - B10-7: scheduled cleanup occurrences within the future horizon render
+//     as open work — the cleanup baseline gained the "tomorrow HHMM" time
+//     group and its ○/✓ slots; feeding/medication/observation 0-diff.
 func TestCarePlanPhase0bDOMEquivalence(t *testing.T) {
 	f, client, baseURL := planFixtureRich(t)
 	_ = f

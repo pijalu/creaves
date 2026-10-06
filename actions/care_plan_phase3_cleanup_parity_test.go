@@ -127,17 +127,19 @@ func TestPhase3CleanupRendersTieredSections(t *testing.T) {
 	// §3: ONE cage row for the fixture's 2-animal cage — the time sub-group
 	// label once, one ○ toggle per occurrence (maskVolatile turns every
 	// HH:MM into HHMM, so "○ HHMM" is one rendered apply toggle).
+	// B10-7: the scheduled tomorrow/day-after occurrences (2 animals × 2
+	// days) render too — the daily rule yields 2 due-now + 4 scheduled.
 	require.Contains(t, raw, "plan-cage-row plan-care-row",
 		"cleanup rows render through the shared care-line partial")
 	require.Contains(t, raw, "plan-time-group")
 	require.Contains(t, raw, "plan-time-label")
-	require.Equal(t, 2, strings.Count(raw, "○ HHMM"),
-		"one ○ toggle per occurrence in the 2-animal cage row")
+	require.Equal(t, 6, strings.Count(raw, "○ HHMM"),
+		"one ○ toggle per occurrence: 2 due-now + 4 scheduled within the horizon")
 
 	// The group check (batch apply-cage) survives the parity rework.
 	require.Contains(t, raw, "plan-cage-apply",
 		"the apply-cage batch button stays on the cage row")
-	require.Contains(t, raw, `plan-apply-count">2`,
+	require.Contains(t, raw, `plan-apply-count">6`,
 		"the corner pill counts the row's applicable occurrences")
 }
 

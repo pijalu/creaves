@@ -526,7 +526,7 @@
         <a class="badge badge-warning mr-1" href="#care-tier-1">
           "Now"
           <span class="badge badge-pill badge-light ml-1">
-            "2"
+            "6"
           </span>
         </a>
       </div>
@@ -616,7 +616,7 @@
               "Now"
             </span>
             <span class="badge badge-pill badge-warning">
-              "2"
+              "6"
             </span>
             <span class="plan-tier-chevron">
               <i class="fas fa-chevron-down">
@@ -671,15 +671,67 @@
                         </span>
                       </span>
                     </div>
+                    <div class="plan-time-group">
+                      <div class="plan-time-label" title="Scheduled time">
+                        "tomorrow HHMM"
+                        <span class="badge badge-pill badge-light ml-1">
+                          "2"
+                        </span>
+                      </div>
+                      <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+                        <span class="plan-item-slot">
+                          <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                        <span class="plan-item-slot">
+                          <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                      </span>
+                    </div>
+                    <div class="plan-time-group">
+                      <div class="plan-time-label" title="Scheduled time">
+                        "DDMM HHMM"
+                        <span class="badge badge-pill badge-light ml-1">
+                          "2"
+                        </span>
+                      </div>
+                      <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+                        <span class="plan-item-slot">
+                          <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                        <span class="plan-item-slot">
+                          <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                            "○ HHMM"
+                          </button>
+                          <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                            "✓ HHMM"
+                          </button>
+                        </span>
+                      </span>
+                    </div>
                   </td>
                   <td class="text-nowrap plan-feed-check">
                     <span class="position-relative d-inline-block">
-                      <button aria-label="Apply cage (2)" class="btn btn-warning plan-cage-apply" data-cage="CP-MARKER" data-items="[{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"}]" data-source-name="RCLN-DOM-MARKER" title="Apply cage" type="button">
+                      <button aria-label="Apply cage (6)" class="btn btn-warning plan-cage-apply" data-cage="CP-MARKER" data-items="[{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"}]" data-source-name="RCLN-DOM-MARKER" title="Apply cage" type="button">
                         <i class="far fa-clock">
                         </i>
                       </button>
                       <span class="badge badge-pill badge-secondary plan-apply-count">
-                        "2"
+                        "6"
                       </span>
                     </span>
                   </td>

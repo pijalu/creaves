@@ -378,7 +378,7 @@ type CareView struct {
 	// merged Slots, which read them from the card).
 	SourceType      string
 	SourceID        string
-	Count           int    // open, non-scheduled occurrences on the row
+	Count           int    // open, applicable occurrences on the row
 	ChipRefsJSON    string // JSON item refs of the applicable items (data-items)
 	ApplicableCount int
 	LateCount       int // applicable occurrences already past due (late tier)
@@ -1389,9 +1389,10 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string)
 		chip := fc.Chips[i]
 		// Superseded chips stay as dimmed info chips (§6.2-3, CP5): the
 		// animal's next occurrence is visible without being work. Only
-		// OPEN CURRENT occurrences are actionable.
-		if !chip.Superseded && (!openStatusAction(careplan.PlanStatus(chip.Status)) ||
-			chip.Status == string(careplan.StatusScheduled)) {
+		// OPEN occurrences are actionable — including scheduled ones within
+		// the future horizon (B10-7): they reach the builder only after the
+		// per-kind caps kept them in the plan.
+		if !chip.Superseded && !openStatusAction(careplan.PlanStatus(chip.Status)) {
 			continue
 		}
 		chip.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
@@ -1489,8 +1490,9 @@ func foldChipsByTime(chips []FeedingChip) []FeedingTimeGroup {
 // (cage × diet, bugs.md U1) with its deduped chips (§6.2-3) in the default
 // cage grouping — or ONE row per (animal × diet) under group=animal, with
 // the same per-occurrence toggle (§4.2). Unfiltered; §7.2 stage 3 filters
-// in one pass. OPEN work only: superseded and scheduled chips stay off the
-// work cards (superseded ones resurface in the history section, WP4).
+// in one pass. OPEN work only: superseded chips stay off the work cards
+// (superseded ones resurface in the history section, WP4); scheduled
+// occurrences within the future horizon render as open work (B10-7).
 func feedingViewsOf(plan *DayPlan, selfPath, group string) []FeedingGroupView {
 	_, feedings := GroupCards(plan.Items, plan)
 	// CP4 honesty: open CURRENT feeding occurrences per (source × animal)
@@ -1550,9 +1552,12 @@ func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent ma
 
 // careItemCounts folds one cleanup item into its row (late / applicable
 // counters) and returns its batch ref. Returns false when the item is not
-// applicable open work (scheduled never renders).
+// applicable open work. B10-7: scheduled occurrences REACH the builder only
+// when they survived the per-kind future cap (CarePlanIndex applies the caps
+// before the view model), so they render as open work — the tab must not go
+// empty while work is planned within the horizon.
 func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) (map[string]interface{}, bool) {
-	if !openStatusAction(it.Status) || it.Status == careplan.StatusScheduled || !it.Applicable {
+	if !openStatusAction(it.Status) || !it.Applicable {
 		return nil, false
 	}
 	if it.Status == careplan.StatusLate || it.Status == careplan.StatusMissing {
@@ -1571,7 +1576,8 @@ func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) 
 // (source × cage) in the default cage grouping — the cage keeps its batch
 // apply (bugs.md U6) — or ONE row per (source × animal) under
 // group=animal. Every row carries its open occurrences as time-grouped
-// toggle slots (§3). Unfiltered; applicable, non-scheduled items only.
+// toggle slots (§3). Unfiltered; applicable items only — including the
+// scheduled ones the future cap kept (B10-7).
 func careViewsOf(plan *DayPlan, selfPath, group string) []CareView {
 	cares, _ := GroupCards(plan.Items, plan)
 	if group == "animal" {
