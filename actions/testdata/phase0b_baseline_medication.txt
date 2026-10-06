@@ -640,7 +640,7 @@
           <div class="collapse show plan-tier-body" id="tier-now-rows">
             <div class="px-2 py-1">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-                <div class="mr-2 py-1 plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
+                <div class="py-1 plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-plan">
                     "YEARNUM"
                   </a>
@@ -689,7 +689,7 @@
           <div class="collapse plan-tier-body" id="tier-done-rows">
             <div class="px-2 py-1">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-                <div class="mr-2 py-1 plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
+                <div class="py-1 plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-plan">
                     "YEARNUM"
                   </a>

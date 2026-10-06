@@ -83,7 +83,7 @@ func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 		// B10-2: the cell no longer forces text-nowrap — the loc line
 		// (Cage · Zone · Espèce) wraps beneath the year like the sibling
 		// tables' animal cells.
-		require.Equal(t, 1, strings.Count(raw, `class="mr-2 py-1 plan-med-animal"`), f+
+		require.Equal(t, 1, strings.Count(raw, `class="py-1 plan-med-animal"`), f+
 			": the ONE shared medication tier body carries the animal cell")
 		// Bug 2026-10-27 #3a: the ONE page-wide width is WIRED AGAIN — R9's
 		// removal let every cell size its own content and the labels stopped

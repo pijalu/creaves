@@ -284,8 +284,11 @@ func TestToDoGlyphDoesNotReflowTheButtonGroup(t *testing.T) {
 		require.Contains(t, css, "."+c,
 			"the to-do control ."+c+" must be in the width-pinned rule")
 	}
-	require.Contains(t, css, "min-width: 2.1rem",
-		"the to-do controls must keep the footprint of the check they replaced")
+	// Bug 2026-10-07 #3: the R4-3.2 fixed-width grid contract was extended
+	// to EVERY time-carrying toggle — one 5.6rem width for ○/✓ controls on
+	// the day plan and the animal Protocol tab alike.
+	require.Contains(t, css, "min-width: 5.6rem",
+		"every time-carrying toggle keeps the same fixed width (the check it replaced)")
 }
 
 // TestToDoControlIsNeverGreen: green is reserved for "applied". An apply

@@ -127,7 +127,11 @@ func TestPhase3CleanupRendersTieredSections(t *testing.T) {
 	require.Contains(t, raw, "plan-time-label")
 	require.Equal(t, 6, strings.Count(raw, `plan-item-slot-btn plan-apply-btn"`),
 		"one apply toggle per occurrence: 2 due-now + 4 scheduled within the horizon")
-	require.Equal(t, 3, strings.Count(raw, "○ HHMM"), "multi-animal cage applies carry per-animal time and batch button carries earliest time")
+	// Bug 2026-10-07 review: the day qualifier travels as a plan-med-day
+	// badge NEXT TO the control — every toggle (and the batch button) keeps
+	// the fixed-width "○ HH:MM" label, so the count can only grow.
+	require.GreaterOrEqual(t, strings.Count(raw, "○ HHMM"), 3,
+		"multi-animal cage toggles and the batch button carry the fixed-width per-occurrence time")
 
 	// The group check (batch apply-cage) survives the parity rework.
 	require.Contains(t, raw, "plan-cage-apply",
@@ -227,8 +231,13 @@ func TestPhase3CleanupTogglePairContract(t *testing.T) {
 	// §2.3 med-parity glyphs: ○ to-do / ✓ done on the toggle pair — the
 	// time label is UNCONDITIONAL: the only toggle-free mode (single-animal
 	// cage) never reaches the partial (spacer + Apply-all instead).
-	require.Contains(t, slot, `title="<%= t("care_plan.apply.action") %>">○ <%= if (slot.DueShortDate != "")`,
-		"slot partial: the per-animal apply toggle carries the day-qualified time in every mode")
+	// Bug 2026-10-07 review: the day qualifier travels as a plan-med-day
+	// badge NEXT TO the toggle (the medication/item-line treatment) — the
+	// toggle itself keeps the fixed-width ○ HH:MM label in every mode.
+	require.Contains(t, slot, `plan-med-day`,
+		"slot partial: non-today slots carry the day badge next to the toggle")
+	require.Contains(t, slot, `>○ <%= slot.DueHM %></button>`,
+		"slot partial: the apply toggle keeps the fixed-width ○ HH:MM label")
 	require.Contains(t, slot, `title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>`,
 		"slot partial: the undo toggle speaks the ✓ done glyph")
 
@@ -338,7 +347,10 @@ func TestPhase3BatchApplyCageFlipsTheWholeRow(t *testing.T) {
 		require.Contains(t, raw, `<tr class="plan-cage-row plan-care-row"`,
 			fork+": the cleanup row stays a <tr> — flipBatchRow's scope")
 		require.Contains(t, raw, `○ <%= if (ccard.FirstTimeShortDate != "")`, fork+": group apply button carries its time")
-		require.Contains(t, raw, `if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1))`, fork+": animal-mode and multi-animal cages get the per-animal layout (collapse + lines); a single-animal cage skips the collapse — nothing to expand")
+		// Bug 2026-10-07 review: group=animal rows are ONE animal each — they
+		// render OPEN (R4-7.14c: a one-animal list has nothing to expand).
+		// Only a multi-animal CAGE row collapses.
+		require.Contains(t, raw, `if (ccard.Collapsible && group != "animal" && ccard.AnimalCount > 1)`, fork+": multi-animal cages get the per-animal layout (collapse + lines); single-animal cages and every group=animal row skip the collapse — nothing to expand")
 		require.Contains(t, raw, `class="plan-feed-header" data-toggle="collapse" data-target="#care-slots-`, fork+": multi-slot cage cleanup rows collapse")
 		require.Contains(t, raw, `for (line) in tg.AnimalLines`, fork+": multi-animal cage rows render one line per animal")
 		require.Contains(t, raw, `<a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>">`, fork+": each animal line names its animal")

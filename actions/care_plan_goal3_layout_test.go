@@ -39,5 +39,7 @@ func TestGoal3LayoutAndFeedingTierNavigationAcrossLocales(t *testing.T) {
 	care := readTemplate(t, "../templates/care_plan/_plan_care_line.plush.html")
 	require.Contains(t, care, `class="plan-med-animal plan-care-animal"`)
 	med := readTemplate(t, "../templates/care_plan/_plan_med_row.plush.html")
-	require.Contains(t, med, `class="mr-2 py-1 plan-med-animal"`)
+	// Bug 2026-10-07 #2: the animal-cell gap lives in the shared SCSS class
+	// (margin-right), not in a per-template margin class.
+	require.Contains(t, med, `class="py-1 plan-med-animal"`)
 }

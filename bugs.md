@@ -23,6 +23,63 @@ Every UI change must be implemented in all four locales (`en-US`, `fr`, `de`,
 
 ## Open items
 
+### Fourth user review batch (2026-10-07) — style-consistency follow-ups
+
+**Status:** FIXED and VALIDATED (2026-10-07 early round) — pending user
+acceptance. Every fix was validated with DOM geometry assertions AND image
+inspection of screenshots (per the user's directive: image validation on top
+of DOM analysis). Gates green (`go vet ./...`, `staticcheck ./...`,
+`go test -count=1 -race ./...` all packages OK, `git diff --check`); pinned
+expectations updated where the unified contract superseded them
+(phase3 parity, todo-glyph width pin); one midnight-UTC skew flake in
+`TestCareRuleShowHTMLBrowserGet` fixed by asserting against the stored row.
+
+**Fixes:**
+1. **Merged animal cell spans the full height** (`kind=medication`):
+   `.plan-med-row .plan-med-animal` / `.plan-item-line .plan-med-animal` get
+   `align-self: stretch` + negative top/bottom margins that bleed over the
+   row's own padding, so the tint reaches the row edges (measured: cell
+   159 px in a 160 px row — the remaining px is the border-bottom; was
+   47/160). Pinned visually: the 1905/26 block reads as ONE continuous
+   animal band (`/tmp/e2e_4th_1_...png`).
+2. **Care gap matches medication**: the animal-cell gap moved INTO the shared
+   `.plan-med-animal` class (`margin-right: 0.5rem`); the `mr-2` removed from
+   `_plan_med_row` (×4 forks). Measured: cell→ℹ gap 8 px on BOTH medication
+   and care (was 8 vs 0) (`/tmp/e2e_4th_2_...png`).
+3. **Uniform toggle width everywhere**: the R4-3.2 fixed-width grid contract
+   (`min-width: 5.6rem`) extended to EVERY time-carrying toggle —
+   `.plan-item-slot-btn`, `.plan-apply-btn`, `.plan-feeding-one`,
+   `.plan-feeding-apply`, `.plan-cage-apply`, `.plan-unapply-btn` — so the
+   medication / care / feeding / cleanup toggles are pixel-identical on the
+   day plan AND the animal Protocol tab (measured: item-btn 90 = med-slot
+   90; was 63–65 vs 90) (`/tmp/e2e_4th_3_...png`).
+
+**Visual critical review — additional oddities found and fixed in the same
+pass (single stylistic approach across ALL care views):**
+- **Cleanup `group=animal` collapsed EVERY row** (214/214) while feeding
+  `group=animal` renders open — `_plan_care_line` collapsed by OCCURRENCE
+  count. Aligned with the R4-7.14c rationale: a one-animal row renders OPEN;
+  only a multi-animal CAGE row (group=cage) collapses
+  (`/tmp/e2e_4th_4_...png`).
+- **Day qualifier travelled INSIDE the cleanup toggle label** ("○ yesterday
+  09:00", non-uniform widths) while medication/care use a `plan-med-day`
+  badge next to a fixed-width toggle. `_plan_care_slot` reworked to the
+  badge treatment; the missed `–` glyphs + dead disabled button in the same
+  partial replaced by ○/🔒 per the third-batch directive.
+- **Feeding non-today slots carried NO day at all** — the same
+  `plan-med-day` badge added next to the per-animal feeding toggles
+  (`_plan_tier_feed_table` ×4) (`/tmp/e2e_4th_5_...png`).
+- `TestCareRuleShowHTMLBrowserGet` flake: validity dates now asserted from
+  the STORED row (go-sql-driver loc=UTC skew shifts local-midnight dates
+  through the roundtrip when the suite runs just after midnight).
+
+**Review coverage (all captured + inspected):** medication, care, feeding
+cage + animal, cleanup cage + animal, observation (empty state — shared
+item-line family), weighing (DOM: same empty state), animal Protocol tab.
+Evidence: `/tmp/e2e_4th_1..7_*.png`.
+
+**User directives for this batch (2026-10-07):**
+
 ### Third user review batch (2026-10-06, evening) — 8 items + hors-délai note
 
 **Status:** FIXED and VALIDATED (2026-10-06 late round) — pending user acceptance

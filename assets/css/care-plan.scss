@@ -50,10 +50,24 @@
 .plan-feeding-one,
 .plan-feeding-apply,
 .plan-cage-apply {
-  min-width: 2.1rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+// Bug 2026-10-07 #3: EVERY time-carrying toggle gets the SAME fixed width —
+// the R4-3.2 grid contract (○ HH:MM ⇄ ✓ HH:MM never reflows) extended from
+// the medication series to the item lines, the feed/cage tables and the
+// undo siblings, so medication / care / feeding / cleanup buttons read
+// identical on the day plan AND the animal Protocol tab. Secondary glyph
+// controls (ℹ / ⏭ / 🚫) keep their compact size on purpose.
+.plan-med-btn,
+.plan-item-slot-btn,
+.plan-apply-btn,
+.plan-feeding-one,
+.plan-feeding-apply,
+.plan-cage-apply,
+.plan-unapply-btn {
+  min-width: 5.6rem;
 }
 
 // R4-7.14: the GROUP check ("apply every animal in this cage") sat top-aligned
@@ -229,6 +243,36 @@
   background-color: #fdf2f3;
   border-radius: 2px;
   padding-left: 0.35rem;
+  // Bug 2026-10-07 #2: the distance to the text after the cell is part of
+  // the ONE animal-cell treatment — owned here, not by a per-template
+  // margin class (the old mr-2 on the medication row made the care table's
+  // gap collapse to 0). Margins on table cells are ignored, so the grouped
+  // feed/cage tables are unaffected.
+  margin-right: 0.5rem;
+}
+// Bug 2026-10-07 #1: the animal cell is the animal's "line" — its tint
+// spans the FULL height of the (merged) row instead of hugging its own
+// text, so a multi-series block like 1905/26 reads as one continuous band.
+// Applies to both line families (medication rows and item lines).
+.plan-med-row .plan-med-animal,
+.plan-item-line .plan-med-animal {
+  align-self: stretch;
+}
+// The tint must reach the row edges: bleed over the row's own vertical
+// padding (py-1 on medication rows, 0.35rem on item-line bands) and keep
+// the text off the edges via the cell's own padding. The bottom stop is
+// the row's 1px border-bottom.
+.plan-med-row .plan-med-animal {
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+.plan-item-line .plan-med-animal {
+  margin-top: -0.35rem;
+  margin-bottom: -0.35rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.35rem;
 }
 .plan-med-btns {
   // ONE right-aligned button group that wraps: one line when it fits (A),

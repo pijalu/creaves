@@ -62,7 +62,12 @@
     </td>
   <% } %>
   <td class="plan-care-slots">
-    <%= if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1)) { %>
+    <%# Bug 2026-10-07 review: under group=animal EVERY row is ONE animal —
+          the R4-7.14c rationale (a one-animal list has nothing to expand, a
+          closed list hides the work) applies, so the row renders OPEN like
+          the feeding group=animal rows. Only a multi-animal CAGE row
+          (group=cage) collapses. %>
+    <%= if (ccard.Collapsible && group != "animal" && ccard.AnimalCount > 1) { %>
       <div class="plan-feed-header" data-toggle="collapse" data-target="#care-slots-<%= ti %>-<%= ri %>" aria-expanded="false" role="button" tabindex="0" title="<%= t("care_plan.feeding.show_animals") %>">
         <span class="badge badge-pill badge-light plan-feed-count"><%= ccard.AnimalCountCap %></span>
         <span class="plan-feed-when"><% if (len(ccard.TimeGroups) > 1) { %>+<%= len(ccard.TimeGroups) - 1 %><% } %></span>
@@ -109,7 +114,7 @@
         </div>
       <% } %>
     <% } %>
-    <%= if (ccard.Collapsible && (group == "animal" || ccard.AnimalCount > 1)) { %>
+    <%= if (ccard.Collapsible && group != "animal" && ccard.AnimalCount > 1) { %>
       </div>
     <% } %>
   </td>

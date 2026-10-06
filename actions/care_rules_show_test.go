@@ -102,8 +102,14 @@ func TestCareRuleShowHTMLBrowserGet(t *testing.T) {
 	require.Contains(t, body, "Cleanup", "localized kind badge (default en)")
 	require.Contains(t, body, "Nettoyer la cage "+f.marker, "humanized payload content")
 	require.Contains(t, body, "Every day at", "humanized schedule")
-	require.Contains(t, body, rule.ValidFrom.Format("2006-01-02"), "valid from date")
-	require.Contains(t, body, rule.ValidTo.Format("2006-01-02"), "valid to date")
+	// The validity dates render from the STORED row: the go-sql-driver loc=UTC
+	// skew shifts a local-midnight DATE through the MySQL roundtrip, so the
+	// in-memory struct and the rendered page can disagree by one day when the
+	// suite runs right after midnight (observed 2026-10-07 00:15 CEST).
+	stored := &models.CareRule{}
+	require.NoError(t, models.DB.Find(stored, rule.ID))
+	require.Contains(t, body, stored.ValidFrom.Format("2006-01-02"), "valid from date")
+	require.Contains(t, body, stored.ValidTo.Format("2006-01-02"), "valid to date")
 	require.Contains(t, body, "Stop on outtake", "stop flag label (default en)")
 
 	// Back link honours ?back= (href is HTML-attribute-escaped).

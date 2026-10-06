@@ -719,8 +719,11 @@
                             "YEARNUM"
                           </a>
                           <span class="plan-item-slot">
+                            <span class="badge badge-light border plan-med-day" title="RFC">
+                              "tomorrow"
+                            </span>
                             <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                              "○ tomorrow HHMM"
+                              "○ HHMM"
                             </button>
                             <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                               "✓ HHMM"
@@ -732,8 +735,11 @@
                             "YEARNUM"
                           </a>
                           <span class="plan-item-slot">
+                            <span class="badge badge-light border plan-med-day" title="RFC">
+                              "tomorrow"
+                            </span>
                             <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                              "○ tomorrow HHMM"
+                              "○ HHMM"
                             </button>
                             <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                               "✓ HHMM"
@@ -747,8 +753,11 @@
                             "YEARNUM"
                           </a>
                           <span class="plan-item-slot">
+                            <span class="badge badge-light border plan-med-day" title="RFC">
+                              "DDMM"
+                            </span>
                             <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                              "○ DDMM HHMM"
+                              "○ HHMM"
                             </button>
                             <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                               "✓ HHMM"
@@ -760,8 +769,11 @@
                             "YEARNUM"
                           </a>
                           <span class="plan-item-slot">
+                            <span class="badge badge-light border plan-med-day" title="RFC">
+                              "DDMM"
+                            </span>
                             <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="CP-MARKER" data-detail="RCLN-DOM-MARKER" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-name="RCLN-DOM-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                              "○ DDMM HHMM"
+                              "○ HHMM"
                             </button>
                             <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="cleanup" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                               "✓ HHMM"

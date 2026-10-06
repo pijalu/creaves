@@ -661,7 +661,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="yesterday HHMM" data-kind="observation" data-remaining="3" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -675,11 +675,24 @@
                 </div>
                 <div class="plan-med-btns">
                   <span class="plan-med-cell">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "yesterday"
+                    </span>
                     <span class="plan-item-slot">
                       <button class="btn btn-danger btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-danger" title="Apply" type="button">
                         "○ HHMM"
                       </button>
                       <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-danger" title="Undo" type="button">
+                        "✓ HHMM"
+                      </button>
+                    </span>
+                  </span>
+                  <span class="plan-med-cell">
+                    <span class="plan-item-slot">
+                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                        "○ HHMM"
+                      </button>
+                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                         "✓ HHMM"
                       </button>
                     </span>
@@ -722,7 +735,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="yesterday HHMM" data-kind="observation" data-remaining="3" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -736,11 +749,24 @@
                 </div>
                 <div class="plan-med-btns">
                   <span class="plan-med-cell">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "yesterday"
+                    </span>
                     <span class="plan-item-slot">
                       <button class="btn btn-danger btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-danger" title="Apply" type="button">
                         "○ HHMM"
                       </button>
                       <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-danger" title="Undo" type="button">
+                        "✓ HHMM"
+                      </button>
+                    </span>
+                  </span>
+                  <span class="plan-med-cell">
+                    <span class="plan-item-slot">
+                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                        "○ HHMM"
+                      </button>
+                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                         "✓ HHMM"
                       </button>
                     </span>
@@ -1053,7 +1079,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="DDMM HHMM" data-kind="observation" data-remaining="0" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -1066,6 +1092,19 @@
                   </span>
                 </div>
                 <div class="plan-med-btns">
+                  <span class="plan-med-cell">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "tomorrow"
+                    </span>
+                    <span class="plan-item-slot">
+                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                        "○ HHMM"
+                      </button>
+                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                        "✓ HHMM"
+                      </button>
+                    </span>
+                  </span>
                   <span class="plan-med-cell">
                     <span class="badge badge-light border plan-med-day" title="RFC">
                       "DDMM"
@@ -1091,7 +1130,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="DDMM HHMM" data-kind="observation" data-remaining="0" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="tomorrow HHMM" data-kind="observation" data-remaining="1" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-F-MARKER" data-status="scheduled" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -1104,6 +1143,19 @@
                   </span>
                 </div>
                 <div class="plan-med-btns">
+                  <span class="plan-med-cell">
+                    <span class="badge badge-light border plan-med-day" title="RFC">
+                      "tomorrow"
+                    </span>
+                    <span class="plan-item-slot">
+                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-F-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
+                        "○ HHMM"
+                      </button>
+                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
+                        "✓ HHMM"
+                      </button>
+                    </span>
+                  </span>
                   <span class="plan-med-cell">
                     <span class="badge badge-light border plan-med-day" title="RFC">
                       "DDMM"

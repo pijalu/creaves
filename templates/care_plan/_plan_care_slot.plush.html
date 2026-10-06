@@ -5,9 +5,17 @@
 
     Context (inherited from `_plan_care_line`): ccard — the CareView row;
     slot — the ItemSlotView occurrence; group — "cage" | "animal" (labels
-    the undo batch targets). The time label is ALWAYS on: the day badge
-    ("02/01" / "tomorrow") when the occurrence is not today, then HH:MM —
-    the bare-○ single-animal cage case is gone (spacer + Apply-all).
+    the undo batch targets).
+
+    Bugs.md 2026-10-07 review — ONE stylistic approach with the
+    medication/item lines:
+      - the day qualifier travels as a `plan-med-day` badge NEXT TO the
+        button (never inside the label — the ○/✓ toggle keeps the same
+        fixed width everywhere);
+      - the late-recordable toggle speaks the SAME ○ to-do glyph (the old
+        `–` is gone); its title carries "record late";
+      - a hors-délai slot renders NO action — the non-interactive 🔒
+        marker (§10-A1), never a dead disabled button.
 
     §2.3 med-parity glyphs (○ to-do · ✓ done); tier colour via slotTierClass,
     data-tier-class for the undo restore. ONE .plan-item-slot parent per
@@ -15,6 +23,7 @@
     btn.parentNode.querySelector, so a shared parent per occurrence is a
     hard requirement, not a style choice. %>
 <span class="plan-item-slot">
+  <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span> <% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span> <% } %>
   <%= if (slot.Applicable) { %>
     <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
       data-source-type="<%= ccard.SourceType %>"
@@ -26,7 +35,7 @@
       data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
       data-detail="<%= ccard.SourceName %>"
       data-source-name="<%= ccard.SourceName %>"
-      title="<%= t("care_plan.apply.action") %>">○ <%= if (slot.DueShortDate != "") { %><%= slot.DueShortDate %> <% } else if (slot.DueDayKey != "") { %><%= t(slot.DueDayKey) %> <% } %><%= slot.DueHM %></button>
+      title="<%= t("care_plan.apply.action") %>">○ <%= slot.DueHM %></button>
     <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
       data-source-type="<%= ccard.SourceType %>"
       data-source-id="<%= ccard.SourceID %>"
@@ -46,7 +55,7 @@
       data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
       data-detail="<%= ccard.SourceName %>"
       data-source-name="<%= ccard.SourceName %>"
-      title="<%= t("care_plan.treatment.record_late") %>">– <%= slot.DueHM %></button>
+      title="<%= t("care_plan.treatment.record_late") %>">○ <%= slot.DueHM %></button>
     <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none"
       data-source-type="<%= ccard.SourceType %>"
       data-source-id="<%= ccard.SourceID %>"
@@ -56,7 +65,6 @@
       data-tier-class="<%= slot.TierClass %>"
       title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
   <% } else { %>
-    <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn" disabled
-      title="<%= t("care_plan.status." + slot.Status) %>">– <%= slot.DueHM %></button>
+    <span class="plan-item-locked plan-med-state" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒 <%= slot.DueHM %></span>
   <% } %>
 </span>
