@@ -41,6 +41,8 @@ round is closed.
 
 **Scope check:** history table, animal-page treatment tab done badges, dashboard done rows, care_plan history section — audit every `Format(` on applied/terminal timestamps.
 
+**Status:** OPEN (not part of round-10 fixes).
+
 ---
 
 ### B10-2 — Care plan per-animal rows do not show Zone / Cage / Espèce
@@ -67,6 +69,10 @@ aligned down the page.
 Zone/Cage but renders neither; `FeedingGroupView`/`CareView` animal-mode rows
 lack Species; `CardView` lacks Species.
 
+**Fixed:** commit ca432cc (2026-10-06) — plan §B10-2. E2E: animal-mode
+feeding/cleanup rows render "B1 · ACCUEIL · Cygne tuberculé"-style loc lines;
+history column renders; verified en-US/fr/de/nl.
+
 ---
 
 ### B10-3 — Feeding (and single-occurrence lines) use an icon-only "done" button instead of the toggle-with-time nomenclature
@@ -87,6 +93,10 @@ duplicate bare time text next to the button.
 
 **Evidence (code):** `_plan_tier_feed_table.plush.html` lines 122-137;
 `_plan_item_line.plush.html` lines 145-169 (single-occurrence variant).
+
+**Fixed:** commit ca432cc (2026-10-06) — plan §B10-3. E2E: toggle reads
+"○ 08:00", flips to "✓ 08:00" with row tint on click, undo restores; apply
++ undo round-trip executed in the browser.
 
 ---
 
@@ -112,6 +122,11 @@ opener script); `templates/care_plan/_med_series.plush.html` lines 54-58 (eye);
 `actions/care_plan_viewmodel.go` `cardAnimalLink` (line ~2366) and
 `medSlotFor` DeepLink (line ~1925).
 
+**Fixed:** commit ca432cc (2026-10-06) — plan §B10-4. E2E: ℹ popup opens in
+place (modal visible, fields filled); `.dash-med-view` count 0; animal link
+`/animals/8635?back=%2F&med=animal:…#nav-treatment` lands on the Treatment
+tab with the matching series line highlighted.
+
 ---
 
 ### B10-5 — Animal protocol tab: inconsistent entry style/size/alignment + redundant type bubble
@@ -134,6 +149,12 @@ day's entries separated per type by a separator row carrying the type title
 (`showKind: true`), `_plan_item_line.plush.html` lines 62-64 (the bubble),
 `_med_series.plush.html` line 42 (missing `plan-med-row`),
 `assets/css/care-plan.scss` lines 258-283/347-357 (the two families).
+
+**Fixed:** commit ca432cc (2026-10-06) — plan §B10-5. E2E: 0 kind badges;
+localized separators (fr "Nettoyage/Nourrissage/Observation", de, nl, en);
+med series lines share the .plan-med-row treatment. NOTE: the localized
+show.plush forks turned out to be LIVE per-locale templates — all fixes were
+ported to fr/de/nl forks, not only the EN file.
 
 ---
 
@@ -169,6 +190,12 @@ converted plan's label regains the dosage detail ("Nettoyage Fistule (Dessus
 oeil droit)") — both for the existing converted plans (data migration) and for
 future conversions (converter fix).
 
+**Fixed:** commits 4201099/ca432cc (2026-10-06) — plan §B10-6. Migration
+20261026100000_b10_6_converted_plan_dosage enriched 13 converted plans on the
+dev DB (8635 included), noise ("."/"?") filtered; E2E: 7 superseded rows on
+8635 (today+future) with the localized badge, past days render unchanged,
+protocol shows the enriched label.
+
 ---
 
 ### B10-7 — `/care_plan?kind=cleanup` empty although cleanup is scheduled within the 8 h future horizon
@@ -193,6 +220,10 @@ accepts applicable scheduled occurrences (`checkPlanApplyItem` — only
 **Expected:** scheduled occurrences that survived the per-kind future cap
 render as open work (toggle slots + batch refs) in the cleanup and feeding
 lists, consistent with the summary strip counts and the apply window.
+
+**Fixed:** commit 4201099 (2026-10-06) — plan §B10-7. Unit + golden-DOM
+re-record (documented delta); cleanup tab renders the scheduled time groups
+and count overlays.
 
 
 ## Archived rounds
