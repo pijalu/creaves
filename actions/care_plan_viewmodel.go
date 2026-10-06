@@ -61,6 +61,10 @@ type CardView struct {
 	AnimalLabel string
 	Zone        string
 	Cage        string
+	// B10-2: the per-animal loc line (Zone · Cage · Espèce) — species comes
+	// from the plan's display rows, already request-localized by
+	// localizePlanSpecies.
+	Species     string
 	DueAt       time.Time
 	// §6.2-5 date-aware due label parts (compose with t(): bare time only
 	// for today, day word yesterday/tomorrow, short date beyond).
@@ -190,6 +194,9 @@ type FeedingGroupView struct {
 	Cage            string
 	Food            string
 	ForceFeed       bool
+	// B10-2: group=animal rows carry the animal's species for the
+	// Zone · Cage · Espèce loc line (already request-localized).
+	Species         string
 	Chips           []FeedingChip
 	ApplicableCount int    // chips still applicable (apply-group button)
 	ChipRefsJSON    string // JSON item refs of the applicable chips (data-items)
@@ -269,10 +276,6 @@ type MedSlotView struct {
 	SourceLink      string
 	FulfillmentLink string
 	ViewLink        string // unconditional record/treatment view (R5-2b)
-	// Dash-7 (round-2 §8.2): dashboard eye deep-link — the animal page
-	// resolves the occurrence server-side and opens the shared detail
-	// modal on load (bookmarkable, no extra round-trip).
-	DeepLink string
 	// §6.2-2 (round-2, A1): past-due, unapplied, out-of-apply-window —
 	// the dimmed series button stays clickable and records the missed
 	// occurrence with the explicit late acknowledgment.
@@ -371,6 +374,9 @@ type CareTimeGroup struct {
 type CareView struct {
 	Zone       string
 	Cage       string
+	// B10-2: group=animal rows carry the animal's species for the
+	// Zone · Cage · Espèce loc line (already request-localized).
+	Species    string
 	SourceName string
 	SourceLink string
 	// SourceType/SourceID ride on every per-occurrence toggle (the apply
@@ -1536,6 +1542,7 @@ func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent ma
 			if a, ok := plan.AnimalRow(chip.AnimalID); ok {
 				row.AnimalLabel = animalLabel(a)
 				row.AnimalYear = a.YearNumberFormatted()
+				row.Species = a.Species
 			}
 			row.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
 			if chip.Applicable {
@@ -1636,6 +1643,7 @@ func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []Care
 				if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
 					cv.AnimalLabel = animalLabel(a)
 					cv.AnimalYear = a.YearNumberFormatted()
+					cv.Species = a.Species
 				}
 				cv.AnimalLink = cardAnimalLink(cv.AnimalID, selfPath)
 				cv.SourceLink = cardSourceLink(cv.SourceType, cv.SourceID, cv.AnimalID, selfPath)
@@ -1875,6 +1883,13 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 			return g.Slots[i].DueAt.Before(g.Slots[j].DueAt)
 		})
 		g.Series = seriesOf(g.Slots, order)
+		// B10-4: the animal link opens the Treatment tab scrolled to the
+		// row's FIRST series (the earliest medication requirement of the
+		// animal) — the popup ℹ carries the precise occurrence.
+		if len(g.Series) > 0 && len(g.Series[0].Rows) > 0 && len(g.Series[0].Rows[0].Slots) > 0 {
+			s0 := g.Series[0].Rows[0].Slots[0]
+			g.AnimalLink = cardAnimalTreatmentLink(g.AnimalID, back, s0.SourceType, s0.SourceID)
+		}
 		out = append(out, *g)
 	}
 	return out
@@ -1928,7 +1943,6 @@ func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
 	if slot.ViewLink == "" {
 		slot.ViewLink = animalTreatmentLink(it.Occurrence.AnimalID, back)
 	}
-	slot.DeepLink = animalItemDeepLink(it.Occurrence.AnimalID, string(src.SourceType()), src.SourceID(), slot.DueAtRFC)
 	return slot
 }
 
@@ -2224,19 +2238,6 @@ func betterSeriesSlot(s MedSlotView, have time.Time) bool {
 // label is care_plan.slot.tomorrow.
 const slotTomorrow = "tomorrow"
 
-// animalItemDeepLink builds the dashboard eye URL (Dash-7, §8.2): the
-// animal's Treatment tab (sibling-table #nav-* convention) plus the
-// occurrence reference (?item=&due=) the Show handler resolves
-// server-side to open the shared detail modal on load.
-func animalItemDeepLink(animalID int, srcType, srcID, dueRFC string) string {
-	q := url.Values{}
-	q.Set("item", srcType+":"+srcID)
-	if dueRFC != "" {
-		q.Set("due", dueRFC)
-	}
-	return fmt.Sprintf("/animals/%d?%s#nav-treatment", animalID, q.Encode())
-}
-
 // BuildDashboardMedView projects the dashboard "Medication today"
 // medication section (bugs.md R5-2a): the same per-animal slot cards as
 // the compact work screen, but in dashboard mode — today-only slots,
@@ -2322,6 +2323,7 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		cv.AnimalYear = a.YearNumberFormatted()
 		cv.Zone = a.Zone.String
 		cv.Cage = a.Cage.String
+		cv.Species = a.Species
 	}
 	cv.AnimalLink = cardAnimalLink(cv.AnimalID, v.SelfPath)
 	cv.SourceLink = cardSourceLink(cv.SourceType, cv.SourceID, cv.AnimalID, v.SelfPath)
@@ -2377,6 +2379,18 @@ func cardAnimalLink(animalID int, back string) string {
 		return ""
 	}
 	return fmt.Sprintf("/animals/%d?back=%s#nav-plan", animalID, url.QueryEscape(back))
+}
+
+// cardAnimalTreatmentLink targets the animal's Treatment tab scrolled to a
+// SPECIFIC medication series (B10-4): `?med=<source_type>:<source_id>` —
+// the show page activates the tab, opens the series' day card when it is a
+// future one, and highlights + scrolls to the matching `.plan-med-line`.
+func cardAnimalTreatmentLink(animalID int, back, srcType, srcID string) string {
+	if animalID == 0 {
+		return ""
+	}
+	return fmt.Sprintf("/animals/%d?back=%s&med=%s#nav-treatment",
+		animalID, url.QueryEscape(back), url.QueryEscape(srcType+":"+srcID))
 }
 
 // animalTreatmentLink targets the animal's Treatment tab — the fallback

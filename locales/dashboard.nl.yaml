@@ -14,8 +14,6 @@
   translation: "Behandelingen"
 - id: "dashboard.medication_today.to_give"
   translation: "te geven"
-- id: "dashboard.medication_today.view"
-  translation: "Record bekijken"
 - id: "dashboard.medication_today.none"
   translation: "Geen"
 

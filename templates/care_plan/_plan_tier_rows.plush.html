@@ -4,10 +4,10 @@
     partial data map.
 
     The day plan is multi-animal, so every line shows its tinted animal
-    cell (showAnimal) and no kind badge (showKind) — the whole page is
-    already filtered to ONE kind by the tab bar. %>
+    cell (showAnimal) — the whole page is already filtered to ONE kind by
+    the tab bar (B10-5: the per-line kind badge is gone). %>
 <div class="px-2">
   <%= for (card) in tierCards { %>
-    <%= partial("care_plan/plan_item_line.plush.html", {showAnimal: true, showKind: false, feedingEntry: false}) %>
+    <%= partial("care_plan/plan_item_line.plush.html", {showAnimal: true, feedingEntry: false}) %>
   <% } %>
 </div>

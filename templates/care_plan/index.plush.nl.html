@@ -65,6 +65,16 @@
      earliest time — so the closed state still says what is due rather than
      hiding it. */
   .plan-feed-animals { min-width: 12rem; }
+  /* B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the
+     animal identity, ONE muted shape on every per-animal row family; the
+     shared animal-column min-width keeps the stacked tables aligned.
+     Below lg the line collapses ("if space permits"). */
+  .plan-loc {
+    display: block; font-size: 0.78rem; color: #6c757d;
+    max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem; }
+  @media (max-width: 991.98px) { .plan-loc { display: none; } }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.15rem 0; cursor: pointer; user-select: none;

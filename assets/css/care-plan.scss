@@ -72,6 +72,34 @@
 .plan-feed-animals {
   min-width: 12rem;
 }
+
+// B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the animal
+// identity on EVERY per-animal row family (feeding/cleanup animal cells,
+// med rows, item lines, history column). ONE muted shape so the info reads
+// the same down the stacked tables; the shared min-width on the animal
+// columns keeps the tables aligned with each other. Below lg the line
+// collapses (the user's "if space permits" rule) — the identity stays.
+.plan-loc {
+  display: block;
+  font-size: 0.78rem;
+  color: #6c757d;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.plan-feed-animal,
+.plan-care-animal {
+  min-width: 11rem;
+}
+.plan-loc-col {
+  min-width: 11rem;
+}
+@media (max-width: 991.98px) {
+  .plan-loc {
+    display: none;
+  }
+}
 .plan-feed-header {
   display: flex;
   align-items: center;
@@ -268,6 +296,33 @@
   // R4-7.4: the first child must not touch the strip.
   margin-bottom: 0.25rem;
   border-radius: 2px;
+}
+
+// B10-5: the animal page's per-day entries are separated PER TYPE by a
+// small-caps title band — it replaces the per-line kind badge ("type
+// bubble") with one label per kind group.
+.plan-kind-separator {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6c757d;
+  border-top: 1px solid #e9ecef;
+  padding: 0.3rem 0.15rem 0.15rem;
+  margin-top: 0.35rem;
+}
+.plan-kind-separator:first-child {
+  border-top: 0;
+  margin-top: 0;
+  padding-top: 0.1rem;
+}
+
+// B10-6: a legacy treatment row (today/future) that an active converted
+// protocol plan already covers — the data stays, but the row reads muted
+// and carries the "covered by protocol" badge instead of action buttons.
+.plan-legacy-superseded {
+  background-color: #f8f9fa;
+  color: #6c757d;
 }
 
 .plan-item-late {

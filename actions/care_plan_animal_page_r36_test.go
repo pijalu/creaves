@@ -127,13 +127,15 @@ func TestAnimalTreatmentDaysAllKinds(t *testing.T) {
 	require.Len(t, days[0].Items, 1, "the care occurrence rides along")
 	require.Equal(t, careplan.KindCare, days[0].Items[0].ActionKind)
 	require.Equal(t, 1, days[0].OpenCount, "the open care item counts in the day badge")
-	// today: one series + observation + feeding items; open = 1 slot + 2 items.
+	// today: one series + feeding + observation items; open = 1 slot + 2 items.
+	// B10-5: the day's items are KIND-GROUPED (stable kind sort) so the
+	// template's .plan-kind-separator titles have contiguous groups.
 	require.Equal(t, "2026-10-02", days[1].DateKey)
 	require.Len(t, days[1].Group.Series, 1)
 	require.Len(t, days[1].Items, 2)
-	require.Equal(t, careplan.KindObservation, days[1].Items[0].ActionKind)
-	require.Equal(t, "Eating?", days[1].Items[0].Detail)
-	require.Equal(t, careplan.KindFeeding, days[1].Items[1].ActionKind)
+	require.Equal(t, careplan.KindFeeding, days[1].Items[0].ActionKind)
+	require.Equal(t, careplan.KindObservation, days[1].Items[1].ActionKind)
+	require.Equal(t, "Eating?", days[1].Items[1].Detail)
 	require.Equal(t, 3, days[1].OpenCount)
 }
 

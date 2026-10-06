@@ -43,14 +43,15 @@
     data-status="<%= ccard.GroupStatus %>">
   <%= if (group == "animal") { %>
     <%# §4.3: the tinted animal cell — year/number display, full label +
-        plan-tab link, the cage demoted to a muted caption. %>
+        plan-tab link, the B10-2 loc line (Cage · Zone · Espèce) that
+        collapses on narrow screens. %>
     <td class="plan-med-animal plan-care-animal" title="<%= ccard.AnimalLabel %>">
       <%= if (ccard.AnimalLink != "") { %>
         <a href="<%= ccard.AnimalLink %>"><strong><%= ccard.AnimalYear %></strong></a>
       <% } else { %>
         <strong><%= ccard.AnimalYear %></strong>
       <% } %>
-      <br><small class="text-muted"><%= ccard.Cage %></small>
+      <span class="plan-loc"><%= ccard.Cage %> · <%= tbase("zones", "zone", ccard.Zone) %> · <%= tspecies(ccard.Species) %></span>
       <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
     </td>
   <% } else { %>

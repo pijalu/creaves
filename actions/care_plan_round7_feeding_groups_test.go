@@ -160,10 +160,15 @@ func TestFeedingRowMarkupCollapsesAndFoldsTheTime(t *testing.T) {
 			f+": the chip list must come from a sub-group")
 		require.Contains(t, raw, `class="plan-time-label"`,
 			f+": the time needs a sub-group label")
-		require.NotContains(t, raw, "chip.DueHM",
-			f+": the per-chip time must be gone — it is what repeated")
+		// B10-3: the per-chip time is BACK — ON the toggle (○ HH:MM ⇄
+		// ✓ HH:MM, the §2.3 med-parity nomenclature), not as a repeated
+		// text annotation.
+		require.Contains(t, raw, `○ <%= chip.DueHM %>`,
+			f+": the per-chip toggle must carry the time (B10-3)")
+		require.Contains(t, raw, `✓ <%= chip.DueHM %>`,
+			f+": the per-chip undo must carry the time (B10-3)")
 		require.NotContains(t, raw, "plan-chip-due",
-			f+": no chip may carry its own time any more")
+			f+": no chip may carry its own time annotation any more")
 	}
 }
 

@@ -526,6 +526,32 @@
             <ul class="list-group list-group-flush">
               <%= for (row) in treatmentRows {%>
               <% let trt = row.Treatment %>
+              <%= if (!dateKey.Past && treatmentSupersededByPlan[trt.ID.String()]) { %>
+                <%# B10-6: TODAY + FUTURE treatment rows the protocol
+                    already covers render SUPERSEDED — muted label with
+                    the "covered by protocol" badge and NO action badges:
+                    the data stays, but the legacy copy no longer reads as
+                    active work (the protocol drives it). Past days keep
+                    rendering normally — they are history. %>
+                <li class="list-group-item plan-legacy-superseded">
+                  <div class="container">
+                    <div class="row">
+                      <div class="col-sm">
+                        <s><%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)</s>
+                        <span class="badge badge-light border ml-1" title="<%= t("care_plan.animal_plans.superseded_by_protocol_hint") %>"><%= t("care_plan.animal_plans.superseded_by_protocol") %></span>
+                        <%= if (trt.Remarks.Value() != "") {%>
+                          <p><em><%= trt.Remarks %></em></p>
+                        <%}%>
+                        <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
+                          <p class="mb-0 small">
+                            <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
+                          </p>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              <% } else { %>
               <li class="list-group-item">
                 <div class="container">
                   <div class="row">
@@ -632,6 +658,7 @@
                   </div>
                 </div>
               </li>
+              <% } %>
               <%}%>
               <%= if (dateKey.Current && len(animalPlanToday) > 0) { %>
               <%# U26 (fix 7): today's plan occurrences — same list-group
@@ -818,19 +845,30 @@
                 <div class="card-body py-2">
                   <%= if (len(day.Group.Series) > 0) { %>
                     <% let mg = day.Group %>
+                    <% let medSeriesRow = true %>
                     <%= partial("care_plan/med_series.plush.html") %>
                   <% } %>
+                  <%# B10-5: the day's non-medication entries are grouped
+                      PER TYPE — a .plan-kind-separator title band announces
+                      each kind group (the per-line "type bubble" is gone),
+                      and every entry renders through the SAME shared line
+                      component, so all entries share style/size/alignment. %>
+                  <% let lastKind = "" %>
                   <%= for (i, item) in day.Items { %>
+                    <%= if (item.ActionKind != lastKind) { %>
+                      <div class="plan-kind-separator"><%= t("care_plan.kind." + item.ActionKind) %></div>
+                      <% lastKind = item.ActionKind %>
+                    <% } %>
                     <%# Phase 5 / D5 (guideline §3/§4.3/§7): the day's
                         non-medication occurrences render through the SAME
                         shared line component as the day plan — ONE merged
                         line per requirement with tier-coloured toggles
                         (row state replaces the old status pills). No
                         animal cell (identity is the page context); the
-                        kind badge stays (the per-day list mixes kinds).
+                        kind groups carry the separator titles (B10-5).
                         feedingEntry keeps the prefilled ration modal
                         (R4-2.2). %>
-                    <%= partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: true, feedingEntry: true}) %>
+                    <%= partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, feedingEntry: true}) %>
                     <%# R4-7.2: the occurrences of the day already missed
                         (nothing recorded, apply window closed) leave the
                         list; their number rides here, under the last row
@@ -1284,6 +1322,30 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
     row.scrollIntoView({ block: 'center' });
   });
 })();
+
+// B10-4: the dashboard medication table's animal link lands HERE with
+// ?med=<source_type>:<source_id> and #nav-treatment — the Treatment tab
+// activates, the target series' day card opens (future days are collapsed),
+// and the matching med series line scrolls into view, highlighted.
+(function () {
+  var med = new URLSearchParams(window.location.search).get('med');
+  if (!med) { return; }
+  var parts = med.split(':');
+  var srcId = parts.length > 1 ? parts[1] : med;
+  $('#nav-treatment-tab').tab('show');
+  var line = document.querySelector('#treatmentPlan .plan-med-line[data-source-id="' + srcId + '"]');
+  if (!line) { return; }
+  line.classList.add('plan-trace-highlight');
+  var body = line.closest('.collapse');
+  if (body && !body.classList.contains('show')) {
+    $(body).on('shown.bs.collapse', function () {
+      line.scrollIntoView({ block: 'center' });
+    });
+    $(body).collapse('show');
+  } else {
+    line.scrollIntoView({ block: 'center' });
+  }
+})();
 </script>
 
 <div class="modal fade" id="guestQRModal" tabindex="-1" role="dialog" aria-labelledby="guestQRModalLabel" aria-hidden="true">
@@ -1353,38 +1415,4 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   });
 })();
 </script>
-<%= if (openPlanDetail) { %>
-  <%# Dash-7 (round-2 §8.2): dashboard eye deep-link — the Show handler
-      resolved the targeted occurrence server-side (resolvePlanItemDetail);
-      render the shared detail modal OPEN on load. Bookmarkable, no extra
-      round-trip. %>
-  <div id="planItemDeepLink" class="d-none"
-    data-animal-label="<%= planItemDetail.AnimalLabel %>" data-animal-link="<%= planItemDetail.AnimalLink %>"
-    data-detail="<%= planItemDetail.Detail %>" data-source-name="<%= planItemDetail.SourceName %>"
-    data-source-link="<%= planItemDetail.SourceLink %>" data-kind="<%= planItemDetail.Kind %>"
-    data-due="<%= planItemDetail.Due %>" data-status="<%= planItemDetail.Status %>"></div>
-  <script>
-  (function () {
-    var d = document.getElementById('planItemDeepLink');
-    document.getElementById('planDetailAnimal').textContent = d.getAttribute('data-animal-label') || '—';
-    var aLink = document.getElementById('planDetailAnimalLink');
-    if (d.getAttribute('data-animal-link')) {
-      aLink.setAttribute('href', d.getAttribute('data-animal-link'));
-      aLink.classList.remove('d-none');
-    }
-    document.getElementById('planDetailDetail').textContent = d.getAttribute('data-detail') || '—';
-    document.getElementById('planDetailSource').textContent = d.getAttribute('data-source-name') || '—';
-    var sLink = document.getElementById('planDetailSourceLink');
-    if (d.getAttribute('data-source-link')) {
-      sLink.setAttribute('href', d.getAttribute('data-source-link'));
-      sLink.classList.remove('d-none');
-    }
-    document.getElementById('planDetailKind').textContent = d.getAttribute('data-kind') || '—';
-    document.getElementById('planDetailDue').textContent = d.getAttribute('data-due') || '—';
-    document.getElementById('planDetailStatus').textContent = d.getAttribute('data-status') || '—';
-    document.getElementById('planDetailRemainingDt').classList.add('d-none');
-    document.getElementById('planDetailRemainingDd').classList.add('d-none');
-    jQuery('#planDetailModal').modal('show');
-  })();
-  </script>
-<% } %>
+

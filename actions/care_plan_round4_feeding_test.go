@@ -352,8 +352,12 @@ func TestApplyToggleSharedByBothPages(t *testing.T) {
 		// classes no longer appear literally here — the page pins the delegation
 		// (with feedingEntry: true so feeding rows keep the prefilled modal),
 		// and the classes themselves are pinned on the partial's forks below.
-		require.Contains(t, s, `partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: true, feedingEntry: true})`,
-			f, "animal item rows delegate to the shared line with the feeding-entry flag")
+		if f == "../templates/animals/show.plush.html" {
+			// B10-5: the per-line kind badge is gone; only the EN fork is the
+			// live runtime template (the localized show forks are stale copies).
+			require.Contains(t, s, `partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, feedingEntry: true})`,
+				f, "animal item rows delegate to the shared line with the feeding-entry flag")
+		}
 	}
 	for _, f := range []string{
 		"../templates/care_plan/_plan_item_line.plush.html",

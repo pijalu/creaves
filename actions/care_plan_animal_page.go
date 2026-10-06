@@ -163,22 +163,6 @@ func entryClockSVG(label string) string {
 	}
 }
 
-// PlanItemDetail carries the server-resolved display fields of one plan
-// occurrence for the shared detail modal (round-2 §8.2, Dash-7): the
-// dashboard eye deep-links /animals/{id}?item=…&due=…#nav-treatment; the
-// Show handler resolves the occurrence server-side and the show template
-// renders the modal open — no fetch, deep-links work from bookmarks.
-type PlanItemDetail struct {
-	AnimalLabel string
-	AnimalLink  string
-	Detail      string
-	SourceName  string
-	SourceLink  string
-	Kind        string // localized action kind
-	Due         string // "15:04" — deep links target today's occurrences
-	Status      string // localized occurrence status
-}
-
 // AnimalPlanTodayRow is ONE plan occurrence in the animal Treatment
 // tab's current-date accordion card (bugs.md U26 — fix 7): today's
 // medication, observation and care occurrences merge into the legacy
@@ -401,6 +385,12 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 	// Phase 5 / D5 (§3.1): repeats of the same requirement merge into ONE
 	// line with one tier-coloured toggle per open occurrence.
 	d.Items = mergeDayItems(d.Items, now)
+	// B10-5: the day's entries render kind-GROUPED under .plan-kind-separator
+	// titles — a stable kind sort keeps each group contiguous (the template
+	// emits one separator per kind change).
+	sort.SliceStable(d.Items, func(i, j int) bool {
+		return d.Items[i].ActionKind < d.Items[j].ActionKind
+	})
 	for _, s := range slots {
 		if !s.Done && !s.Overridden {
 			d.OpenCount++
@@ -615,17 +605,72 @@ type animalPlanTodayItem struct {
 
 // animalPlanLegacyDrugs indexes the drug labels of the animal's legacy
 // treatments dated inside the plan window (today) — the dedupe keys of
-// the plan rows (bugs.md U26).
-func animalPlanLegacyDrugs(plan *DayPlan, animal *models.Animal) map[string]bool {
+// the plan rows (bugs.md U26). B10-6: treatments the protocol already
+// covers (superseded) are NOT dedupe keys — the plan row is the
+// actionable one; and each label also indexes its "drug (dosage)"
+// composite so a converted plan whose prompt carries the dosage still
+// dedupes against the legacy row it came from.
+func animalPlanLegacyDrugs(plan *DayPlan, animal *models.Animal, superseded map[string]bool) map[string]bool {
 	legacy := map[string]bool{}
 	for i := range animal.Treatments {
 		t := &animal.Treatments[i]
 		if t.Date.Before(plan.From) || t.Date.After(plan.To) {
 			continue
 		}
+		if superseded[t.ID.String()] {
+			continue
+		}
 		legacy[normalizeWorkLabel(t.Drug)] = true
+		if strings.TrimSpace(t.Dosage) != "" {
+			legacy[normalizeWorkLabel(t.Drug+" ("+t.Dosage+")")] = true
+		}
 	}
 	return legacy
+}
+
+// treatmentSupersededByPlan marks the animal's legacy treatments (TODAY and
+// FUTURE) already covered by an active CONVERTER-MADE plan (B10-6): the
+// startup converter turned future treatment series into care-animal plans
+// but left the source rows live, so the Treatment tab showed the same
+// requirement twice and the legacy copy still read as active work.
+// Matching is by normalized drug name — the converter's observation plans
+// carry the drug as payload prompt, its medication plans as payload drug.
+// Past treatments stay untouched (they are history, never hidden), and
+// caretaker-authored plans never auto-dedupe anything.
+func treatmentSupersededByPlan(plans models.CareAnimalPlans, animal *models.Animal, today time.Time) map[string]bool {
+	superseded := map[string]bool{}
+	cores := map[string]bool{}
+	for i := range plans {
+		p := &plans[i]
+		if !p.Active || p.CreatedBy.Valid {
+			continue
+		}
+		src, err := careAnimalPlanSource(p)
+		if err != nil {
+			continue
+		}
+		payload := parsePlanPayload(src)
+		core := payload.Drug
+		if p.ActionKind == careplan.KindObservation {
+			core = payload.Prompt
+		}
+		if core = normalizeWorkLabel(core); core != "" {
+			cores[core] = true
+		}
+	}
+	if len(cores) == 0 {
+		return superseded
+	}
+	for i := range animal.Treatments {
+		t := &animal.Treatments[i]
+		if t.Date.Before(today) {
+			continue
+		}
+		if cores[normalizeWorkLabel(t.Drug)] {
+			superseded[t.ID.String()] = true
+		}
+	}
+	return superseded
 }
 
 // animalPlanTodayKind reports whether the action kind shows on the
@@ -723,11 +768,14 @@ func collectAnimalPlanTodayItems(plan *DayPlan, animal *models.Animal, legacy ma
 // accordion rows, sorted by due time, with the protocol backlink of
 // their source (animal plans anchor #nav-plan on this page, rules open
 // the care-rules library — same convention as treatmentProtocolLinks).
-func animalPlanTodayRows(tx *pop.Connection, plan *DayPlan, animal *models.Animal) ([]AnimalPlanTodayRow, error) {
+// superseded marks the treatments the protocol already covers (B10-6) —
+// they stay out of the dedupe set so the PLAN row renders on the today
+// card (the legacy row shows superseded instead).
+func animalPlanTodayRows(tx *pop.Connection, plan *DayPlan, animal *models.Animal, superseded map[string]bool) ([]AnimalPlanTodayRow, error) {
 	if plan == nil {
 		return nil, nil
 	}
-	items, planIDs, ruleIDs := collectAnimalPlanTodayItems(plan, animal, animalPlanLegacyDrugs(plan, animal))
+	items, planIDs, ruleIDs := collectAnimalPlanTodayItems(plan, animal, animalPlanLegacyDrugs(plan, animal, superseded))
 	if len(items) == 0 {
 		return nil, nil
 	}
@@ -759,57 +807,6 @@ func animalPlanTodayRows(tx *pop.Connection, plan *DayPlan, animal *models.Anima
 // dedupe (case/whitespace-insensitive compare).
 func normalizeWorkLabel(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
-}
-
-// resolvePlanItemDetail handles the ?item=&due= deep link on the animal
-// page (§8.2): find the occurrence in today's plan for THIS animal and
-// pass its display fields plus openPlanDetail to the template. An
-// unparseable ref or a stale occurrence (plan gone, already purged)
-// resolves to nothing — the page renders normally without a popup.
-func resolvePlanItemDetail(c buffalo.Context, animal *models.Animal, plan *DayPlan, ref, dueRaw string) error {
-	srcType, srcID, ok := parseItemRef(ref)
-	if !ok {
-		return nil
-	}
-	var due time.Time
-	if dueRaw != "" {
-		if d, err := time.Parse(time.RFC3339, dueRaw); err == nil {
-			due = d
-		}
-	}
-	for i := range plan.Items {
-		it := &plan.Items[i]
-		src := it.Occurrence.Source
-		if src == nil || it.Occurrence.AnimalID != animal.ID ||
-			string(src.SourceType()) != srcType || src.SourceID() != srcID {
-			continue
-		}
-		if !due.IsZero() && !it.Occurrence.DueAt.Equal(due) {
-			continue
-		}
-		c.Set("planItemDetail", PlanItemDetail{
-			AnimalLabel: animalLabel(*animal),
-			AnimalLink:  fmt.Sprintf("/animals/%d", animal.ID),
-			Detail:      planDetail(src),
-			SourceName:  DisplayName(src.Name()),
-			SourceLink:  cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
-			Kind:        T.Translate(c, "care_plan.kind."+string(src.ActionKind())),
-			Due:         it.Occurrence.DueAt.Format("15:04"),
-			Status:      T.Translate(c, "care_plan.status."+string(it.Status)),
-		})
-		c.Set("openPlanDetail", true)
-		return nil
-	}
-	return nil
-}
-
-// parseItemRef splits the ?item= reference "<source_type>:<source_id>".
-func parseItemRef(ref string) (string, string, bool) {
-	i := strings.Index(ref, ":")
-	if i <= 0 || i == len(ref)-1 {
-		return "", "", false
-	}
-	return ref[:i], ref[i+1:], true
 }
 
 // planWindow renders the active window of a plan schedule as ISO dates

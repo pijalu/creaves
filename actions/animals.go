@@ -689,7 +689,13 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 	if err != nil {
 		return err
 	}
-	planRows, err := animalPlanTodayRows(tx, todayPlan, animal)
+	// B10-6: the legacy treatments the protocol already covers — the
+	// Treatment tab renders them superseded (muted, badge, no buttons),
+	// and they stay out of the today-card dedupe so the PLAN row is the
+	// actionable one.
+	supersededTreatments := treatmentSupersededByPlan(*plans, animal, todayPlan.From)
+	c.Set("treatmentSupersededByPlan", supersededTreatments)
+	planRows, err := animalPlanTodayRows(tx, todayPlan, animal, supersededTreatments)
 	if err != nil {
 		return err
 	}
@@ -722,9 +728,6 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 	// Protocol tab keeps the unfiltered list (it lists the
 	// non-medication items too), so no work is lost.
 	c.Set("animalMedicationDays", medicationOnlyDays(treatDays))
-	if err := resolvePlanItemDetail(c, animal, todayPlan, c.Param("item"), c.Param("due")); err != nil {
-		return err
-	}
 	c.Set("planActionKinds", planActionKinds())
 	// Structured editors (bugs.md U17): caretype/drug dropdown data.
 	return setPlanEditorData(c, tx)

@@ -93,7 +93,6 @@
       <th><%= t("dashboard.medication_today.col.treatments") %></th>
     </thead>
     <tbody>
-      <% let medSeriesEye = true %>
       <%# R9-3: dashboard medication lines are COMPACT — no bucket label
           between the buttons, and the buttons stack under the label on a
           narrow cell (shape C). %>
@@ -139,6 +138,51 @@
 
 <%= partial("care_plan/apply_toggle.plush.html") %>
 <%= partial("care_plan/plan_med_toggle.plush.html") %>
+
+<%# B10-4: the medication ℹ buttons open the shared detail popup IN the
+    dashboard — #planDetailModal ships with _apply_toggle above; only this
+    opener was missing (the eye "view" button is removed with it). The
+    animal row stays a LINK here: the dashboard is not the animal's page. %>
+<script>
+(function () {
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-detail-btn') : null;
+    if (!btn) { return; }
+    document.getElementById('planDetailAnimal').textContent = btn.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (aLink) {
+      if (btn.getAttribute('data-animal-link')) { aLink.setAttribute('href', btn.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+      else { aLink.classList.add('d-none'); }
+    }
+    document.getElementById('planDetailDetail').textContent = btn.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = btn.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (sLink) {
+      if (btn.getAttribute('data-source-link')) { sLink.setAttribute('href', btn.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+      else { sLink.classList.add('d-none'); }
+    }
+    var tLink = btn.getAttribute('data-treatment-link');
+    var tDt = document.getElementById('planDetailTreatmentDt');
+    var tDd = document.getElementById('planDetailTreatmentDd');
+    if (tDt && tDd) {
+      tDt.classList.toggle('d-none', !tLink);
+      tDd.classList.toggle('d-none', !tLink);
+      if (tLink) {
+        document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+        document.getElementById('planDetailTreatment').textContent = btn.getAttribute('data-detail') || tLink;
+      }
+    }
+    document.getElementById('planDetailKind').textContent = btn.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = btn.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = btn.getAttribute('data-status') || '—';
+    var remDt = document.getElementById('planDetailRemainingDt');
+    var remDd = document.getElementById('planDetailRemainingDd');
+    if (remDt) { remDt.classList.add('d-none'); }
+    if (remDd) { remDd.classList.add('d-none'); }
+    jQuery('#planDetailModal').modal('show');
+  });
+})();
+</script>
 
 <br/>
 

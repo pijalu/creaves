@@ -38,10 +38,19 @@
 <div class="med-series flex-grow-1">
   <%= for (si, series) in mg.Series { %>
     <%# The line separator belongs BETWEEN series — never on top of the
-        first line (a leading border floats mid-air above the list). %>
-    <div class="d-flex align-items-start plan-med-line<%= if (si > 0) { %> border-top mt-1 pt-1<% } %>">
-      <%# R4-3.1: fixed-width leading column — ℹ first, then the optional
-          dashboard eye, so both align down the whole list. %>
+        first line (a leading border floats mid-air above the list).
+        B10-4: the line carries its source ref (data-source-type/id) —
+        the dashboard animal link's `?med=` deep link scrolls the animal
+        page's Treatment tab to THIS line.
+        B10-5: on the animal page the caller sets medSeriesRow so the line
+        picks up the SAME .plan-med-row compact row treatment as the item
+        lines — one visual family. %>
+    <div class="d-flex align-items-start plan-med-line<%= if (medSeriesRow) { %> plan-med-row<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
+      data-source-type="<%= series.Rows[0].Slots[0].SourceType %>"
+      data-source-id="<%= series.Rows[0].Slots[0].SourceID %>">
+      <%# R4-3.1: fixed-width leading column — ℹ first, so the ℹ buttons
+          align down the whole list (B10-4: the dashboard eye is gone —
+          the ℹ popup itself opens in place). %>
       <div class="plan-med-lead text-nowrap">
         <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
           data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
@@ -49,13 +58,6 @@
           data-kind="medication" data-due="<%= series.Rows[0].Slots[0].DueAtHM %>"
           data-treatment-link="<%= series.Rows[0].Slots[0].ViewLink %>"
           data-status="<%= series.Rows[0].Slots[0].Status %>" data-remaining="">ℹ</button>
-        <%# Dash-7 (§8.2): the deep-link eye — dashboard only. The care
-            plan never sets the flag, so it renders no eye there. %>
-        <%= if (medSeriesEye) { %>
-          <a class="btn btn-outline-primary btn-sm ml-1 dash-med-view" href="<%= series.Rows[0].Slots[0].DeepLink %>"
-            title="<%= t("dashboard.medication_today.view") %>"
-            aria-label="<%= series.Label %> <%= series.Rows[0].Slots[0].DueAtHM %>"><i class="fa fa-eye"></i></a>
-        <% } %>
       </div>
       <%# Text block: grows, wraps when the buttons need the room (C). %>
       <div class="plan-med-label"><strong><%= series.Label %></strong></div>

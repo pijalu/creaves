@@ -30,8 +30,12 @@
     is what lets the §5 ladder start: the drug label and the toggles get
     the width the long label used to burn. %>
 <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-  <div class="mr-2 text-nowrap py-1 plan-med-animal" title="<%= mg.AnimalLabel %>">
+  <div class="mr-2 py-1 plan-med-animal" title="<%= mg.AnimalLabel %>">
     <a href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
+    <%# B10-2: the per-animal loc line — Cage · Zone · Espèce, collapses on
+        narrow screens (the cell no longer forces text-nowrap so it can wrap
+        like the sibling tables' loc lines). %>
+    <span class="plan-loc"><%= mg.Cage %> · <%= tbase("zones", "zone", mg.Zone) %> · <%= tspecies(mg.Species) %></span>
   </div>
   <%= partial("care_plan/med_series.plush.html") %>
 </div>

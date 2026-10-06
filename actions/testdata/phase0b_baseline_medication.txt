@@ -498,6 +498,16 @@
      earliest time — so the closed state still says what is due rather than
      hiding it. */
   .plan-feed-animals { min-width: 12rem; }
+  /* B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the
+     animal identity, ONE muted shape on every per-animal row family; the
+     shared animal-column min-width keeps the stacked tables aligned.
+     Below lg the line collapses ("if space permits"). */
+  .plan-loc {
+    display: block; font-size: 0.78rem; color: #6c757d;
+    max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem; }
+  @media (max-width: 991.98px) { .plan-loc { display: none; } }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.15rem 0; cursor: pointer; user-select: none;
@@ -612,15 +622,18 @@
           <div class="collapse show plan-tier-body" id="tier-now-rows">
             <div class="px-2 py-1">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-                <div class="mr-2 text-nowrap py-1 plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
-                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-plan">
+                <div class="mr-2 py-1 plan-med-animal" title="YEARNUM · CP-A2 · CP-MARKER">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-treatment">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A2"
+                  </span>
                 </div>
                 <div class="med-series flex-grow-1">
-                  <div class="d-flex align-items-start plan-med-line">
+                  <div class="d-flex align-items-start plan-med-line" data-source-id="UUID" data-source-type="rule">
                     <div class="plan-med-lead text-nowrap">
-                      <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-plan" data-detail="CPDrug-MARKER — 0.5 ml" data-due="HHMM" data-kind="medication" data-remaining="" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" data-source-name="RMED-DOM-MARKER" data-status="due" data-treatment-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-treatment" title="Details" type="button">
+                      <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-treatment" data-detail="CPDrug-MARKER — 0.5 ml" data-due="HHMM" data-kind="medication" data-remaining="" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" data-source-name="RMED-DOM-MARKER" data-status="due" data-treatment-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-treatment" title="Details" type="button">
                         "ℹ"
                       </button>
                     </div>
@@ -658,15 +671,18 @@
           <div class="collapse plan-tier-body" id="tier-done-rows">
             <div class="px-2 py-1">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-row">
-                <div class="mr-2 text-nowrap py-1 plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
-                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-plan">
+                <div class="mr-2 py-1 plan-med-animal" title="YEARNUM · CP-A1 · CP-MARKER">
+                  <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-treatment">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A1"
+                  </span>
                 </div>
                 <div class="med-series flex-grow-1">
-                  <div class="d-flex align-items-start plan-med-line">
+                  <div class="d-flex align-items-start plan-med-line" data-source-id="UUID" data-source-type="rule">
                     <div class="plan-med-lead text-nowrap">
-                      <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-plan" data-detail="CPDrug-MARKER — 0.5 ml" data-due="HHMM" data-kind="medication" data-remaining="" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" data-source-name="RMED-DOM-MARKER" data-status="applied" data-treatment-link="/treatments/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" title="Details" type="button">
+                      <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication&med=rule%3AUUID#nav-treatment" data-detail="CPDrug-MARKER — 0.5 ml" data-due="HHMM" data-kind="medication" data-remaining="" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" data-source-name="RMED-DOM-MARKER" data-status="applied" data-treatment-link="/treatments/UUID?back=%2Fcare_plan%3Fkind%3Dmedication" title="Details" type="button">
                         "ℹ"
                       </button>
                     </div>
@@ -898,6 +914,11 @@
                     <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dmedication#nav-plan">
                       "YEARNUM · CP-A1 · CP-MARKER"
                     </a>
+                  </td>
+                  <td class="plan-loc-col">
+                    <span class="plan-loc">
+                      "CP-MARKER ·  · CP-A1"
+                    </span>
                   </td>
                   <td>
                     <strong>

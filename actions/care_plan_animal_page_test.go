@@ -214,27 +214,6 @@ func TestAnimalsShowTreatmentTabFromEntries(t *testing.T) {
 	require.Contains(t, html, "Add New treatment")
 }
 
-// TestParseItemRef: the ?item= deep-link reference (round-2 §8.2,
-// Dash-7) splits into source type + id; anything malformed resolves to
-// ok=false so a stale bookmark degrades to a normal page render.
-func TestParseItemRef(t *testing.T) {
-	typ, id, ok := parseItemRef("rule:med-1")
-	require.True(t, ok)
-	require.Equal(t, "rule", typ)
-	require.Equal(t, "med-1", id)
-
-	typ, id, ok = parseItemRef("animal:0198c0aa-7b34-73d3-8f3e-2a6f88b1d947")
-	require.True(t, ok)
-	require.Equal(t, "animal", typ)
-	require.Equal(t, "0198c0aa-7b34-73d3-8f3e-2a6f88b1d947", id)
-
-	// Malformed: no separator, empty halves.
-	for _, ref := range []string{"", ":", "rule:", ":med-1", "nominalseparator"} {
-		_, _, ok = parseItemRef(ref)
-		require.False(t, ok, "parseItemRef(%q) must not parse", ref)
-	}
-}
-
 // TestAnimalPlanTodayRows: the Treatment tab's plan rows (bugs.md U26 —
 // fix 7) fold THIS animal's today medication + observation + care
 // occurrences into accordion rows — statuses (done/skipped/pending/missed),
@@ -266,7 +245,7 @@ func TestAnimalPlanTodayRows(t *testing.T) {
 	plan.Items = []careplan.PlanItem{done, missed, skipped, pending, other, overridden}
 
 	animal := &models.Animal{ID: 1, YearNumber: 11, Year: 2026, Species: "Hérisson", Cage: nulls.NewString("C1")}
-	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	rows, err := animalPlanTodayRows(models.DB, plan, animal, nil)
 	require.NoError(t, err)
 	require.Len(t, rows, 4)
 
@@ -317,7 +296,7 @@ func TestAnimalPlanTodayRowsDedupe(t *testing.T) {
 		{Date: today, Drug: "Nettoyage Fistule"},
 		{Date: today.AddDate(0, 0, -2), Drug: "Itra"}, // other day → no dedupe
 	}}
-	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	rows, err := animalPlanTodayRows(models.DB, plan, animal, nil)
 	require.NoError(t, err)
 	require.Len(t, rows, 1)
 	require.Equal(t, "Itra", rows[0].Label, "dosage-less medication keeps the bare drug label")
@@ -333,11 +312,11 @@ func TestAnimalPlanTodayRowsEmpty(t *testing.T) {
 	plan := testPlan()
 	plan.From, plan.To, plan.Now = from, to, now
 	animal := &models.Animal{ID: 3, YearNumber: 13, Year: 2026}
-	rows, err := animalPlanTodayRows(models.DB, plan, animal)
+	rows, err := animalPlanTodayRows(models.DB, plan, animal, nil)
 	require.NoError(t, err)
 	require.Empty(t, rows)
 
-	rows, err = animalPlanTodayRows(models.DB, nil, animal)
+	rows, err = animalPlanTodayRows(models.DB, nil, animal, nil)
 	require.NoError(t, err)
 	require.Empty(t, rows)
 }

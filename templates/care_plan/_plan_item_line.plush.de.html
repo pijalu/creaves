@@ -9,12 +9,13 @@
       showAnimal — bool: render the tinted animal cell (the care-plan day
                    view is multi-animal, so the line must name its animal;
                    a single-animal page would pass false).
-      showKind   — bool: render the kind badge instead (the animal page's
-                   per-day list mixes kinds). The two flags are alternatives.
       feedingEntry — bool (Phase 5 / D5): feeding toggles open the apply
                    modal PREFILLED with the ration (plan-feeding-entry)
                    instead of applying instantly — the animal page's
                    convention (R4-2.2). The day plan omits the flag.
+                   B10-5: the former showKind badge is GONE — the animal
+                   page separates its per-day entries by kind with
+                   .plan-kind-separator titles instead.
 
     Layout: <ℹ> <animal> | <title> | <toggle 1><toggle 2>… on ONE line —
     the .plan-med-row zebra + compact font, the tinted animal cell, the day
@@ -57,10 +58,10 @@
     <% } else { %>
       <%= card.AnimalYear %>
     <% } %>
+    <%# B10-2: the per-animal loc line — Cage · Zone · Espèce, collapses on
+        narrow screens. %>
+    <span class="plan-loc"><%= card.Cage %> · <%= tbase("zones", "zone", card.Zone) %> · <%= tspecies(card.Species) %></span>
   </div>
-  <% } %>
-  <%= if (showKind) { %>
-  <span class="badge badge-secondary mr-2"><%= t("care_plan.kind." + card.ActionKind) %></span>
   <% } %>
   <div class="plan-med-label">
     <%= if (card.Detail != "") { %>
@@ -141,10 +142,11 @@
       <% } %>
     <% } else { %>
       <%# Single occurrence (no merge): the plain apply/undo/skip/defer
-          group, one .plan-item-slot parent for the shared toggle JS. %>
+          group, one .plan-item-slot parent for the shared toggle JS.
+          B10-3: the toggle CARRIES the time (○ HH:MM ⇄ ✓ HH:MM) — the
+          bare time text next to the button is gone; the day badge stays. %>
       <span class="text-nowrap mr-2">
         <%= if (card.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= card.DueShortDate %></span> <% } else if (card.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(card.DueDayKey) %></span> <% } %>
-        <%= card.DueHM %>
       </span>
       <span class="plan-item-slot text-nowrap">
         <%= if (card.Applicable) { %>
@@ -158,7 +160,7 @@
             data-animal-label="<%= card.AnimalLabel %>"
             data-detail="<%= card.Detail %>"
             data-source-name="<%= card.SourceName %>"
-            title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
+            title="<%= t("care_plan.apply.action") %>">○ <%= card.DueHM %></button>
           <button type="button" class="btn btn-success btn-sm ml-1 plan-unapply-btn d-none"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"
@@ -166,7 +168,7 @@
             data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
             data-kind="<%= card.ActionKind %>"
             data-tier-class="<%= card.TierClass %>"
-            title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+            title="<%= t("care_plan.action.undo") %>">✓ <%= card.DueHM %></button>
           <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"

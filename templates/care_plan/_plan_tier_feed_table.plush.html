@@ -31,15 +31,16 @@
           data-status="<%= fcard.GroupStatus %>">
         <%= if (group == "animal") { %>
           <%# §4.3: the tinted animal cell — year/number display (§5 level 1),
-              full label on the title, plan-tab link; cage demoted to a muted
-              caption, the diet stays. NO batch apply-group (cage-scoped). %>
+              full label on the title, plan-tab link; the B10-2 loc line
+              (Cage · Zone · Espèce) collapses on narrow screens; the diet
+              stays. NO batch apply-group (cage-scoped). %>
           <td class="plan-med-animal plan-feed-animal" title="<%= fcard.AnimalLabel %>">
             <%= if (fcard.AnimalLink != "") { %>
               <a href="<%= fcard.AnimalLink %>"><strong><%= fcard.AnimalYear %></strong></a>
             <% } else { %>
               <strong><%= fcard.AnimalYear %></strong>
             <% } %>
-            <br><small class="text-muted"><%= fcard.Cage %></small>
+            <span class="plan-loc"><%= fcard.Cage %> · <%= tbase("zones", "zone", fcard.Zone) %> · <%= tspecies(fcard.Species) %></span>
             <br><span class="text-info"><%= fcard.Food %></span>
             <%= if (fcard.ForceFeed) { %>
               <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
@@ -121,16 +122,19 @@
                       no group check, so the per-animal toggle always renders. %>
                   <%= if (len(fcard.Chips) > 1 || group == "animal") { %>
                     <%= if (chip.Applicable) { %>
+                      <%# B10-3: the toggle speaks the §2.3 med-parity
+                          nomenclature — it CARRIES the time (○ HH:MM ⇄
+                          ✓ HH:MM) instead of a bare icon. %>
                       <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one"
                         data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
                         data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
                         data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
                         data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                        title="<%= t("care_plan.apply.action") %>"><i class="far fa-clock"></i></button>
+                        title="<%= t("care_plan.apply.action") %>">○ <%= chip.DueHM %></button>
                       <button type="button" class="btn <%= chip.TierClass %> btn-sm ml-1 plan-unapply-btn d-none"
                         data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
                         data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                        title="<%= t("care_plan.action.undo") %>"><i class="fas fa-undo"></i></button>
+                        title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
                     <% } %>
                   <% } else { %>
                     <span class="plan-apply-space" aria-hidden="true"></span>

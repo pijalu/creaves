@@ -53,13 +53,6 @@ var phase3TierCareTableForks = []string{
 	"../templates/care_plan/_plan_tier_care_table.plush.nl.html",
 }
 
-var phase3FeedTableForks = []string{
-	"../templates/care_plan/_plan_tier_feed_table.plush.html",
-	"../templates/care_plan/_plan_tier_feed_table.plush.fr.html",
-	"../templates/care_plan/_plan_tier_feed_table.plush.de.html",
-	"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
-}
-
 var phase3IndexForks = []string{
 	"../templates/care_plan/index.plush.html",
 	"../templates/care_plan/index.plush.fr.html",
@@ -428,9 +421,10 @@ func TestPhase3GroupAnimalRendersHTTP(t *testing.T) {
 		"cleanup animal mode renders the tinted animal cell")
 	require.NotContains(t, cleanup, ` plan-cage-apply"`,
 		"§4.3: no batch group-check button in animal mode (the JS selector string stays)")
-	// One line per animal: the fixture cage holds 2 animals → 2 ○ toggles,
-	// each on its own row (plan-care-row appears once per line).
-	require.Equal(t, 2, strings.Count(cleanup, "plan-care-animal"),
+	// One line per animal: the fixture renders 3 animal lines (2 animals
+	// with due-now occurrences + 1 whose occurrences are all scheduled —
+	// B10-7 keeps the scheduled ones on the screen too).
+	require.Equal(t, 3, strings.Count(cleanup, "plan-care-animal"),
 		"one animal cell per (source × animal) line")
 	require.Contains(t, cleanup, `&group=animal"`,
 		"the grouping rides the rendered links (persistence)")

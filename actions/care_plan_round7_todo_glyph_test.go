@@ -37,6 +37,20 @@ var todoGlyphControls = []string{
 	"plan-cage-apply",
 }
 
+// todoControlGlyph returns the glyph a to-do control must carry (B10-3):
+// the per-occurrence toggles speak the §2.3 med-parity language — the
+// button CARRIES the time (`○ HH:MM` to-do, `✓ HH:MM` done) — while the
+// cage-level GROUP buttons keep the legacy fa-clock, since they apply many
+// occurrences at once and no single time fits them.
+func todoControlGlyph(c string) string {
+	switch c {
+	case "plan-feeding-apply", "plan-cage-apply":
+		return `<i class="far fa-clock"></i>`
+	default:
+		return "○ "
+	}
+}
+
 // carePlanToDoForks: every locale fork that renders a to-do control.
 // Phase 3 (D3) note: index.plush.html no longer renders one — the cleanup
 // cage-apply (its last remaining control) moved into _plan_care_line. The
@@ -142,8 +156,8 @@ func clockInsideToDoControls(t *testing.T, fork, raw string) int {
 				continue
 			}
 			inner := tag[open+1 : closing]
-			require.Contains(t, inner, `<i class="far fa-clock"></i>`,
-				fork+": "+c+" must open with the treatment page's clock")
+			require.Contains(t, inner, todoControlGlyph(c),
+				fork+": "+c+" must carry its to-do glyph (○ time or clock, B10-3)")
 			require.NotContains(t, inner, `fa-check`,
 				fork+": "+c+" must not open with the completed check")
 			seen++
@@ -176,19 +190,22 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 // partial, so the index forks no longer carry any clock and left the list.
 // Phase 5 (D5) moved the animal page's rows into `_plan_item_line`, so the
 // show.plush forks no longer carry any clock either and left the list.
-// The total is therefore 2 clocks x 4 feed-table forks + 1 x 4 item-line
-// forks + 1 x 4 care-line forks = 16. What must never change is that EVERY
-// to-do control carries the clock — that is asserted per control by
-// clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only
-// a tripwire against a whole locale losing the swap.
+// B10-3 renamed the nomenclature: the per-occurrence toggles carry the
+// §2.3 med-parity `○ HH:MM` time glyph instead of the fa-clock, so only
+// the GROUP buttons keep the clock — 1 x 4 feed-table forks
+// (plan-feeding-apply) + 1 x 4 care-line forks (plan-cage-apply) = 8.
+// What must never change is that EVERY to-do control carries ITS glyph —
+// that is asserted per control by clockInsideToDoControls in
+// TestNoCheckMarksAToDoItem; this floor is only a tripwire against a whole
+// locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	total := 0
 	for _, f := range carePlanToDoForks {
 		total += strings.Count(readTemplate(t, f), `<i class="far fa-clock"></i>`)
 	}
-	require.GreaterOrEqual(t, total, 16,
-		"expected the clock 2x in each feed-table fork, "+
-			"1x in each item-line fork, and 1x in each care-line fork = 16")
+	require.GreaterOrEqual(t, total, 8,
+		"expected the clock 1x in each feed-table fork (the group apply) "+
+			"and 1x in each care-line fork (the cage apply) = 8")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the

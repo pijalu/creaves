@@ -493,6 +493,7 @@
             <div id="tp-<%= day.DateKey %>" class="collapse <%= if (day.Current) { %>show<% } %>" aria-labelledby="tp-head-<%= day.DateKey %>" data-parent="#treatmentPlan">
               <div class="card-body py-2">
                 <% let mg = day.Group %>
+                <% let medSeriesRow = true %>
                 <%= partial("care_plan/med_series.plush.html") %>
               </div>
             </div>
@@ -520,6 +521,29 @@
             <ul class="list-group list-group-flush">
               <%= for (row) in treatmentRows {%>
               <% let trt = row.Treatment %>
+              <%= if (!dateKey.Past && treatmentSupersededByPlan[trt.ID.String()]) { %>
+                <%# B10-6: TODAY + FUTURE treatment rows the protocol
+                    already covers render SUPERSEDED — muted label with
+                    the "covered by protocol" badge and NO action badges. %>
+                <li class="list-group-item plan-legacy-superseded">
+                  <div class="container">
+                    <div class="row">
+                      <div class="col-sm">
+                        <s><%= tdrug(trt.Drug) %> (<%= trt.Dosage %>)</s>
+                        <span class="badge badge-light border ml-1" title="<%= t("care_plan.animal_plans.superseded_by_protocol_hint") %>"><%= t("care_plan.animal_plans.superseded_by_protocol") %></span>
+                        <%= if (trt.Remarks.Value() != "") {%>
+                          <p><em><%= trt.Remarks %></em></p>
+                        <%}%>
+                        <%= if (treatmentProtocolLinks[trt.ID.String()]) { %>
+                          <p class="mb-0 small">
+                            <a href="<%= treatmentProtocolLinks[trt.ID.String()].Href %>" title="<%= t("care_plan.animal_plans.view_source") %>"><i class="fas fa-file-medical"></i> <%= treatmentProtocolLinks[trt.ID.String()].Name %></a>
+                          </p>
+                        <% } %>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              <% } else { %>
               <li class="list-group-item">
                 <div class="container">
                   <div class="row">
@@ -626,6 +650,7 @@
                   </div>
                 </div>
               </li>
+              <% } %>
               <%}%>
               <%= if (dateKey.Current && len(animalPlanToday) > 0) { %>
               <%# U26 (fix 7): heutige Protokoll-Vorkommen — gleiches
@@ -814,9 +839,18 @@
                 <div class="card-body py-2">
                   <%= if (len(day.Group.Series) > 0) { %>
                     <% let mg = day.Group %>
+                    <% let medSeriesRow = true %>
                     <%= partial("care_plan/med_series.plush.html") %>
                   <% } %>
+                  <%# B10-5: the day's non-medication entries are grouped
+                      PER TYPE — a .plan-kind-separator title band announces
+                      each kind group (the per-line "type bubble" is gone). %>
+                  <% let lastKind = "" %>
                   <%= for (i, item) in day.Items { %>
+                    <%= if (item.ActionKind != lastKind) { %>
+                      <div class="plan-kind-separator"><%= t("care_plan.kind." + item.ActionKind) %></div>
+                      <% lastKind = item.ActionKind %>
+                    <% } %>
                     <%# Phase 5 / D5 (guideline §3/§4.3/§7): the day's
                         non-medication occurrences render through the SAME
                         shared line component as the day plan — ONE merged
@@ -826,7 +860,7 @@
                         kind badge stays (the per-day list mixes kinds).
                         feedingEntry keeps the prefilled ration modal
                         (R4-2.2). %>
-                    <%= partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: true, feedingEntry: true}) %>
+                    <%= partial("care_plan/plan_item_line.plush.html", {card: item, showAnimal: false, showKind: false, feedingEntry: true}) %>
                     <%# R4-7.2: the occurrences of the day already missed
                         (nothing recorded, apply window closed) leave the
                         list; their number rides here, under the last row
@@ -1278,6 +1312,30 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   $('#planDetails').on('shown.bs.collapse', function () {
     row.scrollIntoView({ block: 'center' });
   });
+})();
+
+// B10-4: the dashboard medication table's animal link lands HERE with
+// ?med=<source_type>:<source_id> and #nav-treatment — the Treatment tab
+// activates, the target series' day card opens (future days are collapsed),
+// and the matching med series line scrolls into view, highlighted.
+(function () {
+  var med = new URLSearchParams(window.location.search).get('med');
+  if (!med) { return; }
+  var parts = med.split(':');
+  var srcId = parts.length > 1 ? parts[1] : med;
+  $('#nav-treatment-tab').tab('show');
+  var line = document.querySelector('#treatmentPlan .plan-med-line[data-source-id="' + srcId + '"]');
+  if (!line) { return; }
+  line.classList.add('plan-trace-highlight');
+  var body = line.closest('.collapse');
+  if (body && !body.classList.contains('show')) {
+    $(body).on('shown.bs.collapse', function () {
+      line.scrollIntoView({ block: 'center' });
+    });
+    $(body).collapse('show');
+  } else {
+    line.scrollIntoView({ block: 'center' });
+  }
 })();
 </script>
 

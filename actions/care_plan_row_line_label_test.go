@@ -41,6 +41,14 @@ func TestPlanRowLineLabelRenders(t *testing.T) {
 	ctx.Set("showAnimal", true)
 	ctx.Set("showKind", false)
 	ctx.Set("t", func(s string, h plush.HelperContext) (string, error) { return s, nil })
+	// B10-2: the loc line (Cage · Zone · Espèce) renders through tbase/tspecies.
+	ctx.Set("tbase", func(group, field, base string, h plush.HelperContext) (string, error) { return base, nil })
+	ctx.Set("tspecies", func(base interface{}, h plush.HelperContext) (string, error) {
+		if b, ok := base.(string); ok {
+			return b, nil
+		}
+		return "", nil
+	})
 	ctx.Set("dueLabel", func(hm, dayKey, shortDate string, h plush.HelperContext) (string, error) {
 		return hm, nil
 	})

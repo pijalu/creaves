@@ -476,8 +476,9 @@ func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
 	for _, n := range names {
 		got[n.Name] = true
 	}
-	require.True(t, got["Traitement — ProdiplasT-T (à vérifier)"])
-	require.True(t, got["Traitement — Prodiplast-T (à vérifier)"])
+	// B10-6: the series dosage ("oreille") rides in the converted name.
+	require.True(t, got["Traitement — ProdiplasT-T (oreille) (à vérifier)"])
+	require.True(t, got["Traitement — Prodiplast-T (oreille) (à vérifier)"])
 
 	// Re-run after marker wipe: still exactly two plans (idempotency holds
 	// with the binary collation too).

@@ -498,6 +498,16 @@
      earliest time — so the closed state still says what is due rather than
      hiding it. */
   .plan-feed-animals { min-width: 12rem; }
+  /* B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the
+     animal identity, ONE muted shape on every per-animal row family; the
+     shared animal-column min-width keeps the stacked tables aligned.
+     Below lg the line collapses ("if space permits"). */
+  .plan-loc {
+    display: block; font-size: 0.78rem; color: #6c757d;
+    max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem; }
+  @media (max-width: 991.98px) { .plan-loc { display: none; } }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
     padding: 0.15rem 0; cursor: pointer; user-select: none;
@@ -633,6 +643,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A1"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -691,6 +704,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A2"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -767,6 +783,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A1"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -825,6 +844,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A2"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -883,6 +905,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A2"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -959,6 +984,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A1"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1007,6 +1035,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A1"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1055,6 +1086,9 @@
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
+                  <span class="plan-loc">
+                    "CP-MARKER ·  · CP-A2"
+                  </span>
                 </div>
                 <div class="plan-med-label">
                   <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">
@@ -1117,6 +1151,11 @@
                     <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                       "YEARNUM · CP-A1 · CP-MARKER"
                     </a>
+                  </td>
+                  <td class="plan-loc-col">
+                    <span class="plan-loc">
+                      "CP-MARKER ·  · CP-A1"
+                    </span>
                   </td>
                   <td>
                     <a href="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation">

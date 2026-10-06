@@ -308,14 +308,15 @@ func TestDashboardMedicationSectionAllLocales(t *testing.T) {
 			require.Contains(t, string(raw), "plan-med-line", "drug series line present (R4-2.3 layout)")
 			require.NotContains(t, string(raw), "dash-med-count",
 				"%s /dashboard/ must not render the per-row count badge (Dash-3)", lang)
-			// Dash-7 (round-2 §8.2): the eye deep-links the animal page with
-			// the occurrence reference (?item=&due=) + the treatment-tab hash.
-			require.Contains(t, string(raw), "dash-med-view",
-				"%s /dashboard/ must carry the unconditional view link", lang)
-			require.Contains(t, string(raw), "item=",
-				"%s /dashboard/ eye must deep-link the occurrence (item=)", lang)
+			// B10-4: the eye "view" button is GONE — the ℹ popup opens in
+			// place (opener script present) and the ANIMAL LINK deep-links
+			// the Treatment tab scrolled to the first series (?med=).
+			require.NotContains(t, string(raw), "dash-med-view",
+				"%s /dashboard/ must not render the eye view button", lang)
+			require.Contains(t, string(raw), "planDetailModal').modal('show')",
+				"%s /dashboard/ must carry the detail-popup opener (B10-4)", lang)
 			require.Contains(t, string(raw), "#nav-treatment",
-				"%s /dashboard/ eye must target the treatment tab", lang)
+				"%s /dashboard/ animal link must target the treatment tab", lang)
 		})
 	}
 }

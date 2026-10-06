@@ -480,9 +480,17 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 			payload = observationPayload("Soin de plaie — contrôle", s.remarks)
 			reason = "série soin de plaie → plan observation (à vérifier)"
 		case !knownDrug:
-			name = "Traitement — " + s.drug + " (à vérifier)"
+			// B10-6: the dosage of a legacy treatment series is often the
+			// application SITE ("Dessus oeil droit") — the converter used to
+			// drop it, so the protocol lost precision the treatment row
+			// still showed. Carry it into the prompt.
+			prompt := s.drug
+			if strings.TrimSpace(s.dosage) != "" {
+				prompt = s.drug + " (" + s.dosage + ")"
+			}
+			name = "Traitement — " + prompt + " (à vérifier)"
 			kind = careplan.KindObservation
-			payload = observationPayload(s.drug, s.remarks)
+			payload = observationPayload(prompt, s.remarks)
 			reason = fmt.Sprintf("drug inconnu — converti en observation, à vérifier (%s)", s.drug)
 		default: // known drug, empty dosage
 			name = "Traitement — " + s.drug + " (à vérifier)"

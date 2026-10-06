@@ -14,8 +14,6 @@
   translation: "Traitements"
 - id: "dashboard.medication_today.to_give"
   translation: "à donner"
-- id: "dashboard.medication_today.view"
-  translation: "Voir la fiche"
 - id: "dashboard.medication_today.none"
   translation: "Aucun"
 

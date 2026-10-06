@@ -276,10 +276,11 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	// Dash-2 (round-2 §8.1): year-number-only button text — sibling-table
 	// parity; the full label stays on the card/detail modal.
 	require.Equal(t, "11/26", meds[0].AnimalYear)
-	// Dash-7 (§8.2): the eye deep-link carries the occurrence reference
-	// (query-escaped; url.Values orders due before item) + the hash.
-	require.Contains(t, meds[0].Slots[0].DeepLink, "/animals/1?due=")
-	require.Contains(t, meds[0].Slots[0].DeepLink, "item=rule%3Amed-1#nav-treatment")
+	// B10-4: the dashboard animal link opens the Treatment tab scrolled to
+	// the row's FIRST medication series (?med=<type>:<id> deep link).
+	require.Contains(t, meds[0].AnimalLink, "/animals/1?")
+	require.Contains(t, meds[0].AnimalLink, "med=rule%3Amed-1")
+	require.Contains(t, meds[0].AnimalLink, "#nav-treatment")
 
 	// /care_plan tier projection over the same plan (fix 6): compact
 	// folds the three open occurrences of (med-1 × animal 1) into ONE
