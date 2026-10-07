@@ -80,6 +80,8 @@
   translation: "Abbrechen"
 - id: "users.register_title"
   translation: "Registrieren"
+- id: "users.new_title"
+  translation: "Neuen Benutzer anlegen"
 - id: "users.register_button"
   translation: "Registrieren!"
 - id: "users.index.title"

@@ -151,6 +151,8 @@ func accountRoleParam(c buffalo.Context) (string, bool) {
 // This function is mapped to the path GET /users/new
 func (v UsersResource) New(c buffalo.Context) error {
 	c.Set("user", &models.User{})
+	// Admin-creation form must not read as self-registration (#205-14).
+	c.Set("adminCreate", true)
 
 	return c.Render(http.StatusOK, r.HTML("/users/new.plush.html"))
 }
@@ -207,6 +209,7 @@ func (v UsersResource) Create(c buffalo.Context) error {
 			// Render again the new.html template that the user can
 			// correct the input.
 			c.Set("user", user)
+			c.Set("adminCreate", true) // keep the admin-creation title (#205-14)
 
 			return c.Render(http.StatusUnprocessableEntity, r.HTML("/users/new.plush.html"))
 		}).Wants("json", func(c buffalo.Context) error {
