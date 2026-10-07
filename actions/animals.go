@@ -1033,6 +1033,9 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	originalCage := animal.Cage
 	originalFeeding := animal.Feeding
 	originalOuttakeID := animal.OuttakeID
+	// heat/O2 originals for the "soin" auto-care (#205-10)
+	originalHeatSource := animal.HeatSource
+	originalOxygen := animal.Oxygen
 
 	// Bind Animal to the html form elements
 	if err := c.Bind(animal); err != nil {
@@ -1158,6 +1161,63 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		}
 
 		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
+		verrs, err = tx.Eager().ValidateAndCreate(care)
+		if err != nil {
+			return err
+		}
+		auditAnimalChange(c, tx, animal.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
+	}
+
+	// Create a "soin" care when heat source or oxygen changed (#205-10),
+	// mirroring the cage-move care above.
+	heatChanged := animal.HeatSource.String != originalHeatSource.String
+	oxygenChanged := animal.Oxygen != originalOxygen
+	if !verrs.HasAny() && animal.ID != 0 && (heatChanged || oxygenChanged) {
+		c.Logger().Debugf("Creating new care for heat/O2 change animalID %d", animal.ID)
+		hsDisplay := func(s nulls.String) string {
+			if s.Valid && s.String != "" {
+				return s.String
+			}
+			return "(aucune)"
+		}
+		oyDisplay := func(b bool) string {
+			if b {
+				return "oui"
+			}
+			return "non"
+		}
+		var notes []string
+		if heatChanged {
+			notes = append(notes, fmt.Sprintf("Source de chaleur : %s => %s", hsDisplay(originalHeatSource), hsDisplay(animal.HeatSource)))
+		}
+		if oxygenChanged {
+			notes = append(notes, fmt.Sprintf("Oxygène : %s => %s", oyDisplay(originalOxygen), oyDisplay(animal.Oxygen)))
+		}
+		care := &models.Care{}
+		care.Animal = *animal
+		care.AnimalID = animal.ID
+		care.Date = models.NowOffset()
+		care.Note = nulls.NewString(strings.Join(notes, " ; "))
+
+		// Prefer the "Soin" care type; fall back to the default type.
+		for _, careType := range *careTypes {
+			ctn := strings.ToLower(careType.Name)
+			if ctn == "soin" || ctn == "soins" || strings.HasPrefix(ctn, "soin") {
+				care.Type = careType
+				care.TypeID = careType.ID
+				break
+			}
+		}
+		if care.TypeID == uuid.Nil {
+			for _, careType := range *careTypes {
+				if careType.Def {
+					care.Type = careType
+					care.TypeID = careType.ID
+				}
+			}
+		}
+
+		c.Logger().Debugf("Creating new care for heat/O2 change animalID %d: %v", animal.ID, care)
 		verrs, err = tx.Eager().ValidateAndCreate(care)
 		if err != nil {
 			return err
