@@ -759,7 +759,7 @@ $( document ).ready(function(){
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit/#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/#nav-plan" }), {class: "btn btn-primary"}) { %>
           Nieuwe behandeling toevoegen
         <% } %>
       </div>
