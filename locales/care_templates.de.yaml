@@ -30,3 +30,7 @@
   translation: "Löschen"
 - id: "care_templates.action.confirm_delete"
   translation: "Sind Sie sicher?"
+- id: "care_templates.errors.name_blank"
+  translation: "Der Name darf nicht leer sein."
+- id: "care_templates.errors.content_blank"
+  translation: "Der Inhalt darf nicht leer sein."

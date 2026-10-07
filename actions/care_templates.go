@@ -6,6 +6,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
 	"github.com/gofrs/uuid"
 
@@ -102,6 +103,26 @@ func (v CareTemplatesResource) New(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("care_templates/new.plush.html"))
 }
 
+// localizeCareTemplateErrors replaces the stock English validator messages
+// ("Name can not be blank.") with localized ones: the form helpers render the
+// verrs strings verbatim, so translation must happen handler-side (#205-12).
+func localizeCareTemplateErrors(c buffalo.Context, verrs *validate.Errors) *validate.Errors {
+	out := validate.NewErrors()
+	for field, msgs := range verrs.Errors {
+		for _, m := range msgs {
+			switch m {
+			case "Name can not be blank.":
+				out.Add(field, T.Translate(c, "care_templates.errors.name_blank"))
+			case "Content can not be blank.":
+				out.Add(field, T.Translate(c, "care_templates.errors.content_blank"))
+			default:
+				out.Add(field, m)
+			}
+		}
+	}
+	return out
+}
+
 // Create stores a new note template owned by the current admin.
 // POST /care_templates
 func (v CareTemplatesResource) Create(c buffalo.Context) error {
@@ -125,7 +146,7 @@ func (v CareTemplatesResource) Create(c buffalo.Context) error {
 		return err
 	}
 	if verrs.HasAny() {
-		c.Set("errors", verrs)
+		c.Set("errors", localizeCareTemplateErrors(c, verrs))
 		c.Set("tpl", tpl)
 		return c.Render(http.StatusUnprocessableEntity, r.HTML("care_templates/new.plush.html"))
 	}
@@ -178,7 +199,7 @@ func (v CareTemplatesResource) Update(c buffalo.Context) error {
 		return err
 	}
 	if verrs.HasAny() {
-		c.Set("errors", verrs)
+		c.Set("errors", localizeCareTemplateErrors(c, verrs))
 		c.Set("tpl", tpl)
 		return c.Render(http.StatusUnprocessableEntity, r.HTML("care_templates/edit.plush.html"))
 	}

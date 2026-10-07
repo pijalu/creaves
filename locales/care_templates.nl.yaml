@@ -30,3 +30,7 @@
   translation: "Verwijderen"
 - id: "care_templates.action.confirm_delete"
   translation: "Weet u het zeker?"
+- id: "care_templates.errors.name_blank"
+  translation: "De naam mag niet leeg zijn."
+- id: "care_templates.errors.content_blank"
+  translation: "De inhoud mag niet leeg zijn."
