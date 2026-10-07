@@ -19,6 +19,7 @@ package actions
 // Indentation encodes depth, so a structural diff is a plain text diff.
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,6 +32,9 @@ import (
 	"time"
 
 	"creaves/models"
+
+	"github.com/gobuffalo/pop/v6"
+	uuidpkg "github.com/gofrs/uuid"
 
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/html"
@@ -87,9 +91,46 @@ func maskVolatile(raw string) string {
 	return raw
 }
 
+// cagedRuleMatcher creates a matcher scoped to the fixture cage. The rich
+// fixture's rules MUST carry it: the shared test database holds ambient
+// animals from other suites (all cage NULL), and a matcher-less rule would
+// scale every tab's occurrence count with that ambient population,
+// invalidating the recorded baselines on any unrelated test run.
+func cagedRuleMatcher(t *testing.T, f *planFixture) *models.CareMatcher {
+	t.Helper()
+	m := &models.CareMatcher{
+		ID:         uuidpkg.Must(uuidpkg.NewV4()),
+		Name:       "MDOM-" + f.marker,
+		Expression: `cage =* "` + f.cage + `"`,
+	}
+	require.NoError(t, models.DB.Create(m))
+	return m
+}
+
+// ruleWithMatcher is ruleWithoutMatcher bound to a matcher, so the rule
+// only produces occurrences for animals the matcher selects (the fixture
+// cage — see cagedRuleMatcher).
+func ruleWithMatcher(t *testing.T, tx *pop.Connection, name, kind string, payload, schedule json.RawMessage, m *models.CareMatcher) *models.CareRule {
+	t.Helper()
+	rule := &models.CareRule{
+		ID:            uuidpkg.Must(uuidpkg.NewV4()),
+		Name:          name,
+		ActionKind:    kind,
+		ActionPayload: payload,
+		Schedule:      schedule,
+		MatcherID:     uuidpkg.NullUUID{UUID: m.ID, Valid: true},
+		Active:        true,
+	}
+	require.NoError(t, tx.Create(rule))
+	return rule
+}
+
 // planFixtureRich builds a plan fixture exercising every tier/kind branch:
 // feeding (grouped cage×diet), medication (tiered series + a Done series),
 // cleanup (cage rows) and history (an applied terminal row).
+// Every rule it creates is scoped to the fixture cage (cagedRuleMatcher):
+// the shared test DB's ambient cage-less animals must never leak into the
+// recorded DOM baselines.
 func planFixtureRich(t *testing.T) (*planFixture, *http.Client, string) {
 	t.Helper()
 	f := setupPlanFixture(t)
@@ -100,39 +141,47 @@ func planFixtureRich(t *testing.T) (*planFixture, *http.Client, string) {
 	late := now.Add(-2 * time.Hour)       // late tier (past due, still open)
 	later := now.Add(26 * time.Hour)      // later tier (future, beyond today)
 
-	// Feeding: one cage × diet group due now (tiered grouped list).
-	f.feedRule(t, models.DB, soon)
+	// One matcher shared by every rule below: "cage =* fixture cage".
+	md := cagedRuleMatcher(t, f)
 
+	// Feeding: one cage × diet group due now (tiered grouped list).
+	// feedRule has no matcher parameter (its other callers want match-all);
+	// bind the cage matcher right after creation so the cage-less ambient
+	// animals (group "— (N)") stay out of the feeding baseline.
+	feed := f.feedRule(t, models.DB, soon)
+	feed.MatcherID = uuidpkg.NullUUID{UUID: md.ID, Valid: true}
+	require.NoError(t, models.DB.RawQuery(
+		"UPDATE care_rules SET matcher_id = ? WHERE id = ?", md.ID, feed.ID).Exec())
 	// Observation (row kind): one LATE, one NOW, one LATER occurrence so the
 	// row-kind tiers (Late/Now/Later) all render; a fourth is APPLIED below
 	// to populate History.
-	obsLate := ruleWithoutMatcher(t, models.DB, "ROBS-L-"+f.marker, "observation",
+	obsLate := ruleWithMatcher(t, models.DB, "ROBS-L-"+f.marker, "observation",
 		planRulePayload(t, "observation", map[string]interface{}{"question": "Q-L-" + f.marker}),
-		careScheduleJSON(t, late))
+		careScheduleJSON(t, late), md)
 	_ = obsLate
-	ruleWithoutMatcher(t, models.DB, "ROBS-N-"+f.marker, "observation",
+	ruleWithMatcher(t, models.DB, "ROBS-N-"+f.marker, "observation",
 		planRulePayload(t, "observation", map[string]interface{}{"question": "Q-N-" + f.marker}),
-		careScheduleJSON(t, soon))
+		careScheduleJSON(t, soon), md)
 	// NOTE: obsHist is due 1 minute AFTER obsNow — same tier, but a distinct
 	// sort key. Two rules sharing the exact same due time order
 	// non-deterministically within the tier (flaky baseline).
-	obsHist := ruleWithoutMatcher(t, models.DB, "ROBS-H-"+f.marker, "observation",
+	obsHist := ruleWithMatcher(t, models.DB, "ROBS-H-"+f.marker, "observation",
 		planRulePayload(t, "observation", map[string]interface{}{"question": "Q-H-" + f.marker}),
-		careScheduleJSON(t, soon.Add(1*time.Minute)))
-	ruleWithoutMatcher(t, models.DB, "ROBS-F-"+f.marker, "observation",
+		careScheduleJSON(t, soon.Add(1*time.Minute)), md)
+	ruleWithMatcher(t, models.DB, "ROBS-F-"+f.marker, "observation",
 		planRulePayload(t, "observation", map[string]interface{}{"question": "Q-F-" + f.marker}),
-		careScheduleJSON(t, later))
+		careScheduleJSON(t, later), md)
 
 	// Medication: a single-slot rule; one occurrence is APPLIED below so the
 	// medication page renders both an open tier and a Done/history row.
-	med := ruleWithoutMatcher(t, models.DB, "RMED-DOM-"+f.marker, "medication",
+	med := ruleWithMatcher(t, models.DB, "RMED-DOM-"+f.marker, "medication",
 		planRulePayload(t, "medication", map[string]interface{}{"drug": "CPDrug-" + f.marker, "dosage": "0.5 ml"}),
-		careScheduleJSON(t, soon))
+		careScheduleJSON(t, soon), md)
 
 	// Cleanup: a cage rule so the cleanup kind renders rows.
-	ruleWithoutMatcher(t, models.DB, "RCLN-DOM-"+f.marker, "cleanup",
+	ruleWithMatcher(t, models.DB, "RCLN-DOM-"+f.marker, "cleanup",
 		planRulePayload(t, "cleanup", map[string]interface{}{"caretype_id": f.defCare.String()}),
-		careScheduleJSON(t, soon))
+		careScheduleJSON(t, soon), md)
 
 	// Apply ONE observation + ONE medication occurrence so the page has
 	// terminal rows (history) in addition to the open tiers.

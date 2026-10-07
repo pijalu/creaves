@@ -20,6 +20,9 @@ import (
 func TestAnimalHeatSourceOxygenOnAnimal(t *testing.T) {
 	requireMySQLTestDB(t)
 	tx := models.DB
+	// The update flow auto-creates a "Soin" care on heat/O2 change (#205-10);
+	// ensure the canonical caretype exists instead of relying on ambient DB state.
+	csTSoins(t, tx)
 	f := createQuickOuttakeFixture(t, tx)
 	client, baseURL := adminClientWithURL(t)
 
@@ -63,12 +66,10 @@ func TestAnimalHeatSourceOxygenOnAnimal(t *testing.T) {
 	require.Equal(t, "Lampe infrarouge e2e", a.HeatSource.String)
 	require.True(t, a.Oxygen)
 
-	// 3. Read mode displays both (pinned to the care-tab list markup: the
-	//    audit table also mentions the raw value after a change).
+	// 3. Read mode displays both as compact care-tab badges (#205 item 9).
 	showHTML := fetchPageGET(t, client, baseURL+fmt.Sprintf("/animals/%d", f.freeID))
-	require.Contains(t, showHTML, `<label class="small d-block">Heat source</label>`)
-	require.Contains(t, showHTML, `<p class="d-inline-block">Lampe infrarouge e2e</p>`)
-	require.Contains(t, showHTML, `<label class="small d-block">Oxygen</label>`)
+	require.Contains(t, showHTML, `<span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Heat: Lampe infrarouge e2e</span>`)
+	require.Contains(t, showHTML, `<span class="badge badge-pill badge-info">O<sub>2</sub></span>`)
 
 	// 4. Clear them again (heat source emptied, oxygen unchecked).
 	form = reloadForm()
