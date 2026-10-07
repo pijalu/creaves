@@ -116,6 +116,14 @@ type CardView struct {
 	// same sentence twice, truncated mid-word. When true the row renders
 	// the Detail alone (kind + nourriture/régime).
 	SourceNameRedundant bool
+	// Item 8 (2026-10-07): stale late occurrences of this record — late
+	// work the group's next occurrence has overtaken (relative-distance
+	// rule). They fold into ONE "⏱ N" badge with a snooze action instead of
+	// rendering as individual toggles; StaleRefsJSON carries their apply
+	// refs (the snooze defers them all). A record with folded occurrences
+	// stays in the LATE section (TierOf override).
+	StaleLateCount int
+	StaleRefsJSON  string
 }
 
 // ItemSlotView is one open occurrence of a merged row-kind line (Phase 4 /
@@ -142,8 +150,13 @@ type ItemSlotView struct {
 	Tier        int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
 	TierClass   string // slotTierClass(Tier) — the toggle's colour (§2.1)
 	Applicable  bool
+	// Item 8: a STALE late occurrence — the group's next occurrence is
+	// nearer to now than this one. It renders as part of the record's
+	// "⏱ N" badge (with snooze) instead of an individual toggle, and is
+	// excluded from the batch refs.
+	Stale       bool
 	LateAllowed bool // past due + out of window → record-anyway (§6.2-2, A1)
-	NeedsInput  bool // weighing / observation → the apply input modal
+	NeedsInput  bool // weighing / observation → the apply modal
 }
 
 // TierLink is one pill of the summary strip (R4-7.21): a jump link to a
@@ -319,6 +332,14 @@ type MedSeriesView struct {
 	Rows       []MedSeriesRow
 	Tier       int       // most urgent open slot's tier (R3-5 tier placement)
 	FirstDueAt time.Time // earliest open slot's due time (tier sort)
+	// Item 8 (2026-10-07): stale late occurrences of the series — folded
+	// into ONE "⏱ N" badge (with snooze) instead of the former silent
+	// drop; StaleRefsJSON carries their apply refs. staleApplicable counts
+	// the folded APPLICABLE ones for MedTierOpen (unexported: counter only,
+	// never rendered).
+	StaleLateCount   int
+	StaleRefsJSON    string
+	staleApplicable  int
 }
 
 // MedTierLine is one rendered medication line of the work screen (R3-5):
@@ -373,11 +394,14 @@ type CareTimeGroup struct {
 }
 
 // CareAnimalLine is one animal's line inside a multi-animal cleanup cage
-// row: the number link plus that animal's occurrence toggles.
+// row: the number link plus that animal's occurrence toggles. Item 8: the
+// line also carries its stale late occurrences ("⏱ N" badge + snooze).
 type CareAnimalLine struct {
-	AnimalID   int
-	AnimalYear string
-	Slots      []ItemSlotView
+	AnimalID      int
+	AnimalYear    string
+	Slots         []ItemSlotView
+	StaleCount    int
+	StaleRefsJSON string
 }
 
 // CareView is one rendered cleanup row (guideline §3/§4): ONE line per
@@ -419,6 +443,12 @@ type CareView struct {
 	// §3.2: the occurrences folded into due-time sub-groups — the time is
 	// the sub-group label, stated once; each slot is one toggle.
 	TimeGroups []CareTimeGroup
+	// Item 8 (2026-10-07): stale late occurrences of the row — late work
+	// the animal's next occurrence has overtaken. They render as ONE
+	// "⏱ N" badge (with snooze) on the row/animal line instead of
+	// individual toggles and stay out of the batch refs.
+	StaleCount    int
+	StaleRefsJSON string
 	// Tier/TierClass/GroupStatus: the row's urgency tier — its most urgent
 	// open occurrence (the same most-urgent rule as feedingGroupTier) —
 	// the ONE slotTierClass colour policy and the group dot. Stamped by
@@ -749,13 +779,12 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 				v.collectDoneSeries(g, series, now)
 				continue
 			}
-			// R4-7.7: the work screen shows TODAY. A series with no open
-			// occurrence left for today disappears (in the evening the table
-			// is empty), and at most ONE later occurrence survives — the
-			// nearest — and only when it is nearer than the pending late
-			// entry, so a far-off tomorrow slot never competes with work
-			// that is due now. Everything else waits for its own day.
-			series = scopeSeriesToToday(series, now)
+			// R4-7.7 + item 8: the work screen shows TODAY. A series with no
+			// open occurrence left for today disappears (in the evening the
+			// table is empty); the nearest later occurrence is kept for the
+			// co-display; past-due slots the next occurrence overtook fold
+			// into the series' "⏱ N" badge.
+			series = scopeSeriesToToday(series, g.AnimalID, now)
 			if len(series.Rows) == 0 {
 				continue
 			}
@@ -769,6 +798,11 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 				continue
 			}
 			tier, first := seriesTier(series)
+			if series.StaleLateCount > 0 {
+				// Item 8: the record stays in the LATE section (user ruling)
+				// even when its actionable slot is due/scheduled.
+				tier = 0
+			}
 			series.Tier = tier
 			series.FirstDueAt = first
 			// R4-1.2: the slot that placed the series in its tier is the
@@ -777,8 +811,10 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 			// R4-1.3: the badge counts the tier's occurrences across ALL
 			// medication series — a series that sits in the Late section may
 			// still own future slots, and those occurrences are visible on
-			// this very page. One unit, one number, everywhere.
+			// this very page. One unit, one number, everywhere. Item 8: the
+			// folded stale occurrences count too (visible via the badge).
 			addTierOpenCounts(v, series)
+			v.MedTierOpen[0] += series.staleApplicable
 			g.Series = []MedSeriesView{series}
 			v.MedTiers[tier] = append(v.MedTiers[tier], g)
 		}
@@ -825,7 +861,7 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 // for today it is a DONE series and joins MedDone — it no longer disappears
 // in the evening. With nothing due today it leaves the screen entirely.
 func (v *DayPlanView) collectDoneSeries(g MedGroupView, series MedSeriesView, now time.Time) {
-	series = scopeSeriesToToday(series, now)
+	series = scopeSeriesToToday(series, g.AnimalID, now)
 	if len(series.Rows) == 0 {
 		return // nothing of this series belongs to today
 	}
@@ -879,19 +915,22 @@ func medDoneFirstDue(line MedTierLine) time.Time {
 }
 
 // medAnimalColCh is the shared animal-column width for the whole medication
-// page: the longest label across ALL THREE tiers, in `ch` plus one spare
-// column. A label longer than this is never cut — the cell carries no
-// overflow rule, it simply grows.
+// page, in `ch` plus one spare column.
+//
+// Item 1 (2026-10-07): sized from the YEAR/NUMBER — the only text the cell
+// renders (§5 level 1). Sizing from the full animal label made the cell a
+// ~350 px empty block for a 7-character number; the full label lives in the
+// cell's title and the ℹ modal.
 func medAnimalColCh(tiers [3][]MedTierLine) int {
 	// One spare column: `ch` is the width of "0", so a label made of narrow
-	// glyphs (digits, spaces, the `·` separators) renders WIDER than its rune
-	// count in ch. The spare column absorbs that; without it a label right at
-	// the limit would be clipped, and R4-7.24 forbids clipping.
+	// glyphs (digits, the `/` separator) renders WIDER than its rune
+	// count in ch. The spare column absorbs that; without it a label right
+	// at the limit would be clipped, and R4-7.24 forbids clipping.
 	const room = 1
 	widest := 0
 	for i := range tiers {
 		for _, g := range tiers[i] {
-			if n := utf8.RuneCountInString(g.AnimalLabel); n > widest {
+			if n := utf8.RuneCountInString(g.AnimalYear); n > widest {
 				widest = n
 			}
 		}
@@ -904,8 +943,10 @@ func medAnimalColCh(tiers [3][]MedTierLine) int {
 
 // cardAnimalColCh is the row-kind analogue of medAnimalColCh (bugs.md
 // 2026-10-06 #7): the shared animal-column width for the care/observation/
-// weighing lines, sized from the longest label across the three tiers so the
-// cells read as one column (R4-7.15) and no label is ever cut (R4-7.24).
+// weighing lines, sized from the longest YEAR/NUMBER across the three tiers
+// so the cells read as one column (R4-7.15) and no year is ever cut
+// (R4-7.24). Item 1 (2026-10-07): from the year, not the full label — the
+// cell must stay narrow enough for the whole record to read on ONE line.
 func cardAnimalColCh(tiers [3]TierView) int {
 	// Same spare column as medAnimalColCh: `ch` is the width of "0", so a
 	// label of narrow glyphs renders wider than its rune count.
@@ -913,7 +954,7 @@ func cardAnimalColCh(tiers [3]TierView) int {
 	widest := 0
 	for i := range tiers {
 		for _, c := range tiers[i].Cards {
-			if n := utf8.RuneCountInString(c.AnimalLabel); n > widest {
+			if n := utf8.RuneCountInString(c.AnimalYear); n > widest {
 				widest = n
 			}
 		}
@@ -1067,7 +1108,7 @@ func fillFeedTiers(v *DayPlanView) {
 func firstChipDue(f FeedingGroupView) time.Time {
 	var first time.Time
 	for _, c := range f.Chips {
-		if c.Superseded || !c.Applicable {
+		if c.Superseded || !c.Applicable || c.StaleLate {
 			continue
 		}
 		if first.IsZero() || c.DueAt.Before(first) {
@@ -1117,7 +1158,15 @@ type Openable interface {
 
 // TierOf reports the row's urgency tier — recomputed from the status,
 // the exact semantics fillTiers always had (never the cached field).
-func (cv CardView) TierOf() int { return tierOrder(careplan.PlanStatus(cv.Status)) }
+// Item 8: a record carrying folded stale late occurrences stays in the
+// LATE section (user ruling 2026-10-07) even when its actionable slot is
+// due-now or scheduled.
+func (cv CardView) TierOf() int {
+	if cv.StaleLateCount > 0 {
+		return 0
+	}
+	return tierOrder(careplan.PlanStatus(cv.Status))
+}
 
 // FirstDue is the row's due time (tier rows always carry one).
 func (cv CardView) FirstDue() time.Time { return cv.DueAt }
@@ -1247,13 +1296,15 @@ func careRowTier(cv CareView) (int, string) {
 	return best, status
 }
 
-// firstCareDue reports the row's earliest APPLICABLE open occurrence — the
-// tier sort key (firstChipDue parity). The zero time sorts last.
+// firstCareDue reports the row's earliest APPLICABLE open occurrence that
+// is still actionable — the tier sort key (firstChipDue parity). Stale
+// late occurrences (item 8) sort by their next actionable sibling instead.
+// The zero time sorts last.
 func firstCareDue(cv CareView) time.Time {
 	var first time.Time
 	for _, tg := range cv.TimeGroups {
 		for _, s := range tg.Slots {
-			if !s.Applicable {
+			if !s.Applicable || s.Stale {
 				continue
 			}
 			if first.IsZero() || s.DueAt.Before(first) {
@@ -1353,13 +1404,47 @@ func (v *DayPlanView) tierRows(plan *DayPlan, detailed bool) []CardView {
 		}
 	}
 
-	// Due-time order each line's slots, count the fold, then sort the lines
+	// Due-time order each line's slots, fold the stale late occurrences
+	// into the record badge (item 8), count the fold, then sort the lines
 	// by (tier, earliest due) so the urgent work reads first.
 	for _, k := range order {
 		rep := &rows[groups[k].rep]
 		sort.SliceStable(rep.Slots, func(i, j int) bool {
 			return rep.Slots[i].DueAt.Before(rep.Slots[j].DueAt)
 		})
+		// Item 8: stale lates fold into ONE "⏱ N" badge (with snooze);
+		// the record stays in the Late section via TierOf(). The line's
+		// due label / status re-stamps from its most urgent KEPT slot —
+		// the next upcoming action ("show in late the next upcoming").
+		kept, stale := foldStaleItemSlots(rep.Slots, now)
+		if len(stale) > 0 {
+			rep.Slots = kept
+			rep.StaleLateCount = len(stale)
+			refs := make([]map[string]interface{}, 0, len(stale))
+			for _, s := range stale {
+				refs = append(refs, map[string]interface{}{
+					"source_type": rep.SourceType,
+					"source_id":   rep.SourceID,
+					"animal_id":   rep.AnimalID,
+					"due_at":      s.DueAtRFC,
+				})
+			}
+			if raw, err := jsonMarshal(refs); err == nil {
+				rep.StaleRefsJSON = string(raw)
+			}
+			if len(kept) > 0 {
+				best := kept[0]
+				for _, s := range kept[1:] {
+					if s.Tier < best.Tier || (s.Tier == best.Tier && s.DueAt.Before(best.DueAt)) {
+						best = s
+					}
+				}
+				rep.DueAt, rep.DueHM = best.DueAt, best.DueHM
+				rep.DueDayKey, rep.DueShortDate = best.DueDayKey, best.DueShortDate
+				rep.Status = best.Status
+				rep.TierClass = best.TierClass
+			}
+		}
 		rep.Remaining = len(rep.Slots) - 1
 		rep.RemainingCap = BadgeCap(rep.Remaining)
 	}
@@ -1511,10 +1596,52 @@ func openCurrentCounts(plan *DayPlan) map[string]int {
 	return openCurrent
 }
 
+// feedingOccKey identifies one feeding occurrence for the stale-flag map
+// (item 8): chips and items carry identical (source × animal × due) keys.
+func feedingOccKey(typ, id string, animal int, due time.Time) string {
+	return fmt.Sprintf("%s|%s|%d|%d", typ, id, animal, due.UnixNano())
+}
+
+// feedingStaleNext returns the due time of the (source × animal) group's
+// next open occurrence — the muted "next" label of a stale-late chip.
+func feedingStaleNext(fc *FeedingCard, typ, id string, animal int, now time.Time) (time.Time, bool) {
+	var best time.Time
+	var bestDist time.Duration
+	found := false
+	for i := range fc.Items {
+		it := &fc.Items[i]
+		src := it.Occurrence.Source
+		if src == nil || string(src.SourceType()) != typ || src.SourceID() != id ||
+			it.Occurrence.AnimalID != animal {
+			continue
+		}
+		d, ok := openSiblingInDist(it.Status, it.Occurrence.DueAt, now)
+		if !ok {
+			continue
+		}
+		if !found || d < bestDist {
+			best, bestDist, found = it.Occurrence.DueAt, d, true
+		}
+	}
+	return best, found
+}
+
 // feedingViewOf enriches one feeding card's chips (links, "+N" remaining,
 // batch refs). Returns false when no chip survived (fully-scheduled card).
-func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string) (FeedingGroupView, bool) {
+// Item 8: stale late chips fold into the "⏱" badge + snooze and leave the
+// batch refs.
+func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string, now time.Time) (FeedingGroupView, bool) {
 	fv := FeedingGroupView{Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed}
+	staleKeys := map[string]bool{}
+	for i, st := range staleLateFlags(fc.Items, now) {
+		if !st {
+			continue
+		}
+		it := &fc.Items[i]
+		if src := it.Occurrence.Source; src != nil {
+			staleKeys[feedingOccKey(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, it.Occurrence.DueAt)] = true
+		}
+	}
 	var refs []map[string]interface{}
 	for i := range fc.Chips {
 		chip := fc.Chips[i]
@@ -1526,12 +1653,27 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string)
 		if !chip.Superseded && !openStatusAction(careplan.PlanStatus(chip.Status)) {
 			continue
 		}
+		if staleKeys[feedingOccKey(chip.SourceType, chip.SourceID, chip.AnimalID, chip.DueAt)] {
+			chip.StaleLate = true
+			if due, ok := feedingStaleNext(fc, chip.SourceType, chip.SourceID, chip.AnimalID, now); ok {
+				dp := DueLabelPartsOf(due, now)
+				chip.StaleNextHM, chip.StaleNextDayKey, chip.StaleNextShortDate = dp.TimeHM, dp.DayKey, dp.ShortDate
+			}
+			if raw, err := jsonMarshal([]map[string]interface{}{{
+				"source_type": chip.SourceType,
+				"source_id":   chip.SourceID,
+				"animal_id":   chip.AnimalID,
+				"due_at":      chip.DueAt.Format(time.RFC3339),
+			}}); err == nil {
+				chip.StaleRefsJSON = string(raw)
+			}
+		}
 		chip.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
 		if n := openCurrent[fmt.Sprintf("%s|%s|%d", chip.SourceType, chip.SourceID, chip.AnimalID)]; n > 0 {
 			chip.Remaining = n - 1
 		}
 		fv.Chips = append(fv.Chips, chip)
-		if chip.Applicable {
+		if chip.Applicable && !chip.StaleLate {
 			fv.ApplicableCount++
 			refs = append(refs, map[string]interface{}{
 				"source_type": chip.SourceType,
@@ -1647,7 +1789,7 @@ func feedingViewsOf(plan *DayPlan, selfPath, group string) []FeedingGroupView {
 	}
 	out := make([]FeedingGroupView, 0, len(feedings))
 	for _, fc := range feedings {
-		if fv, ok := feedingViewOf(fc, openCurrent, selfPath); ok {
+		if fv, ok := feedingViewOf(fc, openCurrent, selfPath, plan.Now); ok {
 			out = append(out, fv)
 		}
 	}
@@ -1663,7 +1805,7 @@ func feedingViewsOf(plan *DayPlan, selfPath, group string) []FeedingGroupView {
 func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent map[string]int, selfPath string) []FeedingGroupView {
 	out := make([]FeedingGroupView, 0, len(feedings))
 	for _, fc := range feedings {
-		fv, ok := feedingViewOf(fc, openCurrent, selfPath)
+		fv, ok := feedingViewOf(fc, openCurrent, selfPath, plan.Now)
 		if !ok {
 			continue
 		}
@@ -1682,7 +1824,7 @@ func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent ma
 				row.Species = a.Species
 			}
 			row.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
-			if chip.Applicable {
+			if chip.Applicable && !chip.StaleLate {
 				row.ApplicableCount = 1
 			}
 			// Single-chip row: one time sub-group, never collapsible — one
@@ -1694,34 +1836,13 @@ func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent ma
 	return out
 }
 
-// careItemCounts folds one cleanup item into its row (late / applicable
-// counters) and returns its batch ref. Returns false when the item is not
-// applicable open work. B10-7: scheduled occurrences REACH the builder only
-// when they survived the per-kind future cap (CarePlanIndex applies the caps
-// before the view model), so they render as open work — the tab must not go
-// empty while work is planned within the horizon.
-func careItemCounts(cv *CareView, srcType, srcID string, it *careplan.PlanItem) (map[string]interface{}, bool) {
-	if !openStatusAction(it.Status) || !it.Applicable {
-		return nil, false
-	}
-	if it.Status == careplan.StatusLate || it.Status == careplan.StatusMissing {
-		cv.LateCount++
-	}
-	cv.ApplicableCount++
-	return map[string]interface{}{
-		"source_type": srcType,
-		"source_id":   srcID,
-		"animal_id":   it.Occurrence.AnimalID,
-		"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
-	}, true
-}
-
 // careViewsOf builds every cleanup row (guideline §4): ONE row per
 // (source × cage) in the default cage grouping — the cage keeps its batch
 // apply (bugs.md U6) — or ONE row per (source × animal) under
 // group=animal. Every row carries its open occurrences as time-grouped
 // toggle slots (§3). Unfiltered; applicable items only — including the
-// scheduled ones the future cap kept (B10-7).
+// scheduled ones the future cap kept (B10-7); stale late occurrences fold
+// into the row badge (item 8).
 func careViewsOf(plan *DayPlan, selfPath, group string) []CareView {
 	cares, _ := GroupCards(plan.Items, plan)
 	if group == "animal" {
@@ -1739,22 +1860,40 @@ func careViewsOf(plan *DayPlan, selfPath, group string) []CareView {
 		}
 		var refs []map[string]interface{}
 		completedAnimals := map[int]bool{}
+		// Item 8: stale late occurrences fold into the row's "⏱ N" badge —
+		// no toggle, no batch ref (relative-distance rule).
+		stale := staleLateFlags(cc.Items, plan.Now)
 		for i := range cc.Items {
-			if cc.Items[i].Status == careplan.StatusApplied {
-				completedAnimals[cc.Items[i].Occurrence.AnimalID] = true
+			it := &cc.Items[i]
+			if it.Status == careplan.StatusApplied {
+				completedAnimals[it.Occurrence.AnimalID] = true
 			}
-			if r, ok := careItemCounts(&cv, cv.SourceType, cv.SourceID, &cc.Items[i]); ok {
-				refs = append(refs, r)
-				slot := itemSlotFor(plan.Now, &cc.Items[i])
-				if animal, ok := plan.AnimalRow(slot.AnimalID); ok {
-					slot.AnimalYear = animal.YearNumberFormatted()
+			if !openStatusAction(it.Status) || !it.Applicable {
+				continue
+			}
+			slot := itemSlotFor(plan.Now, it)
+			if animal, ok := plan.AnimalRow(slot.AnimalID); ok {
+				slot.AnimalYear = animal.YearNumberFormatted()
+			}
+			if stale[i] {
+				slot.Stale = true
+			} else {
+				if it.Status == careplan.StatusLate || it.Status == careplan.StatusMissing {
+					cv.LateCount++
 				}
-				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, slot)
+				cv.ApplicableCount++
+				refs = append(refs, map[string]interface{}{
+					"source_type": cv.SourceType,
+					"source_id":   cv.SourceID,
+					"animal_id":   it.Occurrence.AnimalID,
+					"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
+				})
 			}
+			cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, slot)
 		}
 		finalizeCareRow(&cv)
 		cv.Partial = cv.ApplicableCount > 0 && len(completedAnimals) > 0
-		if cv.ApplicableCount == 0 {
+		if cv.ApplicableCount == 0 && cv.StaleCount == 0 {
 			continue
 		}
 		if raw, err := jsonMarshal(refs); err == nil {
@@ -1774,6 +1913,7 @@ func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []Care
 	for _, cc := range cares {
 		byAnimal := map[int]*CareView{}
 		var ids []int
+		stale := staleLateFlags(cc.Items, plan.Now)
 		for i := range cc.Items {
 			it := &cc.Items[i]
 			cv, ok := byAnimal[it.Occurrence.AnimalID]
@@ -1796,15 +1936,26 @@ func careAnimalViewsOf(cares []*CageCard, plan *DayPlan, selfPath string) []Care
 				byAnimal[it.Occurrence.AnimalID] = cv
 				ids = append(ids, it.Occurrence.AnimalID)
 			}
-			if _, ok := careItemCounts(cv, cv.SourceType, cv.SourceID, it); ok {
-				cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, itemSlotFor(plan.Now, it))
+			if !openStatusAction(it.Status) || !it.Applicable {
+				continue
 			}
+			slot := itemSlotFor(plan.Now, it)
+			if stale[i] {
+				// Item 8: stale late — badge + snooze, no batch ref.
+				slot.Stale = true
+			} else {
+				if it.Status == careplan.StatusLate || it.Status == careplan.StatusMissing {
+					cv.LateCount++
+				}
+				cv.ApplicableCount++
+			}
+			cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, slot)
 		}
 		sort.Ints(ids)
 		for _, id := range ids {
 			cv := byAnimal[id]
 			finalizeCareRow(cv)
-			if cv.ApplicableCount == 0 {
+			if cv.ApplicableCount == 0 && cv.StaleCount == 0 {
 				continue
 			}
 			out = append(out, *cv)
@@ -1830,7 +1981,7 @@ func finalizeCareRow(cv *CareView) {
 		// Bug 2026-10-27 #5: a multi-animal cage row folds each time-group's
 		// slots into per-animal lines (ascending animal id) so the template
 		// renders one line per animal — number link + its own toggles —
-		// instead of one interleaved wrapping run. Single-animal cages keep
+		// instead of one interleaved wrap. Single-animal cages keep
 		// AnimalLines empty: the template renders the spacer there.
 		for gi := range cv.TimeGroups {
 			cv.TimeGroups[gi].AnimalLines = animalLinesOf(cv.TimeGroups[gi].Slots)
@@ -1841,6 +1992,45 @@ func finalizeCareRow(cv *CareView) {
 		cv.FirstTimeLabel = first.Label
 		cv.FirstTimeDayKey = first.DayKey
 		cv.FirstTimeShortDate = first.ShortDate
+	}
+	// Item 8: stale late accounting — the row badge (and per-animal line
+	// badges under cage grouping) carry the folded occurrences with their
+	// snooze refs; the slots stay in their time groups but never render a
+	// toggle and stay out of the batch refs.
+	var refs []map[string]interface{}
+	perAnimal := map[int][]map[string]interface{}{}
+	for gi := range cv.TimeGroups {
+		for si := range cv.TimeGroups[gi].Slots {
+			s := &cv.TimeGroups[gi].Slots[si]
+			if !s.Stale {
+				continue
+			}
+			r := map[string]interface{}{
+				"source_type": cv.SourceType,
+				"source_id":   cv.SourceID,
+				"animal_id":   s.AnimalID,
+				"due_at":      s.DueAtRFC,
+			}
+			refs = append(refs, r)
+			perAnimal[s.AnimalID] = append(perAnimal[s.AnimalID], r)
+		}
+	}
+	cv.StaleCount = len(refs)
+	if len(refs) > 0 {
+		if raw, err := jsonMarshal(refs); err == nil {
+			cv.StaleRefsJSON = string(raw)
+		}
+	}
+	for gi := range cv.TimeGroups {
+		for li := range cv.TimeGroups[gi].AnimalLines {
+			line := &cv.TimeGroups[gi].AnimalLines[li]
+			line.StaleCount = len(perAnimal[line.AnimalID])
+			if line.StaleCount > 0 {
+				if raw, err := jsonMarshal(perAnimal[line.AnimalID]); err == nil {
+					line.StaleRefsJSON = string(raw)
+				}
+			}
+		}
 	}
 }
 
@@ -2257,15 +2447,18 @@ func seriesTierOrMinus(series MedSeriesView) int {
 	return tier
 }
 
-// scopeSeriesToToday is R4-7.7: the work screen shows the DAY's work, not
-// the schedule. Kept: every slot due up to the end of today (open or
-// terminal — the done ones are the day's record), plus AT MOST ONE later
-// open slot, the nearest, and only when it is nearer than the pending late
-// entry ("if the duration from now to the entry is shorter than the current
-// one"). Everything else waits for its own day, so the table is empty in the
-// evening. The surviving later slot is bucketed "tomorrow", following
-// morning/noon/evening like any other bucket.
-func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
+// scopeSeriesToToday is R4-7.7 + item 8 (2026-10-07): the work screen shows
+// the DAY's work, not the schedule. Kept: every slot due up to the end of
+// today (open or terminal — the done ones are the day's record), plus the
+// nearest later open slot — ALWAYS while a late slot is pending (item 8:
+// "at least show in late the next upcoming action"), otherwise only when it
+// is nearer than the pending entry (R4-7.7). Past-due slots the next
+// occurrence has overtaken (relative-distance rule, item 8) FOLD into the
+// series' "⏱ N" badge instead of being dropped (the former dropPastDueSlots
+// demoted, not deleted): the series line stays in the Late section with the
+// badge and the actionable next slot. animalID keys the folded occurrences'
+// apply refs (the snooze). Everything else waits for its own day.
+func scopeSeriesToToday(series MedSeriesView, animalID int, now time.Time) MedSeriesView {
 	endOfDay := endOfDayOf(now)
 
 	// Without an open slot due today there is no open WORK to scope around —
@@ -2283,31 +2476,46 @@ func scopeSeriesToToday(series MedSeriesView, now time.Time) MedSeriesView {
 		return out
 	}
 
-	// The one later slot worth showing: the nearest open one, and only when
-	// it beats the pending late entry.
+	// The one later slot worth showing: the nearest open one — always when
+	// a late entry is pending (item 8 co-display), else only when it beats
+	// the pending entry's distance (R4-7.7).
 	kept := todaysSlots(series, endOfDay)
+	pendingLate := hasPendingLateSlot(kept)
 	if nextDue, found := nearestLaterSlot(series, endOfDay); found &&
-		nextDue.Sub(now) < now.Sub(urgentDue) {
+		(pendingLate || nextDue.Sub(now) < now.Sub(urgentDue)) {
 		kept = append(kept, tomorrowSlot(series, nextDue)...)
 	}
 
-	// R9 next-in-future rule: a series must not advertise the same
-	// treatment twice. A PAST-due slot is shown only while the next
-	// treatment is still in the future; once an occurrence of the series
-	// is DUE now (the caregiver is on it), the stale past ones leave —
-	// the due slot carries the series from here. (Terminal — applied or
-	// overridden — occurrences from BEFORE today are already gone:
-	// todaysSlots keeps only today's record; the preference caps cannot
-	// do that job because they only prune OPEN work.)
-	if hasDueNowSlot(kept) {
-		kept = dropPastDueSlots(kept)
-	}
+	// Item 8: past-due slots the group's next occurrence has overtaken fold
+	// into the badge. A due-now slot (next_in = 0) folds every pending
+	// late; a future next folds the ones past the missed/next midpoint.
+	kept, stale := foldStaleMedSlots(kept, now)
 
 	if len(kept) == 0 {
 		return emptySeries(series)
 	}
 	out := series
 	out.Rows = chunkSeriesRows(kept)
+	out.StaleLateCount = len(stale)
+	for _, s := range stale {
+		if s.Applicable {
+			out.staleApplicable++
+		}
+	}
+	if out.StaleLateCount > 0 {
+		refs := make([]map[string]interface{}, 0, len(stale))
+		for _, s := range stale {
+			refs = append(refs, map[string]interface{}{
+				"source_type": s.SourceType,
+				"source_id":   s.SourceID,
+				"animal_id":   animalID,
+				"due_at":      s.DueAtRFC,
+			})
+		}
+		if raw, err := jsonMarshal(refs); err == nil {
+			out.StaleRefsJSON = string(raw)
+		}
+	}
 	return out
 }
 
@@ -2397,31 +2605,6 @@ func todaysSlots(series MedSeriesView, endOfDay time.Time) []MedSlotView {
 		kept = append(kept, s)
 	}
 	return kept
-}
-
-// hasDueNowSlot reports whether any slot of the set is DUE now — open, not
-// late yet (R9 next-in-future rule trigger).
-func hasDueNowSlot(slots []MedSlotView) bool {
-	for _, s := range slots {
-		if !s.Done && !s.Overridden && careplan.PlanStatus(s.Status) == careplan.StatusDue {
-			return true
-		}
-	}
-	return false
-}
-
-// dropPastDueSlots removes the series' open past-due slots (late/missing):
-// the due-now slot takes over the series (R9 next-in-future rule). Done and
-// overridden slots stay — the day's record must survive.
-func dropPastDueSlots(slots []MedSlotView) []MedSlotView {
-	out := slots[:0:0]
-	for _, s := range slots {
-		if !s.Done && !s.Overridden && tierOrder(careplan.PlanStatus(s.Status)) == 0 {
-			continue
-		}
-		out = append(out, s)
-	}
-	return out
 }
 
 // tomorrowSlot returns the slots due at exactly `nextDue`, rebucketed into

@@ -658,6 +658,16 @@ type FeedingChip struct {
 	// Phase-0b: ONE colour policy (slotTierClass) — the toggle button's
 	// tier colour, populated from the item status at build time.
 	TierClass string
+	// Item 8 (2026-10-07): the chip's occurrence is a STALE late — the
+	// animal's next occurrence is nearer to now than this one. The chip
+	// renders the "⏱" badge + snooze (StaleRefsJSON) instead of a toggle,
+	// is excluded from the batch refs, and its muted "next" label points
+	// at the next upcoming occurrence (date-aware parts, §6.2-5).
+	StaleLate            bool
+	StaleNextHM          string
+	StaleNextDayKey      string
+	StaleNextShortDate   string
+	StaleRefsJSON        string
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan

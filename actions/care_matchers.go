@@ -318,13 +318,16 @@ type CareMatchersResource struct {
 
 // List gets all matchers. GET /care_matchers — JSON API plus the HTML
 // matcher library page (§7.2), content-negotiated like the rules list.
+// Item 9 (2026-10-07): derived composite matchers are seed-internal
+// building blocks and stay out of the library (a rule referencing one
+// still shows its name via matcherNamesByID).
 func (v CareMatchersResource) List(c buffalo.Context) error {
 	if !requireAdminForPlan(c) {
 		return nil
 	}
 	tx := planTx(c)
 	matchers := &models.CareMatchers{}
-	if err := tx.All(matchers); err != nil {
+	if err := tx.Where("derived = 0").All(matchers); err != nil {
 		return err
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {

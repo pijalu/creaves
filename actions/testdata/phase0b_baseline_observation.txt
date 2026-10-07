@@ -524,7 +524,7 @@
   .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .plan-care-slots .plan-time-label { flex: 1 1 auto; }
   .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
-  @media (max-width: 991.98px) { .plan-loc { display: none; } }
+  @media (max-width: 991.98px) { .plan-loc, .plan-med-animal .plan-loc { display: none; } }
   .plan-tab-count { vertical-align: middle; }
   .plan-feed-header {
     display: flex; align-items: center; gap: 0.4rem;
@@ -652,7 +652,7 @@
           <div class="collapse show plan-tier-body" id="tier-late-rows">
             <div class="px-2">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -661,7 +661,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="yesterday HHMM" data-kind="observation" data-remaining="3" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -675,24 +675,11 @@
                 </div>
                 <div class="plan-med-btns">
                   <span class="plan-med-cell">
-                    <span class="badge badge-light border plan-med-day" title="RFC">
-                      "yesterday"
-                    </span>
                     <span class="plan-item-slot">
                       <button class="btn btn-danger btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-danger" title="Apply" type="button">
                         "○ HHMM"
                       </button>
                       <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-danger" title="Undo" type="button">
-                        "✓ HHMM"
-                      </button>
-                    </span>
-                  </span>
-                  <span class="plan-med-cell">
-                    <span class="plan-item-slot">
-                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A1 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                        "○ HHMM"
-                      </button>
-                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                         "✓ HHMM"
                       </button>
                     </span>
@@ -726,7 +713,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -735,7 +722,7 @@
                   </span>
                 </div>
                 <div class="plan-med-lead">
-                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="yesterday HHMM" data-kind="observation" data-remaining="3" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
+                  <button class="btn btn-outline-secondary btn-sm plan-detail-btn" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-animal-link="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan" data-detail="" data-due="HHMM" data-kind="observation" data-remaining="2" data-source-link="/care_rules/UUID?back=%2Fcare_plan%3Fkind%3Dobservation" data-source-name="ROBS-L-MARKER" data-status="late" title="Details" type="button">
                     "ℹ"
                   </button>
                 </div>
@@ -749,24 +736,11 @@
                 </div>
                 <div class="plan-med-btns">
                   <span class="plan-med-cell">
-                    <span class="badge badge-light border plan-med-day" title="RFC">
-                      "yesterday"
-                    </span>
                     <span class="plan-item-slot">
                       <button class="btn btn-danger btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-danger" title="Apply" type="button">
                         "○ HHMM"
                       </button>
                       <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-danger" title="Undo" type="button">
-                        "✓ HHMM"
-                      </button>
-                    </span>
-                  </span>
-                  <span class="plan-med-cell">
-                    <span class="plan-item-slot">
-                      <button class="btn btn-light border btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn" data-animal-id="AID" data-animal-label="YEARNUM · CP-A2 · CP-MARKER" data-detail="" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-name="ROBS-L-MARKER" data-source-type="rule" data-tier-class="btn-light border" title="Apply" type="button">
-                        "○ HHMM"
-                      </button>
-                      <button class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-kind="observation" data-source-id="UUID" data-source-type="rule" data-tier-class="btn-light border" title="Undo" type="button">
                         "✓ HHMM"
                       </button>
                     </span>
@@ -818,7 +792,7 @@
           <div class="collapse show plan-tier-body" id="tier-now-rows">
             <div class="px-2">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -879,7 +853,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -940,7 +914,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1019,7 +993,7 @@
           <div class="collapse show plan-tier-body" id="tier-later-rows">
             <div class="px-2">
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1070,7 +1044,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A1 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1121,7 +1095,7 @@
                 </div>
               </div>
               <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 32ch" title="YEARNUM · CP-A2 · CP-MARKER">
+                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1889,8 +1863,69 @@
     openSkipDefer(btn);
   });
 
+  // Item 8 (2026-10-07): snooze = defer EVERY folded stale occurrence of a
+  // record ("⏱ N" badge) — one modal answer, one audited defer per
+  // occurrence. The server clamps each deferred_until just before that
+  // occurrence's next one (ClampDeferredUntil), so the snoozed reminder
+  // resurfaces while still applicable.
+  var snoozeRefs = null;
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-snooze-btn') : null;
+    if (!btn) { return; }
+    try { snoozeRefs = JSON.parse(btn.getAttribute('data-items') || '[]'); } catch (e) { snoozeRefs = null; }
+    if (!snoozeRefs || !snoozeRefs.length) { snoozeRefs = null; return; }
+    sdMode = 'defer';
+    sdRef = null;
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels.defer.title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels.defer.submit;
+    document.getElementById('planSkipDeferContext').textContent = "The missed occurrence(s) of this record will be deferred (resurface before their next occurrence).";
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.remove('d-none');
+    $('#planSkipDeferModal').modal('show');
+  });
+
+  function submitSnooze(reason) {
+    var refs = snoozeRefs;
+    snoozeRefs = null;
+    var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+    if (!hours || hours < 1) { hours = 1; }
+    var until = new Date(Date.now() + hours * 3600000).toISOString();
+    var errBox = document.getElementById('planSkipDeferError');
+    var submitBtn = document.getElementById('planSkipDeferSubmit');
+    submitBtn.disabled = true;
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/apply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type, source_id: ref.source_id,
+            animal_id: ref.animal_id, due_at: ref.due_at,
+            status: 'deferred', note: reason, deferred_until: until
+          })
+        }).then(function (r) {
+          if (r.status !== 201) { failures.push(ref.due_at + ': HTTP ' + r.status); }
+        }));
+      });
+    });
+    chain.then(function () {
+      submitBtn.disabled = false;
+      if (failures.length) {
+        errBox.textContent = failures.join('\n');
+        errBox.classList.remove('d-none');
+        return;
+      }
+      $('#planSkipDeferModal').modal('hide');
+      window.location.reload();
+    });
+  }
+
   document.getElementById('planSkipDeferSubmit').addEventListener('click', function () {
-    if (!sdRef) { return; }
+    if (!sdRef && !snoozeRefs) { return; }
     var reason = document.getElementById('planSkipDeferReason').value.trim();
     var errBox = document.getElementById('planSkipDeferError');
     if (!reason) {
@@ -1898,6 +1933,7 @@
       errBox.classList.remove('d-none');
       return;
     }
+    if (snoozeRefs) { submitSnooze(reason); return; }
     var body = {
       source_type: sdRef.sourceType, source_id: sdRef.sourceId,
       animal_id: sdRef.animalId, due_at: sdRef.dueAt,

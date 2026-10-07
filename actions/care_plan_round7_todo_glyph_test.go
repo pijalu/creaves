@@ -197,19 +197,21 @@ func TestNoCheckMarksAToDoItem(t *testing.T) {
 // cleanup's group button now carries ○ + its earliest due time (B10-10).
 // Bug 2026-10-27 #1/#2 closed the swap: the feeding group button carries
 // `○ <earliest applicable time>` too — no plan control is clock-only any
-// more. The floor below counts the TIME-bearing group Apply labels
-// (`○ <%= if (` day-qualification) across the scanned forks: 1 feed-table
-// + 1 care-line per locale = 8. What must never change is that EVERY to-do
-// control carries ITS glyph — that is asserted per control by
-// clockInsideToDoControls in TestNoCheckMarksAToDoItem; this floor is only
-// a tripwire against a whole locale losing the swap.
+// more. Item 3 (2026-10-07): the DAY qualifier of the group Apply buttons
+// moved OUT of the button into a plan-med-day badge beside it, so the floor
+// below counts the day-qualified badges (`plan-med-day"><%= ` interpolation)
+// across the scanned forks: 1 feed-table + 1 care-line per locale = 8 (the
+// buttons themselves keep the fixed "○ HH:MM" label). What must never change
+// is that EVERY to-do control carries ITS glyph — that is asserted per
+// control by clockInsideToDoControls in TestNoCheckMarksAToDoItem; this
+// floor is only a tripwire against a whole locale losing the swap.
 func TestEveryToDoControlCarriesTheClock(t *testing.T) {
 	total := 0
 	for _, f := range carePlanToDoForks {
-		total += strings.Count(readTemplate(t, f), `○ <%= if (`)
+		total += strings.Count(readTemplate(t, f), `plan-med-day"><%= `)
 	}
 	require.GreaterOrEqual(t, total, 8,
-		"expected the time-bearing ○ group-Apply label once per locale in the feeding table and the cleanup line (2 x 4 forks)")
+		"expected the day-qualified badge of the group Apply once per locale in the feeding table and the cleanup line (2 x 4 forks)")
 }
 
 // TestTreatmentPageKeepsTheReferencePair: the treatment page is the page the

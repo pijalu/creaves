@@ -25,7 +25,14 @@ type CareMatcher struct {
 	// Expression is the matcher DSL (§5.2). Parsed and semantically
 	// validated at save time — a matcher that fails to parse must never
 	// reach the database.
-	Expression string    `json:"expression" db:"expression"`
+	Expression string `json:"expression" db:"expression"`
+	// Derived marks a seed-internal composite matcher (item 9, 2026-10-07):
+	// the care_rules schema references ONE matcher, so composite seed rules
+	// (SR1/SR4/SR6/SR12) inline their condition into a dedicated matcher.
+	// It is a building block, not library content — derived matchers are
+	// hidden from /care_matchers and the matcher dropdowns while the rules
+	// referencing them keep evaluating.
+	Derived    bool      `json:"derived" db:"derived"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }

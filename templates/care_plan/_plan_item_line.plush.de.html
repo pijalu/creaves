@@ -93,6 +93,14 @@
   </div>
   <div class="plan-med-btns">
     <%= if (len(card.Slots) > 0) { %>
+      <%# Item 8: the record's stale late occurrences fold into ONE
+          "N late" badge with a snooze; the remaining slots are the
+          actionable ones (the next upcoming action included). %>
+      <%= if (card.StaleLateCount > 0) { %>
+        <span class="plan-med-cell plan-stale-cell">
+          <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: card.StaleLateCount, staleRefs: card.StaleRefsJSON}) %>
+        </span>
+      <% } %>
       <%# §3.1: ONE toggle pair per occurrence, due-time ordered. The day
           badge travels with its own toggle (R4-3.2); the bare time is the
           toggle's visible label. %>

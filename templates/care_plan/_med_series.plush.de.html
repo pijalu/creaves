@@ -64,6 +64,14 @@
       <%# Buttons: ONE right-aligned group that wraps (A → B) — the day
           badge travels with its own button (R4-3.2). %>
       <div class="plan-med-btns">
+        <%# Item 8: the series' stale late occurrences fold into ONE
+            "N late" badge with a snooze; the rows carry the actionable
+            slots (the next upcoming action included). %>
+        <%= if (series.StaleLateCount > 0) { %>
+          <span class="plan-med-cell plan-stale-cell">
+            <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: series.StaleLateCount, staleRefs: series.StaleRefsJSON}) %>
+          </span>
+        <% } %>
         <%= for (ri, row) in series.Rows { %>
           <%# R4-2.4: the bucket change is LABELLED, not implied by an
               empty rule — the morning/noon/evening grouping is explicit.

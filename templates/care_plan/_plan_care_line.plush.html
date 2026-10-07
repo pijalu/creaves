@@ -52,13 +52,15 @@
         <strong><%= ccard.AnimalYear %></strong>
       <% } %>
       <span class="plan-loc"><%= ccard.Cage %> · <%= tbase("zones", "zone", ccard.Zone) %> · <%= tspecies(ccard.Species) %></span>
-      <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+      <%# Item 1: the source name flows INLINE — a record reads one line. %>
+      <small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
     </td>
   <% } else { %>
     <td>
       <strong><span class="plan-dot <%= ccard.GroupStatusClass %>" title="<%= t("care_plan.status." + ccard.GroupStatus) %>">●</span> <%= ccard.Cage %></strong>
       <span class="text-muted"><%= tbase("zones", "zone", ccard.Zone) %></span>
-      <br><small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+      <%# Item 1: the source name flows INLINE — a record reads one line. %>
+      <small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
     </td>
   <% } %>
   <td class="plan-care-slots">
@@ -75,6 +77,13 @@
       </div>
       <div class="collapse" id="care-slots-<%= ti %>-<%= ri %>">
     <% } %>
+    <%# Item 8: the row's stale late occurrences fold into ONE "N late"
+        badge with a snooze (group=animal rows render it at the top). %>
+    <%= if (group == "animal" && ccard.StaleCount > 0) { %>
+      <div class="plan-stale-row">
+        <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: ccard.StaleCount, staleRefs: ccard.StaleRefsJSON}) %>
+      </div>
+    <% } %>
     <%= if (group != "animal" && ccard.AnimalCount == 1) { %>
       <%# Bug 2026-10-27 #5: a single-animal cage renders NO per-animal
           toggle — the Apply-all button in the last column already covers
@@ -83,6 +92,12 @@
           row footprint; there is nothing to expand, so the collapsible
           header above is skipped for this row too. %>
       <span class="plan-apply-space" aria-hidden="true"></span>
+      <%= if (ccard.StaleCount > 0) { %>
+        <%# Item 8: the row's stale late occurrences (badge + snooze). %>
+        <span class="plan-stale-cell">
+          <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: ccard.StaleCount, staleRefs: ccard.StaleRefsJSON}) %>
+        </span>
+      <% } %>
     <% } else { %>
       <%= for (tg) in ccard.TimeGroups { %>
         <div class="plan-time-group">
@@ -99,15 +114,21 @@
             <%= for (line) in tg.AnimalLines { %>
               <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
                 <a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>"><%= line.AnimalYear %></a>
+                <%= if (line.StaleCount > 0) { %>
+                  <%# Item 8: this animal's stale late occurrences. %>
+                  <span class="plan-stale-cell">
+                    <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: line.StaleCount, staleRefs: line.StaleRefsJSON}) %>
+                  </span>
+                <% } %>
                 <%= for (slot) in line.Slots { %>
-                  <%= partial("care_plan/plan_care_slot.plush.html") %>
+                  <%= if (!slot.Stale) { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
                 <% } %>
               </div>
             <% } %>
           <% } else { %>
             <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
             <%= for (slot) in tg.Slots { %>
-              <%= partial("care_plan/plan_care_slot.plush.html") %>
+              <%= if (!slot.Stale) { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
             <% } %>
             </span>
           <% } %>
@@ -121,13 +142,16 @@
   <%= if (group != "animal") { %>
     <td class="text-nowrap plan-feed-check">
       <%= if (ccard.ApplicableCount > 0) { %>
+        <%# Item 3 (2026-10-07): the day qualifier is a badge BESIDE the
+            button — the toggle keeps the fixed "○ HH:MM" shape. %>
+        <%= if (ccard.FirstTimeShortDate != "") { %><span class="badge badge-light border plan-med-day"><%= ccard.FirstTimeShortDate %></span> <% } else if (ccard.FirstTimeDayKey != "") { %><span class="badge badge-light border plan-med-day"><%= t(ccard.FirstTimeDayKey) %></span> <% } %>
         <span class="position-relative d-inline-block">
           <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply<%= if (ccard.Partial) { %> plan-cage-apply-partial<% } %>"
             data-items="<%= ccard.ChipRefsJSON %>"
             data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
             aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
             title="<%= t("care_plan.card.apply_cage") %>">
-            ○ <%= if (ccard.FirstTimeShortDate != "") { %><%= ccard.FirstTimeShortDate %> <% } else if (ccard.FirstTimeDayKey != "") { %><%= t(ccard.FirstTimeDayKey) %> <% } %><%= ccard.FirstTimeLabel %>
+            ○ <%= ccard.FirstTimeLabel %>
           </button>
           <%= if (ccard.ApplicableCount > 1) { %>
             <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>

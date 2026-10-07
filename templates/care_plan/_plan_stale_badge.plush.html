@@ -1,0 +1,20 @@
+<%# Item 8 (2026-10-07): the "N late" fold badge + snooze of ONE record.
+
+    A record's stale late occurrences — late work the group's next
+    occurrence has overtaken (relative-distance rule) — collapse into this
+    badge instead of rendering as individual toggles. The ⏸ snooze button
+    opens the shared skip/defer modal in defer mode and defers EVERY folded
+    occurrence of the record (one modal answer, one audited defer per
+    occurrence; `ClampDeferredUntil` targets just before the next
+    occurrence, so the snoozed reminder resurfaces still applicable).
+
+    Context (partial data map):
+      staleCount — int: the number of folded occurrences.
+      staleRefs  — string: JSON array of the folded occurrences' apply refs
+                   (source_type/source_id/animal_id/due_at) — the snooze's
+                   data-items. Empty renders the badge without the button. %>
+<span class="plan-stale-late" title="<%= t("care_plan.late.stale_hint") %>"><%= t("care_plan.late.stale_badge", {count: staleCount}) %></span>
+<%= if (staleRefs != "") { %>
+  <button type="button" class="btn btn-outline-secondary btn-sm plan-snooze-btn" data-items="<%= staleRefs %>"
+    title="<%= t("care_plan.late.snooze") %>" aria-label="<%= t("care_plan.late.snooze") %>">⏸</button>
+<% } %>

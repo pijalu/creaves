@@ -40,15 +40,15 @@ func TestFeedingCageApplyButtonCarriesDueTime(t *testing.T) {
 
 		require.NotContains(t, button, `class="far fa-clock"`, loc+
 			": the group Apply button must not be a bare clock icon — it carries the due time")
-		// Day-aware earliest-due label: short date beyond one day, else the
-		// localized day key, else plain HH:MM — the same expression the
-		// collapsed feeding header and the cleanup cage button use.
-		require.Contains(t, button, "fcard.FirstTimeShortDate", loc+
-			": due-time text must include the short-date variant")
-		require.Contains(t, button, "fcard.FirstTimeDayKey", loc+
-			": due-time text must include the localized day key")
-		require.Contains(t, button, "fcard.FirstTimeLabel", loc+
+		// Item 3 (2026-10-07): the day qualifier is a plan-med-day badge
+		// BESIDE the button — short date beyond one day, else the localized
+		// day key — while the button keeps the fixed "○ HH:MM" shape.
+		require.Contains(t, button, "○ <%= fcard.FirstTimeLabel %>", loc+
 			": due-time text must include the HH:MM label")
+		require.Contains(t, raw, `plan-med-day"><%= fcard.FirstTimeShortDate %>`, loc+
+			": the day badge must include the short-date variant")
+		require.Contains(t, raw, `plan-med-day"><%= t(fcard.FirstTimeDayKey) %>`, loc+
+			": the day badge must include the localized day key")
 	}
 }
 

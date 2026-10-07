@@ -25,13 +25,14 @@ import (
 // preferenceKinds lists the day-plan action kinds, in display order.
 var preferenceKinds = actionKinds
 
-// R9 default view caps — widened 2026-10-27 (user authorization, bugs.md
-// second batch): late work stays visible for 24 h, future work up to a
-// 24 h horizon, "now" window 60 min. The previous 8 h caps hid e.g. the
-// 10:00 feeding slots after 18:00, taking the Apply buttons away from
-// caregivers while the work was still pending. An admin can change or
-// clear any of them per kind; empty = no cap.
-var preferenceDefaults = struct{ lateHours, futureHours, nowMinutes int }{24, 24, 60}
+// Default view caps — 2026-10-07 user ruling, back to 8 h (item 6 of the
+// day-plan review): late work stays visible for 8 h, future work up to an
+// 8 h horizon, "now" window 60 min. (The 2026-10-27 widening to 24 h is
+// superseded; stale late occurrences are no longer lost to the user — the
+// relative-distance heuristic folds them into a "N late" badge on the
+// record, see supersedeStaleLate* in care_plan_viewmodel.go.) An admin can
+// change or clear any of them per kind; empty = no cap.
+var preferenceDefaults = struct{ lateHours, futureHours, nowMinutes int }{8, 8, 60}
 
 // PreferencesEnsureSeeded creates any missing per-kind row with the R9
 // defaults (idempotent — safe on every request path that needs the settings).

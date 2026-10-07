@@ -25,34 +25,35 @@ import (
 // depending on the data, so the width is COMPUTED per page from the longest
 // label.
 
-// TestMedAnimalColumnIsSizedFromTheLongestLabel: the column must fit the
-// longest label on the page — that is the only way every cell can be equal
-// AND nothing truncated.
-func TestMedAnimalColumnIsSizedFromTheLongestLabel(t *testing.T) {
-	longest := "1903/26 · Tourterelle turque · S11" // 34 runes: the measured worst case
+// TestMedAnimalColumnIsSizedFromTheLongestYear (item 1, 2026-10-07): the
+// cell renders the YEAR/NUMBER only, so the column is sized from the longest
+// year on the page — the full label lives in the title and the ℹ modal.
+// Sizing from the full label made the cell a ~350 px block for a 7-character
+// number and pushed records off the single line.
+func TestMedAnimalColumnIsSizedFromTheLongestYear(t *testing.T) {
 	tiers := [3][]MedTierLine{
-		{medLine("1903/26 · Tourterelle turque · S11")},
-		{medLine("1912/26 · Hérisson · VI39")},
-		{medLine("1444/26 · Hérisson · R3")},
+		{medLine("1903/26")},
+		{medLine("1912/26")},
+		{medLine("1444/26")},
 	}
 	col := medAnimalColCh(tiers)
-	require.Greater(t, col, utf8.RuneCountInString(longest),
-		"the column must be at least as wide as the longest label, or that label is cut")
 	// +1 spare column: `ch` is the width of "0", so a label of narrow glyphs
 	// renders wider than its rune count.
-	require.Equal(t, utf8.RuneCountInString(longest)+1, col)
+	require.Equal(t, utf8.RuneCountInString("1903/26")+1, col)
+	require.Less(t, col, 12, "a year-sized column stays narrow enough for one-line records")
 }
 
-// TestMedAnimalColumnCountsRunesNotBytes: a French species name is multi-byte.
-// Counting bytes would size the column ~3× too wide (a huge empty gutter on
-// every row) — the same defect class as R4-7.20's byte slice.
-func TestMedAnimalColumnCountsRunesNotBytes(t *testing.T) {
-	label := "1903/26 · Hérisson · R3"
-	tiers := [3][]MedTierLine{{medLine(label)}}
+// TestMedAnimalColumnIgnoresTheFullLabel (item 1, 2026-10-07): the FULL
+// label — multi-byte species names included — no longer sizes the column.
+// The cell renders the year/number only; the label lives in the title and
+// the ℹ modal.
+func TestMedAnimalColumnIgnoresTheFullLabel(t *testing.T) {
+	tiers := [3][]MedTierLine{{medLine("1903/26")}, {medLine("1444/26")}}
 	col := medAnimalColCh(tiers)
-	require.Equal(t, utf8.RuneCountInString(label)+1, col)
-	require.Less(t, col, len(label)+1,
-		"the width must follow the rune count, not the byte count")
+	require.Equal(t, utf8.RuneCountInString("1903/26")+1, col)
+	tiers[0][0].AnimalLabel = "1903/26 · Tourterelle turque · S11"
+	require.Equal(t, col, medAnimalColCh(tiers),
+		"a long multi-byte label must not inflate the year-sized column")
 }
 
 // TestMedAnimalColumnIsZeroWithoutMedication: a feeding/observation page has
@@ -111,6 +112,6 @@ func TestMedAnimalColumnStyleNeverCuts(t *testing.T) {
 }
 
 // medLine is a minimal MedGroupView carrying only what the width reads.
-func medLine(label string) MedTierLine {
-	return MedTierLine{AnimalLabel: label}
+func medLine(year string) MedTierLine {
+	return MedTierLine{AnimalYear: year}
 }

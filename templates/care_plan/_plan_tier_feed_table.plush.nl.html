@@ -41,7 +41,8 @@
               <strong><%= fcard.AnimalYear %></strong>
             <% } %>
             <span class="plan-loc"><%= fcard.Cage %> · <%= tbase("zones", "zone", fcard.Zone) %> · <%= tspecies(fcard.Species) %></span>
-            <br><span class="text-info"><%= fcard.Food %></span>
+            <%# Item 1: the diet flows INLINE — a record reads one line. %>
+            <span class="text-info"><%= fcard.Food %></span>
             <%= if (fcard.ForceFeed) { %>
               <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
             <% } %>
@@ -50,7 +51,8 @@
         <td>
           <strong><span class="plan-dot <%= fcard.GroupStatusClass %>" title="<%= t("care_plan.status." + fcard.GroupStatus) %>">●</span> <%= fcard.Cage %></strong>
           <span class="text-muted"><%= tbase("zones", "zone", fcard.Zone) %></span>
-          <br><span class="text-info"><%= fcard.Food %></span>
+          <%# Item 1: the diet flows INLINE — a record reads one line. %>
+          <span class="text-info"><%= fcard.Food %></span>
           <%= if (fcard.ForceFeed) { %>
             <span class="badge badge-warning" title="<%= t("care_plan.feeding.force_feed") %>">🍼</span>
           <% } %>
@@ -116,7 +118,18 @@
                       §4.2: under group=animal every row IS one animal and there is
                       no group check, so the per-animal toggle always renders. %>
                   <%= if (len(fcard.Chips) > 1 || group == "animal") { %>
-                    <%= if (chip.Applicable) { %>
+                    <%# Item 8: a STALE late chip (the animal's next
+                        occurrence is nearer to now) renders the "⏱"
+                        badge + snooze instead of a toggle, with the muted
+                        next-upcoming label; it is out of the batch refs. %>
+                    <%= if (chip.StaleLate) { %>
+                      <span class="plan-stale-cell">
+                        <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: 1, staleRefs: chip.StaleRefsJSON}) %>
+                        <%= if (chip.StaleNextHM != "") { %>
+                          <span class="plan-feed-when plan-stale-next">&rarr; <%= dueLabel(chip.StaleNextHM, chip.StaleNextDayKey, chip.StaleNextShortDate) %></span>
+                        <% } %>
+                      </span>
+                    <% } else if (chip.Applicable) { %>
                       <%# B10-3: the toggle speaks the §2.3 med-parity
                           nomenclature — it CARRIES the time (○ HH:MM ⇄
                           ✓ HH:MM) instead of a bare icon.
@@ -168,17 +181,17 @@
               child — the button keeps a constant width and the
               count stays visible at N=1. %>
           <%= if (fcard.ApplicableCount > 0) { %>
+            <%# Item 3 (2026-10-07): the day qualifier is a badge BESIDE the
+                button (Bug 2026-10-27 #1/#2 keeps the due time visible) —
+                the toggle keeps the fixed "○ HH:MM" shape. %>
+            <%= if (fcard.FirstTimeShortDate != "") { %><span class="badge badge-light border plan-med-day"><%= fcard.FirstTimeShortDate %></span> <% } else if (fcard.FirstTimeDayKey != "") { %><span class="badge badge-light border plan-med-day"><%= t(fcard.FirstTimeDayKey) %></span> <% } %>
             <span class="position-relative d-inline-block">
               <button type="button" class="btn <%= fcard.TierClass %> plan-feeding-apply"
                 data-items="<%= fcard.ChipRefsJSON %>"
                 data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
                 aria-label="<%= t("care_plan.card.apply_group") %> (<%= fcard.ApplicableCount %>)"
                 title="<%= t("care_plan.card.apply_group") %>">
-                <%# Bug 2026-10-27 #1/#2: the batch button CARRIES the due time
-                    (○ earliest applicable occurrence, day-qualified like the
-                    cleanup Apply-all button) — the bare clock icon said
-                    nothing about WHAT time the batch applies. %>
-                ○ <%= if (fcard.FirstTimeShortDate != "") { %><%= fcard.FirstTimeShortDate %> <% } else if (fcard.FirstTimeDayKey != "") { %><%= t(fcard.FirstTimeDayKey) %> <% } %><%= fcard.FirstTimeLabel %>
+                ○ <%= fcard.FirstTimeLabel %>
               </button>
               <%# R4-7.5: a lone animal needs no counter — the pill only
                   says "1" — and a darker badge stays readable

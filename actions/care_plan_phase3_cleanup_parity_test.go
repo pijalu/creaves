@@ -346,7 +346,10 @@ func TestPhase3BatchApplyCageFlipsTheWholeRow(t *testing.T) {
 		raw := readTemplate(t, fork)
 		require.Contains(t, raw, `<tr class="plan-cage-row plan-care-row"`,
 			fork+": the cleanup row stays a <tr> — flipBatchRow's scope")
-		require.Contains(t, raw, `○ <%= if (ccard.FirstTimeShortDate != "")`, fork+": group apply button carries its time")
+		// Item 3 (2026-10-07): the day qualifier is a badge beside the
+		// button; the button keeps the fixed "○ HH:MM" shape.
+		require.Contains(t, raw, `plan-med-day"><%= ccard.FirstTimeShortDate %>`, fork+": group apply day badge carries its short date")
+		require.Contains(t, raw, `○ <%= ccard.FirstTimeLabel %>`, fork+": group apply button carries its time")
 		// Bug 2026-10-07 review: group=animal rows are ONE animal each — they
 		// render OPEN (R4-7.14c: a one-animal list has nothing to expand).
 		// Only a multi-animal CAGE row collapses.

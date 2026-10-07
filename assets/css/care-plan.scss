@@ -110,7 +110,10 @@
   min-width: 11rem;
 }
 @media (max-width: 991.98px) {
-  .plan-loc {
+  .plan-loc,
+  // Item 1: the inline loc of the animal cells collapses on narrow screens
+  // too — its (0,2,0) specificity would otherwise beat this media rule.
+  .plan-med-animal .plan-loc {
     display: none;
   }
 }
@@ -258,10 +261,10 @@
 .plan-item-line .plan-med-animal {
   align-self: stretch;
 }
-// The tint must reach the row edges: bleed over the row's own vertical
-// padding (py-1 on medication rows, 0.35rem on item-line bands) and keep
-// the text off the edges via the cell's own padding. The bottom stop is
-// the row's 1px border-bottom.
+// The tint must reach the row edges: the wrapper is border-bottom py-1
+// (0.25rem, the medication row rhythm — items 2+5 flattened the item line's
+// own 0.35rem box), so the bleed matches it and the bottom stop is the
+// row's 1px border-bottom.
 .plan-med-row .plan-med-animal {
   margin-top: -0.25rem;
   margin-bottom: -0.25rem;
@@ -269,10 +272,58 @@
   padding-bottom: 0.25rem;
 }
 .plan-item-line .plan-med-animal {
-  margin-top: -0.35rem;
-  margin-bottom: -0.35rem;
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+// Item 1 (2026-10-07): the animal cell must never stack a second line — the
+// B10-2 loc info (Cage · Zone · Espèce) flows INLINE after the year number,
+// ellipsized, so a record reads on ONE line (the column width is computed
+// from the year only, see medAnimalColCh/cardAnimalColCh). The full label
+// stays in the cell's title and the ℹ modal.
+div.plan-med-row .plan-med-animal,
+td.plan-med-animal {
+  white-space: nowrap;
+}
+.plan-med-animal .plan-loc {
+  display: inline-block;
+  vertical-align: bottom;
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Item 8 (2026-10-07): the "N late" fold badge of a record + its snooze
+// button. A stale late occurrence (the group's next occurrence is nearer to
+// now — relative-distance rule) folds into this badge instead of rendering
+// as an individual toggle; the record stays in the Late section.
+.plan-stale-late {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #dc3545;
+  background: #fdf2f3;
+  border: 1px solid #f5c6cb;
+  border-radius: 10rem;
+  padding: 0.05rem 0.5rem;
+  white-space: nowrap;
+}
+.plan-stale-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.plan-snooze-btn {
+  padding: 0 0.35rem;
+  line-height: 1.4;
+}
+.plan-stale-row {
+  padding: 0.1rem 0;
+}
+.plan-stale-next {
+  font-size: 0.78rem;
 }
 .plan-med-btns {
   // ONE right-aligned button group that wraps: one line when it fits (A),
@@ -318,28 +369,22 @@
 // redundant "Late" pill is gone — the row colour and the apply button's
 // own tier colour carry it; the status text stays in the DOM for
 // assistive technology).
-// R4-7.16: observation / care / weighing now render in the MEDICATION line
-// language (.plan-med-line + lead/label/btns) instead of a 4-cell table, and
-// EVERY item carries the line background — not only the late ones. The tint
-// used to be a late-only marker, so a scheduled item sat on the page
-// background with no band at all and the list read as a spreadsheet. The
-// neutral band below is that "line" reading; `.plan-item-late` then overrides
-// it with the light red, so red still means LATE (R4-3.3) and is not spent on
-// decoration. The user approved the light red (#fdf2f3) as the background to
-// carry — it is what the late rows already used.
+// R4-7.16 / items 2+5 (2026-10-07): observation / care / weighing render in
+// the MEDICATION line language (.plan-med-line + lead/label/btns). The
+// boxed-card look (neutral band, 3px left strip, own padding, margin,
+// radius) is FLATTENED — the line reads exactly like the medication rows
+// (transparent + zebra + the wrapper's border-bottom py-1), so every kind's
+// table has the same rhythm and the care table carries no extra margin. The
+// late/missing red signal is kept by the .plan-item-late/.plan-item-missing
+// overrides (cascade block at the foot of this file).
 .plan-item-line {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  // A 3px border on EVERY line, so the late one only changes its COLOUR and
-  // the strip keeps the same width on every row (no 2px reflow when an item
-  // goes late).
-  border-left: 3px solid #e9ecef;
-  background-color: #f8f9fa;
-  padding: 0.35rem 0.5rem 0.35rem 0.65rem;
-  // R4-7.4: the first child must not touch the strip.
-  margin-bottom: 0.25rem;
-  border-radius: 2px;
+  background-color: transparent;
+  border-left: none;
+  padding: 0;
+  margin-bottom: 0;
 }
 
 // B10-5: the animal page's per-day entries are separated PER TYPE by a
@@ -590,6 +635,30 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
   background-color: #fdf2f3;
   border-left: 3px solid #dc3545 !important;
   padding-left: 0.65rem;
+}
+
+// ---------------------------------------------------------------------------
+// Item 7 (2026-10-07): the zebra takes its tint from the TIER section the
+// table sits in — a deeper shade of the panel's own colour — instead of the
+// neutral grey that carried no information (a striped row in "Late" read the
+// same as one in "Later"). Scoped per tier panel; outside the tier panels
+// (history, the Done panel, the animal page's day cards) the neutral zebra
+// stays. The :not() guards keep the late/missing red rows striped never —
+// their own #fdf2f3 band must always win.
+.plan-tier-late .plan-feeding-row:nth-of-type(even):not(.plan-item-late):not(.plan-item-missing),
+.plan-tier-late .plan-cage-row:nth-of-type(even),
+.plan-tier-late .plan-med-row:nth-child(even):not(.plan-item-late):not(.plan-item-missing) {
+  background-color: rgba(220, 53, 69, 0.10);
+}
+.plan-tier-now .plan-feeding-row:nth-of-type(even):not(.plan-item-late):not(.plan-item-missing),
+.plan-tier-now .plan-cage-row:nth-of-type(even),
+.plan-tier-now .plan-med-row:nth-child(even):not(.plan-item-late):not(.plan-item-missing) {
+  background-color: rgba(255, 193, 7, 0.15);
+}
+.plan-tier-later .plan-feeding-row:nth-of-type(even):not(.plan-item-late):not(.plan-item-missing),
+.plan-tier-later .plan-cage-row:nth-of-type(even),
+.plan-tier-later .plan-med-row:nth-child(even):not(.plan-item-late):not(.plan-item-missing) {
+  background-color: rgba(40, 167, 69, 0.10);
 }
 
 // ---------------------------------------------------------------------------

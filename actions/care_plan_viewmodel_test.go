@@ -288,23 +288,27 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	require.Contains(t, meds[0].AnimalLink, "#nav-plan")
 
 	// /care_plan tier projection over the same plan (fix 6): compact
-	// folds the three open occurrences of (med-1 × animal 1) into ONE
-	// late row with a "+2" remaining badge — no per-slot button series.
+	// folds the open occurrences of (med-1 × animal 1) into ONE late row —
+	// no per-slot button series. Item 8: yesterday's 16 h-stale late folds
+	// into the "⏱ 1" badge (its next occurrence is due now), leaving the
+	// due-now toggle + the co-displayed tomorrow slot.
 	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
-	require.Len(t, v.Tiers[0].Cards, 1, "one folded row: yesterday's late slot is the next open action")
+	require.Len(t, v.Tiers[0].Cards, 1, "one folded row: the record stays in the Late section")
 	require.Equal(t, 1, v.Tiers[0].Cards[0].AnimalID)
-	require.Equal(t, 2, v.Tiers[0].Cards[0].Remaining, "due today + scheduled tomorrow fold into the +N badge")
+	require.Equal(t, 1, v.Tiers[0].Cards[0].StaleLateCount, "yesterday's late is stale (next is due now)")
+	require.NotEmpty(t, v.Tiers[0].Cards[0].StaleRefsJSON, "the fold carries its snooze ref")
+	require.Equal(t, 1, v.Tiers[0].Cards[0].Remaining, "due today + scheduled tomorrow remain as slots")
 	require.Len(t, v.History, 1, "today's applied slot is history; overridden stays hidden in compact")
 	require.Equal(t, 1, v.History[0].AnimalID)
-	// detailed: every open occurrence is its own tier row; overridden
-	// surfaces in the history section only in this density.
+	// detailed: every open CURRENT occurrence is its own toggle on the
+	// merged line; overridden surfaces in the history section only in this
+	// density.
 	dv := BuildDayPlanView(plan, ViewDetailed, "", careplan.KindMedication, "", now)
 	// Phase 4 / D4 (§3.1): repeating occurrences merge into ONE line per
-	// (source × animal) in BOTH densities — the three open occurrences of
-	// (med-1 × animal 1) fold to one line (tiered by its most urgent slot,
-	// late) carrying a Slots list; overridden stays detailed-only in history.
+	// (source × animal) in BOTH densities — the stale late folds into the
+	// badge, the due-now + tomorrow slots stay as toggles.
 	require.Len(t, dv.Tiers[0].Cards, 1, "merged line: one (med-1 × animal 1) line, late tier")
-	require.Len(t, dv.Tiers[0].Cards[0].Slots, 3, "the line carries every open occurrence as a toggle")
+	require.Len(t, dv.Tiers[0].Cards[0].Slots, 2, "the line carries the actionable occurrences as toggles")
 	require.Len(t, dv.History, 2, "applied + overridden (detailed debug surface)")
 }
 
