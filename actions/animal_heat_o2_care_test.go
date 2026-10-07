@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gobuffalo/pop/v6"
-	"github.com/gofrs/uuid"
 	"github.com/stretchr/testify/require"
 
 	"creaves/models"
@@ -24,9 +22,9 @@ func TestAnimalHeatO2ChangeCreatesSoinsCare(t *testing.T) {
 	f := createQuickOuttakeFixture(t, tx)
 	client, baseURL := adminClientWithURL(t)
 
-	// A care type whose name starts with "soin" must be preferred by the
-	// auto-care; marker keeps it isolated from seeded reference data.
-	soinsID := createSoinsCaretypeFor205(t, tx)
+	// The canonical "Soin" care type must be preferred by the auto-care;
+	// csTSoins creates it when the test DB lacks it (hermetic).
+	soinsID := csTSoins(t, tx)
 
 	editPath := fmt.Sprintf("/animals/%d/edit", f.freeID)
 	token := todoToken(t, client, baseURL, editPath)
@@ -88,16 +86,4 @@ func TestAnimalHeatO2ChangeCreatesSoinsCare(t *testing.T) {
 		}
 	}
 	require.Equal(t, 1, count, "no-op update must not create an extra soins care")
-}
-
-func createSoinsCaretypeFor205(t *testing.T, tx *pop.Connection) uuid.UUID {
-	t.Helper()
-	id := uuid.Must(uuid.NewV4())
-	ct := &models.Caretype{ID: id, Name: "Soin205-" + id.String()[:6], Def: false}
-	require.NoError(t, tx.Create(ct))
-	t.Cleanup(func() {
-		tx.RawQuery("DELETE FROM cares WHERE type_id = ?", id).Exec()
-		tx.RawQuery("DELETE FROM caretypes WHERE id = ?", id).Exec()
-	})
-	return id
 }
