@@ -7,6 +7,8 @@
   translation: "U moet aangemeld zijn om deze pagina te bekijken"
 - id: "users.invalid"
   translation: "Ongeldige gebruikersnaam/wachtwoord"
+- id: "users.not_approved"
+  translation: "Account nog niet goedgekeurd"
 - id: "users.logout"
   translation: "U bent afgemeld!"
 - id: "translations.section.title"
