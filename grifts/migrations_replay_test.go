@@ -196,10 +196,14 @@ func TestMigrationsReplayOnEmptyDatabase(t *testing.T) {
 	for _, stmt := range sqlFileStatements(t, filepath.Join(migDir, "20261002091000_normalize_outtaketype_data.up.sql")) {
 		mustExec(t, c, "normalize", stmt)
 	}
+	for _, stmt := range sqlFileStatements(t, filepath.Join(migDir, "20261007120000_rename_ot2_to_decedee.up.sql")) {
+		mustExec(t, c, "rename-ot2", stmt)
+	}
 
-	// Codes assigned to the English-named rows, post OT1<->OT2 / OT3<->OT4 swap.
+	// Codes assigned to the English-named rows, post OT1<->OT2 / OT3<->OT4
+	// swap and the #205 rename (OT2 = 'Décédé').
 	for _, tc := range []struct{ name, code string }{
-		{"Relacher", "OT1"}, {"DCD", "OT2"}, {"Euthanasier", "OT3"}, {"Transferer", "OT4"},
+		{"Relacher", "OT1"}, {"Décédé", "OT2"}, {"Euthanasier", "OT3"}, {"Transferer", "OT4"},
 	} {
 		var n int
 		if err := c.Store.Get(&n, "SELECT COUNT(*) FROM outtaketypes WHERE name = ? AND code = ?", tc.name, tc.code); err != nil || n != 1 {
@@ -258,10 +262,16 @@ func TestMigrationsReplayOnEmptyDatabase(t *testing.T) {
 	if err := c.Store.Get(&ot, "SELECT name, description, dead, error, rating FROM outtaketypes WHERE code = ?", "OT2"); err != nil {
 		t.Fatalf("OT2 lookup: %v", err)
 	}
-	if ot.Name != "DCD" || !ot.Dead || ot.Error || ot.Rating != -1 {
-		t.Fatalf("OT2 = %+v, want DCD dead=true error=false rating=-1", ot)
+	// #205 item 1: the canonical row carries the dump name 'Décédé' after the
+	// rename migration; the orphan uncoded 'Décédé' row is folded away.
+	if ot.Name != "Décédé" || !ot.Dead || ot.Error || ot.Rating != -1 {
+		t.Fatalf("OT2 = %+v, want Décédé dead=true error=false rating=-1", ot)
 	}
 	if ot.Description == nil || !strings.HasPrefix(*ot.Description, "Animal décédé naturellement") {
-		t.Fatalf("OT2 description = %v, want canonical DCD description", ot.Description)
+		t.Fatalf("OT2 description = %v, want canonical Décédé description", ot.Description)
+	}
+	var orphanDécédé int
+	if err := c.Store.Get(&orphanDécédé, "SELECT COUNT(*) FROM outtaketypes WHERE name = 'Décédé' AND (code IS NULL OR code = '')"); err != nil || orphanDécédé != 0 {
+		t.Fatalf("uncoded 'Décédé' orphans = %d, want 0 (err=%v)", orphanDécédé, err)
 	}
 }

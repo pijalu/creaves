@@ -50,12 +50,12 @@ func TestOuttakesNewPickerDesign(t *testing.T) {
 	require.Contains(t, body, "Select animal for outcome")
 	require.Contains(t, body, "Select cage for outcome")
 
-	// FR headings — the wording quoted in issue #199-16.
+	// FR headings — wording since the issue→sortie rename (#205 item 11).
 	code, body = getOuttakesNew(t, client, baseURL, "fr")
 	require.Equal(t, http.StatusOK, code)
 	// t() output is HTML-escaped: apostrophes render as &#39;.
-	require.Contains(t, body, "Sélectionnez l&#39;animal pour l&#39;issue")
-	require.Contains(t, body, "Sélectionnez la cage pour l&#39;issue")
+	require.Contains(t, body, "Sélectionnez l&#39;animal pour la sortie")
+	require.Contains(t, body, "Sélectionnez la cage pour la sortie")
 	// Localized form partial, not the EN base one.
 	require.Contains(t, body, `action="/outtakes/cage"`)
 

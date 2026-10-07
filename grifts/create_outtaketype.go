@@ -19,7 +19,7 @@ var canonicalOuttakeTypes = []struct {
 	locationMode            string
 }{
 	{"OT1", "Relacher", "Animal réhabilité et remis en liberté dans son milieu naturel.", false, false, false, nulls.NewInt(1), "NS2,NS3,NS4", models.OuttakeLocationModeFree},
-	{"OT2", "DCD", "Animal décédé naturellement durant la prise en charge.", true, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
+	{"OT2", "Décédé", "Animal décédé naturellement durant la prise en charge.", true, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
 	{"OT3", "Euthanasier", "Animal euthanasié en raison de lésions ou d’un état incompatible avec une remise en liberté.", false, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
 	{"OT4", "Transferer", "Transfert de l'animal vers un: refuge, CREAVES, VOC, ZOO, ...", false, false, false, nulls.NewInt(1), "NS3", models.OuttakeLocationModeList},
 	{"OT5", "Mort à l'arrivée avant l'encodage", "Animal arrivé décédé avant l'encodage ou la prise en charge.", false, true, false, nulls.NewInt(-1), "", models.OuttakeLocationModeNone},
@@ -32,7 +32,7 @@ var canonicalOuttakeTypes = []struct {
 // createOuttaketype assigns stable OT codes to existing semantic rows and
 // creates only missing named types; it never replaces legacy names with codes.
 func createOuttaketype(c *grift.Context) error {
-	if err := models.DB.RawQuery("UPDATE outtaketypes SET code = NULL WHERE code IN ('OT1','OT2','OT3','OT4','OT5','OT6','OT7') AND name NOT IN ('Relacher','DCD','Euthanasier','Transferer','Mort à l''arrivée avant l''encodage','Adoption','Doublon')").Exec(); err != nil {
+	if err := models.DB.RawQuery("UPDATE outtaketypes SET code = NULL WHERE code IN ('OT1','OT2','OT3','OT4','OT5','OT6','OT7') AND name NOT IN ('Relacher','Décédé','Euthanasier','Transferer','Mort à l''arrivée avant l''encodage','Adoption','Doublon')").Exec(); err != nil {
 		return err
 	}
 	for _, t := range canonicalOuttakeTypes {
