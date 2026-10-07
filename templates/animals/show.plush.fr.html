@@ -36,7 +36,7 @@
     <a class="nav-item nav-link" id="nav-media-tab" data-toggle="tab" href="#nav-media" role="tab" aria-controls="nav-media" aria-selected="false">Médias</a>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
-      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Issue</a>
+      <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Sortie</a>
     <% } %>
 
     <%= if (current_user.Admin) {%>
@@ -1091,7 +1091,7 @@
       <li class="list-group-item pb-1">
         <%= if (current_user.Admin) {%>
           <div class="float-right">
-            <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire l'issue", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <%= linkTo(outtakePath({ outtake_id: animal.OuttakeID.Value() }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire la sortie", body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
           </div>
         <% } %>
         <label class="small d-block">Date</label>
