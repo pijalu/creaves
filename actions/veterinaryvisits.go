@@ -29,8 +29,8 @@ type VeterinaryvisitsResource struct {
 }
 
 func (v VeterinaryvisitsResource) setContext(c buffalo.Context) error {
-	// Set users
-	u, err := users(c)
+	// Set users (activated accounts only — #205-8)
+	u, err := approvedUsers(c)
 	if err != nil {
 		return err
 	}
@@ -162,8 +162,8 @@ func (v VeterinaryvisitsResource) New(c buffalo.Context) error {
 		vv.Animal = *animal
 		vv.AnimalID = animal.ID
 
-		// Set users
-		u, err := users(c)
+		// Set users (activated accounts only — #205-8)
+		u, err := approvedUsers(c)
 		if err != nil {
 			return err
 		}

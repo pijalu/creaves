@@ -357,6 +357,28 @@ func users(c buffalo.Context) (*models.Users, error) {
 	return u, nil
 }
 
+// filterApprovedUsers keeps only activated (approved) accounts: deactivated
+// users must not be offered in person-picker selects (#205-8).
+func filterApprovedUsers(us *models.Users) *models.Users {
+	out := &models.Users{}
+	for _, u := range *us {
+		if u.Approved {
+			*out = append(*out, u)
+		}
+	}
+	return out
+}
+
+// approvedUsers returns the activated (approved) accounts for user-picker
+// selects (#205-8); unapproved/pending accounts are hidden.
+func approvedUsers(c buffalo.Context) (*models.Users, error) {
+	us, err := users(c)
+	if err != nil {
+		return nil, err
+	}
+	return filterApprovedUsers(us), nil
+}
+
 func usersToMap(us *models.Users) map[uuid.UUID]models.User {
 	m := make(map[uuid.UUID]models.User)
 

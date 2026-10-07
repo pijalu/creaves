@@ -107,8 +107,8 @@ func (v TravelsResource) New(c buffalo.Context) error {
 		User:   GetCurrentUser(c),
 	}
 
-	// Set users
-	u, err := users(c)
+	// Set users (activated accounts only — #205-8)
+	u, err := approvedUsers(c)
 	if err != nil {
 		return err
 	}
@@ -242,8 +242,8 @@ func (v TravelsResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Travel. This function is
 // mapped to the path GET /travels/{travel_id}/edit
 func (v TravelsResource) Edit(c buffalo.Context) error {
-	// Set users
-	us, err := users(c)
+	// Set users (activated accounts only — #205-8)
+	us, err := approvedUsers(c)
 	if err != nil {
 		return err
 	}
