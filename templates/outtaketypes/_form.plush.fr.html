@@ -1,7 +1,7 @@
 <%= f.InputTag("Name", {label:"Nom"}) %>
 <%= f.TextAreaTag("Description", {label:"Description", rows: 10}) %>
 
-<%= f.SelectTag("Rating", {label:"Issue", options: {"Aucune": "", "Négative": "-1", "Neutre": "0", "Positive": "1"} } ) %>
+<%= f.SelectTag("Rating", {label:"Sortie", options: {"Aucune": "", "Négative": "-1", "Neutre": "0", "Positive": "1"} } ) %>
 
 <%= f.CheckboxTag("Default", {label:"Défault", unchecked: false}) %>
 <%= f.CheckboxTag("Dead", {label:"Cadavre", unchecked: false}) %>
@@ -25,7 +25,7 @@
       <option value="<%= ns.ID %>" <%= if (excludedNativeStatuses[ns.ID]) { %>selected<% } %>><%= ns.ID %> — <%= tname("native_statuses", ns.ID, ns.Status) %></option>
     <% } %>
   </select>
-  <small class="form-text text-muted">Ce type d'issue ne sera pas proposé pour les animaux dont l'espèce possède l'un des statuts indigènes sélectionnés.</small>
+  <small class="form-text text-muted">Ce type de sortie ne sera pas proposé pour les animaux dont l'espèce possède l'un des statuts indigènes sélectionnés.</small>
 </div>
 
 <%= partial("translations/fields.html") %>
