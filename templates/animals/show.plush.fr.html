@@ -248,14 +248,12 @@
       </li>
       <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Source de chaleur</label>
-        <p class="d-inline-block"><%= animal.HeatSource.String %></p>
+        <span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Chaleur&nbsp;: <%= animal.HeatSource.String %></span>
       </li>
       <% } %>
       <%= if (animal.Oxygen) { %>
       <li class="list-group-item pb-1">
-        <label class="small d-block">Oxygène</label>
-        <p class="d-inline-block">O2</p>
+        <span class="badge badge-pill badge-info">O<sub>2</sub></span>
       </li>
       <% } %>
     </ul>
