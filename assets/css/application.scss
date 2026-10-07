@@ -34,3 +34,15 @@
     }
   }
 }
+
+// Media upload placeholder flush with the frame's left edge (issue #205,
+// item 4): Bootstrap's .75rem left padding indents the long 'Choisir un
+// fichier (photo ou vidéo)' text and, with the Browse overlay on the right,
+// clips its tail. A minimal left padding keeps the text readable and fully
+// visible on the 24rem-wide frame.
+.custom-file-label[for="attachmentFile"] {
+  padding-left: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
