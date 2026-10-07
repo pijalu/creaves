@@ -197,14 +197,12 @@ var referenceTranslations = map[string]map[string]refFieldTr{
 		},
 	},
 	"outtake_location_options": {
-		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b01": {
-			"name": {"Wildlife rescue center", "Wildtierauffangstation", "Wildopvangcentrum"},
-		},
+		// Only the generic legacy rows carry translations. The renamed rows
+		// "CREAVES de Pairai Daiza" (…b01) and "VOC Oostende" (…b03) and the 33
+		// rows added by #205 item 3 are proper nouns: they display the
+		// canonical French name in every locale (#205 item 3).
 		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b02": {
 			"name": {"Shelter", "Auffangstation", "Opvang"},
-		},
-		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b03": {
-			"name": {"VOC", "VOC", "VOC"},
 		},
 		"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b04": {
 			"name": {"Zoo", "Zoo", "Zoo"},

@@ -82,7 +82,7 @@ var startupTableColumns = map[string][]string{
 	"outtaketypes": {"id", "name", "description", "def", "created_at", "updated_at", "dead", "rating", "discoverer_news", "error"},
 	"drugs":        {"id", "name", "description", "created_at", "updated_at"},
 	"dosages":      {"id", "animaltype_id", "drug_id", "enabled", "description", "dosage_per_grams", "dosage_per_grams_unit", "created_at", "updated_at"},
-	"species":      {"ID", "species", "class", "family", "creaves_species", "subside_group", "created_at", "updated_at", "order", "game", "agw_group", "native_status", "huntable"},
+	"species":      {"ID", "species", "class", "family", "creaves_species", "subside_group", "created_at", "updated_at", "order", "game", "agw_group", "native_status", "huntable", "animaltype_id"},
 }
 
 // rowID returns the primary-key value of a parsed dump row. The dump uses
@@ -103,6 +103,7 @@ func rowID(row map[string]string) string {
 // in child rows must be translated or the INSERT violates the FK constraint.
 var startupFKColumns = map[string][]string{
 	"dosages": {"animaltype_id", "drug_id"},
+	"species": {"animaltype_id"},
 }
 
 // startupNameField lists startup tables whose rows are matched between the

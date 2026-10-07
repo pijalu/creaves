@@ -5,7 +5,7 @@ SP100,Carduelis flavirostris,Linotte à bec jaune,Aves,Passériformes,Fringillid
 SP101,Carduelis spinus,Tarin des aulnes,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP102,Carpodacus erythrinus,Roselin cramoisi,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP103,Castor fiber,Castor d'Europe,Mammalia,Castorimorpha,Castoridés,NS1,Mammifère taille moyenne,SG3,0,0
-SP104,Certhia brachydactyla,Grimperau des jardins,Aves,Passériformes,Certhiidés,NS1,Autre oiseau,SG2,0,0
+SP104,Certhia brachydactyla,Grimpereau des jardins,Aves,Passériformes,Certhiidés,NS1,Autre oiseau,SG2,0,0
 SP105,Certhia familiaris,Grimpereau des bois,Aves,Passériformes,Certhiidés,NS1,Autre oiseau,SG2,0,0
 SP106,Cervus elaphus,Cerf élaphe,Mammalia,Pecora,Cervidés,NS1,Ongulé,SG3,1,1
 SP107,Cettia cetti,Bouscarle de Cetti,Aves,Passériformes,Cettiidés,NS1,Autre oiseau,SG2,0,0
@@ -426,9 +426,22 @@ SP480,Pavo,Paon,Aves,Galliformes,Phasianidés,NS4,Autre oiseau,SG4,0,0
 SP481,Pyrrhula pyrrhula pyrrhula,Bouvreuil ponceau,Aves,Passériformes,Fringillidés,NS4,Autre oiseau,SG4,0,0
 SP483,Testudinidae,Tortue terrestre,Reptilia,Testudines,Testudinidés,NS2,Reptile,SG4,0,0
 SP484,Testudo hermanni,Tortue d'Hermann,Reptilia,Testudines,Testudinidés,NS5,Reptile,SG4,0,0
+SP487,Columba livia var. domestica,Pigeon domestique,Aves,Columbiformes,Colombidés,NS4,Domestique,SG4,0,0
+SP488,Anas,Canard domestique,Aves,Ansériformes,Anatidés,NS4,Domestique,SG4,0,0
+SP489,Tarentola mauritanica,Tarente de Maurétanie,Reptilia,Squamata,Geckonidae,NS2,Reptile,SG2,0,0
 SP49,Ardea alba,Grande Aigrette,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
+SP490,Psittacula eupatria,Perruche alexandre,Aves,Psittaciformes,Psittaculidée,NS5,Autre oiseau,SG4,0,0
+SP491,Agapornis fischeri,Inséparable de Fischer,Aves,Psittaciformes,Psittaculidés,NS5,Autre oiseau,SG4,0,0
+SP492,Pyrrhura picta,Conure versicolore,Aves,Psittaciformes,Psittacidés,NS5,Autre oiseau,SG4,0,0
+SP493,Gallus gallus domesticus,Poule domestique,Aves,Galliformes,Phasianidae,NS4,Domestique,SG4,0,0
+SP494,Taeniopygia guttata,Diamant mandarin,Aves,Passériformes,Estrildidae,NS5,Autre oiseau,SG4,0,0
+SP495,Pyrrhura,Conure,Aves,Psittaciformes,Psittacidae,NS5,Autre oiseau,SG4,0,0
+SP496,Sus scrofa domesticus,Cochon vitnamien,Mammalia,Artiodactyles,Suidae,NS4,Domestique,SG4,0,0
+SP497,Testudo graeca,Tortue grecque,Reptilia,Testudines,Testudinidae,NS5,Reptile,SG4,0,0
+SP499,Iguana iguana,Iguane Vert,Reptilia,Squamata,Iguanidae,NS2,Reptile,SG4,0,0
 SP5,Acrocephalus paludicola,Phragmite aquatique,Aves,Passériformes,Acrocéphalidés,NS1,Autre oiseau,SG2,0,0
 SP50,Ardea cinerea,Héron cendré,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
+SP500,Streptopelia risoria,Tourterelle blanche - Colombe,Aves,Columbiformes,Carnivora,NS4,Domestique,SG4,0,0
 SP51,Ardea purpurea,Héron pourpré,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
 SP52,Ardeola ralloides,Crabier chevelu,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
 SP53,Arenaria interpres,Tournepierre à collier,Aves,Charadriiformes,Scolopacidés,NS1,Limicole,SG1,0,0
@@ -450,7 +463,7 @@ SP67,Bonasa bonasia,Gélinotte des bois,Aves,Galliformes,Phasianidés,NS1,Autre 
 SP68,Botaurus stellaris,Butor étoilé,Aves,Pélécaniformes,Ardeidés,NS1,Grand échassier,SG1,0,0
 SP69,Branta bernicla,Bernache cravant,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP7,Acrocephalus schoenobaenus,Phragmite des joncs,Aves,Passériformes,Acrocéphalidés,NS1,Autre oiseau,SG2,0,0
-SP70,Branta canadensis,Bernache du Canada,Aves,Ansériformes,Anatidés,NS2,Anatidé  / grèbe,SG4,1,1
+SP70,Branta canadensis,Bernache du Canada,Aves,Ansériformes,Anatidés,NS2,Anatidé  / grèbe,SG1,1,1
 SP71,Branta leucopsis,Bernache nonnette,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP72,Branta ruficollis,Bernache à cou roux,Aves,Ansériformes,Anatidés,NS1,Anatidé  / grèbe,SG1,0,0
 SP73,Bubo bubo,Grand-Duc d'Europe,Aves,Strigiformes,Strigidés,NS1,Rapace,SG1,0,0
@@ -482,4 +495,3 @@ SP96,Carduelis cannabina,Linotte mélodieuse,Aves,Passériformes,Fringillidés,N
 SP97,Carduelis carduelis,Chardonneret élégant,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP98,Carduelis chloris,Verdier d'Europe,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
 SP99,Carduelis flammea,Sizerin flammé,Aves,Passériformes,Fringillidés,NS1,Autre oiseau,SG2,0,0
-SP487,Columba livia var. domestica,Pigeon domestique,Aves,Columbiformes,Colombidés,NS4,Domestique,SG4,0,0
