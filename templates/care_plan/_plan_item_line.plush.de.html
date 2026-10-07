@@ -50,12 +50,12 @@
     (d-flex align-items-start flex-wrap + border-bottom py-1) — the care
     group=animal table must read like the medication table, same cell
     rhythm, same row rule. plan-item-<status> still colours the line. %>
-<div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-<%= card.Status %>">
+<div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-<%= card.Status %> plan-stale-scope">
   <%= if (showAnimal) { %>
   <%# Bug 2026-10-06 #7: the animal cell leads the line — the SAME column
       order as the medication rows — and shares the page's computed animal
       column width so both tables' cells align down the page. %>
-  <div class="plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch" title="<%= card.AnimalLabel %>">
+  <div class="plan-med-animal" style="width: <%= view.MedAnimalColCh %>ch" title="<%= card.AnimalLabel %>">
     <%= if (card.AnimalLink != "") { %>
       <a href="<%= card.AnimalLink %>"><%= card.AnimalYear %></a>
     <% } else { %>
@@ -95,7 +95,10 @@
     <%= if (len(card.Slots) > 0) { %>
       <%# Item 8: the record's stale late occurrences fold into ONE
           "N late" badge with a snooze; the remaining slots are the
-          actionable ones (the next upcoming action included). %>
+          actionable ones (the next upcoming action included). Rev
+          (collapsible): the folded slots STAY in the loop below, flagged
+          Stale — their cell renders hidden (plan-stale-slot d-none) and
+          the badge reveals it again on click. %>
       <%= if (card.StaleLateCount > 0) { %>
         <span class="plan-med-cell plan-stale-cell">
           <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: card.StaleLateCount, staleRefs: card.StaleRefsJSON}) %>
@@ -105,7 +108,7 @@
           badge travels with its own toggle (R4-3.2); the bare time is the
           toggle's visible label. %>
       <%= for (slot) in card.Slots { %>
-        <span class="plan-med-cell">
+        <span class="plan-med-cell<%= if (slot.Stale) { %> plan-stale-slot d-none<% } %>">
           <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
           <span class="plan-item-slot">
             <%= if (slot.Applicable) { %>

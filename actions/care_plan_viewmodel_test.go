@@ -308,7 +308,9 @@ func TestBuildDashboardMedViewTodayOnly(t *testing.T) {
 	// (source × animal) in BOTH densities — the stale late folds into the
 	// badge, the due-now + tomorrow slots stay as toggles.
 	require.Len(t, dv.Tiers[0].Cards, 1, "merged line: one (med-1 × animal 1) line, late tier")
-	require.Len(t, dv.Tiers[0].Cards[0].Slots, 2, "the line carries the actionable occurrences as toggles")
+	// Rev (collapsible): the stale occurrence stays in Slots flagged Stale
+	// (its toggle hides behind the badge); the two actionable ones render.
+	require.Len(t, dv.Tiers[0].Cards[0].Slots, 3, "the line carries every occurrence; one is flagged Stale")
 	require.Len(t, dv.History, 2, "applied + overridden (detailed debug surface)")
 }
 

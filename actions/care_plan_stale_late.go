@@ -92,10 +92,15 @@ func staleLateFlags(items []careplan.PlanItem, now time.Time) []bool {
 	return out
 }
 
-// foldStaleItemSlots partitions one row-kind group's occurrence slots into
-// the actionable kept ones and the stale late ones to fold into the record
-// badge (item 8). Only ACTIONABLE lates fold — a hors-délai 🔒 marker is
+// foldStaleItemSlots marks one row-kind group's stale late occurrence
+// slots (item 8). Only ACTIONABLE lates fold — a hors-délai 🔒 marker is
 // already non-interactive info and keeps its place.
+//
+// Rev (2026-10-07, collapsible): the stale slots STAY in `kept`, flagged
+// with Stale — the record's "⏱ N" badge is a collapsible and reveals their
+// toggles again on click. They are excluded from the batch refs, from the
+// line's re-stamp and from the remaining count (the caller skips Stale);
+// `stale` repeats the flagged subset for the badge count and refs.
 func foldStaleItemSlots(slots []ItemSlotView, now time.Time) (kept, stale []ItemSlotView) {
 	var nearestIn time.Duration
 	hasSibling := false
@@ -109,15 +114,14 @@ func foldStaleItemSlots(slots []ItemSlotView, now time.Time) (kept, stale []Item
 	if !hasSibling {
 		return slots, nil
 	}
-	for _, s := range slots {
+	for i, s := range slots {
 		if tierOrder(careplan.PlanStatus(s.Status)) == 0 && s.Applicable &&
 			lateIsStale(now.Sub(s.DueAt), nearestIn, true) {
-			stale = append(stale, s)
-			continue
+			slots[i].Stale = true
+			stale = append(stale, slots[i])
 		}
-		kept = append(kept, s)
 	}
-	return kept, stale
+	return slots, stale
 }
 
 // foldStaleMedSlots is foldStaleItemSlots' medication twin: a series'

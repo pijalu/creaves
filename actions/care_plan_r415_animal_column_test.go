@@ -25,42 +25,39 @@ import (
 // depending on the data, so the width is COMPUTED per page from the longest
 // label.
 
-// TestMedAnimalColumnIsSizedFromTheLongestYear (item 1, 2026-10-07): the
-// cell renders the YEAR/NUMBER only, so the column is sized from the longest
-// year on the page — the full label lives in the title and the ℹ modal.
-// Sizing from the full label made the cell a ~350 px block for a 7-character
-// number and pushed records off the single line.
-func TestMedAnimalColumnIsSizedFromTheLongestYear(t *testing.T) {
+// TestMedAnimalColumnIsUniformAndLocSized (item 1, second ruling
+// 2026-10-07): every cell on the page renders at the ONE shared width, sized
+// from the longest loc (cage · zone · species) within the budget — no
+// staircase. Longer locs wrap to two clamped lines instead of widening.
+func TestMedAnimalColumnIsUniformAndLocSized(t *testing.T) {
 	tiers := [3][]MedTierLine{
-		{medLine("1903/26")},
-		{medLine("1912/26")},
-		{medLine("1444/26")},
+		{medLine("1903/26")}, // loc: S11 · R · Hérisson = 11 + 6 separators = 17
+		{medLineLoc("1912/26", "VI39", "VI", "Hérisson")},
 	}
-	col := medAnimalColCh(tiers)
-	// +1 spare column: `ch` is the width of "0", so a label of narrow glyphs
-	// renders wider than its rune count.
-	require.Equal(t, utf8.RuneCountInString("1903/26")+1, col)
-	require.Less(t, col, 12, "a year-sized column stays narrow enough for one-line records")
+	col := medAnimalColCh(tiers, nil)
+	// longest loc: "VI39 · VI · Hérisson" = 4+2+8 runes + 6 separator runes
+	require.Equal(t, 20+2, col, "longest loc + 2 spare, within the budget")
+	// the year floor keeps a loc-less page usable
+	col2 := medAnimalColCh([3][]MedTierLine{{{AnimalYear: "1903/26"}}}, nil)
+	require.Equal(t, utf8.RuneCountInString("1903/26")+4, col2)
 }
 
-// TestMedAnimalColumnIgnoresTheFullLabel (item 1, 2026-10-07): the FULL
-// label — multi-byte species names included — no longer sizes the column.
-// The cell renders the year/number only; the label lives in the title and
-// the ℹ modal.
-func TestMedAnimalColumnIgnoresTheFullLabel(t *testing.T) {
-	tiers := [3][]MedTierLine{{medLine("1903/26")}, {medLine("1444/26")}}
-	col := medAnimalColCh(tiers)
-	require.Equal(t, utf8.RuneCountInString("1903/26")+1, col)
-	tiers[0][0].AnimalLabel = "1903/26 · Tourterelle turque · S11"
-	require.Equal(t, col, medAnimalColCh(tiers),
-		"a long multi-byte label must not inflate the year-sized column")
+// TestMedAnimalColumnCapsLongLocs (item 1, second ruling): a loc longer
+// than the budget does NOT widen the column — it wraps to two clamped lines
+// ("…" only when even wrapped it cannot fit).
+func TestMedAnimalColumnCapsLongLocs(t *testing.T) {
+	long := medLineLoc("1903/26", "Couveuse", "VI", "West European Hedgehog très très long nom d'espèce")
+	tiers := [3][]MedTierLine{{long, medLine("1444/26")}}
+	col := medAnimalColCh(tiers, nil)
+	require.Equal(t, 26+2, col, "the budget caps the column width")
+	require.Greater(t, utf8.RuneCountInString(long.Cage)+utf8.RuneCountInString(long.Zone)+utf8.RuneCountInString(long.Species)+6, 26)
 }
 
 // TestMedAnimalColumnIsZeroWithoutMedication: a feeding/observation page has
 // no medication rows; the template must not emit a `0ch` width. (0ch would
 // collapse the cell if the class were ever reused.)
 func TestMedAnimalColumnIsZeroWithoutMedication(t *testing.T) {
-	require.Equal(t, 0, medAnimalColCh([3][]MedTierLine{}))
+	require.Equal(t, 0, medAnimalColCh([3][]MedTierLine{}, nil))
 }
 
 // TestMedAnimalCellIsTintedInEveryFork: the second half of the request — the
@@ -91,7 +88,7 @@ func TestMedAnimalCellIsTintedInEveryFork(t *testing.T) {
 		// reading as a column (the reported defect). The width is a MIN-width
 		// (never cuts a long label, R4-7.24) computed once from the widest
 		// label on the page; the loc line still wraps beneath the year.
-		require.Contains(t, raw, `style="min-width: <%= view.MedAnimalColCh %>ch"`, f+
+		require.Contains(t, raw, `style="width: <%= view.MedAnimalColCh %>ch"`, f+
 			": the shared animal-column width must be wired onto the cell")
 	}
 }
@@ -113,5 +110,10 @@ func TestMedAnimalColumnStyleNeverCuts(t *testing.T) {
 
 // medLine is a minimal MedGroupView carrying only what the width reads.
 func medLine(year string) MedTierLine {
-	return MedTierLine{AnimalYear: year}
+	return MedTierLine{AnimalYear: year, Cage: "S11", Zone: "R", Species: "Hérisson"}
+}
+
+// medLineLoc builds a tier line with an explicit loc (cage · zone · species).
+func medLineLoc(year, cage, zone, species string) MedTierLine {
+	return MedTierLine{AnimalYear: year, Cage: cage, Zone: zone, Species: species}
 }

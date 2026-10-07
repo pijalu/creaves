@@ -247,7 +247,7 @@
 - id: "care_plan.late.stale_badge"
   translation: "{{.count}} late"
 - id: "care_plan.late.stale_hint"
-  translation: "Missed occurrence(s) already overtaken by the next one. Record them late or snooze (⏸) — the record stays listed until then."
+  translation: "Missed occurrence(s) already overtaken by the next one. Record them late or snooze (⏸) — the record stays listed until then. Click the badge to show the late toggles."
 - id: "care_plan.late.snooze"
   translation: "Snooze — defer the missed occurrence(s)"
 - id: "care_plan.late.snooze_context"

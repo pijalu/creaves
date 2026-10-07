@@ -247,7 +247,7 @@
 - id: "care_plan.late.stale_badge"
   translation: "{{.count}} en retard"
 - id: "care_plan.late.stale_hint"
-  translation: "Occurrence(s) manquée(s) déjà dépassée(s) par la suivante. À enregistrer en retard ou à reporter (⏸) — la ligne reste affichée d'ici là."
+  translation: "Occurrence(s) manquée(s) déjà dépassée(s) par la suivante. À enregistrer en retard ou à reporter (⏸) — la ligne reste affichée d'ici là. Cliquer sur le compteur pour afficher les boutons."
 - id: "care_plan.late.snooze"
   translation: "Reporter (snooze) les occurrence(s) manquée(s)"
 - id: "care_plan.late.snooze_context"

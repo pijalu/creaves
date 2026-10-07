@@ -116,11 +116,16 @@ func TestPhase4MergedLineColourFollowsMostUrgentSlot(t *testing.T) {
 	require.Equal(t, 1, card.StaleLateCount, "the stale late folds into the badge")
 	require.NotEmpty(t, card.StaleRefsJSON, "the fold carries its snooze refs")
 	require.Equal(t, "btn-warning", card.TierClass, "line colour = most urgent kept slot (due now)")
-	require.Len(t, card.Slots, 2, "the folded occurrence no longer renders a toggle")
-	// Slots are due-time ordered inside the line.
+	// Rev (collapsible): the folded occurrence STAYS in Slots, flagged
+	// Stale — its toggle renders hidden behind the badge's collapsible.
+	require.Len(t, card.Slots, 3, "the folded occurrence stays in the line, flagged Stale")
+	require.True(t, card.Slots[0].Stale, "the 1 h-overdue slot carries the Stale flag")
+	require.False(t, card.Slots[1].Stale)
+	// Slots are due-time ordered inside the line — the stale late first.
 	require.True(t, !card.Slots[1].DueAt.Before(card.Slots[0].DueAt))
-	require.Equal(t, "btn-warning", card.Slots[0].TierClass, "due-now slot is yellow")
-	require.Equal(t, "btn-light border", card.Slots[1].TierClass, "scheduled slot is the white bordered one")
+	require.Equal(t, "btn-danger", card.Slots[0].TierClass, "the stale late keeps its red toggle (revealed by the badge)")
+	require.Equal(t, "btn-warning", card.Slots[1].TierClass, "due-now slot is yellow")
+	require.Equal(t, "btn-light border", card.Slots[2].TierClass, "scheduled slot is the white bordered one")
 }
 
 // TestPhase4ThreeTimesADayRendersOneLine (4-T4): a 3×/day protocol is ONE

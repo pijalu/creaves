@@ -485,7 +485,7 @@
   .plan-tier-body { background: transparent; }
   .plan-tier-body .table,
   .plan-tier-body .table tbody,
-  .plan-tier-body .table td,
+  .plan-tier-body .table td:not(.plan-med-animal),
   .plan-tier-body .table th { background-color: transparent; }
   .plan-tier-body .table { margin-bottom: 0; }
   /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
@@ -684,7 +684,7 @@
                       </div>
                       <div class="collapse" id="feed-animals-1-0">
                         <div class="plan-time-group">
-                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
+                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1 plan-stale-scope">
                             <a class="plan-feeding-chip" href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-plan" title="Due">
                               <span class="sr-only">
                                 "Due:"
@@ -695,15 +695,17 @@
                               <span class="sr-only">
                                 "Due"
                               </span>
-                              <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
-                                "○ HHMM"
-                              </button>
-                              <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
-                                "✓ HHMM"
-                              </button>
+                              <span class="">
+                                <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
+                                  "○ HHMM"
+                                </button>
+                                <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                                  "✓ HHMM"
+                                </button>
+                              </span>
                             </span>
                           </div>
-                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
+                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1 plan-stale-scope">
                             <a class="plan-feeding-chip" href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-plan" title="Due">
                               <span class="sr-only">
                                 "Due:"
@@ -714,12 +716,14 @@
                               <span class="sr-only">
                                 "Due"
                               </span>
-                              <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
-                                "○ HHMM"
-                              </button>
-                              <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
-                                "✓ HHMM"
-                              </button>
+                              <span class="">
+                                <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
+                                  "○ HHMM"
+                                </button>
+                                <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                                  "✓ HHMM"
+                                </button>
+                              </span>
                             </span>
                           </div>
                         </div>
@@ -1423,6 +1427,26 @@
     $('#planSkipDeferModal').modal('show');
   });
 
+  // Item 8 follow-up (2026-10-07): the "⏱ N late" badge is a COLLAPSIBLE —
+  // clicking it reveals the folded occurrences' own toggles (the hidden
+  // .plan-stale-slot elements within the record's .plan-stale-scope) so the
+  // caregiver can still record them one by one; the ⏸ snooze beside it
+  // keeps deferring all of them at once. Delegated like every binding in
+  // this partial; the expand re-runs the bucket-fit pass (the button group
+  // may wrap once the toggles appear).
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-stale-toggle') : null;
+    if (!btn) { return; }
+    var scope = btn.closest('.plan-stale-scope');
+    if (!scope) { return; }
+    var open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-stale-slot'), function (el) {
+      el.classList.toggle('d-none', !open);
+    });
+    scheduleFitMedBuckets();
+  });
+
   function submitSnooze(reason) {
     var refs = snoozeRefs;
     snoozeRefs = null;
@@ -1536,6 +1560,7 @@
       var tops = {};
       var rows = 0;
       Array.prototype.forEach.call(cells, function (c) {
+        if (c.offsetParent === null) { return; } // d-none cell (folded stale slot) has no box — it would fake a row at y=0
         var y = c.offsetTop;
         if (!tops[y]) { tops[y] = true; rows++; }
       });

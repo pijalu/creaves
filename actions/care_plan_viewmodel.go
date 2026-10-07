@@ -151,9 +151,11 @@ type ItemSlotView struct {
 	TierClass   string // slotTierClass(Tier) — the toggle's colour (§2.1)
 	Applicable  bool
 	// Item 8: a STALE late occurrence — the group's next occurrence is
-	// nearer to now than this one. It renders as part of the record's
-	// "⏱ N" badge (with snooze) instead of an individual toggle, and is
-	// excluded from the batch refs.
+	// nearer to now than this one. It folds into the record's "⏱ N" badge
+	// (with snooze) instead of an individual toggle, and is excluded from
+	// the batch refs and the line's counts. Rev (collapsible): the slot
+	// STAYS in Slots with this flag — the badge reveals its toggle again
+	// on click, so the occurrence can still be recorded one by one.
 	Stale       bool
 	LateAllowed bool // past due + out of window → record-anyway (§6.2-2, A1)
 	NeedsInput  bool // weighing / observation → the apply modal
@@ -340,6 +342,11 @@ type MedSeriesView struct {
 	StaleLateCount   int
 	StaleRefsJSON    string
 	staleApplicable  int
+	// Rev (2026-10-07, collapsible): the folded slots are ALSO kept here so
+	// the "⏱ N" badge can reveal their toggles again — the badge is a
+	// collapsible. They stay OUT of Rows (the actionable line) and out of
+	// the batch refs.
+	StaleSlots []MedSlotView
 }
 
 // MedTierLine is one rendered medication line of the work screen (R3-5):
@@ -853,7 +860,7 @@ func (v *DayPlanView) fillMedTiers(groups []MedGroupView, now time.Time) {
 	}
 	v.MedDoneCount = doneSeries
 	v.MedDoneCountCap = BadgeCap(v.MedDoneCount)
-	v.MedAnimalColCh = medAnimalColCh(v.MedTiers)
+	v.MedAnimalColCh = medAnimalColCh(v.MedTiers, v.MedDone)
 }
 
 // collectDoneSeries routes a fully-terminal series to the Done tier (R9-2):
@@ -914,55 +921,72 @@ func medDoneFirstDue(line MedTierLine) time.Time {
 	return first
 }
 
+// animalColLocBudget caps the loc-derived column width: a longer loc wraps
+// to two clamped lines ("…" only when even wrapped it cannot fit) instead of
+// widening the column.
+const animalColLocBudget = 26
+
+// animalColCh is the page-wide UNIFORM animal-cell width (item 1, second
+// ruling 2026-10-07): every cell on the page renders at exactly this width —
+// no staircase. Sized from the longest loc (cage · zone · species,
+// request-localized) within the budget; the cell text may wrap.
+func animalColCh(longestLoc, longestYear int) int {
+	if longestLoc == 0 && longestYear == 0 {
+		return 0 // no cells rendered — the template emits no width
+	}
+	w := longestYear + 4
+	if loc := minInt(longestLoc, animalColLocBudget) + 2; loc > w {
+		w = loc
+	}
+	return w
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 // medAnimalColCh is the shared animal-column width for the whole medication
-// page, in `ch` plus one spare column.
-//
-// Item 1 (2026-10-07): sized from the YEAR/NUMBER — the only text the cell
-// renders (§5 level 1). Sizing from the full animal label made the cell a
-// ~350 px empty block for a 7-character number; the full label lives in the
-// cell's title and the ℹ modal.
-func medAnimalColCh(tiers [3][]MedTierLine) int {
-	// One spare column: `ch` is the width of "0", so a label made of narrow
-	// glyphs (digits, the `/` separator) renders WIDER than its rune
-	// count in ch. The spare column absorbs that; without it a label right
-	// at the limit would be clipped, and R4-7.24 forbids clipping.
-	const room = 1
-	widest := 0
-	for i := range tiers {
-		for _, g := range tiers[i] {
-			if n := utf8.RuneCountInString(g.AnimalYear); n > widest {
-				widest = n
+// page: sized from the longest loc across ALL THREE tiers and the Done panel
+// (expanding Done must not reflow the column).
+func medAnimalColCh(tiers [3][]MedTierLine, done []MedTierLine) int {
+	longestLoc, longestYear := 0, 0
+	measure := func(lines []MedTierLine) {
+		for _, g := range lines {
+			if n := utf8.RuneCountInString(g.Cage) + utf8.RuneCountInString(g.Zone) + utf8.RuneCountInString(g.Species) + 6; n > longestLoc {
+				longestLoc = n
+			}
+			if y := utf8.RuneCountInString(g.AnimalYear); y > longestYear {
+				longestYear = y
 			}
 		}
 	}
-	if widest == 0 {
-		return 0
+	for i := range tiers {
+		measure(tiers[i])
 	}
-	return widest + room
+	measure(done)
+	return animalColCh(longestLoc, longestYear)
 }
 
 // cardAnimalColCh is the row-kind analogue of medAnimalColCh (bugs.md
-// 2026-10-06 #7): the shared animal-column width for the care/observation/
-// weighing lines, sized from the longest YEAR/NUMBER across the three tiers
-// so the cells read as one column (R4-7.15) and no year is ever cut
-// (R4-7.24). Item 1 (2026-10-07): from the year, not the full label — the
-// cell must stay narrow enough for the whole record to read on ONE line.
+// 2026-10-06 #7): the shared uniform animal-column width for the
+// care/observation/weighing lines, sized from the longest loc across the
+// three tiers.
 func cardAnimalColCh(tiers [3]TierView) int {
-	// Same spare column as medAnimalColCh: `ch` is the width of "0", so a
-	// label of narrow glyphs renders wider than its rune count.
-	const room = 1
-	widest := 0
+	longestLoc, longestYear := 0, 0
 	for i := range tiers {
 		for _, c := range tiers[i].Cards {
-			if n := utf8.RuneCountInString(c.AnimalYear); n > widest {
-				widest = n
+			if n := utf8.RuneCountInString(c.Cage) + utf8.RuneCountInString(c.Zone) + utf8.RuneCountInString(c.Species) + 6; n > longestLoc {
+				longestLoc = n
+			}
+			if y := utf8.RuneCountInString(c.AnimalYear); y > longestYear {
+				longestYear = y
 			}
 		}
 	}
-	if widest == 0 {
-		return 0
-	}
-	return widest + room
+	return animalColCh(longestLoc, longestYear)
 }
 
 // seriesTier reports the tier index of a series' most urgent OPEN slot
@@ -1416,6 +1440,9 @@ func (v *DayPlanView) tierRows(plan *DayPlan, detailed bool) []CardView {
 		// the record stays in the Late section via TierOf(). The line's
 		// due label / status re-stamps from its most urgent KEPT slot —
 		// the next upcoming action ("show in late the next upcoming").
+		// Rev (collapsible): the folded slots STAY in Slots, flagged
+		// Stale — the badge reveals their toggles again on click; every
+		// count below skips them so the badge is the only place they show.
 		kept, stale := foldStaleItemSlots(rep.Slots, now)
 		if len(stale) > 0 {
 			rep.Slots = kept
@@ -1432,20 +1459,31 @@ func (v *DayPlanView) tierRows(plan *DayPlan, detailed bool) []CardView {
 			if raw, err := jsonMarshal(refs); err == nil {
 				rep.StaleRefsJSON = string(raw)
 			}
-			if len(kept) > 0 {
-				best := kept[0]
-				for _, s := range kept[1:] {
-					if s.Tier < best.Tier || (s.Tier == best.Tier && s.DueAt.Before(best.DueAt)) {
-						best = s
-					}
+			var best *ItemSlotView
+			for i := range kept {
+				if kept[i].Stale {
+					continue
 				}
+				if best == nil || kept[i].Tier < best.Tier ||
+					(kept[i].Tier == best.Tier && kept[i].DueAt.Before(best.DueAt)) {
+					b := kept[i]
+					best = &b
+				}
+			}
+			if best != nil {
 				rep.DueAt, rep.DueHM = best.DueAt, best.DueHM
 				rep.DueDayKey, rep.DueShortDate = best.DueDayKey, best.DueShortDate
 				rep.Status = best.Status
 				rep.TierClass = best.TierClass
 			}
 		}
-		rep.Remaining = len(rep.Slots) - 1
+		open := 0
+		for _, s := range rep.Slots {
+			if !s.Stale {
+				open++
+			}
+		}
+		rep.Remaining = open - 1
 		rep.RemainingCap = BadgeCap(rep.Remaining)
 	}
 	sort.SliceStable(rows, func(i, j int) bool {
@@ -2497,6 +2535,7 @@ func scopeSeriesToToday(series MedSeriesView, animalID int, now time.Time) MedSe
 	out := series
 	out.Rows = chunkSeriesRows(kept)
 	out.StaleLateCount = len(stale)
+	out.StaleSlots = stale
 	for _, s := range stale {
 		if s.Applicable {
 			out.staleApplicable++

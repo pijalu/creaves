@@ -97,7 +97,7 @@
           <%= for (tg) in fcard.TimeGroups { %>
             <div class="plan-time-group">
           <%= for (chip) in tg.Chips { %>
-            <div class="plan-animal-row d-flex justify-content-between align-items-center py-1">
+            <div class="plan-animal-row d-flex justify-content-between align-items-center py-1 plan-stale-scope">
               <%= if (group != "animal") { %>
                               <a class="plan-feeding-chip<%= if (chip.Superseded) { %> text-muted<% } %>" href="<%= chip.AnimalLink %>" title="<%= t("care_plan.status." + chip.Status) %>">
                                 <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
@@ -121,7 +121,11 @@
                     <%# Item 8: a STALE late chip (the animal's next
                         occurrence is nearer to now) renders the "⏱"
                         badge + snooze instead of a toggle, with the muted
-                        next-upcoming label; it is out of the batch refs. %>
+                        next-upcoming label; it is out of the batch refs.
+                        Rev (collapsible): the chip's own toggle renders
+                        HIDDEN (.plan-stale-slot) beside the badge — the
+                        badge reveals it again on click, so the occurrence
+                        can still be recorded one by one. %>
                     <%= if (chip.StaleLate) { %>
                       <span class="plan-stale-cell">
                         <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: 1, staleRefs: chip.StaleRefsJSON}) %>
@@ -129,26 +133,29 @@
                           <span class="plan-feed-when plan-stale-next">&rarr; <%= dueLabel(chip.StaleNextHM, chip.StaleNextDayKey, chip.StaleNextShortDate) %></span>
                         <% } %>
                       </span>
-                    <% } else if (chip.Applicable) { %>
-                      <%# B10-3: the toggle speaks the §2.3 med-parity
-                          nomenclature — it CARRIES the time (○ HH:MM ⇄
-                          ✓ HH:MM) instead of a bare icon.
-                          Bug 2026-10-07 review: the day qualifier travels as
-                          a plan-med-day badge NEXT TO the button — the SAME
-                          treatment as the medication/item lines and the
-                          cleanup slots — so a non-today slot is readable
-                          without widening the toggle. %>
-                      <%= if (chip.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= chip.DueShortDate %></span> <% } else if (chip.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(chip.DueDayKey) %></span> <% } %>
-                      <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one"
-                        data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
-                        data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
-                        data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                        data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                        title="<%= t("care_plan.apply.action") %>">○ <%= chip.DueHM %></button>
-                      <button type="button" class="btn <%= chip.TierClass %> btn-sm ml-1 plan-unapply-btn d-none"
-                        data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
-                        data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
-                        title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
+                    <% } %>
+                    <%= if (chip.Applicable) { %>
+                      <span class="<%= if (chip.StaleLate) { %>plan-stale-slot d-none<% } %>">
+                        <%# B10-3: the toggle speaks the §2.3 med-parity
+                            nomenclature — it CARRIES the time (○ HH:MM ⇄
+                            ✓ HH:MM) instead of a bare icon.
+                            Bug 2026-10-07 review: the day qualifier travels as
+                            a plan-med-day badge NEXT TO the button — the SAME
+                            treatment as the medication/item lines and the
+                            cleanup slots — so a non-today slot is readable
+                            without widening the toggle. %>
+                        <%= if (chip.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= chip.DueShortDate %></span> <% } else if (chip.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(chip.DueDayKey) %></span> <% } %>
+                        <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one"
+                          data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                          data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.apply.action") %>">○ <%= chip.DueHM %></button>
+                        <button type="button" class="btn <%= chip.TierClass %> btn-sm ml-1 plan-unapply-btn d-none"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
+                      </span>
                     <% } %>
                   <% } else { %>
                     <span class="plan-apply-space" aria-hidden="true"></span>

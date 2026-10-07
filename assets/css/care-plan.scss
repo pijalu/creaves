@@ -54,11 +54,12 @@
   align-items: center;
   justify-content: center;
 }
-// Bug 2026-10-07 #3: EVERY time-carrying toggle gets the SAME fixed width —
-// the R4-3.2 grid contract (○ HH:MM ⇄ ✓ HH:MM never reflows) extended from
-// the medication series to the item lines, the feed/cage tables and the
-// undo siblings, so medication / care / feeding / cleanup buttons read
-// identical on the day plan AND the animal Protocol tab. Secondary glyph
+// Bug 2026-10-07 #3, hardened (2026-10-07 second review): EVERY
+// time-carrying toggle gets the SAME FIXED width — `width`, not
+// `min-width`, so even the bold `.plan-med-urgent` label can never push a
+// button past the grid (the "○ 08:00 vs ○ 18:00" width drift). The
+// non-interactive time markers (🔒/⊘/⏸ `.plan-med-state`) join the grid so
+// a locked slot occupies exactly a toggle's footprint. Secondary glyph
 // controls (ℹ / ⏭ / 🚫) keep their compact size on purpose.
 .plan-med-btn,
 .plan-item-slot-btn,
@@ -66,8 +67,13 @@
 .plan-feeding-one,
 .plan-feeding-apply,
 .plan-cage-apply,
-.plan-unapply-btn {
+.plan-unapply-btn,
+.plan-med-state {
+  width: 5.6rem;
   min-width: 5.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // R4-7.14: the GROUP check ("apply every animal in this cage") sat top-aligned
@@ -239,11 +245,16 @@
 //
 // The width itself is a per-page value (view.MedAnimalColCh, sized from the
 // longest label) so no label is ever cut (R4-7.24); this class only makes the
-// cells behave as a column and carries the tint the user asked for — the same
-// light red the late rows already use.
+// cells behave as a column.
+//
+// Rev (2026-10-07, state tint): the cell's tint follows the ROW'S STATE
+// instead of one fixed light red — a light red cell on an APPLIED row lied
+// about the state. The base is a neutral grey (rows whose state no rule
+// knows — the animal page's per-day series lines); every tier panel and
+// every plan-item-<status> line re-tints its cells below.
 .plan-med-animal {
   flex: 0 0 auto;
-  background-color: #fdf2f3;
+  background-color: #f8f9fa;
   border-radius: 2px;
   padding-left: 0.35rem;
   // Bug 2026-10-07 #2: the distance to the text after the cell is part of
@@ -252,6 +263,35 @@
   // gap collapse to 0). Margins on table cells are ignored, so the grouped
   // feed/cage tables are unaffected.
   margin-right: 0.5rem;
+}
+// The state tints — ONE shade per state, keyed twice: by the tier panel the
+// row sits in (the day plan buckets rows by state, so this covers every
+// kind there, medication rows included — they carry no per-row status
+// class) and by the row's own plan-item-<status> class (item lines outside
+// the tier panels, e.g. the animal page's day cards). Late keeps the
+// historical #fdf2f3; done reads the same green as the ✓ toggle
+// (badge-success family).
+.plan-tier-late .plan-med-animal,
+div.plan-med-row.plan-item-late .plan-med-animal,
+div.plan-med-row.plan-item-missing .plan-med-animal {
+  background-color: #fdf2f3;
+}
+.plan-tier-now .plan-med-animal,
+div.plan-med-row.plan-item-due .plan-med-animal {
+  background-color: #fff9e6;
+}
+.plan-tier-later .plan-med-animal,
+div.plan-med-row.plan-item-scheduled .plan-med-animal {
+  background-color: #eaf6ee;
+}
+.plan-tier-done .plan-med-animal,
+div.plan-med-row.plan-item-applied .plan-med-animal {
+  background-color: #d4edda;
+}
+div.plan-med-row.plan-item-skipped .plan-med-animal,
+div.plan-med-row.plan-item-deferred .plan-med-animal,
+div.plan-med-row.plan-item-overridden .plan-med-animal {
+  background-color: #e9ecef;
 }
 // Bug 2026-10-07 #1: the animal cell is the animal's "line" — its tint
 // spans the FULL height of the (merged) row instead of hugging its own
@@ -278,27 +318,32 @@
   padding-bottom: 0.25rem;
 }
 
-// Item 1 (2026-10-07): the animal cell must never stack a second line — the
-// B10-2 loc info (Cage · Zone · Espèce) flows INLINE after the year number,
-// ellipsized, so a record reads on ONE line (the column width is computed
-// from the year only, see medAnimalColCh/cardAnimalColCh). The full label
-// stays in the cell's title and the ℹ modal.
+// Item 1, second ruling (2026-10-07): every animal cell renders at the ONE
+// shared page width (style="width: Nch" from the view model — no staircase).
+// The cell text WRAPS within that width; the loc becomes a two-line clamped
+// block under the year number, so "…" appears only when even wrapped it
+// cannot fit. The full label stays in the cell's title and the ℹ modal.
 div.plan-med-row .plan-med-animal,
 td.plan-med-animal {
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 .plan-med-animal .plan-loc {
-  display: inline-block;
-  vertical-align: bottom;
-  max-width: 13rem;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: none;
+  white-space: normal;
 }
 
 // Item 8 (2026-10-07): the "N late" fold badge of a record + its snooze
 // button. A stale late occurrence (the group's next occurrence is nearer to
 // now — relative-distance rule) folds into this badge instead of rendering
 // as an individual toggle; the record stays in the Late section.
+// Rev (collapsible): the badge is a BUTTON — clicking reveals the folded
+// occurrences' toggles (.plan-stale-slot within the record's
+// .plan-stale-scope); the caret turns when open.
 .plan-stale-late {
   display: inline-block;
   font-size: 0.72rem;
@@ -309,6 +354,20 @@ td.plan-med-animal {
   border-radius: 10rem;
   padding: 0.05rem 0.5rem;
   white-space: nowrap;
+  cursor: pointer;
+}
+.plan-stale-late:focus {
+  outline: 1px dotted #dc3545;
+  outline-offset: 1px;
+}
+.plan-stale-caret {
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 0.85em;
+  transition: transform 0.15s ease;
+}
+.plan-stale-toggle[aria-expanded="true"] .plan-stale-caret {
+  transform: rotate(90deg);
 }
 .plan-stale-cell {
   display: inline-flex;
@@ -415,11 +474,9 @@ td.plan-med-animal {
 }
 
 .plan-item-late {
-  border-left: 3px solid #dc3545 !important;
+  // Item 5 follow-up (2026-10-07): the red left STRIP is gone — a flat row
+  // carries the late signal in its pink band and the red toggle button.
   background-color: #fdf2f3;
-  // R4-7.4: the row's first child (the kind pill) must not touch the red
-  // border — a glued pill reads as part of the border, not as a label.
-  padding-left: 0.65rem;
 }
 
 // R4-7.11b: the DONE badge is a link to the record that was logged. As an
@@ -618,10 +675,8 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
 }
 // R9: a MISSING row reads red like a LATE one (the removed "Missing"
 // bubble must not take the colour signal with it).
-.plan-med-row.plan-item-missing {
-  border-left: 3px solid #dc3545 !important;
+div.plan-med-row.plan-item-missing {
   background-color: #fdf2f3;
-  padding-left: 0.65rem;
 }
 
 // R9 cascade fix: at equal specificity file order decides — the zebra and
@@ -630,11 +685,16 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
 .plan-med-row:nth-child(even) {
   background-color: rgba(0, 0, 0, 0.045);
 }
-.plan-med-row.plan-item-late,
-.plan-med-row.plan-item-missing {
+// The `div.` prefix matters: it ties (0,2,1) with the transparent base rule
+// `div.plan-med-row.d-flex` above, and file order then lets the band win —
+// at (0,2,0) the band never rendered on the animal page (the red strip was
+// the only visible late marker there, which is what "still a border on
+// cleanup" pointed at).
+div.plan-med-row.plan-item-late,
+div.plan-med-row.plan-item-missing {
+  // Item 5 follow-up (2026-10-07): flat — no red left strip, the pink band
+  // and the red toggle carry the late signal.
   background-color: #fdf2f3;
-  border-left: 3px solid #dc3545 !important;
-  padding-left: 0.65rem;
 }
 
 // ---------------------------------------------------------------------------

@@ -63,7 +63,7 @@
       <small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
     </td>
   <% } %>
-  <td class="plan-care-slots">
+  <td class="plan-care-slots plan-stale-scope">
     <%# Bug 2026-10-07 review: under group=animal EVERY row is ONE animal —
           the R4-7.14c rationale (a one-animal list has nothing to expand, a
           closed list hides the work) applies, so the row renders OPEN like
@@ -93,10 +93,13 @@
           header above is skipped for this row too. %>
       <span class="plan-apply-space" aria-hidden="true"></span>
       <%= if (ccard.StaleCount > 0) { %>
-        <%# Item 8: the row's stale late occurrences (badge + snooze). %>
+        <%# Item 8: the row's stale late occurrences (badge + snooze). Rev
+            (collapsible): the folded toggles render hidden right after the
+            badge — the badge reveals them on click. %>
         <span class="plan-stale-cell">
           <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: ccard.StaleCount, staleRefs: ccard.StaleRefsJSON}) %>
         </span>
+        <%= for (tg) in ccard.TimeGroups { %><%= for (slot) in tg.Slots { %><%= if (slot.Stale) { %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } %><% } %><% } %>
       <% } %>
     <% } else { %>
       <%= for (tg) in ccard.TimeGroups { %>
@@ -112,23 +115,25 @@
                 toggles — no interleaved wrap. tg.AnimalLines is pre-folded
                 by the view model, ascending animal id. %>
             <%= for (line) in tg.AnimalLines { %>
-              <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+              <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                 <a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>"><%= line.AnimalYear %></a>
                 <%= if (line.StaleCount > 0) { %>
-                  <%# Item 8: this animal's stale late occurrences. %>
+                  <%# Item 8: this animal's stale late occurrences. Rev
+                      (collapsible): the badge reveals this animal's folded
+                      toggles (below, .plan-stale-slot) on click. %>
                   <span class="plan-stale-cell">
                     <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: line.StaleCount, staleRefs: line.StaleRefsJSON}) %>
                   </span>
                 <% } %>
                 <%= for (slot) in line.Slots { %>
-                  <%= if (!slot.Stale) { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
+                  <%= if (slot.Stale) { %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } else { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
                 <% } %>
               </div>
             <% } %>
           <% } else { %>
             <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
             <%= for (slot) in tg.Slots { %>
-              <%= if (!slot.Stale) { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
+              <%= if (slot.Stale) { %><%# Rev (collapsible): the folded occurrence's toggle stays reachable behind the badge. %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } else { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
             <% } %>
             </span>
           <% } %>

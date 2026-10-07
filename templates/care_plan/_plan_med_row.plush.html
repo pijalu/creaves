@@ -39,7 +39,7 @@
       label (rune count + 1 spare ch); `min-width` never cuts a long label
       (R4-7.24), it only aligns the shorter ones. No text-nowrap: the cell
       may still wrap (B10-2). %>
-  <div class="py-1 plan-med-animal" style="min-width: <%= view.MedAnimalColCh %>ch" title="<%= mg.AnimalLabel %>">
+  <div class="py-1 plan-med-animal" style="width: <%= view.MedAnimalColCh %>ch" title="<%= mg.AnimalLabel %>">
     <a href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
     <%# B10-2: the per-animal loc line — Cage · Zone · Espèce, collapses on
         narrow screens (the cell no longer forces text-nowrap so it can wrap

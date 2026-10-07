@@ -45,7 +45,7 @@
         B10-5: on the animal page the caller sets medSeriesRow so the line
         picks up the SAME .plan-med-row compact row treatment as the item
         lines — one visual family. %>
-    <div class="d-flex align-items-start plan-med-line<%= if (medSeriesRow) { %> plan-med-row plan-item-line<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
+    <div class="d-flex align-items-start plan-med-line plan-stale-scope<%= if (medSeriesRow) { %> plan-med-row plan-item-line<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
       data-source-type="<%= series.Rows[0].Slots[0].SourceType %>"
       data-source-id="<%= series.Rows[0].Slots[0].SourceID %>">
       <%# R4-3.1: fixed-width leading column — ℹ first, so the ℹ buttons
@@ -66,11 +66,22 @@
       <div class="plan-med-btns">
         <%# Item 8: the series' stale late occurrences fold into ONE
             "N late" badge with a snooze; the rows carry the actionable
-            slots (the next upcoming action included). %>
+            slots (the next upcoming action included). Rev (collapsible):
+            the badge is the toggle — the folded occurrences' own toggles
+            render HIDDEN (.plan-stale-slot) inside the line's
+            .plan-stale-scope and are revealed on click, so each can still
+            be recorded individually (the med slot JS is delegated, the
+            revealed buttons bind themselves). %>
         <%= if (series.StaleLateCount > 0) { %>
           <span class="plan-med-cell plan-stale-cell">
             <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: series.StaleLateCount, staleRefs: series.StaleRefsJSON}) %>
           </span>
+          <%= for (slot) in series.StaleSlots { %>
+            <span class="plan-med-cell plan-stale-slot d-none">
+              <%= if (slot.Slot != "tomorrow" && slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.Slot != "tomorrow" && slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%= partial("care_plan/plan_slot_toggle.plush.html") %>
+            </span>
+          <% } %>
         <% } %>
         <%= for (ri, row) in series.Rows { %>
           <%# R4-2.4: the bucket change is LABELLED, not implied by an

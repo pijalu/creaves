@@ -127,7 +127,7 @@ func TestMedWorkScreenDropsBeforeTodayTerminalSlots(t *testing.T) {
 func TestMedAnimalColumnWidthIsWiredAgain(t *testing.T) {
 	for _, loc := range goal5Forks {
 		raw := readTemplate(t, "../templates/care_plan/_plan_med_row.plush"+loc+".html")
-		require.Contains(t, raw, `style="min-width: <%= view.MedAnimalColCh %>ch"`, loc+
+		require.Contains(t, raw, `style="width: <%= view.MedAnimalColCh %>ch"`, loc+
 			": the animal cell must carry the computed shared column width")
 		require.NotContains(t, raw, "text-overflow", loc+": never ellipsise")
 		require.NotContains(t, raw, `overflow: hidden`, loc+": never clip")

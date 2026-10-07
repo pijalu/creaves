@@ -485,7 +485,7 @@
   .plan-tier-body { background: transparent; }
   .plan-tier-body .table,
   .plan-tier-body .table tbody,
-  .plan-tier-body .table td,
+  .plan-tier-body .table td:not(.plan-med-animal),
   .plan-tier-body .table th { background-color: transparent; }
   .plan-tier-body .table { margin-bottom: 0; }
   /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
@@ -670,7 +670,7 @@
                       </a>
                     </small>
                   </td>
-                  <td class="plan-care-slots">
+                  <td class="plan-care-slots plan-stale-scope">
                     <div aria-expanded="false" class="plan-feed-header" data-target="#care-slots-1-0" data-toggle="collapse" role="button" tabindex="0" title="Show the animals of this cage">
                       <span class="badge badge-pill badge-light plan-feed-count">
                         "6"
@@ -684,7 +684,7 @@
                     </div>
                     <div class="collapse" id="care-slots-1-0">
                       <div class="plan-time-group">
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -697,7 +697,7 @@
                             </button>
                           </span>
                         </div>
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -712,7 +712,7 @@
                         </div>
                       </div>
                       <div class="plan-time-group">
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -728,7 +728,7 @@
                             </button>
                           </span>
                         </div>
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -746,7 +746,7 @@
                         </div>
                       </div>
                       <div class="plan-time-group">
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -762,7 +762,7 @@
                             </button>
                           </span>
                         </div>
-                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1">
+                        <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
                           <a class="plan-care-animal-number mr-2" href="/animals/AID">
                             "YEARNUM"
                           </a>
@@ -1478,6 +1478,26 @@
     $('#planSkipDeferModal').modal('show');
   });
 
+  // Item 8 follow-up (2026-10-07): the "⏱ N late" badge is a COLLAPSIBLE —
+  // clicking it reveals the folded occurrences' own toggles (the hidden
+  // .plan-stale-slot elements within the record's .plan-stale-scope) so the
+  // caregiver can still record them one by one; the ⏸ snooze beside it
+  // keeps deferring all of them at once. Delegated like every binding in
+  // this partial; the expand re-runs the bucket-fit pass (the button group
+  // may wrap once the toggles appear).
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-stale-toggle') : null;
+    if (!btn) { return; }
+    var scope = btn.closest('.plan-stale-scope');
+    if (!scope) { return; }
+    var open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-stale-slot'), function (el) {
+      el.classList.toggle('d-none', !open);
+    });
+    scheduleFitMedBuckets();
+  });
+
   function submitSnooze(reason) {
     var refs = snoozeRefs;
     snoozeRefs = null;
@@ -1591,6 +1611,7 @@
       var tops = {};
       var rows = 0;
       Array.prototype.forEach.call(cells, function (c) {
+        if (c.offsetParent === null) { return; } // d-none cell (folded stale slot) has no box — it would fake a row at y=0
         var y = c.offsetTop;
         if (!tops[y]) { tops[y] = true; rows++; }
       });

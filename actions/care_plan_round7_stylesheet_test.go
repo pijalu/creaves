@@ -27,9 +27,12 @@ func TestCarePlanStylesheetAlignment(t *testing.T) {
 	bucket := ruleBody(t, raw, ".plan-med-bucket {")
 	require.Contains(t, bucket, "min-height: 1.1rem;", "bucket captions reserve a height")
 
-	// R4-7.4: the late row's kind pill must not touch the red left border.
+	// Item 5 follow-up (2026-10-07): the late row is FLAT — pink band only,
+	// no red left strip, no compensating padding.
 	late := ruleBody(t, raw, ".plan-item-late {")
-	require.Contains(t, late, "padding-left:", "the late row keeps inner padding")
+	require.Contains(t, late, "background-color: #fdf2f3;", "the late row keeps its pink band")
+	require.NotContains(t, late, "border-left", "the late row carries no left strip")
+	require.NotContains(t, late, "padding-left:", "the late row needs no strip compensation")
 
 	// The apply/count affordances the earlier rounds introduced must survive.
 	for _, sel := range []string{

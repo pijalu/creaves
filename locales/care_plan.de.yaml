@@ -247,7 +247,7 @@
 - id: "care_plan.late.stale_badge"
   translation: "{{.count}} verspätet"
 - id: "care_plan.late.stale_hint"
-  translation: "Verpasste Termine, die vom nächsten bereits überholt wurden. Nachträglich erfassen oder zurückstellen (⏸) — der Eintrag bleibt so lange sichtbar."
+  translation: "Verpasste Termine, die vom nächsten bereits überholt wurden. Nachträglich erfassen oder zurückstellen (⏸) — der Eintrag bleibt so lange sichtbar. Klick auf den Zähler blendet die Buttons ein."
 - id: "care_plan.late.snooze"
   translation: "Verpasste Termine zurückstellen (snooze)"
 - id: "care_plan.late.snooze_context"

@@ -146,7 +146,7 @@ func TestItemLineAnimalCellPrecedesInfoButton(t *testing.T) {
 		require.GreaterOrEqual(t, animal, 0, f)
 		require.GreaterOrEqual(t, lead, 0, f)
 		require.Less(t, animal, lead, f+": the animal cell leads the line (medication row order)")
-		require.Contains(t, src, `min-width: <%= view.MedAnimalColCh %>ch`, f+": shared column width")
+		require.Contains(t, src, `style="width: <%= view.MedAnimalColCh %>ch"`, f+": shared column width (exact — uniform column, no staircase)")
 	}
 }
 
@@ -321,5 +321,5 @@ func TestItemLineRendersMergedAnimalCell(t *testing.T) {
 	lead := strings.Index(out, `class="plan-med-lead"`)
 	require.GreaterOrEqual(t, animal, 0)
 	require.Greater(t, lead, animal, "animal cell renders before the ℹ lead")
-	require.Contains(t, out, "min-width: 12ch")
+	require.Contains(t, out, "width: 12ch")
 }

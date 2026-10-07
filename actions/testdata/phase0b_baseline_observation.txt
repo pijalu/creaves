@@ -485,7 +485,7 @@
   .plan-tier-body { background: transparent; }
   .plan-tier-body .table,
   .plan-tier-body .table tbody,
-  .plan-tier-body .table td,
+  .plan-tier-body .table td:not(.plan-med-animal),
   .plan-tier-body .table th { background-color: transparent; }
   .plan-tier-body .table { margin-bottom: 0; }
   /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
@@ -651,8 +651,8 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-late-rows">
             <div class="px-2">
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -712,8 +712,8 @@
                   </span>
                 </div>
               </div>
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-late plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -791,8 +791,8 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-now-rows">
             <div class="px-2">
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -852,8 +852,8 @@
                   </span>
                 </div>
               </div>
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -913,8 +913,8 @@
                   </span>
                 </div>
               </div>
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-due plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -992,8 +992,8 @@
           </div>
           <div class="collapse show plan-tier-body" id="tier-later-rows">
             <div class="px-2">
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1043,8 +1043,8 @@
                   </span>
                 </div>
               </div>
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A1 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A1 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1094,8 +1094,8 @@
                   </span>
                 </div>
               </div>
-              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled">
-                <div class="plan-med-animal" style="min-width: 10ch" title="YEARNUM · CP-A2 · CP-MARKER">
+              <div class="d-flex align-items-start flex-wrap border-bottom py-1 plan-med-line plan-item-line plan-med-row plan-item-scheduled plan-stale-scope">
+                <div class="plan-med-animal" style="width: 24ch" title="YEARNUM · CP-A2 · CP-MARKER">
                   <a href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dobservation#nav-plan">
                     "YEARNUM"
                   </a>
@@ -1886,6 +1886,26 @@
     $('#planSkipDeferModal').modal('show');
   });
 
+  // Item 8 follow-up (2026-10-07): the "⏱ N late" badge is a COLLAPSIBLE —
+  // clicking it reveals the folded occurrences' own toggles (the hidden
+  // .plan-stale-slot elements within the record's .plan-stale-scope) so the
+  // caregiver can still record them one by one; the ⏸ snooze beside it
+  // keeps deferring all of them at once. Delegated like every binding in
+  // this partial; the expand re-runs the bucket-fit pass (the button group
+  // may wrap once the toggles appear).
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-stale-toggle') : null;
+    if (!btn) { return; }
+    var scope = btn.closest('.plan-stale-scope');
+    if (!scope) { return; }
+    var open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-stale-slot'), function (el) {
+      el.classList.toggle('d-none', !open);
+    });
+    scheduleFitMedBuckets();
+  });
+
   function submitSnooze(reason) {
     var refs = snoozeRefs;
     snoozeRefs = null;
@@ -1999,6 +2019,7 @@
       var tops = {};
       var rows = 0;
       Array.prototype.forEach.call(cells, function (c) {
+        if (c.offsetParent === null) { return; } // d-none cell (folded stale slot) has no box — it would fake a row at y=0
         var y = c.offsetTop;
         if (!tops[y]) { tops[y] = true; rows++; }
       });
