@@ -17,7 +17,11 @@
   
 <div class="auth-wrapper">
   <div class="sign-form">
-    <h1><%= t("users.register_title") %></h1>
+    <%= if (adminCreate) { %>
+      <h1><%= t("users.new_title") %></h1>
+    <% } else { %>
+      <h1><%= t("users.register_title") %></h1>
+    <% } %>
 
     <%= formFor(user, {action: registrationPath(), method: "POST"}) { %>
       <%= partial("users/form.html") %>
