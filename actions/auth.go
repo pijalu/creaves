@@ -71,7 +71,7 @@ func AuthCreate(c buffalo.Context) error {
 
 	// check if enabled
 	if !u.Approved {
-		return bad("Not approved account")
+		return bad(T.Translate(c, "users.not_approved"))
 	}
 
 	c.Session().Set("current_user_id", u.ID)

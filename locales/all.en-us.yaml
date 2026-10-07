@@ -11,6 +11,9 @@
 - id: "users.invalid"
   translation: "Invalid login/password"
 
+- id: "users.not_approved"
+  translation: "Account not approved yet"
+
 - id: "users.logout"
   translation: "You have been logged out!"
 

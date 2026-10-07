@@ -10,6 +10,9 @@
 - id: "users.invalid"
   translation: "Login / mot de passe invalide"
 
+- id: "users.not_approved"
+  translation: "Compte non encore validé"
+
 - id: "users.logout"
   translation: "Vous avez été déconnecté !"
 - id: "translations.section.title"
