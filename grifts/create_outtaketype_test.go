@@ -16,7 +16,7 @@ func TestCanonicalOuttakeTypes(t *testing.T) {
 		rating         nulls.Int
 	}{
 		{"OT1", "Relacher", false, false, false, nulls.NewInt(1)},
-		{"OT2", "DCD", true, true, false, nulls.NewInt(-1)},
+		{"OT2", "Décédé", true, true, false, nulls.NewInt(-1)},
 		{"OT3", "Euthanasier", false, true, false, nulls.NewInt(-1)},
 		{"OT4", "Transferer", false, false, false, nulls.NewInt(1)},
 		{"OT5", "Mort à l'arrivée avant l'encodage", false, true, false, nulls.NewInt(-1)},
