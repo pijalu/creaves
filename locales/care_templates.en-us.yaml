@@ -30,3 +30,7 @@
   translation: "Destroy"
 - id: "care_templates.action.confirm_delete"
   translation: "Are you sure?"
+- id: "care_templates.errors.name_blank"
+  translation: "Name can not be blank."
+- id: "care_templates.errors.content_blank"
+  translation: "Content can not be blank."
