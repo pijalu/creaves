@@ -92,9 +92,9 @@ func TestReferenceTranslationsFixedRecords(t *testing.T) {
 			"SG4": {"group"},
 		},
 		"outtake_location_options": {
-			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b01": {"name"},
+			// Only the generic legacy rows keep translations; the renamed rows
+			// (…b01, …b03) and the 33 rows added by #205 item 3 are proper nouns.
 			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b02": {"name"},
-			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b03": {"name"},
 			"7e9b6f4e-7a4c-4f6b-9a1d-0c1e2f3a4b04": {"name"},
 		},
 	}
