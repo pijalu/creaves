@@ -390,7 +390,10 @@ func TestB10_10FeedingAnimalModeDoesNotRepeatAnimalCell(t *testing.T) {
 		"../templates/care_plan/_plan_tier_feed_table.plush.nl.html",
 	} {
 		raw := readTemplate(t, fork)
-		start := strings.Index(raw, `<td class="plan-feed-animals">`)
+		// 2026-10-08: the toggle cell carries a mode-conditional class
+		// (plan-feed-animal-cell centres it vertically in animal mode), so
+		// match the opening up to the conditional.
+		start := strings.Index(raw, `<td class="plan-feed-animals`)
 		require.GreaterOrEqual(t, start, 0, fork)
 		end := strings.Index(raw[start:], `</td>`)
 		cell := raw[start : start+end]

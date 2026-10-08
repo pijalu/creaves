@@ -175,7 +175,9 @@
       <%# Single occurrence (no merge): the plain apply/undo/skip/defer
           group, one .plan-item-slot parent for the shared toggle JS.
           B10-3: the toggle CARRIES the time (○ HH:MM ⇄ ✓ HH:MM) — the
-          bare time text next to the button is gone; the day badge stays. %>
+          bare time text next to the button is gone; the day badge stays.
+          These controls carry plan-item-btn: the SAME compact row sizing
+          as the merged branch and the medication slots (2026-10-08). %>
       <span class="text-nowrap mr-2">
         <%= if (card.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= card.DueShortDate %></span> <% } else if (card.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(card.DueDayKey) %></span> <% } %>
       </span>

@@ -485,7 +485,7 @@
   .plan-tier-body { background: transparent; }
   .plan-tier-body .table,
   .plan-tier-body .table tbody,
-  .plan-tier-body .table td:not(.plan-med-animal),
+  .plan-tier-body .table td,
   .plan-tier-body .table th { background-color: transparent; }
   .plan-tier-body .table { margin-bottom: 0; }
   /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
@@ -1476,6 +1476,29 @@
   }
   window.planSetToggleState = setToggleState;
 
+  // Animal-page convergence (bug 2026-10-08 #1): the day plan re-renders
+  // itself every 60 s and the dashboard owns its table, but the ANIMAL page
+  // has no auto-refresh — a protocol apply/unapply left the server-rendered
+  // Care/Treatment tabs and the day-card badges stale until a manual
+  // reload. After an in-place flip, schedule ONE short-delay reload: the ✓
+  // stays visible (the re-render shows the same applied state), then every
+  // server-rendered view converges. Day plan / dashboard pages have no
+  // #nav-plan element — the guard makes this a no-op there.
+  var animalConvergeTimer = null;
+  function scheduleAnimalConvergeReload() {
+    if (!document.getElementById('nav-plan')) { return; }
+    if (animalConvergeTimer) { clearTimeout(animalConvergeTimer); }
+    animalConvergeTimer = setTimeout(function tick() {
+      // A modal or an in-flight request wins: re-arm instead of reloading
+      // under it — the next flip or settle re-schedules.
+      if ((window.jQuery && jQuery('.modal').is(':visible')) || busy()) {
+        animalConvergeTimer = setTimeout(tick, 800);
+        return;
+      }
+      window.location.reload();
+    }, 1200);
+  }
+
   // Delegated (R4-2.2): one listener covers every page that includes this
   // partial — the work screen, the dashboard and the animal tabs — and
   // buttons rendered later by another script.
@@ -1505,7 +1528,7 @@
     if (btn.getAttribute && btn.getAttribute('data-late') === 'true') { extra = { late: true }; }
     else if (retriedLate) { extra = { late: true }; }
     applyItem(ref, extra).then(function (res) {
-      if (res.status === 201) { markApplied(ref); return; }
+      if (res.status === 201) { markApplied(ref); scheduleAnimalConvergeReload(); return; }
       if (res.status === 409 && !retriedLate && isPastDue(ref)) {
         instantApply(btn, true);
         return;
@@ -1540,7 +1563,7 @@
         delete_fulfillment: true
       })
     })).then(function (r) {
-      if (r.status === 200) { markOpen(ref); return; }
+      if (r.status === 200) { markOpen(ref); scheduleAnimalConvergeReload(); return; }
       btn.disabled = false;
       r.json().then(function (j) {
         showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
@@ -1595,6 +1618,7 @@
           // R5-2c: no reload — flip the originating button in place.
           $('#planApplyModal').modal('hide');
           markApplied(ref);
+          scheduleAnimalConvergeReload();
           return;
         }
         $('#planApplyModal').modal('hide');
@@ -1776,7 +1800,7 @@
       if (res.status === 201) {
         // R5-2c: no reload — flip the originating button in place.
         $('#planDosageModal').modal('hide');
-        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        if (ref.btn) { markApplied(ref); scheduleAnimalConvergeReload(); } else { window.location.reload(); }
         return;
       }
       var box = document.getElementById('planDosageError');

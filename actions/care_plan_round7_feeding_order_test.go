@@ -134,10 +134,13 @@ func TestLateTierRowsCarryTheRedTint(t *testing.T) {
 		require.Contains(t, raw, ".plan-tier-body { background: transparent; }",
 			f+": the body must inherit the tier tint")
 		// The cells go transparent too: a white cell would re-cover exactly the
-		// tint the body was just allowed to show. The ANIMAL cell is the one
-		// exception — it carries the row-state tint (2026-10-07).
-		require.Contains(t, raw, ".plan-tier-body .table td:not(.plan-med-animal),",
-			f+": the cells must not re-cover the tint (the animal cell carries the state tint)")
+		// tint the body was just allowed to show. The ANIMAL cell included
+		// (2026-10-08, user report): the animal detail reads as part of its
+		// row — the row background carries the whole line, no dedicated cell.
+		require.Contains(t, raw, ".plan-tier-body .table td,",
+			f+": every cell INCLUDING the animal cell must let the row tint through")
+		require.NotContains(t, raw, ":not(.plan-med-animal)",
+			f+": the animal cell has no dedicated-background exception any more")
 		require.Contains(t, raw, ".plan-tier-body .table th { background-color: transparent; }",
 			f+": every tinted cell selector must be transparent")
 		// The Bootstrap hover is a grey wash that reads as dirt on red.

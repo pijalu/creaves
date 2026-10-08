@@ -102,9 +102,11 @@ func TestStaleBadgeIsACollapsibleToggle(t *testing.T) {
 }
 
 // TestStaleCollapsibleStylesheet: the caret turns when the collapsible is
-// open, the badge reads as pressable, and the animal cell's tint follows the
-// ROW STATE (light green when done, light red when late, light yellow when
-// due now — the neutral grey is the no-state fallback).
+// open and the badge reads as pressable. The animal cell carries NO
+// background of its own any more (2026-10-08, user report): the ROW
+// background — tier tint, zebra band, plan-item-<status> state band — shows
+// through it, so the animal detail reads as part of its row instead of a
+// dedicated tinted cell.
 func TestStaleCollapsibleStylesheet(t *testing.T) {
 	raw := readTemplate(t, "../assets/css/care-plan.scss")
 
@@ -112,14 +114,11 @@ func TestStaleCollapsibleStylesheet(t *testing.T) {
 	require.Contains(t, raw, "cursor: pointer;", "the badge reads as pressable")
 
 	base := ruleBody(t, raw, ".plan-med-animal {")
-	require.Contains(t, base, "background-color: #f8f9fa;", "no-state cells are neutral grey — never late red")
+	require.NotContains(t, base, "background-color", "the animal cell must let the row background through — no dedicated tint")
 
-	late := ruleBody(t, raw, ".plan-tier-late .plan-med-animal,\ndiv.plan-med-row.plan-item-late .plan-med-animal,\ndiv.plan-med-row.plan-item-missing .plan-med-animal {")
-	require.Contains(t, late, "background-color: #fdf2f3;", "late rows keep the historical pink cell")
-
-	done := ruleBody(t, raw, ".plan-tier-done .plan-med-animal,\ndiv.plan-med-row.plan-item-applied .plan-med-animal {")
-	require.Contains(t, done, "background-color: #d4edda;", "done rows read light green — the ✓ family")
-
-	nowTier := ruleBody(t, raw, ".plan-tier-now .plan-med-animal,\ndiv.plan-med-row.plan-item-due .plan-med-animal {")
-	require.Contains(t, nowTier, "background-color: #fff9e6;", "due-now rows read light yellow")
+	// The per-state cell tints are gone with the base: the row's own
+	// plan-item-<status> band (and the tier panel) carry the state colour.
+	require.NotContains(t, raw, ".plan-tier-late .plan-med-animal,", "no dedicated late cell tint — the row band carries it")
+	require.NotContains(t, raw, ".plan-tier-done .plan-med-animal,", "no dedicated done cell tint — the row band carries it")
+	require.NotContains(t, raw, ".plan-tier-now .plan-med-animal,", "no dedicated due-now cell tint — the row band carries it")
 }

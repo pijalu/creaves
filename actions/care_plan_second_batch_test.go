@@ -181,8 +181,14 @@ func TestFeedTableDropsTimeLabelKeepsChipSpacing(t *testing.T) {
 		src := readTemplate(t, f)
 		require.NotContains(t, src, "plan-time-label",
 			f+": the time above the animals is redundant — the ○ HH:MM button carries the time")
-		require.Contains(t, src, `class="d-flex align-items-center ml-2"`,
-			f+": the per-animal buttons need guaranteed spacing from the animal chip")
+		// Cage mode keeps the fixed ml-2 gap after the chip; animal mode
+		// right-aligns the toggle (ml-auto) — the chip is sr-only there, so
+		// justify-content-between would otherwise park it at the cell's left
+		// (2026-10-08, user report).
+		require.Contains(t, src, `<span class="d-flex align-items-center<%= if (group == "animal") { %> ml-auto<% } else { %> ml-2<% } %>">`,
+			f+": the per-animal buttons need spacing from the chip (cage) and right alignment (animal)")
+		require.Contains(t, src, "plan-feed-animal-cell",
+			f+": animal mode centres the toggle cell vertically (2026-10-08)")
 	}
 }
 
