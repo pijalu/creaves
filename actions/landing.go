@@ -15,11 +15,21 @@ type listAnimalWithCleanCageReply struct {
 	Id int `db:"ID"`
 }
 
+// SQL_ANIMAL_WITH_CLEAN_CAGE lists animals having a care flagged clean=1
+// dated within the rolling last 24 hours (BUG-2). It used to be
+// `c.date >= DATE_ADD(CURDATE(), INTERVAL 3 HOUR)`, which dropped clean
+// cares dated 00:00–03:00 of the current calendar day (and yesterday
+// evening cares after midnight) even though they belong to the current
+// care-day cycle — while the documented semantics (function comment,
+// ACTIONS_DOCUMENTATION.md) were "within the last 24h". The cutoff is
+// bound from Go instead of using DATE_SUB(NOW(), INTERVAL 24 HOUR) so the
+// exact same statement runs on MySQL (dev/prod) and on the SQLite test
+// harness, which has no MySQL date functions.
 const SQL_ANIMAL_WITH_CLEAN_CAGE = `
 	SELECT DISTINCT c.animal_id as 'ID'
 	FROM cares c
 	WHERE c.clean = 1
-		AND c.date >= DATE_ADD(CURDATE(), INTERVAL 3 HOUR)
+		AND c.date >= ?
 `
 
 // List all animals id with a clean cage within the last 24h
@@ -29,10 +39,17 @@ func listAnimalWithCleanCage(c buffalo.Context) (map[int]bool, error) {
 		return nil, fmt.Errorf("no transaction found")
 	}
 
+	return animalIDsCleanCageSince(tx, time.Now().Add(-24*time.Hour))
+}
+
+// animalIDsCleanCageSince runs the clean-cage lookup with a caller-supplied
+// cutoff (animals with a clean=1 care dated at or after `since`) so tests
+// can pin the window boundary deterministically.
+func animalIDsCleanCageSince(tx *pop.Connection, since time.Time) (map[int]bool, error) {
 	var a []listAnimalWithCleanCageReply
 	// RawQuery returns raw rows; Eager() would be ignored here and only
 	// misleads readers (it cannot preload anything onto a raw scan).
-	if err := tx.RawQuery(SQL_ANIMAL_WITH_CLEAN_CAGE).All(&a); err != nil {
+	if err := tx.RawQuery(SQL_ANIMAL_WITH_CLEAN_CAGE, since).All(&a); err != nil {
 		return nil, err
 	}
 
