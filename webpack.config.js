@@ -74,8 +74,16 @@ const configurator = {
         },
         { test: /\.tsx?$/, use: "ts-loader", exclude: /node_modules/},
         { test: /\.jsx?$/,loader: "babel-loader",exclude: /node_modules/ },
-        { test: /\.(woff|woff2|ttf|svg)(\?v=\d+\.\d+\.\d+)?$/,use: "url-loader"},
-        { test: /\.eot(\?v=\d+\.\d+\.\d+)?$/,use: "file-loader" },
+        // Webfonts: native webpack 5 asset modules. The former url-loader
+        // (~4.1) / file-loader (~6) pair stopped composing with css-loader 7
+        // at the 064bf81 audit upgrade (Sep 2026): url-loader emitted its JS
+        // module (`export default "data:font/woff2;base64,…"`) and webpack 5
+        // wrote THAT text into the hashed .woff2 output, so every @font-face
+        // source failed to parse (FontFace "error", icon tofu). asset/resource
+        // emits the binary through webpack itself — no loader module in
+        // between. (Icon fonts render fine and stay external files, keeping
+        // the CSS lean.)
+        { test: /\.(woff|woff2|ttf|otf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/, type: "asset/resource" },
         { test: /\.go$/, use: "gopherjs-loader"}
       ]
     }
