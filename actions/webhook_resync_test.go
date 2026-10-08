@@ -107,6 +107,9 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 	if payload.Outtake.Rating != 1 {
 		t.Errorf("outtake.rating = %d, want 1", payload.Outtake.Rating)
 	}
+	if payload.CurrentStatus != "released" {
+		t.Errorf("current_status = %q, want released (alive outtake)", payload.CurrentStatus)
+	}
 	if payload.Discovery.EntryCause == "" {
 		t.Errorf("discovery.entry_cause empty (nested Discovery.EntryCause not loaded)")
 	}
@@ -115,6 +118,127 @@ func TestRunResyncEmitsNestedOuttakeAndEntryCause(t *testing.T) {
 	}
 	if payload.Discovery.EntryCauseNature != "RSYNC_N1" {
 		t.Errorf("discovery.entry_cause_nature = %q, want RSYNC_N1", payload.Discovery.EntryCauseNature)
+	}
+}
+
+// TestApplyCurrentStatusClassification pins BUG-3 at the shared-derivation
+// level: every full-state producer (resync, update path, sync-status hashes)
+// funnels through applyCurrentStatus, so the classification is pinned once
+// here. A death outtake (outtake type dead flag) must classify as "died" —
+// not the blanket "released" that made the console bucket thousands of dead
+// animals as Relâché — while live outtakes stay "released", outtake-less
+// animals stay "in_care", and an outtake whose type row is not loaded keeps
+// the legacy "released" hash behavior.
+func TestApplyCurrentStatusClassification(t *testing.T) {
+	cases := []struct {
+		name   string
+		animal models.Animal
+		want   string
+	}{
+		{"no outtake", models.Animal{}, "in_care"},
+		{"alive outtake", models.Animal{Outtake: &models.Outtake{
+			Type: models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Relâché", Dead: false},
+		}}, "released"},
+		{"dead outtake", models.Animal{Outtake: &models.Outtake{
+			Type: models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "Décédé", Dead: true},
+		}}, "died"},
+		{"outtake type not loaded keeps legacy released", models.Animal{Outtake: &models.Outtake{}}, "released"},
+	}
+	for _, tc := range cases {
+		payload := &models.EventPayload{}
+		applyCurrentStatus(payload, &tc.animal)
+		if payload.CurrentStatus != tc.want {
+			t.Errorf("%s: CurrentStatus = %q, want %q", tc.name, payload.CurrentStatus, tc.want)
+		}
+	}
+}
+
+// seedResyncDeadFixture inserts animal 985051 outtaken with a DEAD outtake
+// type (the production "Décédé" shape: dead=1, rating=-1, error=0) and
+// registers cleanup (pre-clean first so a Fatalf mid-setup cannot leave
+// residue from a previous failed run behind).
+func seedResyncDeadFixture(t *testing.T) {
+	t.Helper()
+	now := "CURRENT_TIMESTAMP"
+
+	exec := func(q string, args ...interface{}) {
+		t.Helper()
+		if err := models.DB.RawQuery(q, args...).Exec(); err != nil {
+			t.Fatalf("fixture insert failed: %v\nquery: %s", err, q)
+		}
+	}
+
+	cleanup := func(label string) {
+		for _, q := range []string{
+			"DELETE FROM event_streams WHERE animal_id = 985051",
+			"DELETE FROM resync_runs WHERE instance_id = 'rsync-resync-test'",
+			"DELETE FROM animals WHERE id = 985051",
+			"DELETE FROM outtakes WHERE id = '77777777-0000-0000-0000-0000000000f2'",
+			"DELETE FROM discoveries WHERE id = '66666666-0000-0000-0000-0000000000f2'",
+			"DELETE FROM intakes WHERE id = '55555555-0000-0000-0000-0000000000f2'",
+			"DELETE FROM discoverers WHERE id = 'dddddddd-4444-4444-4444-4444444444f4'",
+			"DELETE FROM entry_causes WHERE id = 'RSYNC_EC3'",
+			"DELETE FROM outtaketypes WHERE id = 'cccccccc-3333-3333-3333-3333333333f4'",
+			"DELETE FROM animaltypes WHERE id = 'bbbbbbbb-2222-2222-2222-2222222222f4'",
+			"DELETE FROM animalages WHERE id = 'aaaaaaaa-1111-1111-1111-1111111111f4'",
+		} {
+			if err := models.DB.RawQuery(q).Exec(); err != nil {
+				t.Logf("%s failed: %v (%s)", label, err, q)
+			}
+		}
+	}
+	cleanup("pre-clean")
+
+	exec("INSERT INTO animalages (id, name, `def`, created_at, updated_at) VALUES ('aaaaaaaa-1111-1111-1111-1111111111f4', 'RSYNC Young', 0, " + now + ", " + now + ")")
+	exec("INSERT INTO animaltypes (id, name, `def`, created_at, updated_at) VALUES ('bbbbbbbb-2222-2222-2222-2222222222f4', 'RSYNC Type', 0, " + now + ", " + now + ")")
+	exec("INSERT INTO outtaketypes (id, name, `def`, created_at, updated_at, dead, rating, error) VALUES ('cccccccc-3333-3333-3333-3333333333f4', 'RSYNC_DCD', 0, " + now + ", " + now + ", 1, -1, 0)")
+	exec("INSERT INTO entry_causes (id, cause, detail, nature, indication, created_at, updated_at, sort_order) VALUES ('RSYNC_EC3', 'RSYNC_C3', 'RSYNC_D3', 'RSYNC_N3', 'x', " + now + ", " + now + ", 1)")
+	exec("INSERT INTO discoverers (id, created_at, updated_at) VALUES ('dddddddd-4444-4444-4444-4444444444f4', " + now + ", " + now + ")")
+
+	exec("INSERT INTO intakes (id, date, created_at, updated_at) VALUES ('55555555-0000-0000-0000-0000000000f2', '2000-06-01 10:00:00', " + now + ", " + now + ")")
+	exec("INSERT INTO discoveries (id, date, discoverer_id, entry_cause_id, created_at, updated_at) VALUES ('66666666-0000-0000-0000-0000000000f2', '2000-06-01 10:00:00', 'dddddddd-4444-4444-4444-4444444444f4', 'RSYNC_EC3', " + now + ", " + now + ")")
+	exec("INSERT INTO outtakes (id, date, outtaketype_id, created_at, updated_at) VALUES ('77777777-0000-0000-0000-0000000000f2', '2000-07-01 10:00:00', 'cccccccc-3333-3333-3333-3333333333f4', " + now + ", " + now + ")")
+	exec("INSERT INTO animals (id, species, animalage_id, animaltype_id, discovery_id, intake_id, outtake_id, created_at, updated_at, year, yearNumber, IntakeDate) VALUES (985051, 'RSYNC_Hedgehog', 'aaaaaaaa-1111-1111-1111-1111111111f4', 'bbbbbbbb-2222-2222-2222-2222222222f4', '66666666-0000-0000-0000-0000000000f2', '55555555-0000-0000-0000-0000000000f2', '77777777-0000-0000-0000-0000000000f2', " + now + ", " + now + ", 2000, 52, '2000-06-01 10:00:00')")
+
+	t.Cleanup(func() { cleanup("teardown") })
+}
+
+// TestRunResyncDeadOuttakeEmitsDiedStatus pins BUG-3 end to end on the resync
+// producer: the full-state event of an animal outtaken with a dead=1 outtake
+// type must carry current_status "died" and outtake.dead=true. The old code
+// blanket-classified every outtake as "released", so resync-delivered dead
+// animals arrived on the console as Relâché.
+func TestRunResyncDeadOuttakeEmitsDiedStatus(t *testing.T) {
+	seedResyncDeadFixture(t)
+
+	run := &models.ResyncRun{
+		ID:           uuid.Must(uuid.NewV4()),
+		InstanceID:   "rsync-resync-test",
+		Status:       "running",
+		StartedAt:    time.Now(),
+		TotalAnimals: 1,
+	}
+	if err := models.DB.Create(run); err != nil {
+		t.Fatalf("create run: %v", err)
+	}
+
+	if err := RunResync(context.Background(), models.DB, run.ID, false); err != nil {
+		t.Fatalf("RunResync: %v", err)
+	}
+
+	ev := &models.EventStream{}
+	if err := models.DB.Where("animal_id = ? AND instance_id = ?", 985051, "rsync-resync-test").First(ev); err != nil {
+		t.Fatalf("no event emitted: %v", err)
+	}
+	payload, err := ev.GetPayload()
+	if err != nil {
+		t.Fatalf("payload decode: %v", err)
+	}
+	if !payload.Outtake.Dead {
+		t.Errorf("outtake.dead = false, want true (nested Outtake.Type dead flag not loaded)")
+	}
+	if payload.CurrentStatus != "died" {
+		t.Errorf("current_status = %q, want died (BUG-3: dead outtakes must not be classified released)", payload.CurrentStatus)
 	}
 }
 

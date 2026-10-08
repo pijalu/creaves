@@ -505,8 +505,7 @@ func pendingEventsForTarget(target *models.SyncTarget, limit int) (*models.Event
 // queried batch (accepted or not), so callers can decide whether more events
 // are likely pending.
 func deliverTargetBatch(target *models.SyncTarget) (int, error) {
-	config := CurrentConfigGet()
-	if config == nil {
+	if CurrentConfigGet() == nil {
 		return 0, fmt.Errorf("no config loaded")
 	}
 
@@ -517,6 +516,49 @@ func deliverTargetBatch(target *models.SyncTarget) (int, error) {
 	}
 	if len(*events) == 0 {
 		return 0, nil
+	}
+	return deliverEventBatch(target, events, nil)
+}
+
+// deliverAnnouncementOnlyBatch sends one announcement-only batch to one sync
+// target: the normal batch envelope with the run's "sync" header and
+// "events": []. BUG-9: a resync run that delivered no event (everything
+// skipped unchanged) used to complete without ever putting a batch on the
+// wire, so the console never learned the producer's expected sync set. The
+// batch goes through the exact same transport as a real delivery
+// (deliverEventBatch), with the same per-target gating deliverPendingBatch
+// applies before real batches: circuit breaker first, then the rate-limit
+// budget (charged like a full batch).
+func deliverAnnouncementOnlyBatch(target *models.SyncTarget, run *models.ResyncRun) (int, error) {
+	if run == nil || run.AnnouncedExpectedChecksum == nil || *run.AnnouncedExpectedChecksum == "" {
+		return 0, fmt.Errorf("resync run has no announcement to send")
+	}
+	state := webhookPusher.targetState(target.ID)
+	if state.breaker.IsOpen() {
+		return 0, fmt.Errorf("circuit breaker open for %q; announcement not sent", target.Name)
+	}
+	if !state.allowDelivery(target.EffectiveMaxPerMin(), target.EffectiveBatchSize()) {
+		return 0, fmt.Errorf("rate limit reached for %q; announcement not sent", target.Name)
+	}
+	return deliverEventBatch(target, &models.EventStreams{}, run)
+}
+
+// deliverEventBatch builds and posts one delivery envelope to the target —
+// the single transport shared by the normal event delivery
+// (deliverTargetBatch) and the announcement-only batch
+// (deliverAnnouncementOnlyBatch): same envelope shape, auth headers, HTTP
+// client, circuit breaker and response interpretation. events may be empty;
+// announceRun, when non-nil, attaches that run's announced expected sync
+// state as the "sync" block even though the batch carries no resync events
+// (otherwise the announcement is derived from the batch's resync events via
+// attachResyncAnnouncement, as always). With zero events the delivery
+// bookkeeping below degrades to no-ops (no delivery rows, no rollups, no
+// confirmations), so an announcement-only batch changes nothing console-side
+// except the instance announcement.
+func deliverEventBatch(target *models.SyncTarget, events *models.EventStreams, announceRun *models.ResyncRun) (int, error) {
+	config := CurrentConfigGet()
+	if config == nil {
+		return len(*events), fmt.Errorf("no config loaded")
 	}
 
 	// Build payload
@@ -530,7 +572,15 @@ func deliverTargetBatch(target *models.SyncTarget) (int, error) {
 		"instance":         map[string]string{"id": config.InstanceID, "name": config.Name, "description": config.Description},
 		"events":           payloadEvents,
 	}
-	attachResyncAnnouncement(events, payload)
+	if announceRun != nil {
+		payload["sync"] = syncAnnouncementWire{
+			ExpectedTotal:    announceRun.AnnouncedExpectedTotal,
+			ExpectedChecksum: *announceRun.AnnouncedExpectedChecksum,
+			AnnouncedAt:      announceRun.AnnouncedAt,
+		}
+	} else {
+		attachResyncAnnouncement(events, payload)
+	}
 
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -687,7 +737,9 @@ func deliverTargetBatch(target *models.SyncTarget) (int, error) {
 		return len(*events), err
 	}
 	state.breaker.RecordSuccess()
-	if delivered < len(*events) {
+	if announceRun != nil {
+		fmt.Printf("Announced expected sync state (expected_total=%d, 0 events) to %q\n", announceRun.AnnouncedExpectedTotal, target.Name)
+	} else if delivered < len(*events) {
 		fmt.Printf("Delivered %d/%d events to %q (%d acknowledged); %d will be retried\n", delivered, len(*events), target.Name, acknowledged, len(*events)-delivered)
 	} else {
 		fmt.Printf("Delivered %d events to %q (%d acknowledged)\n", delivered, target.Name, acknowledged)

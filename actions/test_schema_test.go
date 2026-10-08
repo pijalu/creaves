@@ -46,7 +46,10 @@ func createReferenceTables() {
   "zone" varchar(255) DEFAULT NULL,
   "feeding_start" datetime DEFAULT NULL,
   "feeding_end" datetime DEFAULT NULL,
-  "feeding_period" int NOT NULL DEFAULT '0'
+  "feeding_period" int NOT NULL DEFAULT '0',
+  "heat_source" varchar(200) DEFAULT NULL,
+  "oxygen" tinyint(1) NOT NULL DEFAULT '0',
+  "ready_for_release" tinyint(1) DEFAULT NULL
 )`,
 		`CREATE TABLE IF NOT EXISTS animalages (
 
@@ -162,7 +165,12 @@ func createReferenceTables() {
   "location" varchar(255) DEFAULT NULL,
   "note" text,
   "created_at" datetime NOT NULL,
-  "updated_at" datetime NOT NULL
+  "updated_at" datetime NOT NULL,
+  "precise_location" varchar(255) DEFAULT NULL,
+  "stay_duration" int DEFAULT NULL,
+  "corpse_destination" varchar(255) DEFAULT NULL,
+  "corpse_destination_at" datetime DEFAULT NULL,
+  "corpse_destination_by_id" char(36) DEFAULT NULL
 )`,
 		`CREATE TABLE IF NOT EXISTS outtaketypes (
 
@@ -176,7 +184,9 @@ func createReferenceTables() {
   "dead" tinyint(1) NOT NULL DEFAULT '0',
   "rating" int NOT NULL DEFAULT '0',
   "discoverer_news" text,
-  "error" tinyint(1) NOT NULL DEFAULT '0'
+  "error" tinyint(1) NOT NULL DEFAULT '0',
+  "excluded_native_statuses" varchar(255) DEFAULT NULL,
+  "location_mode" varchar(255) NOT NULL DEFAULT 'none'
 )`,
 
 		// Sub-tables used by the annual-report fixtures (taxonomy groups).
