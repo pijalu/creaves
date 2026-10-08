@@ -98,7 +98,7 @@ CREATE TABLE `animals` (
   CONSTRAINT `animals_ibfk_2` FOREIGN KEY (`discovery_id`) REFERENCES `discoveries` (`id`),
   CONSTRAINT `animals_ibfk_3` FOREIGN KEY (`intake_id`) REFERENCES `intakes` (`id`),
   CONSTRAINT `animals_ibfk_4` FOREIGN KEY (`outtake_id`) REFERENCES `outtakes` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10374 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -358,7 +358,6 @@ CREATE TABLE `cares` (
   `oxygen` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `type_id` (`type_id`),
-  KEY `animal_id` (`animal_id`),
   KEY `link_to_id` (`link_to_id`),
   KEY `cares_date_idx` (`date`),
   KEY `cares_date_type_id_animal_id_idx` (`date`,`type_id`,`animal_id`),
@@ -859,6 +858,7 @@ DROP TABLE IF EXISTS `schema_migration`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `schema_migration` (
   `version` varchar(14) NOT NULL,
+  PRIMARY KEY (`version`),
   UNIQUE KEY `schema_migration_version_idx` (`version`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1065,7 +1065,6 @@ CREATE TABLE `treatments` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `treatments_animals_id_fk` (`animal_id`),
   KEY `treatments_date_idx` (`date`),
   KEY `treatments_date_animal_id_idx` (`date`,`animal_id`),
   KEY `treatments_animal_id_timebitmap_timedonebitmap_idx` (`animal_id`,`timebitmap`,`timedonebitmap`),
@@ -1168,4 +1167,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-07 18:09:00
+-- Dump completed on 2026-10-08 13:09:11
