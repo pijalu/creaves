@@ -15,7 +15,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Locale key parity (Phase 4 of I18N_UI_LOCALIZATION_FIX_PLAN.md)
+// Locale key parity (Phase 4 of docs/I18N_UI_LOCALIZATION_FIX_PLAN.md)
 // ---------------------------------------------------------------------------
 
 // uiLocales is the set of UI locale files every base must provide. "fr" uses
@@ -165,7 +165,7 @@ func contains(list []string, s string) bool {
 }
 
 // ---------------------------------------------------------------------------
-// Template variant structural parity (Phase 4 of I18N_UI_LOCALIZATION_FIX_PLAN.md)
+// Template variant structural parity (Phase 4 of docs/I18N_UI_LOCALIZATION_FIX_PLAN.md)
 // ---------------------------------------------------------------------------
 
 // templateLocales is the suffix set of translated template variants.
@@ -383,7 +383,7 @@ func clip(s string, n int) string {
 }
 
 // The historical ratchet (knownVariantDrift, 55 frozen pairs — documented as
-// debt in I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4) was fully paid down on
+// debt in docs/I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4) was fully paid down on
 // 2026-10-27: every base/variant pair is structurally identical, so there is
 // no whitelist left and ANY drift now fails the test.
 
@@ -391,7 +391,7 @@ func clip(s string, n int) string {
 // variant is a pure text translation of its base .plush.html: identical tag
 // structure, field names, and plush call shapes after normalized-copy
 // erasure. Also proves the variant inventory is consistent (documented in
-// I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4). DB-less: embedded templates FS.
+// docs/I18N_UI_LOCALIZATION_FIX_PLAN.md §3 Phase 4). DB-less: embedded templates FS.
 func TestTemplateVariantStructuralParity(t *testing.T) {
 	var bases []string
 	err := fs.WalkDir(templates.FS(), ".", func(p string, d fs.DirEntry, err error) error {

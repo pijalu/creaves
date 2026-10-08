@@ -366,7 +366,7 @@ buffalo task event:snapshot:stats   # Show statistics
 ### Known Issues / WIP
 
 - **Worker start**: resolved — the worker starts at boot (`InitWebhookAtBoot()`, called from `cmd/app/main.go`), on sync-target save, and is woken immediately by `PublishEvent()`. Failed deliveries are retried on the 60s fallback tick.
-- **Partial failure handling**: resolved — the console answers `{"processed": N, "total": M, "processed_ids": [...]}`; the pusher marks **only the acknowledged IDs** delivered and retries the rest on the next tick (§ partial failure in `../SETUP_AND_TESTING.md`).
+- **Partial failure handling**: resolved — the console answers `{"processed": N, "total": M, "processed_ids": [...]}`; the pusher marks **only the acknowledged IDs** delivered and retries the rest on the next tick (§ partial failure in `docs/SETUP_AND_TESTING.md`).
 - **Status classification in state events**: `applyCurrentStatus` (webhook_resync.go) derives `current_status` for every full-state event as `in_care`, `released` (alive outtake) or `died` (outtake type `dead`) — live outtake events and resync snapshots agree. Changing it changes dead animals' content hashes, so a resync after such a change re-sends them once (expected).
 
 ### Troubleshooting (Event Forwarding)
