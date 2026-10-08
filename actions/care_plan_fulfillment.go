@@ -81,6 +81,18 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 		return nil, err
 	}
 
+	// Record stamps of the fulfillment CARES carry the caregiver's WALL
+	// CLOCK, not the instant: the legacy care views print care.Date raw
+	// (models.DateTimeFormat) and the whole form path stores local wall
+	// digits (FormWallClockNow convention — see parseTodoDate). A raw
+	// time.Now() here stored the UTC-shifted wall clock, so a care clicked
+	// at 20:44 CEST displayed as 18:44 in the Care tab (bug 2026-10-08).
+	// wallNow keeps those digits; `now` stays the true instant for the
+	// application row (AppliedAt) and the medication entries (applied_at) —
+	// both render client-side from RFC3339 and are compared against
+	// occurrence instants (RecordedLate).
+	wallNow := models.FormWallClockNow()
+
 	payload := parsePlanPayload(src)
 	fType, fID := models.ApplicationFulfillmentCare, planFulfillmentNone
 	// bugs.md R5-3b (U25/D-e): pre-generated application ID for medication
@@ -93,16 +105,16 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 		var err error
 		switch src.ActionKind() {
 		case careplan.KindFeeding, careplan.KindCare:
-			fID, err = writeCareFulfillment(tx, payload.CaretypeID, animalID, now, in, false)
+			fID, err = writeCareFulfillment(tx, payload.CaretypeID, animalID, wallNow, in, false)
 		case careplan.KindCleanup:
-			fID, err = writeCleanupFulfillment(tx, animalID, now, in)
+			fID, err = writeCleanupFulfillment(tx, animalID, wallNow, in)
 		case careplan.KindWeighing:
 			if strings.TrimSpace(in.Weight) == "" {
 				return nil, fmt.Errorf("weight is required for weighing (§10-L1)")
 			}
-			fID, err = writeWeighingFulfillment(tx, animalID, now, in)
+			fID, err = writeWeighingFulfillment(tx, animalID, wallNow, in)
 		case careplan.KindObservation:
-			fID, err = writeObservationFulfillment(tx, src, payload, animalID, now, userID, in)
+			fID, err = writeObservationFulfillment(tx, src, payload, animalID, wallNow, userID, in)
 		case careplan.KindMedication:
 			fType = models.ApplicationFulfillmentTreatment
 			appID := uuid.Must(uuid.NewV4())
@@ -122,7 +134,7 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 	// observation writes the Réponse alerte care (reset_warning=1), which
 	// clears the animal's red landing row.
 	if in.Status == models.ApplicationStatusApplied {
-		if err := maybeWriteResetWarningCare(tx, src, animalID, now, in); err != nil {
+		if err := maybeWriteResetWarningCare(tx, src, animalID, wallNow, in); err != nil {
 			return nil, err
 		}
 	}
@@ -586,7 +598,10 @@ func createTreatmentWithEntries(tx *pop.Connection, src careplan.PlanSource, pay
 		remarks += payload.Instructions
 	}
 	treatment := &models.Treatment{
-		Date:       now,
+		// The Treatment tab prints t.Date raw (models.DateTimeFormat) — wall
+		// digits, not the instant (same frame as the fulfillment cares above;
+		// the per-entry applied_at below stays on the instant frame).
+		Date:       models.FormWallClockNow(),
 		AnimalID:   animalID,
 		Drug:       payload.Drug,
 		Dosage:     dosage,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
@@ -184,7 +183,7 @@ func (v CaresResource) Show(c buffalo.Context) error {
 // This function is mapped to the path GET /cares/new
 func (v CaresResource) New(c buffalo.Context) error {
 	care := &models.Care{
-		Date: time.Now(),
+		Date: models.FormWallClockNow(),
 	}
 	c.Set("care", care)
 	// Defaults so the plush form partial always sees the identifiers.

@@ -222,7 +222,7 @@ func enforceOuttakeLocationRule(tx *pop.Connection, outtake *models.Outtake, out
 // This function is mapped to the path GET /outtakes/new
 func (v OuttakesResource) New(c buffalo.Context) error {
 	outtake := &models.Outtake{
-		Date: time.Now(),
+		Date: models.FormWallClockNow(),
 	}
 	c.Set("outtake", outtake)
 	// Intake date of the animal being taken out, for the stay-duration
