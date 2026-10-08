@@ -57,7 +57,7 @@ func TestCompleteAndValidateSpeciesType(t *testing.T) {
 		t.Fatalf("submitted type should be kept, got %s", mismatching.AnimaltypeID)
 	}
 	// The mismatch must still be flagged for the show-page warning banner.
-	if !animalSpeciesTypeMismatch(tx, mismatching) {
+	if !animalSpeciesTypeMismatch(tx, mismatching.Species, mismatching.AnimaltypeID) {
 		t.Fatal("mismatching species/type combo should be flagged as mismatch")
 	}
 }
@@ -107,7 +107,7 @@ func TestCompleteAndValidateSpeciesTypeUnmappedSoftBlock(t *testing.T) {
 	}
 
 	// No mapping exists, so the show-page mismatch banner must stay off.
-	if animalSpeciesTypeMismatch(tx, submitted) {
+	if animalSpeciesTypeMismatch(tx, submitted.Species, submitted.AnimaltypeID) {
 		t.Fatal("unmapped species should not be flagged as type mismatch")
 	}
 }

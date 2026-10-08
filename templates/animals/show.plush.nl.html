@@ -52,7 +52,7 @@
       </li>
       <li class="list-group-item pb-1">
         <label class="small d-block">Soort</label>
-        <p id="animal-Species" data-canonical="<%= animal.Species %>" class="d-inline-block"><%= tspecies(animal.Species) %></p>
+        <p id="animal-Species" data-canonical="<%= canonicalSpecies %>" class="d-inline-block"><%= tspecies(animal.Species) %></p>
         <div id="speciesHint"></div>
         <%= if (speciesTypeMismatch) { %>
         <div class="alert alert-danger" role="alert">Type en soort komen niet overeen</div>

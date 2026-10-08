@@ -584,7 +584,15 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	// reads species straight off this row; resolve it to the localized
 	// display name so the Treatment/Protocol tabs agree with the animals
 	// list. Display only — the row is request-scoped and read-only here.
+	// The CANONICAL value is captured first: the General tab's
+	// data-canonical attribute and the type/species mismatch check must
+	// key on creaves_species, not on the localized display name (which
+	// only equals it in French) — with the localized value the species
+	// hint showed "Unknown species !" in every non-FR language and the
+	// mismatch banner silently never fired (bug 2026-10-08).
+	canonicalSpecies := animal.Species
 	animal.Species = speciesDisplayOf(c)(animal.Species)
+	c.Set("canonicalSpecies", canonicalSpecies)
 
 	//c.Logger().Debugf("Loaded animal: %v", animal)
 
@@ -596,7 +604,7 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 		c.Set("landingBack", target)
 		c.Set("landingBackLabel", landingBackLabelKey(target))
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
-			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
+			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, canonicalSpecies, animal.AnimaltypeID))
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
 

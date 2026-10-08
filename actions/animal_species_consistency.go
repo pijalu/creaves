@@ -54,19 +54,25 @@ func completeAndValidateSpeciesType(tx *pop.Connection, animal *models.Animal) e
 	return nil
 }
 
-func animalSpeciesTypeMismatch(tx *pop.Connection, animal *models.Animal) bool {
-	if animal == nil || animal.Species == "" || animal.AnimaltypeID == uuid.Nil {
+// animalSpeciesTypeMismatch reports whether the species↔type combination
+// contradicts an approved mapping. `species` is the CANONICAL creaves_species
+// — the caller must not pass a localized display name (the Show action
+// rewrites animal.Species for display; in a non-FR UI that value no longer
+// matches any creaves_species row, so the banner would silently never fire —
+// bug 2026-10-08).
+func animalSpeciesTypeMismatch(tx *pop.Connection, species string, animaltypeID uuid.UUID) bool {
+	if species == "" || animaltypeID == uuid.Nil {
 		return false
 	}
 	// Unmapped species have nothing to contradict: they are accepted with a
 	// warning (see completeAndValidateSpeciesType) and surfaced on the
 	// maintenance page instead of being flagged as a mismatch here.
 	var mapped []uuid.UUID
-	if err := tx.RawQuery("SELECT DISTINCT animaltype_id FROM species WHERE creaves_species = ? AND animaltype_id IS NOT NULL", animal.Species).All(&mapped); err != nil || len(mapped) == 0 {
+	if err := tx.RawQuery("SELECT DISTINCT animaltype_id FROM species WHERE creaves_species = ? AND animaltype_id IS NOT NULL", species).All(&mapped); err != nil || len(mapped) == 0 {
 		return false
 	}
 	var matches []uuid.UUID
-	if err := tx.RawQuery("SELECT animaltype_id FROM species WHERE creaves_species = ? AND animaltype_id = ? LIMIT 1", animal.Species, animal.AnimaltypeID).All(&matches); err != nil {
+	if err := tx.RawQuery("SELECT animaltype_id FROM species WHERE creaves_species = ? AND animaltype_id = ? LIMIT 1", species, animaltypeID).All(&matches); err != nil {
 		return false
 	}
 	return len(matches) == 0
