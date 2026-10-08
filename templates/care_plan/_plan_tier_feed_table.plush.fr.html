@@ -75,7 +75,7 @@
             The collapse id is stable across a refresh (tier index +
             row index), so auto-refresh does not collapse a list the
             caregiver has just opened. %>
-        <td class="plan-feed-animals">
+        <td class="plan-feed-animals<%= if (group == "animal") { %> plan-feed-animal-cell<% } %>">
           <%= if (fcard.Collapsible) { %>
             <div class="plan-feed-header" data-toggle="collapse" data-target="#feed-animals-<%= ti %>-<%= fi %>"
                  aria-expanded="false" role="button" tabindex="0"
@@ -103,7 +103,7 @@
                                 <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
                               </a>
                             <% } else { %><span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span><% } %>
-              <span class="d-flex align-items-center ml-2">
+              <span class="d-flex align-items-center<%= if (group == "animal") { %> ml-auto<% } else { %> ml-2<% } %>">
                 <%= if (chip.Superseded) { %>
                   <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
                 <% } else { %>

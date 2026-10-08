@@ -84,6 +84,17 @@
 .plan-feed-check {
   vertical-align: middle !important;
 }
+// Issue 2026-10-08 #1 (feeding, group=animal): the toggle cell holds ONE
+// toggle line while the animal cell wraps to 2-3 lines, and with a single
+// in-flow child (the chip is sr-only there) justify-content-between also
+// parks the toggle at the cell's LEFT — measured 18 px off the left edge
+// with a 215 px gap to the right. The template adds this class under
+// group=animal only: the toggle line right-aligns (ml-auto, in the
+// partial) and centres vertically, the same treatment .plan-feed-check
+// gives the cage view's group check. Cage-mode cells keep their layout.
+td.plan-feed-animal-cell {
+  vertical-align: middle !important;
+}
 
 // R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
 // multi-animal row collapses behind a header that carries the count and the
@@ -247,15 +258,16 @@
 // longest label) so no label is ever cut (R4-7.24); this class only makes the
 // cells behave as a column.
 //
-// Rev (2026-10-07, state tint): the cell's tint follows the ROW'S STATE
-// instead of one fixed light red — a light red cell on an APPLIED row lied
-// about the state. The base is a neutral grey (rows whose state no rule
-// knows — the animal page's per-day series lines); every tier panel and
-// every plan-item-<status> line re-tints its cells below.
+// Rev (2026-10-07, state tint): the cell's tint followed the ROW'S STATE so
+// a light red cell on an APPLIED row would not lie about the state.
+// Rev (2026-10-08, row background — user report): the dedicated cell
+// background is GONE, tints included — the cell is transparent and the
+// row's own background (tier tint, zebra band, plan-item-<status> state
+// band) shows through it. The animal detail now reads as part of its row;
+// the column still reads as a column via the shared width, the pipe
+// border-right and the full-height stretch below.
 .plan-med-animal {
   flex: 0 0 auto;
-  background-color: #f8f9fa;
-  border-radius: 2px;
   padding-left: 0.35rem;
   // Bug 2026-10-07 #2: the distance to the text after the cell is part of
   // the ONE animal-cell treatment — owned here, not by a per-template
@@ -264,39 +276,11 @@
   // feed/cage tables are unaffected.
   margin-right: 0.5rem;
 }
-// The state tints — ONE shade per state, keyed twice: by the tier panel the
-// row sits in (the day plan buckets rows by state, so this covers every
-// kind there, medication rows included — they carry no per-row status
-// class) and by the row's own plan-item-<status> class (item lines outside
-// the tier panels, e.g. the animal page's day cards). Late keeps the
-// historical #fdf2f3; done reads the same green as the ✓ toggle
-// (badge-success family).
-.plan-tier-late .plan-med-animal,
-div.plan-med-row.plan-item-late .plan-med-animal,
-div.plan-med-row.plan-item-missing .plan-med-animal {
-  background-color: #fdf2f3;
-}
-.plan-tier-now .plan-med-animal,
-div.plan-med-row.plan-item-due .plan-med-animal {
-  background-color: #fff9e6;
-}
-.plan-tier-later .plan-med-animal,
-div.plan-med-row.plan-item-scheduled .plan-med-animal {
-  background-color: #eaf6ee;
-}
-.plan-tier-done .plan-med-animal,
-div.plan-med-row.plan-item-applied .plan-med-animal {
-  background-color: #d4edda;
-}
-div.plan-med-row.plan-item-skipped .plan-med-animal,
-div.plan-med-row.plan-item-deferred .plan-med-animal,
-div.plan-med-row.plan-item-overridden .plan-med-animal {
-  background-color: #e9ecef;
-}
-// Bug 2026-10-07 #1: the animal cell is the animal's "line" — its tint
-// spans the FULL height of the (merged) row instead of hugging its own
-// text, so a multi-series block like 1905/26 reads as one continuous band.
-// Applies to both line families (medication rows and item lines).
+// Bug 2026-10-07 #1, kept for the PIPE (2026-10-08): with the cell's own
+// tint gone, the stretch now serves the border-right separator — it spans
+// the FULL height of the (merged) row, so a multi-series block like 1905/26
+// reads as one continuous column edge. Applies to both line families
+// (medication rows and item lines).
 .plan-med-row .plan-med-animal,
 .plan-item-line .plan-med-animal {
   align-self: stretch;
@@ -551,9 +535,21 @@ div.plan-med-row.d-flex,
   background-color: transparent; // the tinted tier panel + zebra carry the line
 }
 .plan-med-row .plan-med-slot,
-.plan-med-row .plan-item-btn {
+.plan-med-row .plan-item-btn,
+// Issue 2026-10-08 #3 (animal protocol tab, user report: button size
+// differs between types): the non-interactive time markers (🔒 hors délai,
+// ⊘ skipped, ⏸ deferred) join the compact pair — their `.plan-med-state`
+// base metrics (0.875rem, btn-sm padding) measured 29 px tall next to
+// 26 px toggles, so a medication line and its locked slot disagreed and
+// single-occurrence item lines rendered a third size. One compact rule,
+// every control of every type.
+.plan-med-row .plan-med-state {
   font-size: 0.78rem;
   padding: 0.15rem 0.4rem;
+  // The toggles it sits beside are buttons with a 1px border; a borderless
+  // span is 2 px shorter — a transparent border keeps every marker at the
+  // exact toggle footprint (26 px at 0.78rem).
+  border: 1px solid transparent;
 }
 .plan-med-row .plan-med-day {
   font-size: 0.65rem;

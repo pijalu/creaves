@@ -181,7 +181,7 @@
       </span>
       <span class="plan-item-slot text-nowrap">
         <%= if (card.Applicable) { %>
-          <button type="button" class="btn <%= card.TierClass %> btn-sm ml-1 plan-apply-btn"
+          <button type="button" class="btn <%= card.TierClass %> btn-sm ml-1 plan-item-btn plan-apply-btn"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"
             data-animal-id="<%= card.AnimalID %>"
@@ -192,7 +192,7 @@
             data-detail="<%= card.Detail %>"
             data-source-name="<%= card.SourceName %>"
             title="<%= t("care_plan.apply.action") %>">○ <%= card.DueHM %></button>
-          <button type="button" class="btn btn-success btn-sm ml-1 plan-unapply-btn d-none"
+          <button type="button" class="btn btn-success btn-sm ml-1 plan-item-btn plan-unapply-btn d-none"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"
             data-animal-id="<%= card.AnimalID %>"
@@ -200,14 +200,14 @@
             data-kind="<%= card.ActionKind %>"
             data-tier-class="<%= card.TierClass %>"
             title="<%= t("care_plan.action.undo") %>">✓ <%= card.DueHM %></button>
-          <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
+          <button type="button" class="btn btn-outline-warning btn-sm ml-1 plan-item-btn plan-skip-btn" title="<%= t("care_plan.modal.skip") %>"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"
             data-animal-id="<%= card.AnimalID %>"
             data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
             data-mode="skip"
             data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">⏭</button>
-          <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
+          <button type="button" class="btn btn-outline-info btn-sm ml-1 plan-item-btn plan-defer-btn" title="<%= t("care_plan.modal.defer") %>"
             data-source-type="<%= card.SourceType %>"
             data-source-id="<%= card.SourceID %>"
             data-animal-id="<%= card.AnimalID %>"

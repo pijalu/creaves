@@ -75,7 +75,12 @@
             The collapse id is stable across a refresh (tier index +
             row index), so auto-refresh does not collapse a list the
             caregiver has just opened. %>
-        <td class="plan-feed-animals">
+        <%# Issue 2026-10-08 #1: under group=animal the cell holds ONE
+            toggle line per row — plan-feed-animal-cell centres it
+            vertically (the animal cell wraps 2-3 lines; top alignment
+            floated the toggle at the row's top edge). Cage mode keeps
+            the plain cell. %>
+        <td class="plan-feed-animals<%= if (group == "animal") { %> plan-feed-animal-cell<% } %>">
           <%= if (fcard.Collapsible) { %>
             <div class="plan-feed-header" data-toggle="collapse" data-target="#feed-animals-<%= ti %>-<%= fi %>"
                  aria-expanded="false" role="button" tabindex="0"
@@ -103,7 +108,14 @@
                                 <span class="sr-only"><%= t("care_plan.status." + chip.Status) %>: </span><%= chip.Label %>
                               </a>
                             <% } else { %><span class="sr-only"><%= t("care_plan.status." + chip.Status) %></span><% } %>
-              <span class="d-flex align-items-center ml-2">
+              <%# Issue 2026-10-08 #1: under group=animal the chip is
+                  sr-only (out of flow), so justify-content-between leaves
+                  a single in-flow child at the LEFT — the toggle sat 18 px
+                  off the cell's left edge with a 215 px gap to its right.
+                  ml-auto right-aligns it (stale-badge rows already landed
+                  right; this makes every animal-mode row consistent).
+                  Cage mode keeps the fixed ml-2 gap after its chip. %>
+              <span class="d-flex align-items-center<%= if (group == "animal") { %> ml-auto<% } else { %> ml-2<% } %>">
                 <%= if (chip.Superseded) { %>
                   <span class="badge badge-light mr-1" title="<%= t("care_plan.superseded.replaced_by") %>">↪ <%= if (chip.SupersededByDayKey != "") { %><%= t(chip.SupersededByDayKey) %> <%= chip.SupersededBy %><% } else if (chip.SupersededByShortDate != "") { %><%= chip.SupersededByShortDate %> <%= chip.SupersededBy %><% } else { %><%= chip.SupersededBy %><% } %></span>
                 <% } else { %>
