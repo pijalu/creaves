@@ -40,7 +40,7 @@
       <img style="height:32px;" alt="Creaves-App" src="<%= assetPath("images/creaves-app-small.png") %>">
     </a>
 
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Navigatie in-/uitschakelen">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -143,7 +143,7 @@
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="/care_plan" title="Day plan"><i class="fas fa-calendar-check"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.care_plan_dayplan") %></span></a>
+          <a class="nav-link" href="/care_plan" title="Dagplan"><i class="fas fa-calendar-check"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.care_plan_dayplan") %></span></a>
         </li>
 
         <li class="nav-item">
@@ -177,7 +177,7 @@
       </ul>
       <%= if (current_user) {%>
       <form class="form-inline my-2 my-lg-0 ml-2" action="<%= animalsPath() %>" method="GET" role="search">
-        <input class="form-control form-control-sm mr-sm-1" type="search" name="animal_year_number" id="navbarAnimalSearch" placeholder="N° 123/22" aria-label="Search animal" required pattern="[0-9]+(/[0-9]{2})?" style="max-width: 9rem;" autocomplete="off">
+        <input class="form-control form-control-sm mr-sm-1" type="search" name="animal_year_number" id="navbarAnimalSearch" placeholder="N° 123/22" aria-label="Dier zoeken" required pattern="[0-9]+(/[0-9]{2})?" style="max-width: 9rem;" autocomplete="off">
         <script>
           // Same in-care suggestions as the landing "Animal number" field.
           $('#navbarAnimalSearch').autoComplete({
@@ -187,7 +187,7 @@
               }
           });
         </script>
-        <button class="btn btn-outline-light btn-sm my-2 my-sm-0" type="submit" title="Search animal"><i class="fas fa-search"></i></button>
+        <button class="btn btn-outline-light btn-sm my-2 my-sm-0" type="submit" title="Dier zoeken"><i class="fas fa-search"></i></button>
       </form>
       <% } %>
       <ul class="navbar-nav">
