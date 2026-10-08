@@ -106,7 +106,10 @@ func TestPublishAnimalStateEvent_CageChangePublishesNewEvent(t *testing.T) {
 }
 
 // TestPublishAnimalStateEvent_OuttakeSetsReleasedStatus proves the status
-// derivation matches the resync path (Outtake != nil -> "released").
+// derivation matches the resync path: a LIVE outtake (outtake type dead=0)
+// yields "released" — a dead outtake type would yield "died" (BUG-3), see
+// TestApplyCurrentStatusClassification and
+// TestRunResyncDeadOuttakeEmitsDiedStatus.
 func TestPublishAnimalStateEvent_OuttakeSetsReleasedStatus(t *testing.T) {
 	resetPusherState()
 	seedPusherConfig(t, "http://unused.example")

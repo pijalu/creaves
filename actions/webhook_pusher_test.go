@@ -198,6 +198,16 @@ func seedSyncTarget(t *testing.T, name, url string, enabled bool) *models.SyncTa
 	// The known-targets flag is process-global: do not leak it into
 	// non-pusher tests, where a wake would make the worker query models.DB.
 	t.Cleanup(func() { SetSyncTargetsKnown(false) })
+	// Test isolation: the target row (and its delivery rows) must not outlive
+	// the test. resyncDeliveryPump fans out to EVERY enabled target in the DB
+	// and rollupDeliveredEvents only marks an event delivered once all of
+	// them accepted — a leftover enabled target pointing at a dead httptest
+	// server from an earlier test silently failed later suites' resync runs
+	// (run stuck "failed", 0 delivered).
+	t.Cleanup(func() {
+		pusherTestDB.RawQuery("DELETE FROM event_deliveries WHERE target_id = ?", target.ID.String()).Exec()
+		pusherTestDB.RawQuery("DELETE FROM sync_targets WHERE id = ?", target.ID.String()).Exec()
+	})
 	return target
 }
 

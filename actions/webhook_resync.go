@@ -497,15 +497,30 @@ func resyncCheckpoint(ctx context.Context, tx *pop.Connection, run *models.Resyn
 }
 
 // applyCurrentStatus sets payload.CurrentStatus the way every producer of a
-// full-state event must before hashing: "in_care", or "released" when the
-// animal has an outtake. The resync, the update path and the sync-status
-// computation all call this so their StateContentHashPayload hashes stay
-// comparable — a status-less hash never matches any stored content_hash and
-// every animal would show as unconfirmed forever.
+// full-state event must before hashing: "in_care", or — when the animal has
+// an outtake — "died" for a death outtake (the outtake type's dead flag) and
+// "released" for a live outtake. The resync, the update path and the
+// sync-status computation all call this so their StateContentHashPayload
+// hashes stay comparable — a status-less hash never matches any stored
+// content_hash and every animal would show as unconfirmed forever.
+//
+// The dead flag comes from the outtake's type row, which EVERY call path
+// already has loaded — no lookup may happen here (a per-animal SELECT would
+// be an N+1 over the ~10k-animal resync):
+//   - resync and sync-status animals are built by resyncRowToAnimal, whose
+//     chunk LEFT JOIN selects outtaketypes.dead;
+//   - the update path reloads through reloadAnimalForEvent, whose eager list
+//     includes "Outtake.Type".
+// An outtake whose type row is not resolvable keeps the legacy "released"
+// classification (zero-value Dead=false), so such rows hash exactly as they
+// did before the died/release distinction existed.
 func applyCurrentStatus(payload *models.EventPayload, animal *models.Animal) {
 	payload.CurrentStatus = "in_care"
 	if animal.Outtake != nil {
 		payload.CurrentStatus = "released"
+		if animal.Outtake.Type.Dead {
+			payload.CurrentStatus = "died"
+		}
 	}
 }
 
@@ -734,6 +749,38 @@ func resyncDeliveryFinished(tx *pop.Connection, run *models.ResyncRun, total, de
 	return false, nil
 }
 
+// sendResyncAnnouncements delivers the run's computed announcement as an
+// announcement-only batch ("sync" header + empty events) to every deliverable
+// sync target. BUG-9: a run whose every event was skipped unchanged completes
+// with zero deliveries and never puts a batch on the wire — but announcements
+// only travel on delivered batches (attachResyncAnnouncement), so the console
+// never learned the producer's expected sync set and could never render
+// "matches producer". Called only when the run completes with
+// events_delivered == 0 (total == 0): runs that deliver events already
+// announce with those batches. Best effort — a failed announcement POST is
+// logged, never fails the completed run (the data itself is fully synced).
+// The batch carries no events, so no run counter changes and the console-side
+// effect is exactly the instance announcement.
+func sendResyncAnnouncements(run *models.ResyncRun) {
+	if run.AnnouncedExpectedChecksum == nil || *run.AnnouncedExpectedChecksum == "" {
+		return
+	}
+	targets, err := models.EnabledSyncTargets(models.DB)
+	if err != nil {
+		log.Printf("resync run %s: failed to list sync targets for the announcement: %v", run.ID, err)
+		return
+	}
+	for i := range targets {
+		target := &targets[i]
+		if !target.Deliverable() {
+			continue
+		}
+		if _, err := deliverAnnouncementOnlyBatch(target, run); err != nil {
+			log.Printf("resync run %s: announcement-only delivery to %q failed: %v", run.ID, target.Name, err)
+		}
+	}
+}
+
 // completeResyncDelivery drives the webhook deliverer until every event of
 // the run is accepted by the console (run -> completed) or a bounded number
 // of stalled attempts proves delivery impossible (run -> failed with
@@ -788,6 +835,15 @@ func (r *resyncDeliveryRunner) iterate(ctx context.Context) (bool, error) {
 		return true, finishResync(r.tx, r.run, err)
 	}
 	if finished {
+		// BUG-9: a run that never attributed an event to itself (total == 0 —
+		// everything was skipped unchanged) completes right here, before any
+		// batch was pumped, so its announcement would never leave the
+		// producer. Publish it announcement-only (sendResyncAnnouncements
+		// re-checks that an announcement was actually computed). Runs with
+		// delivered events already announced on those batches.
+		if total == 0 {
+			sendResyncAnnouncements(r.run)
+		}
 		return true, nil
 	}
 	if r.stalled == 0 {
@@ -824,9 +880,15 @@ func appendResyncError(run *models.ResyncRun, animalID int, message string) {
 // deterministic full-state event for one animal.
 //   - Unknown (instance, animal, hash): create the event.
 //   - Known, force=false: counted as skipped unchanged.
-//   - Known, force=true: re-queue by resetting delivered_at so the webhook
-//     worker delivers it again; the deterministic UUID keeps the console
-//     side idempotent.
+//   - Known, force=true: re-queue by resetting delivered_at AND the per-target
+//     event_deliveries rows so the webhook worker delivers it again for every
+//     enabled sync target; the deterministic UUID keeps the console side
+//     idempotent.
+//
+// The non-force paths need no delivery-row handling: unchanged events are
+// skipped (still delivered), and a changed payload creates a NEW event whose
+// delivery rows do not exist yet, so every enabled target receives it even
+// though the animal's older event was already delivered.
 func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resyncStateIndex, force bool, animalID int, payload models.EventPayload) error {
 	hash := StateContentHashPayload(run.InstanceID, payload)
 	// The console's no-op dedupe compares payload.state_hash against the
@@ -846,6 +908,29 @@ func enqueueResyncStateEvent(tx *pop.Connection, run *models.ResyncRun, ix *resy
 		// acknowledgeable.
 		data, err := json.Marshal(payload)
 		if err != nil {
+			return err
+		}
+		// BUG-7: a force re-queue must also reset the per-target delivery
+		// rows, or the event stays invisible to the deliverer: the queue
+		// selection (pendingEventsForTarget) LEFT JOINs event_deliveries and
+		// only picks events with no delivery row or a non-delivered one — a
+		// re-queued event whose rows still say "delivered" is silently
+		// skipped forever. One set-based statement resets the rows of ALL
+		// enabled targets (disabled targets keep their historical delivered
+		// rows), with the same predicate as the event_streams UPDATE below
+		// so exactly the re-queued event's rows are touched.
+		//
+		// Statement order is crash-safe without a wrapping transaction:
+		// delivery rows go first, so a crash in between leaves the pusher
+		// free to deliver the now-unblocked event (redelivery is idempotent
+		// console-side). The reverse order could strand the event in the
+		// delivered-rows/undelivered-stream state this fix repairs.
+		if err := tx.RawQuery(
+			"UPDATE event_deliveries SET delivered_at = NULL, acknowledged_at = NULL, attempts = 0, last_error = NULL, updated_at = ? "+
+				"WHERE target_id IN (SELECT id FROM sync_targets WHERE enabled = ?) "+
+				"AND event_id IN (SELECT id FROM event_streams WHERE instance_id = ? AND animal_id = ? AND event_type = ? AND content_hash = ?)",
+			time.Now(), true, run.InstanceID, animalID, string(models.EventTypeAnimalState), hash,
+		).Exec(); err != nil {
 			return err
 		}
 		if err := tx.RawQuery(
