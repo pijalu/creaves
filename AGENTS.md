@@ -15,6 +15,10 @@ This project has comprehensive agentic documentation split across multiple files
 | **UTILITIES_DOCUMENTATION.md** | Helper functions, utilities, patterns | `/UTILITIES_DOCUMENTATION.md` |
 | **docs/care-expert.md** | Care Expert System specification (v2, implemented) | `/docs/care-expert.md` |
 | **docs/care-plan-validation-2026-09-27.md** | Care-plan migration/conversion + E2E validation report | `/docs/care-plan-validation-2026-09-27.md` |
+| **e2e/E2E-TEST.md** | Browser E2E test plan + results for the cross-app sync feature (restore, link, resync, arrivals, protocols, cares, outtakes, recovery — 2026-10-07/08) | `/e2e/E2E-TEST.md` |
+| **e2e/bugs.md** | Bugs found by the browser E2E runs (BUG-1…BUG-9) with fix + retest status | `/e2e/bugs.md` |
+| **e2e/EXPECTATIONS.md** | Fixture expectations for the scripted `e2e/run.sh` suite | `/e2e/EXPECTATIONS.md` |
+| **e2e/RESYNC_RUNBOOK.md** | Operator runbook: when/how to resync a center and verify | `/e2e/RESYNC_RUNBOOK.md` |
 
 **Event Forwarding**: This project pushes animal lifecycle events to **Creaves Console** via webhooks.
 See the [Event Forwarding to Creaves Console](#event-forwarding-to-creaves-console) section below and the
