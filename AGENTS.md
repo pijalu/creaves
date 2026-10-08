@@ -198,8 +198,10 @@ Creaves (this app)                    Creaves Console
 | `actions/configs.go` | Config management: `LoadConfig()`, `IsEventStreamEnabled()`, `IsWebhookEnabled()`, `GetInstanceID()` |
 | `actions/event_streams.go` | Event stream list/show/destroy handlers (admin UI) |
 | `models/event_stream.go` | EventStream model + EventPayload structs |
-| `models/config.go` | Config model + ConfigSettings (webhook config) |
-| `templates/config/_form.plush.html` | Webhook configuration UI |
+| `models/config.go` | Config model + ConfigSettings |
+| `actions/sync_targets.go` | Sync targets CRUD (multi-hub fan-out): `SyncTargetsResource` + undeliverable retry |
+| `templates/config/sync_edit.plush.html` + `templates/config/_sync_form.plush.html` | Sync Configuration page (`/sync_configuration`): Instance ID, Enable Event Stream, sync targets table |
+| `templates/sync_targets/_form.plush.html` | Sync target form (Name/Enabled/WebhookURL/APIKey/BatchSize/MaxPerMin) |
 | `templates/event_streams/` | Event stream admin views |
 
 ### Event Lifecycle
@@ -224,7 +226,7 @@ Creaves (this app)                    Creaves Console
 
 | Type | Trigger | Hook Location |
 |------|---------|---------------|
-| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
+| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event. Resync/expected-set **excludes destroyed (error-outtake) animals** — a restored DB with N animals announces N minus its Doublon records | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
 | `animal_discovered` | New animal intake | `actions/discoveries.go` |
 | `animal_status_changed` | Status update | `actions/animals.go` |
 | `animal_released` | Release outtake | `actions/outtakes.go` |
@@ -292,19 +294,19 @@ See `../creaves-console/AGENTS.md` for the full contract spec.
 
 ### Configuration
 
-Via admin UI: **Configuration** page (`/configs`).
+Via admin UI: **Administration → Synchronization** (`/sync_configuration`, `ConfigsResource.SyncEdit`) and the **Sync Targets** forms on that page.
 
-| Setting | Field | Default | Purpose |
-|---------|-------|---------|---------|
-| `EnableEventStream` | Checkbox | true | Master switch for event production |
-| `WebhookEnabled` | Checkbox | false | Master switch for webhook delivery |
-| `WebhookURL` | URL | (empty) | Console webhook endpoint, e.g. `https://console.example.com/webhook/events` |
-| `WebhookAPIKey` | Password | (empty) | Bearer token from Console's API key management |
-| `WebhookBatchSize` | Number | 1 | Events per HTTP request (1-100) |
-| `WebhookMaxPerMin` | Number | 60 | Rate limit (events/minute) |
+| Where | Setting | Field | Default | Purpose |
+|---------|-------|------|---------|---------|
+| Sync Configuration | Instance ID | `InstanceID` (top-level config column) | hostname or `INSTANCE_ID` env var | Unique per-center identifier stamped on every event + envelope |
+| Sync Configuration | Enable Event Stream | `Settings.EnableEventStream` | true | Master switch for event production |
+| Sync Target | Enabled | `Enabled` | true | Events are pushed to every enabled target with a webhook URL |
+| Sync Target | Webhook URL | `WebhookURL` | (empty) | Console webhook endpoint, e.g. `https://console.example.com/webhook/events` |
+| Sync Target | API Key | `WebhookAPIKey` | (empty) | Bearer token from Console's API key management |
+| Sync Target | Batch Size | `WebhookBatchSize` | 1 | Events per HTTP request (1-100) |
+| Sync Target | Max Events Per Minute | `WebhookMaxPerMin` | 60 | Rate limit (events/minute) |
 
-Config is cached in `CurrentConfig` (global). First load auto-creates a default config
-with `instance_id` = hostname or `INSTANCE_ID` env var.
+Config is cached in `CurrentConfig` (global). First load auto-creates a default config. `IsWebhookEnabled()` returns true when **at least one enabled sync target has a webhook URL** — there is no per-config `Settings.WebhookEnabled` flag. Creaves can fan out to **multiple** consoles (one target each); each target tracks its own Pending/Delivered/Undeliverable/Unconfirmed counts, and `POST /sync_targets/{id}/retry_undeliverable` re-queues dead letters.
 
 ### Webhook Delivery Details
 
@@ -349,32 +351,26 @@ buffalo task event:snapshot:stats   # Show statistics
 ### Setup Checklist (Connecting to Console)
 
 1. Deploy Creaves Console (see `../creaves-console/AGENTS.md`)
-2. In Console: create a Webhook API Key, copy the raw key
-3. In Creaves: go to **Configuration**:
-   - Set `Instance ID` (unique per center, e.g. `center-strasbourg`)
+2. In Console: create a Webhook API Key (Instance ID **required**, must equal this instance's ID), copy the raw key
+3. In Creaves: go to **Administration → Synchronization** (`/sync_configuration`):
+   - Set `Instance ID` (unique per center, e.g. `center-strasbourg`) — must match the key
    - Enable **Event Stream**
-   - Enable **Webhook**
-   - Set **Webhook URL** to `https://<console>/webhook/events`
-   - Paste **API Key**
+   - **Add sync target**: Enabled ✅, Webhook URL `https://<console>/webhook/events`, paste the **API Key**, Batch Size / Max per min as needed
 4. Create or edit an animal → verify event appears in Console dashboard
-5. For existing data: run `buffalo task event:snapshot`
+5. For existing data: run `buffalo task event:snapshot` (or **Start resync** on `/webhook_resync`, which also announces the expected sync set to the console)
 
 ### Known Issues / WIP
 
-- **Worker not started at boot**: `StartWebhookWorker()` is only called lazily from
-  `PublishEvent()`. If webhook is enabled but no new events arrive, undelivered events
-  from a previous session won't be picked up until a new event triggers the worker.
-  Fix: call `LoadConfig()` + `StartWebhookWorker()` in `App()` initialization.
-- **Partial failure handling**: The console returns HTTP 200 even when some events in
-  a batch fail. The pusher marks the entire batch as delivered, potentially losing
-  failed events. (Console logs the errors in the response body.)
+- **Worker start**: resolved — the worker starts at boot (`InitWebhookAtBoot()`, called from `cmd/app/main.go`), on sync-target save, and is woken immediately by `PublishEvent()`. Failed deliveries are retried on the 60s fallback tick.
+- **Partial failure handling**: resolved — the console answers `{"processed": N, "total": M, "processed_ids": [...]}`; the pusher marks **only the acknowledged IDs** delivered and retries the rest on the next tick (§ partial failure in `../SETUP_AND_TESTING.md`).
+- **Status classification in state events**: `applyCurrentStatus` (webhook_resync.go) derives `current_status` for every full-state event as `in_care`, `released` (alive outtake) or `died` (outtake type `dead`) — live outtake events and resync snapshots agree. Changing it changes dead animals' content hashes, so a resync after such a change re-sends them once (expected).
 
 ### Troubleshooting (Event Forwarding)
 
 | Symptom | Check |
 |---------|-------|
-| Events not delivered to console | 1. `IsWebhookEnabled()`? 2. `WebhookURL` + `WebhookAPIKey` set? 3. Circuit breaker open (5 failures → 60s pause)? 4. Console reachable from Creaves network? |
-| `delivered_at` stays NULL | Worker not started. Create any animal event to trigger `StartWebhookWorker()`. (WIP: should start at boot) |
+| Events not delivered to console | 1. `IsEventStreamEnabled()`? 2. Does an **Enabled** sync target with a `WebhookURL` + `WebhookAPIKey` exist (`/sync_configuration`)? 3. Circuit breaker open (5 failures → 60s pause)? 4. Console reachable from Creaves network? |
+| `delivered_at` stays NULL | Worker runs at boot and on every publish; check the sync target is enabled and the URL is correct. Event stream disabled (`Settings.EnableEventStream` off) produces no events at all. |
 | Console returns 401 | API key mismatch — regenerate key in Console admin UI |
 | Console returns 400 | Malformed payload — check `event_producer.go` payload building |
 | Events delivered but missing in console view | Run `buffalo task consolidation:process` on the Console side |
@@ -392,8 +388,8 @@ go test ./actions/... ./models/...
 # 3. Check event_streams table: SELECT * FROM event_streams ORDER BY created_at DESC LIMIT 5;
 
 # Verify webhook delivery:
-# 1. Set WebhookURL + APIKey in Configuration
-# 2. Enable webhook
+# 1. /sync_configuration: set Instance ID, enable Event Stream
+# 2. Add an Enabled sync target with WebhookURL + API Key
 # 3. Create/edit an animal
 # 4. Check delivered_at is set near-instantly (wake-driven; 60s fallback tick at worst)
 # 5. Check Console dashboard shows the event
