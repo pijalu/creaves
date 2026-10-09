@@ -159,7 +159,7 @@
             <td class="align-middle"><%= animal.Ring %></td>
             <td class="align-middle">
               <% 
-                  let stat = animal.Treatments.TodayStatitics()
+                  let stat = treatmentStats[animal.ID]
                   let morning = stat.Morning
                   let noon = stat.Noon 
                   let evening = stat.Evening

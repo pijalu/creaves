@@ -384,6 +384,7 @@ func InvalidateDayPlanBadgeCache() {
 	dayPlanBadgeCache.Lock()
 	dayPlanBadgeCache.valid = false
 	dayPlanBadgeCache.Unlock()
+	InvalidateLandingBucketCache()
 }
 
 // CountOpenItemsCached is CountOpenItems behind a short-TTL cache for the
@@ -663,11 +664,11 @@ type FeedingChip struct {
 	// renders the "⏱" badge + snooze (StaleRefsJSON) instead of a toggle,
 	// is excluded from the batch refs, and its muted "next" label points
 	// at the next upcoming occurrence (date-aware parts, §6.2-5).
-	StaleLate            bool
-	StaleNextHM          string
-	StaleNextDayKey      string
-	StaleNextShortDate   string
-	StaleRefsJSON        string
+	StaleLate          bool
+	StaleNextHM        string
+	StaleNextDayKey    string
+	StaleNextShortDate string
+	StaleRefsJSON      string
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan

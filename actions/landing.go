@@ -131,6 +131,12 @@ func LandingIndex(c buffalo.Context) error {
 		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
 		c.Set("animalsByZone", animalsByZone)
+		// Traitements column (2026-10-09): merge the protocol's today
+		// medication occurrences into the legacy per-bucket stat — protocol
+		// rows only exist in the treatments table after the day's first
+		// apply, so the column would otherwise read "not required" all day
+		// for protocol animals.
+		c.Set("treatmentStats", mergedTreatmentStats(&animals, LandingTreatmentBucketsCached(tx, time.Now())))
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animalsByType))
