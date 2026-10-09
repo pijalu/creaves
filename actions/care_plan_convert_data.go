@@ -62,6 +62,31 @@ func DeriveFeedingTimes(start, end time.Time, periodMinutes int) []careplan.Time
 	return out
 }
 
+// legacyFeedingSlots derives the converted daily slots of one legacy
+// feeding row, applying the §8.1 no-loss fallbacks: full derivation when
+// start/end/period allow it; otherwise a single daily slot at the legacy
+// start when present, else 09:00. The second return value marks the
+// fallback (best-effort, flagged "à vérifier"). Shared by the converter
+// and the reconciliation gate so both agree on the legacy semantics
+// (bugs.md BUG-10: NULL start/end rows included).
+func legacyFeedingSlots(a models.Animal) ([]careplan.TimeOfDay, bool) {
+	if a.FeedingStart.Valid && a.FeedingEnd.Valid {
+		if times := DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod); len(times) > 0 {
+			return times, false
+		}
+		// Degenerate (period ≤ 0): at minimum the legacy start slot.
+		s := a.FeedingStart.Time
+		return []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}, true
+	}
+	// No-loss fallback (§8.1): keep the animal covered with what we have —
+	// a single daily slot at the legacy start when present.
+	if a.FeedingStart.Valid {
+		s := a.FeedingStart.Time
+		return []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}, true
+	}
+	return []careplan.TimeOfDay{{Hour: 9, Minute: 0}}, true
+}
+
 // NormalizeDiet is the §8.1 cluster key: trimmed, case-folded diet text.
 func NormalizeDiet(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
@@ -82,8 +107,16 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			ConversionLine{Reason: "caretype Repas/Alimentation introuvable — conversion alimentation sautée"})
 		return nil
 	}
+	// bugs.md BUG-10 (2026-10-14, user ruling: "all replaced action *must*
+	// be converted"): the legacy query required feeding_start/end NOT NULL,
+	// which silently skipped animals with a period but no times — or only a
+	// diet text — leaving them with NO feeding plan at all (e.g. animal
+	// 8842: period 480, NULL times, diet "15 poussins et 5 souris // EAU
+	// X8"). The no-loss mandate (§8.1) covers EVERY in-care animal carrying
+	// any legacy feeding trace; rows without a derivable schedule take the
+	// fallback slot path below (flagged "à vérifier").
 	var animals []models.Animal
-	if err := tx.Where("outtake_id IS NULL AND feeding_period > 0 AND feeding_start IS NOT NULL AND feeding_end IS NOT NULL").All(&animals); err != nil {
+	if err := tx.Where("outtake_id IS NULL AND (feeding_period > 0 OR feeding_start IS NOT NULL OR feeding_end IS NOT NULL OR (feeding IS NOT NULL AND TRIM(feeding) <> ''))").All(&animals); err != nil {
 		return err
 	}
 	report.Feeding.AnimalsConsidered = len(animals)
@@ -100,29 +133,13 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 	// semantics in every center.
 	sort.Slice(animals, func(i, j int) bool { return animals[i].ID < animals[j].ID })
 	for _, a := range animals {
+		times, fallback := legacyFeedingSlots(a)
 		entry := feedingEntry{
 			AnimalID: a.ID,
 			Label:    animalLabel(a),
+			Times:    times,
 			Force:    a.ForceFeed,
-		}
-		if !a.FeedingStart.Valid || !a.FeedingEnd.Valid {
-			// No-loss fallback (§8.1): keep the animal covered with what we
-			// have — a single daily slot at the legacy start when present.
-			if a.FeedingStart.Valid {
-				s := a.FeedingStart.Time
-				entry.Times = []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}
-			} else {
-				entry.Times = []careplan.TimeOfDay{{Hour: 9, Minute: 0}}
-			}
-			entry.Fallback = true
-		} else {
-			entry.Times = DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod)
-			if len(entry.Times) == 0 {
-				// No-loss fallback: at minimum the legacy start slot.
-				s := a.FeedingStart.Time
-				entry.Times = []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}
-				entry.Fallback = true
-			}
+			Fallback: fallback,
 		}
 		diet := NormalizeDiet(a.Feeding.String)
 		if diet == "" {
@@ -199,7 +216,10 @@ func reconcileFeeding(report *ConversionReport, animals []models.Animal) {
 				ConversionLine{a.ID, animalLabel(a), "UNCOVERED: aucune règle/plan converti"})
 			continue
 		}
-		legacy := DeriveFeedingTimes(a.FeedingStart.Time, a.FeedingEnd.Time, a.FeedingPeriod)
+		// Same fallback semantics as the converter (BUG-10): rows with NULL
+		// start/end (or a degenerate period) reconcile against the fallback
+		// slot, not against an empty derivation.
+		legacy, _ := legacyFeedingSlots(a)
 		if timesKey(legacy) == timesKey(converted) {
 			report.Reconciliation.FeedingOK++
 			continue

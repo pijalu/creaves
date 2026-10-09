@@ -2,6 +2,7 @@ package actions
 
 import (
 	"creaves/models"
+	"creaves/models/careplan"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -684,6 +685,10 @@ func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models
 		return err
 	}
 	c.Set("careAnimalPlans", plans)
+	// BUG-13: the Care tab feeding banner summarizes the ACTUAL protocol
+	// feeding plans (the legacy animals.feeding* banner rendered phantom
+	// default times and is gone).
+	c.Set("feedingPlanSummary", feedingPlanSummaries(plans))
 	// R5-4b (bugs.md U21/D-c): Treatment tab source-protocol backlinks
 	// (per-time entries are read in-template via TreatmentEntriesMap).
 	if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
@@ -1006,6 +1011,17 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("animal", animal)
+	// BUG-13: the edit form shows a summary of the ACTUAL protocol feeding
+	// plans (same source as the show page banner) instead of the frozen
+	// legacy columns line.
+	if animal.ID != 0 {
+		plans := &models.CareAnimalPlans{}
+		tx := c.Value("tx").(*pop.Connection)
+		if err := tx.Where("animal_id = ? AND action_kind = ? AND active = ?", animal.ID, careplan.KindFeeding, true).All(plans); err != nil {
+			return err
+		}
+		c.Set("feedingPlanSummary", feedingPlanSummaries(plans))
+	}
 	return c.Render(http.StatusOK, r.HTML("/animals/edit.plush.html"))
 }
 

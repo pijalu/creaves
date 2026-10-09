@@ -40,7 +40,10 @@ const (
 // counts need a window that does not reach into yesterday or tomorrow.
 func TodayPlanWindow(now time.Time) (time.Time, time.Time) {
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	return start, start.Add(24*time.Hour - time.Nanosecond)
+	// bugs.md BUG-15: calendar day end (AddDate), not an instant shift —
+	// Add(24h) leaks into the next day on spring-forward and cuts the last
+	// hour on fall-back.
+	return start, start.AddDate(0, 0, 1).Add(-time.Nanosecond)
 }
 
 // followUpPlanPrefix marks the auto-created alert follow-up observation
@@ -56,8 +59,8 @@ const defaultFollowUpHours = 2
 func DefaultPlanWindow(now time.Time) (time.Time, time.Time) {
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
 		AddDate(0, 0, -planWindowPastDays)
-	end := start.AddDate(0, 0, planWindowPastDays+planWindowFutureDays).
-		Add(24*time.Hour - time.Nanosecond)
+	end := start.AddDate(0, 0, planWindowPastDays+planWindowFutureDays+1).
+		Add(-time.Nanosecond) // bugs.md BUG-15: calendar day end (DST-safe)
 	return start, end
 }
 
@@ -396,16 +399,27 @@ func (pa *planAnimals) fillLastWeights(tx *pop.Connection) error {
 		AnimalID int          `db:"animal_id"`
 		Weight   nulls.String `db:"weight"`
 	}
+	// bugs.md BUG-16: MAX(date) alone ties on same-second rows and the join
+	// then returns BOTH — the loop below kept the winner of InnoDB's pick
+	// order (nondeterministic), which feeds the §10-B6 dosage. Tie-break on
+	// the latest INSERTED row (created_at DESC, id DESC for total order —
+	// ids are UUIDs, not recency) and take one row per animal.
 	q := `SELECT c.animal_id AS animal_id, c.weight AS weight
 	      FROM cares c
 	      JOIN (SELECT animal_id, MAX(date) AS md FROM cares
 	            WHERE animal_id IN ` + set + ` AND weight IS NOT NULL AND weight <> '' GROUP BY animal_id) x
 	            ON x.animal_id = c.animal_id AND x.md = c.date
-	      WHERE c.weight IS NOT NULL AND c.weight <> ''`
+	      WHERE c.weight IS NOT NULL AND c.weight <> ''
+	      ORDER BY c.animal_id, c.created_at DESC, c.id DESC`
 	if err := tx.RawQuery(q, args...).All(&rows); err != nil {
 		return err
 	}
+	seen := map[int]bool{}
 	for _, r := range rows {
+		if seen[r.AnimalID] {
+			continue // tie on date: the highest-id row already won
+		}
+		seen[r.AnimalID] = true
 		ctx, ok := pa.ctxs[r.AnimalID]
 		if !ok {
 			continue
@@ -430,15 +444,24 @@ func (pa *planAnimals) fillVetDiagnostics(tx *pop.Connection) error {
 		AnimalID   int          `db:"animal_id"`
 		Diagnostic nulls.String `db:"diagnostic"`
 	}
+	// bugs.md BUG-16: same tie-break as fillLastWeights — one row per
+	// animal (latest date, then latest created_at/id — ids are UUIDs, not
+	// recency), never an InnoDB-ordered pick.
 	q := `SELECT v.animal_id AS animal_id, v.diagnostic AS diagnostic
 	      FROM veterinaryvisits v
 	      JOIN (SELECT animal_id, MAX(date) AS md FROM veterinaryvisits
 	            WHERE animal_id IN ` + set + ` GROUP BY animal_id) x
-	            ON x.animal_id = v.animal_id AND x.md = v.date`
+	            ON x.animal_id = v.animal_id AND x.md = v.date
+	      ORDER BY v.animal_id, v.created_at DESC, v.id DESC`
 	if err := tx.RawQuery(q, args...).All(&rows); err != nil {
 		return err
 	}
+	seen := map[int]bool{}
 	for _, r := range rows {
+		if seen[r.AnimalID] {
+			continue
+		}
+		seen[r.AnimalID] = true
 		if ctx, ok := pa.ctxs[r.AnimalID]; ok {
 			ctx.VetDiagnostic = r.Diagnostic.String
 		}

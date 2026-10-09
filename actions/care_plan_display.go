@@ -78,9 +78,19 @@ type DueLabelParts struct {
 // DueLabelPartsOf derives the label parts of one occurrence at `now`.
 func DueLabelPartsOf(dueAt, now time.Time) DueLabelParts {
 	p := DueLabelParts{TimeHM: dueAt.Format("15:04")}
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	day := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
-	days := int(day.Sub(today).Hours() / 24)
+	loc := now.Location()
+	today := time.Date(now.In(loc).Year(), now.In(loc).Month(), now.In(loc).Day(), 0, 0, 0, 0, loc)
+	day := time.Date(dueAt.In(loc).Year(), dueAt.In(loc).Month(), dueAt.In(loc).Day(), 0, 0, 0, 0, loc)
+	// bugs.md BUG-19: hour-delta arithmetic mislabels DST days — a 23-hour
+	// "day" truncates tomorrow's gap to 0 ("today") and a 25-hour day
+	// misreads as 2 days out. Count calendar days via AddDate steps.
+	days := 0
+	for d := today; d.Before(day); d = d.AddDate(0, 0, 1) {
+		days++
+	}
+	for d := day; d.Before(today); d = d.AddDate(0, 0, 1) {
+		days--
+	}
 	switch days {
 	case 0:
 		// today — time only

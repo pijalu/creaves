@@ -40,6 +40,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// startup_v4 one-shot feeding completion (bugs.md BUG-10, 2026-10-14):
+	// convert the legacy feeding rows the startup_v2 converter skipped
+	// (NULL start/end, period-only, diet-text-only) into per-animal
+	// fallback plans — "all replaced action must be converted".
+	if err := actions.RunCarePlanFeedingCompletionAtBoot(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

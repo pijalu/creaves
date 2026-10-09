@@ -196,7 +196,8 @@ func planWindowParams(c buffalo.Context, now time.Time) (time.Time, time.Time) {
 	}
 	if raw := c.Param("to"); raw != "" {
 		if t, err := time.ParseInLocation("2006-01-02", raw, now.Location()); err == nil {
-			to = t.Add(24*time.Hour - time.Nanosecond)
+			// bugs.md BUG-15: calendar day end (AddDate), DST-safe.
+			to = t.AddDate(0, 0, 1).Add(-time.Nanosecond)
 		}
 	}
 	return from, to

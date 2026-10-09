@@ -141,6 +141,36 @@ func TestDueLabelPartsOfDays(t *testing.T) {
 	require.Equal(t, "27/09", far.ShortDate)
 }
 
+// TestDueLabelPartsOfDST (bugs.md BUG-19): on DST transition days the
+// label must follow CALENDAR days, not 24-hour deltas — a 23-hour "day"
+// must not turn tomorrow into "today", a 25-hour day must not become
+// "in 2 days".
+func TestDueLabelPartsOfDST(t *testing.T) {
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.NoError(t, err)
+
+	// Spring forward 2026-03-29 (23 h): tomorrow (Mar 30) is one CALENDAR
+	// day out even though the midnight-to-midnight delta is 23 hours.
+	now := time.Date(2026, 3, 29, 12, 0, 0, 0, loc)
+	tomo := DueLabelPartsOf(time.Date(2026, 3, 30, 8, 0, 0, 0, loc), now)
+	require.Equal(t, "care_plan.time.tomorrow", tomo.DayKey,
+		"spring-forward: Mar 30 from Mar 29 must read tomorrow, got %+v", tomo)
+
+	// Fall back 2026-10-25 (25 h): tomorrow (Oct 26) is still ONE day out,
+	// not two.
+	now = time.Date(2026, 10, 25, 12, 0, 0, 0, loc)
+	tomo = DueLabelPartsOf(time.Date(2026, 10, 26, 8, 0, 0, 0, loc), now)
+	require.Equal(t, "care_plan.time.tomorrow", tomo.DayKey,
+		"fall-back: Oct 26 from Oct 25 must read tomorrow, got %+v", tomo)
+
+	// Same-day and yesterday stay exact on transition days too.
+	today := DueLabelPartsOf(time.Date(2026, 10, 25, 8, 0, 0, 0, loc), now)
+	require.Empty(t, today.DayKey)
+	require.Empty(t, today.ShortDate)
+	yest := DueLabelPartsOf(time.Date(2026, 10, 24, 8, 0, 0, 0, loc), now)
+	require.Equal(t, "care_plan.time.yesterday", yest.DayKey)
+}
+
 func TestFormatDueLabel(t *testing.T) {
 	require.Equal(t, "08:00", FormatDueLabel(DueLabelParts{TimeHM: "08:00"}, "hier", "demain"))
 	require.Equal(t, "hier 08:00", FormatDueLabel(DueLabelParts{DayKey: "care_plan.time.yesterday", TimeHM: "08:00"}, "hier", "demain"))

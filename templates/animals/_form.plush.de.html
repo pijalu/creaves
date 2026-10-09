@@ -574,7 +574,7 @@ $( document ).ready(function(){
               <button type="button" class="close" data-dismiss="modal" aria-label="Close">&times;</button>
             </div>
             <div class="modal-body">
-              <div id="feedingGuideModalEmpty" class="text-muted d-none">Kein Leitfaden für diese Art in diesem Stadium</div>
+              <div id="feedingGuideModalEmpty" class="text-muted d-none">Kein Leitfaden für diese Art in diesem Stadium.<br/><small>Die Fütterungsleitfäden-Tabelle ist leer — Leitfäden sind nur Vorschläge; die Diät kann manuell eingegeben werden.<%= if (current_user.Admin) { %> <a href="/feeding_guides">Fütterungsleitfäden verwalten</a><% } %></small></div>
               <pre id="feedingGuideModalText" class="mb-0" style="white-space: pre-wrap"></pre>
             </div>
             <div class="modal-footer">
@@ -615,16 +615,7 @@ $( document ).ready(function(){
 
         <div class="form-row">
           <div class="col-md-8">
-            <%= if (animal.FeedingStartFmt() != "") { %>
-              <p class="mb-1"><i class="fa fa-clock-o" aria-hidden="true"></i> <%= animal.FeedingStartFmt() %> – <%= animal.FeedingEndFmt() %> · <%= animal.FeedingPeriodHourMinute() %></p>
-            <% } %>
-            <small class="form-text text-muted">
-              <%= if (animal.ID != 0) { %>
-                <a href="/animals/<%= animal.ID %>#nav-plan"><%= t("animals.feeding.legacy_frozen") %></a>
-              <% } else { %>
-                <%= t("animals.feeding.legacy_frozen") %>
-              <% } %>
-            </small>
+            <%= partial("animals/feeding_summary.plush.html", {showHint: true}) %>
           </div>
         </div>
 

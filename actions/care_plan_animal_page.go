@@ -210,8 +210,8 @@ const (
 func TreatmentPlanWindow(now time.Time) (time.Time, time.Time) {
 	start := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).
 		AddDate(0, 0, -treatmentWindowPastDays)
-	end := start.AddDate(0, 0, treatmentWindowPastDays+treatmentWindowFutureDays).
-		Add(24*time.Hour - time.Nanosecond)
+	end := start.AddDate(0, 0, treatmentWindowPastDays+treatmentWindowFutureDays+1).
+		Add(-time.Nanosecond) // bugs.md BUG-15: calendar day end (DST-safe)
 	return start, end
 }
 
@@ -889,6 +889,24 @@ func planWindowBounds(a *models.Animal, raw string) (time.Time, *time.Time, bool
 	if s.DurationDays <= 0 {
 		return start, nil, true
 	}
-	end := start.AddDate(0, 0, s.DurationDays-1)
+	// bugs.md BUG-17: duration_days counts GENERATED days — candidate days
+	// stepping every_days that pass the weekday filter (§10-B3), not plain
+	// calendar days. Walk the candidate days exactly as
+	// careplan.GenerateOccurrences does and take the last generated day.
+	end := start
+	if s.EveryDays < 1 {
+		s.EveryDays = 1
+	}
+	generated := 0
+	for day, i := start, 0; i < 100000; i++ { // same defensive cap as the engine
+		if s.AllowsWeekday(day.Weekday()) {
+			generated++
+			if generated >= s.DurationDays {
+				end = day
+				break
+			}
+		}
+		day = day.AddDate(0, 0, s.EveryDays)
+	}
 	return start, &end, true
 }

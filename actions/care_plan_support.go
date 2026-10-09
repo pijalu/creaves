@@ -111,7 +111,21 @@ func ClampDeferredUntil(src careplan.PlanSource, ctx *careplan.AnimalContext, an
 	if src == nil || ctx == nil {
 		return requested
 	}
-	windowEnd := dueAt.Add(30 * 24 * time.Hour)
+	// bugs.md BUG-18: a fixed 30-day search window misses the successor of
+	// sparse schedules (every_days > ~30), letting a defer sail past the
+	// next occurrence — which then 409s hors-délai without ever showing the
+	// late flag. Size the window from the schedule: the miss deadline plus
+	// three candidate steps always covers the next generated day (a 7-day
+	// weekday filter spans ≤ 13 calendar days for one step).
+	s := src.Schedule()
+	every := s.EveryDays
+	if every < 1 {
+		every = 1
+	}
+	windowEnd := dueAt.Add(time.Duration(s.MissAfterHours)*time.Hour + 3*7*24*time.Duration(every)*time.Hour)
+	if min := dueAt.Add(30 * 24 * time.Hour); windowEnd.Before(min) {
+		windowEnd = min
+	}
 	next := careplan.GenerateOccurrences(src, ctx, dueAt.Add(time.Second), windowEnd)
 	for _, o := range next {
 		if o.DueAt.After(dueAt) {
@@ -121,6 +135,12 @@ func ClampDeferredUntil(src careplan.PlanSource, ctx *careplan.AnimalContext, an
 			}
 			return requested
 		}
+	}
+	// No successor in range (course finished or plan ending): the defer
+	// must still not outlive this occurrence's applicability — clamp to the
+	// miss deadline (§4.3 miss_after_hours).
+	if miss := dueAt.Add(time.Duration(s.MissAfterHours) * time.Hour); requested.After(miss) {
+		return miss
 	}
 	return requested
 }

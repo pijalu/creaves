@@ -61,7 +61,6 @@ func GenerateOccurrences(src PlanSource, a *AnimalContext, windowStart, windowEn
 	validFrom, validTo := src.ValidFrom(), src.ValidTo()
 	var out []Occurrence
 	generated := 0
-	firstGeneratedDone := false
 	day := day1
 	for i := 0; !day.After(windowEnd) && i < maxOccurrenceDaySteps; i++ {
 		if validFrom != nil && day.Before(midnightIn(loc, *validFrom)) {
@@ -77,9 +76,14 @@ func GenerateOccurrences(src PlanSource, a *AnimalContext, windowStart, windowEn
 		if s.AllowsWeekday(day.Weekday()) {
 			generated++
 			times := s.Times
-			if !firstGeneratedDone { // day-1 slot anchoring, once
+			// bugs.md BUG-14: the day-1 slot filter belongs to the INTAKE
+			// CALENDAR DAY, not to the first weekday-allowed day — a filter
+			// that excludes the intake day must not push the anchoring onto
+			// the next passing day. (resolveDay1 already guarantees
+			// firstSlotStart == 0 for fixed anchors and offset-shifted
+			// day-1s, so the day match is the only gate needed.)
+			if firstSlotStart > 0 && sameLocalDay(loc, day, a.IntakeDate) {
 				times = s.Times[firstSlotStart:]
-				firstGeneratedDone = true
 			}
 			for _, slot := range times {
 				due := time.Date(day.Year(), day.Month(), day.Day(),

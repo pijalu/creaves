@@ -28,6 +28,15 @@ type converterFixture struct {
 	f         *planFixture
 	animalIDs []int
 	treatment models.Treatment
+	// BUG-10 feeding-completion cases
+	nullTimesID int // period > 0, NULL start/end, diet text
+	dietOnlyID  int // diet text only
+	noFeedingID int // no legacy feeding trace at all
+	// M5 routing animals (named — positional animalIDs indexes shift
+	// whenever fixture rows are added)
+	trUnknownDrugID int
+	trWoundID       int
+	trNoDosageID    int
 }
 
 func setupConverterFixture(t *testing.T) *converterFixture {
@@ -85,6 +94,24 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	fx.setFeeding(t, db, idVariant, diet, "07:00", "19:00", 360)
 	fx.animalIDs = append(fx.animalIDs, idVariant)
 
+	// BUG-10 (2026-10-14): animals the pre-v4 converter silently skipped.
+	// (a) period > 0 but NULL start/end + diet text (the animal-8842 case):
+	//     must be converted with the fallback slot, flagged "à vérifier".
+	idNullTimes := fx.f.mkAnimal(t, db, "Renard roux")
+	fx.setFeedingNullTimes(t, db, idNullTimes, "15 poussins et 5 souris", 480)
+	fx.animalIDs = append(fx.animalIDs, idNullTimes)
+	// (b) diet text only (no period, no times): still a legacy feeding
+	//     trace — must be converted (fallback slot, "à vérifier").
+	idDietOnly := fx.f.mkAnimal(t, db, "Fou de Bassan")
+	fx.setFeedingNullTimes(t, db, idDietOnly, "Poisson entier", 0)
+	fx.animalIDs = append(fx.animalIDs, idDietOnly)
+	// (c) NO legacy feeding trace at all: must NOT be converted.
+	idNoFeeding := fx.f.mkAnimal(t, db, "Hérisson")
+	fx.animalIDs = append(fx.animalIDs, idNoFeeding)
+	fx.nullTimesID = idNullTimes
+	fx.dietOnlyID = idDietOnly
+	fx.noFeedingID = idNoFeeding
+
 	// One open treatment series (3 future days, morning+noon). The drug is
 	// seeded in the drugs table so the series converts as a MEDICATION plan.
 	drug := models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "Ivomec 1%"}
@@ -115,6 +142,7 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	//     never an invented-dosage medication plan;
 	idTr2 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
 	fx.animalIDs = append(fx.animalIDs, idTr2)
+	fx.trUnknownDrugID = idTr2
 	trUnknown := models.Treatment{
 		Date:       base,
 		AnimalID:   idTr2,
@@ -126,6 +154,7 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	// (b) wound-care pseudo-drug → observation plan;
 	idTr3 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
 	fx.animalIDs = append(fx.animalIDs, idTr3)
+	fx.trWoundID = idTr3
 	trWound := models.Treatment{
 		Date:       base,
 		AnimalID:   idTr3,
@@ -138,6 +167,7 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	// a medication payload without dosage fails validation).
 	idTr4 := fx.f.mkAnimal(t, db, "Faucon crécerelle")
 	fx.animalIDs = append(fx.animalIDs, idTr4)
+	fx.trNoDosageID = idTr4
 	trNoDose := models.Treatment{
 		Date:       base,
 		AnimalID:   idTr4,
@@ -147,6 +177,19 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	}
 	require.NoError(t, db.Create(&trNoDose))
 	return fx
+}
+
+// setFeedingNullTimes writes the BUG-10 shapes: a legacy feeding row with
+// NULL start/end (optionally period-only or diet-only).
+func (fx *converterFixture) setFeedingNullTimes(t *testing.T, db *pop.Connection, id int, diet string, period int) {
+	t.Helper()
+	a := &models.Animal{}
+	require.NoError(t, db.Find(a, id))
+	a.Feeding = nulls.NewString(diet)
+	a.FeedingStart = nulls.Time{}
+	a.FeedingEnd = nulls.Time{}
+	a.FeedingPeriod = period
+	require.NoError(t, db.Update(a))
 }
 
 func (fx *converterFixture) setFeeding(t *testing.T, db *pop.Connection, id int, diet, start, end string, period int) {
@@ -215,20 +258,42 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	// Feeding (v3): NO cluster rules, NO matchers — every feeding animal
 	// gets its own per-animal plan (bugs.md t10, 2026-10-27 user ruling:
 	// cage names are per centers; in doubt, migrate to the animal). The
-	// 9 feeding animals = 5 cluster-diet + 2 unique diets + 1 empty-diet
-	// fallback + 1 schedule variant.
+	// 11 feeding animals = 5 cluster-diet + 2 unique diets + 1 empty-diet
+	// fallback + 1 schedule variant + 2 BUG-10 cases (NULL times +
+	// diet-only). The no-feeding animal is NOT considered.
 	require.Equal(t, 0, report.Feeding.RulesCreated,
 		"v3: the converter must not create rules — per-animal plans only")
-	require.Equal(t, 9, report.Feeding.PlansCreated)
-	require.Equal(t, 9, report.Feeding.AnimalsConsidered)
-	require.Len(t, report.Feeding.Lines, 9)
+	require.Equal(t, 11, report.Feeding.PlansCreated)
+	require.Equal(t, 11, report.Feeding.AnimalsConsidered)
+	require.Len(t, report.Feeding.Lines, 11)
 
 	// Reconciliation (§1.6): every animal accounted for, nothing uncovered.
 	require.Equal(t, 0, report.Reconciliation.FeedingUncovered,
 		"no feeding animal may be left without a covering plan")
-	require.Equal(t, 9, report.Reconciliation.FeedingOK+
+	require.Equal(t, 11, report.Reconciliation.FeedingOK+
 		report.Reconciliation.FeedingDegraded)
 	require.Equal(t, 0, report.Reconciliation.TreatmentUncovered)
+
+	// BUG-10: the NULL-times animal got a fallback plan flagged
+	// "à vérifier" carrying its diet; the diet-only animal likewise; the
+	// no-trace animal got nothing.
+	assertFeedingPlan := func(animalID int, wantFood string, wantVerify bool) {
+		var plans []models.CareAnimalPlan
+		require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", animalID, careplan.KindFeeding).All(&plans))
+		require.Len(t, plans, 1, "animal %d must have exactly one converted feeding plan", animalID)
+		p := plans[0]
+		require.Equal(t, wantVerify, strings.Contains(p.Name, "à vérifier"), "plan name %q", p.Name)
+		// the payload food is the NORMALIZED (case-folded) diet text.
+		require.Contains(t, string(p.ActionPayload), NormalizeDiet(wantFood))
+		sched, err := careplan.ParseScheduleJSON(p.Schedule)
+		require.NoError(t, err)
+		require.NotEmpty(t, sched.Times, "fallback slot must be present")
+	}
+	assertFeedingPlan(fx.nullTimesID, "15 poussins et 5 souris", true)
+	assertFeedingPlan(fx.dietOnlyID, "Poisson entier", true)
+	var none []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ?", fx.noFeedingID).All(&none))
+	require.Empty(t, none, "an animal without any legacy feeding trace must not gain a plan")
 
 	// Treatments: the 3-day series becomes one bounded plan. The test DB
 	// may carry unrelated open series from other tests, so only spot-check
@@ -322,12 +387,12 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 		}
 		return p
 	}
-	assertConvertedPlan(fx.animalIDs[10], "Soin — Produit inconnu XYZ%", careplan.KindCare)
-	assertConvertedPlan(fx.animalIDs[11], "Soin de plaie (conversion)%", careplan.KindCare)
-	assertConvertedPlan(fx.animalIDs[12], "Traitement — Ivomec 1% (à vérifier)", careplan.KindObservation)
+	assertConvertedPlan(fx.trUnknownDrugID, "Soin — Produit inconnu XYZ%", careplan.KindCare)
+	assertConvertedPlan(fx.trWoundID, "Soin de plaie (conversion)%", careplan.KindCare)
+	assertConvertedPlan(fx.trNoDosageID, "Traitement — Ivomec 1% (à vérifier)", careplan.KindObservation)
 
 	// No medication plan may exist for the unknown drug (invented dosage).
-	n, err := db.Where("animal_id = ? AND name = ?", fx.animalIDs[10], "Traitement — Produit inconnu XYZ").Count(&models.CareAnimalPlan{})
+	n, err := db.Where("animal_id = ? AND name = ?", fx.trUnknownDrugID, "Traitement — Produit inconnu XYZ").Count(&models.CareAnimalPlan{})
 	require.NoError(t, err)
 	require.Equal(t, 0, n)
 

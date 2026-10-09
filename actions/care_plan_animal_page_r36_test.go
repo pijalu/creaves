@@ -148,6 +148,87 @@ func TestTreatmentPlanWindow(t *testing.T) {
 	require.Equal(t, time.Date(2026, 10, 7, 23, 59, 59, int(time.Second-time.Nanosecond), time.Local), to)
 }
 
+// TestPlanWindowsDST (bugs.md BUG-15): on DST transition days the window end
+// must stay the local calendar day's end — Add(24h) instant arithmetic leaks
+// ~1h into the next day on spring-forward and cuts the last hour on fall-back.
+func TestPlanWindowsDST(t *testing.T) {
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.NoError(t, err)
+
+	// Spring forward 2026-03-29 (23 h day): "today" must END at 23:59:59…
+	// local, not at 00:59:59 of the 30th.
+	now := time.Date(2026, 3, 29, 12, 0, 0, 0, loc)
+	_, to := TodayPlanWindow(now)
+	require.Equal(t, 2026, to.Year())
+	require.Equal(t, time.March, to.Month())
+	require.Equal(t, 29, to.Day(), "spring-forward: window end must stay on the 29th, got %s", to)
+	require.Equal(t, 23, to.Hour())
+	require.Equal(t, 59, to.Minute())
+
+	// Fall back 2026-10-25 (25 h day): the window must cover 23:59:59…
+	// local of the SAME day (the old code ended one wall hour early).
+	now = time.Date(2026, 10, 25, 12, 0, 0, 0, loc)
+	_, to = TodayPlanWindow(now)
+	require.Equal(t, 25, to.Day(), "fall-back: window end must stay on the 25th, got %s", to)
+	require.Equal(t, 23, to.Hour())
+	require.Equal(t, 59, to.Minute())
+
+	// The multi-day windows take the same calendar arithmetic.
+	_, to = DefaultPlanWindow(now)
+	require.Equal(t, 27, to.Day()) // 25th + 2d future
+	_, to = TreatmentPlanWindow(now)
+	require.Equal(t, 30, to.Day()) // 25th + 5d future
+	_, to = careplan.WorkWindow(now)
+	require.Equal(t, 25, to.Day())
+	require.Equal(t, 23, to.Hour())
+}
+
+// TestPlanWindowBoundsGeneratedDays (bugs.md BUG-17): duration_days counts
+// GENERATED days — candidate days stepping every_days that pass the weekday
+// filter (§10-B3). The displayed window end must match the engine's last
+// occurrence day, not start+duration−1 calendar days.
+func TestPlanWindowBoundsGeneratedDays(t *testing.T) {
+	animal := &models.Animal{ID: 1}
+	animal.Intake.Date = time.Date(2026, 10, 5, 9, 0, 0, 0, time.Local) // Monday
+
+	// every_days=1, no weekday filter, 5 days → last generated day = Friday.
+	start, end, ok := planWindowBounds(animal,
+		`{"times":["08:00"],"duration_days":5}`)
+	require.True(t, ok)
+	require.NotNil(t, end)
+	require.Equal(t, "2026-10-05", start.Format("2006-01-02"))
+	require.Equal(t, "2026-10-09", end.Format("2006-01-02"))
+
+	// every_days=2, 3 generated days → Mon 5th, Wed 7th, Fri 9th.
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"every_days":2,"duration_days":3}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-09", end.Format("2006-01-02"))
+
+	// Weekday filter (Mon–Fri), 5 generated days from a THURSDAY intake:
+	// Thu 8th, Fri 9th, Mon 12th, Tue 13th, Wed 14th — the old calendar math
+	// claimed Mon 12th.
+	animal.Intake.Date = time.Date(2026, 10, 8, 9, 0, 0, 0, time.Local) // Thursday
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"weekdays":[1,2,3,4,5],"duration_days":5}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-14", end.Format("2006-01-02"))
+
+	// Combined: every_days=3 + weekdays Mon/Wed/Fri, 3 generated days from
+	// Mon 5th → Mon 5th, Wed 14th, Fri 23rd (Thu 8th, Sun 11th, Sat 17th,
+	// Tue 20th rejected).
+	animal.Intake.Date = time.Date(2026, 10, 5, 9, 0, 0, 0, time.Local)
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"every_days":3,"weekdays":[1,3,5],"duration_days":3}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-23", end.Format("2006-01-02"))
+
+	// Open-ended → nil end.
+	_, end, ok = planWindowBounds(animal, `{"times":["08:00"]}`)
+	require.True(t, ok)
+	require.Nil(t, end)
+}
+
 // TestTreatmentPlanWindowSurvivesEngineClamp (R3-6 regression): the §6.1
 // window cap inside BuildDayPlan must NOT truncate the R3-6 window — it
 // bounds the forward reach (max(from, now)+14d), not the total span, so a

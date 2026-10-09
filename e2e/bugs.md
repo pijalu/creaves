@@ -646,3 +646,370 @@ badge **"matches producer"**. Fix-agent unit test
 header wire format; full actions suite shows no new failures.
 
 ---
+
+---
+
+## BUG-10 (critical) — Legacy feeding rows with NULL start/end (or period-only/text-only) are never converted to care plans: feeding silently missing from the Protocol tab
+
+**Status:** OPEN → fix dispatched
+**Severity:** Critical (data loss in the care-plan world: animal shows a legacy feeding schedule/diet but NO feeding protocol exists — the animal would not be fed per plan)
+**Found by:** User report 2026-10-14 — animal `/animals/8842#nav-care`
+
+### Repro
+
+1. Animal 8842 (in care): `feeding = "15 poussins et 5 souris // EAU X8 = 120 poussins et 40 souris"`,
+   `feeding_start = NULL`, `feeding_end = NULL`, `feeding_period = 480`.
+2. Show page `#nav-care` displays "Feeding from 07:00 - 22:00, every 08:00h (2 meal(s))"
+   (phantom times: `FeedingStartFmt/FeedingEndFmt` fall back to DEF_FEEDING_START/END when NULL).
+3. Protocol tab (`#nav-plan`): **no feeding plan at all** — `care_animal_plans` has zero rows for the animal.
+
+### Root cause
+
+The startup converter (`convertFeedingSchedules`) only selects
+`outtake_id IS NULL AND feeding_period > 0 AND feeding_start IS NOT NULL AND feeding_end IS NOT NULL`.
+Animals with `feeding_period > 0` but NULL start/end — or with only a diet text — are skipped
+silently, violating the §8.1 no-loss mandate ("all replaced actions must be converted").
+
+### Expected / fix
+
+- Convert EVERY in-care animal carrying any legacy feeding info (period > 0 OR start/end set OR
+  non-empty diet text) into a per-animal feeding plan; rows without a derivable schedule get the
+  no-loss fallback slot (09:00 or legacy start) flagged "à vérifier" — same pattern as the existing
+  fallback path.
+  - Existing DBs (marker `startup_v2` already written) are covered by a new one-shot `startup_v4`
+    completion pass at boot; fresh installs get the widened query directly in the v2 step.
+
+  ### Retest result
+
+  ✅ PASS 2026-10-09 — full production-path simulation: restored `creaves-db-2026-10-08.gz` (pre-care-plan
+  schema, 10 352 animals), applied the 63 pending migrations, booted the app.
+  - v2 converter: "feeding 0 rules + 215 plans, treatments 70 plans" — every in-care animal with any
+    legacy feeding trace converted, incl. NULL-times/diet-only rows the old code skipped.
+  - v4 completion pass: "215 animals considered, 0 feeding plans created, uncovered 0" — idempotent no-op.
+  - Markers startup_v2/v3/v4 all written.
+  - Animal 8842: plan "Alimentation — 15 poussins et 5 souris // eau x8 = 120 poussins et 40… (conversion)
+    (à vérifier)", active, slot 09:00 fallback. Protocol tab (browser, FR): "Spécifique · Alimentation —
+    15 poussins et 5 souris… · Nourrissage · Actif · 2026-05-10 → ∞".
+  - `go test ./actions` green (converter fixture extended with NULL-times/diet-only/no-trace animals).
+
+---
+
+## BUG-11 (low) — Edit-form frozen-schedule hint points to "l'onglet Plan", but the tab is now named "Protocole"/"Protocol"
+
+**Status:** OPEN → fix dispatched
+**Severity:** Low (dead-end instruction: user looks for a "Plan" tab that no longer exists)
+**Found by:** User report 2026-10-14 — `/animals/8842/edit/#nav-care`
+
+### Observed
+
+`animals.feeding.legacy_frozen` = "Horaire historique (lecture seule) — le plan se gère dans l'onglet Plan de l'animal."
+The animal tab is now `t("care_plan.animal_plans.tab")` = "Protocole" (fr) / "Protocol" (en) /
+"Protokoll" (de) / "Protocol" (nl).
+
+### Fix
+
+Update `animals.feeding.legacy_frozen` in all 4 locales to name the current tab. Link target
+`#nav-plan` is unchanged (still the correct anchor).
+
+### Retest result
+
+✅ PASS 2026-10-09 — browser, `/animals/8842/edit` FR: the Protocol-tab link reads "Gérer dans l'onglet
+Protocole" (was "Plan"). Strings updated + verified in all 4 locales (en/fr/de/nl). `TestAnimalForm
+LegacyFeedingFrozenAllLocales` updated to the new wording and green in all 4 locales.
+
+---
+
+## BUG-12 (medium) — "Régime alimentaire" stage buttons always answer "Pas de guide…": feeding_guides table is empty and never seeded
+
+**Status:** OPEN → fix dispatched
+**Severity:** Medium (feature appears dead: every stage click on any species yields the empty state)
+**Found by:** User report 2026-10-14 — `/animals/8842/edit/#nav-care`
+
+### Repro
+
+1. Edit any animal → Suivis tab → click Bébé/Juvénile/Adulte/Malade.
+2. GET `/suggestions/feeding_guide?species=…&stage=…` → `{"text":""}` (table `feeding_guides` = 0 rows;
+   the table is NOT among the 7 startup-seeded reference tables, so fresh installs have no guides at all).
+3. Modal opens with "Pas de guide pour cette espèce à ce stade" — perceived as "does not do anything".
+
+### Fix
+
+Make the empty state actionable: explain that no guide is recorded for this species/stage and point
+admins to the guide management page (`/feeding_guides`, with link). JS wiring verified working in
+all 4 locales (modal opens, canonical stage values match).
+
+### Retest result
+
+✅ PASS 2026-10-09 — browser, `/animals/8842/edit` FR, clicked "Juvénile": modal now shows "Pas de guide
+pour cette espèce à ce stade. La table des régimes est vide — les guides sont de simples suggestions ;
+saisissez le régime manuellement. [Gérer les régimes]" with an admin link to `/feeding_guides`. Same
+change applied to en/de/nl templates.
+
+---
+
+## BUG-13 (medium) — Read-only legacy feeding schedule display (with phantom 07:00–22:00 defaults) instead of the actual feeding protocol
+
+**Status:** OPEN → fix dispatched
+**Severity:** Medium (misleading info: legacy schedule is frozen/uneditable and shows phantom default
+times when start/end are NULL; the real, actionable schedule lives in the animal's feeding plans)
+**Found by:** User report 2026-10-14 — "If there are no way to change the feeding time … remove the
+information … show a summary of the actual protocol feeding instead"
+
+### Fix
+
+- Show page `#nav-care` (all 4 locales): remove the legacy "Nourrissage/Feeding from…" banner +
+  `calculatePeriodRepetitions` JS; render instead a summary of the animal's ACTIVE feeding plans
+  (diet + time slots) with a link to the Protocol tab.
+- Edit form `#nav-care` (all 4 locales): remove the frozen legacy `07:00 – 22:00 · 08:00` line;
+  show the same feeding-plan summary; keep the (corrected) link to the Protocol tab.
+
+### Retest result
+
+✅ PASS 2026-10-09 — browser, `/animals/8842` `#nav-care`: phantom "Feeding from 07:00 – 22:00, every
+08:00h" banner GONE (no `bg-info` block, no `calculatePeriodRepetitions`). Replaced by a real summary:
+- FR: "Protocole d'alimentation — 15 poussins et 5 souris // eau x8 = 120 poussins et 40 souris — 09:00
+  [à vérifier] — Gérer dans l'onglet Protocole"
+- EN: "Feeding protocol — … — 09:00 [to check] — Manage in the Protocol tab"
+- DE: "Fütterungsprotokoll — … — 09:00 [zu prüfen]", NL: "Voederingsprotocol — … — 09:00 [te controleren]"
+Same summary on the edit form (all 4 locales). New shared partial
+`templates/animals/_feeding_summary.plush.html` fed by `feedingPlanSummaries()` (Show + Edit).
+`go test ./actions` green.
+
+---
+
+# Code review — feature/care-expert protocol changes (2026-10-09)
+
+Static review of the care-plan engine (`models/careplan`) and the actions layer
+(service, dayplan, fulfillment, viewmodel, animal page, converter/migration,
+HTTP handlers, routes/auth). Findings below; each carries file:line evidence.
+
+## BUG-14 (medium) — Intake-anchored rule + weekday filter: the day-1 slot filter leaks onto the first ALLOWED day
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Medium (wrong occurrences: the first matching day silently loses its early slots)
+**Found by:** Code review 2026-10-09 — `models/careplan/occurrences.go:64,80-83`
+
+### Repro (engine trace)
+
+Rule: `anchor=intake`, `weekdays=[1..5]` (Mon–Fri), `times=[07:00, 13:00, 19:00]`.
+Animal intake: **Sunday 10:00**.
+
+1. `resolveDay1` → day1=Sunday, `firstSlotStart=SlotsAfter(600)=1` (13:00 stays, 07:00 dropped).
+2. Main loop: Sunday fails `AllowsWeekday` → **skipped, `firstGeneratedDone` never set**.
+3. Monday: `firstGeneratedDone` still false → `times = Times[1:]` → **Monday gets 13:00/19:00 only; the 07:00 slot is never generated**, although day-1 anchoring was meant for Sunday (the intake calendar day) only.
+
+### Root cause
+
+`firstGeneratedDone` applies the intake-day slot filter to the first *generated*
+(weekday-passing) day, not to the intake calendar day. With a weekday filter that
+excludes the intake day, the filter shifts to the wrong day.
+
+### Expected / fix
+
+Apply the day-1 filter only when the loop day IS the intake calendar day:
+replace the flag with `firstSlotStart > 0 && sameLocalDay(loc, day, a.IntakeDate)`
+(guard `AnchorIntake` via firstSlotStart > 0, which resolveDay1 already
+guarantees for fixed anchors and offset-shifted day-1s).
+
+### Fix applied 2026-10-09
+
+`models/careplan/occurrences.go`: `firstGeneratedDone` flag removed; the day-1
+slot filter is gated on `firstSlotStart > 0 && sameLocalDay(loc, day, a.IntakeDate)`.
+Regression: `TestGenerateIntakeDay1WeekdayFilter` (models/careplan) — Sunday
+intake + Mon–Fri rule keeps Monday 07:00; Monday 10:00 intake still drops
+Monday 07:00.
+**Retest:** `go test ./models/careplan -run TestGenerate` ✅ PASS 2026-10-09.
+
+---
+
+## BUG-15 (medium) — Day-window end computed as `start.Add(24h - 1ns)`: wrong on DST transition days
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Medium (occurrences missed or double-windowed twice a year, per location)
+**Found by:** Code review 2026-10-09 — 5 sites:
+`models/careplan/next.go:154` (WorkWindow), `actions/care_plan_service.go:43`
+(TodayPlanWindow), `actions/care_plan_service.go:60` (DefaultPlanWindow),
+`actions/care_plan.go:199` (planWindowParams `to=` parse),
+`actions/care_plan_animal_page.go:214` (TreatmentPlanWindow)
+
+### Repro
+
+Europe/Paris, 2026-03-29 (spring forward, 23 h day):
+`TodayPlanWindow(now)` end = midnight + 24h−1ns = **2026-03-30 00:59:59+02:00**
+→ the "today" window leaks ~1 h into the next day; a 00:30 slot of Monday 30th
+appears in Sunday's day plan. On 2026-10-25 (fall back, 25 h day) the window
+ends at 23:59:59 of the *wall clock's* 24h — the last real hour (the repeated
+hour) is cut off: a slot at 23:30 wall time can fall outside the window.
+
+### Root cause
+
+`Add(24*time.Hour)` is an INSTANT shift, not a calendar-day shift; on DST
+transition days the local day is 23 h or 25 h long.
+
+### Expected / fix
+
+Compute the end as `AddDate(0, 0, 1).Add(-time.Nanosecond)` from the local
+midnight base (calendar arithmetic honours DST), in all 5 sites. Engine-side
+occurrence generation is calendar-based already (`time.Date(...)`), so only the
+window bounds are affected.
+
+### Fix applied 2026-10-09
+
+All 5 sites switched to `AddDate(0, 0, N+1).Add(-time.Nanosecond)` (multi-day
+windows add past+future+1 calendar days before the 1 ns step back).
+Regression: `TestPlanWindowsDST` (actions/care_plan_animal_page_r36_test.go) —
+spring-forward end stays on the 29th 23:59, fall-back on the 25th 23:59,
+multi-day windows and `careplan.WorkWindow` checked.
+**Retest:** `go test ./actions -run TestPlanWindowsDST` ✅ PASS 2026-10-09.
+
+---
+
+## BUG-16 (medium) — Latest-weight / latest-diagnostic picks are nondeterministic on same-date ties → wrong table dosage possible
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Medium (a tie silently feeds the WRONG weight into §10-B6 dosage
+computation → wrong medication dose displayed/applied)
+**Found by:** Code review 2026-10-09 — `actions/care_plan_service.go:399-417`
+(fillLastWeights), `:433-446` (fillVetDiagnostics)
+
+### Repro
+
+Two `cares` rows for one animal with the same `date` (datetime granularity is
+1 s in the schema — two weighings logged within the same second, or a backdated
+entry + a same-day correction both stamped 00:00): the
+`JOIN (SELECT animal_id, MAX(date) …)` returns BOTH rows; the `for _, r := range rows`
+loop then sets `ctx.LastWeightG` to whichever row arrives last (no ORDER BY →
+InnoDB order, effectively random per query plan). `LastWeightG` feeds
+`resolvePlanDosage` (dosage = per-grams × weight) → the caretaker can be shown /
+charged a dose computed from the superseded weighing.
+
+### Expected / fix
+
+Deterministic tie-break: `ORDER BY c.date DESC, c.id DESC` + pick the first row
+per animal (or use `MAX(date)` + `MAX(id)` window function / correlated
+subquery). Same for fillVetDiagnostics.
+
+### Fix applied 2026-10-09
+
+Both queries (`fillLastWeights`, `fillVetDiagnostics`) got
+`ORDER BY <alias>.animal_id, <alias>.created_at DESC, <alias>.id DESC` plus a
+Go-side first-row-per-animal guard (`seen` map). NOTE: the tie-break key is
+`created_at` — `cares.id` is a random UUID, not recency — and `created_at` is
+datetime (1 s precision), so ties WITHIN the same second still fall to `id`,
+but that order is now deterministic per snapshot. Caveat discovered while
+testing: pop `Create` stores `created_at` as LOCAL wall clock while time.Time
+RawQuery args are converted to UTC by go-sql-driver — rows written via raw SQL
+(converters, repairs) get UTC stamps; the tie-break is only reliable across
+same-path writes (the common case).
+Regression: `TestFillLastWeightsSameDateTie` (actions/care_plan_weight_tie_test.go)
+— same-date tie resolves to the latest inserted row repeatably (5×), a later
+date still wins regardless of insertion order.
+**Retest:** `go test ./actions -run TestFillLastWeightsSameDateTie` ✅ PASS 2026-10-09.
+
+---
+
+## BUG-17 (low) — Protocol-tab plan window text ignores every_days/weekdays: wrong end date, premature "expired"
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Low (display-only: the Protocol tab's "2026-05-10 → 2026-05-14"
+window line and the planExpired badge are wrong for stepped/filtered schedules)
+**Found by:** Code review 2026-10-09 — `actions/care_plan_animal_page.go:887-893`
+(planWindowBounds)
+
+### Repro
+
+Schedule `every_days=2, duration_days=5`, start 2026-05-10 → the engine generates
+days 10/12/14/16/18 (last day = start + 8 d, §10-B3 counts GENERATED days).
+`planWindowBounds` computes `end = start.AddDate(0,0,duration_days-1)` = 05-14 —
+4 days short; with a weekday filter the error grows up to 7×. `planExpired`
+therefore flags a still-running plan as expired once today passes the displayed
+(bogus) end.
+
+### Expected / fix
+
+Reuse the §10-B3 generated-days math (mirror of `courseHorizonDays` in
+care_plan_dayplan.go but exact, not worst-case): walk every_days steps counting
+weekday-passing days until duration_days generated days are reached.
+
+### Fix applied 2026-10-09
+
+`planWindowBounds` now walks candidate days exactly as
+`careplan.GenerateOccurrences` does (step every_days, count weekday-passing
+days, same 100000-step defensive cap) and returns the last generated day.
+Regression: `TestPlanWindowBoundsGeneratedDays` (actions/care_plan_animal_page_r36_test.go)
+— every_days=2 and Mon–Fri-filtered and combined every_days=3+weekdays cases
+match the engine's last occurrence day; open-ended stays nil.
+**Retest:** `go test ./actions -run TestPlanWindowBoundsGeneratedDays` ✅ PASS 2026-10-09.
+
+---
+
+## BUG-18 (low) — Defer clamp gives up after 30 days: sparse schedules can defer past the next occurrence
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Low (edge case: schedules with `every_days` > ~30 or very sparse
+weekday patterns let a defer resurface AFTER the next occurrence, leaving the
+item non-applicable → recordable only via the late flag)
+**Found by:** Code review 2026-10-09 — `actions/care_plan_support.go:114`
+(ClampDeferredUntil, `windowEnd := dueAt.Add(30 * 24 * time.Hour)`)
+
+### Repro
+
+Rule `every_days=45`, occurrence due today. Caretaker defers +40 days.
+`GenerateOccurrences(src, ctx, due+1s, due+30d)` finds nothing (next occurrence
+is at +45 d) → request passes unclamped → the deferred item resurfaces at +40 d
+while the occurrence is already superseded → hors-délai 409 on apply without
+`late=true`.
+
+### Expected / fix
+
+Either derive the search window from the schedule (`courseHorizonDays`-style:
+at least one full step + slack) or, simpler, walk forward until the first
+occurrence is found with a generous cap (e.g. 400 days, mirroring
+`maxOccurrenceDaySteps`).
+
+### Fix applied 2026-10-09
+
+`ClampDeferredUntil` sizes the search window from the schedule:
+`miss_after_hours + 3 × 7 × every_days` days (covers the next generated day
+even under a full-week weekday filter), floor 30 days; and when NO successor
+exists (course finished), the defer is clamped to the occurrence's own miss
+deadline (§4.3) instead of passing through unbounded.
+Regression: `TestClampDeferredUntilSparseSchedule` (45-day schedule, +50d defer
+clamps to successor − 1 min) and `TestClampDeferredUntilNoSuccessor`
+(1-day course: clamps to miss deadline) in actions/care_plan_clamp_test.go.
+**Retest:** `go test ./actions -run TestClampDeferredUntil` ✅ PASS 2026-10-09.
+
+---
+
+## BUG-19 (low) — Due-label day word mislabels occurrences on DST transition days
+
+**Status:** ✅ FIXED 2026-10-09
+**Severity:** Low (cosmetic: "today/yesterday/tomorrow" label wrong by one day
+for occurrences next to a 23 h / 25 h day boundary)
+**Found by:** Code review 2026-10-09 — `actions/care_plan_display.go:83`
+(DueLabelPartsOf: `days := int(day.Sub(today).Hours() / 24)`)
+
+### Repro
+
+Europe/Paris, now = 2026-03-29 (23 h day), occurrence due 2026-03-30 08:00:
+`day.Sub(today)` = 23 h → `int(23/24)` = 0 → rendered as **today** instead of
+tomorrow.
+
+### Expected / fix
+
+Compare calendar ordinals instead of hour deltas, e.g.
+`days := int(math.Round(day.Sub(today).Hours() / 24))` or, cleaner,
+`time.Date`-based `DaysIn`-style difference (Julian day numbers).
+
+### Fix applied 2026-10-09
+
+`DueLabelPartsOf` now counts CALENDAR days by stepping `AddDate(0, 0, ±1)`
+between the two local midnights (exact on 23 h / 25 h days); both instants are
+normalized into `now`'s location first.
+Regression: `TestDueLabelPartsOfDST` (actions/care_plan_display_test.go) —
+Mar 29 → Mar 30 and Oct 25 → Oct 26 read "tomorrow", same-day/yesterday stay
+exact on transition days.
+**Retest:** `go test ./actions -run TestDueLabelPartsOf` ✅ PASS 2026-10-09.
+
+**Full suite 2026-10-09:** `go test ./...` (all packages) ✅ PASS —
+models/careplan 0.17 s, actions 20.3 s, everything else green.

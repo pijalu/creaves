@@ -87,6 +87,29 @@ func TestGenerateIntakeDay1Anchoring(t *testing.T) {
 		"2026-09-03 07:00", "2026-09-03 19:00")
 }
 
+// bugs.md BUG-14: the day-1 slot filter belongs to the INTAKE CALENDAR DAY —
+// a weekday filter that excludes the intake day must not shift the anchoring
+// onto the first allowed day.
+func TestGenerateIntakeDay1WeekdayFilter(t *testing.T) {
+	// Mon–Fri rule, slots 07:00/13:00/19:00. Intake SUNDAY 2026-09-06 10:00:
+	// Sunday is filtered out, so the anchoring must NOT leak onto Monday —
+	// Monday keeps its 07:00 slot.
+	src := ruleSource(t, `{"times":["07:00","13:00","19:00"],"weekdays":[1,2,3,4,5]}`)
+	ws, we := day(t, "2026-09-06 00:00"), day(t, "2026-09-08 23:59")
+	a := occAnimal(day(t, "2026-09-06 10:00"), nil)
+	assertOccs(t, GenerateOccurrences(src, a, ws, we),
+		"2026-09-07 07:00", "2026-09-07 13:00", "2026-09-07 19:00",
+		"2026-09-08 07:00", "2026-09-08 13:00", "2026-09-08 19:00")
+
+	// Intake day ALLOWED by the filter: the anchoring still applies there
+	// (Monday 10:00 intake → Monday drops 07:00, keeps 13:00/19:00).
+	a = occAnimal(day(t, "2026-09-07 10:00"), nil)
+	ws = day(t, "2026-09-07 00:00")
+	assertOccs(t, GenerateOccurrences(src, a, ws, we),
+		"2026-09-07 13:00", "2026-09-07 19:00",
+		"2026-09-08 07:00", "2026-09-08 13:00", "2026-09-08 19:00")
+}
+
 // from_offset_days shifts day 1 from the anchor (§4.3).
 func TestGenerateFromOffsetDays(t *testing.T) {
 	src := ruleSource(t, `{"times":["07:00"],"from_offset_days":2}`)

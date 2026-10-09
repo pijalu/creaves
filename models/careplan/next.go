@@ -151,6 +151,9 @@ func itoa(n int) string {
 func WorkWindow(now time.Time) (from, to time.Time) {
 	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	from = dayStart.AddDate(0, 0, -1)
-	to = dayStart.Add(24*time.Hour - time.Nanosecond)
+	// bugs.md BUG-15: the day end is calendar arithmetic — Add(24h) is an
+	// INSTANT shift that lands the window inside the next day on a 23 h
+	// (spring-forward) day and cuts the last hour on a 25 h (fall-back) day.
+	to = dayStart.AddDate(0, 0, 1).Add(-time.Nanosecond)
 	return from, to
 }

@@ -1,0 +1,36 @@
+<%# Feeding protocol summary (bugs.md BUG-13) — replaces the legacy
+    "Feeding from … every Nh" banner that read the FROZEN
+    animals.feeding* columns and rendered phantom default times
+    (07:00–22:00) when the real values were NULL. The summary lists the
+    animal's ACTIVE feeding plans (care_animal_plans, kind "feeding"):
+    diet + real schedule slots, with a link to the Protocol tab where
+    feeding is actually managed. When no feeding plan exists yet, the
+    block falls back to the (corrected) pointer to the Protocol tab.
+
+    Context: animal (models.Animal), feedingPlanSummary
+    ([]actions.FeedingPlanSummary, may be nil — set by Show and Edit),
+    showHint (bool local — form passes true to keep the pointer hint when
+    no feeding plan exists yet; the show page passes false). %>
+<%= if (feedingPlanSummary != nil && len(feedingPlanSummary) > 0) { %>
+  <div class="p-2 mb-2 border rounded feeding-plan-summary">
+    <strong><i class="fa fa-cutlery" aria-hidden="true"></i> <%= t("animals.feeding.summary.title") %></strong>
+    <ul class="mb-1 pl-3">
+      <%= for (fp) in feedingPlanSummary { %>
+        <li>
+          <strong><%= fp.Diet %></strong>
+          <%= if (fp.TimesLabel != "") { %> — <i class="fa fa-clock-o" aria-hidden="true"></i> <%= fp.TimesLabel %><% } %>
+          <%= if (fp.NeedsReview) { %><span class="badge badge-warning"><%= t("animals.feeding.summary.needs_review") %></span><% } %>
+        </li>
+      <% } %>
+    </ul>
+    <a href="/animals/<%= animal.ID %>#nav-plan"><small><%= t("animals.feeding.summary.manage") %></small></a>
+  </div>
+<% } else if (showHint) { %>
+  <small class="form-text text-muted d-block mb-2">
+    <%= if (animal.ID != 0) { %>
+      <a href="/animals/<%= animal.ID %>#nav-plan"><%= t("animals.feeding.legacy_frozen") %></a>
+    <% } else { %>
+      <%= t("animals.feeding.legacy_frozen") %>
+    <% } %>
+  </small>
+<% } %>
