@@ -588,8 +588,9 @@ div.plan-med-row .plan-med-label {
 // the label wraps to its own row and stays right-aligned (the auto left
 // margin carries it to the right edge). A group that still fits keeps
 // shape A (everything on one line) — an unconditional `flex-basis: 100%`
-// would stack even at 1600 px, which is exactly the dash-med-cell override
-// and NOT the care-plan ladder.
+// would stack even at 1600 px and NOT the care-plan ladder (the
+// dash-med-cell override used to make exactly that mistake; fixed
+// 2026-10-09, user report).
 div.plan-med-row:not(.plan-item-line) .plan-med-btns {
   max-width: 100%;
 }
@@ -718,19 +719,17 @@ div.plan-med-row.plan-item-missing {
 }
 
 // ---------------------------------------------------------------------------
-// R9-3: the DASHBOARD medication cell (`.dash-med-cell`, dashboard.plush.html)
-// must STACK on a narrow cell instead of forcing one line. The compact
-// single-line rules above (`.plan-med-row .plan-med-line`,
-// `.plan-med-btns`, `.plan-med-label`) are tuned for the care-plan page's wide
-// rows and force `nowrap` + an ellipsized label; inside a dashboard `<td>`
-// that either overflows or clips the buttons. Scoped to `.dash-med-cell`
-// (higher specificity than the rules it overrides) so the care plan keeps its
-// compact one-line rows and only the dashboard re-flows:
-//   - the line WRAPS (shape B → C) instead of staying on one line;
+// R9-3: the DASHBOARD medication cell (`.dash-med-cell`, dashboard.plush.html).
+// The generic med-row ladder already fits here: ONE line — ℹ, label,
+// toggles right-aligned — when the cell is wide enough (2026-10-09 user
+// report: the former R9-3 override forced `flex: 1 1 100%` on the button
+// group, so every treatment read as two lines even in a wide cell), with
+// the same graceful fallback when it is not:
+//   - the line WRAPS instead of overflowing the table cell;
 //   - the label grows and wraps (no ellipsis clip) so it never truncates
 //     (R4-7.24 "never cut a description");
-//   - the button group wraps UNDER the label (its own line when it does not
-//     fit) instead of overflowing the cell.
+//   - the button group drops UNDER the label, still right-aligned, only
+//     when it genuinely does not fit beside it.
 .dash-med-cell .plan-med-line {
   flex-wrap: wrap;
 }
@@ -747,16 +746,12 @@ div.plan-med-row.plan-item-missing {
   margin-right: 0;
 }
 .dash-med-cell .plan-med-btns {
-  // Let the group wrap and drop to its own line under the label when the
-  // cell is too narrow (shape C), instead of forcing one row that overflows.
-  flex: 1 1 100%;
+  // The base A→B ladder (flex: 0 1 auto + auto left margin) — one line
+  // when it fits, wrapped and right-aligned when it does not. No forced
+  // full-width basis: that is what stacked every group under its label.
+  flex: 0 1 auto;
   flex-wrap: wrap;
-  justify-content: flex-end;
-  margin-left: 0;
-}
-.dash-med-cell .plan-med-cell {
-  // Buttons align left within the wrapped group (the group is full-width).
-  justify-content: flex-start;
+  margin-left: auto;
 }
 
 // Bug 2026-10-06 #4: terminal states (skipped ⊘ / deferred ⏸) and hors-délai

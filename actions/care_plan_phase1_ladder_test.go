@@ -192,20 +192,26 @@ func TestPhase1ForksByteIdentical(t *testing.T) {
 	}
 }
 
-// TestPhase1DashboardOverrideIntact (1-T7): the R9-3 dashboard medication
-// cell keeps its scoped wrap-and-grow override — the ladder rework must
-// not regress the surface that already stacked correctly.
+// TestPhase1DashboardOverrideIntact (1-T7): the dashboard medication cell
+// keeps its scoped override — the label grows and wraps (never clips) and
+// the line can wrap inside the table cell; the button group follows the
+// base A→B ladder (one line when it fits, wrapped + right-aligned when not
+// — 2026-10-09: the former forced `flex: 1 1 100%` stacked every group
+// under its label even in a wide cell, which is NOT the ladder).
 func TestPhase1DashboardOverrideIntact(t *testing.T) {
 	css := readPhase1File(t, carePlanSCSS)
 	for _, needle := range []string{
 		".dash-med-cell .plan-med-line {\n  flex-wrap: wrap;",
 		".dash-med-cell .plan-med-label {",
 		".dash-med-cell .plan-med-btns {",
-		".dash-med-cell .plan-med-cell {",
 		"text-overflow: clip;",
 	} {
 		require.Contains(t, css, needle, "dashboard override missing: "+needle)
 	}
+	// No forced stacking: a full-width basis on the group would drop every
+	// toggle under its label regardless of the available width.
+	require.NotContains(t, css, ".dash-med-cell .plan-med-btns {\n  flex: 1 1 100%;",
+		"the dashboard button group must follow the A→B ladder, not force shape C")
 	// The override stays SCOPED: no dash-med-cell rule may leak onto the
 	// bare medication classes.
 	require.NotContains(t, css, ".dash-med-cell .plan-med-row",
