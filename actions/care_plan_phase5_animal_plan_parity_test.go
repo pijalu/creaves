@@ -100,12 +100,12 @@ func TestPhase5MergeDayItemsMergesRepeats(t *testing.T) {
 		return CardView{
 			SourceType: "rule", SourceID: sourceID,
 			ActionKind: "feeding", Detail: "grenouilles",
-			Status:    status,
-			DueAt:     time.Date(2026, 10, 2, h, 0, 0, 0, time.Local),
+			Status:     status,
+			DueAt:      time.Date(2026, 10, 2, h, 0, 0, 0, time.Local),
 			Applicable: true,
-			Tier:      tierNo,
-			TierClass: tier,
-			AnimalID:  7,
+			Tier:       tierNo,
+			TierClass:  tier,
+			AnimalID:   7,
 		}
 	}
 	items := []CardView{
@@ -177,6 +177,40 @@ func TestPhase5OutOfWindowLocksNotDeadButton(t *testing.T) {
 		require.Contains(t, readTemplate(t, f),
 			`t("care_plan.animal_plans.missing", day.MissingCount)`, f,
 			"the missed-occurrences pill is kept (R4-7.2)")
+	}
+}
+
+// 5-T4c (user request, 2nd pass — lock parity): a PAST-DUE out-of-window
+// occurrence is NOT recordable at all — the record-late affordance is
+// RETIRED for every item kind (feeding included), exactly like the
+// medication slots: past-due hors délai renders the SAME 🔒 lock as a
+// future occurrence whose window has not opened yet (5-T4b).
+func TestPhase5PastDueOutOfWindowIsLocked(t *testing.T) {
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
+	past := CardView{
+		SourceType: "rule", SourceID: "s7",
+		ActionKind: "feeding", Detail: "grenouilles",
+		Status:     "late",
+		DueAt:      now.Add(-4 * time.Hour), // past due, window already closed
+		Applicable: false,
+		Tier:       0, TierClass: "btn-danger",
+		AnimalID: 7,
+	}
+	got := mergeDayItems([]CardView{past}, now)
+	require.Len(t, got, 1)
+	require.Len(t, got[0].Slots, 1)
+	require.False(t, got[0].Slots[0].Applicable, "out of window — not a plain apply")
+	require.False(t, got[0].Slots[0].LateAllowed,
+		"past-due out-of-window → 🔒 lock, the record-late affordance is retired")
+
+	// Markup: no late-record branch for single occurrences in any locale
+	// fork — the lock is the only out-of-window rendering.
+	for _, f := range phase5LineForks {
+		raw := readTemplate(t, f)
+		require.NotContains(t, raw, `} else if (card.LateAllowed) {`, f,
+			"single occurrences never get a late-record pair — past-due reaches the 🔒")
+		require.Contains(t, raw, "plan-item-locked", f,
+			"the lock is the out-of-window rendering")
 	}
 }
 

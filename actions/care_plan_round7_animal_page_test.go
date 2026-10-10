@@ -14,61 +14,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// R4-7.2 (bugs.md): on the animal Protocol tab a day whose feeding times
-// have passed without anything recorded used to list every dead row —
-// "only one apply" for a day that had four. Misses of the last 24 h now
-// leave the list and are summarised in ONE pill on the day's last row; an
-// older miss stays as history, and the count stops at 5.
-func TestAnimalDayHidesRecentMisses(t *testing.T) {
+// R4-7.2 REV (user request, 2nd pass): recent misses STAY in the day list
+// as 🔒-locked rows — the "N missed" fold is retired, so the keeper that
+// used to filter them out (dayItemsWithoutMisses) is gone. A missed
+// occurrence flows through mergeDayItems like any other out-of-window
+// item: not Applicable, not LateAllowed ⇒ the lock branch renders.
+func TestAnimalDayKeepsRecentMissesAsLockedRows(t *testing.T) {
 	now := time.Date(2026, 10, 2, 18, 0, 0, 0, time.Local)
 	day := time.Date(2026, 10, 2, 0, 0, 0, 0, time.Local)
 
 	item := func(h, m int, status careplan.PlanStatus) CardView {
 		return CardView{
-			Detail: "grenouilles",
-			Status: string(status),
-			DueAt:  day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute),
+			SourceType: "rule", SourceID: "feed-1",
+			ActionKind: "feeding",
+			Detail:     "grenouilles",
+			Status:     string(status),
+			DueAt:      day.Add(time.Duration(h)*time.Hour + time.Duration(m)*time.Minute),
 		}
 	}
 
 	items := []CardView{
-		item(8, 0, careplan.StatusMissing),   // 10 h ago — recent
-		item(10, 0, careplan.StatusMissing),  // 8 h ago — recent
-		item(2, 0, careplan.StatusScheduled), // older than 24 h? no: same day, but keep it
-		item(12, 0, careplan.StatusMissing),  // older than 24 h only if day-1
+		item(8, 0, careplan.StatusMissing),  // 10 h ago — recent miss, stays as a row
+		item(10, 0, careplan.StatusMissing), // 8 h ago — recent miss, stays as a row
+		item(12, 0, careplan.StatusMissing), // 6 h ago — same
 	}
-	// The last one is deliberately two days old: history, not "just missed".
-	items[3].DueAt = day.AddDate(0, 0, -2).Add(12 * time.Hour)
+	got := mergeDayItems(items, now)
 
-	var d AnimalTreatmentDay
-	got := dayItemsWithoutMisses(items, now, &d)
-
-	require.Len(t, got, 2, "the two recent misses leave the row list")
-	require.Equal(t, 2, d.MissingCount, "both recent misses are counted")
-	require.Equal(t, string(careplan.StatusScheduled), got[0].Status,
-		"the actionable row stays")
-	require.Equal(t, string(careplan.StatusMissing), got[1].Status,
-		"an older miss stays visible as history")
-
-	// The cap: a pile of misses never produces a 47.
-	var busy AnimalTreatmentDay
-	many := make([]CardView, 0, 9)
-	for i := 0; i < 9; i++ {
-		many = append(many, item(6+i%3, i, careplan.StatusMissing))
+	// Every miss of the day stays visible — nothing is folded into a pill.
+	require.Len(t, got, 1, "repeats of one requirement still merge into ONE line")
+	require.Len(t, got[0].Slots, 3, "one slot per missed occurrence — no row is hidden")
+	for _, s := range got[0].Slots {
+		require.False(t, s.Applicable, "a missed occurrence is not actionable")
+		require.False(t, s.LateAllowed, "the record-late affordance is retired — the 🔒 lock renders")
 	}
-	require.Empty(t, dayItemsWithoutMisses(many, now, &busy))
-	require.Equal(t, missingCountCap, busy.MissingCount, "the count stops at 5")
-
-	// A miss in the FUTURE is not a miss (clock skew, imported data): it
-	// stays as a normal row.
-	var future AnimalTreatmentDay
-	far := []CardView{item(23, 0, careplan.StatusMissing)}
-	require.Len(t, dayItemsWithoutMisses(far, now, &future), 1)
-	require.Zero(t, future.MissingCount)
-
-	// The pill reaches assistive tech through the aria-label-free markup:
-	// the template renders `care_plan.animal_plans.missing` with the count.
-	require.Equal(t, 5, missingCountCap, "the pill count is capped at 5")
 }
 
 // R4-7.2 (template): the pill renders once, beside the LAST row, and only

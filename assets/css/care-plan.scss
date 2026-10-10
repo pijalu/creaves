@@ -14,8 +14,18 @@
   // the column width (the row stays a clean grid when a slot is applied).
   min-width: 5.6rem;
 }
-.plan-med-urgent {
-  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.85);
+// Two-class selector: the slot buttons also carry Bootstrap's `.border`
+// utility, which loads AFTER this sheet and, at equal (0,1,0) specificity,
+// would reset border-bottom-width to 1px — the deeper-red edge never showed.
+button.plan-med-btn.plan-med-urgent,
+.plan-med-btn.plan-med-urgent {
+  // Rev (user request): same footprint as the sibling slots — the outer red
+  // ring is gone; the emphasis moves to a DEEPER-RED bottom edge. The 3px
+  // bottom border grows the box 2px taller than a plain btn-sm sibling
+  // (1px border), so padding-bottom pays the 2px back and every slot keeps
+  // the exact same width AND height.
+  border-bottom: 3px solid #400000;
+  padding-bottom: calc(0.25rem - 2px);
   font-weight: 600;
 }
 .plan-med-future {

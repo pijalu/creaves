@@ -137,9 +137,9 @@ func planFixtureRich(t *testing.T) (*planFixture, *http.Client, string) {
 	client, baseURL := planAdminClient(t)
 
 	now := time.Now()
-	soon := itemDueSoon(now)              // due-now tier
-	late := now.Add(-2 * time.Hour)       // late tier (past due, still open)
-	later := now.Add(26 * time.Hour)      // later tier (future, beyond today)
+	soon := itemDueSoon(now)         // due-now tier
+	late := now.Add(-2 * time.Hour)  // late tier (past due, still open)
+	later := now.Add(26 * time.Hour) // later tier (future, beyond today)
 
 	// One matcher shared by every rule below: "cage =* fixture cage".
 	md := cagedRuleMatcher(t, f)
@@ -304,6 +304,11 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //     forks already carried a (hardcoded) lang attribute, so the rendered root
 //     gains lang=<locale>; one-line delta on every kind tab, no other change
 //     (verified by the equivalence diff on re-record).
+//   - Rev 2026-10-10 (user request, 2nd pass): the medication record-late
+//     path is RETIRED — `_plan_med_toggle` loses the late confirm, the
+//     silent 409→late retry and the dosage resubmit's late flag (a past-due
+//     out-of-window slot renders the 🔒 lock now); medication-tab script
+//     delta only, other kinds 0-diff (verified on re-record).
 func TestCarePlanPhase0bDOMEquivalence(t *testing.T) {
 	f, client, baseURL := planFixtureRich(t)
 	_ = f

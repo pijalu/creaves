@@ -71,9 +71,11 @@ func TestMedSlotTiering(t *testing.T) {
 	require.Equal(t, "btn-light", byDay["02-10 09:00"].TierClass)
 }
 
-// TestMedSeriesLateSlotDominant (R4-1.2): in a late series the late slot
-// is the Urgent one (red ring) and the future sibling is Future (recedes)
-// — on EVERY surface (the shared partial), not only the care plan.
+// TestMedSeriesLateSlotDominant (R4-1.2, REV user request 2nd pass): the
+// Urgent dominance marker only lands on an ACTIONABLE slot — a 🔒-locked
+// past-due slot still places its series on the late tier but carries no
+// marker (no button to hang it on); the most urgent APPLICABLE slot is
+// dominant instead, and the later-tier siblings recede.
 func TestMedSeriesLateSlotDominant(t *testing.T) {
 	now := time.Date(2026, 10, 2, 17, 39, 0, 0, time.Local)
 	plan := testPlan()
@@ -83,11 +85,13 @@ func TestMedSeriesLateSlotDominant(t *testing.T) {
 
 	late := testItem(med, 1, careplan.StatusLate)
 	late.Occurrence.DueAt = at(1, 12)
-	late.Applicable = false
+	late.Applicable = false // out of window → 🔒
+	due := testItem(med, 1, careplan.StatusDue)
+	due.Occurrence.DueAt = at(2, 12) // applicable (testItem) — in the window
 	future := testItem(med, 1, careplan.StatusScheduled)
 	future.Occurrence.DueAt = at(3, 12)
 	future.Applicable = false
-	plan.Items = []careplan.PlanItem{late, future}
+	plan.Items = []careplan.PlanItem{late, due, future}
 
 	v := BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
 	meds := v.buildMedGroups(plan, "", false)
@@ -106,10 +110,22 @@ func TestMedSeriesLateSlotDominant(t *testing.T) {
 		}
 	}
 	require.Len(t, urgent, 1, "exactly one urgent slot per series")
-	require.Equal(t, 0, urgent[0].Tier, "the urgent slot is the late one")
-	require.Equal(t, at(1, 12), urgent[0].DueAt)
+	require.Equal(t, at(2, 12), urgent[0].DueAt,
+		"the locked late slot carries no marker — the most urgent ACTIONABLE slot is dominant")
+	require.True(t, urgent[0].Applicable, "the urgent slot is always actionable")
 	require.Len(t, fut, 1, "the future sibling recedes")
 	require.Equal(t, at(3, 12), fut[0].DueAt)
+
+	// A series with NO actionable slot at all has no urgent marker.
+	plan.Items = []careplan.PlanItem{late, future}
+	v = BuildDayPlanView(plan, ViewCompact, "", careplan.KindMedication, "", now)
+	meds = v.buildMedGroups(plan, "", false)
+	require.Len(t, meds, 1)
+	for _, row := range meds[0].Series[0].Rows {
+		for _, s := range row.Slots {
+			require.False(t, s.Urgent, "no applicable slot → no urgent marker (locked slots only)")
+		}
+	}
 }
 
 // TestMedTierBadgeCountsOccurrences (R4-1.3): the medication section
@@ -193,7 +209,12 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 		}))
 		require.NoError(t, err, f)
 
-		require.Contains(t, out, "btn-danger", f, "late slot is red")
+		// Rev (user request, 2nd pass): the past-due OUT-OF-WINDOW slot
+		// renders the 🔒 lock (no tier colour — there is no button), exactly
+		// like the item rows. Its view-model TierClass stays btn-danger
+		// (TestMedSlotTiering), the lock glyph is the rendering.
+		require.NotContains(t, out, "btn-danger", f, "an out-of-window late slot is locked, not a red button")
+		require.Contains(t, out, "🔒 12:00", f, "the lock keeps the slot's place in the series")
 		require.Contains(t, out, "btn-warning", f, "due-now slot is yellow")
 		require.Contains(t, out, "btn-light border", f, "future slot is white")
 		require.Contains(t, out, "btn-success", f, "applied slot is green")
@@ -309,6 +330,9 @@ func TestMedSeriesNoRedundantLatePill(t *testing.T) {
 		require.NotContains(t, out, `badge-warning`, f, "no status-coloured pill in the series line")
 		require.Contains(t, out, "⊘ 09:00", f, "the skipped terminal glyph survives")
 		require.Contains(t, out, "⏸ 20:00", f, "the deferred terminal glyph survives")
-		require.Contains(t, out, "btn-danger", f, "the late slot is red")
+		// Rev (user request, 2nd pass): the late out-of-window slot renders
+		// the 🔒 lock — no button, no tier colour on the page.
+		require.Contains(t, out, "🔒 12:00", f, "the late out-of-window slot is locked")
+		require.NotContains(t, out, "btn-danger", f, "no red button for a locked slot")
 	}
 }

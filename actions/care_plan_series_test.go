@@ -135,8 +135,9 @@ func TestMedSeriesSlotOrderMatchesBuckets(t *testing.T) {
 
 // TestMedSeriesPartialRenders: the shared `_med_series` partial (all four
 // locale forks) parses and renders every button state — applied (live
-// undo), open apply, late-recordable dimmed, skipped, deferred — plus the
-// bucket divider between rows of different buckets.
+// undo), open apply, past-due out-of-window locked (the record-late
+// affordance is RETIRED, user request 2nd pass), skipped, deferred — plus
+// the bucket divider between rows of different buckets.
 func TestMedSeriesPartialRenders(t *testing.T) {
 	mg := MedGroupView{
 		AnimalID:    1,
@@ -148,7 +149,7 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 				{Slots: []MedSlotView{
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "08:00", Status: "applied", Done: true, Applied: true, CanUndo: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T08:00:00+02:00"},
-					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "09:00", Status: "late", Applicable: false, LateAllowed: true,
+					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "09:00", Status: "late", Applicable: false,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T09:00:00+02:00", SourceName: "Citramox AM"},
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "10:00", Status: "scheduled", Applicable: false,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T10:00:00+02:00"},
@@ -182,14 +183,15 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		require.NoError(t, err, f)
 
 		require.Contains(t, out, "Citramox — 0.5 ml", f)
-		require.Contains(t, out, "✓ 08:00", f)            // applied, undoable
-		require.Contains(t, out, "plan-med-unapply", f)   // undo hook present (R3-5 renamed)
-		require.Contains(t, out, "data-late=\"true\"", f) // late-recordable
-		// Bug 2026-10-06 #4: the late-recordable toggle speaks the SAME ○
-		// to-do glyph as every other actionable control (no `–` anywhere).
-		require.Contains(t, out, "○ 09:00", f)        // late button (to-do glyph)
-		require.Contains(t, out, "○ 12:00", f)        // open apply
-		require.Contains(t, out, "plan-med-apply", f) // apply hook present (R3-5 renamed)
+		require.Contains(t, out, "✓ 08:00", f)          // applied, undoable
+		require.Contains(t, out, "plan-med-unapply", f) // undo hook present (R3-5 renamed)
+		// Rev (user request, 2nd pass): a past-due out-of-window slot renders
+		// the 🔒 lock like any other hors-délai slot — the record-late button
+		// (data-late) is RETIRED for medication slots.
+		require.NotContains(t, out, "data-late=\"true\"", f) // no late-record affordance
+		require.Contains(t, out, "🔒 09:00", f)               // past-due out-of-window, locked
+		require.Contains(t, out, "○ 12:00", f)               // open apply
+		require.Contains(t, out, "plan-med-apply", f)        // apply hook present (R3-5 renamed)
 		// Bug 2026-10-06 #4: terminal states are non-interactive markers at
 		// toggle size — never oversized disabled buttons.
 		require.Contains(t, out, "⊘ 12:30", f) // skipped marker
@@ -197,7 +199,7 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		require.Contains(t, out, "plan-med-state", f)
 		// Bug 2026-10-06 #5: hors délai = NO action affordance — a lock
 		// marker keeps the slot's place in the series.
-		require.Contains(t, out, "🔒 10:00", f)      // out of window, locked
+		require.Contains(t, out, "🔒 10:00", f)         // out of window, locked
 		require.Contains(t, out, "plan-med-locked", f) // lock marker hook
 		require.NotContains(t, out, ">– ", f)          // the old dimmed glyph is gone
 		require.Contains(t, out, "plan-med-bucket", f) // LABELLED bucket divider (R4-2.4)
@@ -265,10 +267,11 @@ func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
 	}
 }
 
-// TestMedSlotLateAllowed: the A1 plumbing — a past-due, unapplied,
-// non-applicable occurrence flags LateAllowed (the dimmed series button
-// records it with the late acknowledgment); future and done slots never.
-func TestMedSlotLateAllowed(t *testing.T) {
+// TestMedSlotLateAllowedRetired (user request, 2nd pass): a past-due,
+// unapplied, non-applicable med occurrence does NOT flag LateAllowed — the
+// record-late affordance is retired, the slot renders the 🔒 lock like any
+// other hors-délai slot (parity with the feeding/item rows).
+func TestMedSlotLateAllowedRetired(t *testing.T) {
 	now := time.Date(2026, 9, 28, 10, 30, 0, 0, time.Local)
 	plan := testPlan()
 	plan.Now = now
@@ -294,7 +297,7 @@ func TestMedSlotLateAllowed(t *testing.T) {
 	for _, s := range slots {
 		byTime[s.DueAtHM] = s.LateAllowed
 	}
-	require.True(t, byTime["07:00"], "past-due out-of-window: late-recordable")
+	require.False(t, byTime["07:00"], "past-due out-of-window: locked, never late-recordable")
 	require.False(t, byTime["14:00"], "future in window: normal apply")
 	require.False(t, byTime["07:30"], "done: never late-recordable")
 }

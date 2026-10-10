@@ -195,15 +195,22 @@ func TestServerKeepsRejectingFutureLateRecord(t *testing.T) {
 	require.NotEmpty(t, msg)
 }
 
-func TestMedToggleSendsLateFlagAndRetries(t *testing.T) {
+// Rev (user request, 2nd pass): the med record-late path is RETIRED — a
+// past-due out-of-window med slot renders the 🔒 lock, so the med toggle
+// JS carries no data-late confirm and NO silent 409→late retry (a stale
+// page must not bypass the lock). The item/history late path lives in
+// `_apply_toggle` (TestApplyToggleCarriesLateEndToEnd) for the superseded
+// history rows, which keep the confirm-dialog affordance.
+func TestMedToggleLatePathRetired(t *testing.T) {
 	for _, f := range careForks("_plan_med_toggle") {
 		raw, err := os.ReadFile(f)
 		require.NoError(t, err, f)
 		src := string(raw)
-		require.Contains(t, src, "data-late') === 'true' || retriedLate", f, "applySlot sends late for late-recordable slots")
-		require.Contains(t, src, "applySlot(btn, true)", f, "stale 409 retries once as a late record")
-		require.Contains(t, src, "isPastDue", f, "the retry is bounded to past-due occurrences")
-		require.Contains(t, src, "pending.late", f, "the dosage resubmit keeps the late semantics")
+		require.NotContains(t, src, "retriedLate", f, "no silent 409→late retry — locked means locked")
+		require.NotContains(t, src, "isPastDue", f, "no past-due retry bound")
+		require.NotContains(t, src, "data-late", f, "no med button carries the late flag anymore")
+		require.NotContains(t, src, "pending.late", f, "the dosage resubmit has no late semantics")
+		require.NotContains(t, src, "lateConfirm", f, "no record-late confirm dialog")
 	}
 }
 
@@ -299,14 +306,14 @@ func TestItemLineRendersMergedAnimalCell(t *testing.T) {
 		SourceName: "Traitement — Sexage", Detail: "Sexage",
 		ActionKind: "observation", AnimalID: 9866,
 		AnimalLabel: "1557/26 · Hérisson · R4", AnimalLink: "/animals/9866",
-		SourceLink:  "/animals/9866",
-		DueAt:       time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local),
-		DueHM:       "12:00", Status: "due", Applicable: true,
+		SourceLink: "/animals/9866",
+		DueAt:      time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local),
+		DueHM:      "12:00", Status: "due", Applicable: true,
 	}
 	ctx := plush.NewContextWith(map[string]interface{}{
 		"card": card, "showAnimal": true, "view": DayPlanView{MedAnimalColCh: 12},
-		"t":       func(s string, h plush.HelperContext) (string, error) { return s, nil },
-		"tbase":   func(group, field, base string, h plush.HelperContext) (string, error) { return base, nil },
+		"t":     func(s string, h plush.HelperContext) (string, error) { return s, nil },
+		"tbase": func(group, field, base string, h plush.HelperContext) (string, error) { return base, nil },
 		"tspecies": func(base interface{}, h plush.HelperContext) (string, error) {
 			if b, ok := base.(string); ok {
 				return b, nil

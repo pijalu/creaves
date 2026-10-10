@@ -124,9 +124,10 @@ func foldStaleItemSlots(slots []ItemSlotView, now time.Time) (kept, stale []Item
 	return slots, stale
 }
 
-// foldStaleMedSlots is foldStaleItemSlots' medication twin: a series'
-// record-late toggles are also actionable when non-applicable
-// (slotLateAllowed), so both actionable late shapes fold.
+// foldStaleMedSlots is foldStaleItemSlots' medication twin. Rev (user
+// request, 2nd pass): MedSlotView.LateAllowed is retired (always false —
+// a past-due out-of-window med slot renders the 🔒 lock), so only the
+// APPLICABLE late shape still folds; locked stale slots stay visible.
 func foldStaleMedSlots(slots []MedSlotView, now time.Time) (kept, stale []MedSlotView) {
 	var nearestIn time.Duration
 	hasSibling := false

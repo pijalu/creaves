@@ -144,12 +144,12 @@ type ItemSlotView struct {
 	// CARD (one animal per merged group); the cleanup cage row folds
 	// SEVERAL animals' occurrences into one time sub-group, so the slot
 	// must carry its own (phase 3 / D3).
-	AnimalID    int
-	AnimalYear  string // cage-group numbered line label
-	Status      string
-	Tier        int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
-	TierClass   string // slotTierClass(Tier) — the toggle's colour (§2.1)
-	Applicable  bool
+	AnimalID   int
+	AnimalYear string // cage-group numbered line label
+	Status     string
+	Tier       int    // 0 late · 1 now · 2 later (slotTierOf/tierOrder)
+	TierClass  string // slotTierClass(Tier) — the toggle's colour (§2.1)
+	Applicable bool
 	// Item 8: a STALE late occurrence — the group's next occurrence is
 	// nearer to now than this one. It folds into the record's "⏱ N" badge
 	// (with snooze) instead of an individual toggle, and is excluded from
@@ -339,9 +339,9 @@ type MedSeriesView struct {
 	// drop; StaleRefsJSON carries their apply refs. staleApplicable counts
 	// the folded APPLICABLE ones for MedTierOpen (unexported: counter only,
 	// never rendered).
-	StaleLateCount   int
-	StaleRefsJSON    string
-	staleApplicable  int
+	StaleLateCount  int
+	StaleRefsJSON   string
+	staleApplicable int
 	// Rev (2026-10-07, collapsible): the folded slots are ALSO kept here so
 	// the "⏱ N" badge can reveal their toggles again — the badge is a
 	// collapsible. They stay OUT of Rows (the actionable line) and out of
@@ -1023,31 +1023,48 @@ func betterTierSlot(best int, first time.Time, s MedSlotView) (int, time.Time) {
 	return best, first
 }
 
-// markSeriesUrgency flags, in place, the slot that placed the series in
-// its tier (`Urgent`) and the open later-tier siblings (`Future`) —
-// R4-1.2: within one line the urgent occurrence is visually dominant,
-// the future ones recede. The urgent slot is the earliest same-tier open
-// slot, matching betterTierSlot's choice.
+// markSeriesUrgency flags, in place, the series' most urgent ACTIONABLE
+// slot (`Urgent`) and the open later-tier siblings (`Future`) — R4-1.2:
+// within one line the urgent occurrence is visually dominant, the future
+// ones recede. Rev (user request, 2nd pass): the urgent slot is the
+// earliest APPLICABLE slot of the best actionable tier — a 🔒-locked
+// past-due slot still PLACES the series on its tier (seriesTier) but can
+// no longer carry the dominance marker (the marker only renders on an
+// apply button, and a locked slot has none).
 func markSeriesUrgency(series *MedSeriesView, tier int) {
-	// Single pass: flag every open later-tier sibling as Future and keep
-	// the EARLIEST same-tier open slot — the exact one betterTierSlot used
-	// to place the series (ties: first encountered).
+	// Pass 1: the EARLIEST applicable slot of the best actionable tier
+	// (ties: first encountered) — the dominance marker only renders on an
+	// apply button, so a 🔒-locked slot can never carry it.
 	var urgent *MedSlotView
+	urgentTier := 3
 	for ri := range series.Rows {
 		for si := range series.Rows[ri].Slots {
 			s := &series.Rows[ri].Slots[si]
-			if s.Done || s.Overridden {
+			if s.Done || s.Overridden || !s.Applicable {
 				continue
 			}
-			if s.Tier > tier {
-				s.Future = true
-			} else if s.Tier == tier && (urgent == nil || s.DueAt.Before(urgent.DueAt)) {
-				urgent = s
+			if s.Tier < urgentTier || (s.Tier == urgentTier && (urgent == nil || s.DueAt.Before(urgent.DueAt))) {
+				urgent, urgentTier = s, s.Tier
 			}
 		}
 	}
-	if urgent != nil {
-		urgent.Urgent = true
+	if urgent == nil {
+		return // no actionable slot: nothing to mark (all locked/terminal)
+	}
+	urgent.Urgent = true
+	// Pass 2: the open later-tier siblings recede — later than the URGENT
+	// tier (the actionable one), not the placement tier: a series placed
+	// on the late tier by a locked slot keeps its due-now slot dominant.
+	for ri := range series.Rows {
+		for si := range series.Rows[ri].Slots {
+			s := &series.Rows[ri].Slots[si]
+			if s.Done || s.Overridden || s == urgent {
+				continue
+			}
+			if s.Tier > urgentTier {
+				s.Future = true
+			}
+		}
 	}
 }
 
@@ -2321,13 +2338,11 @@ func (v *DayPlanView) buildMedGroups(plan *DayPlan, zone string, todayOnly bool)
 	return out
 }
 
-// slotLateAllowed reports whether an occurrence is late-recordable
-// (§6.2-2, A1): past-due, unapplied, out of the apply window — the
-// dimmed series button stays clickable for the late record.
-func slotLateAllowed(now time.Time, slot MedSlotView, it *careplan.PlanItem) bool {
-	return !slot.Done && !slot.Applicable && !slot.Overridden &&
-		it.Occurrence.DueAt.Before(now)
-}
+// slotLateAllowed: RETIRED (user request, 2nd pass) — a past-due
+// out-of-window medication occurrence is LOCKED (🔒, §10-A1), not
+// late-recordable; the same rule the item kinds follow. The apply
+// endpoint still accepts an explicit late:true for the superseded
+// history rows (§6.2-1), which are a different surface.
 
 // medSlotFor projects one medication plan item into the togglable
 // MedSlotView shared by the care plan, the dashboard and the animal
@@ -2353,7 +2368,8 @@ func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
 		SourceLink: cardSourceLink(string(src.SourceType()), src.SourceID(), it.Occurrence.AnimalID, back),
 	}
 	slot.Done = slot.Applied || it.Status == careplan.StatusSkipped || it.Status == careplan.StatusDeferred
-	slot.LateAllowed = slotLateAllowed(now, slot, it)
+	// LateAllowed stays false: a past-due out-of-window med slot renders
+	// the 🔒 lock (user request, 2nd pass — same rule as the item kinds).
 	slot.Tier = slotTierOf(slot, it.Status)
 	slot.TierClass = slotTierClass(slot.Tier)
 	if app := it.Application; app != nil {
@@ -2722,6 +2738,9 @@ func itemSlotFor(now time.Time, it *careplan.PlanItem) ItemSlotView {
 	}
 	slot.Tier = tierOrder(it.Status)
 	slot.TierClass = slotTierClass(slot.Tier)
+	// Rev (user request, 2nd): the record-late affordance is RETIRED for
+	// item kinds too — only an in-window past-due occurrence keeps it;
+	// out-of-window renders the 🔒 lock (same rule as medication now).
 	slot.LateAllowed = it.Applicable && it.Occurrence.DueAt.Before(now)
 	return slot
 }

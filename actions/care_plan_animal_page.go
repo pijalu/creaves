@@ -247,42 +247,17 @@ type AnimalTreatmentDay struct {
 	// on animals/10312: 7 day cards, badge 3, zero rows). The Protocol tab
 	// renders both halves and keeps OpenCount.
 	MedOpenCount int
-	// MissingCount counts the occurrences of the day already past due
-	// with nothing recorded (status missing) INSIDE the last 24 h: those
-	// rows are no longer actionable, so they leave the list and the
-	// caregiver gets ONE pill with their number on the day's last row
-	// (R4-7). Older misses stay visible as history; the count stops at
-	// missingCountCap — past that the exact number stops being information.
+	// MissingCount: RETIRED (user request, 2nd pass) — always 0. Missed
+	// occurrences stay in the day list as 🔒-locked rows instead of
+	// folding into the "N missed" pill; the field (and the pill markup in
+	// the show forks, which never renders at 0) is kept so the templates
+	// and their pins keep compiling.
 	MissingCount int
 }
 
-// missingCountCap bounds the "N missed" pill.
-const missingCountCap = 5
-
-// missingWindow bounds which misses the pill summarises: the last 24 h.
-// Anything older is history, not "what did I just miss".
-const missingWindow = 24 * time.Hour
-
-// dayItemsWithoutMisses splits the day's compact rows: a MISSED
-// occurrence (past due, nothing recorded) inside the last 24 h is not
-// actionable any more — the apply window has closed — so it leaves the
-// list and only raises MissingCount, which the template renders as ONE
-// pill on the last remaining row. Every other row (including older
-// misses, kept as history) stays.
-func dayItemsWithoutMisses(items []CardView, now time.Time, day *AnimalTreatmentDay) []CardView {
-	cutoff := now.Add(-missingWindow)
-	out := make([]CardView, 0, len(items))
-	for _, it := range items {
-		if it.Status == string(careplan.StatusMissing) && !it.DueAt.Before(cutoff) && !it.DueAt.After(now) {
-			if day.MissingCount < missingCountCap {
-				day.MissingCount++
-			}
-			continue
-		}
-		out = append(out, it)
-	}
-	return out
-}
+// dayItemsWithoutMisses: REMOVED (user request, 2nd pass) — missed
+// occurrences of the last 24 h stay in the day list as 🔒-locked rows
+// instead of folding into the "N missed" pill.
 
 // animalTreatmentDays folds the engine plan into per-day medication
 // series for ONE animal (R3-6): every occurrence of the window lands in
@@ -379,9 +354,9 @@ func animalTreatmentDayFor(key, today string, now, date time.Time, slots []MedSl
 		},
 		Items: items,
 	}
-	// R4-7: recent misses leave the list (they can no longer be applied);
-	// their number rides on the day's last row as one pill.
-	d.Items = dayItemsWithoutMisses(d.Items, now, &d)
+	// Rev (user request, 2nd pass): recent misses STAY in the list as
+	// 🔒-locked rows (a missed occurrence is information at its place in
+	// the day, not just a count) — the R4-7.2 filter-and-pill fold is gone.
 	// Phase 5 / D5 (§3.1): repeats of the same requirement merge into ONE
 	// line with one tier-coloured toggle per open occurrence.
 	d.Items = mergeDayItems(d.Items, now)

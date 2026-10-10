@@ -782,8 +782,7 @@
   var csrf = document.querySelector('meta[name="csrf-token"]').content;
   var i18n = {
     errorTitle: "Something went wrong",
-    lastWeight: "Last recorded weight",
-    lateConfirm: "Record this missed occurrence after the fact?"
+    lastWeight: "Last recorded weight"
   };
   var pending = null;
 
@@ -827,8 +826,7 @@
   function flipTo(btn, applied) { window.planSetToggleState(btn, applied); }
 
   function showDosageDialog(ref, warn, btn) {
-    // Bug 2026-10-06 #5: the dosage resubmit keeps the slot's late semantics.
-    pending = {ref: ref, btn: btn || null, late: !!(btn && btn.getAttribute('data-late') === 'true')};
+    pending = {ref: ref, btn: btn || null};
     document.getElementById('planMedDosageDetail').textContent = warn.detail || '';
     var wBox = document.getElementById('planMedDosageWeight');
     if (warn.last_weight) {
@@ -843,27 +841,16 @@
     $('#planMedDosageModal').modal('show');
   }
 
-  // Bug 2026-10-06 #5: an occurrence that went hors délai between render and
-  // click (the auto-refresh holds off, but the page can still be stale) is
-  // PAST-DUE work the caregiver just confirmed — record it late instead of
-  // surfacing the §10-A1 409. Future-due refs stay unrecordable (the server
-  // keeps that bound; lateRecordAllowed rejects late on future-due).
-  function isPastDue(ref) {
-    var due = Date.parse(ref.dueAt);
-    return !isNaN(due) && due <= Date.now();
-  }
-  function applySlot(btn, retriedLate) {
+  // Rev (user request, 2nd pass): the silent 409→late-record retry is
+  // RETIRED for medication slots — an occurrence that went hors délai
+  // between render and click is LOCKED work, not implicitly confirmed
+  // late work; the 409 surfaces the §10-A1 error and the next auto-refresh
+  // swaps the button for the 🔒 lock.
+  function applySlot(btn) {
     var ref = btnRef(btn);
     btn.disabled = true;
-    var extra = null;
-    if (btn.getAttribute('data-late') === 'true' || retriedLate) { extra = { late: true }; }
-    applyCall(ref, extra).then(function (res) {
+    applyCall(ref, null).then(function (res) {
       if (res.status === 201) { flipTo(ref.btn, true); return; }
-      if (res.status === 409 && !retriedLate && isPastDue(ref)) {
-        // confirm ⇒ execute: one late-record retry, no error dialog.
-        applySlot(btn, true);
-        return;
-      }
       btn.disabled = false;
       if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
         showDosageDialog(ref, res.body, btn);
@@ -895,8 +882,7 @@
 
   // Delegated listener: covers buttons rendered after page load and
   // in-place flips without rebinding. The dispatch reads the CURRENT
-  // classes. The dimmed late button (data-late, §6.2-2) records the
-  // missed occurrence behind ONE confirmation.
+  // classes.
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest ? ev.target.closest('.plan-med-slot') : null;
     if (!btn) { return; }
@@ -906,7 +892,6 @@
     if (btn.classList.contains('plan-med-unapply')) { unapplySlot(btn); return; }
     if (btn.disabled) { return; }
     if (!btn.classList.contains('plan-med-apply')) { return; }
-    if (btn.getAttribute('data-late') === 'true' && !window.confirm(i18n.lateConfirm)) { return; }
     applySlot(btn);
   });
 
@@ -916,7 +901,6 @@
     if (!dosage) { return; }
     var ref = pending.ref;
     var extra = {dosage: dosage};
-    if (pending.late) { extra.late = true; }
     applyCall(ref, extra).then(function (res) {
       if (res.status === 201) {
         $('#planMedDosageModal').modal('hide');

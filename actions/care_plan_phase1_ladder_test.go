@@ -154,7 +154,8 @@ func TestPhase1BucketCaptionGate(t *testing.T) {
 // TestPhase1UndoRestoresTierClass (1-T5): markOpen → setToggleState(false)
 // restores the slot's ORIGINAL tier class from data-tier-class (§2.4) —
 // never a hardcoded btn-warning — and every LIVE med toggle variant
-// (applicable / late-recordable / applied-undoable) carries the attribute.
+// (applicable / applied-undoable — the late-recordable variant is RETIRED,
+// user request 2nd pass) carries the attribute.
 func TestPhase1UndoRestoresTierClass(t *testing.T) {
 	js := readPhase1File(t, "../templates/care_plan/_apply_toggle.plush.html")
 	require.Contains(t, js, "var tier = btn.getAttribute('data-tier-class')",
@@ -174,8 +175,8 @@ func TestPhase1UndoRestoresTierClass(t *testing.T) {
 			live++
 		}
 	}
-	require.GreaterOrEqual(t, live, 3, "applicable, late and applied variants all render")
-	require.GreaterOrEqual(t, strings.Count(toggle, `data-tier-class="<%= slot.TierClass %>"`), 3,
+	require.GreaterOrEqual(t, live, 2, "applicable and applied variants all render (late variant retired)")
+	require.GreaterOrEqual(t, strings.Count(toggle, `data-tier-class="<%= slot.TierClass %>"`), 2,
 		"every live variant carries its original tier class")
 }
 
