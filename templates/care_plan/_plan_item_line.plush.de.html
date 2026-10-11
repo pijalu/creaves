@@ -35,10 +35,11 @@
 
     Terminal single rows (Phase 5 / D5 — the animal page's per-day list
     interleaves done work with open work): an applied card renders the
-    green done badge doubling as the fulfillment-record link (R4-7.11b);
-    skipped/deferred render their status badge; a missed occurrence past
-    its apply window renders the 🔒 lock (§10-A1 hors délai) instead of a
-    dead action slot.
+    green ✓ UNDO toggle (BUG-22 — clicking it untoggles via the shared
+    confirm modal; the R4-7.11b fulfillment-record link survives as a
+    sibling, never instead of the toggle); skipped/deferred render their
+    status badge; a missed occurrence past its apply window renders the
+    🔒 lock (§10-A1 hors délai) instead of a dead action slot.
 
     §3.4 input kinds: weighing/observation toggles open the shared apply
     modal (the button carries data-kind + data-detail per occurrence); the
@@ -217,15 +218,36 @@
             data-mode="defer"
             data-animal-label="<%= card.AnimalLabel %>" data-detail="<%= card.Detail %>">🚫</button>
         <% } else if (card.Status == "applied") { %>
-          <%# R4-7.11b: the DONE badge doubles as the door to the record
-              that was actually logged (feeding / care); back= returns to
-              the calling page. No fulfillment (or deleted) ⇒ a plain
-              badge, never a dead link. %>
+          <%# BUG-22 (2026-10-28): the applied state is a REAL UNDO TOGGLE,
+              not a "done" link — the user directive: buttons are toggles,
+              clicking the green ✓ untoggles (the shared JS asks the confirm
+              modal, POSTs /care_plan/unapply with delete_fulfillment:true
+              and flips back in place, no reload). The apply half renders
+              d-none so the pair contract (btn.parentNode.querySelector)
+              holds for BOTH directions. The view-record link (R4-7.11b)
+              survives as a SIBLING — never instead of the toggle. %>
+          <button type="button" class="btn <%= card.TierClass %> btn-sm ml-1 plan-item-btn plan-apply-btn d-none"
+            data-source-type="<%= card.SourceType %>"
+            data-source-id="<%= card.SourceID %>"
+            data-animal-id="<%= card.AnimalID %>"
+            data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+            data-kind="<%= card.ActionKind %>"
+            data-tier-class="<%= card.TierClass %>"
+            data-animal-label="<%= card.AnimalLabel %>"
+            data-detail="<%= card.Detail %>"
+            data-source-name="<%= card.SourceName %>"
+            title="<%= t("care_plan.apply.action") %>">○ <%= card.DueHM %></button>
+          <button type="button" class="btn btn-success btn-sm ml-1 plan-item-btn plan-unapply-btn"
+            data-source-type="<%= card.SourceType %>"
+            data-source-id="<%= card.SourceID %>"
+            data-animal-id="<%= card.AnimalID %>"
+            data-due-at="<%= card.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+            data-kind="<%= card.ActionKind %>"
+            data-tier-class="<%= card.TierClass %>"
+            title="<%= t("care_plan.action.undo") %>">✓ <%= card.DueHM %></button>
           <%= if (card.FulfillmentLink != "") { %>
-            <a class="badge badge-success plan-item-view" href="<%= card.FulfillmentLink %>"
-              title="<%= t("care_plan.animal_plans.view_record") %>" aria-label="<%= t("care_plan.animal_plans.view_record") %>"><%= t("care_plan.status.done") %> <i class="fas fa-external-link-alt"></i></a>
-          <% } else { %>
-            <span class="badge badge-success"><%= t("care_plan.status.done") %></span>
+            <a class="badge badge-success plan-item-view ml-1" href="<%= card.FulfillmentLink %>"
+              title="<%= t("care_plan.animal_plans.view_record") %>" aria-label="<%= t("care_plan.animal_plans.view_record") %>"><i class="fas fa-external-link-alt"></i></a>
           <% } %>
           <%= if (card.RecordedLate) { %>
             <span class="ml-1" title="<%= t("care_plan.treatment.record_late") %>">⏱</span>

@@ -522,6 +522,11 @@
   .plan-feed-animals { width: auto; min-width: 0; }
   .plan-feed-check, .plan-cage-apply { text-align: right; }
   .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  /* BUG-24 (2026-10-28): the multi-animal CAGE branch stacks one
+     .plan-animal-row per line — the base flex rule (label + slots
+     side by side, group=animal layout) would pack the animals on
+     one wrapping line. */
+  .plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }
   .plan-care-slots .plan-time-label { flex: 1 1 auto; }
   .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
   @media (max-width: 991.98px) { .plan-loc, .plan-med-animal .plan-loc { display: none; } }
@@ -977,6 +982,53 @@
           </div>
         </div>
       </div>
+      <div aria-hidden="true" class="modal fade" id="planUnapplyModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Undo the application?"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-2">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8" id="planUnapplyAnimal">
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planUnapplyDetail">
+                  </span>
+                  <br>
+                  </br>
+                  <small class="text-muted" id="planUnapplySource">
+                  </small>
+                </dd>
+              </dl>
+              <div class="alert alert-warning small mb-0">
+                "The recorded entry (care, feeding, weighing…) will be deleted. This cannot be undone."
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-warning" id="planUnapplySubmit" type="button">
+                "Yes, undo it"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div aria-hidden="true" class="modal fade" id="planMessageModal" role="dialog" tabindex="-1">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
@@ -1228,28 +1280,12 @@
   }
   window.planSetToggleState = setToggleState;
 
-  // Animal-page convergence (bug 2026-10-08 #1): the day plan re-renders
-  // itself every 60 s and the dashboard owns its table, but the ANIMAL page
-  // has no auto-refresh — a protocol apply/unapply left the server-rendered
-  // Care/Treatment tabs and the day-card badges stale until a manual
-  // reload. After an in-place flip, schedule ONE short-delay reload: the ✓
-  // stays visible (the re-render shows the same applied state), then every
-  // server-rendered view converges. Day plan / dashboard pages have no
-  // #nav-plan element — the guard makes this a no-op there.
-  var animalConvergeTimer = null;
-  function scheduleAnimalConvergeReload() {
-    if (!document.getElementById('nav-plan')) { return; }
-    if (animalConvergeTimer) { clearTimeout(animalConvergeTimer); }
-    animalConvergeTimer = setTimeout(function tick() {
-      // A modal or an in-flight request wins: re-arm instead of reloading
-      // under it — the next flip or settle re-schedules.
-      if ((window.jQuery && jQuery('.modal').is(':visible')) || busy()) {
-        animalConvergeTimer = setTimeout(tick, 800);
-        return;
-      }
-      window.location.reload();
-    }, 1200);
-  }
+  // BUG-22 (2026-10-28): the animal-page convergence timer of bug
+  // 2026-10-08 #1 (a forced window.location.reload 1.2 s after every
+  // toggle flip on #nav-plan) is REMOVED — user directive: no full-page
+  // refresh after a toggle; the in-place flip is the source of truth.
+  // Server-rendered siblings (Care / Treatment tabs, day-card badges)
+  // converge on the next natural page load instead.
 
   // Delegated (R4-2.2): one listener covers every page that includes this
   // partial — the work screen, the dashboard and the animal tabs — and
@@ -1280,7 +1316,7 @@
     if (btn.getAttribute && btn.getAttribute('data-late') === 'true') { extra = { late: true }; }
     else if (retriedLate) { extra = { late: true }; }
     applyItem(ref, extra).then(function (res) {
-      if (res.status === 201) { markApplied(ref); scheduleAnimalConvergeReload(); return; }
+      if (res.status === 201) { markApplied(ref); return; }
       if (res.status === 409 && !retriedLate && isPastDue(ref)) {
         instantApply(btn, true);
         return;
@@ -1294,28 +1330,76 @@
     });
   }
 
-  // In-place undo (R3-2): same /care_plan/unapply call as the history
-  // undo, but flips the row's toggle back instead of reloading.
+  // BUG-22 (2026-10-28): the pair-family undo asks ONE confirmation via
+  // the shared #planUnapplyModal (the click DELETES the fulfillment
+  // record) — the user directive allows a confirm on untoggle. Med slots
+  // (.plan-med-slot) keep their no-confirm instant undo in
+  // _plan_med_toggle (existing accepted behaviour).
+  var unapplyRef = null;
   document.addEventListener('click', function (ev) {
     var btn = ev.target.closest ? ev.target.closest('.plan-unapply-btn') : null;
     if (!btn || btn.disabled) { return; }
-    instantUnapply(btn);
+    openUnapply(btn);
   });
 
-  function instantUnapply(btn) {
+  // openUnapply fills the shared confirm modal from the clicked undo
+  // button; the label/detail attributes live on the APPLY sibling (the
+  // undo half renders only the ref attributes), so read them from
+  // pairApply(btn) first. batch=true marks a cage/feeding GROUP undo
+  // (wired by the index page): the submit loops over every applied chip
+  // of the row instead of a single ref.
+  function openUnapply(btn, batch) {
+    var sib = pairApply(btn);
+    // Cage/feeding GROUP undo buttons carry no apply sibling — fall back to
+    // the group's own cage/food labels so the confirm modal names the row.
+    var label = (sib && sib.getAttribute('data-animal-label')) || btn.getAttribute('data-animal-label') || btn.getAttribute('data-cage') || '';
+    var detail = (sib && sib.getAttribute('data-detail')) || btn.getAttribute('data-detail') || btn.getAttribute('data-food') || '';
+    var source = (sib && sib.getAttribute('data-source-name')) || btn.getAttribute('data-source-name') || '';
+    unapplyRef = {btn: btn, batch: !!batch};
+    document.getElementById('planUnapplyAnimal').textContent = label;
+    document.getElementById('planUnapplyDetail').textContent = detail;
+    document.getElementById('planUnapplySource').textContent = source;
+    $('#planUnapplyModal').modal('show');
+  }
+
+  document.getElementById('planUnapplySubmit').addEventListener('click', function () {
+    if (!unapplyRef) { return; }
+    var ref = unapplyRef;
+    unapplyRef = null;
+    this.disabled = true;
+    var submitBtn = this;
+    var done = function () {
+      submitBtn.disabled = false;
+      $('#planUnapplyModal').modal('hide');
+    };
+    if (ref.batch && window.planUnapplyBatch) {
+      // Cage/group undo (BUG-22): the index page owns the per-chip loop;
+      // it flips each chip back through setToggleState.
+      window.planUnapplyBatch(ref.btn).then(done);
+      return;
+    }
+    instantUnapply(ref.btn, done);
+  });
+
+  // instantUnapply performs the confirmed single-occurrence undo: POST the
+  // unapply (deleting the fulfillment record, BUG-22) and flip the pair
+  // back to its apply check on success. Named so the refresh-floor guard
+  // (and its pin test) can audit that the action time is recorded.
+  function instantUnapply(btn, done) {
     markAction();
-    var ref = btnRef(btn);
+    var r0 = btnRef(btn);
     btn.disabled = true;
     track(fetch('/care_plan/unapply', {
       method: 'POST', credentials: 'same-origin',
       headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
       body: JSON.stringify({
-        source_type: ref.sourceType, source_id: ref.sourceId,
-        animal_id: ref.animalId, due_at: ref.dueAt,
+        source_type: r0.sourceType, source_id: r0.sourceId,
+        animal_id: r0.animalId, due_at: r0.dueAt,
         delete_fulfillment: true
       })
     })).then(function (r) {
-      if (r.status === 200) { markOpen(ref); scheduleAnimalConvergeReload(); return; }
+      done();
+      if (r.status === 200) { markOpen(r0); return; }
       btn.disabled = false;
       r.json().then(function (j) {
         showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
@@ -1370,7 +1454,6 @@
           // R5-2c: no reload — flip the originating button in place.
           $('#planApplyModal').modal('hide');
           markApplied(ref);
-          scheduleAnimalConvergeReload();
           return;
         }
         $('#planApplyModal').modal('hide');
@@ -1552,7 +1635,7 @@
       if (res.status === 201) {
         // R5-2c: no reload — flip the originating button in place.
         $('#planDosageModal').modal('hide');
-        if (ref.btn) { markApplied(ref); scheduleAnimalConvergeReload(); } else { window.location.reload(); }
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
         return;
       }
       var box = document.getElementById('planDosageError');
@@ -1616,6 +1699,7 @@
     csrf: csrf, i18n: i18n, track: track, busy: busy,
     applyItem: applyItem, showMessage: showMessage, markApplied: markApplied,
     markAction: markAction, setToggleState: setToggleState,
+    openUnapply: openUnapply, pairUndo: pairUndo,
     pending: function () { return pending; }
   };
 })();"
@@ -1850,7 +1934,12 @@
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
-    btn.addEventListener('click', function () { openBatch(btn); });
+    btn.addEventListener('click', function () {
+      // BUG-22: a flipped button (green ✓ group-undo) never re-opens the
+      // apply modal — the .plan-cage-undo delegated handler owns it.
+      if (btn.classList.contains('plan-cage-undo')) { return; }
+      openBatch(btn);
+    });
   });
 
   document.getElementById('planBatchSubmit').addEventListener('click', function () {
@@ -1872,15 +1961,100 @@
   });
 
   // flipBatchRow marks every applicable chip of the batch row as applied
-  // (check → undo) and hides the exhausted global apply button.
+  // (check → undo). BUG-22 (2026-10-28): the group button does NOT
+  // disappear — it flips to a green ✓ group-UNDO toggle; clicking it asks
+  // the shared #planUnapplyModal confirm and undoes the whole row.
   function flipBatchRow(btn) {
     var row = btn.closest('tr');
     if (!row) { window.location.reload(); return; }
     Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
       markApplied({btn: b});
     });
-    btn.classList.add('d-none');
+    setBatchState(btn, true);
   }
+
+  // setBatchState flips the group apply button between its ○ apply look
+  // (tier colour, opens the batch modal) and its ✓ applied look (green,
+  // opens the undo confirm). The direct click binding below checks the
+  // class, so a flipped button never re-opens the apply modal.
+  function setBatchState(btn, applied) {
+    if (applied) {
+      // Capture the tier colour ONCE (first flip) so undo restores it.
+      if (!btn.getAttribute('data-tier-class')) {
+        var tier = [];
+        ['btn-warning', 'btn-danger', 'btn-light', 'border'].forEach(function (c) {
+          if (btn.classList.contains(c)) { tier.push(c); }
+        });
+        btn.setAttribute('data-tier-class', tier.join(' ') || 'btn-warning');
+      }
+      btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border');
+      btn.classList.add('btn-success', 'plan-cage-undo');
+      btn.textContent = btn.textContent.replace('○', '✓');
+      var pill = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill) { pill.classList.add('d-none'); }
+    } else {
+      btn.classList.remove('btn-success', 'plan-cage-undo');
+      (btn.getAttribute('data-tier-class') || 'btn-warning').split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+      btn.textContent = btn.textContent.replace('✓', '○');
+      var pill2 = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill2) { pill2.classList.remove('d-none'); }
+    }
+    btn.disabled = false;
+  }
+
+  // Group undo (BUG-22): one confirm via the shared modal, then every
+  // applied chip of the row is unapplied (the fulfillment records are
+  // deleted) and flipped back in place; the group button returns to ○.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-cage-undo') : null;
+    if (!btn || btn.disabled) { return; }
+    planApply.openUnapply(btn, true);
+  });
+
+  // BUG-22 live-E2E retest 2026-10-28: the previous version looked the
+  // chips up in the ROW — but single-animal cage rows render NO per-animal
+  // pair (R4-7.5: the group check does the whole job) and the Done tier
+  // renders link-only chips, so the loop matched ZERO elements: no POST,
+  // a purely cosmetic flip, and the records stayed applied after reload.
+  // Iterate the button's data-items refs instead — the same payload
+  // runBatch applies — and flip a rendered chip pair only when it exists.
+  window.planUnapplyBatch = function (btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    var row = btn.closest('tr');
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/unapply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type,
+            source_id: ref.source_id,
+            animal_id: parseInt(ref.animal_id, 10),
+            due_at: ref.due_at,
+            delete_fulfillment: true
+          })
+        })).then(function (r) {
+          if (r.status === 200) {
+            if (row) {
+              var chip = row.querySelector('.plan-unapply-btn[data-animal-id="' + ref.animal_id + '"][data-due-at="' + ref.due_at + '"]:not(.d-none)');
+              if (chip) { planApply.setToggleState(chip, false); }
+            }
+            return;
+          }
+          failures.push(ref.due_at + ': HTTP ' + r.status);
+        });
+      });
+    });
+    return chain.then(function () {
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        setBatchState(btn, false);
+      }
+    });
+  };
 
   // Render recorded completion times in the viewer's browser locale/timezone.
   Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {

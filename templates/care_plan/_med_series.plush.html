@@ -22,9 +22,12 @@
     regardless of label length. Its title stays localized; the ℹ glyph is
     language-neutral and is never translated.
 
-    R4-2.4: the morning/noon/evening grouping is EXPLICIT — each bucket
-    divider carries its localized label (care_plan.slot.*), instead of an
-    unlabelled rule. The buttons themselves flow in ONE right-aligned group.
+    Divider rule (user request 2026-10-28): the ONLY splitter between a
+    series' buttons is a CALENDAR-DATE group — the divider carries the
+    row's date (row.DividerLabel). A same-day time-of-day bucket change
+    (matin/soir) NEVER splits the buttons: they flow in ONE right-aligned
+    wrapping group. The per-slot title already names the time-of-day
+    bucket.
 
     R4-1.1: button colour = the slot's urgency tier (late red · due-now
     yellow · future white · applied green); the glyph (○/✓/⊘/⏸/–) and the
@@ -78,26 +81,27 @@
           </span>
           <%= for (slot) in series.StaleSlots { %>
             <span class="plan-med-cell plan-stale-slot d-none">
-              <%= if (slot.Slot != "tomorrow" && slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.Slot != "tomorrow" && slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
               <%= partial("care_plan/plan_slot_toggle.plush.html") %>
             </span>
           <% } %>
         <% } %>
         <%= for (ri, row) in series.Rows { %>
-          <%# R4-2.4: the bucket change is LABELLED, not implied by an
-              empty rule — the morning/noon/evening grouping is explicit.
-              R9-3: on the DASHBOARD (medSeriesCompact) the label is noise
+          <%# Divider rule (user request 2026-10-28): a splitter appears ONLY
+              at a CALENDAR-DATE change — the caption is the row's date
+              (row.DividerLabel), never a matin/midi/soir bucket name.
+              R9-3: on the DASHBOARD (medSeriesCompact) the caption is noise
               on a single line — the buttons flow without it. %>
           <%= if (row.DividerBefore && !medSeriesCompact) { %>
             <%# Phase 1 / D1 (guideline §6.2): the caption band separates
                 BUTTON ROWS of a stacked series — it is NEVER inline between
                 two buttons of one row (its `flex: 1 0 100%` forces a fresh
                 row) and it is HIDDEN when the whole series fits one row
-                (the slot title already carries the bucket name): the
+                (every non-today slot carries its own day badge): the
                 bucket-fit JS in `_apply_toggle` measures each group and
                 hides the captions of a non-stacked group. No-JS fallback:
                 captions visible on their own rows — safe, never inline. %>
-            <div class="plan-med-bucket"><%= t("care_plan.slot." + row.Slots[0].Slot) %></div>
+            <div class="plan-med-bucket"><%= row.DividerLabel %></div>
           <% } %>
           <%= for (slot) in row.Slots { %>
             <%# R3-5: a series spans several days — slots not due today
@@ -105,10 +109,13 @@
                 button (outside it: the toggle JS rewrites the button
                 text on apply/undo, the badge stays). %>
             <span class="plan-med-cell">
-              <%# Rev: the "tomorrow" bucket divider ALREADY says the day —
-                  its slots skip the per-slot day badge, which used to print
-                  the same word twice ("Tomorrow tomorrow"). %>
-              <%= if (slot.Slot != "tomorrow" && slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.Slot != "tomorrow" && slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%# The day qualifier is the ONLY day cue a non-today slot
+                  keeps: the date divider (when visible) spans the whole
+                  group, and the bucket-fit JS hides it when the group fits
+                  one row — tomorrow/yesterday slots therefore ALWAYS carry
+                  their badge (user request 2026-10-28: no bucket-name
+                  splitter to "already say the day"). %>
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
               <%# Phase 0b: the slot button itself is the `_plan_slot_toggle`
                   component — ONE place for the applied/skipped/deferred/
                   applicable/late/disabled variants (the loop variables

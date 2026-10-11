@@ -6,11 +6,19 @@ package actions
 // + cleanup + history) across every kind tab and returns a NORMALIZED DOM
 // serialization: the same structure/attributes/text, with whitespace-only
 // text nodes dropped and attribute order canonicalized. The refactor must
-// leave this serialization unchanged for every section except the two
-// DELIBERATE deltas the phase introduces:
+// leave this serialization unchanged for every section except the
+// DELIBERATE deltas introduced since the harness was recorded:
 //   - History becomes a first-class .plan-tier panel (was a bare button).
 //   - Toggle buttons lose the hardcoded btn-outline-secondary (colour now
 //     comes from the tier policy, §2).
+//   - BUG-22 (2026-10-28): applied chips/slots/rows now render the
+//     pre-flipped ○/✓ toggle pair (d-none apply + visible plan-unapply-btn)
+//     instead of a bare badge-link.
+//   - t11 per-kind Done tier (2026-10-28, user request): each kind tab gains
+//     a collapsed terminal .plan-tier (tier-done / feed-tier-done /
+//     care-tier-done) rendered with the kind's own table partial, plus a
+//     feeding fallback section when only done work remains. Baselines
+//     re-recorded with PHASE0B_RECORD=1 on 2026-10-28.
 //
 // normalizePlanDOM parses HTML and walks it emitting one line per node:
 //   <tag attr="v" attr2="v2">   (attributes sorted)
@@ -75,10 +83,13 @@ var phase0bVolatile = []struct {
 	// yesterday fails today on the "later" tier alone. Mask them.
 	{regexp.MustCompile(`\b\d{2}/\d{2}\b`), "DDMM"},
 	// The medication SLOT BUCKET word rides on toggle titles
-	// (`title="Apply — Noon"`, `title="Evening"`) and flips when the
-	// wall clock crosses a bucket boundary between runs — same structural
-	// DOM, different localized word. All four locales.
-	{regexp.MustCompile(`— (Morning|Noon|Evening|Matin|Midi|Soir|Morgen|Mittag|Abend|Ochtend|Middag|Avond)"`), `— SLOT"`},
+	// (`title="Apply — Noon · 2026/DDMM HHMM"`, `title="Evening"`) and
+	// flips when the wall clock crosses a bucket boundary between runs —
+	// same structural DOM, different localized word. All four locales.
+	// 2026-10-28 (BUG-21): the apply title now carries the FULL due time
+	// (date + HH:MM, already masked DDMM/HHMM) after the slot word — the
+	// optional ` · <date> <time>` tail is absorbed by the same mask.
+	{regexp.MustCompile(`— (Morning|Noon|Evening|Matin|Midi|Soir|Morgen|Mittag|Abend|Ochtend|Middag|Avond)( · \d{4}/DDMM HHMM)?"`), `— SLOT"`},
 	{regexp.MustCompile(`title="(Morning|Noon|Evening|Matin|Midi|Soir|Morgen|Mittag|Abend|Ochtend|Middag|Avond)"`), `title="SLOT"`},
 }
 
@@ -309,6 +320,14 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //     silent 409→late retry and the dosage resubmit's late flag (a past-due
 //     out-of-window slot renders the 🔒 lock now); medication-tab script
 //     delta only, other kinds 0-diff (verified on re-record).
+//   - BUG-22/24 (2026-10-28): the applied pair rows render a REAL undo
+//     toggle (d-none apply + visible ✓ undo) plus a separate view link
+//     instead of the done badge-link; the shared `_apply_toggle` gains the
+//     #planUnapplyModal confirm markup (every page including it); the
+//     inline <style> gains the BUG-24 .plan-time-group-animals display:block
+//     override and cage/feeding group buttons stay visible as green ✓
+//     group-undo. Verified by diff on re-record: toggle markup + modal +
+//     one CSS line, nothing else.
 func TestCarePlanPhase0bDOMEquivalence(t *testing.T) {
 	f, client, baseURL := planFixtureRich(t)
 	_ = f

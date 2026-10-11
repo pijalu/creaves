@@ -103,7 +103,41 @@ func TestMedSeriesChunksThreePerRowByBucket(t *testing.T) {
 	require.Equal(t, "noon", rows[2].Slots[0].Slot)
 	require.False(t, rows[0].DividerBefore)
 	require.False(t, rows[1].DividerBefore, "same bucket, no divider")
-	require.True(t, rows[2].DividerBefore, "bucket change divides")
+	require.False(t, rows[2].DividerBefore, "same-day bucket change does NOT divide — only a calendar-date change splits the buttons (user request 2026-10-28)")
+}
+
+// TestMedSeriesDividerOnDateChange: the ONLY splitter is a calendar-date
+// change — a row starting on another day divides and carries its date as
+// the caption; same-day bucket changes (matin→soir) never do.
+func TestMedSeriesDividerOnDateChange(t *testing.T) {
+	day := func(d, h, m int) time.Time { return time.Date(2026, 9, d, h, m, 0, 0, time.Local) }
+	slots := []MedSlotView{
+		medSlot("Citramox — 0.5 ml", "morning", day(28, 8, 0)),
+		medSlot("Citramox — 0.5 ml", "morning", day(29, 8, 0)), // next day, same bucket
+		medSlot("Citramox — 0.5 ml", "evening", day(29, 18, 0)),
+	}
+	series := seriesOf(slots, seriesBucketOrder)
+	require.Len(t, series, 1)
+	rows := series[0].Rows
+	require.Len(t, rows, 2, "3 per row max + bucket change starts a new row")
+	// Row 0: morning 09-28 + morning 09-29 — same row (one bucket), no
+	// internal divider even though the dates differ (the per-slot day
+	// badge carries the day).
+	require.False(t, rows[0].DividerBefore)
+	require.Empty(t, rows[0].DividerLabel)
+	// Row 1 (evening 09-29) vs row 0's last slot (morning 09-29): same
+	// date → NO divider despite the bucket change.
+	require.False(t, rows[1].DividerBefore, "evening 09-29 follows morning 09-29: same date, no splitter")
+	require.Empty(t, rows[1].DividerLabel)
+
+	// Cross-date row boundary: morning 09-28 row followed by evening 09-29.
+	rows2 := chunkSeriesRows([]MedSlotView{
+		medSlot("Citramox — 0.5 ml", "morning", day(28, 8, 0)),
+		medSlot("Citramox — 0.5 ml", "evening", day(29, 18, 0)),
+	})
+	require.Len(t, rows2, 2)
+	require.True(t, rows2[1].DividerBefore, "date change divides")
+	require.Equal(t, "2026/09/29", rows2[1].DividerLabel, "the caption is the row's date (models.DateFormat)")
 }
 
 // TestMedSeriesSlotOrderMatchesBuckets: within a series the slots are
@@ -137,7 +171,7 @@ func TestMedSeriesSlotOrderMatchesBuckets(t *testing.T) {
 // locale forks) parses and renders every button state — applied (live
 // undo), open apply, past-due out-of-window locked (the record-late
 // affordance is RETIRED, user request 2nd pass), skipped, deferred — plus
-// the bucket divider between rows of different buckets.
+// the labelled DATE divider at a calendar-date change.
 func TestMedSeriesPartialRenders(t *testing.T) {
 	mg := MedGroupView{
 		AnimalID:    1,
@@ -154,7 +188,7 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "10:00", Status: "scheduled", Applicable: false,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T10:00:00+02:00"},
 				}},
-				{DividerBefore: true, Slots: []MedSlotView{
+				{DividerBefore: true, DividerLabel: "2026/09/29", Slots: []MedSlotView{
 					{Slot: "noon", Detail: "Citramox — 0.5 ml", DueAtHM: "12:00", Status: "due", Applicable: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T12:00:00+02:00", SourceName: "Citramox AM"},
 					{Slot: "noon", Detail: "Citramox — 0.5 ml", DueAtHM: "12:30", Status: "skipped", Done: true,
@@ -202,7 +236,8 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 		require.Contains(t, out, "🔒 10:00", f)         // out of window, locked
 		require.Contains(t, out, "plan-med-locked", f) // lock marker hook
 		require.NotContains(t, out, ">– ", f)          // the old dimmed glyph is gone
-		require.Contains(t, out, "plan-med-bucket", f) // LABELLED bucket divider (R4-2.4)
+		require.Contains(t, out, "plan-med-bucket", f) // LABELLED date divider (user request 2026-10-28)
+		require.Contains(t, out, "2026/09/29", f)      // the divider caption is the row's date
 		require.NotContains(t, out, "<%= for (", f, "unrendered plush tag")
 		require.Contains(t, out, `data-animal-id="1"`, f, "apply hooks carry the animal")
 		require.Contains(t, out, `data-due-at="2026-09-28T12:00:00+02:00"`, f)
@@ -210,11 +245,11 @@ func TestMedSeriesPartialRenders(t *testing.T) {
 }
 
 // TestMedSeriesCompactSuppressesBucketLabel (R9-3): on the dashboard the
-// morning/noon/evening bucket divider is noise on a single line — the buttons
-// flow without it. Rendering the SAME multi-bucket series with
-// `medSeriesCompact` set (the dashboard flag) drops the divider while keeping
-// every button; without the flag (the care plan) the divider stays. All four
-// locale forks behave identically.
+// date divider caption is noise on a single line — the buttons flow
+// without it. Rendering the SAME series with a date change and with
+// `medSeriesCompact` set (the dashboard flag) drops the divider while
+// keeping every button; without the flag (the care plan) the divider
+// stays. All four locale forks behave identically.
 func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
 	mg := MedGroupView{
 		AnimalID:    1,
@@ -227,7 +262,7 @@ func TestMedSeriesCompactSuppressesBucketLabel(t *testing.T) {
 					{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAtHM: "08:00", Status: "due", Applicable: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T08:00:00+02:00", SourceName: "Citramox AM"},
 				}},
-				{DividerBefore: true, Slots: []MedSlotView{
+				{DividerBefore: true, DividerLabel: "2026/09/29", Slots: []MedSlotView{
 					{Slot: "evening", Detail: "Citramox — 0.5 ml", DueAtHM: "18:00", Status: "scheduled", Applicable: true,
 						SourceType: "rule", SourceID: "a", DueAtRFC: "2026-09-28T18:00:00+02:00", SourceName: "Citramox AM"},
 				}},

@@ -146,7 +146,27 @@
                         <% } %>
                       </span>
                     <% } %>
-                    <%= if (chip.Applicable) { %>
+                    <%= if (chip.Status == "applied") { %>
+                      <%# Done tier (user request 2026-10-28): the applied
+                          chip renders the SAME pair, pre-flipped — the ○
+                          apply side stays in the DOM (d-none) so an undo
+                          flips it back in place; the ✓ undo side is
+                          visible and armed (openUnapply). BUG-22 pair
+                          contract: ONE shared parent per chip. %>
+                      <span>
+                        <%= if (chip.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= chip.DueShortDate %></span> <% } else if (chip.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(chip.DueDayKey) %></span> <% } %>
+                        <button type="button" class="btn <%= chip.TierClass %> btn-sm plan-feeding-one d-none"
+                          data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                          data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.apply.action") %>">○ <%= chip.DueHM %></button>
+                        <button type="button" class="btn btn-success btn-sm ml-1 plan-unapply-btn"
+                          data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                          data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                          title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
+                      </span>
+                    <% } else if (chip.Applicable) { %>
                       <span class="<%= if (chip.StaleLate) { %>plan-stale-slot d-none<% } %>">
                         <%# B10-3: the toggle speaks the §2.3 med-parity
                             nomenclature — it CARRIES the time (○ HH:MM ⇄
@@ -196,10 +216,21 @@
             batch is inherently cage-scoped. %>
         <%= if (group != "animal") { %>
         <td class="text-nowrap plan-feed-check">
-          <%# R4-4.2: the count is a corner overlay, never a button
-              child — the button keeps a constant width and the
-              count stays visible at N=1. %>
-          <%= if (fcard.ApplicableCount > 0) { %>
+          <%# Done tier (user request 2026-10-28): the group check is an
+              UNDO-ALL — one confirm (plan-cage-undo → openUnapply batch),
+              then planUnapplyBatch flips every chip back in place. %>
+          <%= if (fcard.DoneMode) { %>
+            <span class="position-relative d-inline-block">
+              <button type="button" class="btn btn-success plan-cage-undo"
+                data-items="<%= fcard.ChipRefsJSON %>"
+                data-cage="<%= fcard.Cage %>" data-food="<%= fcard.Food %>"
+                data-tier-class="<%= fcard.TierClass %>"
+                aria-label="<%= t("care_plan.action.undo") %> (<%= fcard.AnimalCount %>)"
+                title="<%= t("care_plan.action.undo") %>">
+                ✓ <%= fcard.FirstTimeLabel %>
+              </button>
+            </span>
+          <% } else if (fcard.ApplicableCount > 0) { %>
             <%# Item 3 (2026-10-07): the day qualifier is a badge BESIDE the
                 button (Bug 2026-10-27 #1/#2 keeps the due time visible) —
                 the toggle keeps the fixed "○ HH:MM" shape. %>

@@ -278,7 +278,7 @@ func validatePlanApplyStatus(in *planApplyRequest) (string, int, string) {
 		return "", http.StatusUnprocessableEntity, "status must be applied, skipped or deferred"
 	}
 	if status != models.ApplicationStatusApplied && strings.TrimSpace(in.Note) == "" {
-		return "", http.StatusUnprocessableEntity, "reason is mandatory for skip and defer (§10-CP4)"
+		return "", http.StatusUnprocessableEntity, "reason is mandatory for skip and defer"
 	}
 	return status, 0, ""
 }
@@ -291,7 +291,7 @@ func checkPlanApplyItem(item *careplan.PlanItem, late bool) (int, string) {
 	if item.Status == careplan.StatusApplied || item.Status == careplan.StatusSkipped || item.Status == careplan.StatusDeferred {
 		// §4.5: the occurrence already has a recorded application — the
 		// generic hors-délai message would be misleading here.
-		return http.StatusConflict, "occurrence already recorded (idempotent, §4.5)"
+		return http.StatusConflict, "occurrence already recorded (idempotent)"
 	}
 	if item.Status == careplan.StatusOverridden {
 		return http.StatusConflict, fmt.Sprintf("occurrence is overridden by animal plan %q", item.OverriddenBy)
@@ -303,7 +303,7 @@ func checkPlanApplyItem(item *careplan.PlanItem, late bool) (int, string) {
 	// already 409s anything the window no longer produces). Without the
 	// flag the default is unchanged — hors délai 409.
 	if !item.Applicable && !lateRecordAllowed(late, item, time.Now()) {
-		return http.StatusConflict, "occurrence is out of its apply window (hors délai, §10-A1)"
+		return http.StatusConflict, "occurrence is out of its apply window (hors délai) — too late to record it from the plan; use a manual care entry instead"
 	}
 	return 0, ""
 }
@@ -407,7 +407,7 @@ func CarePlanApply(c buffalo.Context) error {
 			}))
 		}
 		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "1062") {
-			return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent, §4.5)"))
+			return planError(c, http.StatusConflict, fmt.Errorf("occurrence already recorded (idempotent)"))
 		}
 		return planError(c, http.StatusUnprocessableEntity, err)
 	}
@@ -482,7 +482,7 @@ func CarePlanApplyBatch(c buffalo.Context) error {
 	cageRef := ""
 	for _, ref := range in.Items {
 		if ref.SourceID != first.SourceID || ref.SourceType != first.SourceType {
-			return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("batch must stay within one source (§10.1-5)"))
+			return planError(c, http.StatusUnprocessableEntity, fmt.Errorf("a batch can only contain occurrences from a single source"))
 		}
 	}
 

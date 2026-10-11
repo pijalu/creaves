@@ -33,12 +33,16 @@ func TestAnimalAppliedRowLinksToFulfillment(t *testing.T) {
 		raw := readTemplate(t, f)
 		require.Contains(t, raw, `if (card.FulfillmentLink != "")`, f,
 			"the applied branch offers a link only when a fulfillment exists")
-		require.Contains(t, raw, `class="badge badge-success plan-item-view"`, f,
-			"the done badge doubles as the link to the logged record")
+		require.Contains(t, raw, `badge badge-success plan-item-view`, f,
+			"the view-record link keeps its styling hook (BUG-22: a SIBLING of the toggle, never instead of it)")
 		require.Contains(t, raw, `href="<%= card.FulfillmentLink %>"`, f,
 			"the link targets the fulfillment record")
 		require.Contains(t, raw, `t("care_plan.animal_plans.view_record")`, f,
 			"the link carries an accessible label")
+		// BUG-22: the applied state is a real undo TOGGLE — the done-link
+		// no longer replaces it.
+		require.Contains(t, raw, "plan-unapply-btn", f,
+			"the applied branch renders the undo toggle")
 	}
 }
 

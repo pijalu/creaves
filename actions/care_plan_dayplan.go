@@ -473,7 +473,7 @@ type ReverifiedItem struct {
 
 // errItemNotReproduced mirrors findItem's "not found" failure: the
 // referenced occurrence is not (or no longer) produced by its source.
-var errItemNotReproduced = fmt.Errorf("occurrence not found or no longer produced by its source (§6.2)")
+var errItemNotReproduced = fmt.Errorf("occurrence not found or no longer produced by its source — the plan has changed since this page was rendered; reload and try again")
 
 // ReverifyItem recomputes the day-plan item for ONE occurrence reference
 // (§6.2): it loads just the referenced source, the referenced animal's

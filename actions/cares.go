@@ -586,6 +586,12 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 		InvalidateWeightLossCache()
 	}
 
+	// BUG-23 (2026-10-28): deleting a care must retrigger the schedule the
+	// same way the apply/unapply paths do — drop the cached landing badge
+	// counts (open/late) post-commit so the very next landing render
+	// reflects the removal without waiting out the TTL.
+	queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message
 		c.Flash().Add("success", T.Translate(c, "care.destroyed.success"))

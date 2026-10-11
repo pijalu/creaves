@@ -38,7 +38,10 @@
     data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
     data-tier-class="<%= slot.TierClass %>"
     data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
-    title="<%= t("care_plan.slot." + slot.Slot) %>">✓ <%= slot.DueAtHM %></button>
+    <%# BUG-22 (2026-10-28): a non-undoable applied slot (the fulfillment
+        record was deleted or locked) keeps the disabled ✓ but its tooltip
+        EXPLAINS why — an unexplained dead button read as a bug. %>
+    title="<%= if (slot.CanUndo) { %><%= t("care_plan.action.undo") %> — <%= t("care_plan.slot." + slot.Slot) %><% } else { %><%= t("care_plan.status.undo_locked") %><% } %>">✓ <%= slot.DueAtHM %></button>
 <% } else if (slot.Status == "skipped") { %>
   <span class="badge badge-light border plan-med-state" title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></span>
 <% } else if (slot.Status == "deferred") { %>
@@ -50,7 +53,10 @@
     data-kind="medication" data-tier-class="<%= slot.TierClass %>"
     data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
     data-source-name="<%= slot.SourceName %>"
-    title="<%= t("care_plan.apply.action") %> — <%= t("care_plan.slot." + slot.Slot) %>">○ <%= slot.DueAtHM %></button>
+    <%# User request 2026-10-28: the title carries the COMPLETE due time
+        (date included, slot.DueAtFull) — the visible "○ HH:MM" alone
+        does not say WHICH day the click applies. %>
+    title="<%= t("care_plan.apply.action") %> — <%= t("care_plan.slot." + slot.Slot) %> · <%= slot.DueAtFull %>">○ <%= slot.DueAtHM %></button>
 <% } else { %>
   <span class="plan-item-locked plan-med-state plan-med-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒 <%= slot.DueAtHM %></span>
 <% } %>

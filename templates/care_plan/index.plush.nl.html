@@ -85,6 +85,11 @@
   .plan-feed-animals { width: auto; min-width: 0; }
   .plan-feed-check, .plan-cage-apply { text-align: right; }
   .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  /* BUG-24 (2026-10-28): the multi-animal CAGE branch stacks one
+     .plan-animal-row per line — the base flex rule (label + slots
+     side by side, group=animal layout) would pack the animals on
+     one wrapping line. */
+  .plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }
   .plan-care-slots .plan-time-label { flex: 1 1 auto; }
   .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
   @media (max-width: 991.98px) { .plan-loc, .plan-med-animal .plan-loc { display: none; } }
@@ -259,6 +264,25 @@
       layout: "care_plan/plan_tier.plush.html"}) %>
     <% } %>
 
+    <%# Done tier for the ROW kinds (user request 2026-10-28): terminal
+        occurrences of the active kind rendered as the SAME
+        `_plan_item_line` lines as the open tiers (applied ✓ undo +
+        view link), collapsed by default. Medication's Done is the
+        MedDone block above; the generic Historique stays untouched. %>
+    <%= if (view.Kind != "medication" && len(view.DoneRows) > 0) { %>
+    <%= partial("care_plan/plan_tier_rows.plush.html", {
+      tierCards: view.DoneRows,
+      tierKey: "done",
+      tierId: "tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.DoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.DoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+
   <% } %>
 
   <%= if (view.Kind == "medication") { %>
@@ -304,6 +328,44 @@
             layout: "care_plan/plan_tier.plush.html"}) %>
       <% } %>
     <% } %>
+    <%# Done tier (user request 2026-10-28): the applied feeding
+        occurrences as cage × diet groups in the SAME table format —
+        ✓ undo chips + cage-level undo-all — collapsed by default. %>
+    <%= if (len(view.FeedDone) > 0) { %>
+      <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+        feedCards: view.FeedDone,
+        ti: "done",
+        group: view.Group,
+        tierKey: "done",
+        tierId: "feed-tier-done",
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier.done",
+        tierBadgeClass: "badge-success",
+        tierCount: view.DoneCountCap,
+        tierExpanded: false,
+        tierDoneCount: view.DoneCount,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+    </div>
+  <% } %>
+  <%= if (len(view.Feedings) == 0 && len(view.FeedDone) > 0) { %>
+    <%# No open feeding work left, but applied occurrences exist: the
+        Done tier still renders (the open-work guard above would hide it). %>
+    <div id="feedingTabContent">
+    <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
+    <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+      feedCards: view.FeedDone,
+      ti: "done",
+      group: view.Group,
+      tierKey: "done",
+      tierId: "feed-tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.DoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.DoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
     </div>
   <% } %>
 
@@ -313,7 +375,7 @@
        `_plan_care_line` row partial. The tier header badge counts the
        tier's OPEN APPLICABLE OCCURRENCES (CareTierOpenCap) — the
        summary-strip unit (§1.4). Only under kind=cleanup. %>
-  <%= if (len(view.Cares) > 0) { %>
+  <%= if (len(view.Cares) > 0 || len(view.CareDone) > 0) { %>
     <h5 class="mt-3"><%= t("care_plan.cage_cards") %></h5>
     <%= for (ti) in [0, 1, 2] { %>
       <%= if (len(view.CareTiers[ti]) > 0) { %>
@@ -331,8 +393,26 @@
           tierDoneCount: 0,
           layout: "care_plan/plan_tier.plush.html"}) %>
       <% } %>
+      <% } %>
+      <%# Done tier (user request 2026-10-28): the applied cleanup
+          occurrences as cage rows in the SAME table format — ✓ undo
+          slots + cage-level undo-all — collapsed by default. %>
+      <%= if (len(view.CareDone) > 0) { %>
+        <%= partial("care_plan/plan_tier_care_table.plush.html", {
+          careCards: view.CareDone,
+          ti: "done",
+          group: view.Group,
+          tierKey: "done",
+          tierId: "care-tier-done",
+          tierIdNum: "",
+          tierLabelKey: "care_plan.tier.done",
+          tierBadgeClass: "badge-success",
+          tierCount: view.DoneCountCap,
+          tierExpanded: false,
+          tierDoneCount: view.DoneCount,
+          layout: "care_plan/plan_tier.plush.html"}) %>
+      <% } %>
     <% } %>
-  <% } %>
 
   <%# --- Historique (subdued, collapsed by default): terminal +
        superseded rows of the ROW kinds — medication included (its done
@@ -579,7 +659,12 @@
   });
 
   Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
-    btn.addEventListener('click', function () { openBatch(btn); });
+    btn.addEventListener('click', function () {
+      // BUG-22: a flipped button (green ✓ group-undo) never re-opens the
+      // apply modal — the .plan-cage-undo delegated handler owns it.
+      if (btn.classList.contains('plan-cage-undo')) { return; }
+      openBatch(btn);
+    });
   });
 
   document.getElementById('planBatchSubmit').addEventListener('click', function () {
@@ -601,15 +686,100 @@
   });
 
   // flipBatchRow marks every applicable chip of the batch row as applied
-  // (check → undo) and hides the exhausted global apply button.
+  // (check → undo). BUG-22 (2026-10-28): the group button does NOT
+  // disappear — it flips to a green ✓ group-UNDO toggle; clicking it asks
+  // the shared #planUnapplyModal confirm and undoes the whole row.
   function flipBatchRow(btn) {
     var row = btn.closest('tr');
     if (!row) { window.location.reload(); return; }
     Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
       markApplied({btn: b});
     });
-    btn.classList.add('d-none');
+    setBatchState(btn, true);
   }
+
+  // setBatchState flips the group apply button between its ○ apply look
+  // (tier colour, opens the batch modal) and its ✓ applied look (green,
+  // opens the undo confirm). The direct click binding below checks the
+  // class, so a flipped button never re-opens the apply modal.
+  function setBatchState(btn, applied) {
+    if (applied) {
+      // Capture the tier colour ONCE (first flip) so undo restores it.
+      if (!btn.getAttribute('data-tier-class')) {
+        var tier = [];
+        ['btn-warning', 'btn-danger', 'btn-light', 'border'].forEach(function (c) {
+          if (btn.classList.contains(c)) { tier.push(c); }
+        });
+        btn.setAttribute('data-tier-class', tier.join(' ') || 'btn-warning');
+      }
+      btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border');
+      btn.classList.add('btn-success', 'plan-cage-undo');
+      btn.textContent = btn.textContent.replace('○', '✓');
+      var pill = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill) { pill.classList.add('d-none'); }
+    } else {
+      btn.classList.remove('btn-success', 'plan-cage-undo');
+      (btn.getAttribute('data-tier-class') || 'btn-warning').split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+      btn.textContent = btn.textContent.replace('✓', '○');
+      var pill2 = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill2) { pill2.classList.remove('d-none'); }
+    }
+    btn.disabled = false;
+  }
+
+  // Group undo (BUG-22): one confirm via the shared modal, then every
+  // applied chip of the row is unapplied (the fulfillment records are
+  // deleted) and flipped back in place; the group button returns to ○.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-cage-undo') : null;
+    if (!btn || btn.disabled) { return; }
+    planApply.openUnapply(btn, true);
+  });
+
+  // BUG-22 live-E2E retest 2026-10-28: the previous version looked the
+  // chips up in the ROW — but single-animal cage rows render NO per-animal
+  // pair (R4-7.5: the group check does the whole job) and the Done tier
+  // renders link-only chips, so the loop matched ZERO elements: no POST,
+  // a purely cosmetic flip, and the records stayed applied after reload.
+  // Iterate the button's data-items refs instead — the same payload
+  // runBatch applies — and flip a rendered chip pair only when it exists.
+  window.planUnapplyBatch = function (btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    var row = btn.closest('tr');
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/unapply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type,
+            source_id: ref.source_id,
+            animal_id: parseInt(ref.animal_id, 10),
+            due_at: ref.due_at,
+            delete_fulfillment: true
+          })
+        })).then(function (r) {
+          if (r.status === 200) {
+            if (row) {
+              var chip = row.querySelector('.plan-unapply-btn[data-animal-id="' + ref.animal_id + '"][data-due-at="' + ref.due_at + '"]:not(.d-none)');
+              if (chip) { planApply.setToggleState(chip, false); }
+            }
+            return;
+          }
+          failures.push(ref.due_at + ': HTTP ' + r.status);
+        });
+      });
+    });
+    return chain.then(function () {
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        setBatchState(btn, false);
+      }
+    });
+  };
 
   // Render recorded completion times in the viewer's browser locale/timezone.
   Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {

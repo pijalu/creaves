@@ -103,7 +103,7 @@
       <% } %>
     <% } else { %>
       <%= for (tg) in ccard.TimeGroups { %>
-        <div class="plan-time-group">
+        <div class="plan-time-group<%= if (group != "animal") { %> plan-time-group-animals<% } %>">
           <%# §3.2: the due time stated ONCE per sub-group — same day-aware
               expression the feeding time label uses ("tomorrow 16:00" /
               "02/01 16:00" / "16:00"); the toggle itself carries it
@@ -146,7 +146,21 @@
   </td>
   <%= if (group != "animal") { %>
     <td class="text-nowrap plan-feed-check">
-      <%= if (ccard.ApplicableCount > 0) { %>
+      <%= if (ccard.DoneMode) { %>
+        <%# Done tier (user request 2026-10-28): the cage-level check
+            is an UNDO-ALL — one confirm (plan-cage-undo → openUnapply
+            batch), then planUnapplyBatch flips every slot back. %>
+        <span class="position-relative d-inline-block">
+          <button type="button" class="btn btn-success plan-cage-undo"
+            data-items="<%= ccard.ChipRefsJSON %>"
+            data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
+            data-tier-class="<%= ccard.TierClass %>"
+            aria-label="<%= t("care_plan.action.undo") %> (<%= len(ccard.TimeGroups) %>)"
+            title="<%= t("care_plan.action.undo") %>">
+            ✓ <%= ccard.FirstTimeLabel %>
+          </button>
+        </span>
+      <% } else if (ccard.ApplicableCount > 0) { %>
         <%# Item 3 (2026-10-07): the day qualifier is a badge BESIDE the
             button — the toggle keeps the fixed "○ HH:MM" shape. %>
         <%= if (ccard.FirstTimeShortDate != "") { %><span class="badge badge-light border plan-med-day"><%= ccard.FirstTimeShortDate %></span> <% } else if (ccard.FirstTimeDayKey != "") { %><span class="badge badge-light border plan-med-day"><%= t(ccard.FirstTimeDayKey) %></span> <% } %>

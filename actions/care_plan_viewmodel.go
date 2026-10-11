@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -263,6 +264,10 @@ type FeedingGroupView struct {
 	AnimalLabel string
 	AnimalYear  string
 	AnimalLink  string
+	// DoneMode (user request 2026-10-28): the group renders in the per-kind
+	// Done tier — every chip is an applied ✓ undo toggle and the cage-level
+	// button is an undo-all trigger (plan-cage-undo), not an apply pair.
+	DoneMode bool
 }
 
 // MedSlotView is one medication occurrence inside a per-animal medication
@@ -277,6 +282,11 @@ type MedSlotView struct {
 	DueAt      time.Time
 	DueAtRFC   string
 	DueAtHM    string // "15:04"
+	// DueAtFull is the complete date+time (models.DateTimeFormat,
+	// "2006/01/02 15:04") for tooltips — the apply button's title must
+	// carry the full occurrence time, date included (user request
+	// 2026-10-28).
+	DueAtFull string
 	// R3-5: day qualifier when the slot is NOT due today — the template
 	// composes the label from DueDayKey (yesterday/tomorrow i18n key) or
 	// DueShortDate ("02/10"). A multi-day series renders several slots
@@ -315,11 +325,17 @@ type MedSlotView struct {
 
 // MedSeriesRow is one visual row of a series (≤3 slots).
 type MedSeriesRow struct {
-	// DividerBefore marks a slot-bucket change relative to the previous
-	// row (the template draws the thin divider) — computed in Go because
-	// plush cannot index Rows[ri-1] (round-3 build fix).
+	// DividerBefore marks a CALENDAR-DATE change relative to the previous
+	// row (the template draws a labelled date divider) — computed in Go
+	// because plush cannot index Rows[ri-1] (round-3 build fix).
+	// User request (2026-10-28): a date group is the ONLY splitter allowed
+	// between a series' buttons — a same-day time-of-day bucket change
+	// (matin/soir) NEVER splits the button group.
 	DividerBefore bool
-	Slots         []MedSlotView
+	// DividerLabel is the divider caption: the first slot's date in
+	// models.DateFormat. Empty when DividerBefore is false.
+	DividerLabel string
+	Slots        []MedSlotView
 }
 
 // MedSeriesView is one drug line of a medication card (round-2 §8.3,
@@ -465,6 +481,9 @@ type CareView struct {
 	GroupStatus      string
 	GroupStatusClass string
 	FirstDueAt       time.Time // earliest applicable open occurrence (tier sort)
+	// DoneMode (user request 2026-10-28): the row renders in the per-kind
+	// Done tier — slots are applied ✓ undo toggles, the cage check undoes all.
+	DoneMode bool
 }
 
 // DayPlanView is the full work-screen context value. Layout (bugs.md
@@ -567,6 +586,17 @@ type DayPlanView struct {
 	// section header instead of contradicting it.
 	FeedTierOpen    [3]int
 	FeedTierOpenCap [3]string
+	// Done view (user request 2026-10-28): the terminal occurrences of the
+	// ACTIVE kind rendered in that kind's OWN table format + grouping —
+	// feeding as cage × diet rows with ✓ undo chips, cleanup as cage rows,
+	// medication via MedDone, the row kinds (care/observation/weighing) as
+	// `_plan_item_line` applied lines. The generic Historique panel is kept
+	// untouched alongside. Each Done tier renders collapsed by default.
+	DoneRows []CardView         // row kinds: terminal applied/skipped/deferred
+	FeedDone []FeedingGroupView // feeding: cage × diet groups of done chips
+	CareDone []CareView         // cleanup: cage rows of done occurrences
+	DoneCount    int
+	DoneCountCap string
 }
 
 // FilterStats is the CP4/D6 summary of one rendered view, counted in
@@ -718,6 +748,9 @@ func BuildDayPlanView(plan *DayPlan, view, zone, kind, group string, now time.Ti
 	}
 	v.Stats = statsOf(plan, zone, kind, plan.Now)
 	fillTierHasWork(v, kind)
+	// Done tier (user request 2026-10-28): the ACTIVE kind's terminal
+	// occurrences in that kind's own table format, collapsed by default.
+	v.fillDoneViews(plan, zone, kind)
 
 	return v
 }
@@ -1560,6 +1593,160 @@ func (v *DayPlanView) historyRows(plan *DayPlan, detailed bool) []CardView {
 	return rows
 }
 
+// fillDoneViews builds the per-kind "Done" tier (user request 2026-10-28):
+// the terminal occurrences of the ACTIVE kind rendered in that kind's OWN
+// table format + grouping — feeding as cage × diet groups with ✓ undo
+// chips, cleanup as cage rows of ✓ undo slots, the row kinds as applied
+// `_plan_item_line` lines. Medication already exposes MedDone via
+// fillMedTiers. The generic Historique panel stays untouched alongside.
+func (v *DayPlanView) fillDoneViews(plan *DayPlan, zone, kind string) {
+	if plan == nil || kind == "" {
+		return
+	}
+	now := plan.Now
+	switch kind {
+	case careplan.KindMedication:
+		// MedDone filled by fillMedTiers.
+	case careplan.KindFeeding:
+		for _, g := range filterFeedings(v.doneFeedGroups(plan, now), zone, kind) {
+			v.FeedDone = append(v.FeedDone, g)
+			v.DoneCount += len(g.Chips)
+		}
+	case careplan.KindCleanup:
+		for _, cv := range filterCares(v.doneCareGroups(plan, now), zone, kind) {
+			v.CareDone = append(v.CareDone, cv)
+			for _, tg := range cv.TimeGroups {
+				v.DoneCount += len(tg.Slots)
+			}
+		}
+	default:
+		seen := map[historyKey]bool{}
+		var rows []CardView
+		for i := range plan.Items {
+			it := &plan.Items[i]
+			if it.Status == careplan.StatusOverridden {
+				continue
+			}
+			if openStatusAction(it.Status) {
+				continue
+			}
+			src := it.Occurrence.Source
+			if src == nil || src.ActionKind() != kind {
+				continue
+			}
+			if cv, ok := v.terminalRow(plan, it, false, seen); ok {
+				rows = append(rows, cv)
+			}
+		}
+		rows = filterCards(rows, zone, kind)
+		sort.SliceStable(rows, func(i, j int) bool { return rows[i].DueAt.After(rows[j].DueAt) })
+		v.DoneRows = rows
+		v.DoneCount = len(rows)
+	}
+	v.DoneCountCap = BadgeCap(v.DoneCount)
+}
+
+// doneFeedGroups groups the APPLIED feeding occurrences per cage × diet —
+// the same FeedingGroupView shape as the open tiers, so the Done tier
+// reuses `_plan_tier_feed_table` with DoneMode on (✓ undo chips + a
+// cage-level undo-all button instead of the apply pair).
+func (v *DayPlanView) doneFeedGroups(plan *DayPlan, now time.Time) []FeedingGroupView {
+	_, feedings := GroupCards(plan.Items, plan)
+	out := make([]FeedingGroupView, 0, len(feedings))
+	for _, fc := range feedings {
+		fv := FeedingGroupView{
+			Zone: fc.Zone, Cage: fc.Cage, Food: fc.Food, ForceFeed: fc.ForceFeed,
+			DoneMode: true, TierClass: "btn-light",
+		}
+		var refs []map[string]interface{}
+		seenChip := map[string]bool{}
+		for i := range fc.Items {
+			it := &fc.Items[i]
+			src := it.Occurrence.Source
+			if src == nil || it.Status != careplan.StatusApplied {
+				continue
+			}
+			chipKey := string(src.SourceType()) + "|" + src.SourceID() + "|" + strconv.Itoa(it.Occurrence.AnimalID)
+			if seenChip[chipKey] {
+				continue
+			}
+			seenChip[chipKey] = true
+			label := ""
+			outtaken := false
+			if a, ok := plan.AnimalRow(it.Occurrence.AnimalID); ok {
+				label = a.YearNumberFormatted()
+				outtaken = a.Outtake != nil
+			}
+			chip := feedingChipOf(it, src, label, outtaken, now)
+			chip.AnimalLink = cardAnimalLink(chip.AnimalID, v.SelfPath)
+			fv.Chips = append(fv.Chips, chip)
+			refs = append(refs, map[string]interface{}{
+				"source_type": chip.SourceType,
+				"source_id":   chip.SourceID,
+				"animal_id":   chip.AnimalID,
+				"due_at":      chip.DueAt.Format(time.RFC3339),
+			})
+		}
+		if len(fv.Chips) == 0 {
+			continue
+		}
+		finalizeFeedingChips(&fv)
+		if raw, err := jsonMarshal(refs); err == nil {
+			fv.ChipRefsJSON = string(raw)
+		}
+		out = append(out, fv)
+	}
+	return out
+}
+
+// doneCareGroups groups the APPLIED cleanup occurrences per source × cage —
+// the same CareView shape as the open tiers, so the Done tier reuses
+// `_plan_tier_care_table`/`_plan_care_line` with DoneMode on (✓ undo slots
+// + a cage-level undo-all button).
+func (v *DayPlanView) doneCareGroups(plan *DayPlan, now time.Time) []CareView {
+	cares, _ := GroupCards(plan.Items, plan)
+	out := make([]CareView, 0, len(cares))
+	for _, cc := range cares {
+		cv := CareView{
+			Zone:       cc.Zone,
+			Cage:       cc.Cage,
+			SourceName: DisplayName(cc.Source.Name()),
+			SourceLink: cardSourceLink(string(cc.Source.SourceType()), cc.Source.SourceID(), 0, v.SelfPath),
+			SourceType: string(cc.Source.SourceType()),
+			SourceID:   cc.Source.SourceID(),
+			DoneMode:   true,
+			TierClass:  "btn-light",
+		}
+		var refs []map[string]interface{}
+		for i := range cc.Items {
+			it := &cc.Items[i]
+			if it.Status != careplan.StatusApplied {
+				continue
+			}
+			slot := itemSlotFor(now, it)
+			if animal, ok := plan.AnimalRow(slot.AnimalID); ok {
+				slot.AnimalYear = animal.YearNumberFormatted()
+			}
+			cv.TimeGroups = foldCareTimeGroup(cv.TimeGroups, slot)
+			refs = append(refs, map[string]interface{}{
+				"source_type": cv.SourceType,
+				"source_id":   cv.SourceID,
+				"animal_id":   it.Occurrence.AnimalID,
+				"due_at":      it.Occurrence.DueAt.Format(time.RFC3339),
+			})
+		}
+		if len(refs) == 0 {
+			continue
+		}
+		finalizeCareRow(&cv)
+		if raw, err := jsonMarshal(refs); err == nil {
+			cv.ChipRefsJSON = string(raw)
+		}
+		out = append(out, cv)
+	}
+	return out
+}
+
 // supersededRow renders one superseded OPEN occurrence (§6.2-1): history,
 // but late-recordable when its due time already passed (A1).
 func (v *DayPlanView) supersededRow(plan *DayPlan, it *careplan.PlanItem, now time.Time) CardView {
@@ -2361,6 +2548,7 @@ func medSlotFor(now time.Time, it *careplan.PlanItem, back string) MedSlotView {
 		DueAt:      it.Occurrence.DueAt,
 		DueAtRFC:   it.Occurrence.DueAt.Format("2006-01-02T15:04:05Z07:00"),
 		DueAtHM:    it.Occurrence.DueAt.Format("15:04"),
+		DueAtFull:  it.Occurrence.DueAt.Format(models.DateTimeFormat),
 		Status:     string(it.Status),
 		Applied:    it.Status == careplan.StatusApplied,
 		Applicable: it.Applicable,
@@ -2483,12 +2671,19 @@ func chunkSeriesRows(g []MedSlotView) []MedSeriesRow {
 	if len(cur) > 0 {
 		rows = append(rows, MedSeriesRow{Slots: cur})
 	}
-	// DividerBefore: row i>0 divides when its first slot's bucket differs
-	// from the previous row's last slot bucket.
+	// DividerBefore: row i>0 divides ONLY when its first slot's calendar
+	// date differs from the previous row's last slot date (user request
+	// 2026-10-28: date groups are the one allowed splitter — a same-day
+	// matin→soir bucket change keeps the buttons in one group). The
+	// caption carries the row's date.
 	for i := 1; i < len(rows); i++ {
 		prev := rows[i-1].Slots[len(rows[i-1].Slots)-1]
-		if rows[i].Slots[0].Slot != prev.Slot {
+		first := rows[i].Slots[0]
+		py, pm, pd := prev.DueAt.Date()
+		fy, fm, fd := first.DueAt.Date()
+		if fy != py || fm != pm || fd != pd {
 			rows[i].DividerBefore = true
+			rows[i].DividerLabel = first.DueAt.Format(models.DateFormat)
 		}
 	}
 	return rows

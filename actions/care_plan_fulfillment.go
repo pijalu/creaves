@@ -110,7 +110,7 @@ func writePlanApplication(tx *pop.Connection, src careplan.PlanSource, animalID 
 			fID, err = writeCleanupFulfillment(tx, animalID, wallNow, in)
 		case careplan.KindWeighing:
 			if strings.TrimSpace(in.Weight) == "" {
-				return nil, fmt.Errorf("weight is required for weighing (§10-L1)")
+				return nil, fmt.Errorf("weight is required to record a weighing")
 			}
 			fID, err = writeWeighingFulfillment(tx, animalID, wallNow, in)
 		case careplan.KindObservation:
@@ -332,7 +332,7 @@ func writeWeighingFulfillment(tx *pop.Connection, animalID int, now time.Time, i
 // follow-up observation animal-plan so the alert loop always closes.
 func writeObservationFulfillment(tx *pop.Connection, src careplan.PlanSource, payload planPayload, animalID int, now time.Time, userID uuid.UUID, in PlanApplyInput) (string, error) {
 	if strings.TrimSpace(in.Answer) == "" {
-		return "", fmt.Errorf("answer is required for observation (§10-L1)")
+		return "", fmt.Errorf("an answer is required to record an observation")
 	}
 	typeID, err := defaultCareType(tx)
 	if err != nil {

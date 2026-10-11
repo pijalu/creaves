@@ -170,6 +170,12 @@ td.plan-feed-animal-cell {
   border-top: 1px dotted rgba(0, 0, 0, 0.15);
   padding-top: 0.15rem;
 }
+// BUG-24 (2026-10-28): multi-animal CAGE cleanup/feeding rows stack one
+// .plan-animal-row per line (the inline baseline in index.plush.html
+// carries the same override).
+.plan-care-slots .plan-time-group.plan-time-group-animals {
+  display: block;
+}
 .plan-time-group:first-child {
   border-top: 0;
   padding-top: 0;
@@ -399,9 +405,9 @@ td.plan-med-animal {
   justify-content: flex-end;
   margin: 0 0.25rem 0.25rem 0;
 }
-// R4-2.4: the morning/noon/evening grouping cue is LABELLED, not an
-// unlabelled rule — a small caps caption that occupies a full line of the
-// button group so the following buttons start a fresh row.
+// User request 2026-10-28: the divider is a CALENDAR-DATE group caption,
+// never a matin/midi/soir bucket name — a small caps band that occupies a
+// full line of the button group so the following buttons start a fresh row.
 .plan-med-bucket {
   flex: 1 0 100%;
   font-size: 0.7rem;
@@ -412,9 +418,9 @@ td.plan-med-animal {
   border-top: 1px solid #adb5bd;
   margin: 0.25rem 0;
   padding-top: 0.15rem;
-  // R4-7.8: a bucket caption reserves the same height whether or not it
-  // carries a border, so the buttons after every bucket start at the same y —
-  // the day groups read as aligned bands.
+  // R4-7.8: a date caption reserves the same height whether or not it
+  // carries a border, so the buttons after every caption start at the same
+  // y — the date groups read as aligned bands.
   min-height: 1.1rem;
 }
 

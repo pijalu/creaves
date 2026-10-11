@@ -1013,3 +1013,627 @@ exact on transition days.
 
 **Full suite 2026-10-09:** `go test ./...` (all packages) ✅ PASS —
 models/careplan 0.17 s, actions 20.3 s, everything else green.
+
+---
+
+# Bugs — care-plan toggle/divider review run 2026-10-28
+
+User-reported issues from live review of `http://localhost:3000/care_plan`
+(kind=medication / kind=feeding&group=cage) and `/animals/{id}#nav-plan`.
+All five (BUG-20..24) FIXED 2026-10-28; browser E2E re-run 2026-10-28
+(agent-browser) confirmed each acceptance criterion. A second full browser
+run the same day (apply → reload → undo → reload → DB assertions) caught
+and fixed one more silent defect the cosmetic-only first pass had missed
+(BUG-22 `planUnapplyBatch` — see its "Live-E2E defect found + fixed"
+section), and re-confirmed BUG-20/21/23/24 live.
+
+**Error messages de-pointered (user request 2026-10-28):** the 409
+`errItemNotReproduced` and the apply-window/validation errors no longer
+point to internal spec chapters ("(§6.2)" etc.) — each message is
+self-explanatory:
+- `actions/care_plan_dayplan.go`: "occurrence not found or no longer
+  produced by its source — the plan has changed since this page was
+  rendered; reload and try again"
+- `actions/care_plan.go`: "reason is mandatory for skip and defer" /
+  "occurrence already recorded (idempotent)" / "occurrence is out of its
+  apply window (hors délai) — too late to record it from the plan; use a
+  manual care entry instead" / "a batch can only contain occurrences from a
+  single source"
+- `actions/care_plan_fulfillment.go`: "weight is required to record a
+  weighing" / "an answer is required to record an observation"
+
+**409 investigation (user request 2026-10-28):** a live click on animal
+10320's feeding occurrence (plan `b4cce8fe`, due 2026-10-11T09:00) returned
+409 once at 12:41. A probe re-running `ReverifyItem` against the dev DB
+with identical inputs SUCCEEDED, and re-clicking the same button at 12:54
+returned 201 (care created). Conclusion: transient/non-reproducible — most
+likely a stale-DOM click (the page reloads every 60 s) or a transient plan
+state; the identical ref applies cleanly. No code change beyond the
+self-explanatory message.
+
+---
+
+## BUG-20 (medium) — Medication series buttons split by "matin/soir" bucket captions
+
+**Status:** ✅ FIXED 2026-10-28 (code + unit/render tests + browser E2E 2026-10-28)
+**Severity:** Medium (readability: one drug series' time buttons were split
+onto several lines by uppercase time-of-day captions — "SOIR" etc.)
+**Found by:** User report 2026-10-28 — `/care_plan?kind=medication`
+
+### Repro
+
+An animal with the same drug due morning AND evening (e.g. Citramox 08:00 +
+18:00) rendered the series as:
+
+```
+Citramox — 0.5 ml        [○ 08:00]
+              MATIN      …
+              SOIR
+                         [○ 18:00]
+```
+
+The bucket caption (`.plan-med-bucket`, `t("care_plan.slot." + slot)`) forced
+a fresh flex row (`flex: 1 0 100%`) whenever the bucket-fit JS measured a
+wrapped group — the buttons of ONE series were visually split by a "soir"-type
+splitter.
+
+### Decision (user, 2026-10-28)
+
+> The only moment a splitter may appear is when actions are NOT on the same
+> calendar date → a **date group**. A same-day time-of-day change
+> (matin/midi/soir) NEVER splits the buttons.
+
+### Fix applied 2026-10-28
+
+- `actions/care_plan_viewmodel.go`
+  - `MedSeriesRow.DividerBefore` semantics changed: bucket-change →
+    **calendar-date change** (compared on the row's first slot vs the previous
+    row's last slot `DueAt.Date()`).
+  - New `MedSeriesRow.DividerLabel` — the row's date in `models.DateFormat`
+    ("2006/01/02") — rendered as the divider caption.
+- `templates/care_plan/_med_series.plush.{html,fr,de,nl}.html` (4 forks kept
+  byte-identical)
+  - Divider renders `row.DividerLabel` (a date), never a slot name.
+  - Per-slot day badges restored for **tomorrow** slots too (the
+    `slot.Slot != "tomorrow"` suppression existed only because the bucket
+    caption "already said the day" — with date captions hidden on one-row
+    groups, every non-today slot now carries its own badge again).
+- `assets/css/care-plan.scss` — `.plan-med-bucket` rule kept (it is now the
+  date-group caption); comments updated.
+- The bucket-fit JS in `_apply_toggle.plush.html` is unchanged: it still
+  hides the caption when the whole group fits one row — now operating on
+  date captions.
+
+### Regression tests
+
+- `TestMedSeriesChunksThreePerRowByBucket` — same-day bucket change no longer
+  divides.
+- `TestMedSeriesDividerOnDateChange` (new) — cross-date boundary divides and
+  carries `"2026/09/29"`; same-date cross-bucket boundary does not.
+- `TestMedSeriesPartialRenders` / `TestMedSeriesCompactSuppressesBucketLabel`
+  — fixtures carry `DividerLabel`; render asserts the date caption and the
+  dashboard's compact suppression.
+- `TestMedSeriesLayoutAndInfoFirst` — asserts
+  `class="plan-med-bucket">2026/10/03<` and that NO `>care_plan.slot.*`
+  caption splits the buttons.
+
+**Retest:** `go test ./actions -run 'TestMedSeries|TestPhase1BucketCaptionGate|TestMedSlotLateAllowed|TestMedSlotTier'` ✅ PASS 2026-10-28.
+**Browser E2E (2026-10-28, agent-browser):** ✅ PASS — `/care_plan?kind=medication`: same-day slots (○ 08:00 ○ 18:00) render on ONE line per series; zero `.plan-med-bucket` captions and no `SOIR`/`MATIN`/`MIDI` splitters in the page text.
+
+---
+
+## BUG-21 (low) — Apply-button tooltip carries no date (HH:MM only + slot name)
+
+**Status:** ✅ FIXED 2026-10-28 (code + browser E2E 2026-10-28)
+**Severity:** Low (ambiguous affordance: a multi-day series shows several
+identical "○ 18:00" buttons; the tooltip said "Appliquer — soir" without the
+date, so the caregiver could not tell WHICH occurrence the click applies)
+**Found by:** User request 2026-10-28 — medication apply button
+
+### Fix applied 2026-10-28
+
+- `actions/care_plan_viewmodel.go`: new `MedSlotView.DueAtFull` — the
+  complete occurrence time in `models.DateTimeFormat` ("2006/01/02 15:04"),
+  populated in `medSlotFor`.
+- `templates/care_plan/_plan_slot_toggle.plush.{html,fr,de,nl}.html`: the
+  apply button's `title` is now
+  `"<apply action> — <slot name> · <DueAtFull>"`
+  (e.g. `Appliquer — soir · 2026/10/29 18:00`).
+
+Note: the feeding/care/cleanup **item** toggles (`_plan_item_line`,
+`_plan_care_slot`) still have a bare `title="care_plan.apply.action"` — fold
+their tooltip into the BUG-22 toggle rewrite (same `.plan-apply-btn` family).
+
+**Browser E2E (2026-10-28, agent-browser):** ✅ PASS — every med slot apply button's tooltip carries the full due datetime (`Apply — Morning · 2026/10/11 08:00`), not just the bucket word.
+
+---
+
+## BUG-22 (high) — Action toggles disappear after click / "done" link replaces the toggle: no in-place green ✓ + undo
+
+**Status:** ✅ FIXED 2026-10-28 (code + regression render tests + browser E2E 2026-10-28)
+
+### Fix applied 2026-10-28
+
+- `templates/care_plan/_plan_item_line.plush.{html,fr,de,nl}.html` — the
+  applied single-occurrence branch no longer renders the done badge-link
+  INSTEAD of the toggle: it renders a d-none apply button + a visible green
+  ✓ `.plan-unapply-btn` (real undo toggle) and a SEPARATE view link
+  (`badge badge-success plan-item-view`, external-link icon only) beside it.
+- `templates/care_plan/_apply_toggle.plush.{html,fr,de,nl}.html` —
+  - New shared `#planUnapplyModal` (title/animal/detail/source + submit);
+    the pair-undo click opens it instead of applying instantly.
+  - `instantUnapply(btn, done)` performs the confirmed POST
+    `/care_plan/unapply {delete_fulfillment:true}` and flips the pair back
+    via `markOpen` on 200.
+  - `scheduleAnimalConvergeReload` (the forced `window.location.reload()`
+    ~1.2 s after every flip on `#nav-plan`) is REMOVED — the in-place flip
+    is the source of truth; no page reload anywhere.
+  - `window.planApply` exposes `openUnapply` + `pairUndo` for the cage
+    batch undo wiring.
+- `templates/care_plan/index.plush.{html,fr,de,nl}.html` —
+  - `flipBatchRow` no longer hides the group button: new `setBatchState`
+    flips it to a green ✓ `.plan-cage-undo` group-undo toggle (tier class
+    captured once in `data-tier-class`, ○→✓, count pill hidden).
+  - Delegated `.plan-cage-undo` click → `planApply.openUnapply(btn, true)`;
+    `window.planUnapplyBatch` loops the row's applied chips through
+    `/care_plan/unapply` + `setToggleState(chip, false)`, restoring the
+    group button on success.
+
+### Live-E2E defect found + fixed (2026-10-28, second browser run)
+
+The first browser pass above was **premature**: it asserted the cosmetic
+flip only. A genuine re-run (apply → reload → undo → reload → DB check)
+exposed a silent no-op in the CAGE group undo:
+
+- **Symptom:** on a single-animal cage row (and on the done-tier rows), the
+  group undo flipped the button to ○ and closed the modal but made **zero**
+  `/care_plan/unapply` calls — after a reload the occurrence was still
+  applied (care record still present server-side).
+- **Root cause:** `planUnapplyBatch` looked the applied chips up with
+  `row.querySelectorAll('.plan-unapply-btn:not(.d-none)')`. Single-animal
+  cage rows render NO per-animal pair (R4-7.5: only a `.plan-apply-space`
+  spacer) and done-tier rows render link-only chips — so the lookup matched
+  zero chips and the loop body never ran. The flip was purely cosmetic.
+- **Fix:** `planUnapplyBatch` now iterates the refs carried on the group
+  button itself — `JSON.parse(btn.getAttribute('data-items'))` — and POSTs
+  `/care_plan/unapply {delete_fulfillment:true}` per ref, flipping the
+  matching chip only if one is found in the row. `setBatchState(btn,false)`
+  runs after the loop. Verified live: group undo → 200
+  `{"deleted_fulfillment":"care","status":"unapplied"}` → reload shows the
+  occurrence back to ○ 09:00 and the care record deleted.
+- **Also fixed the same run:** `openUnapply` label/detail fallbacks —
+  cage/group undo buttons carry no apply sibling, so the confirm modal
+  showed a blank Animal/Protocol. The label now falls back to
+  `btn.getAttribute('data-cage')` and the detail to
+  `btn.getAttribute('data-food')`.
+- **Regression pin:** `care_plan_bug22_toggle_test.go`
+  `TestBug22BatchButtonFlipsToGroupUndo` now asserts the `planUnapplyBatch`
+  body reads `btn.getAttribute('data-items')` and no longer contains
+  `querySelectorAll('.plan-unapply-btn:not(.d-none)')`.
+- Phase0b DOM baselines re-recorded (`PHASE0B_RECORD=1`) — the recorded
+  delta is exactly the `planUnapplyBatch` data-items rewrite, the
+  `openUnapply` fallbacks, and the `scheduleAnimalConvergeReload` removal.
+
+### Browser E2E (2026-10-28, second run — full apply/reload/undo/reload/DB loop) — ✅ PASS
+
+- Feeding cage B2 (single-animal row): apply → 201 care created → reload
+  shows ✓ → group undo → 200 → reload shows ○ 09:00 → care deleted.
+- Weighing (modal): click → weight modal → 142g → ✓ in place → care
+  created → confirm-undo → ○ → care deleted.
+- Observation (modal): click → answer modal → ✓ in place → record created
+  → confirm-undo → ○ → record deleted.
+- Medication: apply → 201 treatment entry → ✓ in place → instant undo →
+  200, own entry reverted to `pending`, row kept (sibling 18:00 entry).
+- `/animals/{id}#nav-plan`: apply/undo run in place; `__e2eMarker` stayed
+  alive and `beforeunload` never fired (no `window.location.reload`).
+- `templates/care_plan/_plan_slot_toggle.plush.{html,fr,de,nl}.html` — a
+  non-undoable applied med slot (`!slot.CanUndo`, fulfillment not
+  treatment-backed) stays disabled but its title now EXPLAINS via
+  `care_plan.status.undo_locked` instead of being silent.
+- `locales/care_plan.{en-us,fr,de,nl}.yaml` — new keys
+  `care_plan.unapply.confirm_title/.confirm_expect/.confirm_submit` and
+  `care_plan.status.undo_locked` (submit labels deliberately distinct from
+  the dismiss "Cancel/Annuler/…" — no cancel/cancel collision).
+
+### Regression tests (actions/)
+
+- `care_plan_bug22_toggle_test.go`: applied branch renders the undo toggle
+  + separate view link (not a done-link replacement); every partial with
+  `.plan-apply-btn`/`.plan-feeding-one` has a d-none `.plan-unapply-btn`
+  sibling in the same parent; the toggle JS carries the confirm modal and
+  no `scheduleAnimalConvergeReload`; unapply modal labels exist in all 4
+  locales; batch button flips to group undo; locked med slot carries the
+  explanation.
+
+### Browser E2E (2026-10-28, agent-browser) — ✅ PASS
+
+- `/care_plan?kind=feeding&group=cage`: cage batch apply → group button
+  stays visible, flips to `btn-success plan-cage-undo` ✓, per-animal chips
+  hide ○ and reveal green ✓ undos; group undo → `#planUnapplyModal`
+  confirm → every chip back to ○ and the group button back to its tier ○.
+- `/care_plan?kind=care`: single apply flips in place to a green ✓ undo;
+  undo → confirm modal → back to ○ (no reload).
+- `/care_plan?kind=medication`: ○ → ✓ in place; ✓ → instant undo back to
+  ○ (accepted no-confirm behaviour).
+- `/animals/{id}#nav-plan`: apply/undo run in place; no
+  `window.location.reload` fires (beforeunload listener stayed at 0).
+
+### Follow-up 2026-10-28 (user request) — per-kind DONE tier ("Create a DONE view that follow exact table and keep current historique")
+
+Each ACTIVE kind tab on `/care_plan` now renders its terminal (applied)
+occurrences as a collapsed `badge-success` `.plan-tier` in the kind's OWN
+table format — the generic Historique panel (`id="plan-history"`) is
+untouched:
+
+- **feeding** → `feed-tier-done`: cage×diet groups via `_plan_tier_feed_table`
+  (DoneMode), group-level ✓ undo-all (`.plan-cage-undo`, `data-items` refs) +
+  per-animal chips rendered as the BUG-22 pair PRE-FLIPPED (d-none ○
+  `.plan-feeding-one` + visible ✓ `.plan-unapply-btn`). A fallback block
+  renders the feeding section when only done work remains.
+- **cleanup** → `care-tier-done`: cage rows via `_plan_tier_care_table`/
+  `_plan_care_line` + `_plan_care_slot` (applied slot = pre-flipped pair).
+- **row kinds** (observation/care/weighing) → `tier-done`: compact
+  `_plan_item_line` lines (d-none apply + visible ✓ undo + separate
+  `plan-item-view` link), most-recent-first.
+- **medication** → unchanged: the pre-existing MedDone block
+  (`fillDoneViews` is a deliberate no-op there — no duplicate tier).
+
+ViewModel: `DayPlanView.DoneRows/FeedDone/CareDone/DoneCount/DoneCountCap` +
+`fillDoneViews`/`doneFeedGroups`/`doneCareGroups` in
+`actions/care_plan_viewmodel.go` (`DoneMode bool` on `FeedingGroupView` and
+`CareView`). Single-animal cage rows keep the accepted Bug 2026-10-27 #5
+design (no per-animal toggle — the group undo-all covers the row). Done-tier
+undo flips the occurrence back to ○ locally; the row leaves the tier on the
+next natural render. Phase0b DOM baselines re-recorded with the delta
+documented in `care_plan_phase0b_dom_test.go`.
+
+Regression tests: `actions/care_plan_done_tier_test.go` (5 tests —
+per-kind tier presence, pre-flipped pair sibling presence + order, group
+undo-all without to-do glyph classes, medication MedDone no-leak, tier
+scoping across tabs, Historique retention on every tab).
+
+Browser E2E (2026-10-28, agent-browser, en locale): feeding tab —
+`feed-tier-done` collapsed badge-success, 5 group undo-all buttons, chips
+paired (same parent, ○ d-none / ✓ visible); **live undo click** →
+`#planUnapplyModal` (animal + detail filled, submit "Yes, undo it") → chip
+flipped ✓→○ in place, no reload (page marker survived). cleanup tab —
+`care-tier-done` with group undo-all + applied slot pairs. observation/
+medication tabs empty in dev data (fixture-backed Go tests pin those
+renders); no cross-tier leaks; Historique present on every tab.
+
+
+### Template/JS audit result (2026-10-28)
+
+Complete inventory of every `.plan-apply-btn` / `.plan-feeding-one` /
+`.plan-med-slot` rendering site vs. its undo affordance:
+
+| Surface | Partial | Pair contract | Verdict |
+|---|---|---|---|
+| Item merged occurrences (care/obs/weighing) | `_plan_item_line` `for slot in card.Slots` | apply+undo siblings in `.plan-item-slot` | ✅ OK |
+| Item single occurrence, open | `_plan_item_line` `card.Applicable` | apply+undo+skip+defer in `.plan-item-slot` | ✅ OK |
+| **Item single occurrence, APPLIED** | `_plan_item_line` `card.Status=="applied"` (L219–232) | **green `done` badge-LINK, no undo** | ❌ **FIX: render ✓ undo toggle + view-link sibling** (this is also the animal `#nav-plan` renderer — `animals/show.plush.html:550`) |
+| Cleanup slots (cage + animal groups) | `_plan_care_slot` | apply+undo in `.plan-item-slot` | ✅ OK |
+| Feeding per-animal chips | `_plan_tier_feed_table` L160–169 | apply+undo in one span | ✅ OK (note: undo chip lacks `data-kind`/`data-tier-class` — harmless, colour hardcoded green) |
+| **Feeding/cleanup CAGE-LEVEL batch** | `index.plush.html` `flipBatchRow` | chips flip ✓, but group button `d-none` with **no group undo** | ❌ **FIX: keep visible as green ✓ group-undo** (undo-all loop + flip back) |
+| Med slots | `_plan_slot_toggle` + `_plan_med_toggle` JS | one button flips in place ○↔✓ | ✅ OK (CanUndo=false → disabled ✓; keep + title hint) |
+| Animal-page convergence | `_apply_toggle` `scheduleAnimalConvergeReload` | **forces `window.location.reload()` ~1.2 s after every flip on `#nav-plan`** | ❌ **FIX: remove** (directive: no refresh; the in-place flip is the source of truth) |
+
+Unapply confirmation: user allows one — use the SHARED `#planMessageModal`-style
+modal (new `#planUnapplyModal`), not `window.confirm`; med slots keep their
+no-confirm instant undo (existing accepted behaviour), pair family gains the
+confirm modal (it deletes the fulfillment record).
+**Severity:** High (core workflow: one-click apply must flip to a green
+undoable state; today the button vanishes on several surfaces)
+**Found by:** User report 2026-10-28 —
+`/care_plan/?kind=feeding&group=cage` (cage-level action click → button
+disappears) and `/animals/10352#nav-plan` (same on the animal plan tab).
+User directive: *"the buttons are toggles and should allow the user to
+untoggle — a confirmation may be asked — avoid refresh as much as possible —
+the 'done' link must NOT replace the toggle button"*; E2E validation required
+(incl. "the associated care must undo the state").
+
+### Root-cause analysis (code review 2026-10-28)
+
+1. **Pair-swap requires a sibling the template does not always render.**
+   `_apply_toggle.plush.html` `setToggleState(btn, true)` hides the clicked
+   `.plan-apply-btn` (`d-none`) and reveals the `.plan-unapply-btn` found via
+   **`btn.parentNode.querySelector('.plan-unapply-btn')`**. If the clicked
+   button's parent contains no undo sibling, the apply button is hidden and
+   nothing appears → **the button "disappears"** (the reported symptom).
+   Suspects to audit: the cage-level (`group=cage`) cleanup/feeding lines in
+   `templates/care_plan/_plan_care_line.plush.html` and the group-chip
+   partials — any branch that renders an apply control WITHOUT a d-none
+   `.plan-unapply-btn` sibling inside the SAME `.plan-item-slot` parent.
+2. **Applied single-occurrence cards render a "done" LINK, not a toggle.**
+   `templates/care_plan/_plan_item_line.plush.html` (single-occurrence
+   branch, `card.Status == "applied"`) renders
+   `<a class="badge badge-success plan-item-view" href="<FulfillmentLink>">done</a>`
+   — a navigation link with **no undo affordance at all**. This is exactly
+   the forbidden "'done' link replaces the toggle button" shape. The same
+   pattern must be audited in `_plan_tier_rows`, `_plan_care_line`,
+   dashboard and animal-tab partials.
+3. **Applied MED slots are undoable only when treatment-backed** —
+   `_plan_slot_toggle.plush.html` disables the ✓ when `!slot.CanUndo`
+   (`CanUndo` requires a non-deleted treatment fulfillment). Directive says
+   every toggle must untoggle (a confirmation is acceptable): the disabled
+   ✓ needs a defined behaviour (confirm → server refuses with a message, or
+   allow undo when the fulfillment is gone by detaching instead of deleting).
+4. **`scheduleAnimalConvergeReload()` forces a full reload ~1.2 s after every
+   flip on the animal page** (`window.location.reload()`). Directive: avoid
+   refresh — the in-place flip must be the source of truth; the reload can
+   only remain as a last-resort convergence for server-rendered siblings, or
+   be replaced by targeted re-render.
+
+### Expected
+
+- Every open occurrence renders an apply toggle; clicking it records the
+  application and the SAME button position shows a green ✓ toggle
+  (med family: same element flips; pair family: the sibling swap is
+  guaranteed by construction).
+- Clicking the green ✓ asks a confirmation (shared modal, not
+  `window.confirm`) and on confirm calls `/care_plan/unapply`
+  (`delete_fulfillment: true`) → the toggle flips back to ○ **without a page
+  reload**; the associated care/treatment/feeding record is removed
+  (fulfillment deleted) and the plan state reflects it.
+- A "view record" link may exist NEXT TO the toggle (sibling), never
+  INSTEAD of it.
+- No full-page reload on the care plan, dashboard, or animal plan tab.
+
+### Acceptance criteria (retest — browser E2E, agent-browser)
+
+1. `/care_plan?kind=feeding&group=cage`: click a cage-level action → button
+   becomes green ✓ in place; click again → confirm → back to ○; the care
+   record created by the apply is gone (animal page Care tab / DB).
+2. `/care_plan?kind=medication`: ○ → ✓ in place; ✓ → confirm → ○; the
+   created treatment row is removed; tooltip shows the full date+time
+   (BUG-21).
+3. `/animals/{id}#nav-plan`: same flip/undo on protocol, treatment, feeding
+   entries; NO `window.location.reload` fires (watch the tab: no reload
+   flash; `performance.navigation`/`window.planActionAge` sanity check).
+4. Repeat for kind=care, kind=cleanup, kind=weighing (modal input),
+   kind=observation (modal input): the modal path flips in place too.
+5. All four locales render the same behaviour (templates share the JS; spot
+   check fr + en).
+
+---
+
+## BUG-23 (high) — Deleting a care does not retrigger schedule recalculation
+
+**Status:** ✅ FIXED 2026-10-28 (code + unit test + browser E2E 2026-10-28)
+
+### Fix applied 2026-10-28
+
+- `actions/cares.go` Destroy: after `InvalidateWeightLossCache()` it now
+  also runs `queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)`
+  — the landing day-plan open/late badge refreshes after a care deletion,
+  the same invalidation the apply/unapply paths already queued.
+- Weight-derived dosage has no stale-weight cache: `lastWeight()` queries
+  the DB per plan build, so the next `/care_plan?kind=medication` render
+  after deleting a weighing care picks the previous weight automatically.
+
+### Regression tests (actions/care_plan_bug23_destroy_test.go)
+
+- `TestBug23CareDestroyInvalidatesDayPlanBadgeCache`: primes
+  `CountOpenItemsCached`, DELETEs a care via HTTP, asserts
+  `dayPlanBadgeCache.valid` is false (the badge recomputes on next hit).
+- `TestBug23WeightedCareDestroyInvalidatesWeightLossCache`: a weighted care
+  DELETE zeroes `WeightLossCachedAt()`.
+
+### Browser E2E (2026-10-28, agent-browser) — ✅ PASS
+
+- `/cares` delete (data-method=DELETE) → flash "détruit avec succès", row
+  gone; landing `a.badge[href="/care_plan"]` re-renders live ("Plan du
+  jour: 846"). Deleting a PAST fulfillment marks the application
+  `fulfillment_deleted` (§10-CP1), so the open count is unchanged — the
+  cache-invalidation regression is pinned by the unit tests above.
+
+### Browser E2E (2026-10-28, second run — delete-then-rerender) — ✅ PASS
+
+- Applied a weighing (care 155 g created, application `applied`) → landing
+  badge 850 → deleted the care from the animal Care tab ("Are you sure?" →
+  accept) → care row `COUNT=0` in DB, application now
+  `status=applied, fulfillment_deleted=1` → the VERY NEXT landing render
+  shows the badge consistent with the live application state (no frozen
+  stale count — the post-commit `InvalidateDayPlanBadgeCache` fired).
+- The day-plan row itself keeps the occurrence applied-with-deleted-
+  fulfillment by design (`fulfillment_deleted` flag): the application
+  record, not the care row, owns the applied state; the badge counts plan
+  occurrences, so 850 both before and after the delete is CORRECT, not a
+  stale cache. The regression the bug targeted (badge not recomputed after
+  Destroy) is pinned by `TestBug23CareDestroyInvalidatesDayPlanBadgeCache`
+  and `TestBug23WeightedCareDestroyInvalidatesWeightLossCache` (both PASS).
+
+**Severity:** High (stale plan: after removing a care, occurrences that
+depended on it — e.g. weight-derived dosages, feeding schedules — stay as
+computed with the deleted record until some other event rebuilds them)
+**Found by:** User report 2026-10-28 — "removing/deleting a care *must*
+retrigger the schedule but currently does not!"
+
+### Investigation pointers
+
+- `actions/cares.go` Destroy handler: check which invalidations run
+  post-commit — the landing badge cache (`CountOpenItemsCached`) and the
+  weight-loss cache are invalidated on apply paths
+  (`docs/performance-assessment-2026-10-04`); the Destroy path likely skips
+  them.
+- Weight-dependent dosage: `medSlotFor`/dosage resolution reads the LATEST
+  weight; deleting a weighing care must make the next plan build pick the
+  previous weight (the build itself is per-request, so the bug is most
+  likely a cache: latest-weight lookup index `(animal_id, weight, date)`,
+  weight-loss cache, or the plan-level assembly reusing a cached weight).
+- Also check: care Destroy must re-publish nothing to the console (cares are
+  excluded from the state hash by design) — only LOCAL caches/schedules are
+  concerned.
+
+### Expected
+
+Deleting a care (any kind) invalidates every derived/cached artifact the
+same way the apply/unapply paths do; the very next plan render (and landing
+badge) reflects the removal without manual cache flushes.
+
+### Acceptance criteria (retest)
+
+1. Create a weighing care (weight W2) on an animal whose medication dosage
+   is weight-derived → plan shows dosage from W2; delete the care → the next
+   `/care_plan?kind=medication` render computes the dosage from the previous
+   weight W1 (no stale W2).
+2. Landing "open items" badge updates immediately after the delete.
+3. Unit test: cares Destroy invalidates the same caches as the unapply path
+   (regression test next to the weight-loss cache tests).
+
+---
+
+## BUG-24 (medium) — Cleanup multi-animal cage row: expanded collapsible packs several animals on ONE line
+
+**Status:** ✅ FIXED 2026-10-28 (code + browser E2E 2026-10-28)
+
+### Fix applied 2026-10-28
+
+- `templates/care_plan/_plan_care_line.plush.{html,fr,de,nl}.html`: the cage
+  multi-animal container is marked `plan-time-group plan-time-group-animals`
+  (only when `group != "animal"`).
+- `assets/css/care-plan.scss` AND the inline `<style>` of
+  `index.plush.{html,fr,de,nl}.html`:
+  `.plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }`
+  — overrides the `display:flex` meant for the group=animal label+slots
+  layout, so each `.plan-animal-row` stacks on its own line.
+
+### Browser E2E (2026-10-28, agent-browser) — ✅ PASS
+
+- `/care_plan?kind=cleanup`: 20 multi-animal `.plan-time-group-animals`
+  containers, 111 `.plan-animal-row` lines; every expanded group stacks its
+  animals one per line (strictly increasing row tops) at 1600px AND 900px
+  viewport. group=animal rows unchanged (single animal + its toggles).
+
+### Browser E2E (2026-10-28, second run) — ✅ PASS
+
+- `/care_plan?kind=cleanup&group=cage`: expanded the VE27 cage (29 animals)
+  — the `.plan-time-group-animals` container computes `display: block` and
+  the visible `[data-animal-id]` chips sit at strictly increasing vertical
+  positions (~39 px apart: 333, 372, 411, 450, 489…), i.e. exactly ONE
+  animal per line. No two animal numbers share a row.
+
+**Severity:** Medium (readability/scanability: the expanded cage row is an
+unparseable clump of animal numbers + toggles on a single wrapped line)
+**Found by:** User report 2026-10-28 —
+`/care_plan/?kind=cleanup` (multi-animal cage rows):
+*"the collapsible should contain 1 animal+button per line — avoid grouping
+on a single line"*.
+
+### Repro
+
+`/care_plan/?kind=cleanup`, a cage with >1 animal owing the same cleanup:
+click the row's collapsible header (count badge) → the expanded list shows
+`472/26 ○ 09:00  513/26 ○ 09:00  601/26 ○ 09:00 …` flowing side by side on
+one wrapping line instead of one `animal — toggles` line per animal.
+
+### Root cause (code review 2026-10-28)
+
+`templates/care_plan/_plan_care_line.plush.html` (bug 2026-10-27 #5 branch)
+renders the per-animal lines as a loop of
+`<div class="plan-animal-row d-flex flex-wrap …">` **directly inside**
+`<div class="plan-time-group">`.
+
+The stylesheet (`care-plan.scss`, also inlined in the DOM baseline) sets
+
+```
+.plan-care-slots .plan-time-group { display: flex; align-items: center;
+  justify-content: space-between; gap: 1rem; }
+```
+
+— a rule meant for the group=animal layout (one `plan-time-label` + one
+`plan-care-slot-row` side by side). In the multi-animal CAGE branch the
+`.plan-animal-row` divs become **flex items** of that container → they lay
+out horizontally on one (wrapping) line. The per-animal divs are already
+correct ("1 animal + its toggles"); the parent flex is what destroys the
+one-per-line structure.
+
+### Expected
+
+Inside the expanded collapsible: ONE line per animal —
+`472/26  [○ 09:00]` / `513/26  [○ 09:00]` — each `.plan-animal-row` on its
+own block line, right-aligned toggles allowed but animals stacked.
+
+### Fix sketch (next session)
+
+Template: mark the cage multi-animal container, e.g.
+`<div class="plan-time-group plan-time-group-animals">` (AnimalLines
+branch only).
+CSS: `.plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }`
+(the inner `.plan-animal-row`s keep their own flex). Keep the base flex
+rule for the group=animal label+slots layout it was written for.
+Apply to all four locale forks of `_plan_care_line` (verify parity — the
+forks share this structure).
+
+### Acceptance criteria (retest — browser E2E)
+
+1. `/care_plan/?kind=cleanup` (fr + en): expand a multi-animal cage row →
+   every animal occupies its own line with its toggle(s); no two animal
+   numbers share a line at any viewport width (check 1600 px and 900 px).
+2. group=animal rows are unchanged (label + slots on one line there is by
+   design).
+3. The per-animal toggle still flips ✓/○ in place (BUG-22 contract).
+
+---
+
+## BUG-25 (low) — `/care_matchers` does not list "Colombidés bébé" (derived matchers hidden by design, but invisible and undiscoverable)
+
+**Status:** OPEN — root cause identified (by-design filter, UX gap); fix to decide
+**Severity:** Low (no functional break — the matcher works and feeds rule
+SR4; the admin simply cannot SEE or manage it from the library page)
+**Found by:** User report 2026-10-28 —
+`http://localhost:3000/care_matchers`: *"does not list 'Colombidés bébé'
+but it seems to exist? why?"*
+
+### Answer (root cause, code review 2026-10-28)
+
+The matcher **exists and works** — it is one of the four seed-internal
+composite matchers flagged `derived = 1`:
+
+- `actions/care_plan_seeds.go` SeedMatchers: `{Key: "SR4*", Name: "Colombidés bébé", Derived: true,
+  Expression: animal_type = "Colombidés" AND animal_age = "bébé"}`
+  (siblings: `SR1*` Hérisson bébé < 300 g, `SR6*` Canidés bébé,
+  `SR12*` Hérisson bébé ou juvénile).
+- `actions/care_matchers.go` `CareMatchersResource.List`:
+  `tx.Where("derived = 0").All(matchers)` — the library page **deliberately
+  hides derived matchers** (item 9, 2026-10-07, `models/care_matcher.go`:
+  *"It is a building block, not library content — derived matchers are
+  hidden from /care_matchers and the matcher dropdowns while the rules
+  referencing them keep evaluating."*).
+
+Why they exist at all: the `care_rules` schema references ONE matcher, so
+the composite seed rules (SR1/SR4/SR6/SR12) inline their two-part condition
+into a dedicated matcher row instead of extending the schema. Rule
+**SR4 "Colombidés bébé — NB gavage"** (feeding, NB 1/2 50 ml, force-feed,
+08:00/11:00/14:00/17:00) evaluates through `SR4*` — so the schedule using
+"Colombidés bébé" is fully operational even though the library page does
+not show the matcher.
+
+### The actual bug (UX gap)
+
+The hiding is by design, but the page gives **no hint** that hidden
+matchers exist, why, or where they are used — an admin looking for the
+matcher behind rule SR4 concludes the data is broken. Additionally a
+derived matcher can only be edited by knowing its URL/ID (JSON Show/Edit
+routes exist), never from the UI.
+
+### Candidate fixes (pick one)
+
+1. **Show derived matchers, badged**: drop the `derived = 0` filter and
+   render derived rows with a muted "internal — used by rule SR4" badge
+   (and read-only or guarded edit), keeping them out of the rule-editor
+   dropdowns only.
+2. **Keep hidden + explain**: keep the filter but add a page note
+   ("N internal matchers hidden — they back seed rules SR1/SR4/SR6/SR12")
+   with a toggle to reveal them.
+3. **Status quo + doc**: document the behaviour in the admin guide only
+   (weakest — the confusion repeats).
+
+### Acceptance criteria (browser E2E)
+
+- `/care_matchers` either lists "Colombidés bébé" with a clear internal
+  badge, or explains on-page how to reveal it; the admin can reach its
+  detail/expression without guessing an ID.
+- Rule SR4 still evaluates (a baby pigeon intake still generates the
+  4×/day gavage plan) — regression check.
+- All 4 locales render the chosen UI.

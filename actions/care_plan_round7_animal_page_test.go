@@ -109,7 +109,9 @@ func TestAnimalShowModalsOutsideTabPanes(t *testing.T) {
 // every locale file — a missing key showed up literally on the page.
 func TestCarePlanStatusKeysLocalizedEverywhere(t *testing.T) {
 	used := statusKeysUsedByTemplates(t)
-	require.Contains(t, used, "care_plan.status.done", "the done alias is used")
+	// BUG-22: the applied branch no longer renders the "done" badge text (a
+	// real undo toggle replaced it); the new pin is the locked-slot key.
+	require.Contains(t, used, "care_plan.status.undo_locked", "the locked-slot key is used")
 
 	for _, lang := range []string{"en-us", "fr", "de", "nl"} {
 		raw := readTemplate(t, "../locales/care_plan."+lang+".yaml")
@@ -130,6 +132,9 @@ func statusKeysUsedByTemplates(t *testing.T) map[string]bool {
 	for _, f := range []string{
 		"../templates/care_plan/index.plush.html",
 		"../templates/care_plan/_med_series.plush.html",
+		// BUG-22: the slot toggle renders the locked-slot tooltip key
+		// (care_plan.status.undo_locked) plus skipped/deferred/out_of_window.
+		"../templates/care_plan/_plan_slot_toggle.plush.html",
 		// Phase 5 (D5): the animal page delegates every non-medication item
 		// row to `_plan_item_line`, so the literal `care_plan.status.*` keys
 		// the animal Protocol tab can render (done, out_of_window, …) now

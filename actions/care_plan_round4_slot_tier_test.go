@@ -232,16 +232,17 @@ func TestMedSeriesPartialTierClasses(t *testing.T) {
 	}
 }
 
-// TestMedSeriesLayoutAndInfoFirst (R4-2.3/R4-2.4/R4-3.1/R4-3.2, all four
-// locales): the line follows the A/B/C layout rule — a fixed-width LEADING
-// column holding the ℹ (first entry, aligned), a growing label block and
-// ONE right-aligned button group; the morning/noon/evening grouping is an
-// explicit LABELLED divider, not an empty rule.
+// TestMedSeriesLayoutAndInfoFirst (R4-2.3/R4-3.1/R4-3.2 + the 2026-10-28
+// date-divider rule, all four locales): the line follows the A/B/C layout
+// rule — a fixed-width LEADING column holding the ℹ (first entry,
+// aligned), a growing label block and ONE right-aligned button group; the
+// only splitter inside the group is a LABELLED CALENDAR-DATE divider
+// (never a matin/soir bucket name).
 func TestMedSeriesLayoutAndInfoFirst(t *testing.T) {
 	slots := []MedSlotView{
 		{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 8, 0, 0, 0, time.Local), DueAtHM: "08:00", Status: "due", Tier: 1, TierClass: "btn-warning", Applicable: true},
 		{Slot: "morning", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 9, 0, 0, 0, time.Local), DueAtHM: "09:00", Status: "scheduled", Tier: 2, TierClass: "btn-light border"},
-		{Slot: "evening", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 2, 18, 0, 0, 0, time.Local), DueAtHM: "18:00", Status: "due", Tier: 1, TierClass: "btn-warning", Applicable: true},
+		{Slot: "evening", Detail: "Citramox — 0.5 ml", DueAt: time.Date(2026, 10, 3, 18, 0, 0, 0, time.Local), DueAtHM: "18:00", Status: "due", Tier: 1, TierClass: "btn-warning", Applicable: true},
 	}
 	mg := MedGroupView{AnimalID: 1, AnimalLabel: "472/26", Series: seriesOf(slots, seriesBucketOrder)}
 	require.Len(t, mg.Series, 1)
@@ -270,8 +271,10 @@ func TestMedSeriesLayoutAndInfoFirst(t *testing.T) {
 		require.True(t, line >= 0 && lead > line && info > lead, f+": the line opens with the ℹ column")
 		require.True(t, label > info, f+": the drug label follows the ℹ")
 		require.True(t, btns > label, f+": ONE right-aligned button group closes the line")
-		require.Contains(t, out, `class="plan-med-bucket">care_plan.slot.evening<`, f,
-			"the morning/noon/evening grouping is labelled (R4-2.4)")
+		require.Contains(t, out, `class="plan-med-bucket">2026/10/03<`, f,
+			"the only splitter is the labelled CALENDAR-DATE divider (user request 2026-10-28)")
+		require.NotContains(t, out, ">care_plan.slot.", f,
+			"no matin/midi/soir bucket caption splits the buttons")
 		require.Contains(t, out, `class="plan-med-cell"`, f, "the day badge travels with its own button (R4-3.2)")
 		require.NotContains(t, out, "med-series-divider", f, "the unlabelled rule is gone")
 	}

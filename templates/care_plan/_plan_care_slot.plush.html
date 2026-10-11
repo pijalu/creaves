@@ -24,7 +24,32 @@
     hard requirement, not a style choice. %>
 <span class="plan-item-slot">
   <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span> <% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span> <% } %>
-  <%= if (slot.Applicable) { %>
+  <%= if (slot.Status == "applied") { %>
+    <%# Done tier (user request 2026-10-28): an applied occurrence renders
+        the SAME pair, pre-flipped — the ○ apply side stays in the DOM
+        (d-none) so an undo flips it back in place, the ✓ undo side is
+        visible and armed (openUnapply). BUG-22 pair contract: ONE shared
+        parent per occurrence. %>
+    <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn d-none"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup"
+      data-tier-class="<%= slot.TierClass %>"
+      data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+      data-detail="<%= ccard.SourceName %>"
+      data-source-name="<%= ccard.SourceName %>"
+      title="<%= t("care_plan.apply.action") %>">○ <%= slot.DueHM %></button>
+    <button type="button" class="btn btn-success btn-sm plan-item-btn plan-item-slot-btn plan-unapply-btn"
+      data-source-type="<%= ccard.SourceType %>"
+      data-source-id="<%= ccard.SourceID %>"
+      data-animal-id="<%= slot.AnimalID %>"
+      data-due-at="<%= slot.DueAtRFC %>"
+      data-kind="cleanup"
+      data-tier-class="<%= slot.TierClass %>"
+      title="<%= t("care_plan.action.undo") %>">✓ <%= slot.DueHM %></button>
+  <% } else if (slot.Applicable) { %>
     <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-item-btn plan-item-slot-btn plan-apply-btn"
       data-source-type="<%= ccard.SourceType %>"
       data-source-id="<%= ccard.SourceID %>"
