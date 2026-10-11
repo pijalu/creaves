@@ -119,34 +119,10 @@
   <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
 </div>
 
-<%# A3 summary strip: an INDEX of the tier sections, not a second opinion
-     about them (R4-7.21). Three measured defects came from it disagreeing
-     with what the page actually renders:
-       - it counted OCCURRENCES across days (view.Stats, via statsOf) while
-         the sections are today-scoped, so "Later 83" sat above a section
-         badged 31 (medication) and 10 (observation);
-       - its anchors were the hardcoded row-kind ids #tier-late / #tier-now
-         / #tier-later, which feeding never renders (its sections are
-         #feed-tier-N) — both links were dead on /care_plan?kind=feeding;
-       - it gated on the WORKLOAD count, so feeding advertised "Later 99+"
-         with no Later section on the page at all.
-     A pill now appears only when its section exists, links to that section's
-     real id, and repeats that section's own number in the same unit — the
-     strip can no longer contradict the header it points at. view.Stats still
-     counts the workload for the nav/zone tabs, which are workload-wide by
-     design. %>
-<%= if (view.Kind != "feeding") { %>
-<div class="mb-2" id="planSummaryStrip">
-  <%= for (sl) in view.TierLinks { %>
-    <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
-  <% } %>
-</div>
-<% } %>
-
-<%# Kind = primary nav (fix 5 — NO "all/TOUT" tab, the handler picks the
-     active kind): counts are open occurrences of the kind in the ACTIVE
-     zone. One kind on screen at a time — feeding never mixes with
-     medication (fix 4). %>
+<%# BUG-26 (2026-10-28): the strip moved INSIDE #planSections (below) —
+     it indexes the ACTIVE tab's tables, so it renders within the tab
+     content, for every kind, with all four bubbles (late · now · later ·
+     done) in table order. %>
 <ul class="nav nav-tabs mb-2" id="planKindTabs">
   <%= for (kc) in view.Kinds { %>
     <li class="nav-item">
@@ -206,6 +182,23 @@
   <div class="alert alert-success"><%= t("care_plan.day.empty") %></div>
 <% } else { %>
 <div id="planSections">
+
+  <%# BUG-26 (2026-10-28): ONE summary strip per tab, INSIDE the tab
+      content, for EVERY kind — an INDEX of the tables rendered below
+      (R4-7.21), never a second opinion. A bubble appears only when its
+      table exists, links to that table's real id, repeats its count in
+      the same unit, and the order matches the page: late · now · later ·
+      done. A pill used to sit ABOVE the kind tabs (reading as page
+      metadata) on row kinds, inside the feeding panel on feeding, and
+      nowhere on cleanup; no tab had a Done bubble although every tab
+      renders a Done table. %>
+  <%= if (len(view.TierLinks) > 0) { %>
+  <div class="mb-2" id="planSummaryStrip">
+    <%= for (sl) in view.TierLinks { %>
+      <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
+    <% } %>
+  </div>
+  <% } %>
 
   <%# --- Tiers: late → now → later (§U2, the original work screen) --------
        Fix 2/3/6: three collapsible TABLE sections in fixed order, rows
@@ -310,11 +303,6 @@
   <%= if (len(view.Feedings) > 0) { %>
     <div id="feedingTabContent">
     <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
-    <div class="mb-2" id="planSummaryStrip">
-      <%= for (sl) in view.TierLinks { %>
-        <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
-      <% } %>
-    </div>
     <%= for (ti) in [0, 1, 2] { %>
       <%= if (len(view.FeedTiers[ti]) > 0) { %>
           <%= partial("care_plan/plan_tier_feed_table.plush.html", {
@@ -645,12 +633,14 @@
   }
 
   // Selecting an urgency shortcut keeps only its target section expanded.
+  // BUG-26: ONE strip per tab inside #planSections (every kind) — the
+  // scope is always the sections container; the Done bubble also expands
+  // its (default-collapsed) table.
   document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
     var link = event.target.closest('a[href^="#"]');
     if (!link) { return; }
     var target = link.getAttribute('href').slice(1);
-    var feedingPanel = document.getElementById('feedingTabContent');
-    var scope = feedingPanel && feedingPanel.contains(link) ? feedingPanel : document.getElementById('planSections');
+    var scope = document.getElementById('planSections');
     Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
       var body = tier.querySelector('.plan-tier-body');
       if (body && tier.id !== target && body.classList.contains('show')) {

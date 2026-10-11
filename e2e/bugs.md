@@ -1578,7 +1578,13 @@ forks share this structure).
 
 ## BUG-25 (low) — `/care_matchers` does not list "Colombidés bébé" (derived matchers hidden by design, but invisible and undiscoverable)
 
-**Status:** OPEN — root cause identified (by-design filter, UX gap); fix to decide
+**Status:** ✅ FIXED 2026-10-28 (user ruling: candidate fix 1, widened —
+derived matchers are full library members; verified by browser E2E
+2026-10-28 — "/care_matchers" lists "Colombidés bébé" with usage count
+1, also present in the rule-editor matcher select; 4 locales render.
+NOTE: the grey "Derived" badge introduced here was removed again by
+BUG-27 — singling out derived matchers adds no value; the used-by count
+is now the single, uniform affordance for every matcher)
 **Severity:** Low (no functional break — the matcher works and feeds rule
 SR4; the admin simply cannot SEE or manage it from the library page)
 **Found by:** User report 2026-10-28 —
@@ -1637,3 +1643,228 @@ routes exist), never from the UI.
 - Rule SR4 still evaluates (a baby pigeon intake still generates the
   4×/day gavage plan) — regression check.
 - All 4 locales render the chosen UI.
+
+### Fix (2026-10-28, user ruling)
+
+User ruling: *"Hiding a matcher does not bring actual value — if it does,
+explicit. Fully visible; add the number of usages on the matcher list;
+only admins may update, so that is enough protection."*
+
+Implemented (widened candidate fix 1 — derived matchers are full library
+members, also in the rule-editor select):
+
+- `actions/care_matchers.go` `List`: `derived = 0` filter dropped; each
+  row now carries `UsedBy` (rules referencing it, via new
+  `matcherUsageCounts`); list ordered by name.
+- `models/care_matcher.go`: new non-db field `UsedBy int \`db:"-"\``.
+- `actions/care_rules.go`: `derived = 0` filter dropped from the rules-list
+  matcher dropdown AND from `setRuleContext` (the "except own matcher"
+  special case is gone — every matcher is listed).
+- `templates/care_matchers/index.plush.{html,fr,de,nl}.html`: new
+  "Used by rules" column + grey **Derived** badge (tooltip explains the
+  edit coupling) in the name cell.
+- `locales/care_plan.{en-us,fr,de,nl}.yaml`: `care_plan.field.used_by`,
+  `care_plan.matchers.derived_badge`, `care_plan.matchers.derived_hint`.
+
+**Retest:** ✅ browser E2E 2026-10-28 — `/care_matchers` lists
+"Colombidés bébé" (usage count 1, see BUG-27 for the badge removal); rule
+SR4 edit select unchanged in behaviour; 4 locales render.
+
+---
+
+## BUG-26 (medium) — `/care_plan`: urgency bubbles sit OUTSIDE the tabs, are missing for feeding/cleanup, and no tab has a "Done" bubble
+
+**Status:** ✅ FIXED 2026-10-28 (code + phase0b baselines re-recorded with
+verified diff + browser E2E 2026-10-28: all 6 kind tabs — strip inside
+`#planSections` (1 instance, after `.nav-tabs`, 0 above), bubble order
+late·now·later·done, bubble counts == tier header counts, click expands
+& scrolls to the target tier (hash jump verified), feeding has no private
+duplicate; observation/weighing render no tables → no strip, correct per
+R4-7.21; locales en/fr/de/nl verified — e.g. fr "En retard 29 / Plus
+tard 5", de "Überfällig 29 / Später 5", nl "Te laat 29 / Later 5")
+**Severity:** Medium (wrong affordance on the day's main work screen: the
+summary reads as page metadata instead of the active tab's index, and the
+information set changes per tab without reason)
+**Found by:** User report 2026-10-28 —
+`http://localhost:3000/care_plan?kind=medication&group=cage` (and other
+kinds): *"the bubble 'En retard 29' / 'Plus tard 5' should be within the
+tab; ALL tabs should have all bubbles matching all tables (late, now, to
+do, done), same logic."*
+
+### Observed
+
+1. **Placement** — the urgency bubbles (`planSummaryStrip`,
+   `view.TierLinks`) render at the TOP of the page ABOVE the kind tab bar
+   (`#planKindTabs`) for medication/care/weighing/observation. They index
+   the ACTIVE tab's sections, but their position makes them read as
+   page-level metadata. Feeding renders a second strip INSIDE its tab
+   content (`#feedingTabContent`) — two different placements for the same
+   component.
+2. **Missing bubbles per tab** — the strip is gated
+   `if (view.Kind != "feeding")`, and feeding only shows its strip when
+   open feeding work exists (`len(view.Feedings) > 0`); cleanup renders
+   no strip at all. So depending on the tab the bubbles are above the
+   tabs, inside the tab, or absent.
+3. **No "Done" bubble anywhere** — `tierLinks()` only emits late/now/later
+   (3 keys). Yet every tab renders a fourth "Done" table when applied work
+   exists (medication `MedDone`, feeding `FeedDone`, cleanup `CareDone`,
+   row kinds `DoneRows`) — not represented in the strip, and not
+   expandable by the strip's click handler.
+
+### Root cause
+
+- `templates/care_plan/index.plush.html`: summary strip placed before
+  `#planKindTabs` and gated on kind; feeding keeps its own copy.
+- `actions/care_plan_viewmodel.go` `tierLinks()`: iterates only the 3
+  open tiers; no done entry.
+
+### Fix (guideline §1.4/R4-7.21: strip = index of the rendered tables,
+same unit, same order as the tables on the page)
+
+1. ONE strip, rendered INSIDE `#planSections` (i.e. within the active
+   tab's content), for EVERY kind, before the tier panels; feeding's
+   private strip removed.
+2. All FOUR bubbles whenever their table exists — late · now · later ·
+   done, always in this order — with the same per-kind unit as the tier
+   headers (open applicable occurrences; done count for the done table).
+   Bubbles whose table does not exist are omitted (strip never
+   contradicts the page, R4-7.21).
+3. The strip click handler scopes to `#planSections` for every kind and
+   also expands the (default-collapsed) Done tier when its bubble is
+   clicked.
+
+### Acceptance criteria (browser E2E)
+
+- Every kind tab (feeding, medication, care, cleanup, weighing,
+  observation) shows the bubbles INSIDE the tab content, order
+  late → now → later → done, counts equal to the tier headers.
+- Clicking the Done bubble expands/scrolls to the Done table on every tab
+  that has one.
+- No strip above the tab bar on any tab; no duplicate strip on feeding.
+- All 4 locales render identically (templates share the same markup).
+
+## BUG-27 (medium) — `/care_matchers`: the "Dérivé" badge singles out derived matchers for a coupling that applies to ALL matchers; the "used by" count is not actionable
+
+**Status:** ✅ FIXED 2026-10-28 (badge removed; used-by count is now a
+clickable dropdown listing every referencing rule with show/edit links;
+verified by browser E2E 2026-10-28 — no "Dérivé" badge, dropdown opens
+listing rules with translated names/kind/inactive marker, show
+("/care_rules/{id}") and edit ("/care_rules/{id}/edit") links both
+reachable, 0 not clickable, identical in en/fr/de/nl; JSON API still
+returns `used_by` + `used_by_rules`)
+**Severity:** Medium (misleading affordance on an admin authoring screen:
+the badge implies only derived matchers propagate edits to rules, which is
+false — editing ANY matcher re-evaluates every rule referencing it)
+**Found by:** User report 2026-10-28 —
+`http://localhost:3000/care_matchers`: *"Derivé still does not make much
+sense — any matcher modification should change all rules that are using
+the matcher — it still does not make sense to 'only' explain this for
+'derived' — still unclear of the actual meaning of it. The 'Utilisé par
+des règles' should show a number — on click — it should open a tooltip
+with the list and details of the rules + option to jump to the edit/view
+of the rules."*
+
+### Observed
+
+1. The name cell of derived matchers carries a "Dérivé" badge whose hint
+   ("editing it affects every rule using it") describes a property of
+   EVERY matcher, not just derived ones. Singling out derived rows makes
+   the badge's meaning unreadable (what does "derived" itself even mean
+   for an admin?).
+2. The "Utilisé par des règles" column renders a bare number. The admin
+   cannot see WHICH rules reference the matcher without opening each rule
+   one by one — yet that list is exactly what you need before editing or
+   deleting a matcher (BUG-28 shows the delete guard needs it too).
+
+### Root cause
+
+- BUG-25 fix added the derived badge as a warning; the warning text
+  describes generic matcher→rule coupling, not a derived-specific
+  property. The `derived` column is seed provenance (composite seed
+  rules SR1*/SR4*/SR6*/SR12* inlined into matcher rows) — internal
+  bookkeeping, not user-facing information.
+- The usage query (`matcherUsageCounts`) returns only counts; the
+  template never received the referencing rules.
+
+### Fix (guideline: visibility + explicit information, not concealment;
+admin-only authoring is the protection)
+
+1. **Badge removed** from the index name cell in all 4 locales. The
+   `derived` DB column stays (seed provenance, internal). The generic
+   coupling is now visible for EVERY matcher through the same mechanism:
+   the used-by count.
+2. **Used-by count is a dropdown** (Bootstrap 4 `dropdown`, no JS init
+   needed): the number is the toggle; the menu lists every referencing
+   rule — translated name, type, inactive marker — each row linking to
+   the rule's show page, with an edit (✎) link jumping straight to
+   `/care_rules/{id}/edit`. Count 0 renders as a plain number (no empty
+   menu).
+3. Handler: `matcherUsageCounts` → `matcherUsage` returns
+   matcher_id → []CareRuleRef (id, name, outtake_type, active) in one
+   query ordered by rule name; `CareMatcher.UsedByRules` carries the
+   list, `UsedBy` stays the count.
+
+### Acceptance criteria (browser E2E)
+
+- `/care_matchers`: no "Dérivé" badge anywhere; every matcher shows its
+  used-by number; clicking a non-zero number opens the rule list with
+  working show + edit links; 0 is not clickable.
+- All 4 locales render identically (templates share the same markup);
+  rule names display translated via `tname`.
+- JSON API (`Accept: application/json`) still returns the matchers array
+  with `used_by` counts and the new `used_by_rules` list.
+
+## BUG-28 (medium) — Deleting a used matcher (and every other planError) returns raw JSON to the browser: no message page, no way back
+
+**Status:** ✅ FIXED 2026-10-28 (`planError` content-negotiated — HTML gets
+a translated flash + redirect back, JSON keeps the {code,error} body;
+verified by browser E2E 2026-10-28 — HTML DELETE of a used matcher →
+303 → back on `/care_matchers` with a red localized alert naming the
+count, in en/fr/de/nl; `Accept: application/json` still gets
+{"code":409,"error":...}; admin-only 403 gate still hard for HTML)
+**Severity:** Medium (dead-end error screen on the main admin flow: the
+browser shows a bare JSON blob with no navigation; the user must use the
+browser back button to recover)
+**Found by:** User report 2026-10-28 — DELETE
+`http://localhost:3000/care_matchers/3c38ded6-3015-4c27-bfc3-06bb234a3fab/`
+returned `{"code":409,"error":"matcher used by 1 rule(s)"}`: *"This
+should be a clear error message and allow the user to go back."*
+
+### Observed
+
+Deleting a matcher that is still referenced by rules (the §7.1-5 usage
+guard, correctly rejecting with 409) renders the error as a raw JSON
+document in the browser — no flash, no redirect, no link back. The same
+helper (`planError`, `actions/care_plan_support.go`) backs ~40 error
+paths across care_plan/care_rules/care_matchers/care_animal_plans/
+care_rule_exclusions/treatment_time_entries, so EVERY rejected plan
+action (validation, not-found, conflict) dead-ends the same way when
+hit from an HTML page.
+
+### Root cause
+
+`planError` unconditionally renders `renderJSON({code, error})` — it
+never content-negotiates, and the matcher-in-use message itself is a
+hard-coded English string, not a translated locale key.
+
+### Fix (guideline: user-facing errors are UI — localized, recoverable)
+
+1. `planError` now content-negotiates: `Accept: application/json` keeps
+   the `{code, error}` JSON body at the original status (API contract
+   unchanged); HTML requests get `c.Flash().Add("danger", msg)` +
+   `303 See Other` redirect to the Referer (fallback `/`), so the user
+   lands back on the page they came from with the error displayed as a
+   dismissible alert (`_flash.plush.html` already renders `danger`).
+2. The matcher-in-use guard message is a locale key
+   (`care_plan.matchers.error_in_use`, 4 languages) with the rule count
+   interpolated, instead of the hard-coded English string.
+
+### Acceptance criteria (browser E2E)
+
+- Deleting a used matcher from `/care_matchers` (HTML) returns to
+  `/care_matchers` with a red alert naming the count of referencing
+  rules, in the active locale; no JSON blob, no dead end.
+- The same delete with `Accept: application/json` still returns
+  `{"code":409,"error":...}` (API contract preserved).
+- Other planError paths (e.g. deleting a used rule, invalid plan POST)
+  show the same flash-and-back behavior from HTML pages.

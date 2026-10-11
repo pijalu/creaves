@@ -17,7 +17,11 @@ func TestGoal3LayoutAndFeedingTierNavigationAcrossLocales(t *testing.T) {
 		index := readTemplate(t, "../templates/care_plan/index.plush"+locale+".html")
 		require.Contains(t, index, `id="feedingTabContent"`, locale)
 		require.Contains(t, index, `id="planSummaryStrip"`, locale)
-		require.Contains(t, index, `feedingPanel.contains(link)`, locale)
+		// BUG-26 (2026-10-28): ONE strip INSIDE #planSections for every
+		// kind — the click handler scopes to the sections container
+		// unconditionally; the old feeding-panel special case is gone.
+		require.NotContains(t, index, `feedingPanel.contains(link)`, locale)
+		require.Contains(t, index, `var scope = document.getElementById('planSections');`, locale)
 		require.Contains(t, index, `scope.querySelectorAll('.plan-tier')`, locale)
 		require.Contains(t, index, `.plan-tier-body table { table-layout: auto; max-width: 100%; }`, locale)
 		// Bug 2026-10-06 #1: `width: max-content` on the animal cell made
@@ -30,10 +34,10 @@ func TestGoal3LayoutAndFeedingTierNavigationAcrossLocales(t *testing.T) {
 		require.NotContains(t, index, `.plan-feed-animal, .plan-care-animal { width: 1%`, locale)
 		require.NotContains(t, index, `.plan-med-animal, .plan-feed-animal, .plan-care-animal, .plan-loc-col { min-width: 11rem`, locale)
 
-		// Conditional rendering leaves exactly one strip on each active view:
-		// non-feeding placement above tabs, feeding placement inside its wrapper.
-		require.Equal(t, 2, strings.Count(index, `id="planSummaryStrip"`), locale)
-		require.Contains(t, index, `if (view.Kind != "feeding")`, locale)
+		// BUG-26: exactly ONE strip per page (inside #planSections), no
+		// kind gate, no feeding-private copy.
+		require.Equal(t, 1, strings.Count(index, `id="planSummaryStrip"`), locale)
+		require.NotContains(t, index, `if (view.Kind != "feeding") { %>`, locale)
 	}
 
 	care := readTemplate(t, "../templates/care_plan/_plan_care_line.plush.html")

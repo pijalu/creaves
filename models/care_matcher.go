@@ -29,12 +29,30 @@ type CareMatcher struct {
 	// Derived marks a seed-internal composite matcher (item 9, 2026-10-07):
 	// the care_rules schema references ONE matcher, so composite seed rules
 	// (SR1/SR4/SR6/SR12) inline their condition into a dedicated matcher.
-	// It is a building block, not library content — derived matchers are
-	// hidden from /care_matchers and the matcher dropdowns while the rules
-	// referencing them keep evaluating.
-	Derived    bool      `json:"derived" db:"derived"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	// 2026-10-28 ruling (BUG-27): pure seed provenance, internal bookkeeping
+	// — NOT user-facing. Editing ANY matcher re-evaluates every referencing
+	// rule, so the library shows the coupling for every matcher via the
+	// used-by count + rule list, not via a derived-only badge.
+	Derived bool `json:"derived" db:"derived"`
+	// UsedBy is the number of care_rules referencing this matcher. Not a
+	// db column — filled by the library list handler (care_matchers.go).
+	UsedBy int `json:"used_by" db:"-"`
+	// UsedByRules lists the referencing rules (id, name, kind, active) so
+	// the library row can offer a clickable usage dropdown with show/edit
+	// links (BUG-27). Not a db column — filled with UsedBy.
+	UsedByRules []CareRuleRef `json:"used_by_rules" db:"-"`
+	CreatedAt   time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time     `json:"updated_at" db:"updated_at"`
+}
+
+// CareRuleRef is the lightweight rule projection used by the matcher
+// library's used-by dropdown (BUG-27) — just enough to name the rule
+// and link to its show/edit pages.
+type CareRuleRef struct {
+	ID         uuid.UUID `json:"id" db:"id"`
+	Name       string    `json:"name" db:"name"`
+	ActionKind string    `json:"action_kind" db:"action_kind"`
+	Active     bool      `json:"active" db:"active"`
 }
 
 // CareMatchers is not required by pop and may be deleted

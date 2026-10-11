@@ -293,6 +293,28 @@ func planActionKinds() []string {
 	}
 }
 
+// matcherUsage returns matcher_id → referencing rules (id, name, kind,
+// active), ordered by rule name, for the library list's usage column
+// (BUG-27: the count is clickable and lists the rules with show/edit
+// links — editing ANY matcher re-evaluates every rule referencing it,
+// so the coupling must be visible for every matcher).
+func matcherUsage(tx *pop.Connection) (map[uuid.UUID][]models.CareRuleRef, error) {
+	type usageRow struct {
+		MatcherID uuid.UUID `db:"matcher_id"`
+		models.CareRuleRef
+	}
+	var rows []usageRow
+	if err := tx.RawQuery(`SELECT matcher_id, id, name, action_kind, active
+		FROM care_rules WHERE matcher_id IS NOT NULL ORDER BY name asc`).All(&rows); err != nil {
+		return nil, err
+	}
+	out := make(map[uuid.UUID][]models.CareRuleRef, len(rows))
+	for _, r := range rows {
+		out[r.MatcherID] = append(out[r.MatcherID], r.CareRuleRef)
+	}
+	return out, nil
+}
+
 // matcherNamesByID loads id → name for every matcher (rules list + editor
 // selects). Empty set is not an error: rules may exist before matchers.
 func matcherNamesByID(tx *pop.Connection) (map[uuid.UUID]string, error) {
@@ -318,17 +340,28 @@ type CareMatchersResource struct {
 
 // List gets all matchers. GET /care_matchers — JSON API plus the HTML
 // matcher library page (§7.2), content-negotiated like the rules list.
-// Item 9 (2026-10-07): derived composite matchers are seed-internal
-// building blocks and stay out of the library (a rule referencing one
-// still shows its name via matcherNamesByID).
+// 2026-10-08 ruling: derived composite matchers are visible library
+// members — admin-only authoring is the protection, not hiding.
+// 2026-10-28 (BUG-27): each row carries its usage count AND the list of
+// referencing rules (clickable dropdown with show/edit links) — the
+// matcher→rule coupling applies to every matcher, not just derived ones.
 func (v CareMatchersResource) List(c buffalo.Context) error {
 	if !requireAdminForPlan(c) {
 		return nil
 	}
 	tx := planTx(c)
 	matchers := &models.CareMatchers{}
-	if err := tx.Where("derived = 0").All(matchers); err != nil {
+	if err := tx.Order("name asc").All(matchers); err != nil {
 		return err
+	}
+	usage, err := matcherUsage(tx)
+	if err != nil {
+		return err
+	}
+	for i := range *matchers {
+		refs := usage[(*matchers)[i].ID]
+		(*matchers)[i].UsedBy = len(refs)
+		(*matchers)[i].UsedByRules = refs
 	}
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("matchers", []models.CareMatcher(*matchers))
@@ -489,7 +522,10 @@ func (v CareMatchersResource) Destroy(c buffalo.Context) error {
 		return err
 	}
 	if used > 0 {
-		return planError(c, http.StatusConflict, fmt.Errorf("matcher used by %d rule(s)", used))
+		// BUG-28: translated message — planError flashes it and sends the
+		// HTML user back; JSON clients keep the {code, error} body.
+		msg := T.Translate(c, "care_plan.matchers.error_in_use", map[string]interface{}{"count": used})
+		return planError(c, http.StatusConflict, fmt.Errorf("%s", msg))
 	}
 	if err := tx.Destroy(matcher); err != nil {
 		return err

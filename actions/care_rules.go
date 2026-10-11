@@ -134,9 +134,10 @@ func (v CareRulesResource) List(c buffalo.Context) error {
 			return err
 		}
 		// Matcher dropdown for the matcher_id filter (name-ordered).
-		// Item 9: derived composite matchers are seed-internal — excluded.
+		// 2026-10-08: derived matchers included — they are visible library
+		// members like any other.
 		matchers := &models.CareMatchers{}
-		if err := tx.Where("derived = 0").Order("name asc").All(matchers); err != nil {
+		if err := tx.Order("name asc").All(matchers); err != nil {
 			return err
 		}
 		c.Set("pagination", q.Paginator)
@@ -201,16 +202,11 @@ func (v CareRulesResource) Show(c buffalo.Context) error {
 
 // setRuleContext loads everything the rule editor page needs (matcher
 // select, §5.1 builder fields, payload/schedule textarea contents).
-// Item 9: derived composite matchers stay out of the select — EXCEPT the
-// edited rule's own matcher, so re-saving a composite seed rule cannot
-// silently wipe its matcher link.
+// 2026-10-08: the matcher select lists every matcher, derived included
+// (admin-only authoring replaces the former concealment).
 func setRuleContext(c buffalo.Context, tx *pop.Connection, rule *models.CareRule) error {
 	matchers := &models.CareMatchers{}
-	q := tx.Where("derived = 0")
-	if rule.MatcherID.Valid {
-		q = tx.Where("derived = 0 OR id = ?", rule.MatcherID.UUID)
-	}
-	if err := q.Order("name asc").All(matchers); err != nil {
+	if err := tx.Order("name asc").All(matchers); err != nil {
 		return err
 	}
 	c.Set("rule", rule)

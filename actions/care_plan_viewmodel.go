@@ -167,10 +167,10 @@ type ItemSlotView struct {
 // the section itself uses. The strip used to render view.Stats — a
 // workload-wide count of open occurrences across days, computed before the
 // sections were scoped to today — which made it disagree with the header it
-// pointed at.
+// pointed at. BUG-26: the strip indexes ALL rendered tables, Done included.
 type TierLink struct {
-	ID    string // section element id: "tier-late" (row kinds) / "feed-tier-0"
-	Key   string // tier key for care_plan.tier.<Key> ("late"/"now"/"later")
+	ID    string // section element id: "tier-late" (row kinds) / "feed-tier-0" / "tier-done"
+	Key   string // tier key for care_plan.tier.<Key> ("late"/"now"/"later"/"done")
 	Num   int
 	Cap   string
 	Class string
@@ -804,7 +804,29 @@ func tierLinks(v *DayPlanView, kind string) []TierLink {
 			tl.ID = "tier-" + keys[i]
 			tl.Num, tl.Cap = v.Tiers[i].Count, v.Tiers[i].CountCap
 		}
-		out = append(out, tl)
+	out = append(out, tl)
+	}
+	// BUG-26 (2026-10-28): every tab also renders a "Done" table when
+	// applied work exists — the strip indexes it like the open tiers
+	// (same order as the tables on the page: late · now · later · done).
+	// Unit = the Done table's own badge count per kind.
+	switch {
+	case feed:
+		if len(v.FeedDone) > 0 {
+			out = append(out, TierLink{ID: "feed-tier-done", Key: "done", Class: "badge-success", Cap: v.DoneCountCap})
+		}
+	case cleanup:
+		if len(v.CareDone) > 0 {
+			out = append(out, TierLink{ID: "care-tier-done", Key: "done", Class: "badge-success", Cap: v.DoneCountCap})
+		}
+	case kind == careplan.KindMedication:
+		if len(v.MedDone) > 0 {
+			out = append(out, TierLink{ID: "tier-done", Key: "done", Class: "badge-success", Cap: v.MedDoneCountCap})
+		}
+	default:
+		if len(v.DoneRows) > 0 {
+			out = append(out, TierLink{ID: "tier-done", Key: "done", Class: "badge-success", Cap: v.DoneCountCap})
+		}
 	}
 	return out
 }

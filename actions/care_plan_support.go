@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -15,15 +16,42 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// planError renders a 4xx JSON error body for the care-plan API with the
+// planError renders a 4xx error body for the care-plan API with the
 // real message — buffalo's default error handler masks err.Error() to
 // http.StatusText outside development, which would strip the detail the
 // UI toasts and API clients rely on (bugs.md H1).
+//
+// BUG-28 (2026-10-28): content-negotiated. JSON clients keep the
+// {code, error} body at the original status (API contract unchanged).
+// HTML requests must never dead-end on a raw JSON blob: flash the
+// message and redirect back (303) to the Referer (fallback "/"), so
+// the user returns to the page they came from with the error shown as
+// a dismissible alert.
+// Exception: 403 permission gates (requireAdminForPlan) stay a hard
+// status even on HTML — a non-admin must NOT be bounced back to a page
+// with a flash as if the action merely failed; the request is refused.
 func planError(c buffalo.Context, status int, err error) error {
-	return c.Render(status, renderJSON(map[string]interface{}{
-		"error": err.Error(),
-		"code":  status,
-	}))
+	if wantsJSON(c) || status == http.StatusForbidden {
+		return c.Render(status, renderJSON(map[string]interface{}{
+			"error": err.Error(),
+			"code":  status,
+		}))
+	}
+	c.Flash().Add("danger", err.Error())
+	back := c.Request().Header.Get("Referer")
+	if back == "" {
+		back = "/"
+	}
+	return c.Redirect(http.StatusSeeOther, back)
+}
+
+// wantsJSON reports whether the client asked for a JSON response
+// (Accept header or .json path suffix) — planError's content
+// negotiation (BUG-28). Buffalo's responder uses the same signals.
+func wantsJSON(c buffalo.Context) bool {
+	ct := c.Request().Header.Get("Accept")
+	return strings.Contains(ct, "application/json") ||
+		strings.HasSuffix(c.Request().URL.Path, ".json")
 }
 
 // Plan service support helpers (§4.5/§6.2): source projection, defer

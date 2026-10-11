@@ -632,18 +632,18 @@
         </a>
       </div>
       <div id="planSections">
+        <div class="mb-2" id="planSummaryStrip">
+          <a class="badge badge-warning mr-1" href="#feed-tier-1">
+            "Now"
+            <span class="badge badge-pill badge-light ml-1">
+              "2"
+            </span>
+          </a>
+        </div>
         <div id="feedingTabContent">
           <h5 class="mt-3">
             "Feeding (per cage × diet)"
           </h5>
-          <div class="mb-2" id="planSummaryStrip">
-            <a class="badge badge-warning mr-1" href="#feed-tier-1">
-              "Now"
-              <span class="badge badge-pill badge-light ml-1">
-                "2"
-              </span>
-            </a>
-          </div>
           <div class="plan-tier plan-tier-now" id="feed-tier-1">
             <div aria-expanded="true" class="plan-tier-header" data-target="#feed-tier-1-rows" data-toggle="collapse" role="button" tabindex="0">
               <span>
@@ -1916,12 +1916,14 @@
   }
 
   // Selecting an urgency shortcut keeps only its target section expanded.
+  // BUG-26: ONE strip per tab inside #planSections (every kind) — the
+  // scope is always the sections container; the Done bubble also expands
+  // its (default-collapsed) table.
   document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
     var link = event.target.closest('a[href^="#"]');
     if (!link) { return; }
     var target = link.getAttribute('href').slice(1);
-    var feedingPanel = document.getElementById('feedingTabContent');
-    var scope = feedingPanel && feedingPanel.contains(link) ? feedingPanel : document.getElementById('planSections');
+    var scope = document.getElementById('planSections');
     Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
       var body = tier.querySelector('.plan-tier-body');
       if (body && tier.id !== target && body.classList.contains('show')) {

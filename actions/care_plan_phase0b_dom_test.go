@@ -328,6 +328,12 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //     override and cage/feeding group buttons stay visible as green ✓
 //     group-undo. Verified by diff on re-record: toggle markup + modal +
 //     one CSS line, nothing else.
+//   - BUG-26 (2026-10-28): the urgency strip moved INSIDE #planSections on
+//     every kind (indent-level delta on the strip block) and the JS click
+//     handler scopes to #planSections unconditionally (feedingPanel branch
+//     gone); medication — the only fixture kind with a Done table — gains
+//     a `badge-success` #tier-done bubble. Verified by diff on re-record:
+//     strip reposition + JS scope + that one bubble, nothing else.
 func TestCarePlanPhase0bDOMEquivalence(t *testing.T) {
 	f, client, baseURL := planFixtureRich(t)
 	_ = f

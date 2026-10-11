@@ -23,12 +23,15 @@
     <th><%= t("care_plan.field.name") %></th>
     <th><%= t("care_plan.field.description") %></th>
     <th><%= t("care_plan.field.expression") %></th>
+    <th class="text-center"><%= t("care_plan.field.used_by") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (matcher) in matchers { %>
       <tr>
-        <td class="align-middle"><%= displayPlanName(tname("care_matchers", matcher.ID, matcher.Name)) %></td>
+        <td class="align-middle">
+          <%= displayPlanName(tname("care_matchers", matcher.ID, matcher.Name)) %>
+        </td>
         <td class="align-middle"><%= matcher.Description %></td>
         <td class="align-middle">
           <%= humanMatcher(matcher.Expression) %>
@@ -36,6 +39,28 @@
             <summary class="text-muted small"><%= t("care_plan.builder.raw_dsl") %></summary>
             <code class="small"><%= matcher.Expression %></code>
           </details>
+        </td>
+        <td class="align-middle text-center">
+          <%= if (matcher.UsedBy > 0) { %>
+            <!-- BUG-27: the count is a dropdown listing every referencing
+                 rule — editing ANY matcher re-evaluates all of them, so
+                 the coupling is visible (and navigable) for each matcher. -->
+            <div class="dropdown d-inline">
+              <a href="#" class="badge badge-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="<%= t("care_plan.matchers.used_by_hint") %>"><%= matcher.UsedBy %></a>
+              <div class="dropdown-menu dropdown-menu-right text-left">
+                <%= for (rule) in matcher.UsedByRules { %>
+                  <div class="dropdown-item-text d-flex justify-content-between align-items-center">
+                    <a href="<%= careRulePath({ care_rule_id: rule.ID }) %>"><%= displayPlanName(tname("care_rules", rule.ID, rule.Name)) %>
+                      <small class="text-muted">· <%= t("care_plan.kind." + rule.ActionKind) %><%= if (!rule.Active) { %> · <%= t("care_plan.status.inactive") %><% } %></small>
+                    </a>
+                    <a href="<%= editCareRulePath({ care_rule_id: rule.ID }) %>" class="text-muted ml-2" title="<%= t("care_plan.action.edit") %>"><i class="fa fa-edit"></i></a>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% } else { %>
+            0
+          <% } %>
         </td>
         <td>
           <div class="float-end">
