@@ -308,8 +308,9 @@ func createMigrationPlanFromRule(tx *pop.Connection, report *ConversionReport, a
 		C int64 `db:"c"`
 	}
 	// COLLATE utf8mb4_bin — see createConvertedFeedingPlan for why the
-	// prod collation would silently merge distinct diets.
-	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name = ? COLLATE utf8mb4_bin AND created_by IS NULL",
+	// prod collation would silently merge distinct diets. COLLATE on the
+	// column, not the placeholder (MariaDB Error 1253).
+	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name COLLATE utf8mb4_bin = ? AND created_by IS NULL",
 		a.ID, name).All(&n); err != nil {
 		return err
 	}
