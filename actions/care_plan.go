@@ -74,6 +74,17 @@ func CarePlanIndex(c buffalo.Context) error {
 	// horizon). NULL = no cap = seeded default. Applied to the PLAN ITEMS
 	// before the view model derives tiers/counts, so badges, lists and
 	// counters cannot disagree. Hidden work stays on the animal Plan tab.
+	//
+	// BUG-30: seed the per-kind rows HERE too. PreferencesEnsureSeeded
+	// used to run only when an admin opened /preferences, so a kind
+	// without a row (a pre-R9 DB, or a kind added to actionKinds after
+	// the seeding) rendered with NO cap at all — the raw ±1/+2-day plan
+	// window reached the screen. The day plan is the work screen: "no
+	// row" must mean the R9 defaults, never "no cap". Idempotent — one
+	// EXISTS check per kind, a no-op once the rows exist.
+	if err := PreferencesEnsureSeeded(tx); err != nil {
+		return err
+	}
 	prefs, err := preferencesByKind(tx)
 	if err != nil {
 		return err

@@ -167,7 +167,11 @@
                           title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
                       </span>
                     <% } else if (chip.Applicable) { %>
-                      <span class="<%= if (chip.StaleLate) { %>plan-stale-slot d-none<% } %>">
+                      <%# BUG-29: a PROMOTED stale chip keeps its toggle
+                          VISIBLE — it now targets the next open occurrence;
+                          the missed occurrence gets its own hidden pair
+                          behind the "⏱" badge (below). %>
+                      <span class="<%= if (chip.StaleLate && !chip.Promoted) { %>plan-stale-slot d-none<% } %>">
                         <%# B10-3: the toggle speaks the §2.3 med-parity
                             nomenclature — it CARRIES the time (○ HH:MM ⇄
                             ✓ HH:MM) instead of a bare icon.
@@ -188,6 +192,24 @@
                           data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.DueAt.Format("2006-01-02T15:04:05Z07:00") %>"
                           title="<%= t("care_plan.action.undo") %>">✓ <%= chip.DueHM %></button>
                       </span>
+                      <%= if (chip.Promoted) { %>
+                        <%# BUG-29: the MISSED occurrence keeps its own
+                            record-late pair, folded behind the "⏱" badge —
+                            one click records it at ITS due time. %>
+                        <span class="plan-stale-slot d-none">
+                          <%= if (chip.StaleDueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.StaleDueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= chip.StaleDueShortDate %></span> <% } else if (chip.StaleDueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= chip.StaleDueAt.Format("2006-01-02T15:04:05Z07:00") %>"><%= t(chip.StaleDueDayKey) %></span> <% } %>
+                          <button type="button" class="btn btn-warning btn-sm plan-feeding-one"
+                            data-kind="feeding" data-detail="<%= fcard.Food %>" data-animal-label="<%= chip.Label %>"
+                            data-source-name="<%= fcard.Cage %> · <%= fcard.Food %>"
+                            data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                            data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.StaleDueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                            title="<%= t("care_plan.apply.action") %>">○ <%= chip.StaleDueHM %></button>
+                          <button type="button" class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none"
+                            data-source-type="<%= chip.SourceType %>" data-source-id="<%= chip.SourceID %>"
+                            data-animal-id="<%= chip.AnimalID %>" data-due-at="<%= chip.StaleDueAt.Format("2006-01-02T15:04:05Z07:00") %>"
+                            title="<%= t("care_plan.action.undo") %>">✓ <%= chip.StaleDueHM %></button>
+                        </span>
+                      <% } %>
                     <% } %>
                   <% } else { %>
                     <span class="plan-apply-space" aria-hidden="true"></span>

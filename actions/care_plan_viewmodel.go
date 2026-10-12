@@ -1204,7 +1204,9 @@ func fillFeedTiers(v *DayPlanView) {
 func firstChipDue(f FeedingGroupView) time.Time {
 	var first time.Time
 	for _, c := range f.Chips {
-		if c.Superseded || !c.Applicable || c.StaleLate {
+		// BUG-29: a promoted chip's due IS the next occurrence — it leads
+		// the sort; only a non-promoted stale chip is skipped.
+		if c.Superseded || !c.Applicable || (c.StaleLate && !c.Promoted) {
 			continue
 		}
 		if first.IsZero() || c.DueAt.Before(first) {
@@ -1371,13 +1373,26 @@ func fillCareTiers(v *DayPlanView) {
 // most urgent open occurrence — the GroupStatus dot's one status (R4-4.4
 // parity). -1 / "" when the row has no open work (care rows are built only
 // with open applicable work, so this is the defensive path).
+//
+// BUG-29-C: STALE-folded occurrences (item 8) do NOT set the tier — the
+// row follows its most urgent NON-stale open occurrence, so an
+// all-stale-late row lands in "Plus tard" (with the "⏱ N" badge) instead
+// of sitting inert in "En retard". A row with ONLY stale work (defensive;
+// the builders keep rows with StaleCount > 0) falls back to Late.
 func careRowTier(cv CareView) (int, string) {
 	best := 3
 	status := ""
+	staleOnly := -1
 	for _, tg := range cv.TimeGroups {
 		for _, s := range tg.Slots {
 			t := tierOrder(careplan.PlanStatus(s.Status))
 			if t < 0 || t > 2 {
+				continue
+			}
+			if s.Stale {
+				if staleOnly < 0 || t < staleOnly {
+					staleOnly = t
+				}
 				continue
 			}
 			if t < best || (t == best && status == "") {
@@ -1387,6 +1402,9 @@ func careRowTier(cv CareView) (int, string) {
 		}
 	}
 	if best > 2 {
+		if staleOnly >= 0 {
+			return staleOnly, string(careplan.StatusLate)
+		}
 		return -1, ""
 	}
 	return best, status
@@ -1869,9 +1887,19 @@ func feedingOccKey(typ, id string, animal int, due time.Time) string {
 // feedingStaleNext returns the due time of the (source × animal) group's
 // next open occurrence — the muted "next" label of a stale-late chip.
 func feedingStaleNext(fc *FeedingCard, typ, id string, animal int, now time.Time) (time.Time, bool) {
-	var best time.Time
+	it, ok := feedingNextOpenItem(fc, typ, id, animal, now)
+	if !ok {
+		return time.Time{}, false
+	}
+	return it.Occurrence.DueAt, true
+}
+
+// feedingNextOpenItem returns the (source × animal) group's nearest OPEN
+// item (due-now first, then the soonest scheduled — openSiblingInDist).
+// BUG-29: this is the occurrence a stale-late chip promotes to.
+func feedingNextOpenItem(fc *FeedingCard, typ, id string, animal int, now time.Time) (*careplan.PlanItem, bool) {
+	var best *careplan.PlanItem
 	var bestDist time.Duration
-	found := false
 	for i := range fc.Items {
 		it := &fc.Items[i]
 		src := it.Occurrence.Source
@@ -1883,11 +1911,11 @@ func feedingStaleNext(fc *FeedingCard, typ, id string, animal int, now time.Time
 		if !ok {
 			continue
 		}
-		if !found || d < bestDist {
-			best, bestDist, found = it.Occurrence.DueAt, d, true
+		if best == nil || d < bestDist {
+			best, bestDist = it, d
 		}
 	}
-	return best, found
+	return best, best != nil
 }
 
 // feedingViewOf enriches one feeding card's chips (links, "+N" remaining,
@@ -1919,17 +1947,37 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string,
 		}
 		if staleKeys[feedingOccKey(chip.SourceType, chip.SourceID, chip.AnimalID, chip.DueAt)] {
 			chip.StaleLate = true
-			if due, ok := feedingStaleNext(fc, chip.SourceType, chip.SourceID, chip.AnimalID, now); ok {
-				dp := DueLabelPartsOf(due, now)
-				chip.StaleNextHM, chip.StaleNextDayKey, chip.StaleNextShortDate = dp.TimeHM, dp.DayKey, dp.ShortDate
-			}
+			// Snooze/record-late refs target the MISSED occurrence — capture
+			// them (and its label parts) before the BUG-29 promotion rewrites
+			// the chip's due identity to the successor.
+			staleDue := chip.DueAt
+			sdp := DueLabelPartsOf(staleDue, now)
+			chip.StaleDueAt, chip.StaleDueHM = staleDue, sdp.TimeHM
+			chip.StaleDueDayKey, chip.StaleDueShortDate = sdp.DayKey, sdp.ShortDate
 			if raw, err := jsonMarshal([]map[string]interface{}{{
 				"source_type": chip.SourceType,
 				"source_id":   chip.SourceID,
 				"animal_id":   chip.AnimalID,
-				"due_at":      chip.DueAt.Format(time.RFC3339),
+				"due_at":      staleDue.Format(time.RFC3339),
 			}}); err == nil {
 				chip.StaleRefsJSON = string(raw)
+			}
+			// BUG-29 (user ruling 2026-10-12): promote the chip to the
+			// group's next OPEN occurrence — the toggle becomes actionable
+			// and the card tiers with the successor ("Plus tard") instead of
+			// anchoring Late with no control. No open successor (end of
+			// schedule): the former fold stays (badge + hidden toggle).
+			if next, ok := feedingNextOpenItem(fc, chip.SourceType, chip.SourceID, chip.AnimalID, now); ok {
+				np := DueLabelPartsOf(next.Occurrence.DueAt, now)
+				chip.Promoted = true
+				chip.DueAt = next.Occurrence.DueAt
+				chip.DueHM, chip.DueDayKey, chip.DueShortDate = np.TimeHM, np.DayKey, np.ShortDate
+				chip.Status = string(next.Status)
+				chip.Applicable = next.Applicable
+				chip.TierClass = slotTierClass(tierOrder(next.Status))
+			} else if due, ok := feedingStaleNext(fc, chip.SourceType, chip.SourceID, chip.AnimalID, now); ok {
+				dp := DueLabelPartsOf(due, now)
+				chip.StaleNextHM, chip.StaleNextDayKey, chip.StaleNextShortDate = dp.TimeHM, dp.DayKey, dp.ShortDate
 			}
 		}
 		chip.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
@@ -1937,7 +1985,10 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string,
 			chip.Remaining = n - 1
 		}
 		fv.Chips = append(fv.Chips, chip)
-		if chip.Applicable && !chip.StaleLate {
+		// BUG-29: a PROMOTED chip is actionable work (its due/refs are the
+		// successor's) — it counts and feeds the batch refs; only a
+		// non-promoted stale chip stays excluded (item-8 guardrail).
+		if chip.Applicable && (!chip.StaleLate || chip.Promoted) {
 			fv.ApplicableCount++
 			refs = append(refs, map[string]interface{}{
 				"source_type": chip.SourceType,
@@ -1951,6 +2002,10 @@ func feedingViewOf(fc *FeedingCard, openCurrent map[string]int, selfPath string,
 		return fv, false
 	}
 	finalizeFeedingChips(&fv)
+	// BUG-29: expose the row's leading due time on the view itself so the
+	// tier sort can follow a PROMOTED chip's next occurrence even before
+	// the tier-fill pass stamps it.
+	fv.FirstDueAt = firstChipDue(fv)
 	if raw, err := jsonMarshal(refs); err == nil {
 		fv.ChipRefsJSON = string(raw)
 	}
@@ -2088,7 +2143,9 @@ func feedingAnimalViewsOf(feedings []*FeedingCard, plan *DayPlan, openCurrent ma
 				row.Species = a.Species
 			}
 			row.AnimalLink = cardAnimalLink(chip.AnimalID, selfPath)
-			if chip.Applicable && !chip.StaleLate {
+			// BUG-29: a promoted chip is actionable (group=animal rows are
+			// per-animal — the chip toggle IS the row's control).
+			if chip.Applicable && (!chip.StaleLate || chip.Promoted) {
 				row.ApplicableCount = 1
 			}
 			// Single-chip row: one time sub-group, never collapsible — one

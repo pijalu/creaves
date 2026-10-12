@@ -669,6 +669,17 @@ type FeedingChip struct {
 	StaleNextDayKey    string
 	StaleNextShortDate string
 	StaleRefsJSON      string
+	// BUG-29 (2026-10-12, user ruling): when the stale occurrence has an
+	// open successor, the chip is PROMOTED to that successor — the toggle
+	// carries the next occurrence's time/refs and the card tiers with it
+	// ("Plus tard"), while the missed occurrence stays reachable behind
+	// the ⏱ badge (snooze + hidden record-late toggle carrying the
+	// ORIGINAL due time below).
+	Promoted          bool
+	StaleDueAt        time.Time
+	StaleDueHM        string // "15:04" of the missed occurrence
+	StaleDueDayKey    string // care_plan.time.yesterday ("" when today)
+	StaleDueShortDate string // "02/01" beyond one day
 }
 
 // FeedingCard is one (cage × normalized food) group of the day plan

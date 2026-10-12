@@ -1868,3 +1868,238 @@ hard-coded English string, not a translated locale key.
   `{"code":409,"error":...}` (API contract preserved).
 - Other planError paths (e.g. deleting a used rule, invalid plan POST)
   show the same flash-and-back behavior from HTML pages.
+
+---
+
+## BUG-29 (high) — `/care_plan?kind=feeding`: a stale-folded late feeding shows in "En retard" with NO apply button, and its next occurrence never reaches "Plus tard"
+
+**Status:** FIXED 2026-10-12 — feeding promotion + cleanup re-tier
+implemented, tests green; awaiting user retest
+**Severity:** High (a missed feeding on the day plan is neither recordable nor
+does its successor surface as upcoming work — the caregiver sees a red
+"En retard" row they cannot act on and the rest of the day's schedule for
+that animal is invisible)
+**Found by:** User report 2026-10-12 — `/care_plan?kind=feeding`:
+*"B1 ACCUEIL gavage panade 200 ml + eau" appears in "En retard" — no
+action possible — and does not appear in "Plus tard", even though the
+next occurrence is due at 09:00
+(cf `/animals/10352?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-plan`).*
+
+**Scope extension (user ruling 2026-10-12, same conversation):** the same
+promotion applies to **cleanup** — a late cleanup whose next occurrence is
+near (successor nearer than the late is old — the item-8 staleness
+distance, e.g. next cleanup < 2 h away) must NOT sit in "En retard": the
+row shows in **"Plus tard"** with the next occurrence's toggle, carrying a
+**"⏱ N late" badge** for the missed occurrences (record-late / snooze
+behind the badge, as today).
+
+### Observed
+
+1. A feeding row (cage B1, zone ACCUEIL, diet "gavage panade 200 ml +
+   eau") sits in the **Late / "En retard"** tier.
+2. The row carries **no apply affordance**: no per-animal `○ HH:MM`
+   toggle, no cage-level group-Apply button — nothing clickable to record
+   the missed feeding (the only hint is the `⏱ N` stale badge, which is
+   not discoverable as an action and only offers snooze on click).
+3. The animal's **next scheduled occurrence (09:00) does not appear in
+   the "Plus tard" / Later tier at all** — from the day plan the schedule
+   looks like it ends with the missed one, although the animal's Protocol
+   tab shows the cadence continuing.
+
+### Root cause (two cooperating mechanisms)
+
+**A. Item-8 stale fold suppresses every apply control on the row.**
+When a late occurrence's age exceeds the distance to its next open
+sibling (`lateIsStale`, `actions/care_plan_stale_late.go`), the chip is
+flagged `StaleLate`:
+
+- `feedingViewOf` (`actions/care_plan_viewmodel.go`) then **excludes it
+  from `ApplicableCount`** (`if chip.Applicable && !chip.StaleLate`), so
+  the cage-level group-Apply button
+  (`templates/care_plan/_plan_tier_feed_table.plush.html`,
+  `fcard.ApplicableCount > 0`) is **not rendered**.
+- The chip's own toggle is rendered but forced `d-none` inside
+  `.plan-stale-slot`, revealed only by clicking the `⏱` badge — and for a
+  **single-animal cage row** the per-animal toggle is never rendered at
+  all (`len(fcard.Chips) > 1 || group == "animal"` gate →
+  `plan-apply-space` spacer), leaving the row with zero visible actions.
+- The row still lands in the Late tier (`feedingGroupTier` does not skip
+  stale chips), so the net effect is exactly the report: red "En retard"
+  row, no button.
+
+**B. Chip dedupe never promotes the successor, so nothing reaches Later.**
+`feedingCardChip` (`actions/care_plan_dayplan.go`) keeps **ONE chip per
+(source × animal) — the earliest CURRENT occurrence** — and only swaps in
+a later occurrence when the existing chip is *superseded*. A stale late
+chip is still applicable (its successor is not yet due, otherwise it
+wouldn't be stale), hence **not superseded**, so the next occurrence —
+already generated in the plan window (visible on the animal's Protocol
+tab) — is never promoted to a chip and the card stays anchored in the
+Late tier. The Later occurrence survives only as the "+N" `Remaining`
+hint, which the feeding template does not even render per chip.
+
+The item-8 design (`care_plan_stale_late.go` header) states the intent
+explicitly: *"the stale toggles collapse into one '⏱ N' badge … **and the
+next upcoming occurrence renders as the actionable toggle beside it**"*.
+Medication series implement that co-display (`hasPendingLateSlot`);
+cleanup rows show every occurrence as its own toggle. **Feeding is the
+one kind where the "next upcoming actionable toggle beside it" was never
+implemented** — chip dedupe makes it structurally impossible today.
+
+**C. Cleanup: the stale fold hides the toggle but keeps the tier.**
+Cleanup rows (`CareView`) render every open occurrence as its own toggle
+and fold the stale ones behind the ⏱ badge correctly — but
+`fillCareTiers` still tiers the row by its most urgent open occurrence
+**including the folded stale ones** (tier 0), so a cleanup whose next
+occurrence is minutes away still sits in "En retard" with its actionable
+toggle hidden. The row must be tiered by its most urgent NON-stale open
+occurrence (→ "Plus tard") while the "⏱ N" badge keeps the missed ones
+visible on the row.
+
+### Expected
+
+**B1 shows in "Plus tard"** (user ruling 2026-10-12): when the displayed
+occurrence is a stale-folded late, the chip is **promoted to the next
+upcoming occurrence** (09:00) — the card lands in the Later tier with a
+normal applicable `○ HH:MM` toggle, and the missed occurrence(s) live
+only behind the `⏱ N` badge (snooze / record-late one by one), exactly
+the item-8 design (*"the next upcoming occurrence renders as the
+actionable toggle beside it"*). Concretely:
+
+1. The card's chip for (source × animal) is the next open occurrence,
+   not the stale late one — tier, sort and group-Apply all follow that
+   occurrence (Late tier keeps the row only via the `⏱` badge's stale
+   anchor if product wants the late visible too; the actionable chip
+   itself is Later work).
+2. No row ever renders in a tier with zero apply controls while open
+   work exists (single-animal cage rows included).
+3. "En retard, no button, nothing later" is impossible: either the late
+   is still actionable (toggle visible) or it is folded and the
+   successor is shown.
+4. **Cleanup** (user ruling): a cleanup row whose late occurrences are
+   all stale-folded (successor nearer than the late is old) renders in
+   **"Plus tard"**, tiered/sorted by the next occurrence, with the
+   "⏱ N" badge on the row showing how many were missed.
+
+### Acceptance criteria (retest)
+
+1. Reproduce with a feeding schedule whose last occurrence is stale-late
+   (age > distance to next due, successor not yet due — e.g. cadence 4 h,
+   lookahead 30 min, check between the two): the B1 row renders in
+   **"Plus tard"** with a clickable `○ 09:00` apply toggle (per-animal or
+   group); clicking it records the next occurrence (feeding care row
+   created). The missed occurrence remains reachable via the `⏱ N` badge
+   (snooze / individual record-late).
+2. The animal's next occurrence (09:00 in the report) is the one shown;
+   the "En retard" tier no longer displays an inert row for it.
+3. Multi-animal cage rows behave the same (the per-animal toggle path
+   and the group Apply stay consistent — group Apply never silently
+   records the folded stale occurrences, item-8 exclusion preserved).
+4. All 4 locales render (the `_plan_tier_feed_table.plush.*.html` forks
+   are byte-identical by policy — apply the fix to all four) and
+   `go test -tags sqlite ./actions/...` passes (incl. the item-8 stale
+   fold pins in `care_plan_stale_late` coverage and the round-7 feeding
+   order/group tests).
+
+### Assignee notes
+
+- Do not "fix" this by making stale lates applicable again in the batch
+  refs — item 8's exclusion of folded occurrences from group apply is a
+  deliberate guardrail (a group apply must never silently record
+  overtaken occurrences).
+- The minimal design-faithful fix is in the feeding card/chip layer:
+  when the group's displayed chip is `StaleLate`, promote/render the
+  group's next open occurrence as the actionable chip (mirroring
+  `feedingStaleNext`, which already computes that successor for the
+  badge's muted "→ next" label) — the data is already on the card, only
+  the toggle is missing.
+- Check the single-animal cage case specifically: it has no per-animal
+  toggle at all today, so the group-Apply suppression alone leaves the
+  row completely inert.
+- Verify the animal Protocol tab (`#nav-plan`) and the day plan agree
+  after the change (the protocol tab was the only place the 09:00
+  occurrence was visible).
+
+## BUG-30 (high) — `/care_plan?kind=care`: items render far beyond the configured preference windows (8 h future / 8 h late) — missing per-kind preference rows silently mean "no cap"
+
+**Status**: fixed 2026-10-12 — awaiting retest
+**Severity**: high — the day plan is the work screen; an unfiltered kind
+re-advertises up to 2 days of future work and a full extra day of late
+work, burying what is actually due.
+**Found by**: user report 2026-10-12 (care tab shows items *much* further
+than the configured 8 h future preference; requested a review of all
+tabs).
+
+### Observed
+
+With the preferences configured to 8 h future / 8 h late (and now = 60
+min), `/care_plan?kind=care` lists rows whose occurrences are due well
+beyond now + 8 h (and can list late work older than 8 h). Other tabs may
+be capped correctly, depending on which kinds have a row in the
+`preferences` table.
+
+### Root cause
+
+`applyPreferenceCaps` + the handler-side filter in `CarePlanIndex`
+(actions/care_plan.go) are correct, and round-10 tests pin them — **but
+they only apply to kinds that have a row in the `preferences` table**:
+`preferencesByKind` returns "missing row = no cap" by design
+("Missing rows behave as 'no cap' — the map simply lacks the kind",
+actions/preferences.go:61-62). And `PreferencesEnsureSeeded` — the only
+code that creates the six per-kind rows with the R9 defaults
+(late 8 h / future 8 h / now 60 min) — runs ONLY when an admin opens
+`/preferences` (PreferencesResource.List). The day-plan handler never
+seeds.
+
+So on any DB that predates the R9 preferences feature, or that was
+seeded before a kind was added to `actionKinds`, the un-seeded kind(s)
+render with NO cap: every occurrence inside the raw plan window
+([today−24 h, today+2 days], §6.1) reaches the view model — feeding,
+care/cleanup, medication, weighing, observation alike. The admin may
+even have saved 8 h values for the kinds that HAVE rows, which makes the
+un-capped kind stand out ("much further than the configured 8 h").
+
+Secondary effect: an uncapped kind also defeats the item-8 stale fold —
+with 2 days of successors in scope a missed occurrence is virtually
+always "stale" (a nearer sibling always exists), so the Late tier fills
+with folded rows instead of honest capped work.
+
+### Expected
+
+1. Every day-plan request applies the configured windows to EVERY kind:
+   kinds without an explicit preference row use the R9 defaults
+   (late 8 h, future 8 h, now 60 min) — "no row" must mean "defaults",
+   never "no cap". A deliberate "no cap" is only possible via an
+   explicit NULL row saved from /preferences.
+2. All tabs (feeding, medication, care, cleanup, weighing, observation)
+   show only occurrences within [now − late_show_hours, now +
+   future_show_hours] for open work; terminal (applied/skipped) items
+   stay for History regardless.
+3. The care tab of the report shows only rows with at least one
+   occurrence inside the 8 h windows.
+
+### Acceptance criteria (retest)
+
+1. On a DB with NO preferences rows at all, `/care_plan?kind=care`
+   (and every other kind tab) renders only open occurrences within the
+   default 8 h / 8 h windows.
+2. Deleting one kind's row (simulating the pre-feature DB) and reloading
+   the day plan caps that kind with the defaults — no admin visit to
+   /preferences required.
+3. Saving an explicit empty (NULL) value from /preferences still means
+   "no cap" for that kind (seeded behavior preserved).
+4. `go test -tags sqlite ./actions/...` passes, incl. the round-10 caps
+   tests and the BUG-29 stale-fold pins (the fold must keep working with
+   capped item lists).
+
+### Assignee notes
+
+- Fix at the source: call `PreferencesEnsureSeeded(tx)` in
+  `CarePlanIndex` before `preferencesByKind(tx)` (idempotent, cheap —
+  one EXISTS query per kind only while rows are missing). Alternatively
+  make `preferencesByKind` synthesize default rows for missing kinds;
+  either way the day plan must never see "no row".
+- Review ALL kind tabs on retest, not just care — any kind missing its
+  row was uncapped.
+- Do not change `applyPreferenceCaps` boundary semantics (at-or-beyond
+  the cap leaves; round-10 pins in care_plan_round10_caps_test.go).
