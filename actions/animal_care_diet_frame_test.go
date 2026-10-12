@@ -36,10 +36,12 @@ func TestAnimalShowCareTabHasNoSpeciesDietFrame(t *testing.T) {
 
 	showHTML := fetchPageGET(t, client, baseURL+fmt.Sprintf("/animals/%d", f.freeID))
 
-	// Alimentation stays…
-	require.Contains(t, showHTML, `<label class="small d-block">Feeding</label>`,
-		"read mode must keep the animal's own alimentation field")
-	// …but no species diet frame, in any locale wording.
+	// Alimentation is GONE from the read-mode care tab (legacy feeding
+	// columns frozen; feeding is fully managed by protocol plans — the
+	// feeding-plan summary banner replaced it, BUG-13).
+	require.NotContains(t, showHTML, `>Feeding</label>`,
+		"read mode must not render the legacy frozen alimentation field")
+	// …and no species diet frame, in any locale wording.
 	require.NotContains(t, showHTML, "Diet by life stage")
 	require.NotContains(t, showHTML, "Régime alimentaire par stade")
 	require.NotContains(t, showHTML, "Fütterung nach Lebensstadium")

@@ -12,15 +12,46 @@
 <div class="plan-editor"
      data-warn-off-hours="<%= t("care_plan.warn.off_hours") %>"
      data-warn-open-ended="<%= t("care_plan.warn.open_ended_medication") %>"
-     data-warn-slot-bucket="<%= t("care_plan.warn.slot_bucket") %>">
+     data-warn-slot-bucket="<%= t("care_plan.warn.slot_bucket") %>"
+     data-repeat-occurrences="<%= t("care_plan.editor.repeat_occurrences") %>"
+     data-repeat-invalid="<%= t("care_plan.editor.repeat_invalid") %>"
+     data-repeat-cap="<%= t("care_plan.editor.repeat_cap") %>"
+     data-mode-switch-confirm="<%= t("care_plan.editor.mode_switch_confirm") %>">
   <div class="card mb-3">
     <div class="card-body">
       <h6 class="card-title"><%= t("care_plan.field.schedule") %></h6>
       <div data-pe-warnings class="alert alert-warning d-none mb-2"></div>
-      <div class="form-group">
+      <%# BUG-36: two mutually exclusive authoring modes. Mandatory radio
+          (no default on an empty plan); the persisted document decides on
+          re-open (repeat block present => repeat, else slots). %>
+      <div class="form-group" data-pe-mode-group>
+        <label class="d-block mb-1"><%= t("care_plan.editor.mode") %></label>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="peMode" id="peModeSlots" value="slots" data-pe-mode="slots">
+          <label class="form-check-label" for="peModeSlots"><%= t("care_plan.editor.mode_slots") %></label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" name="peMode" id="peModeRepeat" value="repeat" data-pe-mode="repeat">
+          <label class="form-check-label" for="peModeRepeat"><%= t("care_plan.editor.mode_repeat") %></label>
+        </div>
+      </div>
+      <div class="form-group" data-pe-slots-section>
         <label><%= t("care_plan.editor.slots") %></label>
         <div data-pe="slots"></div>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-pe-add-slot><%= t("care_plan.editor.add_slot") %></button>
+      </div>
+      <div class="form-group d-none" data-pe-repeat-section>
+        <div class="form-inline">
+          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_from") %></label>
+          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="09:00" data-pe="repeatFrom">
+          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_to") %></label>
+          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="19:00" data-pe="repeatTo">
+          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_every") %></label>
+          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="05:00" data-pe="repeatEvery">
+          <small class="text-muted" data-pe-repeat-count></small>
+        </div>
+        <small class="form-text text-muted"><%= t("care_plan.editor.repeat_every_hint") %></small>
+        <div class="text-danger small d-none" data-pe-repeat-invalid></div>
       </div>
       <div class="form-row">
         <div class="form-group col-md-4">
@@ -205,10 +236,30 @@ window.planEditor = (function () {
   // --- Schedule <-> fields -------------------------------------------------
 
   function readSchedule(root) {
-    var times = $all(root, '[data-pe-slot]').map(function (i) { return i.value; })
-      .filter(function (v) { return /^\d{2}:\d{2}$/.test(v); });
-    times.sort();
-    var s = { times: times };
+    var s = {};
+    if (getMode(root) === 'repeat') {
+      // BUG-36 repeat mode: the repeat block is the authoring form; the
+      // textarea carries block + expanded preview times. The server
+      // re-derives times from the block at save (decision 3). An invalid
+      // repeat is flagged inline (updateRepeatCount) and serialized
+      // WITHOUT the block so the server rejects it via the BUG-33
+      // translated field-error path instead of storing a stale repeat.
+      var from = normalizeHM($(root, '[data-pe="repeatFrom"]').value) || '';
+      var to = normalizeHM($(root, '[data-pe="repeatTo"]').value) || '';
+      var period = parseDuration($(root, '[data-pe="repeatEvery"]').value);
+      var slots = deriveRepeatSlots(from, to, $(root, '[data-pe="repeatEvery"]').value);
+      if (from && to && period != null && period > 0 && slots.length && !repeatError(root)) {
+        s.repeat = { from: from, to: to, every_minutes: period };
+        s.times = slots;
+      } else {
+        s.times = [];
+      }
+    } else {
+      var times = $all(root, '[data-pe-slot]').map(function (i) { return i.value; })
+        .filter(function (v) { return /^\d{2}:\d{2}$/.test(v); });
+      times.sort();
+      s.times = times;
+    }
     var every = parseInt($(root, '[data-pe="everyDays"]').value, 10);
     if (every > 1) { s.every_days = every; }
     var anchor = $(root, '[data-pe="anchor"]').value;
@@ -232,6 +283,138 @@ window.planEditor = (function () {
     return s;
   }
 
+  // deriveRepeatSlots mirrors the converter's DeriveFeedingTimes
+  // (care_plan_convert_data.go): start + n×period ≤ end, the start slot
+  // itself included, an end < start reads as an overnight window (+24 h),
+  // sanity cap at 24 slots. Period parses "H:MM" (e.g. "05:00" = 5 h) or
+  // a bare minute count. Returns [] on invalid input.
+  // parseHM matches strict HH:MM (2-digit hour). Slot VALUES use it
+  // (the §4.3 document format); duration/period entry uses the looser
+  // parseDuration (H:MM or bare minutes, see deriveRepeatSlots).
+  function parseHM(v) {
+    var m = /^(\d{2}):(\d{2})$/.exec((v || '').trim());
+    if (!m) { return null; }
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  }
+  // BUG-35 normalization: users type "9:00" — pad to "09:00" instead of
+  // silently dropping the row. Returns the normalized HH:MM string or
+  // null when the input cannot be a time (flagged, never dropped).
+  function normalizeHM(v) {
+    var m = /^(\d{1,2}):(\d{2})$/.exec((v || '').trim());
+    if (!m) { return null; }
+    var h = parseInt(m[1], 10), mins = parseInt(m[2], 10);
+    if (h > 23 || mins > 59) { return null; }
+    return (h < 10 ? '0' : '') + h + ':' + m[2];
+  }
+  // clockMinutes parses a user-entered clock time leniently ("9:00" ok)
+  // via normalizeHM; null when not a time.
+  function clockMinutes(v) {
+    var n = normalizeHM(v);
+    return n ? parseHM(n) : null;
+  }
+  function fmtMin(m) {
+    m = m % 1440;
+    var h = Math.floor(m / 60), mm = m % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+  }
+  function parseDuration(v) {
+    // Duration entry ("every"): H:MM (loose hour, e.g. "5:00" = 300 min)
+    // or a bare minute count. Distinct from parseHM (strict HH:MM clock
+    // times) — a period has no 23:59 ceiling beyond the slot cap.
+    var m = /^(\d{1,2}):(\d{2})$/.exec((v || '').trim());
+    if (m) {
+      var p = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      return p > 0 && parseInt(m[2], 10) < 60 ? p : null;
+    }
+    var mins = parseInt((v || '').trim(), 10);
+    if (!isNaN(mins) && mins > 0 && /^\d+$/.test((v || '').trim())) { return mins; }
+    return null;
+  }
+  function deriveRepeatSlots(from, to, every) {
+    var start = clockMinutes(from), end = clockMinutes(to);
+    var period = parseDuration(every);
+    if (start == null || end == null || period == null || period <= 0) { return []; }
+    if (end < start) { end += 1440; } // overnight window
+    var out = [];
+    for (var m = start; m <= end && out.length < 24; m += period) {
+      out.push(fmtMin(m));
+    }
+    // Ascending sort, matching careplan.ExpandRepeat (the §4.3 times
+    // invariant; the server rejects times != sorted expansion).
+    out.sort();
+    return out;
+  }
+  // repeatError returns 'cap' when the window/period exceeds the 24-slot
+  // sanity cap, 'invalid' when the repeat cannot produce slots at all,
+  // '' when fine. Empty fields are not errors (a new plan starts blank).
+  function repeatError(root) {
+    var from = $(root, '[data-pe="repeatFrom"]').value.trim();
+    var to = $(root, '[data-pe="repeatTo"]').value.trim();
+    var every = $(root, '[data-pe="repeatEvery"]').value.trim();
+    if (!from && !to && !every) { return ''; }
+    var start = clockMinutes(from), end = clockMinutes(to), period = parseDuration(every);
+    if (start == null || end == null || period == null || period <= 0) { return 'invalid'; }
+    var span = (end < start ? end + 1440 : end) - start;
+    if (Math.floor(span / period) + 1 > 24) { return 'cap'; }
+    return '';
+  }
+  function updateRepeatCount(root) {
+    var el = $(root, '[data-pe-repeat-count]');
+    var err = $(root, '[data-pe-repeat-invalid]');
+    if (!el) { return; }
+    var slots = deriveRepeatSlots(
+      $(root, '[data-pe="repeatFrom"]').value,
+      $(root, '[data-pe="repeatTo"]').value,
+      $(root, '[data-pe="repeatEvery"]').value);
+    el.textContent = slots.length ? '(' + slots.length + ' ' + (root.getAttribute('data-repeat-occurrences') || 'occurrences') + ')' : '';
+    if (err) {
+      var k = repeatError(root);
+      if (k && getMode(root) === 'repeat') {
+        err.textContent = root.getAttribute(k === 'cap' ? 'data-repeat-cap' : 'data-repeat-invalid') || k;
+        err.classList.remove('d-none');
+      } else {
+        err.textContent = '';
+        err.classList.add('d-none');
+      }
+    }
+  }
+
+  // --- Authoring mode (BUG-36) -------------------------------------------
+
+  function getMode(root) {
+    var r = root.querySelector('[data-pe-mode]:checked');
+    return r ? r.value : '';
+  }
+  function setMode(root, mode) {
+    $all(root, '[data-pe-mode]').forEach(function (r) { r.checked = (r.value === mode); });
+    root._peMode = mode;
+    applyMode(root, mode);
+  }
+  function applyMode(root, mode) {
+    $(root, '[data-pe-slots-section]').classList.toggle('d-none', mode === 'repeat');
+    $(root, '[data-pe-repeat-section]').classList.toggle('d-none', mode !== 'repeat');
+    updateRepeatCount(root);
+  }
+  function modeHasContent(root, mode) {
+    if (mode === 'repeat') {
+      return !!(
+        $(root, '[data-pe="repeatFrom"]').value.trim() ||
+        $(root, '[data-pe="repeatTo"]').value.trim() ||
+        $(root, '[data-pe="repeatEvery"]').value.trim());
+    }
+    return $all(root, '[data-pe-slot]').some(function (i) { return !!i.value.trim(); });
+  }
+  function clearModeContent(root, mode) {
+    if (mode === 'repeat') {
+      ['repeatFrom', 'repeatTo', 'repeatEvery'].forEach(function (n) {
+        $(root, '[data-pe="' + n + '"]').value = '';
+      });
+    } else {
+      $(root, '[data-pe="slots"]').innerHTML = '';
+      addSlotRow(root, '');
+    }
+  }
+
   function addSlotRow(root, value) {
     var wrap = $(root, '[data-pe="slots"]');
     var row = document.createElement('div');
@@ -241,11 +424,22 @@ window.planEditor = (function () {
     input.type = 'text'; input.className = 'form-control';
     input.setAttribute('data-pe-slot', '1');
     if (value) { input.value = value; }
+    var del = document.createElement('button');
+    del.type = 'button'; del.className = 'btn btn-outline-danger';
+    del.textContent = '×'; del.title = '×';
+    del.addEventListener('click', function () { row.remove(); sync(root); });
+    var ig = document.createElement('div');
+    ig.className = 'input-group-append';
+    ig.appendChild(del);
+    row.appendChild(input); row.appendChild(ig);
     // R9: time ENTRY follows the UI language — "08:00 PM" is an EN
     // approach; fr/de/nl must read 20:00. flatpickr is already localized
     // from the lang cookie (application.js). The VALUE stays 24h "H:i"
     // (the engine's format) for every language; EN gets a 12h alt display
     // on top of it. Fallback without flatpickr: plain 24h text field.
+    // flatpickr MUST run after the input is appended to the row: with
+    // altInput (EN) it inserts the visible alt input as nextSibling —
+    // on a detached input the alt is lost and the row stays invisible.
     if (window.flatpickr) {
       var isEn = (window.CREAVES_UI_LANG || 'fr') === 'en';
       window.flatpickr(input, {
@@ -255,21 +449,77 @@ window.planEditor = (function () {
         onClose: function () { sync(root); },
       });
     }
-    var del = document.createElement('button');
-    del.type = 'button'; del.className = 'btn btn-outline-danger';
-    del.textContent = '×'; del.title = '×';
-    del.addEventListener('click', function () { row.remove(); sync(root); });
-    var ig = document.createElement('div');
-    ig.className = 'input-group-append';
-    ig.appendChild(del);
-    row.appendChild(input); row.appendChild(ig);
     wrap.appendChild(row);
-    input.addEventListener('change', function () { sync(root); });
+    input.addEventListener('change', function () {
+      // BUG-35: normalize "9:00" -> "09:00" on commit; flag (never
+      // silently drop) values that cannot be a time.
+      var n = normalizeHM(input.value);
+      if (n) { input.value = n; input.classList.remove('is-invalid'); }
+      else { input.classList.toggle('is-invalid', !!input.value.trim()); }
+      sync(root);
+    });
+    // BUG-38: with the EN 12 h alt display the change listener above is
+    // on the hidden real input, and flatpickr *clears* the alt value when
+    // it cannot parse it — garbage like "abc" would vanish with no error
+    // (the same silent-drop class as BUG-35). Listen on the alt input
+    // instead: a non-empty alt that produced no parseable 24 h value is
+    // flagged, the text kept visible, and nothing reaches the schedule.
+    if (window.flatpickr && input._flatpickr && input._flatpickr.altInput) {
+      var alt = input._flatpickr.altInput;
+      alt.addEventListener('change', function () {
+        var n = normalizeHM(input.value);
+        if (n) { input.value = n; alt.classList.remove('is-invalid'); }
+        else { alt.classList.toggle('is-invalid', !!alt.value.trim()); }
+        sync(root);
+      });
+    }
+  }
+
+  // attachRepeatPickers wires the from/to clock pickers and the H:MM
+  // duration picker (BUG-36 decision 2). Same localization contract as
+  // the slot inputs: values stay 24h H:i, EN gets a 12h alt display.
+  function attachRepeatPickers(root) {
+    var isEn = (window.CREAVES_UI_LANG || 'fr') === 'en';
+    ['repeatFrom', 'repeatTo'].forEach(function (n) {
+      var input = $(root, '[data-pe="' + n + '"]');
+      if (!window.flatpickr || !input || input._flatpickr) { return; }
+      window.flatpickr(input, {
+        enableTime: true, noCalendar: true, allowInput: true,
+        dateFormat: 'H:i', time_24hr: !isEn,
+        altInput: isEn, altFormat: 'h:i K',
+        onClose: function () { sync(root); },
+      });
+    });
+    var dur = $(root, '[data-pe="repeatEvery"]');
+    if (window.flatpickr && dur && !dur._flatpickr) {
+      window.flatpickr(dur, {
+        enableTime: true, noCalendar: true, allowInput: true,
+        dateFormat: 'H:i', time_24hr: true, minuteIncrement: 5,
+        onClose: function () { sync(root); },
+      });
+    }
   }
 
   function writeSchedule(root, s) {
-    $(root, '[data-pe="slots"]').innerHTML = '';
-    (s.times && s.times.length ? s.times : ['']).forEach(function (t) { addSlotRow(root, t); });
+    // BUG-36 round-trip: the persisted document picks the radio — a
+    // repeat block => repeat mode (slots hidden), else slots mode. An
+    // empty document (new plan) leaves the mandatory choice open.
+    if (s.repeat) {
+      setMode(root, 'repeat');
+      $(root, '[data-pe="repeatFrom"]').value = s.repeat.from || '';
+      $(root, '[data-pe="repeatTo"]').value = s.repeat.to || '';
+      var em = parseInt(s.repeat.every_minutes, 10);
+      $(root, '[data-pe="repeatEvery"]').value = em > 0 ? fmtMin(em) : '';
+      $(root, '[data-pe="slots"]').innerHTML = '';
+      addSlotRow(root, '');
+    } else {
+      $(root, '[data-pe="slots"]').innerHTML = '';
+      (s.times && s.times.length ? s.times : ['']).forEach(function (t) { addSlotRow(root, t); });
+      var hasDoc = !!(s.times || s.every_days || s.anchor || s.duration_days ||
+        s.from_offset_days || s.weekdays);
+      if (hasDoc) { setMode(root, 'slots'); }
+      else { setMode(root, ''); }
+    }
     $(root, '[data-pe="everyDays"]').value = s.every_days || 1;
     $(root, '[data-pe="anchor"]').value = s.anchor === 'fixed' ? 'fixed' : 'intake';
     $(root, '[data-pe="anchorDate"]').value = s.anchor_date || '';
@@ -294,6 +544,8 @@ window.planEditor = (function () {
         anchorDate._flatpickr.setDate(anchorDate.value || '', false);
       }
     }
+    attachRepeatPickers(root);
+    updateRepeatCount(root);
   }
 
   // --- Payload <-> fields --------------------------------------------------
@@ -459,12 +711,19 @@ window.planEditor = (function () {
       var ps = tryParse(opts.schedule), pp = tryParse(opts.payload);
       if (ps.ok && pp.ok) {
         st.rawMode = false;
+        var mg0 = root.querySelector('[data-pe-mode-group]');
+        if (mg0) { mg0.classList.remove('d-none'); }
         writeSchedule(root, ps.v);
         writePayload(root, st.kindEl.value, pp.v);
         refreshKind(root);
       } else {
         // Keep the raw textareas as the source of truth; warn the user.
+        // Raw mode is authoritative: the structured editor AND the mode
+        // radio stay out of the way (BUG-36 — the radio must not toggle
+        // sections while raw JSON is the contract).
         st.rawMode = true;
+        var mg = root.querySelector('[data-pe-mode-group]');
+        if (mg) { mg.classList.add('d-none'); }
         var warn = document.createElement('div');
         warn.className = 'alert alert-warning';
         warn.textContent = opts.rawWarn || 'Raw JSON editing.';
@@ -484,6 +743,39 @@ window.planEditor = (function () {
     root.querySelector('[data-pe-add-slot]').addEventListener('click', function () {
       addSlotRow(root, ''); sync(root);
     });
+    // BUG-36 mandatory mode radio. Switching away from a mode that holds
+    // content discards it — confirm first (the discarded mode's fields
+    // are reset so a later sync cannot leak stale values).
+    $all(root, '[data-pe-mode]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        var next = radio.value;
+        var prev = root._peMode || '';
+        if (prev === next) { return; }
+        if (modeHasContent(root, prev) &&
+            !window.confirm(root.getAttribute('data-mode-switch-confirm') || 'Discard?')) {
+          setMode(root, prev);
+          return;
+        }
+        clearModeContent(root, prev);
+        setMode(root, next);
+        sync(root);
+      });
+    });
+    ['repeatFrom', 'repeatTo'].forEach(function (n) {
+      $(root, '[data-pe="' + n + '"]').addEventListener('change', function (e) {
+        var v = normalizeHM(e.target.value);
+        if (v) { e.target.value = v; }
+        updateRepeatCount(root); sync(root);
+      });
+    });
+    ['repeatFrom', 'repeatTo', 'repeatEvery'].forEach(function (n) {
+      $(root, '[data-pe="' + n + '"]').addEventListener('input', function () { updateRepeatCount(root); });
+    });
+    $(root, '[data-pe="repeatEvery"]').addEventListener('change', function (e) {
+      var p = parseDuration(e.target.value);
+      if (p != null && p > 0) { e.target.value = fmtMin(p); } // display normalized to H:MM
+      updateRepeatCount(root); sync(root);
+    });
     st.kindEl.addEventListener('change', function () {
       writePayload(root, st.kindEl.value, {});
       refreshKind(root);
@@ -496,6 +788,8 @@ window.planEditor = (function () {
           var w = root.querySelector('.alert-warning:not([data-pe-warnings])');
           if (w) { w.remove(); }
           st.rawMode = false;
+          var mg = root.querySelector('[data-pe-mode-group]');
+          if (mg) { mg.classList.remove('d-none'); }
           writeSchedule(root, a.v);
           writePayload(root, st.kindEl.value, b.v);
           sync(root);

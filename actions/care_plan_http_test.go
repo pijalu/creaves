@@ -205,6 +205,26 @@ func (f *planFixture) feedRule(t *testing.T, tx *pop.Connection, due time.Time, 
 	return rule
 }
 
+// uncapDayPlanForTest clears the R8-5 view caps (late_show_hours /
+// future_show_hours) for the duration of one test, restoring the seeded
+// defaults on cleanup. Tests that deliberately anchor occurrences YESTERDAY
+// (late-record / hors-délai paths) or beyond the 8h future horizon are
+// otherwise at the mercy of the wall clock: the seeded 8h caps hide those
+// occurrences from /care_plan whenever the suite runs late in the day.
+// NULL caps are the documented "show everything" mode (preferences.go),
+// so the assertions below stay about their own subject — never about caps.
+func uncapDayPlanForTest(t *testing.T, tx *pop.Connection) {
+	t.Helper()
+	require.NoError(t, PreferencesEnsureSeeded(tx))
+	require.NoError(t, tx.RawQuery(
+		"UPDATE preferences SET late_show_hours = NULL, future_show_hours = NULL, now_window_minutes = NULL").Exec())
+	t.Cleanup(func() {
+		models.DB.RawQuery(
+			"UPDATE preferences SET late_show_hours = ?, future_show_hours = ?, now_window_minutes = ?",
+			preferenceDefaults.lateHours, preferenceDefaults.futureHours, preferenceDefaults.nowMinutes).Exec()
+	})
+}
+
 // ---------------------------------------------------------------------------
 // HTTP helpers
 // ---------------------------------------------------------------------------
@@ -442,6 +462,9 @@ func TestCarePlanDayPlanApplyIdempotent(t *testing.T) {
 // This test runs under GO_ENV=test, i.e. exactly the masked path.
 func TestCarePlanErrorContractDetail(t *testing.T) {
 	f := setupPlanFixture(t)
+	// The hors-délai fixture anchors an occurrence yesterday 00:05 (>8h
+	// late at any run time): the seeded R8-5 caps would hide it.
+	uncapDayPlanForTest(t, models.DB)
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
 
@@ -1032,6 +1055,48 @@ func TestCareAnimalPlansCaretakerCRUD(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 }
 
+// TestCareAnimalPlanUpdateConfirmsReview: a converter fallback plan carries
+// " (à vérifier)" in its stored name (§8.1 no-loss flag). A human saving the
+// plan IS the review — the PUT handler strips the flag, which clears the
+// animal page NeedsReview badge (animal_feeding_summary.go). The
+// " (conversion)" marker stays (§8.2 rollback targeting).
+func TestCareAnimalPlanUpdateConfirmsReview(t *testing.T) {
+	f := setupPlanFixture(t)
+	reg, regURL := planRegularClient(t)
+	regToken := planToken(t, reg, regURL)
+	animalID := f.animalIDs[0]
+
+	due := itemDueSoon(time.Now())
+	sched := careScheduleJSON(t, due)
+	payload, err := json.Marshal(map[string]interface{}{"food": "5 poussins", "caretype_id": f.feedCare.String()})
+	require.NoError(t, err)
+
+	flagged := "Alimentation — 5 poussins (conversion) (à vérifier) " + f.marker
+	code, raw := planDoJSON(t, reg, regURL, "POST", fmt.Sprintf("/animals/%d/care_animal_plans", animalID), regToken, map[string]interface{}{
+		"name": flagged, "action_kind": "feeding",
+		"action_payload": json.RawMessage(payload), "schedule": json.RawMessage(sched),
+	})
+	require.Equal(t, http.StatusCreated, code, "body: %s", raw)
+	plan := &models.CareAnimalPlan{}
+	require.NoError(t, json.Unmarshal(raw, plan))
+
+	// update — the fallback flag is stripped, the conversion marker kept
+	code, raw = planDoJSON(t, reg, regURL, "PUT", fmt.Sprintf("/animals/%d/care_animal_plans/%s", animalID, plan.ID), regToken, map[string]interface{}{
+		"name": flagged, "action_kind": "feeding",
+		"action_payload": json.RawMessage(payload), "schedule": json.RawMessage(sched),
+	})
+	require.Equal(t, http.StatusOK, code, "body: %s", raw)
+	updated := &models.CareAnimalPlan{}
+	require.NoError(t, json.Unmarshal(raw, updated))
+	require.NotContains(t, updated.Name, "à vérifier")
+	require.Contains(t, updated.Name, "(conversion)")
+
+	// stored row agrees
+	stored := &models.CareAnimalPlan{}
+	require.NoError(t, models.DB.Find(stored, plan.ID))
+	require.NotContains(t, stored.Name, "à vérifier")
+}
+
 func TestCareObservationAlertLoopAndFollowUp(t *testing.T) {
 	f := setupPlanFixture(t)
 	client, baseURL := planAdminClient(t)
@@ -1271,6 +1336,59 @@ func TestCareMedicationMidnightDueDaySharesRow(t *testing.T) {
 	require.Equal(t, models.TreatmentEntryStatusDone, entries[1].Status)
 }
 
+// TestCareMedicationEveningClickSharesRow pins BUG-41: treatments.date is
+// stored in the wall-clock frame (FormWallClockNow — local digits in a UTC
+// instant, DSN without loc), so the §10-M1 dedup lookup must compare in that
+// same frame. With TZ-aware local bounds the driver shifted the window by
+// the TZ offset and a click at 22:49 (UTC+2) fell OUTSIDE its own due-day
+// window — a second same-day treatments row was created (the
+// SameSlotKeepsDistinctEntries failure seen 22:00–24:00). The seeded row
+// below fixes the frame by construction (digits, no clock), so the pin
+// holds at any run time and in any zone.
+func TestCareMedicationEveningClickSharesRow(t *testing.T) {
+	f := setupPlanFixture(t)
+
+	now := time.Now()
+	dayDigits := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	drug := "CP-DrugE-" + f.marker
+
+	// The row an earlier 22:49 click created: wall-clock digits, UTC frame —
+	// exactly what FormWallClockNow + the loc-less driver store.
+	row := &models.Treatment{
+		Date:       dayDigits.Add(22*time.Hour + 49*time.Minute),
+		AnimalID:   f.animalIDs[0],
+		Drug:       drug,
+		Dosage:     "0.5 ml",
+		Timebitmap: models.Treatement_EVENING,
+	}
+	require.NoError(t, models.DB.Create(row))
+	require.NoError(t, models.DB.Create(&models.TreatmentTimeEntry{
+		TreatmentID: row.ID, AnimalID: f.animalIDs[0],
+		DueAt: time.Date(now.Year(), now.Month(), now.Day(), 22, 49, 0, 0, time.Local),
+		TimeLabel: "22:49", Status: models.TreatmentEntryStatusDone,
+		Source: models.TreatmentEntrySourceProtocol,
+	}))
+
+	// A second same-day apply at 23:39 (click 23:50) must COMPLETE on the
+	// existing row, not open a new one.
+	payload := planPayload{Drug: drug, Dosage: "0.5 ml"}
+	in := PlanApplyInput{Dosage: "0.5 ml"}
+	due := time.Date(now.Year(), now.Month(), now.Day(), 23, 39, 0, 0, time.Local)
+	click := time.Date(now.Year(), now.Month(), now.Day(), 23, 50, 0, 0, time.Local)
+	_, err := writeMedicationFulfillment(models.DB, nil, payload, f.animalIDs[0], due, click, uuid.Nil, uuid.Nil, in)
+	require.NoError(t, err)
+
+	treatments := &models.Treatments{}
+	require.NoError(t, models.DB.Where("animal_id = ? AND drug = ?", f.animalIDs[0], drug).All(treatments))
+	require.Len(t, *treatments, 1, "BUG-41: late-evening click must find the same-day row (wall-clock frame)")
+
+	entries := models.TreatmentTimeEntries{}
+	require.NoError(t, models.DB.Where("treatment_id = ?", (*treatments)[0].ID).Order("due_at asc").All(&entries))
+	require.Len(t, entries, 2, "second administration appends its own done entry (U25/D-e)")
+	require.Equal(t, "23:39", entries[1].TimeLabel)
+	require.Equal(t, models.TreatmentEntryStatusDone, entries[1].Status)
+}
+
 // ---------------------------------------------------------------------------
 // §10-B6 / §10-L2 — manual dosage path (bugs.md M1)
 // ---------------------------------------------------------------------------
@@ -1384,11 +1502,15 @@ func TestCareMedicationManualDosageSameBucket(t *testing.T) {
 	item := mustItemFrom(t, planItemsOf(t, body), f.animalIDs[0], "medication", rule.ID)
 
 	// Pre-existing same-bucket row, not yet done, carrying the plan dosage —
-	// the shape converted treatment series produce.
+	// the shape converted treatment series produce. The Date is stored in
+	// the wall-clock frame (naive day digits, UTC instant) — exactly what
+	// the treatments form / converter write via time.Parse(DateFormat) and
+	// FormWallClockNow; a TZ-aware local midnight would be shifted by the
+	// loc-less driver and would NOT be found by the §10-M1 dedup (BUG-41).
 	dueAt, err := time.Parse(time.RFC3339, item["due_at"].(string))
 	require.NoError(t, err)
 	bit := treatmentBucketBit(dueAt)
-	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
+	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, time.UTC)
 	pre := &models.Treatment{
 		Date: dayStart, AnimalID: f.animalIDs[0], Drug: drug.Name,
 		Dosage: "0.05 ml", Timebitmap: bit, Timedonebitmap: 0,

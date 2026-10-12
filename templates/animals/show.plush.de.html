@@ -241,10 +241,6 @@
   
   <div class="tab-pane fade" id="nav-care" role="tabpanel" aria-labelledby="nav-care-tab">
     <ul class="list-group mb-2 ">
-      <li class="list-group-item pb-1">
-        <label class="small d-block">Fütterung</label>
-        <p class="d-inline-block"><%= animal.Feeding %></p>
-      </li>
       <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
       <li class="list-group-item pb-1">
         <span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Wärme: <%= animal.HeatSource.String %></span>
@@ -966,9 +962,18 @@
             var detail = '';
             if (j && j.errors) {
               var parts = [];
+              // BUG-33: mark the offending fields next to their input so
+              // the user sees WHERE the problem is, not only a banner.
+              ['Name','Schedule','ActionPayload'].forEach(function (f) {
+                var el = document.getElementById('CarePlan' + f);
+                if (el) { el.classList.remove('is-invalid'); }
+              });
               for (var k in j.errors) {
                 if (Object.prototype.hasOwnProperty.call(j.errors, k) && j.errors[k] && j.errors[k].length) {
                   parts.push(j.errors[k].join(' '));
+                  // verrs keys are lowercase json tags (name, schedule, …)
+                  var el = document.getElementById('CarePlan' + k.charAt(0).toUpperCase() + k.slice(1));
+                  if (el) { el.classList.add('is-invalid'); }
                 }
               }
               detail = parts.join(' ');
@@ -1237,6 +1242,20 @@ $(".nav-tabs").find("a").each(function(key, val) {
     location.hash = $(this).attr('href');
     $("#editButton").attr("href", editPath+location.hash);
   });
+});
+
+// In-page hash links (e.g. the feeding summary's "manage" link to
+// #nav-plan) only change location.hash — Bootstrap never re-fires once a
+// tab was clicked manually. Activate the matching tab on hashchange.
+// Guard on .active: tab clicks already set location.hash, so this handler
+// re-enters — showing the already-active tab is a no-op.
+$(window).on('hashchange', function () {
+  var h = location.hash;
+  if (!h) { return; }
+  var tab = $('.nav-tabs a[href="' + h + '"]');
+  if (tab.length && !tab.hasClass('active')) {
+    tab.tab('show');
+  }
 });
 
 // Audit tab: keep the audit tab active across paginator navigation (?page=N)

@@ -276,7 +276,8 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 
 	// BUG-10: the NULL-times animal got a fallback plan flagged
 	// "à vérifier" carrying its diet; the diet-only animal likewise; the
-	// no-trace animal got nothing.
+	// no-trace animal got nothing. BUG-36: the fallback form is a plain
+	// slot list — NO repeat block (the legacy triple is incomplete).
 	assertFeedingPlan := func(animalID int, wantFood string, wantVerify bool) {
 		var plans []models.CareAnimalPlan
 		require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", animalID, careplan.KindFeeding).All(&plans))
@@ -288,6 +289,7 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 		sched, err := careplan.ParseScheduleJSON(p.Schedule)
 		require.NoError(t, err)
 		require.NotEmpty(t, sched.Times, "fallback slot must be present")
+		require.Nil(t, sched.Repeat, "fallback plan of animal %d must not carry a repeat block", animalID)
 	}
 	assertFeedingPlan(fx.nullTimesID, "15 poussins et 5 souris", true)
 	assertFeedingPlan(fx.dietOnlyID, "Poisson entier", true)
@@ -324,14 +326,24 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 
 	// Per-animal plans: the 5 same-diet animals each get their OWN plan
 	// with THEIR slots (08:00 + n×120 ≤ 18:00 — B1 legacy semantics).
+	// BUG-36: the exact legacy triple converts to the REPEAT form — block
+	// matching the legacy columns, expanded times, and NO "à vérifier"
+	// flag (the translation is exact).
 	dietSlots := []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}
 	for _, id := range fx.animalIDs[:5] {
 		var p models.CareAnimalPlan
 		require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", id, "Alimentation — grains pigeons eau%").First(&p))
 		require.True(t, p.Active)
+		require.NotContains(t, p.Name, "à vérifier", "animal %d: exact triple must convert unflagged", id)
 		slots, err := parseScheduleForTest(p.Schedule)
 		require.NoError(t, err)
 		require.Equal(t, dietSlots, slots, "animal %d slots", id)
+		sched, err := careplan.ParseScheduleJSON(p.Schedule)
+		require.NoError(t, err)
+		require.NotNil(t, sched.Repeat, "animal %d: exact triple must carry the repeat block", id)
+		require.Equal(t, "08:00", sched.Repeat.From.String(), "animal %d repeat.from", id)
+		require.Equal(t, "18:00", sched.Repeat.To.String(), "animal %d repeat.to", id)
+		require.Equal(t, 120, sched.Repeat.EveryMinutes, "animal %d repeat.every_minutes", id)
 		var payload struct {
 			Food string `json:"food"`
 		}
@@ -340,12 +352,19 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	}
 
 	// H2: the 07:00/360min schedule variant got its own plan — the cluster
-	// rule must NOT have silently swallowed it via modal slots.
+	// rule must NOT have silently swallowed it via modal slots. BUG-36: it
+	// carries its own repeat block (07:00→19:00 every 360).
 	var variantPlan models.CareAnimalPlan
 	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[8], "%grains pigeons eau%").First(&variantPlan))
 	vSched, err := parseScheduleForTest(variantPlan.Schedule)
 	require.NoError(t, err)
 	require.Equal(t, []string{"07:00", "13:00", "19:00"}, vSched)
+	vParsed, err := careplan.ParseScheduleJSON(variantPlan.Schedule)
+	require.NoError(t, err)
+	require.NotNil(t, vParsed.Repeat, "schedule variant must carry the repeat block")
+	require.Equal(t, "07:00", vParsed.Repeat.From.String())
+	require.Equal(t, "19:00", vParsed.Repeat.To.String())
+	require.Equal(t, 360, vParsed.Repeat.EveryMinutes)
 
 	// t5: the empty-diet animal got a flagged fallback plan, not a skip.
 	var fbPlan models.CareAnimalPlan

@@ -549,20 +549,31 @@ func writeMedicationFulfillment(tx *pop.Connection, src careplan.PlanSource, pay
 	}
 	timeLabel := dueAt.Format("15:04")
 	dayStart := time.Date(dueAt.Year(), dueAt.Month(), dueAt.Day(), 0, 0, 0, 0, dueAt.Location())
-	dayEnd := dayStart.Add(24 * time.Hour)
 
 	// §10-M1 dedup keys the row on the due day while rows are dated at click
 	// time — near midnight the two diverge (apply 23:50 for a 00:10 slot) and
 	// a due-day-only lookup would create a second row for the same care
 	// record. Look across BOTH days; entry dating below stays anchored on
 	// the due day.
-	lookupStart, lookupEnd := dayStart, dayEnd
-	clickStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	clickEnd := clickStart.Add(24 * time.Hour)
-	if clickStart.Before(dayStart) {
+	//
+	// Frame bug (BUG-41): treatments.date stores the CLICK wall clock as
+	// naive digits (FormWallClockNow — local digits in a UTC instant, DSN
+	// without loc), so the SQL bounds must be expressed in that SAME frame.
+	// Binding the TZ-aware local dayStart/dayEnd lets the driver shift them
+	// by the TZ offset: at UTC+2 a click after 22:00 lands OUTSIDE its own
+	// due-day window [dayStart-2h, dayEnd-2h) and a second same-day row is
+	// created (TestCareMedicationSameSlotKeepsDistinctEntries failing
+	// 22:00–24:00). Strip the zone, keep the digits.
+	wallDay := func(t time.Time) time.Time {
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+	}
+	dueStart, dueEnd := wallDay(dueAt), wallDay(dueAt).Add(24*time.Hour)
+	clickStart, clickEnd := wallDay(now), wallDay(now).Add(24*time.Hour)
+	lookupStart, lookupEnd := dueStart, dueEnd
+	if clickStart.Before(dueStart) {
 		lookupStart = clickStart
 	}
-	if clickEnd.After(dayEnd) {
+	if clickEnd.After(dueEnd) {
 		lookupEnd = clickEnd
 	}
 

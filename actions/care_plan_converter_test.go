@@ -166,7 +166,10 @@ func matcherIDForTest() uuid.NullUUID {
 // TestDeriveFeedingTimes covers §8.1 step 2 slot derivation (§11.7): the
 // start slot is included (n ≥ 0, legacy calculateFeeding semantics),
 // start == end yields the single daily slot, overnight windows wrap, and
-// degenerate inputs yield nothing.
+// degenerate inputs yield nothing. Since BUG-36 the shim delegates to
+// careplan.ExpandRepeat, so the result is sorted strictly ascending (the
+// §4.3 times invariant) — an overnight window comes back sorted, not in
+// generation order.
 func TestDeriveFeedingTimes(t *testing.T) {
 	at := func(h, m int) [2]int { return [2]int{h, m} }
 	cases := []struct {
@@ -179,7 +182,7 @@ func TestDeriveFeedingTimes(t *testing.T) {
 		{"spec §11.7 example", [2]int{7, 0}, [2]int{22, 0}, 600, [][2]int{at(7, 0), at(17, 0)}},
 		{"start==end single slot", [2]int{10, 0}, [2]int{10, 0}, 600, [][2]int{at(10, 0)}},
 		{"single at end", [2]int{8, 0}, [2]int{18, 0}, 600, [][2]int{at(8, 0), at(18, 0)}},
-		{"overnight", [2]int{22, 0}, [2]int{6, 0}, 240, [][2]int{at(22, 0), at(2, 0), at(6, 0)}},
+		{"overnight (sorted, §4.3 invariant)", [2]int{22, 0}, [2]int{6, 0}, 240, [][2]int{at(2, 0), at(6, 0), at(22, 0)}},
 		{"no slot fits beyond start", [2]int{8, 0}, [2]int{9, 0}, 120, [][2]int{at(8, 0)}},
 		{"zero period", [2]int{8, 0}, [2]int{18, 0}, 0, nil},
 		{"negative period", [2]int{8, 0}, [2]int{18, 0}, -5, nil},
@@ -237,11 +240,13 @@ func TestNormalizeDiet(t *testing.T) {
 }
 
 // TestBuildConvertedScheduleJSON: the converted schedule must round-trip
-// through the strict §4.3 parser.
+// through the strict §4.3 parser — both the fallback form (plain slots,
+// no repeat) and the exact-triple repeat form (BUG-36: block + expanded
+// times consistent with the block, or the parse fails validation).
 func TestBuildConvertedScheduleJSON(t *testing.T) {
 	raw := buildConvertedScheduleJSON([]careplan.TimeOfDay{
 		{Hour: 10, Minute: 0}, {Hour: 18, Minute: 30},
-	})
+	}, nil)
 	sched, err := careplan.ParseScheduleJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("converted schedule does not parse: %v", err)
@@ -251,6 +256,133 @@ func TestBuildConvertedScheduleJSON(t *testing.T) {
 	}
 	if sched.Anchor != careplan.AnchorIntake || sched.EveryDays != 1 {
 		t.Errorf("anchor/every_days = %s/%d", sched.Anchor, sched.EveryDays)
+	}
+	if sched.Repeat != nil {
+		t.Errorf("fallback schedule must not carry a repeat block, got %+v", sched.Repeat)
+	}
+}
+
+// TestBuildConvertedScheduleJSONRepeatForm pins the BUG-36 exact-triple
+// form: repeat block (from/to = legacy start/end, every_minutes = legacy
+// period) + times equal to its expansion. The stored document must parse
+// AND validate — the repeat consistency check (times == ExpandRepeat)
+// runs inside ParseScheduleJSON.
+func TestBuildConvertedScheduleJSONRepeatForm(t *testing.T) {
+	r := careplan.Repeat{
+		From:         careplan.TimeOfDay{Hour: 8, Minute: 0},
+		To:           careplan.TimeOfDay{Hour: 18, Minute: 0},
+		EveryMinutes: 120,
+	}
+	times := careplan.ExpandRepeat(r)
+	raw := buildConvertedScheduleJSON(times, &r)
+	sched, err := careplan.ParseScheduleJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("repeat-form schedule does not parse/validate: %v", err)
+	}
+	if sched.Repeat == nil {
+		t.Fatal("repeat block missing from converted schedule")
+	}
+	if sched.Repeat.From.String() != "08:00" || sched.Repeat.To.String() != "18:00" || sched.Repeat.EveryMinutes != 120 {
+		t.Errorf("repeat = %s→%s every %d, want 08:00→18:00 every 120",
+			sched.Repeat.From, sched.Repeat.To, sched.Repeat.EveryMinutes)
+	}
+	want := []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}
+	if len(sched.Times) != len(want) {
+		t.Fatalf("times = %v, want %v", sched.Times, want)
+	}
+	for i, ts := range sched.Times {
+		if ts.String() != want[i] {
+			t.Errorf("times[%d] = %s, want %s", i, ts, want[i])
+		}
+	}
+
+	// Overnight legacy window: end < start stays verbatim in the block
+	// (the editor shows from=22:00 to=06:00), times sorted per §4.3.
+	on := careplan.Repeat{
+		From:         careplan.TimeOfDay{Hour: 22, Minute: 0},
+		To:           careplan.TimeOfDay{Hour: 6, Minute: 0},
+		EveryMinutes: 240,
+	}
+	raw = buildConvertedScheduleJSON(careplan.ExpandRepeat(on), &on)
+	sched, err = careplan.ParseScheduleJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("overnight repeat-form schedule does not parse/validate: %v", err)
+	}
+	if sched.Repeat == nil || sched.Repeat.From.String() != "22:00" || sched.Repeat.To.String() != "06:00" {
+		t.Fatalf("overnight repeat block = %+v", sched.Repeat)
+	}
+	got := []string{}
+	for _, ts := range sched.Times {
+		got = append(got, ts.String())
+	}
+	wantON := []string{"02:00", "06:00", "22:00"}
+	if strings.Join(got, ",") != strings.Join(wantON, ",") {
+		t.Errorf("overnight times = %v, want %v", got, wantON)
+	}
+}
+
+// TestLegacyFeedingScheduleRepeatForm covers the BUG-36 converter mapping
+// itself: exact legacy triples (non-NULL start/end + period > 0) yield the
+// repeat form with NO fallback flag (exact translation); NULL start/end,
+// degenerate periods and over-cap windows keep the flagged fallback slots
+// with no repeat block.
+func TestLegacyFeedingScheduleRepeatForm(t *testing.T) {
+	mk := func(start, end string, period int) models.Animal {
+		base := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+		a := models.Animal{FeedingPeriod: period}
+		if start != "" {
+			st, _ := time.Parse("15:04", start)
+			a.FeedingStart = nulls.NewTime(base.Add(time.Duration(st.Hour())*time.Hour + time.Duration(st.Minute())*time.Minute))
+		}
+		if end != "" {
+			en, _ := time.Parse("15:04", end)
+			a.FeedingEnd = nulls.NewTime(base.Add(time.Duration(en.Hour())*time.Hour + time.Duration(en.Minute())*time.Minute))
+		}
+		return a
+	}
+
+	// Exact triple → repeat form, no flag.
+	times, repeat, fallback := legacyFeedingSchedule(mk("08:00", "18:00", 120))
+	if fallback {
+		t.Error("exact triple must not be flagged à vérifier")
+	}
+	if repeat == nil || repeat.From.String() != "08:00" || repeat.To.String() != "18:00" || repeat.EveryMinutes != 120 {
+		t.Fatalf("repeat = %+v, want 08:00→18:00 every 120", repeat)
+	}
+	if len(times) != 6 || times[0].String() != "08:00" || times[5].String() != "18:00" {
+		t.Errorf("times = %v", times)
+	}
+
+	// Overnight triple → repeat form with end < start preserved.
+	_, repeat, fallback = legacyFeedingSchedule(mk("22:00", "06:00", 240))
+	if fallback || repeat == nil || repeat.From.String() != "22:00" || repeat.To.String() != "06:00" {
+		t.Errorf("overnight: fallback=%v repeat=%+v", fallback, repeat)
+	}
+
+	// NULL end → single slot at start, flagged, no repeat.
+	times, repeat, fallback = legacyFeedingSchedule(mk("07:30", "", 120))
+	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "07:30" {
+		t.Errorf("NULL end: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
+	}
+
+	// NULL start+end (period-only row, BUG-10) → 09:00 fallback, flagged.
+	times, repeat, fallback = legacyFeedingSchedule(mk("", "", 480))
+	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "09:00" {
+		t.Errorf("NULL times: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
+	}
+
+	// Degenerate period with start/end set → single slot at start, flagged.
+	times, repeat, fallback = legacyFeedingSchedule(mk("08:00", "18:00", 0))
+	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "08:00" {
+		t.Errorf("period=0: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
+	}
+
+	// Over-cap window (period 1 min over 23:59 h → 1440 slots): the repeat
+	// block would fail validation — keep the capped slots, flag for review.
+	times, repeat, fallback = legacyFeedingSchedule(mk("00:00", "23:59", 1))
+	if !fallback || repeat != nil || len(times) != 24 {
+		t.Errorf("over-cap: len(times)=%d repeat=%+v fallback=%v, want 24 capped slots, no repeat, flagged",
+			len(times), repeat, fallback)
 	}
 }
 

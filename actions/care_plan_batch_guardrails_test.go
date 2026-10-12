@@ -19,6 +19,9 @@ import (
 // observation alert outcome (§10.1-6).
 func TestCarePlanBatchGuardrails(t *testing.T) {
 	f := setupPlanFixture(t)
+	// The hors-délai section anchors an occurrence yesterday 00:05 (>8h
+	// late at any run time): the seeded R8-5 caps would hide it.
+	uncapDayPlanForTest(t, models.DB)
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
 

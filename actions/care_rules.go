@@ -14,6 +14,7 @@ import (
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/x/responder"
 	"github.com/gofrs/uuid"
 )
@@ -96,6 +97,26 @@ func bindCareRule(c buffalo.Context, rule *models.CareRule) error {
 		return err
 	}
 	return f.apply(rule)
+}
+
+// respondCareRuleScheduleError renders a 422 for an invalid schedule
+// document (normalization failure). The message is already user-safe
+// (ScheduleErrorMessage stripped Go/JSON internals and opaque spec/bug
+// references). JSON clients get the {schedule: [msg]} field-error object
+// (BUG-33 contract); HTML submissions reopen the editor (template) with
+// the field error attached.
+func respondCareRuleScheduleError(c buffalo.Context, tx *pop.Connection, rule *models.CareRule, nerr error, template string) error {
+	verrs := validate.NewErrors()
+	verrs.Add("schedule", nerr.Error())
+	return responder.Wants("html", func(c buffalo.Context) error {
+		if err := setRuleContext(c, tx, rule); err != nil {
+			return err
+		}
+		c.Set("verrs", verrs)
+		return c.Render(http.StatusUnprocessableEntity, r.HTML(template))
+	}).Wants("json", func(c buffalo.Context) error {
+		return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+	}).Respond(c)
 }
 
 // CareRulesResource is the admin-authored generic rule level (§4.1, §7.2).
@@ -282,6 +303,13 @@ func (v CareRulesResource) Create(c buffalo.Context) error {
 	if err := bindCareRule(c, rule); err != nil {
 		return err
 	}
+	// Repeat is the source of truth (BUG-36 decision 3): times re-derived
+	// server-side before validation/save.
+	sched, nerr := normalizeSubmittedSchedule(rule.Schedule)
+	if nerr != nil {
+		return respondCareRuleScheduleError(c, tx, rule, nerr, "care_rules/new.plush.html")
+	}
+	rule.Schedule = sched
 	verrs, err := tx.ValidateAndCreate(rule)
 	if err != nil {
 		return err
@@ -323,6 +351,13 @@ func (v CareRulesResource) Update(c buffalo.Context) error {
 	if err := bindCareRule(c, rule); err != nil {
 		return err
 	}
+	// Repeat is the source of truth (BUG-36 decision 3): times re-derived
+	// server-side before validation/save.
+	sched, nerr := normalizeSubmittedSchedule(rule.Schedule)
+	if nerr != nil {
+		return respondCareRuleScheduleError(c, tx, rule, nerr, "care_rules/edit.plush.html")
+	}
+	rule.Schedule = sched
 	// ID drift guard: the bound body may carry a foreign id.
 	if id, err := uuid.FromString(c.Param("care_rule_id")); err == nil {
 		rule.ID = id

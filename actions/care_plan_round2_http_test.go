@@ -72,6 +72,9 @@ func planApplyBody(it map[string]interface{}, extra map[string]interface{}) map[
 func TestCarePlanLateRecordBounds(t *testing.T) {
 	f := setupPlanFixture(t)
 	tx := models.DB
+	// The fixture anchors occurrences YESTERDAY (>8h late at any run time):
+	// the seeded R8-5 caps would hide them from the queried window.
+	uncapDayPlanForTest(t, tx)
 	now := time.Now()
 	y := now.AddDate(0, 0, -1)
 	yDay := time.Date(y.Year(), y.Month(), y.Day(), 0, 0, 0, 0, y.Location())
@@ -194,6 +197,9 @@ func TestUnapplyAnyRecordByAnyUser(t *testing.T) {
 func TestOuttakenTodayInAssemblies(t *testing.T) {
 	f := setupPlanFixture(t)
 	tx := models.DB
+	// Same yesterday-anchored fixture as the late-record bounds: the seeded
+	// R8-5 caps would hide the occurrence from the explicit yesterday window.
+	uncapDayPlanForTest(t, tx)
 	now := time.Now()
 	y := now.AddDate(0, 0, -1)
 	yDay := time.Date(y.Year(), y.Month(), y.Day(), 0, 0, 0, 0, y.Location())

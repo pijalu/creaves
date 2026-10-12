@@ -560,7 +560,7 @@
           <a class="nav-link" href="?kind=medication">
             "Medication"
             <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
-              "2"
+              "1"
             </span>
           </a>
         </li>
@@ -581,7 +581,7 @@
           <a class="nav-link" href="?kind=observation">
             "Observation"
             <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
-              "8"
+              "5"
             </span>
           </a>
         </li>

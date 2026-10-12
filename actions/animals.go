@@ -1055,8 +1055,13 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 
 	// save original cage
 	originalCage := animal.Cage
-	originalFeeding := animal.Feeding
 	originalOuttakeID := animal.OuttakeID
+	// Legacy feeding columns are FROZEN (bugs.md H3 / Phase 4): feeding is
+	// fully managed by care plans (Protocol tab); the animals.feeding* /
+	// force_feed columns remain for the DSL matcher context and conversion
+	// history only. Snapshot them so crafted form params cannot write them.
+	frozenFeeding := animal.Feeding
+	frozenForceFeed := animal.ForceFeed
 	// heat/O2 originals for the "soin" auto-care (#205-10)
 	originalHeatSource := animal.HeatSource
 	originalOxygen := animal.Oxygen
@@ -1075,7 +1080,11 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	// (bugs.md H3 / Phase 4): the day plan is driven by care rules/plans, the
 	// form renders them read-only, and Update ignores any crafted
 	// AnimalFeedingStartTime/EndTime/PeriodHourMinute params so the freeze
-	// cannot be bypassed by POST.
+	// cannot be bypassed by POST. The feeding text and force_feed flag join
+	// the freeze: the form no longer renders them and any crafted
+	// Feeding/ForceFeed param is rolled back here.
+	animal.Feeding = frozenFeeding
+	animal.ForceFeed = frozenForceFeed
 
 	// Decode additonal form param
 	backUrl := struct {
@@ -1159,38 +1168,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	}
 
 	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
-	// Create new defailt care if animal feeding is updated
-	if !verrs.HasAny() && animal.Feeding.String != originalFeeding.String && animal.Feeding.String != "" {
-		c.Logger().Debugf("Creating new care for updated feeding animalID %d", animal.ID)
-		care := &models.Care{}
-		care.Animal = *animal
-		care.AnimalID = animal.ID
-		care.Date = models.NowOffset()
-		care.Note = animal.Feeding
-
-		// Set care to default
-		for _, careType := range *careTypes {
-			ctn := strings.ToLower(careType.Name)
-			// try to find move
-			if strings.Contains(ctn, "feedings") || strings.Contains(ctn, "alimentation") {
-				care.Type = careType
-				care.TypeID = careType.ID
-				break
-			}
-			// fall back to default
-			if careType.Def {
-				care.Type = careType
-				care.TypeID = careType.ID
-			}
-		}
-
-		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
-		verrs, err = tx.Eager().ValidateAndCreate(care)
-		if err != nil {
-			return err
-		}
-		auditAnimalChange(c, tx, animal.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
-	}
 
 	// Create a "soin" care when heat source or oxygen changed (#205-10),
 	// mirroring the cage-move care above.

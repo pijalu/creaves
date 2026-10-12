@@ -328,6 +328,15 @@ var phase0bKinds = []string{"feeding", "medication", "cleanup", "observation"}
 //     override and cage/feeding group buttons stay visible as green ✓
 //     group-undo. Verified by diff on re-record: toggle markup + modal +
 //     one CSS line, nothing else.
+//   - Caps re-record (2026-10-12): the phase0b baselines were last recorded
+//     while the persistent test DB still held 24h-era preference rows
+//     (PreferencesEnsureSeeded only fills MISSING rows, so the seeded 8h
+//     default of c2f6f16 never took effect there). A fresh test DB seeds the
+//     intended 8h/8h caps, which drop the >8h-future occurrences (ROBS-F,
+//     every tomorrow/day-after slot) from the page: the Later tier and its
+//     toggles leave the observation/cleanup tabs, tab/zone/tier counts and
+//     data-remaining shrink accordingly. Verified by diff: only capped
+//     occurrences and their counts change, no other markup delta.
 //   - BUG-26 (2026-10-28): the urgency strip moved INSIDE #planSections on
 //     every kind (indent-level delta on the strip block) and the JS click
 //     handler scopes to #planSections unconditionally (feedingPanel branch

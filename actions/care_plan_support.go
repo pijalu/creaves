@@ -13,6 +13,7 @@ import (
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
+	"github.com/gobuffalo/validate/v3"
 	"github.com/gofrs/uuid"
 )
 
@@ -52,6 +53,70 @@ func wantsJSON(c buffalo.Context) bool {
 	ct := c.Request().Header.Get("Accept")
 	return strings.Contains(ct, "application/json") ||
 		strings.HasSuffix(c.Request().URL.Path, ".json")
+}
+
+// normalizeSubmittedSchedule canonicalizes a submitted schedule document
+// before validation/save (repeat is the source of truth: when the
+// document carries a repeat block, Times is re-derived from it — client
+// times are overwritten). A nil/empty schedule passes through untouched
+// (the model validator reports "can not be empty"). A normalization
+// failure returns a user-safe error: ScheduleErrorMessage strips every
+// Go/JSON internal and opaque spec/bug reference.
+func normalizeSubmittedSchedule(raw json.RawMessage) (json.RawMessage, error) {
+	if len(raw) == 0 {
+		return raw, nil
+	}
+	canon, err := careplan.NormalizeScheduleJSON(raw)
+	if err != nil {
+		return nil, fmt.Errorf("%s", careplan.ScheduleErrorMessage(err))
+	}
+	return json.RawMessage(canon), nil
+}
+
+// respondPlanVerrs renders the 422 field-error contract (BUG-33): JSON
+// clients get the {field: [messages]} errors object; HTML clients are
+// flashed the translated generic message and redirected back (303) to
+// the Referer, matching planError's HTML behavior — never a raw JSON
+// blob dead-end.
+// localizePlanVerrs replaces stock English validator messages with
+// translated ones (BUG-33: no raw English on fr/de/nl). Unknown messages
+// pass through unchanged.
+func localizePlanVerrs(c buffalo.Context, verrs *validate.Errors) *validate.Errors {
+	out := validate.NewErrors()
+	for field, msgs := range verrs.Errors {
+		for _, m := range msgs {
+			switch m {
+			case "Name can not be blank.":
+				out.Add(field, T.Translate(c, "care_plan.errors.name_blank"))
+			default:
+				out.Add(field, m)
+			}
+		}
+	}
+	return out
+}
+
+func respondPlanVerrs(c buffalo.Context, verrs *validate.Errors) error {
+	verrs = localizePlanVerrs(c, verrs)
+	if wantsJSON(c) {
+		return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+	}
+	c.Flash().Add("danger", T.Translate(c, "care_plan.animal_plans.error"))
+	back := c.Request().Header.Get("Referer")
+	if back == "" {
+		back = "/"
+	}
+	return c.Redirect(http.StatusSeeOther, back)
+}
+
+// scheduleFieldError builds a one-field 422 response for the schedule
+// input, with the same content negotiation as respondPlanVerrs. The
+// engine's error text is a Go/spec detail (`§4.3`, JSON paths) — BUG-33:
+// users get the translated generic schedule message instead.
+func scheduleFieldError(c buffalo.Context, msg string) error {
+	verrs := validate.NewErrors()
+	verrs.Add("schedule", T.Translate(c, "care_plan.editor.schedule_invalid"))
+	return respondPlanVerrs(c, verrs)
 }
 
 // Plan service support helpers (§4.5/§6.2): source projection, defer

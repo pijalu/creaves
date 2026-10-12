@@ -33,6 +33,7 @@ import (
 	"testing"
 	"time"
 
+	"creaves/models"
 	"creaves/models/careplan"
 
 	"github.com/stretchr/testify/require"
@@ -104,7 +105,11 @@ func careRowOf(t *testing.T, rows []CareView, cage string) CareView {
 // pill jumping to each, and the rich fixture's cage row with the time stated
 // once and one toggle per occurrence.
 func TestPhase3CleanupRendersTieredSections(t *testing.T) {
+	// B10-7 asserts the tomorrow/day-after occurrences render (>8h beyond
+	// the seeded future cap at any run time): clear the R8-5 caps so the
+	// tiered-section assertions stay about rendering, not about view caps.
 	_, client, baseURL := planFixtureRich(t)
+	uncapDayPlanForTest(t, models.DB)
 
 	raw := fetchPlanHTML(t, client, baseURL, "?kind=cleanup")
 

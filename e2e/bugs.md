@@ -2022,7 +2022,7 @@ actionable toggle beside it"*). Concretely:
 
 ## BUG-30 (high) — `/care_plan?kind=care`: items render far beyond the configured preference windows (8 h future / 8 h late) — missing per-kind preference rows silently mean "no cap"
 
-**Status**: fixed 2026-10-12 — awaiting retest
+**Status**: ✅ FIXED + retested 2026-10-12 — G5 full suite green: preference-cap tests (`TestCarePlanLateRecordBounds`, phase0b goldens re-recorded under the seeded 8h caps) validate the per-kind caps now apply.
 **Severity**: high — the day plan is the work screen; an unfiltered kind
 re-advertises up to 2 days of future work and a full extra day of late
 work, burying what is actually due.
@@ -2103,3 +2103,498 @@ with folded rows instead of honest capped work.
   row was uncapped.
 - Do not change `applyPreferenceCaps` boundary semantics (at-or-beyond
   the cap leaves; round-10 pins in care_plan_round10_caps_test.go).
+
+---
+
+# Bugs — care-protocol / animal-page run 2026-10-09 (session 2)
+
+Found during the feeding-protocol feature work (converter "à vérifier" confirm,
+range+period slot generator, legacy feeding-field removal, tab-link fix) on
+branch `feature/care-expert`, dev DB (animal 10372).
+
+## BUG-31 (medium) — Blinking "?"/"!" FontAwesome placeholders on animal page: v4 icon names used but `v4-shims.js` is not loaded
+
+**Status:** OPEN
+**Severity:** Medium (visual: animated blinking "?"/"!" SVG replaces the icon; looks broken and distracts on the animal page + feeding banner)
+**Found by:** User report on `/animals/10372#nav-care` (pasted the animated SVG); root-caused statically.
+
+### Observed
+
+FontAwesome SVG+JS renders its "missing icon" placeholder (blinking
+question/exclamation mark, `ANIMATION_BASE dur 2s`) for every icon whose name it
+cannot resolve. The app bundles `@fortawesome/fontawesome-free@5.15.4` and loads
+**only** `js/all.js` (`assets/js/application.js:6`) — the v4 compatibility layer
+`js/v4-shims.js` is **never** required. Any template still using a FontAwesome
+**4** icon name therefore renders the blinking placeholder.
+
+Confirmed broken icon names in templates (FA5 name in parentheses):
+
+| v4 class used | FA5 name | Where |
+|---|---|---|
+| `fa fa-clock-o` | `fa-clock` (far) | `templates/animals/_feeding_summary.plush.html:21` (feeding banner slot times) |
+| `fa fa-cutlery` | `fa-utensils` (fas) | `templates/animals/_feeding_summary.plush.html:16` (feeding banner title) |
+| `fa fa-pencil` | `fa-pencil-alt` (fas) | `templates/animals/show.plush.{html,fr,de,nl}.html:1030-1034` (attachment comment save button) |
+| `fa fa-repeat` | `fa-redo` (fas) | `templates/config/sync_edit.plush.{html,fr,de,nl}.html:59` (retry-undeliverable button) |
+
+(`clock-o` is not even in the FA5.15 shim table; `cutlery`/`pencil`/`repeat` are
+shimmable but the shim file is not loaded. Verified against
+`node_modules/@fortawesome/fontawesome-free/metadata/{icons,shims}.yml` and
+`grep -rn "v4-shims" assets/ templates/` → no match.)
+
+Note the CSS (`all.min.css`) is *also* loaded, so some of these may show as
+webfont glyphs in browsers where the SVG+JS replacement runs after; the
+placeholder appears wherever SVG+JS processes the `<i>` first. Fix the names,
+do not rely on the CSS fallback.
+
+### Expected
+
+No blinking placeholders anywhere. Replace the v4 names with the FA5-free names
+above (keep the same `fa`/add `fas`/`far` prefix per FA5 style rules — `clock`
+is regular-style `far`, the others solid `fas`) in **all four locale variants**
+of each file, then reload the animal page and the sync-edit page and confirm the
+real icons render (no console "Could not find icon" warnings).
+
+### Acceptance criteria (retest)
+
+1. `/animals/<id>` feeding banner shows the utensils + clock icons (no blink).
+2. Attachment comment save button shows the pencil icon on all 4 locales.
+3. `/sync_targets/...` edit page retry button shows the redo icon on all 4 locales.
+4. `grep -rn "fa-clock-o\|fa-cutlery\|fa fa-pencil\b\|fa fa-repeat\b" templates/` → no matches.
+5. Browser console shows zero FontAwesome "Could not find icon" warnings on those pages.
+
+---
+
+## BUG-32 (low) — `TestAnimalFormLegacyFeedingFrozenAllLocales` fails: `/animals/new` body contains `#nav-plan`
+
+**Status:** ✅ FIXED 2026-10-12 — `go test ./actions -run TestAnimalFormLegacyFeedingFrozenAllLocales` PASS; full suite green.
+**Severity:** Low (test failure on `feature/care-expert` after the legacy feeding-field removal; behavior itself needs checking — a "new" animal has no Protocol tab)
+**Found by:** `go test ./actions -run TestAnimalFormLegacyFeedingFrozenAllLocales` (fails at `actions/animal_feeding_freeze_test.go:137`, `should not contain "#nav-plan"`).
+
+### Observed
+
+After removing the legacy feeding edit block from
+`templates/animals/_form.plush.{html,fr,de,nl}.html` (feeding is now managed
+only via care plans), the new-animal form (`/animals/new`) still emits the
+string `#nav-plan` somewhere — most likely the `_feeding_summary.plush.html`
+hint link (`/animals/<id>#nav-plan`) or another template partial rendered in the
+care tab. On `/animals/new` the animal has **no id and no Protocol tab**, so
+the link/hint must not render at all.
+
+### Expected
+
+Decide the correct behavior: on `/animals/new` the feeding summary partial
+should either render nothing, or render its `animal.ID == 0` text-only branch
+with no `#nav-plan` reference. Then update either the template (guard the hint
+link on persisted animals only) or the test assertion, and rerun.
+
+### Acceptance criteria (retest)
+
+1. `go test ./actions -run TestAnimalFormLegacyFeedingFrozenAllLocales` passes.
+2. `/animals/new` renders no dead `#nav-plan` link; `/animals/<id>/edit` keeps
+   the working hint link to the Protocol tab.
+
+---
+
+## BUG-33 (enhancement) — "Nouveau protocole" editor: multi-tab input + clear, translated, field-level error indication
+
+**Status:** ✅ FIXED 2026-10-12 (committed on `feature/care-expert`) — translated, field-level error contract implemented in the shared editor (`templates/care_plan/_editor.plush.html`): offending field flagged `is-invalid`, messages fully translated in fr/en-us/de/nl, no raw engine text (BUG-39 fix), no `§` references. E2E-qualified: E2E-PROTOCOL-EDITOR.md P1–P7 + 9.x rows ✅ (G5, 2026-10-12).
+**Severity:** Enhancement (usability of `templates/care_plan/_editor.plush.html` + create/update error paths in `actions/care_animal_plans.go`)
+**Found by:** User UX review of the protocol editor.
+
+### Requested
+
+1. **Multi-tab layout** in the plan editor (e.g. *Général* — name/kind/active;
+   *Horaires* — slots + the new range+period repeat generator; any other field
+   groups) so each section is easy to find and fill.
+2. **Field-level errors**: on validation failure (e.g. missing name), the
+   offending field must be visibly highlighted and the editor must switch to
+   the tab that contains it.
+3. **Translated, self-explanatory messages**: every validation error must come
+   from `locales/care_plan.{fr,en-us,de,nl}.yaml` and read like
+   *"Le nom est obligatoire"* — never a raw Go/JSON error, never references
+   like "§8.1" / "BUG-13" / schedule-field indexes that only make sense with
+   the spec open.
+
+### Acceptance criteria (retest)
+
+1. Saving a protocol with an empty name redisplays the editor, opens the tab
+   containing the name field, marks the field (e.g. `is-invalid`) and shows the
+   translated message next to it, in all 4 locales.
+2. Errors on schedule fields (bad time, empty slots) behave the same on the
+   Horaires tab.
+3. No error string rendered to the user contains `§`, `BUG-`, a field path, or
+   English when the UI locale is fr/de/nl.
+4. `go test ./actions` (care-plan suite) passes with new/updated error-contract
+   tests.
+
+---
+
+## BUG-34 (medium) — In-page `#nav-plan` links dead after manual tab switch (FIXED)
+
+**Status:** FIXED 2026-10-09 (committed on `feature/care-expert`)
+**Severity:** Medium (navigation: the feeding-banner hint link
+`http://localhost:3000/animals/<id>#nav-plan` did nothing once the user had
+clicked another tab)
+**Found by:** User report: *"Links do not always work … link in #nav-care only works if the user didn't use tab to switch."*
+
+### Root cause
+
+Bootstrap 4 tab activation from `location.hash` ran **once at page load**;
+clicking an in-page `href="#nav-plan"` link afterwards only changed the hash —
+no tab activation — because no `hashchange` handler existed.
+
+### Fix
+
+Added a guarded `hashchange` handler to `templates/animals/show.plush.{html,fr,de,nl}.html`
+and `templates/animals/_form.plush.{html,fr,de,nl}.html`:
+
+```js
+$(window).on('hashchange', function () {
+  var h = location.hash; if (!h) { return; }
+  var tab = $('.nav-tabs a[href="' + h + '"]');
+  if (tab.length && !tab.hasClass('active')) { tab.tab('show'); }
+});
+```
+
+(The `.active` guard prevents re-entry with the click handler that already sets
+`location.hash`.)
+
+### Acceptance criteria (retest)
+
+1. On `/animals/10372#nav-care`, click another tab manually, then click the
+   `#nav-plan` hint link in the feeding banner → Protocol tab activates.
+2. Repeat on the edit form (`/animals/<id>/edit`) and in fr/de/nl locales.
+
+---
+
+## BUG-35 (high) — Timeslot creation in the protocol editor is fragile: free-text time entry silently drops values; repeat generator has no format helpers
+
+**Status:** ✅ FIXED 2026-10-12 (committed on `feature/care-expert`) — slot typing hardened: `normalizeHM` pads `9:00`→`09:00` on change and unparseable values are flagged `is-invalid` (no more silent drops; EN 12 h alt-input path covered by the BUG-38 fix). The free-text repeat generator was replaced by the BUG-36 repeat mode (from/to/every pickers + live occurrence count), which supersedes the generator UX. E2E-qualified: E2E-PROTOCOL-EDITOR.md P4/P9.x ✅ (G5, 2026-10-12).
+**Severity:** High (core data entry for the protocol feature; values are lost silently → user believes creation "does not work")
+**Found by:** User report on `/animals/10372` "New protocol" modal. Static + in-browser analysis 2026-10-09 (agent-browser, dev DB).
+
+### Investigation facts (browser-verified 2026-10-09)
+
+The editor JS itself is wired: on `/animals/10372` → *New protocol* modal,
+"add slot" adds a row and the repeat generator expands 09:00→19:00 every
+05:00 into `["09:00","14:00","19:00"]` and the schedule textarea syncs to
+`{"times":["09:00","14:00","19:00"]}`. No console errors. So the failure is
+**not** wiring — it is silent value rejection and missing input guidance:
+
+1. **Silent drop on format mismatch.** `readSchedule()`
+   (`templates/care_plan/_editor.plush.html`) only keeps slot values matching
+   `^\d{2}:\d{2}$`. Typing `9:00`, `9h00`, `09h`, `09:0` or a 12 h value
+   (`2:00 PM` from the EN flatpickr alt-input) **filters the slot out of the
+   saved JSON** with no message — the row stays visible, the schedule silently
+   loses it. To the user this reads as "timeslot creation doesn't work".
+2. **No format helper on the generator.** `repeatFrom`/`repeatTo`/`repeatEvery`
+   are plain free-text inputs (`placeholder="05:00"`) with no flatpickr, no
+   mask, no hint text. `every` accepts "H:MM" *or* bare minutes: typing `5`
+   means 5 **minutes** → the 24-slot cap fires and the user gets 24 slots
+   instead of "every 5 hours". Invalid input silently yields an empty count
+   (button does nothing — no error).
+3. **Flatpickr vs manual typing conflict.** Slot inputs get flatpickr with
+   `allowInput:true`; typed text that flatpickr can't parse leaves the raw
+   string, which rule (1) then drops.
+4. The generator **replaces** all existing slots without confirmation —
+   one misclick destroys manually entered times.
+
+### Expected (per user directive)
+
+Timeslot generation must be easy and guide the user to correct values:
+
+1. Slot entry via a proper time control (flatpickr or `<input type="time">`)
+   that cannot produce an invalid format; manual text is normalized
+   (`9:00`→`09:00`) or rejected with a visible per-field message — never
+   silently dropped.
+2. The repeat generator uses helpers: time pickers for from/to and a
+   **select of preset periods** (30 min, 1 h, 2 h, 3 h, 4 h, 6 h, 8 h, 12 h)
+   or a stepper — not free text. The occurrence count label doubles as live
+   validation ("invalid range" in red when empty/inverted).
+3. The generate button asks before overwriting existing non-empty slots
+   (or merges), and invalid input shows a translated inline error instead of
+   doing nothing.
+4. All labels/errors translated in `locales/care_plan.{fr,en-us,de,nl}.yaml`
+   (see BUG-33 — no opaque references).
+
+### Acceptance criteria (retest)
+
+1. Create a feeding protocol from the animal page modal: add a slot by typing
+   `9:00` → saved schedule contains `09:00` (normalized) or the field shows a
+   clear error; nothing is silently dropped.
+2. Generator with from 09:00 / to 19:00 / every "5 h" (selected from presets,
+   not typed) → exactly 3 slots 09:00/14:00/19:00 in the saved plan.
+3. Generator with empty/inverted input → visible translated error, no slot
+   changes.
+4. Repeat the full flow on `/care_rules/new` and `/care_rules/<id>/edit` and
+   in all 4 UI locales.
+5. Covered by the E2E plan: [E2E-PROTOCOL-EDITOR.md](./E2E-PROTOCOL-EDITOR.md).
+
+---
+
+## BUG-36 (feature) — Schedule repeat mode: "start/end + every X" as a first-class, persisted schedule form
+
+**Status:** ✅ IMPLEMENTED 2026-10-12 — G5 E2E qualified (E2E-PROTOCOL-EDITOR.md 9.1–9.17 all ✅; full `go test ./...` green 23:17 CEST)
+**Severity:** Feature request (changes the §4.3 schedule document; converter must adopt it)
+**Found by:** User directive: *"user should be able to enter a serie of slots OR select a start/end + 'every X' — this should be saved as it and extended as needed to create timeslot (done at save/update). If start/end + every X is set — show to user, do not show timeslot; if unset — timeslot. User MUST select an approach: actual slots or repeat (radio option). App can save slotted time for both to allow an easier execution approach. Convert MUST correctly translate original feeding using the repeat."*
+
+### Requirement
+
+1. **Two mutually exclusive authoring modes**, chosen by a mandatory radio
+   option in the protocol editor (`templates/care_plan/_editor.plush.html`):
+   - **Slots** — the explicit time list (today's behavior).
+   - **Repeat** — `from` (start), `to` (end), `every` (period). When a
+     schedule carries a repeat definition, the editor shows ONLY the repeat
+     fields (from/to/every + live occurrence count), never the slot rows.
+2. **Persisted document** (both `care_rules.schedule` and
+   `care_animal_plans.schedule`, §4.7 parity) gains an optional block:
+   `"repeat": {"from":"09:00","to":"19:00","every_minutes":300}`.
+   `times[]` remains stored and authoritative for execution (engine contract
+   unchanged) — the server **expands repeat → times[] at save/update**
+   (start + n×period ≤ end, overnight window to<from +24h, cap 24 slots;
+   same semantics as `DeriveFeedingTimes`).
+3. **Re-open round-trip:** schedule with `repeat` → editor radio = Repeat,
+   repeat fields shown, slot rows hidden; schedule without `repeat` → radio =
+   Slots, slot rows shown.
+4. **Parser support:** `models/careplan/schedule.go` is strict
+   (`DisallowUnknownFields`) — `repeat` must be added to `scheduleJSON` +
+   `Schedule`, validated (from/to HH:MM, every_minutes > 0, expanded times
+   consistent with the block), and serialized back on save.
+5. **Converter** (`actions/care_plan_convert_data.go`): legacy feeding rows
+   with non-NULL `feeding_start`/`feeding_end`/`feeding_period` must convert
+   to the **repeat form** (block + expanded times), with NO " (à vérifier)"
+   suffix — the translation is exact. The "à vérifier" flag stays ONLY for
+   the NULL start/end fallback (single 09:00 slot, no repeat block).
+6. **Qualification DB:** restore the pre-care-expert snapshot
+   `/Users/muaddib/dev/creaves.project/creaves-db-2026-10-12.gz` into a scratch
+   MySQL DB, run migrations + the startup converter, and verify converted
+   feeding plans carry the repeat block matching the legacy columns.
+7. **Legacy generator UX** (BUG-35) is replaced by this mode split: the
+   repeat mode IS the "generate from range" flow, now with pickers/presets
+   and translated validation.
+
+### Acceptance criteria (retest)
+
+1. Create protocol with radio=Repeat (from 09:00, to 19:00, every 5 h) →
+   stored schedule has `repeat` block AND `times:["09:00","14:00","19:00"]`;
+   day plan shows the 3 occurrences.
+2. Re-open that plan → Repeat radio selected, only from/to/every shown.
+3. Radio=Slots path unchanged (explicit times, no repeat key stored).
+4. Invalid repeat (empty, inverted without overnight intent, every=0) →
+   translated inline error, nothing saved (BUG-33 error contract).
+5. Restored 2026-10-12 DB: converted feeding plans with legacy start/end/
+   period have exact repeat blocks and no "à vérifier"; NULL-legacy rows keep
+   the 09:00 fallback + flag.
+6. All 4 locales; `go test ./...` green incl. new schedule/converter tests;
+   E2E per [E2E-PROTOCOL-EDITOR.md](./E2E-PROTOCOL-EDITOR.md) §P9.
+
+### Execution plan & schedule
+
+Tracked as goals (see session goal list) and the detailed plan:
+[../docs/plans/2026-10-09-schedule-repeat-mode.md](../docs/plans/2026-10-09-schedule-repeat-mode.md).
+
+### Decisions (user, 2026-10-09)
+
+1. **Overnight windows allowed** — `to` < `from` wraps past midnight
+   (20:00→08:00 every 4 h = 20:00/00:00/04:00/08:00).
+2. **"Every" input = hours:minutes duration picker** (flatpickr time-style,
+   no calendar) — no free-text minutes ambiguity.
+3. **Repeat is source of truth** — the server always re-derives `times[]`
+   from the repeat block at save/update; user-edited times are ignored in
+   repeat mode.
+4. **Repeat mode applies to ALL kinds** — feeding, medication, care,
+   observation, weighing.
+5. **Qualification** — restore `creaves-db-2026-10-12.gz` into scratch DB
+   `creaves_qualif`, migrate, boot app (startup converter runs), verify.
+
+### Progress (2026-10-12)
+
+- **G1 careplan model** — done: `Repeat` block, `ExpandRepeat`, strict
+  parse/validate (times == expansion, 24-slot cap), `NormalizeScheduleJSON`,
+  `Repeat.FitsCap` (exported for the converter).
+- **G2 server save/update normalization** — done: repeat → times expansion
+  at save/update for rules and per-animal plans; radio-mode contract.
+- **G3 converter + qualification** — done (this goal): `DeriveFeedingTimes`
+  now delegates to `careplan.ExpandRepeat` (fixes the unsorted-overnight
+  latent crash); `legacyFeedingSchedule` emits `(times, *Repeat, fallback)`;
+  exact triples convert unflagged with the repeat block; degenerate/over-cap
+  rows stay flagged without a repeat block (honest lossy conversion).
+  Converter + MySQL round-trip tests green.
+  **Qualification on `creaves_qualif`** (E2E-PROTOCOL-EDITOR §P9b, counts
+  recorded there): restore + 63 migrations + boot converter OK; 207 in-stock
+  animals → 204 fallback-flagged + 3 fixture exact repeat-form plans,
+  **0 mismatches** on the automated join check.
+  **Finding:** the real snapshot has no in-stock exact triples — all 6629
+  legacy windows are `0001-01-01` zero-dates, nulled by migration
+  `20261007140000_animal_feeding_zero_dates_null` (shipped before BUG-36)
+  at migrate time, i.e. before the converter runs. Repeat-form conversion
+  was therefore verified via a controlled zero-date fixture; on production
+  DBs upgraded through that migration chain it will only trigger for rows
+  written after the migration.
+- **G4 editor UI** — done (2026-10-12): mandatory Slots|Repeat radio
+  (`data-pe-mode`, shared `name=peMode` group — one editor instance per
+  page), no default on an empty plan; repeat mode = flatpickr from/to clock
+  pickers + H:MM duration picker + live "(N occurrences)" count + inline
+  `repeat_invalid`/`repeat_cap` errors, slot rows hidden; schedule JSON
+  written as `{repeat:{from,to,every_minutes}, times:expanded-sorted}`
+  (server re-derives anyway); slots mode normalizes typed `9:00`→`09:00`
+  and flags unparseable values (BUG-35 silent-drop fixed); mode switch
+  with content in the abandoned mode confirms before discarding; radio
+  hidden while raw-JSON mode is authoritative; obsolete `repeat_generate`
+  button/JS/locale keys removed. New locale keys in all 4 locales:
+  `editor.mode`, `mode_slots`, `mode_repeat`, `repeat_invalid`,
+  `repeat_cap`, `repeat_every_hint`, `mode_switch_confirm`.
+  `go build ./...` clean; `go test ./actions -run 'Repeat|Convert'` green;
+  the 6 failing actions tests are pre-existing (identical failures with
+  the G4 files stashed — G5 owns the full suite).
+- **G5 full suite + E2E** — ✅ DONE 2026-10-12: `go test ./...` fully green
+  (zero failures, 23:17 CEST — inside the 22:00–24:00 historical failure
+  window); E2E-PROTOCOL-EDITOR.md rows 9.1–9.17 all ✅ (incl. 9.17
+  restored-DB converter qualification). Acceptance 1–4, 6 validated.
+
+---
+
+## BUG-37 (high) — Protocol editor: EN (12 h) slot rows invisible — flatpickr altInput initialized on a detached input
+
+**Status:** FIXED 2026-10-12 (committed on `feature/care-expert`)
+**Severity:** High — in `en-US` every time-slot row in the protocol editor is invisible (the real input becomes `type=hidden` and the 12 h alt display input is never inserted into the DOM), so slot entry is impossible in English. fr/de/nl unaffected (no altInput there).
+**Found by:** G5 E2E run (E2E-PROTOCOL-EDITOR §2.1–2.2), 2026-10-12.
+
+### Repro
+
+1. Switch UI to English (`/lang/?lang=en-US&url=/animals/10372#nav-plan`).
+2. *New protocol* → 1 slot row should be visible; *Add a time* → more rows.
+3. Rows render as an empty 12 rem-wide strip: the input has
+   `type="hidden"` (`flatpickr-input`) and no visible sibling.
+
+### Root cause
+
+`addSlotRow` in `templates/care_plan/_editor.plush.html` called
+`flatpickr(input, {altInput: true, …})` **before** `row.appendChild(input)`.
+With `altInput`, flatpickr hides the original input and inserts the visible
+alt input as `input.nextSibling` — but on a **detached** input there is no
+parent, so the alt input is created and immediately orphaned. The row ends
+up with a hidden input + the delete button only. (The repeat from/to
+pickers are not affected: `attachRepeatPickers` always runs on inputs
+already in the DOM.)
+
+### Fix
+
+Append `input` to `row` before initializing flatpickr in `addSlotRow`
+(order: create row/children → append → `flatpickr(...)` → append row to
+wrap). Verified in-browser (en-US): after the fix
+`fp.altInput.parentElement === row` and the alt input is visible.
+
+### Retest
+
+E2E-PROTOCOL-EDITOR §2.x on en-US — slot rows visible and editable with the
+12 h alt display; saved values remain 24 h `H:i` (§2.6).
+
+---
+
+## BUG-38 (high) — Protocol editor: garbage typed in the EN 12 h slot alt-input silently vanishes (no inline error)
+
+**Status:** FIXED 2026-10-12 (committed on `feature/care-expert`)
+**Severity:** High — same silent-drop class as BUG-35: typing an unparseable value (`abc`, `25:99`) into the English 12 h flatpickr alt input clears the text and saves nothing, with no field flagged. fr/de/nl unaffected (change listener sits on the visible 24 h input there).
+**Found by:** G5 E2E run (E2E-PROTOCOL-EDITOR §2.5), 2026-10-12.
+
+### Root cause
+
+The BUG-35 change listener (`normalizeHM` + `is-invalid`) is attached to the
+**real** slot input. With `altInput: true` (en-US), the user types into the
+alt input; on commit flatpickr tries to parse the alt text and, on failure,
+**clears both the alt text and the real input's value** — so the real input's
+change handler sees `''` (not invalid by the `!!value.trim()` rule) and the
+garbage disappears without a trace.
+
+### Fix
+
+In `addSlotRow` (`templates/care_plan/_editor.plush.html`), when the slot has
+an alt display, attach a second change listener to `input._flatpickr.altInput`:
+a non-empty alt value that produced no parseable 24 h value is flagged
+`is-invalid` and kept visible; a parseable one normalizes the stored value and
+clears the flag. The schedule textarea never receives the invalid value.
+
+### Retest
+
+E2E-PROTOCOL-EDITOR §2.5/§2.6 on en-US — `abc` flagged red and not saved;
+`2:00 PM` saves as `14:00`.
+
+---
+
+## BUG-39 (medium) — Protocol editor: schedule save errors leak raw engine text (`careplan: … (§4.3)`) to the user
+
+**Status:** FIXED 2026-10-12 (committed on `feature/care-expert`)
+**Severity:** Medium — violates the BUG-33 error contract ("no `§`, no JSON field path, no raw Go text"): a schedule rejected at save (e.g. all slots invalid) showed
+`Échec de l'enregistrement — … — careplan: schedule.times needs at least one HH:MM slot (§4.3)` in the modal.
+**Found by:** G5 E2E run (E2E-PROTOCOL-EDITOR §2.5), 2026-10-12.
+
+### Fix
+
+`scheduleFieldError` (`actions/care_plan_support.go`) now responds with the
+translated `care_plan.editor.schedule_invalid` message (fr/en-us/de/nl added)
+instead of forwarding the engine's error string.
+
+### Retest
+
+E2E-PROTOCOL-EDITOR §2.5/§4.x — invalid schedule save shows the translated
+message in all 4 locales.
+
+---
+
+## BUG-40 (enhancement) — Protocol editor: grouped cards instead of the requested multi-tab layout
+
+**Status:** DEFERRED (2026-10-12, G5) — the editor groups fields into titled
+cards (*Schedule* / *Action content*) rather than a tab strip. The BUG-33
+acceptance goal — "in case of error the error field should be clearly
+indicated + fully translated" — is delivered without tabs: server-side
+localization of validator messages (`localizePlanVerrs`), translated schedule
+error (BUG-39), and client-side `is-invalid` marking of the offending field
+(`CarePlan`+key, lowercase verrs keys mapped). A tab strip would also require
+"auto-switch to the tab containing the error" logic across 12 host templates;
+deferred until a user confirms cards are insufficient.
+**Severity:** Enhancement.
+**Found by:** G5 E2E run (E2E-PROTOCOL-EDITOR §4.1), 2026-10-12.
+
+---
+
+## BUG-41 (high) — Day plan: evening medication applies (22:00–24:00 local) duplicate the treatments row
+
+**Status:** FIXED 2026-10-12 (committed on `feature/care-expert`)
+**Severity:** High — at UTC+2 any second same-day medication apply clicked
+after 22:00 local opened a NEW treatments row instead of completing the
+existing one (duplicate rows, split per-time entries, broken §10-M1 sharing).
+At UTC+1 (winter) the window shrinks to 23:00–24:00; UTC servers unaffected.
+**Found by:** G5 suite run 2026-10-12 22:49 (`TestCareMedicationSameSlotKeepsDistinctEntries`
++ `TestCarePlanUnapplyMedicationSiblingGuard` failing late-evening only).
+
+### Root cause
+
+`writeMedicationFulfillment` (`actions/care_plan_fulfillment.go`) keyed the
+§10-M1 dedup lookup with TZ-aware local `dayStart`/`dayEnd` instants. The
+DSN carries no `loc`, so the driver renders bound `time.Time` values as UTC
+digits — while `treatments.date` is written by `models.FormWallClockNow()`
+(local digits in a UTC instant). The lookup window thus sat 2 h early vs the
+stored rows: a row created at 22:49 wall clock fell outside
+`[due-day 00:00−2h, next-day 00:00−2h)` and the second apply missed it.
+
+### Fix
+
+The lookup bounds are now expressed in the same wall-clock frame as the
+stored column (`wallDay()` strips the zone, keeps the digits); entry dating
+(`entryDueAt`) keeps the due-day local frame. The dual-day widening
+(click day ∪ due day, §10-M1 midnight rule) is unchanged in scope, only
+re-framed.
+
+### Pin
+
+`TestCareMedicationEveningClickSharesRow` seeds a 22:49 wall-clock row by
+construction (no clock dependence) and applies a second same-day slot at
+23:39: pre-fix it yields 2 rows, post-fix 1 row with 2 done entries —
+deterministic at any run time/zone. Verified: fails with the fix stashed,
+passes with it applied; the two original failures pass at 23:20.
+
+### Retest
+
+`go test ./actions -run 'Medication|UnapplyMedication'` at any hour;
+watch the suite at 22:00–24:00 local.

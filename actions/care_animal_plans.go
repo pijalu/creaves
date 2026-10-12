@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"creaves/models"
 
@@ -42,6 +43,13 @@ func CareAnimalPlanCreate(c buffalo.Context) error {
 	if err := c.Bind(plan); err != nil {
 		return err
 	}
+	// Repeat is the source of truth (BUG-36 decision 3): times re-derived
+	// server-side before validation/save.
+	sched, nerr := normalizeSubmittedSchedule(plan.Schedule)
+	if nerr != nil {
+		return scheduleFieldError(c, nerr.Error())
+	}
+	plan.Schedule = sched
 	u := GetCurrentUser(c)
 	if u != nil {
 		plan.CreatedBy = nulls.NewUUID(u.ID)
@@ -53,7 +61,7 @@ func CareAnimalPlanCreate(c buffalo.Context) error {
 		return err
 	}
 	if verrs.HasAny() {
-		return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+		return respondPlanVerrs(c, verrs)
 	}
 	return c.Render(http.StatusCreated, renderJSON(plan))
 }
@@ -76,6 +84,18 @@ func CareAnimalPlanUpdate(c buffalo.Context) error {
 	if err := c.Bind(plan); err != nil {
 		return err
 	}
+	// Repeat is the source of truth (BUG-36 decision 3): times re-derived
+	// server-side before validation/save.
+	sched, nerr := normalizeSubmittedSchedule(plan.Schedule)
+	if nerr != nil {
+		return scheduleFieldError(c, nerr.Error())
+	}
+	plan.Schedule = sched
+	// Confirm-on-save: a human editing the plan IS the review the
+	// converter asked for — drop the " (à vérifier)" fallback flag so the
+	// animal page NeedsReview badge clears (§8.1). " (conversion)" stays:
+	// it pairs with created_by IS NULL for the §8.2 rollback targeting.
+	plan.Name = strings.TrimSpace(strings.ReplaceAll(plan.Name, " (à vérifier)", ""))
 	// path is authoritative
 	plan.AnimalID = animal.ID
 	if id, err := uuid.FromString(c.Param("care_animal_plan_id")); err == nil {
@@ -86,7 +106,7 @@ func CareAnimalPlanUpdate(c buffalo.Context) error {
 		return err
 	}
 	if verrs.HasAny() {
-		return c.Render(http.StatusUnprocessableEntity, renderJSON(verrs))
+		return respondPlanVerrs(c, verrs)
 	}
 	return c.Render(http.StatusOK, renderJSON(plan))
 }

@@ -185,3 +185,173 @@ func TestScheduleValidateStandalone(t *testing.T) {
 		t.Errorf("valid built schedule rejected: %v", err)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// BUG-36 — repeat block ("from/to every X")
+// ---------------------------------------------------------------------------
+
+func TestScheduleRepeatParseRoundTrip(t *testing.T) {
+	raw := `{"times":["09:00","14:00","19:00"],"repeat":{"from":"09:00","to":"19:00","every_minutes":300}}`
+	s := mustSchedule(t, raw)
+	if s.Repeat == nil {
+		t.Fatalf("repeat block not parsed")
+	}
+	if s.Repeat.From.String() != "09:00" || s.Repeat.To.String() != "19:00" || s.Repeat.EveryMinutes != 300 {
+		t.Errorf("repeat = %v→%v every %d", s.Repeat.From, s.Repeat.To, s.Repeat.EveryMinutes)
+	}
+	// Round-trip: marshal → parse yields the same value object.
+	out, err := s.MarshalJSON()
+	if err != nil {
+		t.Fatalf("MarshalJSON: %v", err)
+	}
+	s2 := mustSchedule(t, string(out))
+	if s2.Repeat == nil || *s2.Repeat != *s.Repeat {
+		t.Errorf("round-trip repeat = %v, want %v (json %s)", s2.Repeat, s.Repeat, out)
+	}
+	if !timesEqual(s2.Times, s.Times) {
+		t.Errorf("round-trip times = %v, want %v", s2.Times, s.Times)
+	}
+}
+
+func TestExpandRepeat(t *testing.T) {
+	cases := []struct {
+		name         string
+		from, to     string
+		everyMinutes int
+		want         []string
+	}{
+		{"normal incl. start", "08:00", "18:00", 120, []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}},
+		{"spec example", "09:00", "19:00", 300, []string{"09:00", "14:00", "19:00"}},
+		{"start==end single slot", "10:00", "10:00", 600, []string{"10:00"}},
+		{"no slot fits beyond start", "08:00", "09:00", 120, []string{"08:00"}},
+		{"overnight wraps and sorts", "22:00", "06:00", 240, []string{"02:00", "06:00", "22:00"}},
+		{"overnight single wrap", "23:00", "01:00", 120, []string{"01:00", "23:00"}},
+		{"zero period", "08:00", "18:00", 0, nil},
+		{"negative period", "08:00", "18:00", -5, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			from, _ := ParseTimeOfDay(tc.from)
+			to, _ := ParseTimeOfDay(tc.to)
+			got := ExpandRepeat(Repeat{From: from, To: to, EveryMinutes: tc.everyMinutes})
+			if len(got) != len(tc.want) {
+				t.Fatalf("ExpandRepeat = %v, want %v", got, tc.want)
+			}
+			for i, w := range tc.want {
+				if got[i].String() != w {
+					t.Fatalf("ExpandRepeat = %v, want %v", got, tc.want)
+				}
+			}
+		})
+	}
+}
+
+func TestExpandRepeatCap24(t *testing.T) {
+	// 00:00–23:59 every minute would be 1440 slots: capped at 24.
+	from, _ := ParseTimeOfDay("00:00")
+	to, _ := ParseTimeOfDay("23:59")
+	got := ExpandRepeat(Repeat{From: from, To: to, EveryMinutes: 1})
+	if len(got) != 24 {
+		t.Errorf("cap: got %d slots, want 24", len(got))
+	}
+	// A repeat that would hit the cap is rejected at validation: the
+	// expansion must never silently truncate a stored document.
+	if _, err := ParseScheduleJSON([]byte(`{"repeat":{"from":"00:00","to":"23:59","every_minutes":1}}`)); err == nil {
+		t.Errorf("repeat expanding past 24 slots must be rejected")
+	}
+	// Exactly 24 slots is accepted (00:00–23:00 hourly).
+	if _, err := ParseScheduleJSON([]byte(`{"repeat":{"from":"00:00","to":"23:00","every_minutes":60}}`)); err != nil {
+		t.Errorf("24-slot repeat must be accepted: %v", err)
+	}
+}
+
+func TestScheduleRepeatValidation(t *testing.T) {
+	for _, raw := range []string{
+		// Bad times / period.
+		`{"repeat":{"from":"9:00","to":"19:00","every_minutes":300}}`,
+		`{"repeat":{"from":"09:00","to":"25:00","every_minutes":300}}`,
+		`{"repeat":{"from":"09:00","to":"19:00","every_minutes":0}}`,
+		`{"repeat":{"from":"09:00","to":"19:00","every_minutes":-30}}`,
+		// times present but inconsistent with the repeat expansion.
+		`{"times":["09:00","14:00"],"repeat":{"from":"09:00","to":"19:00","every_minutes":300}}`,
+		`{"times":["09:00","15:00","19:00"],"repeat":{"from":"09:00","to":"19:00","every_minutes":300}}`,
+		// Overnight expansion sorted ≠ raw wrap order (times must be the
+		// canonical ascending expansion).
+		`{"times":["22:00","02:00","06:00"],"repeat":{"from":"22:00","to":"06:00","every_minutes":240}}`,
+	} {
+		if _, err := ParseScheduleJSON([]byte(raw)); err == nil {
+			t.Errorf("%s must be rejected", raw)
+		}
+	}
+}
+
+func TestScheduleRepeatTimesDerivedWhenAbsent(t *testing.T) {
+	// Repeat without times: the parser derives the slots (normalize path).
+	s := mustSchedule(t, `{"repeat":{"from":"09:00","to":"19:00","every_minutes":300}}`)
+	if len(s.Times) != 3 || s.Times[0].String() != "09:00" || s.Times[2].String() != "19:00" {
+		t.Errorf("derived times = %v", s.Times)
+	}
+	// Overnight derivation.
+	s = mustSchedule(t, `{"repeat":{"from":"22:00","to":"06:00","every_minutes":240}}`)
+	if len(s.Times) != 3 || s.Times[0].String() != "02:00" || s.Times[2].String() != "22:00" {
+		t.Errorf("overnight derived times = %v", s.Times)
+	}
+}
+
+func TestScheduleAbsentRepeatUnchanged(t *testing.T) {
+	// Backward compatibility: no repeat block → Repeat nil, behavior as before.
+	s := mustSchedule(t, `{"times":["07:00","09:30"]}`)
+	if s.Repeat != nil {
+		t.Errorf("absent repeat must stay nil, got %v", s.Repeat)
+	}
+	out, err := s.MarshalJSON()
+	if err != nil {
+		t.Fatalf("MarshalJSON: %v", err)
+	}
+	if strings.Contains(string(out), "repeat") {
+		t.Errorf("marshal must not emit a repeat key when absent: %s", out)
+	}
+	s2 := mustSchedule(t, string(out))
+	if s2.Repeat != nil || !timesEqual(s2.Times, s.Times) {
+		t.Errorf("slots-mode round-trip drift: %s", out)
+	}
+}
+
+func TestNormalizeScheduleJSON(t *testing.T) {
+	// Repeat present: client times are ignored, re-derived from the block.
+	out, err := NormalizeScheduleJSON([]byte(
+		`{"times":["03:00"],"repeat":{"from":"09:00","to":"19:00","every_minutes":300},"every_days":2}`))
+	if err != nil {
+		t.Fatalf("NormalizeScheduleJSON: %v", err)
+	}
+	s := mustSchedule(t, string(out))
+	if len(s.Times) != 3 || s.Times[1].String() != "14:00" {
+		t.Errorf("normalized times = %v, want expansion [09:00 14:00 19:00]", s.Times)
+	}
+	if s.Repeat == nil || s.EveryDays != 2 {
+		t.Errorf("normalized doc lost repeat/every_days: %s", out)
+	}
+	// Tampered overnight times are overwritten too.
+	out, err = NormalizeScheduleJSON([]byte(
+		`{"times":["22:00"],"repeat":{"from":"22:00","to":"06:00","every_minutes":240}}`))
+	if err != nil {
+		t.Fatalf("NormalizeScheduleJSON overnight: %v", err)
+	}
+	s = mustSchedule(t, string(out))
+	if len(s.Times) != 3 || s.Times[0].String() != "02:00" {
+		t.Errorf("overnight normalized times = %v", s.Times)
+	}
+	// No repeat: document re-marshaled unchanged in content (times kept).
+	out, err = NormalizeScheduleJSON([]byte(`{"times":["08:00","20:00"]}`))
+	if err != nil {
+		t.Fatalf("NormalizeScheduleJSON slots: %v", err)
+	}
+	s = mustSchedule(t, string(out))
+	if s.Repeat != nil || len(s.Times) != 2 {
+		t.Errorf("slots doc drifted: %s", out)
+	}
+	// Invalid input propagates the parse error.
+	if _, err := NormalizeScheduleJSON([]byte(`{"times":["8:00"]}`)); err == nil {
+		t.Errorf("invalid schedule must not normalize")
+	}
+}

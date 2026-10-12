@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 )
@@ -42,6 +43,70 @@ type Schedule struct {
 	GraceMinutes     int
 	MissAfterHours   int
 	LookaheadMinutes int
+
+	// Repeat, when present, is the authoring form of Times (BUG-36):
+	// "from/to every X" expanded at save time. Times always stays
+	// materialized and remains the engine contract; Repeat is metadata
+	// for the editor round-trip.
+	Repeat *Repeat
+}
+
+// Repeat is the optional "from/to every X" schedule authoring form
+// (BUG-36). From and To are day times (HH:MM); To < From reads as an
+// overnight window (end += 24 h); EveryMinutes is the period (≥ 1).
+// Expansion semantics match the legacy DeriveFeedingTimes: start slot
+// included, start + n×period ≤ end, cap 24 slots.
+type Repeat struct {
+	From         TimeOfDay
+	To           TimeOfDay
+	EveryMinutes int
+}
+
+// maxRepeatSlots is the sanity cap on repeat expansion (§11.7 parity).
+const maxRepeatSlots = 24
+
+// ExpandRepeat expands a repeat definition into daily slots: From +
+// n×EveryMinutes ≤ To (To wrapped +24 h when before From), From included,
+// at most maxRepeatSlots slots. The result is sorted ascending (the §4.3
+// times invariant). A zero/negative period yields nil — Validate rejects
+// it before expansion matters.
+func ExpandRepeat(r Repeat) []TimeOfDay {
+	if r.EveryMinutes <= 0 {
+		return nil
+	}
+	start := r.From.Minutes()
+	end := r.To.Minutes()
+	if end < start {
+		end += 24 * 60 // overnight window
+	}
+	var out []TimeOfDay
+	for m := start; m <= end; m += r.EveryMinutes {
+		if len(out) >= maxRepeatSlots {
+			break
+		}
+		out = append(out, TimeOfDay{Hour: (m % (24 * 60)) / 60, Minute: m % 60})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Minutes() < out[j].Minutes() })
+	return out
+}
+
+// FitsCap reports whether the repeat expansion stays within the sanity
+// slot cap — a repeat beyond the cap fails validate(). Callers building a
+// document from external data (the legacy converter) must check this
+// before emitting a repeat block: a capped expansion would silently drop
+// slots, so an over-cap repeat must take the flagged fallback path instead.
+func (r Repeat) FitsCap() bool {
+	return r.EveryMinutes >= 1 && r.WindowMinutes()/r.EveryMinutes+1 <= maxRepeatSlots
+}
+
+// WindowMinutes returns the span covered by the repeat (To wrapped +24 h
+// when before From).
+func (r Repeat) WindowMinutes() int {
+	end := r.To.Minutes()
+	if end < r.From.Minutes() {
+		end += 24 * 60
+	}
+	return end - r.From.Minutes()
 }
 
 // Anchor kinds (§4.3).
@@ -78,16 +143,24 @@ func (t TimeOfDay) String() string {
 // scheduleJSON mirrors the stored §4.3 document; pointers distinguish
 // "absent" (default) from "present" (validated).
 type scheduleJSON struct {
-	Times            []string `json:"times"`
-	EveryDays        *int     `json:"every_days"`
-	Weekdays         []int    `json:"weekdays"`
-	Anchor           *string  `json:"anchor"`
-	AnchorDate       *string  `json:"anchor_date"`
-	FromOffsetDays   *int     `json:"from_offset_days"`
-	DurationDays     *int     `json:"duration_days"`
-	GraceMinutes     *int     `json:"grace_minutes"`
-	MissAfterHours   *int     `json:"miss_after_hours"`
-	LookaheadMinutes *int     `json:"lookahead_minutes"`
+	Times            []string    `json:"times"`
+	EveryDays        *int        `json:"every_days,omitempty"`
+	Weekdays         []int       `json:"weekdays,omitempty"`
+	Anchor           *string     `json:"anchor,omitempty"`
+	AnchorDate       *string     `json:"anchor_date,omitempty"`
+	FromOffsetDays   *int        `json:"from_offset_days,omitempty"`
+	DurationDays     *int        `json:"duration_days,omitempty"`
+	GraceMinutes     *int        `json:"grace_minutes,omitempty"`
+	MissAfterHours   *int        `json:"miss_after_hours,omitempty"`
+	LookaheadMinutes *int        `json:"lookahead_minutes,omitempty"`
+	Repeat           *repeatJSON `json:"repeat,omitempty"`
+}
+
+// repeatJSON mirrors the optional "repeat" block (BUG-36).
+type repeatJSON struct {
+	From         string `json:"from"`
+	To           string `json:"to"`
+	EveryMinutes int    `json:"every_minutes"`
 }
 
 // ParseScheduleJSON parses and validates a §4.3 schedule document. Strict:
@@ -138,12 +211,26 @@ func ParseScheduleJSON(raw []byte) (Schedule, error) {
 	}
 	s.Weekdays = sj.Weekdays
 
+	if sj.Repeat != nil {
+		r, err := sj.Repeat.parse()
+		if err != nil {
+			return Schedule{}, err
+		}
+		s.Repeat = &r
+	}
+
 	for _, ts := range sj.Times {
 		tod, err := ParseTimeOfDay(ts)
 		if err != nil {
 			return Schedule{}, fmt.Errorf("careplan: schedule.times: %w", err)
 		}
 		s.Times = append(s.Times, tod)
+	}
+	// Repeat without explicit times: derive the slots from the repeat
+	// (NormalizeScheduleJSON canonical form; the times array stays the
+	// engine contract).
+	if s.Repeat != nil && sj.Times == nil {
+		s.Times = ExpandRepeat(*s.Repeat)
 	}
 	if sj.AnchorDate != nil {
 		d, err := time.ParseInLocation("2006-01-02", *sj.AnchorDate, time.Local)
@@ -212,7 +299,72 @@ func (s Schedule) Validate() error {
 	if s.LookaheadMinutes < 0 {
 		return fmt.Errorf("careplan: schedule.lookahead_minutes must be ≥ 0, got %d", s.LookaheadMinutes)
 	}
+	if s.Repeat != nil {
+		if err := s.Repeat.validate(); err != nil {
+			return err
+		}
+		// Repeat is the authoring form of Times: stored times must be
+		// exactly its expansion (the server re-derives at save, so a
+		// mismatch means a hand-edited or stale document).
+		want := ExpandRepeat(*s.Repeat)
+		if !timesEqual(s.Times, want) {
+			return fmt.Errorf("careplan: schedule.times inconsistent with schedule.repeat (want expansion %s)", formatTimes(want))
+		}
+	}
 	return nil
+}
+
+// parse converts and validates the stored repeat block.
+func (rj *repeatJSON) parse() (Repeat, error) {
+	from, err := ParseTimeOfDay(rj.From)
+	if err != nil {
+		return Repeat{}, fmt.Errorf("careplan: schedule.repeat.from: %w", err)
+	}
+	to, err := ParseTimeOfDay(rj.To)
+	if err != nil {
+		return Repeat{}, fmt.Errorf("careplan: schedule.repeat.to: %w", err)
+	}
+	return Repeat{From: from, To: to, EveryMinutes: rj.EveryMinutes}, nil
+}
+
+// validate checks the repeat invariants: period ≥ 1, and the window must
+// not run into the 24-slot cap (a capped expansion would silently drop
+// slots — reject instead).
+func (r Repeat) validate() error {
+	if r.From.Hour < 0 || r.From.Hour > 23 || r.From.Minute < 0 || r.From.Minute > 59 ||
+		r.To.Hour < 0 || r.To.Hour > 23 || r.To.Minute < 0 || r.To.Minute > 59 {
+		return fmt.Errorf("careplan: schedule.repeat: invalid time of day")
+	}
+	if r.EveryMinutes < 1 {
+		return fmt.Errorf("careplan: schedule.repeat.every_minutes must be ≥ 1, got %d", r.EveryMinutes)
+	}
+	if r.WindowMinutes()/r.EveryMinutes+1 > maxRepeatSlots {
+		return fmt.Errorf("careplan: schedule.repeat expands to more than %d slots (from %s to %s every %d min)",
+			maxRepeatSlots, r.From, r.To, r.EveryMinutes)
+	}
+	return nil
+}
+
+// timesEqual compares two slot lists element-wise.
+func timesEqual(a, b []TimeOfDay) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// formatTimes renders a slot list for error messages.
+func formatTimes(ts []TimeOfDay) string {
+	parts := make([]string, len(ts))
+	for i, t := range ts {
+		parts[i] = t.String()
+	}
+	return "[" + strings.Join(parts, " ") + "]"
 }
 
 // OpenEnded reports whether the schedule generates occurrences until the
@@ -241,4 +393,123 @@ func (s Schedule) SlotsAfter(minutes int) int {
 		}
 	}
 	return len(s.Times)
+}
+
+// MarshalJSON renders the canonical §4.3 document of a validated Schedule:
+// times always materialized, non-default fields present, repeat block when
+// set (BUG-36). This is the save-time serialization counterpart of
+// ParseScheduleJSON.
+func (s Schedule) MarshalJSON() ([]byte, error) {
+	sj := scheduleJSON{
+		Times:    make([]string, len(s.Times)),
+		Weekdays: s.Weekdays,
+	}
+	for i, t := range s.Times {
+		sj.Times[i] = t.String()
+	}
+	if s.EveryDays != 1 {
+		sj.EveryDays = &s.EveryDays
+	}
+	if s.Anchor != AnchorIntake {
+		sj.Anchor = &s.Anchor
+	}
+	if s.AnchorDate != nil {
+		d := s.AnchorDate.Format("2006-01-02")
+		sj.AnchorDate = &d
+	}
+	if s.FromOffsetDays != 0 {
+		sj.FromOffsetDays = &s.FromOffsetDays
+	}
+	if s.DurationDays != 0 {
+		sj.DurationDays = &s.DurationDays
+	}
+	if s.GraceMinutes != 60 {
+		sj.GraceMinutes = &s.GraceMinutes
+	}
+	if s.MissAfterHours != 24 {
+		sj.MissAfterHours = &s.MissAfterHours
+	}
+	if s.LookaheadMinutes != 60 {
+		sj.LookaheadMinutes = &s.LookaheadMinutes
+	}
+	if s.Repeat != nil {
+		sj.Repeat = &repeatJSON{
+			From:         s.Repeat.From.String(),
+			To:           s.Repeat.To.String(),
+			EveryMinutes: s.Repeat.EveryMinutes,
+		}
+	}
+	return json.Marshal(sj)
+}
+
+// ScheduleErrorMessage renders a schedule parse/validate error for user
+// display: the internal "careplan: schedule[…]:" prefixes are stripped so
+// the message never leaks Go/JSON internals, and opaque spec/bug
+// references (§-paragraphs, BUG-nn) are removed — those mean nothing to
+// a caretaker reading a 422 field error.
+func ScheduleErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	if i := strings.Index(msg, ": "); i >= 0 && strings.HasPrefix(msg, "careplan:") {
+		msg = msg[i+2:]
+	}
+	if i := strings.Index(msg, " (§"); i >= 0 {
+		msg = msg[:i]
+	}
+	msg = strings.ReplaceAll(msg, "§", "")
+	for strings.Contains(msg, "BUG-") {
+		i := strings.Index(msg, "BUG-")
+		j := i + 4
+		for j < len(msg) && msg[j] >= '0' && msg[j] <= '9' {
+			j++
+		}
+		msg = msg[:i] + msg[j:]
+	}
+	return strings.TrimSpace(msg)
+}
+
+// NormalizeScheduleJSON returns the canonical form of a §4.3 schedule
+// document (BUG-36 decision 3): when the document carries a repeat block,
+// Times is re-derived from it — repeat is the source of truth and
+// client-supplied times are ignored; without a repeat block the document
+// is re-marshaled as-is (canonical key set, defaults dropped). The result
+// is what save/update must persist.
+func NormalizeScheduleJSON(raw []byte) ([]byte, error) {
+	// Strict-decode the raw document first: a repeat doc with stale or
+	// tampered times must be fixable here, so the consistency check runs
+	// only on the re-derived document (via ParseScheduleJSON below).
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	dec.DisallowUnknownFields()
+	var sj scheduleJSON
+	if err := dec.Decode(&sj); err != nil {
+		return nil, fmt.Errorf("careplan: invalid schedule JSON: %w", err)
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return nil, fmt.Errorf("careplan: invalid schedule JSON: trailing data")
+	}
+	if sj.Repeat != nil {
+		r, err := sj.Repeat.parse()
+		if err != nil {
+			return nil, err
+		}
+		if err := r.validate(); err != nil {
+			return nil, err
+		}
+		expanded := ExpandRepeat(r)
+		sj.Times = make([]string, len(expanded))
+		for i, t := range expanded {
+			sj.Times[i] = t.String()
+		}
+	}
+	canon, err := json.Marshal(sj)
+	if err != nil {
+		return nil, err
+	}
+	s, err := ParseScheduleJSON(canon)
+	if err != nil {
+		return nil, err
+	}
+	return s.MarshalJSON()
 }
