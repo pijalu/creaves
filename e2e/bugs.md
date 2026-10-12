@@ -8,7 +8,7 @@ Each bug is passed to a dedicated fix agent; the fix is **automatically retested
 
 ## BUG-1 (blocker) — Migration `20261007120000_rename_ot2_to_decedee` fails on production-restore DB: duplicate OT2-coded rows
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Blocker (blocks `buffalo db migrate` entirely; all later migrations unapplied; app cannot run)
 **Found by:** E2E-TEST.md §2 step 2.4 (restore `creaves-db-2026-10-07.gz`, then `GO_ENV=development buffalo db migrate up`)
 
@@ -120,7 +120,7 @@ past this blocker successfully (T1.6–T3 all pass).
 
 ## BUG-2 (medium) — Landing "cleaned cage" green marker ignores night-shift cares (00:00–03:00)
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Medium (correctness of a daily-care UX signal; night-shift work invisible)
 **Found by:** E2E-TEST.md §T7.3
 
@@ -189,7 +189,7 @@ template groups together, not a care_plan-only patch.
 
 ## BUG-3 (high) — Resync/state events mark dead animals `released` on the console: `current_status` inconsistent with outtake
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** High (consolidated data wrong for every dead animal delivered by a resync; console "By status" report buckets 5,774 dead animals as `Relâché`)
 **Found by:** E2E-TEST.md §T8.7 (console `/reports` "Par statut" after death outtake)
 
@@ -281,7 +281,7 @@ Stored=Expected=Received=Confirmed=10,313, Unconfirmed 0, badges
 
 ## BUG-4 (low) — creaves navbar tooltips hardcoded English in fr/de/nl templates
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Low (visible only as hover tooltip / accessible name; labels themselves are localized)
 **Found by:** E2E-TEST.md §T10.1 (missing-translation sweep)
 
@@ -374,7 +374,7 @@ together, not as a care_plan-only patch.
 
 ## BUG-6 (low) — Console webhook-key pages carry stale on-screen instructions (old creaves UI route + "shown only once" claim)
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Low (misleading admin guidance; no functional impact)
 **Found by:** E2E-TEST.md §T11.7 (key creation in fr)
 
@@ -422,7 +422,7 @@ retested in fr: create → edit name → delete, all successful.
 
 ## BUG-7 (high) — Force full rebuild cannot redeliver: re-queued events keep their "delivered" per-target delivery rows, so recovery after console-side cleanup stalls and silently drops events
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** High (the advertised disaster-recovery path — "use after a console-side cleanup deleted this instance's data" — does not deliver; ~61% of events silently skipped on first run, 100% on retry)
 **Found by:** E2E-TEST.md §T11.10 (instance cleanup + force-resync recovery)
 
@@ -512,7 +512,7 @@ reset on force re-queue verified live: all events re-delivered to the target.
 
 ## BUG-8 (high) — Console rebuild from full redelivery applies historical events in delivery order, scrambling consolidated states
 
-**Status:** OPEN → fix dispatched (together with BUG-7: same recovery subsystem)
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** High (after any full redelivery — target recreate, delivery-row purge — an animal's final consolidated state depends on network delivery order; death records get erased: died 5,775 → 2,152)
 **Found by:** E2E-TEST.md §T11.10 recovery (target delete/recreate → all 16,103 events redelivered)
 
@@ -594,7 +594,7 @@ replay, no-resurrection, stale-delete and equal-timestamp tests all pass.
 
 ## BUG-9 (low) — An all-skipped resync sends no announcement, so a freshly-cleaned console never gets the producer's expected set
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-08 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Low (completeness badge unavailable in a legitimate state; data itself is fully synced)
 **Found by:** E2E-TEST.md §T12 (from-scratch redo)
 
@@ -651,7 +651,7 @@ header wire format; full actions suite shows no new failures.
 
 ## BUG-10 (critical) — Legacy feeding rows with NULL start/end (or period-only/text-only) are never converted to care plans: feeding silently missing from the Protocol tab
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-09 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Critical (data loss in the care-plan world: animal shows a legacy feeding schedule/diet but NO feeding protocol exists — the animal would not be fed per plan)
 **Found by:** User report 2026-10-14 — animal `/animals/8842#nav-care`
 
@@ -696,7 +696,7 @@ silently, violating the §8.1 no-loss mandate ("all replaced actions must be con
 
 ## BUG-11 (low) — Edit-form frozen-schedule hint points to "l'onglet Plan", but the tab is now named "Protocole"/"Protocol"
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-09 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Low (dead-end instruction: user looks for a "Plan" tab that no longer exists)
 **Found by:** User report 2026-10-14 — `/animals/8842/edit/#nav-care`
 
@@ -721,7 +721,7 @@ LegacyFeedingFrozenAllLocales` updated to the new wording and green in all 4 loc
 
 ## BUG-12 (medium) — "Régime alimentaire" stage buttons always answer "Pas de guide…": feeding_guides table is empty and never seeded
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-09 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Medium (feature appears dead: every stage click on any species yields the empty state)
 **Found by:** User report 2026-10-14 — `/animals/8842/edit/#nav-care`
 
@@ -749,7 +749,7 @@ change applied to en/de/nl templates.
 
 ## BUG-13 (medium) — Read-only legacy feeding schedule display (with phantom 07:00–22:00 defaults) instead of the actual feeding protocol
 
-**Status:** OPEN → fix dispatched
+**Status:** CLOSED 2026-10-09 — fix dispatched + retest PASS (see Retest result below)
 **Severity:** Medium (misleading info: legacy schedule is frozen/uneditable and shows phantom default
 times when start/end are NULL; the real, actionable schedule lives in the animal's feeding plans)
 **Found by:** User report 2026-10-14 — "If there are no way to change the feeding time … remove the
