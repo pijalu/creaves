@@ -3067,8 +3067,34 @@ N-day switch, daily+fixed-anchor+date+duration composition).
 content (raw markup or a broken icon) instead of the intended clean
 rendering.
 
-**Status:** OPEN — needs reproduction in the browser to capture the exact
-element, then trace the care-row template partial emitting the SVG.
+**Status:** CLOSED 2026-10-13 — fix dispatched + retest PASS (see Fix /
+Verification below).
+
+**Root cause:** all three `contentFor` SVG blocks (`eveningSVG`,
+`morningSVG`, `noonSVG`) in `templates/animals/show.plush.*` emitted an
+**unbalanced `<svg>`** — no closing tag in any of the 4 locale forks. The
+unterminated `<svg>` element swallows the row markup that follows it into
+the SVG DOM, which is exactly the "odd SVG content inside the feeding
+row" the browser showed.
+
+### Fix
+
+Inserted the missing `</svg>` in the eveningSVG, morningSVG and noonSVG
+`contentFor` blocks of all four locale forks (en-US / fr / de / nl) of
+`templates/animals/show.plush.*` (13-line diff per fork, no behavior
+change).
+
+### Verification
+
+- Rendered `/animals/10376#nav-care` (an animal with future legacy
+  treatments, i.e. the code path that emits these SVGs) on the :3002
+  fixture with each of `lang=en-us / fr / de / nl`: `<svg` open tags =
+  `</svg>` close tags = 23/23 in **all four locales** (was unbalanced
+  pre-fix).
+- Full Go test suite + quality gate PASS (see BUG-52 verification for
+  the run details).
+
+**Status:** CLOSED — SVG balanced across locales; no swallowed markup.
 
 **Investigation notes:**
 - The row renders the converted feeding plan "insectes, eau — 09:00,
@@ -3094,9 +3120,49 @@ form — "09:00 → 18:00 every 4:00h (3 repas)" style — INSTEAD of the
 expanded timeslot list. This should be a shared key/helper for every
 protocol details view to avoid huge lengths.
 
-**Status:** OPEN — implement a shared summary helper (schedule → repeat
-summary when `repeat != nil`, else slot list) and use it in all details
-views (animal page plan/care tabs, protocol show, day plan tooltips).
+**Status:** CLOSED 2026-10-13 — fix dispatched + retest PASS (see Fix /
+Verification below).
+
+### Fix
+
+`humanizeScheduleWith` (`actions/care_plan_humanize.go`) — the shared
+humanizer used by the animal page plan table (`templates/animals/
+show.plush.*` ×4), the care-rule details views (`templates/care_rules/
+show.plush.*` ×4) and the protocol trace — now emits, when the schedule
+carries a `repeat` block, the COMPACT window form instead of the expanded
+slot list:
+
+- "Every day from 09:00 to 19:00 every 05:00 h (3 meals), …" /
+  fr "Chaque jour de 09:00 à 19:00 toutes les 05:00 h (3 repas), …"
+- new locale keys `care_plan.schedule_human.repeat_window` and
+  `care_plan.schedule_human.repeat_window_n` (every-N-days variant) in
+  **all four locales** (en-US / fr / de / nl).
+- The meal count (`len(times)`) rides along so the caregiver still sees
+  the cadence; slot-mode schedules are unchanged (regression-tested).
+- The day plan / occurrence generation still uses the expanded slots —
+  only the DETAIL VIEW changes, no schedule data is touched.
+
+### Verification
+
+- Unit tests `TestHumanizeScheduleRepeatWindow`
+  (`actions/care_plan_humanize_test.go`): exact-match assertions in all
+  4 locales + overnight-window (sorted-times invariant) + every_days:2
+  variant + slot-mode regression. PASS.
+- Fixture :3002, plan `Alimentation — 2 poussins + 2 souris + croquettes
+  furet // eau` (animal 9742, `repeat 09:00→19:00 every 300min`):
+  rendered sentence per locale:
+  - en-US "Every day from 09:00 to 19:00 every 05:00 h (3 meals), from
+    intake, open-ended"
+  - fr "Chaque jour de 09:00 à 19:00 toutes les 05:00 h (3 repas), à
+    partir de l'entrée, sans date de fin"
+  - de "Jeden Tag von 09:00 bis 19:00 alle 05:00 h (3 Mahlzeiten), ab
+    Aufnahme, unbefristet"
+  - nl "Elke dag van 09:00 tot 19:00 elke 05:00 u (3 maaltijden), vanaf
+    opname, zonder einddatum"
+  PASS in all four.
+
+**Status:** CLOSED — compact window form live in all locales; slot mode
+unchanged.
 
 **Notes:**
 - `models/careplan` already has `Repeat` + `ExpandRepeat`; a
@@ -3149,5 +3215,61 @@ due care.
   the care team.
 - Single-date series: `every_days:1, duration_days:1` (already correct).
 
-**Status:** OPEN — fix + reconvert from the original dump required (the
-43 over-scheduled plans are live).
+**Status:** CLOSED 2026-10-13 — fix dispatched + reconvert on fixture +
+retest PASS (see Fix / Verification below).
+
+### Fix (shipped)
+
+`actions/care_plan_convert_data.go`:
+
+- New `treatmentSeriesCadence(s)` — sorts the series dates, returns the
+  constant day gap G (1 = single/dense daily, 0 = irregular mixed gaps).
+- `convertTreatmentSeries` now sets `every_days: G, duration_days:
+  len(s.dates)` for regular G>1 series (duration_days counts GENERATED
+  days, so the plan lands exactly on the legacy dates); daily and
+  single-date series keep the previous behavior.
+- **Irregular series (design decision: option (b))** — kept daily
+  (over-reminding is visible, a hidden dose is not — never hides a dose)
+  under a "(à vérifier)" name suffix added by the shared
+  `routedTreatmentSeriesName` helper (single source of truth for BOTH
+  the converter and the validator, so the validator keeps matching the
+  converter's names).
+- Unit tests: `TestTreatmentSeriesCadence` (7 table cases incl.
+  month-boundary) + MySQL-backed `TestCarePlanTreatmentCadence`
+  (occurrence-level assertions via `GenerateOccurrences`: every-3 series
+  generates EXACTLY base+0/3/6/9; validator Healthy; idempotent
+  reconvert reproduces identical schedule bytes).
+
+**Repair tooling** — because the name-suffix change means pre-fix
+converter plans no longer match the converter's idempotency name guard
+(duplicate risk on refresh), new one-shot grift
+`careplan:reconvert-treatments` (`grifts/careplan_reconvert_treatments.go`):
+count → DELETE converter plans only (`created_by IS NULL AND
+action_kind <> 'feeding'`) → reconvert, all in one transaction; human
+plans untouched; the boot treatment refresh self-heals afterwards.
+Documented in `creaves/AGENTS.md` § "Care-Plan Conversion".
+
+### Verification (fixture creaves_review :3002)
+
+- `careplan:reconvert-treatments`: deleted **110** converter treatment
+  plans (101 expected + 9 duplicates accumulated by the pre-fix
+  name-guard drift), recreated **101**.
+- `careplan:validate-treatments`: series 101, plans 101 — OK 101,
+  missing 0, inactive 0, orphans 0 → **PASS**.
+- `careplan:validate-feeding`: animals considered 209 — OK 209 →
+  **PASS**.
+- Animal 9577 "Remplacement bandage": was `every_days:1,
+  duration_days:37` → now `every_days:3, duration_days:13`; animal page
+  shows "Tous les 3 jours à 12:00, à partir du 2026-10-15, pendant 13
+  jour(s)" (fr). PASS.
+- Irregular series now flagged: 21 plans carry "(à vérifier)" (data-
+  dependent; visible in the plan name on the animal page). PASS.
+- Boot restart with the new binary: treatment refresh is a no-op (count
+  stays 101, no duplicates). PASS.
+- Full gate: `go vet` / `staticcheck` / `go test ./...` / gocognit-
+  gocyclo (after extracting `convertOneTreatmentSeries` +
+  `humanizeRepeatOrSlots`-family helpers to stay under the thresholds)
+  → **QUALITY GATE: OK**.
+
+**Status:** CLOSED — cadence respected, irregular series flagged not
+hidden, one-shot repair grift shipped and validated.
