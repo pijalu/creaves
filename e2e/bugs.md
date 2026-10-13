@@ -2598,3 +2598,108 @@ passes with it applied; the two original failures pass at 23:20.
 
 `go test ./actions -run 'Medication|UnapplyMedication'` at any hour;
 watch the suite at 22:00–24:00 local.
+
+---
+
+## BUG-42 (enhancement) — Animal page: a multi-slot item line (feeding) wraps its ○/✓ time buttons ragged
+
+**Status:** FIXED + VERIFIED 2026-11-13 (browser, animal 9969 "Pomme Blah", 12 slots)
+**Severity:** Enhancement — readability of dense feeding schedules (e.g. 6–8
+slots/day on one diet line).
+**Found by:** User report 2026-11-13 — `/animals/9969#nav-plan`, Nourrissage
+"Pomme Blah": the occurrence buttons wrap onto several lines with no column
+alignment (cells are `min-width` only; a cell carrying a day badge is wider).
+**Request:** group the time slots — e.g. 5 per line, multiple lines, all
+buttons aligned.
+
+### Fix
+
+`_plan_item_line`'s merged-slots cells (`.plan-item-line .plan-med-cell`)
+become an equal-width grid cell: fixed `flex-basis` so every cell has the
+same width, the day-qualifier badge stacks ABOVE its button inside the cell
+(a badge no longer widens its cell), and the ○/✓ button right-aligns under
+the badge — every line of wrapped slots keeps the same left edge per column.
+Scoped to `.plan-item-line` (feeding/care/obs/weighing merged slots); the
+medication rows keep their bucket-caption layout (`plan-med-bucket` /
+`plan-med-btns--stacked` measuring JS). Width measured live: the ○/✓ HH:MM
+tier buttons render 90 px → cell `flex-basis: 5.75rem` (92 px + 4 px margin
+= 96 px pitch); the initial 4.75rem cell made adjacent buttons overlap 10 px.
+Verified: 10+2 slots over two rows at a uniform 96 px pitch, columns aligned,
+no overlap, no console errors (EN + FR).
+
+### Retest
+
+Animal page `#nav-plan` on an animal with a ≥5-slots/day feeding plan:
+slots wrap in aligned columns; day badges sit above their button; no
+overlap at any viewport width.
+
+---
+
+## BUG-43 (enhancement) — Protocol editor: the slots/repeat authoring mode is a bare radio pair with no default
+
+**Status:** FIXED + VERIFIED 2026-11-13 (browser, animal 9969 protocol modal, EN + FR)
+**Severity:** Enhancement — the *Horaires précis* / *Plage répétée* choice
+reads as two detached radios above two swappable blocks, and a new plan
+opens with NOTHING selected (both sections' state implicit).
+**Found by:** User request 2026-11-13: "use a tab view … link form part
+together" + "make sure the radio has a selection on load instead of both
+empty". Confirms the BUG-40 tab direction for the mode switch (the wider
+multi-tab editor layout stays DEFERRED).
+
+### Fix
+
+The mode radios are REPLACED by a Bootstrap `nav-tabs` strip
+(`[data-pe-mode-tab="slots|repeat"]`) — no hidden inputs kept: the active
+tab IS the mode state (`getMode` reads the `.active` tab, `setMode` sets
+it). The two sections sit in ONE bordered box attached under the tab strip
+(`border border-top-0`) so the active tab visually owns its form part. The
+switch-with-content confirm (BUG-36 discard guard) is preserved on tab
+click. A new/empty schedule now defaults to the **slots** tab instead of
+no selection; a persisted repeat block still re-opens on the repeat tab.
+Verified: tabs render (fr "Horaires précis"/"Plage répétée", en "Explicit
+times"/"Repeat range"), zero `input[name=peMode]` in the DOM, slots tab
+active on a new plan, tab clicks flip both sections, confirm-cancel keeps
+the current tab AND its entries, confirm-accept discards and serializes
+`{"times":[]}`; no console errors.
+
+### Retest
+
+E2E-PROTOCOL-EDITOR §9.1 (updated: tabs, slots preselected on a new plan),
+§9.4 mode-switch confirm, §9.12 all 4 locales.
+
+---
+
+## BUG-44 (medium) — Protocol editor: action kind "feeding" must pin Care type to feeding, not offer the care-type serie
+
+**Status:** OPEN (reported 2026-11-13)
+**Severity:** Medium — data quality: a feeding protocol saved with a
+non-feeding caretype produces occurrences the feeding views/day plan
+classify by caretype, so a wrong pick silently files feedings under e.g.
+a cleanup type.
+**Found by:** User report 2026-11-13 — *New protocol*: with *Type d'action
+: feeding* the *Care type* select still lists the whole care types serie;
+it must always resolve to the feeding care type. Only the *care* action
+kind should list the serie.
+
+### Plan
+
+In `templates/care_plan/_editor.plush.html` the feeding block renders the
+full `planCaretypes` select (`data-pe="caretype"`). Fix options:
+1. Server-side: expose the feeding caretype ID (lookup by the canonical
+   feeding caretype name/flag) to the editor and render the feeding-kind
+   control as a read-only field pinned to it (or keep the select but
+   reduce it to the feeding entry).
+2. Client-side: on kind=feeding, force the select value to the feeding
+   caretype and disable the control (re-enable for kind=care).
+Server-side validation should additionally reject a feeding payload whose
+`caretype_id` is not the feeding caretype, so a crafted POST cannot
+bypass the pin. Check the converter/legacy path (converted feeding plans
+carry their own caretype) before rejecting.
+Also review kind=observation/weighing/medication: they render no caretype
+select — unchanged.
+
+### Retest
+
+New protocol → kind=feeding: Care type shows feeding only (pinned);
+kind=care: full serie; switching kinds resets/pins accordingly; saved
+feeding plan has the feeding caretype in its payload.

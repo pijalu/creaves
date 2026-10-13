@@ -114,20 +114,26 @@ duration picker, no free-text minutes); 3.4 → 9.7; 3.5 → 9.6; 3.6 → 9.9;
 
 ## P9 — Repeat-mode schedule model (BUG-36, supersedes P3 generator UX)
 
+> **BUG-43 update (2026-11-13):** the mode radios are REPLACED by a tab
+> strip (`[data-pe-mode-tab="slots|repeat"]` — the active tab IS the mode
+> state) and an empty plan now defaults to the **slots** tab. Rows 9.1,
+> 9.4, 9.9, 9.11, 9.12 expectations updated below → **RETEST**; the other
+> rows' behavior is unchanged (same sections, same serialization).
+
 | # | Step | Expected | Result |
 |---|---|---|---|
-| 9.1 | Open *New protocol* | mandatory mode radio visible: *Slots* / *Repeat*; no mode preselected on an empty plan | ✅ 2026-10-12 — both radios visible, **neither checked** on empty plan; labels translated (fr "Horaires précis"/"Plage répétée") |
+| 9.1 | Open *New protocol* | mode TABS visible: *Slots* / *Repeat*; **Slots tab preselected** on an empty plan (never blank) | RETEST (BUG-43) |
 | 9.2 | Radio=Repeat → fields | only from/to (time pickers) + every (H:MM duration picker) + live "(N occurrences)" shown; slot rows hidden | ✅ 2026-10-12 — `[data-pe-slots-section]` → `d-none`; repeatFrom/repeatTo/repeatEvery present; live "(3 occurrences)" shown for 09:00→19:00@05:00; schedule serializes to `{"repeat":{...},"times":[...]}` |
 | 9.3 | Repeat: from 09:00, to 19:00, every 05:00 → Save | stored schedule = `"repeat":{"from":"09:00","to":"19:00","every_minutes":300}` + `"times":["09:00","14:00","19:00"]` (verify via DB `JSON_EXTRACT`); day plan shows 3 occurrences | ✅ 2026-10-12 — DB `repeat={"from":"09:00","to":"19:00","every_minutes":300}`, `times=["09:00","14:00","19:00"]`, active=1; day plan lists the 19:00 occurrence for 2063/26 (09:00/14:00 already past at test time 22:30) |
-| 9.4 | Re-open saved plan in editor | radio=Repeat preselected, from/to/every filled, slot rows hidden | ✅ 2026-10-12 — repeatChecked=true, from=09:00, to=19:00, every=05:00, slotsHidden=true |
+| 9.4 | Re-open saved plan in editor | Repeat TAB active, from/to/every filled, slot rows hidden | RETEST (BUG-43 — was ✅ 2026-10-12 with radios) |
 | 9.5 | Edit only `to` → 22:00, Save | server re-derives times = 09:00/14:00/19:00/22:00 (repeat is source of truth); any client-tampered times ignored | ✅ 2026-10-12 — crafted PUT with tampered `times:["03:33","07:07","23:59"]` → DB kept server-derived `["09:00","14:00","19:00"]` (repeat source of truth). NOTE: doc's expected "…/22:00" was arithmetically off — 22:00 is not on a 5 h grid from 09:00 (next grid slot 24:00 > to), so correct `TestExpandRepeat` result is 3 slots; server re-derive + tamper-ignore verified |
 | 9.6 | Overnight: from 20:00, to 08:00, every 04:00 | times = 20:00/00:00/04:00/08:00, no error | ✅ 2026-10-12 — DB `times=["00:00","04:00","08:00","20:00"]` (sorted §4.3), `repeat={"from":"20:00","to":"08:00","every_minutes":240}`, modal closed no error |
 | 9.7 | Invalid repeat (missing every, or every 00:00) | translated inline error on the field, nothing saved; error contains no `§`/BUG/JSON paths | ✅ 2026-10-12 — both cases: modal stays open, two translated errors (client "Plage invalide : vérifiez les heures de début/fin et la période" + server "Horaire invalide…"), DB unchanged (still overnight 240), no `§`/BUG/JSON-path tokens in error text |
 | 9.8 | Radio=Slots path | unchanged: explicit slot rows saved, no `repeat` key stored; typed `9:00` normalized to `09:00` (BUG-35 fix) | ✅ 2026-10-12 — typed `9:00` → normalized `09:00` on change (no invalid flag); saved plan DB `repeat=NULL`, `times=["09:00"]` |
-| 9.9 | Mode switch with unsaved entries in the other mode | confirmation shown before discarding | ✅ 2026-10-12 — Slots (with 10:00 filled) → Repeat triggered confirm "Changer de mode efface la saisie de l'autre mode. Continuer ?"; cancel reverts (repeat unchecked, slots re-checked); accept → slots hidden, schedule reset to `{"times":[]}` (10:00 discarded) |
+| 9.9 | Mode switch with unsaved entries in the other mode | confirmation shown before discarding; cancel keeps the CURRENT tab active (nothing to revert) | RETEST (BUG-43 — tab click path; was ✅ 2026-10-12 with radios) |
 | 9.10 | Repeat mode on medication + care kinds (animal modal AND `/care_rules/new`) | radio available and functional for every kind | ✅ 2026-10-12 — animal modal: medication & care → radio visible, from/to/every present, slots hidden, enabled. `/care_rules/new` (RuleActionKind=medication): repeat serializes `{"repeat":{"from":"08:00","to":"20:00","every_minutes":360},"times":["08:00","14:00","20:00"]}`, slots hidden |
-| 9.11 | Raw-JSON fallback (unparseable schedule pasted in Advanced) | mode radio hidden/disabled; raw remains authoritative | ✅ 2026-10-12 — isolated `planEditor.attach` with unparseable schedule: `[data-pe-mode-group]` gets `d-none` (radio hidden), warning "Raw JSON editing." shown, raw textarea value preserved (authoritative, never lost). (DB JSON column can't store invalid JSON, so path qualified via attach harness — the only entry is `load()` parse-fail) |
-| 9.12 | 9.1–9.9 in fr / en-US / de / nl | full translation, duration picker 24 h everywhere (EN slots still 12 h alt display) | ✅ 2026-10-12 — all 7 keys (`mode`/`mode_slots`/`mode_repeat`/`repeat_invalid`/`repeat_cap`/`repeat_every_hint`/`mode_switch_confirm`) present+translated in all 4 yaml. Browser: en "Explicit times"/"Repeat range", de "Feste Uhrzeiten"/"Wiederholungszeitraum", nl "Vaste tijdstippen"/"Herhaalperiode", fr "Horaires précis"/"Plage répétée"; neither checked everywhere; EN from/to clock pickers 12 h alt (`fromAlt/toAlt:true`), every duration 24 h `H:i` no alt (`everyAlt:false`) |
+| 9.11 | Raw-JSON fallback (unparseable schedule pasted in Advanced) | mode TABS hidden; raw remains authoritative | RETEST (BUG-43 — `[data-pe-mode-group]` now holds the tab strip; was ✅ 2026-10-12) |
+| 9.12 | 9.1–9.9 in fr / en-US / de / nl | full translation, duration picker 24 h everywhere (EN slots still 12 h alt display); tab labels translated; Slots tab active by default everywhere | RETEST (BUG-43 — `mode_slots`/`mode_repeat` keys unchanged, now label the tabs; `mode` key retired) |
 
 ### P9b — Converter qualification on the pre-care-expert snapshot
 

@@ -21,37 +21,43 @@
     <div class="card-body">
       <h6 class="card-title"><%= t("care_plan.field.schedule") %></h6>
       <div data-pe-warnings class="alert alert-warning d-none mb-2"></div>
-      <%# BUG-36: two mutually exclusive authoring modes. Mandatory radio
-          (no default on an empty plan); the persisted document decides on
-          re-open (repeat block present => repeat, else slots). %>
-      <div class="form-group" data-pe-mode-group>
-        <label class="d-block mb-1"><%= t("care_plan.editor.mode") %></label>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="peMode" id="peModeSlots" value="slots" data-pe-mode="slots">
-          <label class="form-check-label" for="peModeSlots"><%= t("care_plan.editor.mode_slots") %></label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" name="peMode" id="peModeRepeat" value="repeat" data-pe-mode="repeat">
-          <label class="form-check-label" for="peModeRepeat"><%= t("care_plan.editor.mode_repeat") %></label>
-        </div>
+      <%# BUG-36/BUG-43: two mutually exclusive authoring modes,
+          presented as TABS — the active tab IS the mode state (no
+          hidden radios), and each tab reads as attached to the form
+          part it reveals. The persisted document decides on re-open
+          (repeat block present => repeat, else slots); a new plan
+          defaults to slots so a tab is always selected. %>
+      <div data-pe-mode-group>
+        <ul class="nav nav-tabs" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link" href="#" role="tab" aria-selected="false" data-pe-mode-tab="slots"><%= t("care_plan.editor.mode_slots") %></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" role="tab" aria-selected="false" data-pe-mode-tab="repeat"><%= t("care_plan.editor.mode_repeat") %></a>
+          </li>
+        </ul>
       </div>
-      <div class="form-group" data-pe-slots-section>
-        <label><%= t("care_plan.editor.slots") %></label>
-        <div data-pe="slots"></div>
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-pe-add-slot><%= t("care_plan.editor.add_slot") %></button>
-      </div>
-      <div class="form-group d-none" data-pe-repeat-section>
-        <div class="form-inline">
-          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_from") %></label>
-          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="09:00" data-pe="repeatFrom">
-          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_to") %></label>
-          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="19:00" data-pe="repeatTo">
-          <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_every") %></label>
-          <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="05:00" data-pe="repeatEvery">
-          <small class="text-muted" data-pe-repeat-count></small>
+      <%# The bordered box links the active tab to its form part — one
+          visual unit (tab on top, its fields below). %>
+      <div class="border border-top-0 rounded-bottom p-3 mb-3">
+        <div class="form-group mb-0" data-pe-slots-section>
+          <label><%= t("care_plan.editor.slots") %></label>
+          <div data-pe="slots"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" data-pe-add-slot><%= t("care_plan.editor.add_slot") %></button>
         </div>
-        <small class="form-text text-muted"><%= t("care_plan.editor.repeat_every_hint") %></small>
-        <div class="text-danger small d-none" data-pe-repeat-invalid></div>
+        <div class="form-group mb-0 d-none" data-pe-repeat-section>
+          <div class="form-inline">
+            <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_from") %></label>
+            <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="09:00" data-pe="repeatFrom">
+            <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_to") %></label>
+            <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="19:00" data-pe="repeatTo">
+            <label class="mr-1 mb-0"><%= t("care_plan.editor.repeat_every") %></label>
+            <input type="text" class="form-control form-control-sm mr-2" style="width:5.5rem" placeholder="05:00" data-pe="repeatEvery">
+            <small class="text-muted" data-pe-repeat-count></small>
+          </div>
+          <small class="form-text text-muted"><%= t("care_plan.editor.repeat_every_hint") %></small>
+          <div class="text-danger small d-none" data-pe-repeat-invalid></div>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group col-md-4">
@@ -382,15 +388,20 @@ window.planEditor = (function () {
   // --- Authoring mode (BUG-36) -------------------------------------------
 
   function getMode(root) {
-    var r = root.querySelector('[data-pe-mode]:checked');
-    return r ? r.value : '';
+    // BUG-43: no radios — the ACTIVE TAB is the mode state.
+    var t = root.querySelector('[data-pe-mode-tab].active');
+    return t ? t.getAttribute('data-pe-mode-tab') : '';
   }
   function setMode(root, mode) {
-    $all(root, '[data-pe-mode]').forEach(function (r) { r.checked = (r.value === mode); });
     root._peMode = mode;
     applyMode(root, mode);
   }
   function applyMode(root, mode) {
+    $all(root, '[data-pe-mode-tab]').forEach(function (tab) {
+      var on = tab.getAttribute('data-pe-mode-tab') === mode;
+      tab.classList.toggle('active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
     $(root, '[data-pe-slots-section]').classList.toggle('d-none', mode === 'repeat');
     $(root, '[data-pe-repeat-section]').classList.toggle('d-none', mode !== 'repeat');
     updateRepeatCount(root);
@@ -501,9 +512,10 @@ window.planEditor = (function () {
   }
 
   function writeSchedule(root, s) {
-    // BUG-36 round-trip: the persisted document picks the radio — a
-    // repeat block => repeat mode (slots hidden), else slots mode. An
-    // empty document (new plan) leaves the mandatory choice open.
+    // BUG-36 round-trip: the persisted document picks the tab — a
+    // repeat block => repeat mode (slots hidden), else slots mode.
+    // BUG-43: an empty document (new plan) still selects a tab —
+    // slots — so the choice is never blank.
     if (s.repeat) {
       setMode(root, 'repeat');
       $(root, '[data-pe="repeatFrom"]').value = s.repeat.from || '';
@@ -515,10 +527,7 @@ window.planEditor = (function () {
     } else {
       $(root, '[data-pe="slots"]').innerHTML = '';
       (s.times && s.times.length ? s.times : ['']).forEach(function (t) { addSlotRow(root, t); });
-      var hasDoc = !!(s.times || s.every_days || s.anchor || s.duration_days ||
-        s.from_offset_days || s.weekdays);
-      if (hasDoc) { setMode(root, 'slots'); }
-      else { setMode(root, ''); }
+      setMode(root, 'slots');
     }
     $(root, '[data-pe="everyDays"]').value = s.every_days || 1;
     $(root, '[data-pe="anchor"]').value = s.anchor === 'fixed' ? 'fixed' : 'intake';
@@ -743,17 +752,19 @@ window.planEditor = (function () {
     root.querySelector('[data-pe-add-slot]').addEventListener('click', function () {
       addSlotRow(root, ''); sync(root);
     });
-    // BUG-36 mandatory mode radio. Switching away from a mode that holds
-    // content discards it — confirm first (the discarded mode's fields
-    // are reset so a later sync cannot leak stale values).
-    $all(root, '[data-pe-mode]').forEach(function (radio) {
-      radio.addEventListener('change', function () {
-        var next = radio.value;
+    // BUG-36/BUG-43 mandatory mode TABS. Switching away from a mode
+    // that holds content discards it — confirm first (the discarded
+    // mode's fields are reset so a later sync cannot leak stale
+    // values). The active tab IS the state: a cancelled switch simply
+    // never happens, there is nothing to revert.
+    $all(root, '[data-pe-mode-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function (e) {
+        e.preventDefault();
+        var next = tab.getAttribute('data-pe-mode-tab');
         var prev = root._peMode || '';
         if (prev === next) { return; }
         if (modeHasContent(root, prev) &&
             !window.confirm(root.getAttribute('data-mode-switch-confirm') || 'Discard?')) {
-          setMode(root, prev);
           return;
         }
         clearModeContent(root, prev);
