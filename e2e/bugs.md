@@ -3055,3 +3055,99 @@ fr "tous les jours", de "täglich", nl "elke dag") — e.g. en blank rule
 reads "every day · from intake"; every_days > 1 still reads "every N
 days". Verified in browser across the 4 locales (blank daily summary,
 N-day switch, daily+fixed-anchor+date+duration composition).
+
+## BUG-50 (minor) — Animal page #nav-care: odd SVG content rendered in feeding row
+
+**Reported:** 2026-10-13 (user feedback, screenshot
+`goa-image-2803254597.png`).
+
+**URL:** `/animals/10418?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-care`
+
+**Symptom:** the feeding row on the Care tab shows odd/unexpected SVG
+content (raw markup or a broken icon) instead of the intended clean
+rendering.
+
+**Status:** OPEN — needs reproduction in the browser to capture the exact
+element, then trace the care-row template partial emitting the SVG.
+
+**Investigation notes:**
+- The row renders the converted feeding plan "insectes, eau — 09:00,
+  13:00, 17:00" (3 slots). Suspect a per-slot icon or a tier glyph whose
+  SVG `contentOf`/partial is double-escaped or unbalanced.
+- Check `templates/animals/_care*` partials and any
+  `contentOf(...SVG)` / inline `<svg>` used by the feeding slot buttons.
+
+## BUG-51 (enhancement) — Protocol detail views: show repeat window instead of expanded timeslots
+
+**Reported:** 2026-10-13 (user feedback).
+
+**URL:** `/animals/10418?back=&src=...#` (protocol details on the animal
+page), and generally ALL protocol detail views.
+
+**Symptom:** when a protocol uses a start-time/end-time + repeat interval
+(a `repeat` block), the detail view expands it into the full list of
+timeslots (e.g. 09:00, 13:00, 17:00 — or far longer for tight intervals),
+making the details view huge and hard to read.
+
+**Expected:** when a `repeat` block is present, show the compact repeat
+form — "09:00 → 18:00 every 4:00h (3 repas)" style — INSTEAD of the
+expanded timeslot list. This should be a shared key/helper for every
+protocol details view to avoid huge lengths.
+
+**Status:** OPEN — implement a shared summary helper (schedule → repeat
+summary when `repeat != nil`, else slot list) and use it in all details
+views (animal page plan/care tabs, protocol show, day plan tooltips).
+
+**Notes:**
+- `models/careplan` already has `Repeat` + `ExpandRepeat`; a
+  `SummarizeRepeat` helper (localized) is the natural home.
+- Locale coverage required (en-US/fr/de/nl) per the all-language UI rule.
+
+## BUG-52 (HIGH) — Treatment series converter ignores day-level cadence: spaced series become DAILY plans
+
+**Found:** 2026-10-13 (converter code review, post BUG-feeding-fix).
+
+**Location:** `actions/care_plan_convert_data.go` `convertTreatmentSeries`
+(schedule JSON built at ~L318) and `groupTreatmentSeries`.
+
+**Symptom:** a legacy treatment series scheduled every N days (e.g. a
+bandage change every 3 days) is converted into a care plan with
+`every_days: 1` spanning `last - first + 1` days. The day plan then
+generates a reminder **every single day** instead of every N days —
+massive over-scheduling.
+
+**Root cause:** `groupTreatmentSeries` groups rows by
+`(animal × drug × dosage × bitmap)` and keeps only `first`/`last` dates;
+the schedule is hardcoded `"every_days":1` with `duration_days =
+last-first+1`. The day-level interval between consecutive treatment dates
+(stored in `s.dates`, currently unused for cadence) is never read.
+
+**Evidence (live DB `creaves`, future treatments):**
+- Animal 9577 "Remplacement bandage": dates 10-15, 10-18, 10-21 … 11-20
+  (every 3 days, 13 doses) → converted plan `every_days:1, duration_days:37`
+  → 37 daily reminders instead of 13 spaced ones.
+- Animal 10153 "prodiplast-t": every 3 days, 13 doses → same 37-day daily
+  over-schedule.
+- Quantified across the open series: **43 regular-spaced series** (all
+  day-gaps equal and > 1) wrongly made daily; **9 irregular series**
+  (mixed gaps, e.g. min 1 / max 8) where no single `every_days` fits;
+  14 series are genuinely daily (already correct).
+
+**Why it matters:** these are REAL medication/wound-care schedules. A
+bandage every-3-days becoming a daily task triples the displayed workload
+and floods the day plan with false "now/late" entries, hiding genuinely
+due care.
+
+**Suggested fix (needs design sign-off):**
+- Regular spaced series (all consecutive day-gaps equal to G > 1): set
+  `every_days: G`, keep `anchor: fixed` + `anchor_date: first`, and
+  `duration_days: last - first + 1`. The day plan then lands exactly on
+  the legacy dates.
+- Irregular series (mixed gaps): options — (a) split into per-date
+  one-day plans (verbose), (b) keep daily but flag "à vérifier", or
+  (c) nearest `every_days` + flag. Recommend (b) or per-date; decide with
+  the care team.
+- Single-date series: `every_days:1, duration_days:1` (already correct).
+
+**Status:** OPEN — fix + reconvert from the original dump required (the
+43 over-scheduled plans are live).

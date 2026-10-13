@@ -130,7 +130,14 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 	// any legacy feeding trace; rows without a derivable schedule take the
 	// fallback slot path below (flagged "à vérifier").
 	var animals []models.Animal
-	if err := tx.Where("outtake_id IS NULL AND (feeding_period > 0 OR feeding_start IS NOT NULL OR feeding_end IS NOT NULL OR (feeding IS NOT NULL AND TRIM(feeding) <> ''))").All(&animals); err != nil {
+	// User ruling: an animal with NO legacy diet text gets NO feeding plan.
+	// The "(régime non spécifié)" placeholder named nothing (e.g. animal
+	// 10415); an empty feeding means the animal is not on a feeding regimen,
+	// so there is nothing to convert. The diet text is therefore REQUIRED —
+	// but a diet-only row (no period/times) still converts (BUG-10: it is a
+	// real legacy feeding trace, taking the fallback slot). Excluding empty
+	// diets at selection keeps the §8.1 no-loss gate out of their scope.
+	if err := tx.Where("outtake_id IS NULL AND feeding IS NOT NULL AND TRIM(feeding) <> '' AND (feeding_period > 0 OR feeding_start IS NOT NULL OR feeding_end IS NOT NULL OR TRIM(feeding) <> '')").All(&animals); err != nil {
 		return err
 	}
 	report.Feeding.AnimalsConsidered = len(animals)
@@ -155,13 +162,8 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 			Repeat:   repeat,
 			Force:    a.ForceFeed,
 			Fallback: fallback,
+			Diet:     NormalizeDiet(a.Feeding.String),
 		}
-		diet := NormalizeDiet(a.Feeding.String)
-		if diet == "" {
-			diet = "(régime non spécifié)"
-			entry.Fallback = true
-		}
-		entry.Diet = diet
 		if err := createConvertedFeedingPlan(tx, report, entry, feedCareID); err != nil {
 			return err
 		}

@@ -32,6 +32,7 @@ type converterFixture struct {
 	nullTimesID int // period > 0, NULL start/end, diet text
 	dietOnlyID  int // diet text only
 	noFeedingID int // no legacy feeding trace at all
+	emptyDietID int // feeding window set but NO diet text → no plan (user ruling)
 	// M5 routing animals (named — positional animalIDs indexes shift
 	// whenever fixture rows are added)
 	trUnknownDrugID int
@@ -83,8 +84,9 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 		fx.setFeeding(t, db, id, d, "09:00", "15:00", 180)
 		fx.animalIDs = append(fx.animalIDs, id)
 	}
-	// 1 fallback animal: empty diet text → converted to a flagged
-	// "(à vérifier)" plan instead of being dropped (§1.5 no-skip rule).
+	// 1 empty-diet animal: NO diet text → NO feeding plan (user ruling:
+	// an empty feeding means the animal is not on a feeding regimen; the
+	// former "(régime non spécifié)" placeholder named nothing).
 	idFallback := fx.f.mkAnimal(t, db, "Pigeon biset")
 	fx.setFeeding(t, db, idFallback, "  ", "08:00", "18:00", 120)
 	fx.animalIDs = append(fx.animalIDs, idFallback)
@@ -111,6 +113,7 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	fx.nullTimesID = idNullTimes
 	fx.dietOnlyID = idDietOnly
 	fx.noFeedingID = idNoFeeding
+	fx.emptyDietID = idFallback
 
 	// One open treatment series (3 future days, morning+noon). The drug is
 	// seeded in the drugs table so the series converts as a MEDICATION plan.
@@ -258,19 +261,23 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	// Feeding (v3): NO cluster rules, NO matchers — every feeding animal
 	// gets its own per-animal plan (bugs.md t10, 2026-10-27 user ruling:
 	// cage names are per centers; in doubt, migrate to the animal). The
-	// 11 feeding animals = 5 cluster-diet + 2 unique diets + 1 empty-diet
-	// fallback + 1 schedule variant + 2 BUG-10 cases (NULL times +
-	// diet-only). The no-feeding animal is NOT considered.
+	// 10 feeding animals = 5 cluster-diet + 2 unique diets + 1 schedule
+	// variant + 2 BUG-10 cases (NULL times + diet-only). The empty-diet
+	// animal (window set but no diet text) is NOT converted — user ruling:
+	// an empty feeding means no feeding regimen. The no-feeding animal is
+	// NOT considered either.
 	require.Equal(t, 0, report.Feeding.RulesCreated,
 		"v3: the converter must not create rules — per-animal plans only")
-	require.Equal(t, 11, report.Feeding.PlansCreated)
-	require.Equal(t, 11, report.Feeding.AnimalsConsidered)
-	require.Len(t, report.Feeding.Lines, 11)
+	require.Equal(t, 10, report.Feeding.PlansCreated)
+	require.Equal(t, 10, report.Feeding.AnimalsConsidered)
+	require.Len(t, report.Feeding.Lines, 10)
 
-	// Reconciliation (§1.6): every animal accounted for, nothing uncovered.
+	// Reconciliation (§1.6): every converted animal accounted for, nothing
+	// uncovered. The empty-diet animal is excluded at selection, so it is
+	// out of the no-loss gate scope (not UNCOVERED).
 	require.Equal(t, 0, report.Reconciliation.FeedingUncovered,
 		"no feeding animal may be left without a covering plan")
-	require.Equal(t, 11, report.Reconciliation.FeedingOK+
+	require.Equal(t, 10, report.Reconciliation.FeedingOK+
 		report.Reconciliation.FeedingDegraded)
 	require.Equal(t, 0, report.Reconciliation.TreatmentUncovered)
 
@@ -296,6 +303,12 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	var none []models.CareAnimalPlan
 	require.NoError(t, db.Where("animal_id = ?", fx.noFeedingID).All(&none))
 	require.Empty(t, none, "an animal without any legacy feeding trace must not gain a plan")
+	// User ruling: an animal with a feeding window but NO diet text gets NO
+	// feeding plan either — the empty "(régime non spécifié)" placeholder is
+	// gone (animal 10415).
+	var emptyDiet []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.emptyDietID, careplan.KindFeeding).All(&emptyDiet))
+	require.Empty(t, emptyDiet, "an animal with no diet text must not gain a feeding plan")
 
 	// Treatments: the 3-day series becomes one bounded plan. The test DB
 	// may carry unrelated open series from other tests, so only spot-check
@@ -366,10 +379,12 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, "19:00", vParsed.Repeat.To.String())
 	require.Equal(t, 360, vParsed.Repeat.EveryMinutes)
 
-	// t5: the empty-diet animal got a flagged fallback plan, not a skip.
-	var fbPlan models.CareAnimalPlan
-	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[7], "%(à vérifier)").First(&fbPlan))
-	require.Contains(t, fbPlan.Name, "(conversion)")
+	// t5: the empty-diet animal gets NO feeding plan (user ruling: an empty
+	// feeding means no feeding regimen — the "(régime non spécifié)"
+	// placeholder is gone). fx.animalIDs[7] is the empty-diet animal.
+	var fbPlans []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.animalIDs[7], careplan.KindFeeding).All(&fbPlans))
+	require.Empty(t, fbPlans, "empty-diet animal must not gain a feeding plan")
 
 	// Treatment plan: 08:00/12:00 × 3 days from the bitmap, fixed anchor.
 	var trPlan models.CareAnimalPlan
