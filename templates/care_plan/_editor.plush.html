@@ -20,7 +20,11 @@
      data-validation-required="<%= t("care_plan.editor.validation.required") %>"
      data-validation-slots="<%= t("care_plan.editor.validation.slots_required") %>"
      data-validation-anchor-date="<%= t("care_plan.editor.validation.anchor_date_required") %>"
-     data-validation-dosage-choice="<%= t("care_plan.editor.validation.dosage_choice") %>">
+     data-validation-dosage-choice="<%= t("care_plan.editor.validation.dosage_choice") %>"
+     data-routine-every="<%= t("care_plan.editor.routine_every") %>"
+     data-routine-days="<%= t("care_plan.editor.routine_days") %>"
+     data-routine-anchor-intake="<%= t("care_plan.editor.routine_anchor_intake") %>"
+     data-routine-anchor-fixed="<%= t("care_plan.editor.routine_anchor_fixed") %>">
   <%# BUG-48: the grouped cards become a wizard-style tab strip — Content
       (what) -> Schedule (when) -> Options (advanced). The active tab is
       client state only (unlike the mode tabs, nothing is discarded on
@@ -78,6 +82,14 @@
           <div class="text-danger small d-none" data-pe-repeat-invalid></div>
         </div>
       </div>
+      <%# BUG-49: recurrence cadence (every_days/anchor/anchor_date/
+          duration_days) lives in a collapsed "Routine" block whose title
+          carries a compact live summary. %>
+      <details class="mt-2" data-pe-routine>
+        <summary class="mb-2">
+          <span class="font-weight-bold"><%= t("care_plan.editor.routine") %></span>
+          <span class="text-muted ml-1" data-pe-routine-summary></span>
+        </summary>
       <div class="form-row">
         <div class="form-group col-md-4">
           <label><%= t("care_plan.editor.every_days") %></label>
@@ -101,6 +113,7 @@
           <input type="number" class="form-control" min="0" step="1" value="0" data-pe="durationDays">
         </div>
       </div>
+      </details>
     </div>
     <div class="d-none pt-3" data-pe-wizard-pane="options">
       <div class="form-row">
@@ -435,6 +448,30 @@ window.planEditor = (function () {
     }
   }
 
+    // BUG-49: the collapsed "Routine" details carries a compact live
+    // summary in its title so the cadence stays visible without opening
+    // it. Non-default values only: every-days when > 1, the anchor (the
+    // key semantic — intake vs fixed date), the anchor date when fixed,
+    // the duration when bounded. Strings come from data-routine-* attrs
+    // on the root (localized server-side); %d is the number placeholder.
+    function updateRoutineSummary(root) {
+      var el = $(root, '[data-pe-routine-summary]');
+      if (!el) { return; }
+      var attr = function (k) { return root.getAttribute('data-routine-' + k) || ''; };
+      var parts = [];
+      var every = parseInt($(root, '[data-pe="everyDays"]').value, 10);
+      if (every > 1) { parts.push(attr('every').replace('%d', every)); }
+      var anchor = $(root, '[data-pe="anchor"]').value;
+      parts.push(attr(anchor === 'fixed' ? 'anchor-fixed' : 'anchor-intake'));
+      if (anchor === 'fixed') {
+        var d = $(root, '[data-pe="anchorDate"]').value;
+        if (d) { parts.push(d); }
+      }
+      var dur = parseInt($(root, '[data-pe="durationDays"]').value, 10);
+      if (dur > 0) { parts.push(attr('days').replace('%d', dur)); }
+      el.textContent = parts.filter(function (p) { return p; }).join(' · ');
+    }
+
   // --- Wizard tabs (BUG-48) ---------------------------------------------
 
   // WIZARD_TABS is the guided order: what -> when -> advanced options.
@@ -489,7 +526,13 @@ window.planEditor = (function () {
     if (!st || st.rawMode) { return errs; }
     var msg = function (k) { return root.getAttribute('data-validation-' + k) || k; };
     var bad = function (tab, el, key) {
-      if (el) { el.classList.add('is-invalid'); }
+      if (el) {
+        el.classList.add('is-invalid');
+        // BUG-49: a flagged field inside the collapsed "Routine"
+        // disclosure must be visible — open the ancestor details.
+        var det = el.closest ? el.closest('details') : null;
+        if (det) { det.open = true; }
+      }
       errs.push({ tab: tab, el: el, msg: msg(key) });
     };
     // --- Content pane
@@ -528,7 +571,11 @@ window.planEditor = (function () {
       }
     }
     if ($(root, '[data-pe="anchor"]').value === 'fixed' && !$(root, '[data-pe="anchorDate"]').value) {
-      bad('schedule', $(root, '[data-pe="anchorDate"]'), 'anchor-date');
+      // The real input is hidden behind the flatpickr alt display —
+      // flag the VISIBLE field (same BUG-38 pattern as the slots).
+      var ad = $(root, '[data-pe="anchorDate"]');
+      if (ad && ad._flatpickr && ad._flatpickr.altInput) { ad = ad._flatpickr.altInput; }
+      bad('schedule', ad, 'anchor-date');
     }
     return errs;
   }
@@ -731,7 +778,11 @@ window.planEditor = (function () {
     var anchorDate = $(root, '[data-pe="anchorDate"]');
     if (window.flatpickr && anchorDate) {
       if (!anchorDate._flatpickr) {
-        window.flatpickr(anchorDate, { dateFormat: 'Y-m-d', allowInput: true, altInput: true, altFormat: 'j F Y' });
+        // onChange: keep the BUG-49 routine summary live when a date
+        // is picked from the calendar (typed input reaches the same
+        // update via the root change/input listeners).
+        window.flatpickr(anchorDate, { dateFormat: 'Y-m-d', allowInput: true, altInput: true, altFormat: 'j F Y',
+          onChange: function () { updateRoutineSummary(root); } });
       } else {
         // Re-opened editor: the alt display must follow the raw value.
         anchorDate._flatpickr.setDate(anchorDate.value || '', false);
@@ -739,6 +790,7 @@ window.planEditor = (function () {
     }
     attachRepeatPickers(root);
     updateRepeatCount(root);
+    updateRoutineSummary(root);
   }
 
   // --- Payload <-> fields --------------------------------------------------
@@ -955,6 +1007,7 @@ window.planEditor = (function () {
       refreshWizardBadges(root);
       var eb = $(root, '[data-pe-wizard-errors]');
       if (eb) { eb.innerHTML = ''; }
+      updateRoutineSummary(root);
       sync(root);
     });
     root.querySelector('[data-pe-add-slot]').addEventListener('click', function () {
@@ -994,6 +1047,12 @@ window.planEditor = (function () {
       var p = parseDuration(e.target.value);
       if (p != null && p > 0) { e.target.value = fmtMin(p); } // display normalized to H:MM
       updateRepeatCount(root); sync(root);
+    });
+    // BUG-49: the routine summary follows typing, not just committed
+    // changes (the change listener above fires on blur/Enter).
+    ['everyDays', 'durationDays', 'anchorDate'].forEach(function (n) {
+      var inp = $(root, '[data-pe="' + n + '"]');
+      if (inp) { inp.addEventListener('input', function () { updateRoutineSummary(root); }); }
     });
     // BUG-48 wizard strip: clicks switch panes freely (nothing is
     // discarded); Next validates before advancing so a new protocol is

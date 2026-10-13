@@ -2989,3 +2989,60 @@ medication drug → stays, field flagged, badge on Content; valid →
 Schedule; invalid repeat → flagged on Next; Save with server-rejected
 schedule → Schedule tab revealed. 4 locales: tab labels + Next/Back
 translated. care_rules/new: same tabs, submit blocked when invalid.
+
+## BUG-49 (enhancement) — Protocol editor: recurrence cadence fields moved into a collapsed "Routine" block with live summary
+
+**Status:** FIXED 2026-10-13 — VERIFIED in browser (2026-10-13)
+**Severity:** Enhancement — the Schedule pane mixed the recurrence
+cadence ("Repeat every (days)", start anchor, anchor date, duration)
+loosely after the slots/repeat authoring block. These fields shape the
+whole plan but were visually undistinguished, and an anchor=fixed
+validation failure flagged a hidden flatpickr input inside an area the
+user might not notice.
+
+### Fix (all browser-verified 2026-10-13)
+
+- `templates/care_plan/_editor.plush.html` — the every-days / anchor /
+  anchor-date / duration-days rows are wrapped in a `<details
+  data-pe-routine>` "Routine" disclosure, **collapsed by default**, whose
+  summary line carries a compact live summary (`<span
+  data-pe-routine-summary>`). Non-default values only: every-days when
+  > 1, the anchor (intake vs fixed date) always, the anchor date when
+  fixed, the duration when bounded — joined with " · ".
+- JS `updateRoutineSummary()` reads the fields and the localized
+  `data-routine-*` strings on the root (`%d` number placeholder) and is
+  called from `writeSchedule()` (attach + every reload), the root
+  change listener, per-field `input` listeners (everyDays / durationDays
+  / anchorDate) and the anchorDate flatpickr `onChange`.
+- Validation: `bad()` now opens the ancestor `<details>` of a flagged
+  field, so an anchor=fixed-without-date failure expands the Routine
+  block; the anchor-date check flags the **visible** flatpickr altInput
+  (same BUG-38 pattern as the slot inputs) instead of the hidden real
+  input.
+- New locale keys ×4 (`locales/care_plan.{en-us,fr,de,nl}.yaml`):
+  `care_plan.editor.routine`, `.routine_every`, `.routine_days`,
+  `.routine_anchor_intake`, `.routine_anchor_fixed`.
+
+### Verification (browser, 2026-10-13, /care_rules/new + edit round-trip)
+
+- Collapsed by default in en/fr/de/nl; summary non-empty on a blank new
+  rule: en "from intake", fr "dès l'admission", de "ab Aufnahme", nl
+  "vanaf opname".
+- Live updates (en): everyDays=3 → "every 3 days · from intake";
+  durationDays=10 → "… · 10 days"; anchor=fixed → date group shown,
+  "… · from a fixed date · …"; anchorDate=2026-10-20 → "every 3 days ·
+  from a fixed date · 2026-10-20 · 10 days".
+- Validation: anchor=fixed + cleared date + Next → details opens,
+  flatpickr **altInput** gets `is-invalid`, footer shows "Add at least
+  one time slot" + "Pick the anchor date".
+- Save round-trip: slot 08:00, every_days=3, anchor=fixed,
+  anchor_date=2026-10-20, duration_days=10 → saved rule reopens with
+  schedule JSON exactly
+  `{"times":["08:00"],"every_days":3,"anchor":"fixed","anchor_date":"2026-10-20","duration_days":10}`,
+  fields repopulated, summary correct, details collapsed again.
+- Full summary strings verified: fr "tous les 2 jours · à date fixe ·
+  2026-10-20 · 5 jours", de "alle 2 Tage · ab festem Datum · 2026-10-20
+  · 5 Tage", nl "om de 2 dagen · vanaf vaste datum · 2026-10-20 ·
+  5 dagen".
+- `node --check` on the extracted editor script: OK; dev server restart
+  loads the new locale yaml cleanly.
