@@ -486,6 +486,8 @@
   translation: "Routine"
 - id: "care_plan.editor.routine_every"
   translation: "every %d days"
+- id: "care_plan.editor.routine_daily"
+  translation: "every day"
 - id: "care_plan.editor.routine_days"
   translation: "%d days"
 - id: "care_plan.editor.routine_anchor_intake"

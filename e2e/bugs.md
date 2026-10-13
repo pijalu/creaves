@@ -3046,3 +3046,12 @@ user might not notice.
   5 dagen".
 - `node --check` on the extracted editor script: OK; dev server restart
   loads the new locale yaml cleanly.
+
+### Amendment (2026-10-13, user feedback) — daily cadence shown explicitly
+
+The daily case (every_days = 1, the default) no longer omits the cadence:
+the summary now starts with "every day" (localized `routine_daily`:
+fr "tous les jours", de "täglich", nl "elke dag") — e.g. en blank rule
+reads "every day · from intake"; every_days > 1 still reads "every N
+days". Verified in browser across the 4 locales (blank daily summary,
+N-day switch, daily+fixed-anchor+date+duration composition).

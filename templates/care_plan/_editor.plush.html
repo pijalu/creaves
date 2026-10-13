@@ -23,6 +23,7 @@
      data-validation-dosage-choice="<%= t("care_plan.editor.validation.dosage_choice") %>"
      data-routine-every="<%= t("care_plan.editor.routine_every") %>"
      data-routine-days="<%= t("care_plan.editor.routine_days") %>"
+     data-routine-daily="<%= t("care_plan.editor.routine_daily") %>"
      data-routine-anchor-intake="<%= t("care_plan.editor.routine_anchor_intake") %>"
      data-routine-anchor-fixed="<%= t("care_plan.editor.routine_anchor_fixed") %>">
   <%# BUG-48: the grouped cards become a wizard-style tab strip — Content
@@ -450,17 +451,19 @@ window.planEditor = (function () {
 
     // BUG-49: the collapsed "Routine" details carries a compact live
     // summary in its title so the cadence stays visible without opening
-    // it. Non-default values only: every-days when > 1, the anchor (the
-    // key semantic — intake vs fixed date), the anchor date when fixed,
-    // the duration when bounded. Strings come from data-routine-* attrs
-    // on the root (localized server-side); %d is the number placeholder.
+    // it: "every day" (or "every N days" when > 1), the anchor (intake
+    // vs fixed date), the anchor date when fixed, the duration when
+    // bounded. Strings come from data-routine-* attrs on the root
+    // (localized server-side); %d is the number placeholder.
     function updateRoutineSummary(root) {
       var el = $(root, '[data-pe-routine-summary]');
       if (!el) { return; }
       var attr = function (k) { return root.getAttribute('data-routine-' + k) || ''; };
       var parts = [];
       var every = parseInt($(root, '[data-pe="everyDays"]').value, 10);
+      // Daily (1, the default) reads as "every day"; > 1 as "every N days".
       if (every > 1) { parts.push(attr('every').replace('%d', every)); }
+      else { parts.push(attr('daily')); }
       var anchor = $(root, '[data-pe="anchor"]').value;
       parts.push(attr(anchor === 'fixed' ? 'anchor-fixed' : 'anchor-intake'));
       if (anchor === 'fixed') {
