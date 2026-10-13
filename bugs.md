@@ -93,6 +93,44 @@ it for all animals.
   10:00, 18:00", schedule `times [10:00, 18:00] + repeat{10:00→18:00, 480} +
   grace 240` (`/tmp/e2e_9110_plan.png`).
 
+**Follow-up round (same day, user-supplied prod state):** user showed prod 10231
+NOW reads "Nourrissage: 10:00 - 18:00, toutes les 08:00 h (2 repas)" + "Gavage !"
+(animal 1922/2026, S23, Pigeon biset féral). Dump row 10231 (updated_at
+2026-10-11) = 10:00/10:00/600, no gavage → **the row was edited in prod AFTER
+the 10-13 dump**, and the one-shot converter never re-ran: the stored plan was
+STALE vs current columns (the original symptom's real trigger for THIS animal).
+- Stale-path E2E on the fixture: `UPDATE animals SET force_feed=1,
+  feeding_start 10:00, feeding_end 18:00, feeding_period=480 WHERE id=10231`
+  (mirrors the prod edit) → validate flags `[STALE] animal 10231 … 1922/26 ·
+  Pigeon biset féral · S23` → `careplan:repair-feeding` rewrites schedule to
+  `times [10:00, 18:00] + repeat{10:00→18:00, 480} + grace 240` (payload gavage
+  carried). UI: "Gavage !" banner + "Protocole d'alimentation: grains
+  tourterelles eau — 10:00, 18:00" in the Care tab; Protocole tab shows both
+  occurrences with the 🍼 force-feed badge (`/tmp/e2e_10231_repaired.png`,
+  `/tmp/e2e_10231_repaired_care.png`).
+
+**Parallel old-vs-new full-population comparison (user directive):** HEAD~1
+(`b13f1e1`, pre-fix) and HEAD (`fb56429`) binaries booted in parallel on two
+dump clones (`creaves_review_old` :3003, `creaves_review` :3002), both seeded
+`admin`/`admin` via hash reset (work-around per user). All 209 in-care animals
+with a feeding trace compared against the `calculateFeeding` reference:
+- NEW: **209/209 OK** — realized times, repeat consistency and
+  grace = period/2 all match the reference; zero deviations.
+- OLD: 24/209 clean; 185 deviate — `grace_minutes` missing on every period>0
+  row (silent cadence loss) + misleading `repeat{X, X, P}` on the 37+
+  zero-length rows.
+- `times` (realized meals) IDENTICAL old vs new on all 209 (`shape-diff = 0`)
+  — the old conversion never moved a meal; its defects were the dishonest
+  degenerate-window storage and the dropped lateness cadence, both now fixed.
+
+**Fixture gotcha (collation):** the 10-13 dump is `utf8mb4_0900_ai_ci` (MySQL 8
+default). Creating a clone DB with an explicit `COLLATE utf8mb4_unicode_ci`
+poisons FK creation/joins during `pop migrate up` (errors 1267/3780 cascade).
+User confirmed: "you cannot force utf8mb4_unicode_ci — this is not compatible
+with the prd db". Clones must be created with the server default; some dump
+migrations are pre-applied but unrecorded in `schema_migration` (drift), so
+`migrate up` needs those versions stamped, never schema-forced.
+
 **Related:** supersedes the BUG-36 repeat-form storage for the degenerate
 window; same no-loss spirit as BUG-10; the canonical-compare gotcha (MySQL JSON
 normalization) is the same trap noted in the R4-7.24 name round.
