@@ -49,32 +49,14 @@ func humanizeScheduleWith(raw string, tr func(id string, args map[string]interfa
 	at := strings.Join(times, ", ")
 
 	var b strings.Builder
-	switch s.EveryDays {
-	case 1:
-		b.WriteString(tr("care_plan.schedule_human.every_day_at", map[string]interface{}{"times": at}))
-	default:
-		b.WriteString(tr("care_plan.schedule_human.every_n_days_at", map[string]interface{}{"n": fmt.Sprint(s.EveryDays), "times": at}))
-	}
-
-	if len(s.Weekdays) > 0 {
-		days := make([]int, len(s.Weekdays))
-		copy(days, s.Weekdays)
-		sort.Ints(days)
-		names := make([]string, 0, len(days))
-		for _, d := range days {
-			names = append(names, tr(fmt.Sprintf("care_plan.schedule_human.weekday_%d", d), nil))
-		}
-		b.WriteString(tr("care_plan.schedule_human.on_weekdays", map[string]interface{}{"days": strings.Join(names, ", ")}))
-	}
-
-	switch s.Anchor {
-	case careplan.AnchorIntake:
-		b.WriteString(tr("care_plan.schedule_human.from_intake", nil))
-	case careplan.AnchorFixed:
-		if s.AnchorDate != nil {
-			b.WriteString(tr("care_plan.schedule_human.from_date", map[string]interface{}{"date": s.AnchorDate.Format("2006-01-02")}))
-		}
-	}
+	// BUG-51: a schedule authored in repeat mode carries BOTH the repeat
+	// block and its full slot expansion. The details views must show the
+	// COMPACT window form — "Chaque jour de 09:00 à 17:00 toutes les 04:00 h
+	// (3 repas)" — never the (potentially huge) expanded slot list; the
+	// meal count rides along so the caregiver still sees the cadence.
+	b.WriteString(humanizeRepeatOrSlots(s, at, tr))
+	b.WriteString(humanizeWeekdaysSuffix(s, tr))
+	b.WriteString(humanizeAnchorSuffix(s, tr))
 
 	if s.FromOffsetDays > 0 {
 		b.WriteString(tr("care_plan.schedule_human.offset_days", map[string]interface{}{"n": s.FromOffsetDays}))
@@ -87,6 +69,58 @@ func humanizeScheduleWith(raw string, tr func(id string, args map[string]interfa
 	}
 
 	return b.String()
+}
+
+// humanizeRepeatOrSlots renders the schedule head: the compact repeat-window
+// form (BUG-51) when the schedule was authored in repeat mode, the slot list
+// otherwise.
+func humanizeRepeatOrSlots(s careplan.Schedule, at string, tr func(id string, args map[string]interface{}) string) string {
+	if s.Repeat != nil {
+		every := fmt.Sprintf("%02d:%02d", s.Repeat.EveryMinutes/60, s.Repeat.EveryMinutes%60)
+		args := map[string]interface{}{
+			"from":  s.Repeat.From.String(),
+			"to":    s.Repeat.To.String(),
+			"every": every,
+			"count": len(s.Times),
+			"n":     s.EveryDays,
+		}
+		if s.EveryDays == 1 {
+			return tr("care_plan.schedule_human.repeat_window", args)
+		}
+		return tr("care_plan.schedule_human.repeat_window_n", args)
+	}
+	if s.EveryDays == 1 {
+		return tr("care_plan.schedule_human.every_day_at", map[string]interface{}{"times": at})
+	}
+	return tr("care_plan.schedule_human.every_n_days_at", map[string]interface{}{"n": fmt.Sprint(s.EveryDays), "times": at})
+}
+
+// humanizeWeekdaysSuffix renders the optional "on Mon, Tue" restriction.
+func humanizeWeekdaysSuffix(s careplan.Schedule, tr func(id string, args map[string]interface{}) string) string {
+	if len(s.Weekdays) == 0 {
+		return ""
+	}
+	days := make([]int, len(s.Weekdays))
+	copy(days, s.Weekdays)
+	sort.Ints(days)
+	names := make([]string, 0, len(days))
+	for _, d := range days {
+		names = append(names, tr(fmt.Sprintf("care_plan.schedule_human.weekday_%d", d), nil))
+	}
+	return tr("care_plan.schedule_human.on_weekdays", map[string]interface{}{"days": strings.Join(names, ", ")})
+}
+
+// humanizeAnchorSuffix renders the optional anchor clause (intake or date).
+func humanizeAnchorSuffix(s careplan.Schedule, tr func(id string, args map[string]interface{}) string) string {
+	switch s.Anchor {
+	case careplan.AnchorIntake:
+		return tr("care_plan.schedule_human.from_intake", nil)
+	case careplan.AnchorFixed:
+		if s.AnchorDate != nil {
+			return tr("care_plan.schedule_human.from_date", map[string]interface{}{"date": s.AnchorDate.Format("2006-01-02")})
+		}
+	}
+	return ""
 }
 
 // contentLabel derives a "says the thing" label from a §4.2 action payload
