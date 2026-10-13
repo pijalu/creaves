@@ -49,6 +49,15 @@ type Schedule struct {
 	// materialized and remains the engine contract; Repeat is metadata
 	// for the editor round-trip.
 	Repeat *Repeat
+
+	// BUG-45: purely presentational per-tier display caps — how many
+	// occurrence buttons each tier (Late / Now / Later) renders on the
+	// plan lines before folding the overflow into a "+N more" badge.
+	// 0 = uncapped (default). No effect on scheduling or apply logic:
+	// every occurrence stays recordable (batch apply covers ALL).
+	DisplayMaxLate   int
+	DisplayMaxNow    int
+	DisplayMaxFuture int
 }
 
 // Repeat is the optional "from/to every X" schedule authoring form
@@ -154,6 +163,10 @@ type scheduleJSON struct {
 	MissAfterHours   *int        `json:"miss_after_hours,omitempty"`
 	LookaheadMinutes *int        `json:"lookahead_minutes,omitempty"`
 	Repeat           *repeatJSON `json:"repeat,omitempty"`
+	// BUG-45 display caps (0/absent = uncapped).
+	DisplayMaxLate   *int `json:"display_max_late,omitempty"`
+	DisplayMaxNow    *int `json:"display_max_now,omitempty"`
+	DisplayMaxFuture *int `json:"display_max_future,omitempty"`
 }
 
 // repeatJSON mirrors the optional "repeat" block (BUG-36).
@@ -205,6 +218,17 @@ func ParseScheduleJSON(raw []byte) (Schedule, error) {
 	}
 	if sj.LookaheadMinutes != nil {
 		s.LookaheadMinutes = *sj.LookaheadMinutes
+	}
+	// BUG-45: negative caps are clamped to 0 (uncapped), never rejected —
+	// the counters are UX-only, a bad value must not block a save.
+	if sj.DisplayMaxLate != nil && *sj.DisplayMaxLate > 0 {
+		s.DisplayMaxLate = *sj.DisplayMaxLate
+	}
+	if sj.DisplayMaxNow != nil && *sj.DisplayMaxNow > 0 {
+		s.DisplayMaxNow = *sj.DisplayMaxNow
+	}
+	if sj.DisplayMaxFuture != nil && *sj.DisplayMaxFuture > 0 {
+		s.DisplayMaxFuture = *sj.DisplayMaxFuture
 	}
 	if sj.Anchor != nil {
 		s.Anchor = *sj.Anchor
@@ -431,6 +455,15 @@ func (s Schedule) MarshalJSON() ([]byte, error) {
 	}
 	if s.LookaheadMinutes != 60 {
 		sj.LookaheadMinutes = &s.LookaheadMinutes
+	}
+	if s.DisplayMaxLate > 0 {
+		sj.DisplayMaxLate = &s.DisplayMaxLate
+	}
+	if s.DisplayMaxNow > 0 {
+		sj.DisplayMaxNow = &s.DisplayMaxNow
+	}
+	if s.DisplayMaxFuture > 0 {
+		sj.DisplayMaxFuture = &s.DisplayMaxFuture
 	}
 	if s.Repeat != nil {
 		sj.Repeat = &repeatJSON{

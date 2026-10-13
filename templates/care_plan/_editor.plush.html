@@ -102,6 +102,20 @@
             <input type="number" class="form-control" min="0" step="1" value="60" data-pe="lookaheadMinutes">
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.display_max_late") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="0" data-pe="displayMaxLate">
+          </div>
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.display_max_now") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="0" data-pe="displayMaxNow">
+          </div>
+          <div class="form-group col-md-4">
+            <label><%= t("care_plan.editor.display_max_future") %></label>
+            <input type="number" class="form-control" min="0" step="1" value="0" data-pe="displayMaxFuture">
+          </div>
+        </div>
         <div class="form-group">
           <label><%= t("care_plan.editor.weekdays") %></label>
           <div data-pe="weekdays">
@@ -287,6 +301,13 @@ window.planEditor = (function () {
     if (miss !== 24 && miss > 0 && !isNaN(miss)) { s.miss_after_hours = miss; }
     var look = parseInt($(root, '[data-pe="lookaheadMinutes"]').value, 10);
     if (look !== 60 && look >= 0 && !isNaN(look)) { s.lookahead_minutes = look; }
+    // BUG-45: per-tier display caps (0 = uncapped, omitted from the doc).
+    var dmLate = parseInt($(root, '[data-pe="displayMaxLate"]').value, 10);
+    if (dmLate > 0 && !isNaN(dmLate)) { s.display_max_late = dmLate; }
+    var dmNow = parseInt($(root, '[data-pe="displayMaxNow"]').value, 10);
+    if (dmNow > 0 && !isNaN(dmNow)) { s.display_max_now = dmNow; }
+    var dmFuture = parseInt($(root, '[data-pe="displayMaxFuture"]').value, 10);
+    if (dmFuture > 0 && !isNaN(dmFuture)) { s.display_max_future = dmFuture; }
     var wd = $all(root, '[data-pe-weekday]:checked').map(function (i) { return parseInt(i.value, 10); });
     if (wd.length) { s.weekdays = wd.sort(function (a, b) { return a - b; }); }
     return s;
@@ -541,6 +562,9 @@ window.planEditor = (function () {
     $(root, '[data-pe="graceMinutes"]').value = s.grace_minutes != null ? s.grace_minutes : 60;
     $(root, '[data-pe="missAfterHours"]').value = s.miss_after_hours != null ? s.miss_after_hours : 24;
     $(root, '[data-pe="lookaheadMinutes"]').value = s.lookahead_minutes != null ? s.lookahead_minutes : 60;
+    $(root, '[data-pe="displayMaxLate"]').value = s.display_max_late || 0;
+    $(root, '[data-pe="displayMaxNow"]').value = s.display_max_now || 0;
+    $(root, '[data-pe="displayMaxFuture"]').value = s.display_max_future || 0;
     $all(root, '[data-pe-weekday]').forEach(function (cb) {
       cb.checked = !!(s.weekdays && s.weekdays.indexOf(parseInt(cb.value, 10)) >= 0);
     });

@@ -125,6 +125,17 @@ type CardView struct {
 	// stays in the LATE section (TierOf override).
 	StaleLateCount int
 	StaleRefsJSON  string
+	// BUG-45: purely presentational per-tier display caps from the
+	// source schedule (0 = uncapped). After the slots are built, each
+	// tier keeps at most its cap of toggles; the overflow folds into
+	// Capped*Count ("+N more" badges) — every occurrence stays
+	// recordable via batch apply / the detail modal.
+	DisplayMaxLate   int
+	DisplayMaxNow    int
+	DisplayMaxFuture int
+	CappedLateCount  int
+	CappedNowCount   int
+	CappedLaterCount int
 }
 
 // ItemSlotView is one open occurrence of a merged row-kind line (Phase 4 /
@@ -1456,6 +1467,42 @@ func isTierRow(it *careplan.PlanItem, now time.Time) bool {
 		openStatusAction(it.Status) && IsCurrent(it, now)
 }
 
+// applyDisplayCaps enforces the BUG-45 per-tier display caps on a merged
+// line's slots: each tier keeps at most its cap of visible toggles; the
+// overflow folds into the line's Capped*Count badges. Stale slots are
+// exempt (they are already hidden behind the stale badge). Caps are
+// purely presentational — the trimmed occurrences are NOT dropped from
+// scheduling or batch apply; the detail modal lists them all.
+// Slots are due-time ordered on entry; visibility keeps the EARLIEST
+// occurrences of each tier (the work due first).
+func applyDisplayCaps(rep *CardView) {
+	caps := [3]int{rep.DisplayMaxLate, rep.DisplayMaxNow, rep.DisplayMaxFuture}
+	if caps[0] <= 0 && caps[1] <= 0 && caps[2] <= 0 {
+		return
+	}
+	seen := [3]int{}
+	var capped [3]int
+	kept := rep.Slots[:0]
+	for _, s := range rep.Slots {
+		t := s.Tier
+		if t < 0 || t > 2 || s.Stale {
+			kept = append(kept, s)
+			continue
+		}
+		if caps[t] > 0 && seen[t] >= caps[t] {
+			capped[t]++
+			continue
+		}
+		seen[t]++
+		kept = append(kept, s)
+	}
+	if capped[0] == 0 && capped[1] == 0 && capped[2] == 0 {
+		return
+	}
+	rep.Slots = kept
+	rep.CappedLateCount, rep.CappedNowCount, rep.CappedLaterCount = capped[0], capped[1], capped[2]
+}
+
 // tierRows builds the tier rows (§U2): open, CURRENT occurrences of the
 // non-grouped kinds — MEDICATION INCLUDED (fix 6). Phase 4 / D4 (§3.1):
 // repeating occurrences of the same (source × animal) MERGE into ONE line —
@@ -1575,6 +1622,8 @@ func (v *DayPlanView) tierRows(plan *DayPlan, detailed bool) []CardView {
 		}
 		rep.Remaining = open - 1
 		rep.RemainingCap = BadgeCap(rep.Remaining)
+		// BUG-45: per-tier display caps (UX-only) fold the overflow.
+		applyDisplayCaps(rep)
 	}
 	sort.SliceStable(rows, func(i, j int) bool {
 		if rows[i].Tier != rows[j].Tier {
@@ -3039,6 +3088,9 @@ func (v *DayPlanView) cardFor(plan *DayPlan, it *careplan.PlanItem) CardView {
 		Applicable:   it.Applicable,
 		NeedsInput:   src.ActionKind() == careplan.KindWeighing || src.ActionKind() == careplan.KindObservation,
 	}
+	// BUG-45: the source schedule carries the per-tier display caps.
+	sch := src.Schedule()
+	cv.DisplayMaxLate, cv.DisplayMaxNow, cv.DisplayMaxFuture = sch.DisplayMaxLate, sch.DisplayMaxNow, sch.DisplayMaxFuture
 	// R8-2: observation/care/weighing (and feeding) source names repeat the
 	// detail title ("Traitement — Sexage" beside "Sexage") — the day-plan
 	// row keeps kind + title only.

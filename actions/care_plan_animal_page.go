@@ -434,6 +434,9 @@ func animalDayCardFor(plan *DayPlan, it *careplan.PlanItem, animal *models.Anima
 		Undoable:     it.Application != nil,
 		SourceLink:   cardSourceLink(string(src.SourceType()), src.SourceID(), animal.ID, ""),
 	}
+	// BUG-45: the source schedule carries the per-tier display caps.
+	sch := src.Schedule()
+	cv.DisplayMaxLate, cv.DisplayMaxNow, cv.DisplayMaxFuture = sch.DisplayMaxLate, sch.DisplayMaxNow, sch.DisplayMaxFuture
 	// Phase 5 / D5 (§4.3): the animal's own page omits the animal CELL, but
 	// the ℹ detail modal still names the animal as plain text (no link —
 	// identity is the page context; the show template hides the anchor).
@@ -558,6 +561,8 @@ func mergeDayItems(items []CardView, now time.Time) []CardView {
 		})
 		rep.Remaining = len(rep.Slots) - 1
 		rep.RemainingCap = BadgeCap(rep.Remaining)
+		// BUG-45: per-tier display caps (UX-only) fold the overflow.
+		applyDisplayCaps(rep)
 		// A merged line is actionable when ANY of its slots is.
 		rep.Applicable = false
 		for _, s := range rep.Slots {

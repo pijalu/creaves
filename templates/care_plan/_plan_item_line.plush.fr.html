@@ -172,6 +172,18 @@
           </span>
         </span>
       <% } %>
+      <%# BUG-45: per-tier display caps (UX-only) fold the tier overflow
+          into "+N more" badges — the occurrences stay recordable (batch
+          apply / detail modal); the badge only signals the fold. %>
+      <%= if (card.CappedLateCount > 0) { %>
+        <span class="plan-med-cell plan-capped-cell"><span class="badge badge-danger plan-capped-badge" title="<%= t("care_plan.display_more_title") %>">+<%= card.CappedLateCount %></span></span>
+      <% } %>
+      <%= if (card.CappedNowCount > 0) { %>
+        <span class="plan-med-cell plan-capped-cell"><span class="badge badge-warning plan-capped-badge" title="<%= t("care_plan.display_more_title") %>">+<%= card.CappedNowCount %></span></span>
+      <% } %>
+      <%= if (card.CappedLaterCount > 0) { %>
+        <span class="plan-med-cell plan-capped-cell"><span class="badge badge-light border plan-capped-badge" title="<%= t("care_plan.display_more_title") %>">+<%= card.CappedLaterCount %></span></span>
+      <% } %>
     <% } else { %>
       <%# Single occurrence (no merge): the plain apply/undo/skip/defer
           group, one .plan-item-slot parent for the shared toggle JS.

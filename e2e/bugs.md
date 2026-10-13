@@ -2729,7 +2729,7 @@ feeding plan has the feeding caretype in its payload.
 
 ## BUG-45 (enhancement) — Protocol editor Advanced: per-tier display caps (max late / max now / max future)
 
-**Status:** OPEN (reported 2026-11-13)
+**Status:** FIXED 2026-11-13 — VERIFIED (browser E2E + unit tests)
 **Severity:** Enhancement — UX density: a plan with many daily occurrences
 (e.g. 12-slot feeding) renders 12 buttons per tier section on the day/animal
 plan. The caregiver wants a per-plan knob limiting how many occurrence
@@ -2761,3 +2761,41 @@ shown in each category.
 Plan with 12 slots/day + display_max_now=5 → Now section shows 5 buttons
 + "+7"; 0/absent = uncapped (current behaviour); applies still record the
 correct occurrence; counters survive edit round-trip in all 4 locales.
+
+### Fix (2026-11-13)
+
+- `models/careplan/schedule.go`: `DisplayMaxLate/Now/Future` ints on
+  `Schedule` + `display_max_late/now/future` JSON keys (omitempty);
+  absent/0/negative = uncapped (negative clamped, never rejected —
+  UX-only, a bad value must not block a save); round-trip + Normalize
+  preserved.
+- Editor `_editor.plush.html` Advanced: three number inputs (min 0,
+  default 0) wired into readSchedule/writeSchedule; keys
+  `care_plan.editor.display_max_late/now/future` in all 4 yamls.
+- View model: `CardView.DisplayMax*` populated from `src.Schedule()`
+  (`cardFor` day view + `animalDayCardFor` animal page);
+  `applyDisplayCaps` folds each tier's overflow (EARLIEST kept, stale
+  exempt) into `CappedLate/Now/LaterCount`; applied in `tierRows` and
+  `mergeDayItems` after the stale fold.
+- `_plan_item_line.plush.*` (4 locales): non-interactive "+N" badges
+  (`badge-danger` late / `badge-warning` now / `badge-light` later) with
+  `care_plan.display_more_title` tooltip. Batch apply / apply logic
+  untouched — caps purely presentational.
+- Tests: `models/careplan/schedule_displaymax_test.go` (round-trip,
+  defaults, clamp, normalize), `actions/care_plan_bug45_display_caps_test.go`
+  (per-tier fold, stale exempt, over-cap no-op).
+
+### Verification (2026-11-13, browser + mysql)
+
+- Animal 9969 "Blah" plan (12 slots): set max now=5 + max future=5 via
+  editor → persisted `display_max_now/future: 5`; line renders 7 buttons
+  (2 now + 5 future, earliest kept) + one "+5" light badge.
+- Apply on a visible slot records the correct occurrence (08:00 →
+  care_plan_applications row due 06:00 UTC) — unaffected by the caps.
+- Reset to 0 via editor → canonical doc drops the keys; line renders all
+  12 buttons, no badge.
+- Editor labels verified fr / de / nl / en-US (cookie-switched).
+- Day plan `/care_plan` renders clean (no JS errors).
+- Note: during cleanup a 2026-09-22 care row (fede6e57) was mistakenly
+  deleted then re-inserted with the same id/timestamps (type=Repas) —
+  dev DB only.
