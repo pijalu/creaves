@@ -38,6 +38,8 @@ type converterFixture struct {
 	trUnknownDrugID int
 	trWoundID       int
 	trNoDosageID    int
+	// BUG-50 start==end (zero-length window) animal
+	adLibID int
 }
 
 func setupConverterFixture(t *testing.T) *converterFixture {
@@ -95,6 +97,14 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 	idVariant := fx.f.mkAnimal(t, db, "Pigeon biset")
 	fx.setFeeding(t, db, idVariant, diet, "07:00", "19:00", 360)
 	fx.animalIDs = append(fx.animalIDs, idVariant)
+
+	// BUG-50: a zero-length window (start == end) — the legacy "à
+	// disposition" grain-cage encoding (production: animal 10231,
+	// 10:00/10:00/600, rendered "from 10:00 to 10:00 every 10:00").
+	idAdLib := fx.f.mkAnimal(t, db, "Pigeon biset")
+	fx.setFeeding(t, db, idAdLib, diet, "10:00", "10:00", 600)
+	fx.animalIDs = append(fx.animalIDs, idAdLib)
+	fx.adLibID = idAdLib
 
 	// BUG-10 (2026-10-14): animals the pre-v4 converter silently skipped.
 	// (a) period > 0 but NULL start/end + diet text (the animal-8842 case):
@@ -261,23 +271,24 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	// Feeding (v3): NO cluster rules, NO matchers — every feeding animal
 	// gets its own per-animal plan (bugs.md t10, 2026-10-27 user ruling:
 	// cage names are per centers; in doubt, migrate to the animal). The
-	// 10 feeding animals = 5 cluster-diet + 2 unique diets + 1 schedule
-	// variant + 2 BUG-10 cases (NULL times + diet-only). The empty-diet
+	// 11 feeding animals = 5 cluster-diet + 2 unique diets + 1 schedule
+	// variant + 1 BUG-50 start==end + 2 BUG-10 cases (NULL times +
+	// diet-only). The empty-diet
 	// animal (window set but no diet text) is NOT converted — user ruling:
 	// an empty feeding means no feeding regimen. The no-feeding animal is
 	// NOT considered either.
 	require.Equal(t, 0, report.Feeding.RulesCreated,
 		"v3: the converter must not create rules — per-animal plans only")
-	require.Equal(t, 10, report.Feeding.PlansCreated)
-	require.Equal(t, 10, report.Feeding.AnimalsConsidered)
-	require.Len(t, report.Feeding.Lines, 10)
+	require.Equal(t, 11, report.Feeding.PlansCreated)
+	require.Equal(t, 11, report.Feeding.AnimalsConsidered)
+	require.Len(t, report.Feeding.Lines, 11)
 
 	// Reconciliation (§1.6): every converted animal accounted for, nothing
 	// uncovered. The empty-diet animal is excluded at selection, so it is
 	// out of the no-loss gate scope (not UNCOVERED).
 	require.Equal(t, 0, report.Reconciliation.FeedingUncovered,
 		"no feeding animal may be left without a covering plan")
-	require.Equal(t, 10, report.Reconciliation.FeedingOK+
+	require.Equal(t, 11, report.Reconciliation.FeedingOK+
 		report.Reconciliation.FeedingDegraded)
 	require.Equal(t, 0, report.Reconciliation.TreatmentUncovered)
 
@@ -378,6 +389,22 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.Equal(t, "07:00", vParsed.Repeat.From.String())
 	require.Equal(t, "19:00", vParsed.Repeat.To.String())
 	require.Equal(t, 360, vParsed.Repeat.EveryMinutes)
+
+	// BUG-50: the zero-length window (start == end) converts to the PLAIN
+	// single-slot schedule — no repeat block, legacy grace 300 (period/2).
+	var adLib models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.adLibID, careplan.KindFeeding).First(&adLib))
+	require.NotContains(t, adLib.Name, "à vérifier", "start==end is an exact translation — no flag")
+	adParsed, err := careplan.ParseScheduleJSON(adLib.Schedule)
+	require.NoError(t, err)
+	require.Nil(t, adParsed.Repeat, "start==end must not carry a repeat block")
+	adSlots, err := parseScheduleForTest(adLib.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, []string{"10:00"}, adSlots)
+	require.Equal(t, 300, adParsed.GraceMinutes, "legacy grace = period/2")
+	// JSON column: MySQL normalizes the stored doc (key order + spacing),
+	// so assert canonical equality, not raw bytes.
+	require.Equal(t, canonicalSchedule(`{"times":["10:00"],"every_days":1,"anchor":"intake","grace_minutes":300}`), canonicalSchedule(string(adLib.Schedule)))
 
 	// t5: the empty-diet animal gets NO feeding plan (user ruling: an empty
 	// feeding means no feeding regimen — the "(régime non spécifié)"
@@ -887,5 +914,167 @@ func TestConvertedPlanNameIsStoredWholeWord(t *testing.T) {
 			require.Contains(t, r.Name, diet,
 				"an uncut name must carry the complete diet: %q", r.Name)
 		}
+	}
+}
+
+// TestCarePlanFeedingRepairConvergesToLegacyColumns exercises the
+// startup_v5 pass (bugs.md BUG-50): a database converted by the PRE-BUG-50
+// converter carries (a) stale repeat-form schedules on start==end rows,
+// (b) grace-less window rows, (c) a deleted plan (§8.1 hole), (d) zombie
+// plans on outtaken animals. The repair must converge every converter-
+// owned plan to the legacy columns, create the missing plan, retire the
+// zombie, leave human-authored plans untouched — and the read-only
+// validation must then report PASS. Idempotent: a second repair is a
+// no-op.
+func TestCarePlanFeedingRepairConvergesToLegacyColumns(t *testing.T) {
+	fx := setupConverterFixture(t)
+	defer fx.f.cleanup()
+	db := models.DB
+
+	// Convert fresh (current semantics), then SIMULATE the legacy state:
+	_, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+
+	// (d) zombie feeder: a converter feeding plan on an animal that later
+	// left the §8.1 scope — here: diet emptied (same out-of-scope arm as
+	// outtaking; no outtake FK gymnastics needed). The converter is
+	// marker-guarded, so wipe the marker to actually convert the new
+	// animal (the other animals skip on their name guard).
+	zAnimal := fx.f.mkAnimal(t, db, "Pigeon biset")
+	fx.setFeeding(t, db, zAnimal, "grains zombies", "09:00", "17:00", 240)
+	require.NoError(t, db.RawQuery("DELETE FROM care_plan_conversion WHERE `key` = ?", ConversionMarkerKey).Exec())
+	_, err = RunCarePlanConverter(db)
+	require.NoError(t, err)
+	require.NoError(t, db.RawQuery("UPDATE animals SET feeding = '' WHERE id = ?", zAnimal).Exec())
+	var zombiePlans []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", zAnimal, careplan.KindFeeding).All(&zombiePlans))
+	require.Len(t, zombiePlans, 1)
+
+	// (a) stale pre-BUG-50 schedule on the start==end animal: the old
+	// repeat{from X, to X, every P} form without grace.
+	stale := `{"times":["10:00"],"every_days":1,"anchor":"intake","repeat":{"from":"10:00","to":"10:00","every_minutes":600}}`
+	var adLib models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.adLibID, careplan.KindFeeding).First(&adLib))
+	adLib.Schedule = []byte(stale)
+	require.NoError(t, db.Save(&adLib))
+
+	// (b) grace dropped from a window row (pre-BUG-50 JSON).
+	var variant models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[8], "%grains pigeons eau%").First(&variant))
+	variant.Schedule = []byte(`{"times":["07:00","13:00","19:00"],"every_days":1,"anchor":"intake","repeat":{"from":"07:00","to":"19:00","every_minutes":360}}`)
+	require.NoError(t, db.Save(&variant))
+
+	// (c) §8.1 hole: the NULL-times animal loses its plan entirely.
+	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE animal_id = ?", fx.nullTimesID).Exec())
+
+	// (e) a HUMAN-authored plan must never be touched by the repair. The
+	// animal's converter plan is removed so the human plan is the ONLY
+	// coverage (HUMAN_ONLY arm).
+	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE animal_id = ? AND created_by IS NULL", fx.dietOnlyID).Exec())
+	human := &models.CareAnimalPlan{
+		AnimalID:      fx.dietOnlyID,
+		Name:          "Nourrissage gavage main",
+		ActionKind:    careplan.KindFeeding,
+		ActionPayload: []byte(`{"food":"main d'oeuvre"}`),
+		Schedule:      []byte(`{"times":["06:13"],"every_days":1,"anchor":"intake"}`),
+		Active:        true,
+		CreatedBy:     nulls.NewUUID(fx.f.userID), // a REAL user row (FK) — “a caregiver authored this”
+	}
+	require.NoError(t, db.Create(human))
+
+	// Read-only validation MUST see the damage (the user gate: failures are
+	// reported, not silently "fixed").
+	var validation *FeedingValidationReport
+	require.NoError(t, db.Transaction(func(tx *pop.Connection) error {
+		var err error
+		validation, err = ValidateLegacyFeedingConversion(tx, false)
+		return err
+	}))
+	require.Equal(t, 11, validation.AnimalsConsidered, "the zombie feeder is out of scope, not considered")
+	require.False(t, validation.Healthy(), "the deleted plan is a MISSING violation")
+	foundStale, foundMissing, foundZombie := false, false, false
+	for _, l := range validation.Lines {
+		switch l.Status {
+		case fvStale:
+			if l.AnimalID == fx.adLibID || l.AnimalID == fx.animalIDs[8] {
+				foundStale = true
+			}
+		case fvMissing:
+			if l.AnimalID == fx.nullTimesID {
+				foundMissing = true
+			}
+		case fvZombie:
+			if l.AnimalID == zAnimal {
+				foundZombie = true
+			}
+		case fvHumanOnly:
+			require.Equal(t, fx.dietOnlyID, l.AnimalID, "human-covered animal: %d", l.AnimalID)
+		}
+	}
+	require.True(t, foundStale, "stale schedules must be reported")
+	require.True(t, foundMissing, "the §8.1 hole must be reported")
+	require.True(t, foundZombie, "the zombie plan must be reported")
+
+	// The repair converges everything.
+	repair, err := RunCarePlanFeedingRepair(db)
+	require.NoError(t, err)
+	require.NotNil(t, repair)
+	require.True(t, repair.Healthy(), "after the repair every legacy trace is covered")
+	require.GreaterOrEqual(t, repair.Repaired, 2, "the two stale schedules are rewritten")
+	require.Equal(t, 1, repair.Created, "exactly one plan was created")
+	require.Equal(t, 1, repair.ZombiesRetired, "the zombie plan is retired")
+	require.Equal(t, 1, repair.HumanOnly, "the human plan counts as covered (converter leaves it alone)")
+
+	// Post-repair state, read back from the DB:
+	// (a) the start==end plan carries the plain schedule + grace 300;
+	var adLibAfter models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.adLibID, careplan.KindFeeding).First(&adLibAfter))
+	// MySQL JSON normalization: compare canonically (see round-trip note).
+	require.Equal(t, canonicalSchedule(`{"times":["10:00"],"every_days":1,"anchor":"intake","grace_minutes":300}`), canonicalSchedule(string(adLibAfter.Schedule)))
+	require.True(t, adLibAfter.Active)
+	// (b) the window row carries its grace again;
+	var variantAfter models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", fx.animalIDs[8], "%grains pigeons eau%").First(&variantAfter))
+	variantParsed, err := careplan.ParseScheduleJSON(variantAfter.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, 180, variantParsed.GraceMinutes, "window row grace = 360/2")
+	require.NotNil(t, variantParsed.Repeat)
+	// (c) the deleted plan is back, flagged "à vérifier" (fallback row);
+	var recreated []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.nullTimesID, careplan.KindFeeding).All(&recreated))
+	require.Len(t, recreated, 1, "the §8.1 hole is closed")
+	require.Contains(t, recreated[0].Name, "à vérifier")
+	// (d) the zombie is inactive;
+	var zombieAfter models.CareAnimalPlan
+	require.NoError(t, db.Where("id = ?", zombiePlans[0].ID).First(&zombieAfter))
+	require.False(t, zombieAfter.Active)
+	// (e) the human plan is untouched (canonical equality — the JSON column
+	// normalizes bytes on insert; "untouched" means same DOC, not same bytes).
+	var humanAfter models.CareAnimalPlan
+	require.NoError(t, db.Where("id = ?", human.ID).First(&humanAfter))
+	require.Equal(t, canonicalSchedule(string(human.Schedule)), canonicalSchedule(string(humanAfter.Schedule)))
+	require.True(t, humanAfter.Active)
+
+	// Idempotency: second repair = no-op (marker).
+	require.NoError(t, db.RawQuery("DELETE FROM care_plan_conversion WHERE `key` = ?", ConversionMarkerKeyV5).Exec())
+	second, err := RunCarePlanFeedingRepair(db)
+	require.NoError(t, err)
+	require.NotNil(t, second)
+	require.Equal(t, 0, second.Repaired, "no residual drift")
+	require.Equal(t, 0, second.Missing)
+	require.Equal(t, 0, second.ZombiesRetired, "the zombie is already inactive")
+	require.Equal(t, 1, second.HumanOnly, "the human plan is still left alone")
+
+	// The read-only validation now PASSES (missing == 0, no stale lines).
+	var final *FeedingValidationReport
+	require.NoError(t, db.Transaction(func(tx *pop.Connection) error {
+		var err error
+		final, err = ValidateLegacyFeedingConversion(tx, false)
+		return err
+	}))
+	require.True(t, final.Healthy())
+	for _, l := range final.Lines {
+		require.NotEqual(t, fvStale, l.Status, "no stale converter schedule may survive: %+v", l)
+		require.NotEqual(t, fvMissing, l.Status, "no §8.1 hole may survive: %+v", l)
 	}
 }

@@ -48,6 +48,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// startup_v5 one-shot feeding repair + validation (bugs.md BUG-50,
+	// 2026-10-27): converge converter-owned feeding plans to the corrected
+	// BUG-50 semantics (start==end rows → plain single-slot schedule,
+	// legacy grace period/2) and persist the per-animal validation report
+	// against the original legacy columns — "All animals must be validated
+	// with original information!". Human-authored plans are never touched.
+	if err := actions.RunCarePlanFeedingRepairAtBoot(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

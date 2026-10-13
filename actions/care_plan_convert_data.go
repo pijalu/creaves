@@ -30,11 +30,15 @@ type feedingEntry struct {
 	AnimalID int
 	Label    string
 	Times    []careplan.TimeOfDay
-	// Repeat, non-nil for exact legacy triples (BUG-36): the schedule is
+	// Repeat, non-nil for windowed legacy triples (BUG-36): the schedule is
 	// stored in the repeat authoring form — block + expanded times.
+	// start==end rows (zero-length window) carry NO repeat (BUG-50).
 	Repeat *careplan.Repeat
 	Force  bool
 	Diet   string
+	// GraceMinutes: legacy lateness cadence (period/2, BUG-50); 0 keeps
+	// the §4.3 default.
+	GraceMinutes int
 	// Fallback marks best-effort conversions (incomplete legacy data): the
 	// plan is still created — the no-loss rule — but flagged "à vérifier".
 	Fallback bool
@@ -76,6 +80,22 @@ func legacyFeedingSchedule(a models.Animal) ([]careplan.TimeOfDay, *careplan.Rep
 			To:           careplan.TimeOfDay{Hour: a.FeedingEnd.Time.Hour(), Minute: a.FeedingEnd.Time.Minute()},
 			EveryMinutes: a.FeedingPeriod,
 		}
+		// BUG-50 (2026-10-27 user report, animal 10231 "from 10:00 to 10:00
+		// every 10:00"): a ZERO-LENGTH window (start == end) with a period
+		// is the legacy "à disposition" encoding (≈37 in-care animals). The
+		// legacy reminder engine realizes it as ONE daily occurrence at
+		// start: after a feeding at start, calculateFeeding's heuristic end
+		// (end − period/2) sits before the feeding, so the next occurrence
+		// lands on start + 24 h — the period never generates a second slot,
+		// it only widens the late window (see legacyFeedingGraceMinutes).
+		// Storing repeat{from X, to X, every P} claimed a windowing
+		// precision the data does not carry and rendered verbatim in the
+		// protocol editor ("from 10:00 to 10:00 every 10:00"). Convert to
+		// the plain single-slot schedule — identical runtime behavior,
+		// honest display, exact translation (no fallback flag).
+		if r.From == r.To && r.EveryMinutes > 0 {
+			return []careplan.TimeOfDay{r.From}, nil, false
+		}
 		if times := careplan.ExpandRepeat(r); len(times) > 0 {
 			if r.FitsCap() {
 				// Exact translation: repeat block + expanded times.
@@ -99,6 +119,17 @@ func legacyFeedingSchedule(a models.Animal) ([]careplan.TimeOfDay, *careplan.Rep
 		return []careplan.TimeOfDay{{Hour: s.Hour(), Minute: s.Minute()}}, nil, true
 	}
 	return []careplan.TimeOfDay{{Hour: 9, Minute: 0}}, nil, true
+}
+
+// legacyFeedingGraceMinutes carries the legacy lateness cadence into the
+// §4.3 schedule (BUG-50): calculateFeeding flagged a missed feeding late
+// once it was older than half the period (criticalLimit = now − period/2).
+// 0 keeps the §4.3 default (60 min) for rows without a usable period.
+func legacyFeedingGraceMinutes(period int) int {
+	if period > 0 {
+		return period / 2
+	}
+	return 0
 }
 
 // NormalizeDiet is the §8.1 cluster key: trimmed, case-folded diet text.
@@ -156,13 +187,14 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 	for _, a := range animals {
 		times, repeat, fallback := legacyFeedingSchedule(a)
 		entry := feedingEntry{
-			AnimalID: a.ID,
-			Label:    animalLabel(a),
-			Times:    times,
-			Repeat:   repeat,
-			Force:    a.ForceFeed,
-			Fallback: fallback,
-			Diet:     NormalizeDiet(a.Feeding.String),
+			AnimalID:     a.ID,
+			Label:        animalLabel(a),
+			Times:        times,
+			Repeat:       repeat,
+			Force:        a.ForceFeed,
+			Diet:         NormalizeDiet(a.Feeding.String),
+			GraceMinutes: legacyFeedingGraceMinutes(a.FeedingPeriod),
+			Fallback:     fallback,
 		}
 		if err := createConvertedFeedingPlan(tx, report, entry, feedCareID); err != nil {
 			return err
@@ -200,7 +232,7 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 		ActionPayload: buildSeedPayload(seedRuleDef{
 			Kind: careplan.KindFeeding, PayloadFood: e.Diet, ForceFeed: e.Force,
 		}, feedCareID),
-		Schedule:     []byte(buildConvertedScheduleJSON(e.Times, e.Repeat)),
+		Schedule:     []byte(buildConvertedScheduleJSON(e.Times, e.Repeat, e.GraceMinutes)),
 		ReplacesKind: true,
 		Active:       true,
 		CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK); §8.2 rollback targets name "(conversion)" + NULL author
@@ -252,13 +284,17 @@ func reconcileFeeding(report *ConversionReport, animals []models.Animal) {
 
 // buildConvertedScheduleJSON renders the §4.3 schedule of a converted row.
 // Exact legacy triples (BUG-36) carry the repeat authoring form — block +
-// expanded times; fallback rows are plain slot lists.
-func buildConvertedScheduleJSON(times []careplan.TimeOfDay, repeat *careplan.Repeat) string {
+// expanded times; fallback rows are plain slot lists. A non-default
+// grace_minutes (legacy period/2, BUG-50) rides in the document.
+func buildConvertedScheduleJSON(times []careplan.TimeOfDay, repeat *careplan.Repeat, graceMinutes int) string {
 	slots := make([]string, len(times))
 	for i, t := range times {
 		slots[i] = `"` + t.String() + `"`
 	}
 	doc := `{"times":[` + strings.Join(slots, ",") + `],"every_days":1,"anchor":"intake"`
+	if graceMinutes > 0 && graceMinutes != 60 {
+		doc += fmt.Sprintf(`,"grace_minutes":%d`, graceMinutes)
+	}
 	if repeat != nil {
 		doc += fmt.Sprintf(",\"repeat\":{\"from\":%q,\"to\":%q,\"every_minutes\":%d}",
 			repeat.From.String(), repeat.To.String(), repeat.EveryMinutes)

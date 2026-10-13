@@ -566,6 +566,11 @@ func TestCarePlanDayPlanHTMLRender(t *testing.T) {
 
 func TestCarePlanSkipDeferRequireReasonAndClamp(t *testing.T) {
 	f := setupPlanFixture(t)
+	// R8-5/BUG-30: the day-plan JSON applies the seeded 8h future cap, and
+	// tomorrow 01:00/03:00 is 7-31h ahead depending on the wall clock —
+	// without uncapping this test only passes after ~19:00. Show-everything
+	// mode (NULL caps) makes both occurrences visible at any run time.
+	uncapDayPlanForTest(t, models.DB)
 	client, baseURL := planAdminClient(t)
 	token := planToken(t, client, baseURL)
 

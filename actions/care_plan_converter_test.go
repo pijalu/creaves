@@ -246,7 +246,7 @@ func TestNormalizeDiet(t *testing.T) {
 func TestBuildConvertedScheduleJSON(t *testing.T) {
 	raw := buildConvertedScheduleJSON([]careplan.TimeOfDay{
 		{Hour: 10, Minute: 0}, {Hour: 18, Minute: 30},
-	}, nil)
+	}, nil, 0)
 	sched, err := careplan.ParseScheduleJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("converted schedule does not parse: %v", err)
@@ -274,7 +274,7 @@ func TestBuildConvertedScheduleJSONRepeatForm(t *testing.T) {
 		EveryMinutes: 120,
 	}
 	times := careplan.ExpandRepeat(r)
-	raw := buildConvertedScheduleJSON(times, &r)
+	raw := buildConvertedScheduleJSON(times, &r, 0)
 	sched, err := careplan.ParseScheduleJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("repeat-form schedule does not parse/validate: %v", err)
@@ -303,7 +303,7 @@ func TestBuildConvertedScheduleJSONRepeatForm(t *testing.T) {
 		To:           careplan.TimeOfDay{Hour: 6, Minute: 0},
 		EveryMinutes: 240,
 	}
-	raw = buildConvertedScheduleJSON(careplan.ExpandRepeat(on), &on)
+	raw = buildConvertedScheduleJSON(careplan.ExpandRepeat(on), &on, 0)
 	sched, err = careplan.ParseScheduleJSON([]byte(raw))
 	if err != nil {
 		t.Fatalf("overnight repeat-form schedule does not parse/validate: %v", err)
@@ -377,12 +377,89 @@ func TestLegacyFeedingScheduleRepeatForm(t *testing.T) {
 		t.Errorf("period=0: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
 	}
 
+	// BUG-50: start==end rows (≈37 in-care animals: the "à disposition"
+	// grain cages) carry a period but a ZERO-LENGTH window. The legacy
+	// reminder engine (feeding.go calculateFeeding) answers a feeding at
+	// start with the heuristic end = end − period/2 < last ⇒ next =
+	// start + 24 h — ONE daily occurrence at start; the period only
+	// widens the late window (period/2). The pre-BUG-50 converter stored
+	// repeat{from X, to X, every P}, which the protocol editor renders
+	// verbatim as "from 10:00 to 10:00 every 10:00" — nonsense to
+	// caregivers and a precision the legacy data does not carry. The
+	// conversion must be the plain single-slot schedule: same runtime
+	// behavior, no fake repeat block, NOT flagged (exact translation).
+	times, repeat, fallback = legacyFeedingSchedule(mk("10:00", "10:00", 600))
+	if fallback {
+		t.Error("start==end must not be flagged à vérifier (exact translation)")
+	}
+	if repeat != nil {
+		t.Errorf("start==end must not store a repeat block, got %+v", repeat)
+	}
+	if len(times) != 1 || times[0].String() != "10:00" {
+		t.Errorf("start==end times = %v, want [10:00]", times)
+	}
+
+	// start==end with a degenerate period keeps the flagged fallback slot
+	// (no recurrence information at all).
+	times, repeat, fallback = legacyFeedingSchedule(mk("19:00", "19:00", 0))
+	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "19:00" {
+		t.Errorf("start==end period=0: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
+	}
+
 	// Over-cap window (period 1 min over 23:59 h → 1440 slots): the repeat
 	// block would fail validation — keep the capped slots, flag for review.
 	times, repeat, fallback = legacyFeedingSchedule(mk("00:00", "23:59", 1))
 	if !fallback || repeat != nil || len(times) != 24 {
 		t.Errorf("over-cap: len(times)=%d repeat=%+v fallback=%v, want 24 capped slots, no repeat, flagged",
 			len(times), repeat, fallback)
+	}
+}
+
+// TestLegacyFeedingGraceMinutes pins the BUG-50 lateness faithfulness:
+// the legacy day plan marked a missed slot late once it was older than
+// half the period (calculateFeeding criticalLimit = now − period/2). The
+// converted schedule carries that cadence as grace_minutes; rows without
+// a usable period keep the §4.3 default (60).
+func TestLegacyFeedingGraceMinutes(t *testing.T) {
+	cases := []struct {
+		period, want int
+	}{
+		{0, 0},   // no period → §4.3 default (omit from the document)
+		{60, 30}, // faithful even below the default
+		{240, 120},
+		{480, 240},
+		{600, 300},
+	}
+	for _, tc := range cases {
+		if got := legacyFeedingGraceMinutes(tc.period); got != tc.want {
+			t.Errorf("legacyFeedingGraceMinutes(%d) = %d, want %d", tc.period, got, tc.want)
+		}
+	}
+}
+
+// TestBuildConvertedScheduleJSONGrace: a non-default grace rides in the
+// document and parses; the default (60) and the no-period 0 stay omitted
+// so the §4.3 default applies.
+func TestBuildConvertedScheduleJSONGrace(t *testing.T) {
+	times := []careplan.TimeOfDay{{Hour: 10, Minute: 0}}
+
+	raw := buildConvertedScheduleJSON(times, nil, 300)
+	if !strings.Contains(raw, `"grace_minutes":300`) {
+		t.Errorf("grace 300 missing from %s", raw)
+	}
+	sched, err := careplan.ParseScheduleJSON([]byte(raw))
+	if err != nil {
+		t.Fatalf("graced schedule does not parse: %v", err)
+	}
+	if sched.GraceMinutes != 300 {
+		t.Errorf("GraceMinutes = %d, want 300", sched.GraceMinutes)
+	}
+
+	for _, g := range []int{0, 60} {
+		raw := buildConvertedScheduleJSON(times, nil, g)
+		if strings.Contains(raw, "grace_minutes") {
+			t.Errorf("grace %d must stay omitted (§4.3 default), got %s", g, raw)
+		}
 	}
 }
 

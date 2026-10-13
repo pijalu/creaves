@@ -23,6 +23,97 @@ Every UI change must be implemented in all four locales (`en-US`, `fr`, `de`,
 
 ## Open items
 
+### BUG-50: feeding conversion lied about zero-length windows (2026-10-27)
+
+**Report:** prod `/animals/10231` showed "Protocole d'alimentation: grains
+tourterelles eau — 10:00" annotated "(from 10:00 to 10:00 every 10:00)" while the
+caregiver's original protocol is a single 10:00 daily meal. User verdict: "the
+conversion is incorrect and wasn't validated at all as requested", with the
+directive to review the whole conversion against the clean DB dump
+(`creaves-db-2026-10-13.gz`) and validate **every** animal against its legacy
+columns.
+
+**Root cause (two stacked defects):**
+1. **Misleading storage (BUG-36 residue).** For `start == end` rows
+   (`feeding_start = feeding_end`, any period) the converter stored an exact
+   window as repeat form `repeat:{from 10:00, to 10:00, every 600}`. The editor
+   renders those repeat fields verbatim → the nonsense "from 10:00 to 10:00
+   every 10:00" line. Legacy runtime (`calculateFeeding`, actions/feeding.go)
+   realizes start==end as ONE meal at `start` (the `end − period/2` heuristic
+   pushes the next occurrence past 24 h) — so the truthful translation is a
+   PLAIN single slot, no repeat block (same rule as BUG-10's exact-triple
+   decision, now extended to the degenerate window).
+2. **Silent legacy-cadence loss.** `feeding_period` was dropped entirely when
+   it only widened the late window (`criticalLimit = now − period/2`), so a
+   10:00 meal with period 600 became "late after 60 min" — a behavioral drift
+   for EVERY converted animal. Now carried as `grace_minutes = period/2`
+   (§4.3 field, omitted when 0 or the 60 default).
+
+**Premise note (kept visible on purpose):** the dump's row 10231 is
+10:00/10:00/period 600 — the user-quoted "10:00 - 18:00, toutes les 08:00 h (2
+repas)" matches rows 9110/10000/10276, not 10231. The old conversion was
+therefore column-faithful but semantically dishonest; this fix makes the
+storage state exactly what the legacy columns realize, and the new gate proves
+it for all animals.
+
+**Fixes:**
+- `legacyFeedingSchedule`: start==end && period>0 → `[]TimeOfDay{start}`, no
+  repeat, not flagged (exact translation; period-0 degenerate rows keep the
+  "à vérifier" fallback).
+- `legacyFeedingGraceMinutes(period) = period/2` (>0) rides in every converted
+  feeding schedule (`buildConvertedScheduleJSON`).
+- **startup_v5 repair + validation gate** (`actions/care_plan_feeding_repair.go`,
+  wired in `cmd/app/main.go` after v4): for EVERY in-care animal with a legacy
+  feeding trace, recompute the expected converter plan and compare CANONICALLY
+  (the `care_animal_plans.schedule` column is MySQL JSON → byte comparison is
+  wrong); repairs stale converter schedules, creates missing plans, retires
+  zombies (outtaken/empty-diet), never touches human-authored plans; writes the
+  `startup_v5` marker + persisted report. Grifts `careplan:validate-feeding`
+  (read-only gate) and `careplan:repair-feeding`.
+- Pinned RED→GREEN: `TestCarePlanFeedingRepairConvergesToLegacyColumns`
+  (stale/missing/zombie/human-only arms + idempotent second run);
+  start==end + grace unit tests in `care_plan_converter_test.go`; ad-lib animal
+  added to the MySQL round-trip fixture.
+
+**E2E validation (clean DB = the approved dump, fixture `creaves_review` on
+:3002, `admin`/`admin`, agent-browser):**
+- Full re-conversion from the dump: boot log — repair "209 animals considered,
+  ok 209, repaired 0, created 0, retired 0, zombies 0, missing 0";
+  `buffalo task careplan:validate-feeding` → "VALIDATION: PASS" (209/209 OK);
+  `startup_v5` marker + report row in `care_plan_conversion`.
+- 10231 stored schedule: `{"times": ["10:00"], "anchor": "intake",
+  "every_days": 1, "grace_minutes": 300}` — no repeat key.
+- 10231 UI: general tab "grains tourterelles eau — 10:00" with NO
+  "(de 10:00 à 10:00 toutes les 10:00)"; Protocole tab "Chaque jour à 10:00,
+  à partir de l'entrée, sans date de fin"; editor opens in slots mode with one
+  10:00 slot, repeat mode inactive (`/tmp/e2e_10231_plan.png`,
+  `/tmp/e2e_10231_fr.png`, `/tmp/e2e_10231_editor.png`,
+  `/tmp/e2e_10231_editor_schedule.png`).
+- 9110 (true window 10:00→18:00 every 480): BOTH meals kept — "Chaque jour à
+  10:00, 18:00", schedule `times [10:00, 18:00] + repeat{10:00→18:00, 480} +
+  grace 240` (`/tmp/e2e_9110_plan.png`).
+
+**Related:** supersedes the BUG-36 repeat-form storage for the degenerate
+window; same no-loss spirit as BUG-10; the canonical-compare gotcha (MySQL JSON
+normalization) is the same trap noted in the R4-7.24 name round.
+
+**Gates:** `go vet ./...`, `staticcheck ./...`, gocognit/gocyclo (no new
+offenders), `go test -count=1 -race -cover ./...` all packages OK,
+`git diff --check`.
+
+**Also fixed in this round (pre-existing suite breaks, found while running the
+gates — both fail on the committed tree without this round's changes):**
+- `TestCarePlanSkipDeferRequireReasonAndClamp` anchored tomorrow 01:00/03:00 but
+  never uncapped the day plan: since R8-5/BUG-30 the seeded 8 h future cap
+  hides the 03:00 occurrence whenever the suite runs before ~19:00 — a
+  wall-clock flake, not a product bug. Now calls `uncapDayPlanForTest` (the
+  helper that exists for exactly this).
+- `TestAnimalsShowHidesBadgeWhenRatingNull` (issue #199-11) scanned the WHOLE
+  animal page for "badge-danger"; the care-plan editor wizard tabs legitimately
+  embed hidden `d-none` badge-danger spans there. The outcome badge (which
+  renders next to the outtake type) behaves correctly — the scan is now scoped
+  to the outcome list item (`outtakeSectionOf`).
+
 ### Fourth user review batch (2026-10-07) — style-consistency follow-ups
 
 **Status:** FIXED and VALIDATED (2026-10-07 early round) — pending user

@@ -111,15 +111,41 @@ func TestAnimalsShowHidesBadgeWhenRatingNull(t *testing.T) {
 	if !strings.Contains(body, "rating-test-null") {
 		t.Fatalf("null-rating animal show missing outtake type name")
 	}
+	// Issue #199-11 scopes the rule to the OUTCOME badge, which renders next
+	// to the outtake type name. The scan must stay inside that list item:
+	// the animal sheet legitimately embeds other badge-danger sources
+	// (care-plan editor wizard tabs, treatment state badges) that this issue
+	// never regulated.
+	outcome := outtakeSectionOf(t, body, "rating-test-null")
 	for _, word := range []string{"badge-danger", "badge-success", ">Negative<", ">Positive<", ">Neutral<"} {
-		if strings.Contains(body, word) {
-			t.Errorf("null-rating animal show must not contain %q", word)
+		if strings.Contains(outcome, word) {
+			t.Errorf("null-rating animal outcome section must not contain %q", word)
 		}
 	}
 
 	// rated type: badge present.
 	body = animalShowBody(t, client, baseURL, ratedAnimal)
-	if !strings.Contains(body, "badge-danger") || !strings.Contains(body, ">Negative<") {
-		t.Errorf("rated (-1) animal show must render a danger/Negative badge")
+	outcome = outtakeSectionOf(t, body, "rating-test-neg")
+	if !strings.Contains(outcome, "badge-danger") || !strings.Contains(outcome, ">Negative<") {
+		t.Errorf("rated (-1) animal outcome section must render a danger/Negative badge")
 	}
+}
+
+// outtakeSectionOf returns the list item of the animal sheet that carries
+// the given outtake type name — the outcome badge renders inside it.
+func outtakeSectionOf(t *testing.T, body, typeName string) string {
+	t.Helper()
+	i := strings.Index(body, typeName)
+	if i < 0 {
+		t.Fatalf("animal show missing outtake type %q", typeName)
+	}
+	start := strings.LastIndex(body[:i], "<li")
+	if start < 0 {
+		t.Fatalf("animal show: no list item before outtake type %q", typeName)
+	}
+	end := strings.Index(body[i:], "</li>")
+	if end < 0 {
+		t.Fatalf("animal show: no list item end after outtake type %q", typeName)
+	}
+	return body[start : i+end+len("</li>")]
 }
