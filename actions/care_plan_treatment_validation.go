@@ -115,7 +115,7 @@ func expectedTreatmentSeries(tx *pop.Connection, known map[string]struct{}, grou
 	labels := map[int]string{}
 	for _, key := range order {
 		s := groups[key]
-		name, kind, _, _ := treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
+		name, kind, _, _ := routedTreatmentSeriesName(tx, known, s)
 		want[treatmentWantKey{s.animalID, name}] = kind
 		labels[s.animalID] = fmt.Sprintf("animal %d", s.animalID)
 	}
@@ -184,6 +184,14 @@ func RunCarePlanTreatmentRefresh(db *pop.Connection) (int, error) {
 		return 0, err
 	}
 	return created, nil
+}
+
+// ReconvertTreatmentSeries runs the treatment-series conversion inside the
+// CALLER's transaction (careplan:reconvert-treatments BUG-52 cadence
+// repair: the grift deletes the stale converter plans first, then this
+// rebuilds them with the current routing/cadence).
+func ReconvertTreatmentSeries(tx *pop.Connection, rep *ConversionReport) error {
+	return convertTreatmentSeries(tx, rep)
 }
 
 // RunCarePlanTreatmentRefreshAtBoot refreshes treatment coverage on

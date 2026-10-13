@@ -529,3 +529,37 @@ func TestConvertDataEmitsNoCageMatchers(t *testing.T) {
 		}
 	}
 }
+
+// TestTreatmentSeriesCadence pins the BUG-52 cadence inference: a single
+// date or a dense daily run steps 1; a constant gap G (incl. across month
+// boundaries) steps G; mixed gaps are irregular (0 — flagged for review).
+func TestTreatmentSeriesCadence(t *testing.T) {
+	mk := func(dates ...string) *treatmentSeries {
+		s := &treatmentSeries{dates: map[string]bool{}}
+		for _, d := range dates {
+			s.dates[d] = true
+		}
+		return s
+	}
+	cases := []struct {
+		name  string
+		dates []string
+		want  int
+	}{
+		{"single date", []string{"2026-10-15"}, 1},
+		{"dense daily run", []string{"2026-10-15", "2026-10-16", "2026-10-17"}, 1},
+		{"regular every-3 (BUG-52 bandage shape)", []string{"2026-10-15", "2026-10-18", "2026-10-21", "2026-10-24"}, 3},
+		{"two dates gap 3", []string{"2026-10-15", "2026-10-18"}, 3},
+		{"gap 1 across month boundary is daily", []string{"2026-01-31", "2026-02-01"}, 1},
+		{"regular gap across month boundary", []string{"2026-01-30", "2026-02-02"}, 3},
+		{"irregular mixed gaps", []string{"2026-10-15", "2026-10-16", "2026-10-24"}, 0},
+		{"two dates gap 1 is daily", []string{"2026-10-15", "2026-10-16"}, 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := treatmentSeriesCadence(mk(tc.dates...)); got != tc.want {
+				t.Errorf("treatmentSeriesCadence(%v) = %d, want %d", tc.dates, got, tc.want)
+			}
+		})
+	}
+}

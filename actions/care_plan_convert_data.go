@@ -335,56 +335,79 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 	report.Treatments.Series = len(groups)
 
 	for _, key := range order {
-		s := groups[key]
-		times := BitmapToTimes(s.bitmap)
-		if len(times) == 0 {
-			times = []careplan.TimeOfDay{{Hour: 8, Minute: 0}} // no-loss: keep the reminder alive
-		}
-		duration := int(s.last.Sub(s.first).Hours()/24) + 1
-		label := fmt.Sprintf("animal %d", s.animalID)
-
-		// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped.
-		name, kind, payload, reason := treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
-
-		p := &models.CareAnimalPlan{
-			AnimalID:      s.animalID,
-			Name:          name,
-			ActionKind:    kind,
-			ActionPayload: payload,
-			Schedule: []byte(fmt.Sprintf(
-				`{"times":[%s],"every_days":1,"anchor":"fixed","anchor_date":"%s","duration_days":%d}`,
-				timesJSON(times), s.first.Format("2006-01-02"), duration)),
-			ReplacesKind: false,
-			Active:       true,
-			CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
-		}
-		// Idempotent re-run guard: one converted plan per animal+name.
-		// COLLATE utf8mb4_bin: see feeding guard above — case/accent-only
-		// differences in legacy drug names must NOT dedupe distinct series.
-		// COLLATE on the column, not the placeholder (MariaDB Error 1253).
-		var n []struct {
-			C int64 `db:"c"`
-		}
-		if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name COLLATE utf8mb4_bin = ? AND created_by IS NULL",
-			s.animalID, name).All(&n); err != nil {
+		if err := convertOneTreatmentSeries(tx, report, known, groups[key]); err != nil {
 			return err
 		}
-		if len(n) > 0 && n[0].C > 0 {
-			report.Reconciliation.TreatmentOK++
-			continue
-		}
-		verrs, err := tx.ValidateAndCreate(p)
-		if err != nil {
-			return err
-		}
-		if verrs.HasAny() {
-			return fmt.Errorf("converted treatment plan invalid (animal %d): %v", s.animalID, verrs)
-		}
-		report.Treatments.PlansCreated++
-		report.Reconciliation.TreatmentOK++
-		report.Treatments.Lines = append(report.Treatments.Lines,
-			ConversionLine{s.animalID, label, fmt.Sprintf("%s → #%s (%d j)", reason, p.ID, duration)})
 	}
+	return nil
+}
+
+// convertOneTreatmentSeries converts one grouped series into its care plan
+// row (idempotent — skips when the converted plan already exists) and
+// updates the conversion report.
+func convertOneTreatmentSeries(tx *pop.Connection, report *ConversionReport, known map[string]struct{}, s *treatmentSeries) error {
+	times := BitmapToTimes(s.bitmap)
+	if len(times) == 0 {
+		times = []careplan.TimeOfDay{{Hour: 8, Minute: 0}} // no-loss: keep the reminder alive
+	}
+	// BUG-52 cadence: a REGULARLY spaced series (every gap = G days)
+	// converts to every_days:G with duration = its date count — the day
+	// plan then lands exactly on the legacy dates (duration_days counts
+	// GENERATED days). Daily and single-date series keep every_days:1
+	// with the calendar-span window. An IRREGULAR series (mixed gaps —
+	// no single step fits) stays daily (never hides a dose) under a
+	// "(à vérifier)" name suffix: over-reminding is visible, a hidden
+	// dose is not.
+	cadence := treatmentSeriesCadence(s)
+	everyDays := 1
+	duration := int(s.last.Sub(s.first).Hours()/24) + 1
+	if cadence > 1 {
+		everyDays = cadence
+		duration = len(s.dates)
+	}
+	label := fmt.Sprintf("animal %d", s.animalID)
+
+	// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped.
+	name, kind, payload, reason := routedTreatmentSeriesName(tx, known, s)
+
+	p := &models.CareAnimalPlan{
+		AnimalID:      s.animalID,
+		Name:          name,
+		ActionKind:    kind,
+		ActionPayload: payload,
+		Schedule: []byte(fmt.Sprintf(
+			`{"times":[%s],"every_days":%d,"anchor":"fixed","anchor_date":"%s","duration_days":%d}`,
+			timesJSON(times), everyDays, s.first.Format("2006-01-02"), duration)),
+		ReplacesKind: false,
+		Active:       true,
+		CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
+	}
+	// Idempotent re-run guard: one converted plan per animal+name.
+	// COLLATE utf8mb4_bin: see feeding guard above — case/accent-only
+	// differences in legacy drug names must NOT dedupe distinct series.
+	// COLLATE on the column, not the placeholder (MariaDB Error 1253).
+	var n []struct {
+		C int64 `db:"c"`
+	}
+	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name COLLATE utf8mb4_bin = ? AND created_by IS NULL",
+		s.animalID, name).All(&n); err != nil {
+		return err
+	}
+	if len(n) > 0 && n[0].C > 0 {
+		report.Reconciliation.TreatmentOK++
+		return nil
+	}
+	verrs, err := tx.ValidateAndCreate(p)
+	if err != nil {
+		return err
+	}
+	if verrs.HasAny() {
+		return fmt.Errorf("converted treatment plan invalid (animal %d): %v", s.animalID, verrs)
+	}
+	report.Treatments.PlansCreated++
+	report.Reconciliation.TreatmentOK++
+	report.Treatments.Lines = append(report.Treatments.Lines,
+		ConversionLine{s.animalID, label, fmt.Sprintf("%s → #%s (%d j)", reason, p.ID, duration)})
 	return nil
 }
 
@@ -427,6 +450,45 @@ func groupTreatmentSeries(rows []models.Treatment) (map[string]*treatmentSeries,
 		s.dates[t.Date.Format("2006-01-02")] = true
 	}
 	return groups, order
+}
+
+// treatmentSeriesCadence infers the day-step of a series from its sorted
+// dates: 1 for a single date or a dense daily run, the constant gap G for a
+// regularly spaced series (BUG-52), 0 when the gaps are mixed (no single
+// step reproduces the legacy dates).
+func treatmentSeriesCadence(s *treatmentSeries) int {
+	if len(s.dates) <= 1 {
+		return 1
+	}
+	days := make([]int, 0, len(s.dates))
+	for d := range s.dates {
+		t, err := time.Parse("2006-01-02", d)
+		if err != nil {
+			return 0 // defensive: grouping only writes Format()ed keys
+		}
+		days = append(days, int(t.Truncate(24*time.Hour).Unix()/86400))
+	}
+	sort.Ints(days)
+	gap := days[1] - days[0]
+	for i := 2; i < len(days); i++ {
+		if days[i]-days[i-1] != gap {
+			return 0 // irregular: mixed gaps
+		}
+	}
+	return gap
+}
+
+// routedTreatmentSeriesName is the ONE name builder for a converted
+// treatment series — converter, validator and refresh must all see the same
+// plan name. It applies the M5 routing then flags irregular-cadence series
+// with the converter's "(à vérifier)" suffix (deduped: some routing arms
+// already carry it).
+func routedTreatmentSeriesName(tx *pop.Connection, known map[string]struct{}, s *treatmentSeries) (name, kind string, payload []byte, reason string) {
+	name, kind, payload, reason = treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
+	if treatmentSeriesCadence(s) == 0 && !strings.HasSuffix(name, "(à vérifier)") {
+		name += " (à vérifier)"
+	}
+	return name, kind, payload, reason
 }
 
 // treatmentSeriesRouting is the M5 series router (B10-8): known drug +

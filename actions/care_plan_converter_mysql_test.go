@@ -1208,3 +1208,110 @@ func TestCarePlanTreatmentValidationAndRefresh(t *testing.T) {
 	require.True(t, w.Healthy(), "orphans never flip the gate")
 	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE id = ?", orphan.ID).Exec())
 }
+
+// TestCarePlanTreatmentCadence pins the BUG-52 cadence fix: a regularly
+// spaced series (constant gap G days) converts to every_days:G with
+// duration_days = date count, so the day plan lands EXACTLY on the legacy
+// dates instead of daily over-scheduling; an irregular series (mixed gaps)
+// stays daily under a "(à vérifier)" name suffix (visible over-reminder,
+// never a hidden dose); a single-date series is unchanged.
+func TestCarePlanTreatmentCadence(t *testing.T) {
+	requireMySQLTestDB(t)
+	db := models.DB
+	cleanupConverterRows(t)
+	fx := setupConverterFixture(t)
+	defer fx.f.cleanup()
+
+	drug := models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "Metacam 1,5 mg/ml"}
+	require.NoError(t, db.Create(&drug))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug.ID).Exec()
+	})
+
+	base := time.Now().Truncate(24*time.Hour).AddDate(0, 0, 1)
+	mkSeries := func(animalID int, offsets ...int) {
+		for _, off := range offsets {
+			tr := models.Treatment{
+				Date:       base.AddDate(0, 0, off),
+				AnimalID:   animalID,
+				Drug:       "Metacam 1,5 mg/ml",
+				Dosage:     "0,2 ml",
+				Timebitmap: models.Treatement_MORNING,
+			}
+			require.NoError(t, db.Create(&tr))
+		}
+	}
+
+	// (a) regular every-3-days series (the animal-9577 bandage shape).
+	idRegular := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	mkSeries(idRegular, 0, 3, 6, 9)
+	// (b) irregular series: mixed gaps (1 and 8) — no single step fits.
+	idIrregular := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	mkSeries(idIrregular, 0, 1, 9)
+	// (c) single-date series — unchanged behavior.
+	idSingle := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	mkSeries(idSingle, 2)
+
+	created, err := RunCarePlanTreatmentRefresh(db)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, created, 3)
+
+	read := func(animalID int) models.CareAnimalPlan {
+		var p models.CareAnimalPlan
+		require.NoError(t, db.Where("animal_id = ? AND created_by IS NULL AND action_kind = ?",
+			animalID, careplan.KindMedication).First(&p))
+		return p
+	}
+
+	// (a) regular: every_days 3, duration 3 (generated days), occurrences
+	// land exactly on the legacy dates.
+	pRegular := read(idRegular)
+	require.Equal(t, "Traitement — Metacam 1,5 mg/ml", pRegular.Name)
+	sched, err := careplan.ParseScheduleJSON(pRegular.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, 3, sched.EveryDays)
+	require.Equal(t, 4, sched.DurationDays, "generated-day count = the 4 legacy dates")
+	occs := careplan.GenerateOccurrences(careplan.NewSource(careplan.SourceAnimal, pRegular.ID.String(), pRegular.Name, pRegular.ActionKind, sched),
+		&careplan.AnimalContext{ID: idRegular}, base.AddDate(0, 0, -1), base.AddDate(0, 0, 40))
+	gotDays := []string{}
+	for _, o := range occs {
+		gotDays = append(gotDays, o.DueAt.Format("2006-01-02"))
+	}
+	wantDays := []string{
+		base.Format("2006-01-02"), base.AddDate(0, 0, 3).Format("2006-01-02"),
+		base.AddDate(0, 0, 6).Format("2006-01-02"), base.AddDate(0, 0, 9).Format("2006-01-02"),
+	}
+	require.Equal(t, wantDays, gotDays, "regular series must produce EXACTLY the legacy dates (BUG-52: no daily over-schedule)")
+
+	// (b) irregular: flagged, stays daily (never hides a dose).
+	pIrregular := read(idIrregular)
+	require.Contains(t, pIrregular.Name, "(à vérifier)", "mixed-gap series must be flagged for human review")
+	schedB, err := careplan.ParseScheduleJSON(pIrregular.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, 1, schedB.EveryDays)
+	require.Equal(t, 10, schedB.DurationDays)
+
+	// (c) single date: plain daily one-day plan, no flag.
+	pSingle := read(idSingle)
+	require.NotContains(t, pSingle.Name, "(à vérifier)")
+	schedC, err := careplan.ParseScheduleJSON(pSingle.Schedule)
+	require.NoError(t, err)
+	require.Equal(t, 1, schedC.EveryDays)
+	require.Equal(t, 1, schedC.DurationDays)
+
+	// Validator stays healthy on all three (coverage is cadence-agnostic).
+	report, err := ValidateTreatmentConversion(db)
+	require.NoError(t, err)
+	require.True(t, report.Healthy(), "lines: %+v", report.Lines)
+
+	// Reconvert (BUG-52 one-shot repair path): deletes converter plans and
+	// rebuilds them — same names, same schedules, human rows untouched.
+	require.NoError(t, db.Transaction(func(tx *pop.Connection) error {
+		if err := tx.RawQuery("DELETE FROM care_animal_plans WHERE created_by IS NULL AND action_kind <> ?", careplan.KindFeeding).Exec(); err != nil {
+			return err
+		}
+		return ReconvertTreatmentSeries(tx, &ConversionReport{})
+	}))
+	pAgain := read(idRegular)
+	require.Equal(t, string(pRegular.Schedule), string(pAgain.Schedule), "reconvert must rebuild the identical cadence")
+}
