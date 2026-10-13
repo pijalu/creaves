@@ -16,10 +16,29 @@
      data-repeat-occurrences="<%= t("care_plan.editor.repeat_occurrences") %>"
      data-repeat-invalid="<%= t("care_plan.editor.repeat_invalid") %>"
      data-repeat-cap="<%= t("care_plan.editor.repeat_cap") %>"
-     data-mode-switch-confirm="<%= t("care_plan.editor.mode_switch_confirm") %>">
-  <div class="card mb-3">
-    <div class="card-body">
-      <h6 class="card-title"><%= t("care_plan.field.schedule") %></h6>
+     data-mode-switch-confirm="<%= t("care_plan.editor.mode_switch_confirm") %>"
+     data-validation-required="<%= t("care_plan.editor.validation.required") %>"
+     data-validation-slots="<%= t("care_plan.editor.validation.slots_required") %>"
+     data-validation-anchor-date="<%= t("care_plan.editor.validation.anchor_date_required") %>"
+     data-validation-dosage-choice="<%= t("care_plan.editor.validation.dosage_choice") %>">
+  <%# BUG-48: the grouped cards become a wizard-style tab strip — Content
+      (what) -> Schedule (when) -> Options (advanced). The active tab is
+      client state only (unlike the mode tabs, nothing is discarded on
+      switch). Next validates before advancing; Save stays host-side and
+      hosts call validate()/revealError() so server-side verrs also land
+      the user on the tab holding the problem. %>
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" href="#" role="tab" aria-selected="true" data-pe-wizard-tab="content"><%= t("care_plan.editor.content") %><span class="badge badge-danger badge-pill ml-1 d-none" data-pe-wizard-badge></span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="#" role="tab" aria-selected="false" data-pe-wizard-tab="schedule"><%= t("care_plan.field.schedule") %><span class="badge badge-danger badge-pill ml-1 d-none" data-pe-wizard-badge></span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="#" role="tab" aria-selected="false" data-pe-wizard-tab="options"><%= t("care_plan.editor.advanced") %></a>
+    </li>
+  </ul>
+  <div class="d-none pt-3" data-pe-wizard-pane="schedule">
       <div data-pe-warnings class="alert alert-warning d-none mb-2"></div>
       <%# BUG-36/BUG-43: two mutually exclusive authoring modes,
           presented as TABS — the active tab IS the mode state (no
@@ -82,9 +101,9 @@
           <input type="number" class="form-control" min="0" step="1" value="0" data-pe="durationDays">
         </div>
       </div>
-      <details>
-        <summary class="text-muted"><%= t("care_plan.editor.advanced") %></summary>
-        <div class="form-row mt-2">
+    </div>
+    <div class="d-none pt-3" data-pe-wizard-pane="options">
+      <div class="form-row">
           <div class="form-group col-md-4">
             <label><%= t("care_plan.editor.from_offset") %></label>
             <input type="number" class="form-control" min="0" step="1" value="0" data-pe="fromOffset">
@@ -149,16 +168,15 @@
             </div>
           </div>
         </div>
-      </details>
-    </div>
-  </div>
+      </div>
 
-  <div class="card mb-3">
-    <div class="card-body">
-      <h6 class="card-title"><%= t("care_plan.editor.content") %></h6>
+      <div class="pt-3" data-pe-wizard-pane="content">
 
       <div data-pe-kind="feeding">
-        <div class="form-group">
+        <%# BUG-47: the pinned BUG-44 select stays in the DOM (readPayload's
+            pinned() fallback serializes caretype_id from it) but is hidden -
+            a locked single-option field brings no value to the user. %>
+        <div class="form-group d-none">
           <label><%= t("care_plan.editor.caretype") %></label>
           <%# BUG-44: feeding is always the feeding caretype - pinned, read-only. %>
           <select class="form-control" data-pe="caretype" disabled>
@@ -234,8 +252,16 @@
         <input type="text" class="form-control" data-pe="instructions">
       </div>
     </div>
+
+    <%# BUG-48 wizard navigation: Back/Next move through the tab strip;
+        Next validates the entered content first (guided creation). The
+        host's Save button stays in the modal/footer and calls validate(). %>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-pe-wizard-back disabled><%= t("care_plan.editor.back") %></button>
+      <div class="text-danger small mx-2" data-pe-wizard-errors></div>
+      <button type="button" class="btn btn-outline-primary btn-sm" data-pe-wizard-next><%= t("care_plan.editor.next") %></button>
+    </div>
   </div>
-</div>
 </template>
 
 <script>
@@ -407,6 +433,137 @@ window.planEditor = (function () {
         err.classList.add('d-none');
       }
     }
+  }
+
+  // --- Wizard tabs (BUG-48) ---------------------------------------------
+
+  // WIZARD_TABS is the guided order: what -> when -> advanced options.
+  // The wizard strip is pure client state — switching never discards
+  // anything (unlike the mode tabs inside the Schedule pane).
+  var WIZARD_TABS = ['content', 'schedule', 'options'];
+
+  function wizardTab(root) {
+    var t = root.querySelector('[data-pe-wizard-tab].active');
+    return t ? t.getAttribute('data-pe-wizard-tab') : '';
+  }
+  function showWizardTab(root, name) {
+    root._peWizard = name;
+    $all(root, '[data-pe-wizard-tab]').forEach(function (tab) {
+      var on = tab.getAttribute('data-pe-wizard-tab') === name;
+      tab.classList.toggle('active', on);
+      tab.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    $all(root, '[data-pe-wizard-pane]').forEach(function (p) {
+      p.classList.toggle('d-none', p.getAttribute('data-pe-wizard-pane') !== name);
+    });
+    var i = WIZARD_TABS.indexOf(name);
+    var back = $(root, '[data-pe-wizard-back]');
+    var next = $(root, '[data-pe-wizard-next]');
+    if (back) { back.disabled = i <= 0; }
+    if (next) { next.classList.toggle('d-none', i >= WIZARD_TABS.length - 1); }
+  }
+
+  // refreshWizardBadges counts the .is-invalid marks per pane onto the
+  // tab labels — the user sees WHICH step holds a problem even while
+  // looking at another tab.
+  function refreshWizardBadges(root) {
+    $all(root, '[data-pe-wizard-tab]').forEach(function (tab) {
+      var name = tab.getAttribute('data-pe-wizard-tab');
+      var pane = root.querySelector('[data-pe-wizard-pane="' + name + '"]');
+      var n = pane ? pane.querySelectorAll('.is-invalid').length : 0;
+      var b = tab.querySelector('[data-pe-wizard-badge]');
+      if (b) { b.textContent = n ? String(n) : ''; b.classList.toggle('d-none', !n); }
+    });
+  }
+
+  // validateFields mirrors the server contract client-side so a NEW
+  // protocol is checked before any round trip: ValidateActionPayload
+  // (medication drug + exactly one dosage path, care caretype,
+  // observation prompt) and Schedule.Validate (>= 1 slot or a valid
+  // repeat, anchor=fixed needs anchor_date). Fields get is-invalid;
+  // returns [{tab, msg}...] — empty means valid. Raw mode (BUG-46)
+  // skips: the raw JSON documents are the server's call.
+  function validateFields(root) {
+    var st = root._peState;
+    var errs = [];
+    if (!st || st.rawMode) { return errs; }
+    var msg = function (k) { return root.getAttribute('data-validation-' + k) || k; };
+    var bad = function (tab, el, key) {
+      if (el) { el.classList.add('is-invalid'); }
+      errs.push({ tab: tab, el: el, msg: msg(key) });
+    };
+    // --- Content pane
+    var kind = st.kindEl.value;
+    if (kind === 'medication') {
+      var drug = $(root, '[data-pe="drug"]');
+      if (!drug.value.trim()) { bad('content', drug, 'required'); }
+      var fromTable = $(root, '[data-pe="dosageFromTable"]').checked;
+      var dose = $(root, '[data-pe="dosage"]');
+      if (fromTable && dose.value.trim()) { bad('content', dose, 'dosage-choice'); }
+      else if (!fromTable && !dose.value.trim()) { bad('content', dose, 'required'); }
+    } else if (kind === 'care') {
+      var ct = $(root, '[data-pe="caretypeCare"]');
+      if (!ct.value) { bad('content', ct, 'required'); }
+    } else if (kind === 'observation') {
+      var pr = $(root, '[data-pe="prompt"]');
+      if (!pr.value.trim()) { bad('content', pr, 'required'); }
+    }
+    // feeding: caretype pinned (BUG-44/47); cleanup/weighing: no required
+    // fields (§4.2) — nothing to check client-side.
+    // --- Schedule pane
+    if (getMode(root) === 'repeat') {
+      if (repeatError(root)) {
+        var rf = $(root, '[data-pe="repeatFrom"]');
+        if (rf) { rf.classList.add('is-invalid'); }
+        // reuses the BUG-36 translated repeat error (already on the root)
+        errs.push({ tab: 'schedule', el: rf, msg: root.getAttribute('data-repeat-invalid') || 'Invalid repeat range' });
+      }
+    } else {
+      var anyValid = $all(root, '[data-pe-slot]').some(function (i) { return /^\d{2}:\d{2}$/.test(i.value); });
+      if (!anyValid) {
+        var first = root.querySelector('[data-pe-slot]');
+        // EN 12h alt display: flag the VISIBLE input (BUG-38 pattern).
+        if (first && first._flatpickr && first._flatpickr.altInput) { first = first._flatpickr.altInput; }
+        bad('schedule', first, 'slots');
+      }
+    }
+    if ($(root, '[data-pe="anchor"]').value === 'fixed' && !$(root, '[data-pe="anchorDate"]').value) {
+      bad('schedule', $(root, '[data-pe="anchorDate"]'), 'anchor-date');
+    }
+    return errs;
+  }
+
+  // validate marks fields, fills the footer message line, badges the
+  // tabs and reveals the first offending pane. Returns true when valid.
+  function validate(root) {
+    // Clear only OUR marks; the BUG-35/38 slot-entry flags are managed
+    // by their own change listeners (an invalid slot value both stays
+    // flagged there and fails the anyValid check here).
+    $all(root, '[data-pe-wizard-pane] .is-invalid').forEach(function (el) {
+      if (!el.hasAttribute('data-pe-slot')) { el.classList.remove('is-invalid'); }
+    });
+    var errs = validateFields(root);
+    refreshWizardBadges(root);
+    var box = $(root, '[data-pe-wizard-errors]');
+    if (box) {
+      box.innerHTML = errs.map(function (e) { return '<div>' + e.msg + '</div>'; }).join('');
+      box.classList.toggle('mb-2', errs.length > 0);
+    }
+    if (errs.length) {
+      showWizardTab(root, errs[0].tab);
+      if (errs[0].el && errs[0].el.focus) { errs[0].el.focus(); }
+    }
+    return errs.length === 0;
+  }
+
+  // revealError maps a server-side verrs key (lowercase json tag, BUG-33)
+  // onto the wizard so a rejected save still lands the user on the tab
+  // holding the problem. Unknown keys (name, …) live outside the editor.
+  function revealError(root, key) {
+    var st = root._peState;
+    if (st && st.rawMode) { return; } // raw documents: the textarea is flagged
+    var tab = key === 'schedule' ? 'schedule' : (key === 'action_payload' ? 'content' : null);
+    if (tab) { showWizardTab(root, tab); }
   }
 
   // --- Authoring mode (BUG-36) -------------------------------------------
@@ -753,6 +910,13 @@ window.planEditor = (function () {
       var w = root.querySelector('.alert-warning:not([data-pe-warnings])');
       if (w) { w.remove(); }
       det.open = false;
+      // BUG-48: every (re)open restarts the wizard on the first step and
+      // drops stale validation marks from a previous editing session.
+      $all(root, '.is-invalid').forEach(function (el) { el.classList.remove('is-invalid'); });
+      refreshWizardBadges(root);
+      var eb = $(root, '[data-pe-wizard-errors]');
+      if (eb) { eb.innerHTML = ''; }
+      showWizardTab(root, 'content');
       var ps = tryParse(opts.schedule), pp = tryParse(opts.payload);
       if (ps.ok && pp.ok) {
         st.rawMode = false;
@@ -783,6 +947,14 @@ window.planEditor = (function () {
       if (e.target.getAttribute('data-pe') === 'anchor') {
         root.querySelector('[data-pe-anchor-date-group]').classList.toggle('d-none', e.target.value !== 'fixed');
       }
+      // BUG-48: a corrected field loses its validation mark immediately;
+      // badges follow the remaining marks, stale footer messages clear.
+      if (e.target.classList && e.target.classList.contains('is-invalid')) {
+        e.target.classList.remove('is-invalid');
+      }
+      refreshWizardBadges(root);
+      var eb = $(root, '[data-pe-wizard-errors]');
+      if (eb) { eb.innerHTML = ''; }
       sync(root);
     });
     root.querySelector('[data-pe-add-slot]').addEventListener('click', function () {
@@ -822,6 +994,24 @@ window.planEditor = (function () {
       var p = parseDuration(e.target.value);
       if (p != null && p > 0) { e.target.value = fmtMin(p); } // display normalized to H:MM
       updateRepeatCount(root); sync(root);
+    });
+    // BUG-48 wizard strip: clicks switch panes freely (nothing is
+    // discarded); Next validates before advancing so a new protocol is
+    // guided; Back never validates.
+    $all(root, '[data-pe-wizard-tab]').forEach(function (tab) {
+      tab.addEventListener('click', function (e) {
+        e.preventDefault();
+        showWizardTab(root, tab.getAttribute('data-pe-wizard-tab'));
+      });
+    });
+    $(root, '[data-pe-wizard-next]').addEventListener('click', function () {
+      if (!validate(root)) { return; }
+      var i = WIZARD_TABS.indexOf(wizardTab(root));
+      if (i >= 0 && i < WIZARD_TABS.length - 1) { showWizardTab(root, WIZARD_TABS[i + 1]); }
+    });
+    $(root, '[data-pe-wizard-back]').addEventListener('click', function () {
+      var i = WIZARD_TABS.indexOf(wizardTab(root));
+      if (i > 0) { showWizardTab(root, WIZARD_TABS[i - 1]); }
     });
     st.kindEl.addEventListener('change', function () {
       writePayload(root, st.kindEl.value, {});
@@ -866,7 +1056,14 @@ window.planEditor = (function () {
       });
     });
     refreshKind(root);
-    return { refresh: load, sync: function () { sync(root); } };
+    return {
+      refresh: load,
+      sync: function () { sync(root); },
+      // BUG-48: hosts call validate() before submit (blocks and reveals
+      // the offending tab) and revealError(k) on server verrs keys.
+      validate: function () { return validate(root); },
+      revealError: function (k) { revealError(root, k); }
+    };
   }
 
   return { attach: attach };

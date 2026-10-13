@@ -942,6 +942,9 @@
     }
     function save() {
       if (planEd) { planEd.sync(); }
+      // BUG-48: client-side guided validation blocks the save and reveals
+      // the wizard tab holding the problem (no server round trip).
+      if (planEd && !planEd.validate()) { return; }
       var body;
       try {
         body = {
@@ -977,6 +980,9 @@
                   // verrs keys are lowercase json tags (name, schedule, …)
                   var el = document.getElementById('CarePlan' + k.charAt(0).toUpperCase() + k.slice(1));
                   if (el) { el.classList.add('is-invalid'); }
+                  // BUG-48: a server-side rejection still lands the user on
+                  // the wizard tab holding the problem.
+                  if (planEd) { planEd.revealError(k); }
                 }
               }
               detail = parts.join(' ');

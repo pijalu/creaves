@@ -2851,3 +2851,141 @@ present). Retest expectation met.
 Paste `{garbage` in the schedule textarea → tabs hidden, banner shown,
 field edits do NOT touch the textarea; fix the JSON → structured editor
 resumes with the parsed values.
+
+## BUG-47 (minor) — Feeding protocol editor: locked "Care type" select shown but carries no value
+
+**Status:** FIXED 2026-11-13 — VERIFIED in browser (2026-11-13)
+**Severity:** Minor — dead UI. Since BUG-44 the feeding kind pins Care type
+to the feeding caretype: a disabled single-option select the user cannot
+change. It brings no information and adds noise; the value must still be
+transported in the payload (pinned fallback) and server-side normalization
+stays the safety net.
+**Found by:** user review 2026-11-13.
+
+### Fix
+
+`templates/care_plan/_editor.plush.html` — the feeding caretype form-group
+carries `d-none` (element kept in the DOM so `readPayload`'s `pinned()`
+fallback still serializes `caretype_id`). No locale change (nothing shown).
+Server normalization (BUG-44) unchanged.
+
+### Verification (browser, 2026-11-13)
+
+Animal 9969 feeding editor: no Care type row visible
+(`caretypeGroupHidden: true`, `caretypeVisible: false`), payload still
+carries `caretype_id fe439281-…`. Kind switch to care → 7-option enabled
+select visible; back to feeding → hidden again. 4 locales (fr/en-US/de/nl):
+caretype hidden everywhere, payload intact everywhere.
+
+### Plan
+
+Hide the feeding caretype form-group in
+`templates/care_plan/_editor.plush.html` (`d-none` on the wrapper, element
+kept in the DOM so `readPayload`'s `pinned()` fallback still serializes
+`caretype_id`). No locale change (nothing shown). Server normalization
+(BUG-44) unchanged.
+
+### Retest
+
+Feeding editor → no Care type row; save → payload still carries the
+feeding caretype id. Care kind → select still visible and enabled.
+
+## BUG-48 (enhancement of BUG-40) — Protocol editor: tab/wizard layout with guided validation
+
+**Status:** FIXED 2026-11-13 — VERIFIED in browser (2026-11-13)
+**Severity:** Enhancement — the grouped-cards layout (BUG-40) does not
+guide a user creating a NEW protocol, and server-side validation errors
+surface on the hidden transport textareas (BUG-33 marking), not on the
+visible structured field, with no indication of WHICH card holds the
+problem.
+**Found by:** user review 2026-11-13 (confirms the BUG-40 deferral
+condition: cards are insufficient).
+
+### Plan
+
+Turn the editor's cards into a wizard-style tab strip inside
+`templates/care_plan/_editor.plush.html` (shared by all 12 host
+templates, so one change covers every surface):
+
+- Tabs: **Content** (per-kind action fields) → **Schedule** (mode tabs,
+  slots/repeat, every-days/anchor/duration) → **Options** (advanced:
+  offsets, grace, display caps, weekdays). Default tab on open: Content.
+- **Next/Back** buttons inside the pane area (pure client-side tab
+  moves; Save stays host-side).
+- **Client-side validation** mirroring the server contract
+  (`ValidateActionPayload` / `Schedule.Validate`): Content tab requires
+  the kind's required field (feeding→caretype pinned, medication→drug +
+  one dosage path, care→caretype, observation→prompt); Schedule tab
+  requires ≥1 valid slot or a valid repeat, anchor=fixed requires a
+  date. Failures mark the visible field `is-invalid` and put a count
+  badge on the offending tab.
+- `attach` returns `{refresh, sync, validate, revealError}`.
+  `validate()` reveals the first invalid tab and returns false; hosts
+  call it before submit (animals/show modal save + care_rules form
+  submit). `revealError(key)` maps server verrs keys
+  (schedule→Schedule tab, action_payload→Content tab) so a server-side
+  rejection still lands the user on the right tab.
+- New locale keys (4 locales): `care_plan.editor.next`, `.back`,
+  `.validation.required`, `.validation.slots_required`,
+  `.validation.anchor_date_required`, `.validation.dosage_choice`.
+  Tab labels reuse `care_plan.editor.content`, `care_plan.field.schedule`,
+  `care_plan.editor.advanced`; the repeat error reuses the existing
+  `care_plan.editor.repeat_invalid` key.
+
+### Fix (all browser-verified 2026-11-13)
+
+- `templates/care_plan/_editor.plush.html` — the two cards + Advanced
+  disclosure become a wizard tab strip: **Content** (per-kind action
+  fields) → **Schedule** (mode tabs + slots/repeat + every/anchor/duration)
+  → **Options** (advanced: offsets, grace, display caps, weekdays).
+  Back/Next buttons in a footer; Next runs client validation first.
+  `validate()` mirrors the server contract (ValidateActionPayload +
+  Schedule.Validate): medication drug + exactly-one-dosage-path, care
+  caretype, observation prompt, ≥1 valid slot or valid repeat, anchor=fixed
+  needs a date. Marks fields `is-invalid`, puts count badges on tabs,
+  reveals the first offending pane, returns false. `revealError(key)` maps
+  server verrs keys (schedule/action_payload) onto the wizard so a rejected
+  save lands the user on the right tab. Raw mode (BUG-46) skips validation.
+  Every (re)open resets to the Content tab and clears stale marks.
+- Hosts wired: `templates/animals/show.plush.{html,fr,de,nl}.html` —
+  `save()` calls `planEd.validate()` before POST and `planEd.revealError(k)`
+  on each verrs key. `templates/care_rules/{new,edit}.plush.{html,fr,de,nl}.html`
+  — form submit gated via `e.preventDefault()` when invalid.
+- New locale keys ×4 (`locales/care_plan.{en-us,fr,de,nl}.yaml`):
+  `care_plan.editor.next`, `.back`, `.validation.required`,
+  `.validation.slots_required`, `.validation.anchor_date_required`,
+  `.validation.dosage_choice`. Tab labels reuse existing keys
+  (`care_plan.editor.content`/`field.schedule`/`editor.advanced`); the
+  repeat-mode error reuses `care_plan.editor.repeat_invalid`.
+
+### Verification (browser, 2026-11-13)
+
+- Edit plan (animal 9969): opens on Content tab (Back disabled, Next
+  visible); Next → Schedule → Options (Next hidden on last); Back works.
+- Blank slot + Next → stays on Schedule, slot `is-invalid`, badge "1" on
+  the Schedule tab, footer message "Add at least one time slot".
+- Medication kind + Save with empty drug/dosage → save blocked, both
+  fields flagged, badge "2" on Content, messages in footer, modal stays.
+- Server path: duplicate slots (08:00, 08:00) pass the client check but
+  the server rejects (strictly ascending) → 422 handled, schedule textarea
+  flagged, **Schedule tab revealed** (revealError), banner shows the
+  translated message. Fixing to 08:00/09:00 → save succeeds, plan created
+  (then deleted; DB clean).
+- FR repeat plan: cleared repeat-from + Next → stays on Schedule, field
+  flagged, message "Plage invalide : …" (reused repeat_invalid key).
+- 4 locales (fr/en-US/de/nl): tab labels + Back/Next translated
+  (Contenu/Horaires/Réglages avancés — Action content/Schedule/Advanced
+  settings — Aktionsinhalt/Zeitplan/Erweiterte Einstellungen —
+  Actie-inhoud/Tijdschema/Geavanceerde instellingen).
+- `/care_rules/new`: wizard tabs render, Content active by default.
+- Accidental fixture touch: editing plan `7a9b56cc` saved without `food`
+  during testing (kind-switch cleared content); restored via SQL — noted,
+  dev DB only.
+
+### Retest
+
+New protocol on animal 9969: opens on Content tab; Next with empty
+medication drug → stays, field flagged, badge on Content; valid →
+Schedule; invalid repeat → flagged on Next; Save with server-rejected
+schedule → Schedule tab revealed. 4 locales: tab labels + Next/Back
+translated. care_rules/new: same tabs, submit blocked when invalid.

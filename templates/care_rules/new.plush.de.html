@@ -110,7 +110,9 @@
   });
   if (pe) {
     var f = document.getElementById('RuleActionKind');
-    if (f && f.form) { f.form.addEventListener('submit', function () { pe.sync(); }); }
+    // BUG-48: sync then run the wizard's client-side validation; block the
+    // submit and reveal the offending tab when a required field is missing.
+    if (f && f.form) { f.form.addEventListener('submit', function (e) { pe.sync(); if (!pe.validate()) { e.preventDefault(); } }); }
   }
 })();
 </script>
