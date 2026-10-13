@@ -840,6 +840,28 @@ window.planEditor = (function () {
           writeSchedule(root, a.v);
           writePayload(root, st.kindEl.value, b.v);
           sync(root);
+        } else if (!st.rawMode) {
+          // BUG-46: mid-session entry of unparseable JSON must enter
+          // raw mode SYMMETRICALLY — otherwise the next field edit
+          // silently rewrites the textarea from the structured fields
+          // and the hand edit vanishes with no flag. Same end-state
+          // as attach-time raw mode: tabs hidden, banner shown,
+          // sync() stops touching the raw documents.
+          st.rawMode = true;
+          var mg2 = root.querySelector('[data-pe-mode-group]');
+          if (mg2) { mg2.classList.add('d-none'); }
+          if (!root.querySelector('.alert-warning:not([data-pe-warnings])')) {
+            var warn2 = document.createElement('div');
+            warn2.className = 'alert alert-warning';
+            warn2.textContent = opts.rawWarn || 'Raw JSON editing.';
+            root.insertBefore(warn2, root.firstChild);
+          }
+        }
+        // Flag the offending textarea while its content does not parse.
+        el.classList.toggle('is-invalid', !(el === opts.schedule ? a.ok : b.ok));
+        if (a.ok && b.ok) {
+          opts.schedule.classList.remove('is-invalid');
+          opts.payload.classList.remove('is-invalid');
         }
       });
     });

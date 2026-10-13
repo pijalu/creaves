@@ -2799,3 +2799,55 @@ correct occurrence; counters survive edit round-trip in all 4 locales.
 - Note: during cleanup a 2026-09-22 care row (fede6e57) was mistakenly
   deleted then re-inserted with the same id/timestamps (type=Repas) —
   dev DB only.
+
+## BUG-46 — Protocol editor: mid-session raw-JSON edits silently discarded
+
+**Status:** FIXED 2026-11-13 — VERIFIED in browser (2026-11-13)
+**Severity:** Minor — data-loss-shaped UX: pasting an unparseable schedule
+into the Advanced raw textarea mid-session leaves the garbage visible, but
+the next structured-field edit silently overwrites it (`sync()` rewrites
+the textarea from the fields). The raw text never becomes authoritative,
+no invalid flag is shown, and the user believes a hand edit was kept.
+**Found by:** E2E-PROTOCOL-EDITOR row 9.11 RETEST (2026-11-13). Attach-time
+raw mode (unparseable STORED schedule) still hides the mode tabs and keeps
+raw authoritative, but it is unreachable in practice: `schedule` columns
+are MySQL `json` type and reject invalid documents, so only mid-session
+entry can produce garbage — exactly the broken path.
+**Pre-existing:** behavior identical since the editor's introduction
+(3ddc805) — not a BUG-43 regression; 9.11's expectation was written for
+the attach-time path.
+
+### Plan
+
+On `change` of the schedule/payload textarea with unparseable content:
+enter raw mode symmetrically (hide `[data-pe-mode-group]`, show the raw
+banner, `st.rawMode = true` so `sync()` stops rewriting) — the same
+end-state as attach-time raw mode. Exiting raw on clean parse already
+works. Flag the textarea `is-invalid` while unparseable.
+
+### Fix
+
+- `templates/care_plan/_editor.plush.html` — raw mode is now symmetric:
+  entering unparseable JSON in a `data-pe-json` textarea mid-session flips
+  the editor into raw mode the same way an unparseable value at attach time
+  does (visual groups `[data-pe-mode-group]` hidden, warning banner shown
+  once, `st.rawMode = true`). While the pasted text stays unparseable the
+  textarea gets `is-invalid` (Bootstrap red border); flags clear on clean
+  parse. `writeSchedule`/`writePayload` already bail out when `st.rawMode`
+  is set, so subsequent visual edits can no longer clobber hand-edited JSON.
+
+### Verification (browser, 2026-11-13)
+
+Animal 9969 protocol editor, schedule textarea: paste `{garbage` → mode
+tabs + visual groups hidden, banner *« Ce JSON n'a pas pu être lu par
+l'éditeur visuel — modifiez-le ici directement. »* shown, textarea flagged
+`is-invalid`. Edit a visual field (grace 90) → editor stays raw, pasted
+text untouched (not overwritten). Paste back valid JSON → banner/tabs
+restore, visual reloads the hand-edited values (grace=90, slot 10:00
+present). Retest expectation met.
+
+### Retest
+
+Paste `{garbage` in the schedule textarea → tabs hidden, banner shown,
+field edits do NOT touch the textarea; fix the JSON → structured editor
+resumes with the parsed values.
