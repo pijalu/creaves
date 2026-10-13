@@ -13,12 +13,12 @@
     no feeding plan exists yet; the show page passes false). %>
 <%= if (feedingPlanSummary != nil && len(feedingPlanSummary) > 0) { %>
   <div class="p-2 mb-2 border rounded feeding-plan-summary">
-    <strong><i class="fa fa-cutlery" aria-hidden="true"></i> <%= t("animals.feeding.summary.title") %></strong>
+    <strong><i class="fas fa-utensils" aria-hidden="true"></i> <%= t("animals.feeding.summary.title") %></strong>
     <ul class="mb-1 pl-3">
       <%= for (fp) in feedingPlanSummary { %>
         <li>
           <strong><%= fp.Diet %></strong>
-          <%= if (fp.TimesLabel != "") { %> — <i class="fa fa-clock-o" aria-hidden="true"></i> <%= fp.TimesLabel %><% } %>
+          <%= if (fp.TimesLabel != "") { %> — <i class="far fa-clock" aria-hidden="true"></i> <%= fp.TimesLabel %><% } %>
           <%= if (fp.NeedsReview) { %><span class="badge badge-warning"><%= t("animals.feeding.summary.needs_review") %></span><% } %>
         </li>
       <% } %>

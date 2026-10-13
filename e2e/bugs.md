@@ -2114,8 +2114,48 @@ branch `feature/care-expert`, dev DB (animal 10372).
 
 ## BUG-31 (medium) — Blinking "?"/"!" FontAwesome placeholders on animal page: v4 icon names used but `v4-shims.js` is not loaded
 
-**Status:** OPEN
+**Status:** CLOSED 2026-10-13 — fix dispatched + retest PASS (see Fix /
+Verification below).
+
+### Fix
+
+Replaced the FontAwesome 4 icon names with their FA5 equivalents — no
+shims file added, the app keeps loading only `js/all.js`:
+
+| v4 class | FA5 class | Files |
+|---|---|---|
+| `fa fa-cutlery` | `fas fa-utensils` | `templates/animals/_feeding_summary.plush.html` (single variant, no locale forks) |
+| `fa fa-clock-o` | `far fa-clock` | idem |
+| `fa fa-pencil` | `fas fa-pencil-alt` | `templates/animals/show.plush.{html,fr,de,nl}.html` |
+| `fa fa-repeat` | `fas fa-redo` | `templates/config/sync_edit.plush.{html,fr,de,nl}.html` |
+
+### Verification
+
+1. Feeding banner `/animals/10372` (:3002 fixture): renders
+   `fas fa-utensils` + `far fa-clock`, zero v4 names in the page. PASS.
+2. Attachment comment save button: template-level check ×4 locale forks
+   (`fas fa-pencil-alt` at show.plush.html:1052 and fr/de/nl
+   equivalents). The button renders only when the animal has
+   attachments; the fixture has none, so page-level render not
+   exercisable — the class string is static markup, template-level
+   proof is sufficient.
+3. `/sync_configuration` (the page that renders the retry button — the
+   BUG-31 entry's `/sync_targets/…/edit` route was wrong; the button
+   lives in the target rows table of the sync-configuration page and
+   only when `Undeliverable > 0`): with one seeded undeliverable event
+   the button rendered with `fas fa-redo` + "Retry undeliverable" title;
+   seed rows removed after the check. PASS.
+4. `grep -rn "fa-clock-o\|fa-cutlery\|fa fa-pencil\b\|fa fa-repeat\b"
+   templates/` → 0 matches. PASS.
+5. Console warnings: not exercisable here (no browser session); verified
+   statically instead — every remaining icon name is a canonical FA5.15.4
+   name, so no "Could not find icon" path remains for these elements.
+
+**Status:** CLOSED — no v4 icon names left in templates; all rendered
+placeholders replaced by real FA5 icons.
+
 **Severity:** Medium (visual: animated blinking "?"/"!" SVG replaces the icon; looks broken and distracts on the animal page + feeding banner)
+
 **Found by:** User report on `/animals/10372#nav-care` (pasted the animated SVG); root-caused statically.
 
 ### Observed

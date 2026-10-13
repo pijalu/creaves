@@ -56,7 +56,7 @@
           <td class="text-center"><%= row.Counts.Unacked %></td>
           <td class="text-right text-nowrap">
             <%= if (row.Counts.Undeliverable > 0) { %>
-              <%= linkTo("/sync_targets/" + row.Target.ID + "/retry_undeliverable", {class: "btn btn-info btn-sm", "data-method": "POST", "data-confirm": "Remettre en file tous les événements non livrables de cette cible ?", title: "Réessayer les non livrables", body: "<i class='fa fa-repeat'></i>"}) %>
+              <%= linkTo("/sync_targets/" + row.Target.ID + "/retry_undeliverable", {class: "btn btn-info btn-sm", "data-method": "POST", "data-confirm": "Remettre en file tous les événements non livrables de cette cible ?", title: "Réessayer les non livrables", body: "<i class='fas fa-redo'></i>"}) %>
             <% } %>
             <%= linkTo("/sync_targets/" + row.Target.ID + "/edit", {class: "btn btn-warning btn-sm", title: "Modifier", body: "<i class='fa fa-edit'></i>"}) %>
             <%= linkTo("/sync_targets/" + row.Target.ID, {class: "btn btn-danger btn-sm", "data-method": "DELETE", "data-confirm": "Supprimer cette cible de synchronisation et son historique de livraison ?", title: "Supprimer", body: "<i class='fa fa-trash'></i>"}) %>
