@@ -310,6 +310,8 @@ func (v CareRulesResource) Create(c buffalo.Context) error {
 		return respondCareRuleScheduleError(c, tx, rule, nerr, "care_rules/new.plush.html")
 	}
 	rule.Schedule = sched
+	// BUG-44: a feeding rule is always filed under the feeding caretype.
+	rule.ActionPayload = normalizeFeedingPayload(tx, rule.ActionKind, rule.ActionPayload)
 	verrs, err := tx.ValidateAndCreate(rule)
 	if err != nil {
 		return err
@@ -358,6 +360,8 @@ func (v CareRulesResource) Update(c buffalo.Context) error {
 		return respondCareRuleScheduleError(c, tx, rule, nerr, "care_rules/edit.plush.html")
 	}
 	rule.Schedule = sched
+	// BUG-44: a feeding rule is always filed under the feeding caretype.
+	rule.ActionPayload = normalizeFeedingPayload(tx, rule.ActionKind, rule.ActionPayload)
 	// ID drift guard: the bound body may carry a foreign id.
 	if id, err := uuid.FromString(c.Param("care_rule_id")); err == nil {
 		rule.ID = id

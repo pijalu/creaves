@@ -7,7 +7,10 @@ package actions
 // (care_rules.go) so both surfaces offer the same fields.
 
 import (
+	"encoding/json"
+
 	"creaves/models"
+	"creaves/models/careplan"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -33,6 +36,14 @@ func setPlanEditorData(c buffalo.Context, tx *pop.Connection) error {
 	}
 	c.Set("planCaretypes", opts)
 
+	// BUG-44: the editor pins a feeding-kind plan to the feeding caretype
+	// (same resolver the converter uses); empty when the DB has no type=1 row.
+	feedID, err := resolveFeedingCaretype(tx)
+	if err != nil {
+		return err
+	}
+	c.Set("planFeedingCaretypeID", feedID)
+
 	drugs := &models.Drugs{}
 	if err := tx.Order("name asc").All(drugs); err != nil {
 		return err
@@ -43,4 +54,32 @@ func setPlanEditorData(c buffalo.Context, tx *pop.Connection) error {
 	}
 	c.Set("planDrugs", names)
 	return nil
+}
+
+// normalizeFeedingPayload (BUG-44) pins a feeding-kind action payload to the
+// feeding caretype server-side, so a crafted POST (or a legacy editor
+// payload carrying a non-feeding caretype) cannot file feedings under a
+// wrong type. Other kinds pass through untouched; a missing feeding
+// caretype in the DB leaves the payload as-is (validation reports it).
+func normalizeFeedingPayload(tx *pop.Connection, kind string, payload json.RawMessage) json.RawMessage {
+	if kind != careplan.KindFeeding || len(payload) == 0 {
+		return payload
+	}
+	feedID, err := resolveFeedingCaretype(tx)
+	if err != nil || feedID == "" {
+		return payload
+	}
+	var p map[string]interface{}
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return payload
+	}
+	if p["caretype_id"] == feedID {
+		return payload
+	}
+	p["caretype_id"] = feedID
+	out, err := json.Marshal(p)
+	if err != nil {
+		return payload
+	}
+	return out
 }

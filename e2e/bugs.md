@@ -2603,7 +2603,7 @@ watch the suite at 22:00–24:00 local.
 
 ## BUG-42 (enhancement) — Animal page: a multi-slot item line (feeding) wraps its ○/✓ time buttons ragged
 
-**Status:** FIXED + VERIFIED 2026-11-13 (browser, animal 9969 "Pomme Blah", 12 slots)
+**Status:** FIXED + VERIFIED 2026-11-13 (browser, animal 9969 "Pomme Blah", 12 slots; final wrap check after cascade fix)
 **Severity:** Enhancement — readability of dense feeding schedules (e.g. 6–8
 slots/day on one diet line).
 **Found by:** User report 2026-11-13 — `/animals/9969#nav-plan`, Nourrissage
@@ -2626,6 +2626,13 @@ tier buttons render 90 px → cell `flex-basis: 5.75rem` (92 px + 4 px margin
 = 96 px pitch); the initial 4.75rem cell made adjacent buttons overlap 10 px.
 Verified: 10+2 slots over two rows at a uniform 96 px pitch, columns aligned,
 no overlap, no console errors (EN + FR).
+Exact 5-per-line wrap: the merged-slots container is capped at
+`max-width: 30rem` (5 cells × 96 px pitch = 480 px). The cap was first added
+as a standalone rule but silently overridden by the LATER Phase-4/D4 rule
+`.plan-item-line .plan-med-btns { max-width: 100% }` (same specificity, later
+wins) — merged the 30rem into that rule and deleted the duplicate.
+Re-verified live on the visible 12-slot "Pomme" line: computed max-width
+480 px, rows per line `[5,5,2]`, per-row pitch 96 px.
 
 ### Retest
 
@@ -2671,7 +2678,7 @@ E2E-PROTOCOL-EDITOR §9.1 (updated: tabs, slots preselected on a new plan),
 
 ## BUG-44 (medium) — Protocol editor: action kind "feeding" must pin Care type to feeding, not offer the care-type serie
 
-**Status:** OPEN (reported 2026-11-13)
+**Status:** FIXED + VERIFIED 2026-11-13 (unit tests + browser E2E + crafted POST)
 **Severity:** Medium — data quality: a feeding protocol saved with a
 non-feeding caretype produces occurrences the feeding views/day plan
 classify by caretype, so a wrong pick silently files feedings under e.g.
@@ -2681,25 +2688,76 @@ a cleanup type.
 it must always resolve to the feeding care type. Only the *care* action
 kind should list the serie.
 
-### Plan
+### Fix
 
-In `templates/care_plan/_editor.plush.html` the feeding block renders the
-full `planCaretypes` select (`data-pe="caretype"`). Fix options:
-1. Server-side: expose the feeding caretype ID (lookup by the canonical
-   feeding caretype name/flag) to the editor and render the feeding-kind
-   control as a read-only field pinned to it (or keep the select but
-   reduce it to the feeding entry).
-2. Client-side: on kind=feeding, force the select value to the feeding
-   caretype and disable the control (re-enable for kind=care).
-Server-side validation should additionally reject a feeding payload whose
-`caretype_id` is not the feeding caretype, so a crafted POST cannot
-bypass the pin. Check the converter/legacy path (converted feeding plans
-carry their own caretype) before rejecting.
-Also review kind=observation/weighing/medication: they render no caretype
-select — unchanged.
+Two layers, both sharing the converter's `resolveFeedingCaretype` (first
+type=1 caretype, preferring "Repas" then "Alimentation"):
+
+1. **Editor (client)**: `setPlanEditorData` now also exposes
+   `planFeedingCaretypeID`; the feeding block's `data-pe="caretype"`
+   select renders that single pinned option and is `disabled` (read-only).
+   `readPayload` reads a disabled select via a `pinned()` fallback (a
+   disabled select's `.value` reads null after a foreign set) and
+   `writePayload`'s `set()` restores a disabled select to its pinned
+   option instead of blanking it. kind=care keeps the full serie
+   (`data-pe="caretypeCare"`, 7 options, enabled).
+2. **Server**: `normalizeFeedingPayload(tx, kind, payload)` — applied in
+   `CareAnimalPlanCreate/Update` and `CareRulesResource.Create/Update` —
+   rewrites `caretype_id` to the feeding caretype whenever
+   `action_kind == feeding`, so a crafted POST cannot bypass the pin.
+   Normalization (not rejection): legacy/converter payloads keep saving,
+   they are silently corrected. Other kinds pass through byte-identical;
+   empty/unparseable payloads and a missing feeding caretype in the DB
+   pass through untouched (model validation reports those).
+
+Verified: unit tests `TestNormalizeFeedingPayload*` (pin wrong id, already
+pinned, missing id, other kinds untouched, degenerate inputs) — pass;
+browser E2E on animal 9969 protocol modal — feeding block shows a single
+disabled "Meal" (Repas) option, kind switch to care shows the enabled
+7-option serie, save round-trip persists the feeding caretype; crafted
+POST with a "Soin" caretype_id returns/saves the pinned feeding caretype;
+no console errors. Locale parity: the pinned option label goes through
+the same `tname("caretypes", …)` translation as before (all 4 locales).
 
 ### Retest
 
 New protocol → kind=feeding: Care type shows feeding only (pinned);
 kind=care: full serie; switching kinds resets/pins accordingly; saved
 feeding plan has the feeding caretype in its payload.
+
+---
+
+## BUG-45 (enhancement) — Protocol editor Advanced: per-tier display caps (max late / max now / max future)
+
+**Status:** OPEN (reported 2026-11-13)
+**Severity:** Enhancement — UX density: a plan with many daily occurrences
+(e.g. 12-slot feeding) renders 12 buttons per tier section on the day/animal
+plan. The caregiver wants a per-plan knob limiting how many occurrence
+buttons each tier (Late / Now / Later) DISPLAYS.
+**Found by:** User request 2026-11-13: in the protocol editor's *Advanced*
+disclosure, add `display: max future / max late / max now` counters — 0 by
+default meaning DISABLED (no cap); purely UX, sets the number of buttons
+shown in each category.
+
+### Plan
+
+1. **Schedule document**: three optional int fields, e.g.
+   `display_max_late`, `display_max_now`, `display_max_future`
+   (omit or 0 = no cap). Add to the careplan schedule model
+   (`models/careplan`) + JSON round-trip; unknown-field tolerance already
+   exists for forward compat — verify.
+2. **Editor** (`_editor.plush.html` Advanced block): three number inputs
+   (min 0, default 0) wired into readSchedule/writeSchedule.
+3. **View model**: when building tier views (Late/Now/Later), cap the
+   rendered slot list per tier at the plan's counter; show a "+N more"
+   affordance (detail modal already lists every due time — reuse it).
+   NO effect on scheduling/apply logic — purely presentational; apply/
+   batch-apply still covers ALL occurrences (or define: batch covers
+   visible ones only — DECIDE with user; default: all).
+4. **Validation**: negative values rejected/clamped to 0.
+
+### Retest
+
+Plan with 12 slots/day + display_max_now=5 → Now section shows 5 buttons
++ "+7"; 0/absent = uncapped (current behaviour); applies still record the
+correct occurrence; counters survive edit round-trip in all 4 locales.

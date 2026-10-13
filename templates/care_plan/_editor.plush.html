@@ -146,9 +146,12 @@
       <div data-pe-kind="feeding">
         <div class="form-group">
           <label><%= t("care_plan.editor.caretype") %></label>
-          <select class="form-control" data-pe="caretype">
+          <%# BUG-44: feeding is always the feeding caretype - pinned, read-only. %>
+          <select class="form-control" data-pe="caretype" disabled>
             <%= for (ct) in planCaretypes { %>
-              <option value="<%= ct.ID %>"><%= tname("caretypes", ct.ID, ct.Name) %></option>
+              <%= if (ct.ID == planFeedingCaretypeID) { %>
+                <option value="<%= ct.ID %>" selected><%= tname("caretypes", ct.ID, ct.Name) %></option>
+              <% } %>
             <% } %>
           </select>
         </div>
@@ -562,10 +565,19 @@ window.planEditor = (function () {
   function readPayload(root, kind) {
     var p = {};
     var v = function (name) { var el = $(root, '[data-pe="' + name + '"]'); return el ? el.value.trim() : ''; };
+    // BUG-44: a disabled select is a pinned single-option field - .value
+    // reads null after a foreign set(), so fall back to its only option.
+    var pinned = function (name) {
+      var el = $(root, '[data-pe="' + name + '"]');
+      if (!el) { return ''; }
+      if (el.value) { return el.value.trim(); }
+      var opt = el.querySelector('option');
+      return opt ? opt.value : '';
+    };
     var b = function (name) { var el = $(root, '[data-pe="' + name + '"]'); return el ? el.checked : false; };
     switch (kind) {
       case 'feeding':
-        p.caretype_id = v('caretype');
+          p.caretype_id = pinned('caretype');
         if (v('food')) { p.food = v('food'); }
         if (b('forceFeed')) { p.force_feed = true; }
         break;
@@ -588,7 +600,7 @@ window.planEditor = (function () {
   }
 
   function writePayload(root, kind, p) {
-    var set = function (name, val) { var el = $(root, '[data-pe="' + name + '"]'); if (el) { el.value = val == null ? '' : val; } };
+    var set = function (name, val) { var el = $(root, '[data-pe="' + name + '"]'); if (el) { if (el.disabled) { el.selectedIndex = 0; return; } el.value = val == null ? '' : val; } };
     var setb = function (name, val) { var el = $(root, '[data-pe="' + name + '"]'); if (el) { el.checked = !!val; } };
     p = p || {};
     set('caretype', p.caretype_id || '');

@@ -407,12 +407,15 @@ td.plan-med-animal {
 }
 // BUG-42 (user request 2026-11-13): a multi-slot ITEM line (the animal
 // page's merged feeding/care/obs/weighing occurrences) groups its cells
-// as an aligned GRID — equal fixed-width cells wrapping onto as many
-// lines as needed (≈5 per line at the page width), every ○/✓ HH:MM
-// button on the same left edge per column. The day-qualifier badge
-// stacks ABOVE its button inside the cell: an INLINE badge widened its
-// cell and broke the column alignment. Scoped to .plan-item-line — the
-// medication rows keep their bucket-caption layout (plan-med-bucket).
+// as an aligned GRID of 5 PER LINE — the button group is capped at
+// exactly 5 cells (5 × (5.75rem + 0.25rem margin) = 30rem) so slots
+// wrap 5/5/5…, every ○/✓ HH:MM button on the same left edge per column.
+// The cap is enforced by the Phase-4/D4 `.plan-item-line .plan-med-btns`
+// rule below (a second rule here would lose the cascade to it).
+// Equal fixed-width cells; the day-qualifier badge stacks ABOVE its
+// button inside the cell: an INLINE badge widened its cell and broke
+// the column alignment. Scoped to .plan-item-line — the medication
+// rows keep their bucket-caption layout (plan-med-bucket).
 .plan-item-line .plan-med-cell {
   // Measured 2026-11-13: the ○/✓ HH:MM tier buttons render 90px wide
   // (5.625rem) — 4.75rem cells made adjacent buttons overlap by 10px.
@@ -680,7 +683,13 @@ div.plan-med-row:not(.plan-item-line) .plan-med-btns.plan-med-btns--stacked {
 // toggles wrapping multiline, left-aligned. No horizontal scrollbar, no
 // clipped text, every toggle fully visible at every level.
 .plan-item-line .plan-med-btns {
-  max-width: 100%;
+ // BUG-42: NOT 100% — the item-line toggle group is capped at exactly
+ // 5 grid cells (5 × (5.75rem cell + 0.25rem margin)), so a multi-slot
+ // line wraps 5 buttons per line, columns aligned (user request
+ // 2026-11-13). The ladder behaviour is unchanged: the group still
+ // drops under the label (full-width, right-aligned) when it no
+ // longer fits beside it.
+ max-width: 30rem;
 }
 @media (max-width: 767.98px) {
   .plan-item-line .plan-med-animal {
