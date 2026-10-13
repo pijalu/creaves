@@ -122,6 +122,12 @@ with a feeding trace compared against the `calculateFeeding` reference:
 - `times` (realized meals) IDENTICAL old vs new on all 209 (`shape-diff = 0`)
   — the old conversion never moved a meal; its defects were the dishonest
   degenerate-window storage and the dropped lateness cadence, both now fixed.
+- **Treatments/care plans (kind ≠ feeding, 89 medication + 12 care = 101
+  plans from 298 future-dated treatment rows): identical old vs new**
+  (canonical schedule + payload + name compare) and series coverage 101/101
+  (grouping mirrored from `groupTreatmentSeries`: animal+drug+dosage+bitmap)
+  — the BUG-50 fix is feeding-scoped and provably did not perturb the
+  treatment conversion.
 
 **Fixture gotcha (collation):** the 10-13 dump is `utf8mb4_0900_ai_ci` (MySQL 8
 default). Creating a clone DB with an explicit `COLLATE utf8mb4_unicode_ci`
