@@ -992,6 +992,9 @@ func TestCarePlanFeedingRepairConvergesToLegacyColumns(t *testing.T) {
 	}))
 	require.Equal(t, 11, validation.AnimalsConsidered, "the zombie feeder is out of scope, not considered")
 	require.False(t, validation.Healthy(), "the deleted plan is a MISSING violation")
+	// BUG-51: stale alone must also fail the gate (wrong feeding info on
+	// the day plan), not just MISSING.
+	require.GreaterOrEqual(t, validation.Stale, 2, "adLib + variant schedules are stale vs the columns")
 	foundStale, foundMissing, foundZombie := false, false, false
 	for _, l := range validation.Lines {
 		switch l.Status {
@@ -1020,6 +1023,7 @@ func TestCarePlanFeedingRepairConvergesToLegacyColumns(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, repair)
 	require.True(t, repair.Healthy(), "after the repair every legacy trace is covered")
+	require.Equal(t, 0, repair.Stale, "write mode reports the POST state: no residual stale")
 	require.GreaterOrEqual(t, repair.Repaired, 2, "the two stale schedules are rewritten")
 	require.Equal(t, 1, repair.Created, "exactly one plan was created")
 	require.Equal(t, 1, repair.ZombiesRetired, "the zombie plan is retired")
@@ -1073,8 +1077,134 @@ func TestCarePlanFeedingRepairConvergesToLegacyColumns(t *testing.T) {
 		return err
 	}))
 	require.True(t, final.Healthy())
+	require.Equal(t, 0, final.Stale, "BUG-51: the read-only gate passes only with zero stale schedules")
+	require.Equal(t, 0, final.Missing)
 	for _, l := range final.Lines {
 		require.NotEqual(t, fvStale, l.Status, "no stale converter schedule may survive: %+v", l)
 		require.NotEqual(t, fvMissing, l.Status, "no §8.1 hole may survive: %+v", l)
 	}
+}
+
+// TestCarePlanTreatmentValidationAndRefresh (bugs.md BUG-52): the
+// treatment conversion is one-shot at startup_v2 time — a series
+// prescribed AFTER conversion silently had no plan (miscare risk: the
+// medication never shows on the day plan). Pin the coverage gate
+// (ValidateTreatmentConversion) and the marker-free boot refresh.
+func TestCarePlanTreatmentValidationAndRefresh(t *testing.T) {
+	fx := setupConverterFixture(t)
+	defer fx.f.cleanup()
+	db := models.DB
+
+	// Fresh conversion — the fixture carries four treatment series
+	// (medication, unknown-drug observation, wound-care observation,
+	// no-dosage observation).
+	_, err := RunCarePlanConverter(db)
+	require.NoError(t, err)
+
+	// TP-2a: a freshly converted DB is healthy — every series covered by
+	// an ACTIVE converter plan.
+	validate := func() *TreatmentValidationReport {
+		var r *TreatmentValidationReport
+		require.NoError(t, db.Transaction(func(tx *pop.Connection) error {
+			var err error
+			r, err = ValidateTreatmentConversion(tx)
+			return err
+		}))
+		return r
+	}
+	base := validate()
+	require.True(t, base.Healthy(), "fresh conversion: %+v", base.Lines)
+	require.GreaterOrEqual(t, base.Series, 4)
+	require.Equal(t, 0, base.Missing)
+	require.Equal(t, 0, base.Inactive)
+	require.Equal(t, 0, base.Orphans)
+	require.Equal(t, base.Series, base.OK, "no dedupe surprises between series and plans")
+
+	// TP-2b: a DELETED converter plan is a MISSING violation — the gate
+	// must catch it (this is the miscare case).
+	var medPlan models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.animalIDs[len(fx.animalIDs)-4], careplan.KindMedication).First(&medPlan))
+	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE id = ?", medPlan.ID).Exec())
+	gone := validate()
+	require.False(t, gone.Healthy(), "a deleted medication plan is a coverage hole")
+	require.Equal(t, 1, gone.Missing)
+
+	// TP-2c: the boot refresh (marker-free re-run of the idempotent
+	// conversion) recreates it; a second refresh adds nothing.
+	created, err := RunCarePlanTreatmentRefresh(db)
+	require.NoError(t, err)
+	require.Equal(t, 1, created)
+	afterRefresh := validate()
+	require.True(t, afterRefresh.Healthy(), "%+v", afterRefresh.Lines)
+	created, err = RunCarePlanTreatmentRefresh(db)
+	require.NoError(t, err)
+	require.Equal(t, 0, created, "idempotent: no duplicate series conversion")
+	require.True(t, validate().Healthy())
+
+	// TP-2d: THE regression — a treatment prescribed AFTER conversion
+	// (post-conversion row) must be picked up by the refresh, not
+	// silently ignored until the end of time. A NEW drug (distinct
+	// routed name) keeps the series a distinct coverage unit; same
+	// drug+animal would legitimately dedupe onto the existing plan name.
+	drug2 := models.Drug{ID: uuid.Must(uuid.NewV4()), Name: "Metacam 1,5 mg/ml"}
+	require.NoError(t, db.Create(&drug2))
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM drugs WHERE id = ?", drug2.ID).Exec()
+	})
+	tomorrow := time.Now().Truncate(24*time.Hour).AddDate(0, 0, 1)
+	newSeries := models.Treatment{
+		Date:       tomorrow,
+		AnimalID:   fx.animalIDs[len(fx.animalIDs)-4],
+		Drug:       "Metacam 1,5 mg/ml",
+		Dosage:     "0,2 ml",
+		Timebitmap: models.Treatement_MORNING,
+	}
+	require.NoError(t, db.Create(&newSeries))
+	late := validate()
+	require.False(t, late.Healthy(), "a post-conversion prescription is uncovered until refreshed")
+	require.Equal(t, 1, late.Missing)
+	created, err = RunCarePlanTreatmentRefresh(db)
+	require.NoError(t, err)
+	require.Equal(t, 1, created, "the refresh converts the new series")
+	require.True(t, validate().Healthy())
+
+	// TP-2e: a DEACTIVATED converter plan (vet stopped the treatment) is
+	// reported as INACTIVE — visible, but a deliberate human decision,
+	// so it does not flip Healthy.
+	var stopped models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.animalIDs[len(fx.animalIDs)-4], careplan.KindMedication).First(&stopped))
+	require.True(t, stopped.Active)
+	stopped.Active = false
+	require.NoError(t, db.Save(&stopped))
+	inactive := validate()
+	require.True(t, inactive.Healthy(), "deactivation is a human stop decision, not a conversion hole")
+	require.Equal(t, 1, inactive.Inactive)
+	// The refresh must NOT re-activate it (it respects the stop).
+	created, err = RunCarePlanTreatmentRefresh(db)
+	require.NoError(t, err)
+	require.Equal(t, 0, created)
+	var stillStopped models.CareAnimalPlan
+	require.NoError(t, db.Where("id = ?", stopped.ID).First(&stillStopped))
+	require.False(t, stillStopped.Active, "the refresh never overrides a deliberate deactivation")
+
+	// TP-2f: orphan plans (series aged out / edited away) are
+	// informational only. Payload cloned from the real observation plan
+	// (known-drug-no-dosage arm) so model validation passes.
+	var obsPlan models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.trNoDosageID, careplan.KindObservation).First(&obsPlan))
+	var woundPlan models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.trWoundID, careplan.KindCare).First(&woundPlan))
+	orphan := &models.CareAnimalPlan{
+		AnimalID:      fx.trWoundID,
+		Name:          "Traitement — fantôme",
+		ActionKind:    careplan.KindObservation,
+		ActionPayload: obsPlan.ActionPayload,
+		Schedule:      woundPlan.Schedule,
+		Active:        true,
+	}
+	require.NoError(t, db.Create(orphan))
+	w := validate()
+	require.Equal(t, 1, w.Orphans)
+	require.True(t, w.Healthy(), "orphans never flip the gate")
+	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE id = ?", orphan.ID).Exec())
 }

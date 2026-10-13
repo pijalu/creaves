@@ -58,6 +58,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Treatment-series refresh (bugs.md BUG-52, 2026-10-27): NOT
+	// marker-guarded — the startup_v2 converter converted only the
+	// treatments that existed at conversion time, so any series
+	// prescribed later silently had no plan. The conversion is
+	// idempotent (per-series name guard) and future-rows-only, so this
+	// is cheap on every boot and closes the coverage hole.
+	if err := actions.RunCarePlanTreatmentRefreshAtBoot(); err != nil {
+		log.Fatal(err)
+	}
+
 	if err := app.Serve(); err != nil {
 		log.Fatal(err)
 	}

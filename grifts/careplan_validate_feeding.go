@@ -66,6 +66,7 @@ func printFeedingValidation(report *actions.FeedingValidationReport) {
 	if report.Healthy() {
 		fmt.Println("VALIDATION: PASS")
 	} else {
-		fmt.Printf("VALIDATION: FAIL — %d animal(s) with a legacy feeding trace have NO feeding plan\n", report.Missing)
+		fmt.Printf("VALIDATION: FAIL — %d animal(s) with NO feeding plan, %d with a STALE schedule (differs from the legacy columns)\n",
+			report.Missing, report.Stale)
 	}
 }

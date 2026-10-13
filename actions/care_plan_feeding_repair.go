@@ -67,6 +67,7 @@ type FeedingValidationReport struct {
 	AnimalsConsidered int                     `json:"animals_considered"`
 	OK                int                     `json:"ok"`
 	Repaired          int                     `json:"repaired"`
+	Stale             int                     `json:"stale"`
 	Created           int                     `json:"created"`
 	RetiredStale      int                     `json:"retired_stale"`
 	ZombiesRetired    int                     `json:"zombies_retired"`
@@ -77,8 +78,11 @@ type FeedingValidationReport struct {
 
 // Healthy reports whether the conversion state matches the legacy columns
 // (the user gate: "All animals must be validated with original
-// information"). MISSING is a violation; STALE rows are repairable drift.
-func (r *FeedingValidationReport) Healthy() bool { return r.Missing == 0 }
+// information"). MISSING is a violation; STALE (read-only mode: the
+// stored schedule still differs from the columns — wrong feeding info on
+// the day plan) is ALSO a violation. In write mode the repair zeroes
+// Stale, so the persisted boot report reflects the post-pass state.
+func (r *FeedingValidationReport) Healthy() bool { return r.Missing == 0 && r.Stale == 0 }
 
 // canonicalSchedule renders a §4.3 document through the package
 // marshaler so STORAGE-normalized JSON (the schedule column is a MySQL
@@ -137,134 +141,179 @@ func ValidateLegacyFeedingConversion(tx *pop.Connection, write bool) (*FeedingVa
 	}
 	report.AnimalsConsidered = len(animals)
 
-	var converted []struct {
+	for i := range animals {
+		wantName, wantSchedule := expectedConvertedFeeding(animals[i], feedCareID)
+		if err := validateOneFeedingAnimal(tx, write, &animals[i], wantName, wantSchedule, feedCareID, report); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := retireZombieFeedingPlans(tx, write, report); err != nil {
+		return nil, err
+	}
+	return report, nil
+}
+
+// validateOneFeedingAnimal classifies ONE animal against its expected
+// converter plan and applies the write-mode consequences.
+func validateOneFeedingAnimal(tx *pop.Connection, write bool, a *models.Animal, wantName, wantSchedule, feedCareID string, report *FeedingValidationReport) error {
+	wantCanonical := canonicalSchedule(wantSchedule)
+
+	// Converter-owned active feeding plans of this animal (the §8.2
+	// family: created_by IS NULL), any name — catches diet-drift
+	// duplicates as well as the expected plan.
+	var plans models.CareAnimalPlans
+	if err := tx.Where("animal_id = ? AND action_kind = ? AND created_by IS NULL AND active = ?", a.ID, careplan.KindFeeding, true).All(&plans); err != nil {
+		return err
+	}
+	// Human-authored active feeding plans — a caregiver's protocol
+	// outranks the converter; the animal then counts as covered.
+	humanPlans, err := hasHumanFeedingPlan(tx, a.ID)
+	if err != nil {
+		return err
+	}
+
+	var expected *models.CareAnimalPlan
+	stale := []*models.CareAnimalPlan{}
+	for i := range plans {
+		if plans[i].Name == wantName {
+			expected = &plans[i]
+		} else {
+			stale = append(stale, &plans[i])
+		}
+	}
+
+	label := animalLabel(*a)
+	switch {
+	case expected != nil && canonicalSchedule(string(expected.Schedule)) == wantCanonical:
+		return settleFeedingDuplicate(tx, write, expected, stale, a.ID, label, report)
+	case expected != nil:
+		return repairStaleFeedingPlan(tx, write, expected, stale, a, wantSchedule, feedCareID, label, report)
+	case humanPlans:
+		report.HumanOnly++
+		report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvHumanOnly,
+			"covered by a caregiver-authored plan"})
+		return nil
+	default:
+		return createMissingFeedingPlan(tx, write, a, label, feedCareID, report)
+	}
+}
+
+// hasHumanFeedingPlan reports whether an ACTIVE human-authored feeding
+// plan covers the animal.
+func hasHumanFeedingPlan(tx *pop.Connection, animalID int) (bool, error) {
+	var n []struct {
 		C int64 `db:"c"`
 	}
-	for _, a := range animals {
-		wantName, wantSchedule := expectedConvertedFeeding(a, feedCareID)
-		wantCanonical := canonicalSchedule(wantSchedule)
-
-		// Converter-owned active feeding plans of this animal (the §8.2
-		// family: created_by IS NULL), any name — catches diet-drift
-		// duplicates as well as the expected plan.
-		var plans models.CareAnimalPlans
-		if err := tx.Where("animal_id = ? AND action_kind = ? AND created_by IS NULL AND active = ?", a.ID, careplan.KindFeeding, true).All(&plans); err != nil {
-			return nil, err
-		}
-		// Human-authored active feeding plans — a caregiver's protocol
-		// outranks the converter; the animal then counts as covered.
-		if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND action_kind = ? AND created_by IS NOT NULL AND active = ?",
-			a.ID, careplan.KindFeeding, true).All(&converted); err != nil {
-			return nil, err
-		}
-		humanPlans := len(converted) > 0 && converted[0].C > 0
-
-		var expected *models.CareAnimalPlan
-		stale := []*models.CareAnimalPlan{}
-		for i := range plans {
-			if plans[i].Name == wantName {
-				expected = &plans[i]
-			} else {
-				stale = append(stale, &plans[i])
-			}
-		}
-
-		label := animalLabel(a)
-		switch {
-		case expected != nil && canonicalSchedule(string(expected.Schedule)) == wantCanonical:
-			// Retire same-author duplicates with other names (diet edited
-			// after conversion): the expected plan already covers it.
-			for _, sp := range stale {
-				if write {
-					sp.Active = false
-					if err := tx.Save(sp); err != nil {
-						return nil, err
-					}
-				}
-				report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvRetired,
-					fmt.Sprintf("stale duplicate %s (diet drift)", sp.Name)})
-			}
-			if len(stale) > 0 {
-				report.RetiredStale += len(stale)
-				continue
-			}
-			report.OK++
-			report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvOK, ""})
-		case expected != nil:
-			// Right plan, stale schedule (pre-BUG-50 repeat form, missing
-			// grace, …): rewrite schedule + payload to the current
-			// semantics.
-			if write {
-				expected.Schedule = []byte(wantSchedule)
-				expected.ActionPayload = buildSeedPayload(seedRuleDef{
-					Kind: careplan.KindFeeding, PayloadFood: NormalizeDiet(a.Feeding.String), ForceFeed: a.ForceFeed,
-				}, feedCareID)
-				if err := tx.Save(expected); err != nil {
-					return nil, err
-				}
-				for _, sp := range stale {
-					sp.Active = false
-					if err := tx.Save(sp); err != nil {
-						return nil, err
-					}
-				}
-			}
-			report.Repaired++
-			report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvStale,
-				fmt.Sprintf("schedule → %s", wantSchedule)})
-		case humanPlans:
-			report.HumanOnly++
-			report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvHumanOnly,
-				"covered by a caregiver-authored plan"})
-		default:
-			// §8.1 violation: a legacy feeding trace without ANY feeding
-			// plan. Create it (write mode) like the converter would; the
-			// report counts the hole FOUND and — in write mode — closed, so
-			// Healthy() reflects the POST-pass state.
-			if write {
-				entry := feedingEntry{
-					AnimalID:     a.ID,
-					Label:        label,
-					Force:        a.ForceFeed,
-					Diet:         NormalizeDiet(a.Feeding.String),
-					GraceMinutes: legacyFeedingGraceMinutes(a.FeedingPeriod),
-				}
-				entry.Times, entry.Repeat, entry.Fallback = legacyFeedingSchedule(a)
-				if err := createConvertedFeedingPlan(tx, &ConversionReport{coverage: map[int][]careplan.TimeOfDay{}}, entry, feedCareID); err != nil {
-					return nil, err
-				}
-				report.Created++
-				report.Missing--
-			}
-			report.Missing++
-			report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvMissing,
-				"legacy trace without a feeding plan"})
-		}
+	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND action_kind = ? AND created_by IS NOT NULL AND active = ?",
+		animalID, careplan.KindFeeding, true).All(&n); err != nil {
+		return false, err
 	}
+	return len(n) > 0 && n[0].C > 0, nil
+}
 
-	// Inverse no-loss check: converter-owned ACTIVE feeding plans on
-	// animals out of the §8.1 scope (outtaken, or empty diet) — zombies
-	// that keep showing on the day plan for nothing.
+// settleFeedingDuplicate handles a canonically-correct expected plan:
+// retire same-author duplicates with other names (diet edited after
+// conversion) — the expected plan already covers the animal.
+func settleFeedingDuplicate(tx *pop.Connection, write bool, expected *models.CareAnimalPlan, stale []*models.CareAnimalPlan, animalID int, label string, report *FeedingValidationReport) error {
+	for _, sp := range stale {
+		if write {
+			sp.Active = false
+			if err := tx.Save(sp); err != nil {
+				return err
+			}
+		}
+		report.Lines = append(report.Lines, FeedingValidationLine{animalID, label, fvRetired,
+			fmt.Sprintf("stale duplicate %s (diet drift)", sp.Name)})
+	}
+	if len(stale) > 0 {
+		report.RetiredStale += len(stale)
+		return nil
+	}
+	report.OK++
+	report.Lines = append(report.Lines, FeedingValidationLine{animalID, label, fvOK, ""})
+	return nil
+}
+
+// repairStaleFeedingPlan rewrites a stale converter schedule (+ payload)
+// to the current semantics and retires its same-author duplicates.
+func repairStaleFeedingPlan(tx *pop.Connection, write bool, expected *models.CareAnimalPlan, stale []*models.CareAnimalPlan, a *models.Animal, wantSchedule, feedCareID, label string, report *FeedingValidationReport) error {
+	if write {
+		expected.Schedule = []byte(wantSchedule)
+		expected.ActionPayload = buildSeedPayload(seedRuleDef{
+			Kind: careplan.KindFeeding, PayloadFood: NormalizeDiet(a.Feeding.String), ForceFeed: a.ForceFeed,
+		}, feedCareID)
+		if err := tx.Save(expected); err != nil {
+			return err
+		}
+		for _, sp := range stale {
+			sp.Active = false
+			if err := tx.Save(sp); err != nil {
+				return err
+			}
+		}
+	} else {
+		// Read-only gate: the drift REMAINS on the animal — it must fail
+		// Healthy (BUG-51: a stale schedule is wrong feeding info on the
+		// day plan).
+		report.Stale++
+	}
+	report.Repaired++
+	report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvStale,
+		fmt.Sprintf("schedule → %s", wantSchedule)})
+	return nil
+}
+
+// createMissingFeedingPlan closes a §8.1 violation: a legacy feeding
+// trace without ANY feeding plan. In write mode the plan is created like
+// the converter would; the report counts the hole FOUND and — in write
+// mode — closed, so Healthy() reflects the POST-pass state.
+func createMissingFeedingPlan(tx *pop.Connection, write bool, a *models.Animal, label, feedCareID string, report *FeedingValidationReport) error {
+	if write {
+		entry := feedingEntry{
+			AnimalID:     a.ID,
+			Label:        label,
+			Force:        a.ForceFeed,
+			Diet:         NormalizeDiet(a.Feeding.String),
+			GraceMinutes: legacyFeedingGraceMinutes(a.FeedingPeriod),
+		}
+		entry.Times, entry.Repeat, entry.Fallback = legacyFeedingSchedule(*a)
+		if err := createConvertedFeedingPlan(tx, &ConversionReport{coverage: map[int][]careplan.TimeOfDay{}}, entry, feedCareID); err != nil {
+			return err
+		}
+		report.Created++
+		report.Missing--
+	}
+	report.Missing++
+	report.Lines = append(report.Lines, FeedingValidationLine{a.ID, label, fvMissing,
+		"legacy trace without a feeding plan"})
+	return nil
+}
+
+// retireZombieFeedingPlans is the inverse no-loss check: converter-owned
+// ACTIVE feeding plans on animals out of the §8.1 scope (outtaken, or
+// empty diet) — zombies that keep showing on the day plan for nothing.
+func retireZombieFeedingPlans(tx *pop.Connection, write bool, report *FeedingValidationReport) error {
 	var zombies []models.CareAnimalPlan
 	if err := tx.RawQuery(
 		"SELECT p.* FROM care_animal_plans p JOIN animals a ON a.id = p.animal_id "+
 			"WHERE p.action_kind = ? AND p.created_by IS NULL AND p.active = ? "+
 			"AND (a.outtake_id IS NOT NULL OR a.feeding IS NULL OR TRIM(a.feeding) = '')",
 		careplan.KindFeeding, true).All(&zombies); err != nil {
-		return nil, err
+		return err
 	}
 	for i := range zombies {
 		if write {
 			zombies[i].Active = false
 			if err := tx.Save(&zombies[i]); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		report.ZombiesRetired++
 		report.Lines = append(report.Lines, FeedingValidationLine{zombies[i].AnimalID, "", fvZombie,
 			fmt.Sprintf("converter plan %s on an out-of-scope animal", zombies[i].Name)})
 	}
-	return report, nil
+	return nil
 }
 
 // RunCarePlanFeedingRepairAtBoot runs the startup_v5 repair against

@@ -126,21 +126,28 @@ func TestSeedRulesValidate(t *testing.T) {
 			t.Errorf("seed rule %s: %v", def.Key, err)
 			continue
 		}
-		if def.Kind == careplan.KindFeeding && !rule.Active {
-			t.Errorf("seed rule %s: feeding-kind seeds must ship active (§8.1 step 1)", def.Key)
-		}
-		// R8-3: SR13 ships ACTIVE — it exists to enforce cleanup on flagged
-		// zones, an inactive copy would enforce nothing.
-		if def.Kind != careplan.KindFeeding && rule.Active && def.Key != "SR13" {
-			t.Errorf("seed rule %s: non-feeding seeds must be inactive drafts (§8.1 step 1)", def.Key)
-		}
-		if def.Key == "SR13" && !rule.Active {
-			t.Errorf("seed rule SR13 must ship active (R8-3 enforcement)")
-		}
-		wantLatch := def.DurationDays > 0
-		if rule.LatchMembership != wantLatch {
-			t.Errorf("seed rule %s: latch_membership = %v, want %v", def.Key, rule.LatchMembership, wantLatch)
-		}
+		checkSeedRule(t, def, rule)
+	}
+}
+
+// checkSeedRule asserts the seed-rule invariants beyond schema validity:
+// feeding seeds ship active, non-feeding seeds ship as inactive drafts
+// (SR13 excepted, R8-3), and latch_membership follows DurationDays.
+func checkSeedRule(t *testing.T, def seedRuleDef, rule *models.CareRule) {
+	t.Helper()
+	if def.Kind == careplan.KindFeeding && !rule.Active {
+		t.Errorf("seed rule %s: feeding-kind seeds must ship active (§8.1 step 1)", def.Key)
+	}
+	// R8-3: SR13 ships ACTIVE — it exists to enforce cleanup on flagged
+	// zones, an inactive copy would enforce nothing.
+	if def.Kind != careplan.KindFeeding && rule.Active && def.Key != "SR13" {
+		t.Errorf("seed rule %s: non-feeding seeds must be inactive drafts (§8.1 step 1)", def.Key)
+	}
+	if def.Key == "SR13" && !rule.Active {
+		t.Errorf("seed rule SR13 must ship active (R8-3 enforcement)")
+	}
+	if rule.LatchMembership != (def.DurationDays > 0) {
+		t.Errorf("seed rule %s: latch_membership = %v, want %v", def.Key, rule.LatchMembership, def.DurationDays > 0)
 	}
 }
 
@@ -268,56 +275,45 @@ func TestBuildConvertedScheduleJSON(t *testing.T) {
 // AND validate — the repeat consistency check (times == ExpandRepeat)
 // runs inside ParseScheduleJSON.
 func TestBuildConvertedScheduleJSONRepeatForm(t *testing.T) {
-	r := careplan.Repeat{
+	// Day window.
+	checkRepeatFormSchedule(t, "day", careplan.Repeat{
 		From:         careplan.TimeOfDay{Hour: 8, Minute: 0},
 		To:           careplan.TimeOfDay{Hour: 18, Minute: 0},
 		EveryMinutes: 120,
-	}
-	times := careplan.ExpandRepeat(r)
-	raw := buildConvertedScheduleJSON(times, &r, 0)
-	sched, err := careplan.ParseScheduleJSON([]byte(raw))
-	if err != nil {
-		t.Fatalf("repeat-form schedule does not parse/validate: %v", err)
-	}
-	if sched.Repeat == nil {
-		t.Fatal("repeat block missing from converted schedule")
-	}
-	if sched.Repeat.From.String() != "08:00" || sched.Repeat.To.String() != "18:00" || sched.Repeat.EveryMinutes != 120 {
-		t.Errorf("repeat = %s→%s every %d, want 08:00→18:00 every 120",
-			sched.Repeat.From, sched.Repeat.To, sched.Repeat.EveryMinutes)
-	}
-	want := []string{"08:00", "10:00", "12:00", "14:00", "16:00", "18:00"}
-	if len(sched.Times) != len(want) {
-		t.Fatalf("times = %v, want %v", sched.Times, want)
-	}
-	for i, ts := range sched.Times {
-		if ts.String() != want[i] {
-			t.Errorf("times[%d] = %s, want %s", i, ts, want[i])
-		}
-	}
+	})
 
 	// Overnight legacy window: end < start stays verbatim in the block
 	// (the editor shows from=22:00 to=06:00), times sorted per §4.3.
-	on := careplan.Repeat{
+	checkRepeatFormSchedule(t, "overnight", careplan.Repeat{
 		From:         careplan.TimeOfDay{Hour: 22, Minute: 0},
 		To:           careplan.TimeOfDay{Hour: 6, Minute: 0},
 		EveryMinutes: 240,
-	}
-	raw = buildConvertedScheduleJSON(careplan.ExpandRepeat(on), &on, 0)
-	sched, err = careplan.ParseScheduleJSON([]byte(raw))
+	})
+}
+
+// checkRepeatFormSchedule builds the converted schedule JSON for a repeat
+// block, parses it back and asserts the block round-trips verbatim with
+// times equal to its expansion.
+func checkRepeatFormSchedule(t *testing.T, label string, r careplan.Repeat) {
+	t.Helper()
+	raw := buildConvertedScheduleJSON(careplan.ExpandRepeat(r), &r, 0)
+	sched, err := careplan.ParseScheduleJSON([]byte(raw))
 	if err != nil {
-		t.Fatalf("overnight repeat-form schedule does not parse/validate: %v", err)
+		t.Fatalf("%s repeat-form schedule does not parse/validate: %v", label, err)
 	}
-	if sched.Repeat == nil || sched.Repeat.From.String() != "22:00" || sched.Repeat.To.String() != "06:00" {
-		t.Fatalf("overnight repeat block = %+v", sched.Repeat)
+	if sched.Repeat == nil || *sched.Repeat != r {
+		t.Fatalf("%s repeat block = %+v, want %+v", label, sched.Repeat, r)
 	}
-	got := []string{}
+	got := make([]string, 0, len(sched.Times))
 	for _, ts := range sched.Times {
 		got = append(got, ts.String())
 	}
-	wantON := []string{"02:00", "06:00", "22:00"}
-	if strings.Join(got, ",") != strings.Join(wantON, ",") {
-		t.Errorf("overnight times = %v, want %v", got, wantON)
+	want := []string{}
+	for _, ts := range careplan.ExpandRepeat(r) {
+		want = append(want, ts.String())
+	}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Errorf("%s times = %v, want %v", label, got, want)
 	}
 }
 
@@ -327,56 +323,6 @@ func TestBuildConvertedScheduleJSONRepeatForm(t *testing.T) {
 // degenerate periods and over-cap windows keep the flagged fallback slots
 // with no repeat block.
 func TestLegacyFeedingScheduleRepeatForm(t *testing.T) {
-	mk := func(start, end string, period int) models.Animal {
-		base := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
-		a := models.Animal{FeedingPeriod: period}
-		if start != "" {
-			st, _ := time.Parse("15:04", start)
-			a.FeedingStart = nulls.NewTime(base.Add(time.Duration(st.Hour())*time.Hour + time.Duration(st.Minute())*time.Minute))
-		}
-		if end != "" {
-			en, _ := time.Parse("15:04", end)
-			a.FeedingEnd = nulls.NewTime(base.Add(time.Duration(en.Hour())*time.Hour + time.Duration(en.Minute())*time.Minute))
-		}
-		return a
-	}
-
-	// Exact triple → repeat form, no flag.
-	times, repeat, fallback := legacyFeedingSchedule(mk("08:00", "18:00", 120))
-	if fallback {
-		t.Error("exact triple must not be flagged à vérifier")
-	}
-	if repeat == nil || repeat.From.String() != "08:00" || repeat.To.String() != "18:00" || repeat.EveryMinutes != 120 {
-		t.Fatalf("repeat = %+v, want 08:00→18:00 every 120", repeat)
-	}
-	if len(times) != 6 || times[0].String() != "08:00" || times[5].String() != "18:00" {
-		t.Errorf("times = %v", times)
-	}
-
-	// Overnight triple → repeat form with end < start preserved.
-	_, repeat, fallback = legacyFeedingSchedule(mk("22:00", "06:00", 240))
-	if fallback || repeat == nil || repeat.From.String() != "22:00" || repeat.To.String() != "06:00" {
-		t.Errorf("overnight: fallback=%v repeat=%+v", fallback, repeat)
-	}
-
-	// NULL end → single slot at start, flagged, no repeat.
-	times, repeat, fallback = legacyFeedingSchedule(mk("07:30", "", 120))
-	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "07:30" {
-		t.Errorf("NULL end: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
-	}
-
-	// NULL start+end (period-only row, BUG-10) → 09:00 fallback, flagged.
-	times, repeat, fallback = legacyFeedingSchedule(mk("", "", 480))
-	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "09:00" {
-		t.Errorf("NULL times: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
-	}
-
-	// Degenerate period with start/end set → single slot at start, flagged.
-	times, repeat, fallback = legacyFeedingSchedule(mk("08:00", "18:00", 0))
-	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "08:00" {
-		t.Errorf("period=0: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
-	}
-
 	// BUG-50: start==end rows (≈37 in-care animals: the "à disposition"
 	// grain cages) carry a period but a ZERO-LENGTH window. The legacy
 	// reminder engine (feeding.go calculateFeeding) answers a feeding at
@@ -388,31 +334,85 @@ func TestLegacyFeedingScheduleRepeatForm(t *testing.T) {
 	// caregivers and a precision the legacy data does not carry. The
 	// conversion must be the plain single-slot schedule: same runtime
 	// behavior, no fake repeat block, NOT flagged (exact translation).
-	times, repeat, fallback = legacyFeedingSchedule(mk("10:00", "10:00", 600))
-	if fallback {
-		t.Error("start==end must not be flagged à vérifier (exact translation)")
+	cases := []legacyFeedingScheduleCase{
+		{name: "exact triple → repeat form, no flag",
+			start: "08:00", end: "18:00", period: 120,
+			wantRepeat: &careplan.Repeat{From: careplan.TimeOfDay{Hour: 8}, To: careplan.TimeOfDay{Hour: 18}, EveryMinutes: 120},
+			wantLen:    6, wantFirst: "08:00", wantLast: "18:00"},
+		{name: "overnight triple → repeat form with end < start preserved",
+			start: "22:00", end: "06:00", period: 240,
+			wantRepeat: &careplan.Repeat{From: careplan.TimeOfDay{Hour: 22}, To: careplan.TimeOfDay{Hour: 6}, EveryMinutes: 240},
+			wantLen:    3, wantFirst: "02:00", wantLast: "22:00"},
+		{name: "NULL end → single slot at start, flagged, no repeat",
+			start: "07:30", period: 120, wantFallback: true, wantLen: 1, wantFirst: "07:30"},
+		{name: "NULL start+end (period-only row, BUG-10) → 09:00 fallback, flagged",
+			period: 480, wantFallback: true, wantLen: 1, wantFirst: "09:00"},
+		{name: "degenerate period with start/end set → single slot at start, flagged",
+			start: "08:00", end: "18:00", wantFallback: true, wantLen: 1, wantFirst: "08:00"},
+		{name: "BUG-50 start==end with period → single slot, NO repeat, NOT flagged (exact translation)",
+			start: "10:00", end: "10:00", period: 600,
+			wantLen: 1, wantFirst: "10:00"},
+		{name: "start==end with a degenerate period keeps the flagged fallback slot",
+			start: "19:00", end: "19:00", wantFallback: true, wantLen: 1, wantFirst: "19:00"},
+		{name: "over-cap window (1 min over 23:59 h → 1440 slots): capped slots, flagged, no repeat",
+			start: "00:00", end: "23:59", period: 1, wantFallback: true, wantLen: 24},
 	}
-	if repeat != nil {
-		t.Errorf("start==end must not store a repeat block, got %+v", repeat)
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) { tc.run(t) })
 	}
-	if len(times) != 1 || times[0].String() != "10:00" {
-		t.Errorf("start==end times = %v, want [10:00]", times)
-	}
+}
 
-	// start==end with a degenerate period keeps the flagged fallback slot
-	// (no recurrence information at all).
-	times, repeat, fallback = legacyFeedingSchedule(mk("19:00", "19:00", 0))
-	if !fallback || repeat != nil || len(times) != 1 || times[0].String() != "19:00" {
-		t.Errorf("start==end period=0: times=%v repeat=%+v fallback=%v", times, repeat, fallback)
-	}
+// legacyFeedingScheduleCase is one TestLegacyFeedingScheduleRepeatForm
+// scenario: a legacy column triple plus the expected conversion result.
+type legacyFeedingScheduleCase struct {
+	name         string
+	start, end   string
+	period       int
+	wantFallback bool
+	wantRepeat   *careplan.Repeat
+	wantLen      int
+	wantFirst    string // optional: first slot, "" = skip
+	wantLast     string // optional: last slot, "" = skip
+}
 
-	// Over-cap window (period 1 min over 23:59 h → 1440 slots): the repeat
-	// block would fail validation — keep the capped slots, flag for review.
-	times, repeat, fallback = legacyFeedingSchedule(mk("00:00", "23:59", 1))
-	if !fallback || repeat != nil || len(times) != 24 {
-		t.Errorf("over-cap: len(times)=%d repeat=%+v fallback=%v, want 24 capped slots, no repeat, flagged",
-			len(times), repeat, fallback)
+func (tc legacyFeedingScheduleCase) run(t *testing.T) {
+	t.Helper()
+	times, repeat, fallback := legacyFeedingSchedule(legacyFeedingAnimalFixture(tc.start, tc.end, tc.period))
+	if fallback != tc.wantFallback {
+		t.Errorf("fallback = %v, want %v", fallback, tc.wantFallback)
 	}
+	switch {
+	case tc.wantRepeat == nil && repeat != nil:
+		t.Errorf("repeat = %+v, want none", repeat)
+	case tc.wantRepeat != nil && (repeat == nil || *repeat != *tc.wantRepeat):
+		t.Errorf("repeat = %+v, want %+v", repeat, *tc.wantRepeat)
+	}
+	if len(times) != tc.wantLen {
+		t.Fatalf("len(times) = %d, want %d", len(times), tc.wantLen)
+	}
+	if tc.wantFirst != "" && times[0].String() != tc.wantFirst {
+		t.Errorf("first slot = %s, want %s", times[0], tc.wantFirst)
+	}
+	if tc.wantLast != "" && times[len(times)-1].String() != tc.wantLast {
+		t.Errorf("last slot = %s, want %s", times[len(times)-1], tc.wantLast)
+	}
+}
+
+// legacyFeedingAnimalFixture builds an animal row from "HH:MM" legacy
+// feeding columns ("" = NULL).
+func legacyFeedingAnimalFixture(start, end string, period int) models.Animal {
+	base := time.Date(2026, 9, 20, 0, 0, 0, 0, time.UTC)
+	a := models.Animal{FeedingPeriod: period}
+	if start != "" {
+		st, _ := time.Parse("15:04", start)
+		a.FeedingStart = nulls.NewTime(base.Add(time.Duration(st.Hour())*time.Hour + time.Duration(st.Minute())*time.Minute))
+	}
+	if end != "" {
+		en, _ := time.Parse("15:04", end)
+		a.FeedingEnd = nulls.NewTime(base.Add(time.Duration(en.Hour())*time.Hour + time.Duration(en.Minute())*time.Minute))
+	}
+	return a
 }
 
 // TestLegacyFeedingGraceMinutes pins the BUG-50 lateness faithfulness:
