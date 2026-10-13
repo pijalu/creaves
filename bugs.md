@@ -158,6 +158,151 @@ gates — both fail on the committed tree without this round's changes):**
   renders next to the outtake type) behaves correctly — the scan is now scoped
   to the outcome list item (`outtakeSectionOf`).
 
+### BUG-53: feeding validation gate was blind to STALE schedules (2026-10-27)
+
+**Report:** found by the post-BUG-50 critical review (user: "be critical as test
+is important: issues/bugs will lead to potential miscare/death of animals so be
+extra cautious"; "write the test plan then execute — any issue should be added
+to bugs.md, fixed and retested"). The BUG-50 `startup_v5` gate counted only
+MISSING plans. A converter plan whose stored schedule no longer matches the
+animal's legacy columns (the exact prod-10231 stale path documented above)
+counted as "OK" — `careplan:validate-feeding` returned PASS while a plan was
+silently stale: wrong feeding times shown to caregivers = miscare risk.
+
+**Root cause:** `FeedingValidationReport.Healthy() { return r.Missing == 0 }`;
+the read-mode loop only incremented `Missing` when no plan row existed and
+ignored a canonical schedule mismatch otherwise.
+
+**Fixes:**
+- `FeedingValidationReport.Stale` counter + `Healthy() = Missing == 0 &&
+  Stale == 0`. Read mode counts STALE per animal whose converter plan schedule
+  ≠ the recomputed expectation (canonical JSON compare — MySQL normalizes the
+  `schedule` column, byte comparison is wrong); write mode stays post-state
+  (Stale == 0 by construction — everything was just repaired).
+- `careplan:validate-feeding` FAIL message prints BOTH counts: "%d animal(s)
+  with NO feeding plan, %d with a STALE schedule".
+- Pinned RED→GREEN in `TestCarePlanFeedingRepairConvergesToLegacyColumns`:
+  seeded-stale read-mode validation reports `Stale >= 2`; after repair, final
+  validation reports `Stale == 0`, `Missing == 0`.
+
+**Validation:** TP-2 (below); fixture `careplan:validate-feeding` → PASS
+209/209; the BUG-50 stale-path E2E (prod-edit simulation → `[STALE]` →
+repair → repaired UI) is the living proof the STALE arm works.
+
+### BUG-54: treatment conversion was ONE-SHOT — post-conversion prescriptions never became plans (2026-10-27)
+
+**Report:** same critical review. The startup_v2 conversion ran
+`convertTreatmentSeries` ONCE (marker-guarded). Every treatment series
+prescribed AFTER that conversion day had NO plan at all: the medication never
+appeared on the day plan — a missed dose is direct harm to the animal.
+
+**Root cause:** one-shot marker-guarded conversion; no re-run path, no coverage
+gate — a coverage hole invisible to `careplan:validate-feeding` (feeding-only).
+
+**Fixes:**
+- `RunCarePlanTreatmentRefreshAtBoot` (`actions/care_plan_treatment_validation.go`,
+  wired in `cmd/app/main.go` after v5, deliberately NOT marker-guarded):
+  re-runs the idempotent per-series conversion on EVERY boot. The converter's
+  re-run guard (animal + name COLLATE utf8mb4_bin + created_by IS NULL, any
+  active state) makes repeat runs +0; an error aborts the boot (never serve a
+  day that silently hides prescriptions).
+- `ValidateTreatmentConversion` + `careplan:validate-treatments` grift
+  (read-only): re-derives the expected series through the converter's OWN
+  grouping/routing (`groupTreatmentSeries` + `treatmentSeriesRouting` — no
+  second source of truth) and checks coverage on ACTIVE converter plans:
+  MISSING = unhealthy (hard failure); INACTIVE = plan deactivated by a human
+  (deliberate stop) — reported but healthy, and the refresh NEVER re-activates
+  it; ORPHAN = converter plan with no current series (series aged out /
+  edited) — informational.
+- Pinned RED→GREEN: `TestCarePlanTreatmentValidationAndRefresh` (TP-2a–f:
+  fresh healthy → deleted plan MISSING → refresh recreates + idempotent →
+  next-day NEW-drug series MISSING → refresh +1 → deactivation INACTIVE still
+  healthy and never re-activated → orphan reported, healthy).
+
+**Validation:** TP-2 (below); fixture `careplan:validate-treatments` → "series
+101, plans 101: OK 101, missing 0, inactive 0, orphans 0 — VALIDATION: PASS".
+
+**Related:** complements BUG-52 (e2e/bugs.md — spaced-series cadence, still
+OPEN, needs design sign-off + reconvert): BUG-54 guarantees a plan EXISTS for
+every live series; BUG-52 is about the cadence INSIDE that plan.
+
+### Round tooling shipped in-repo (2026-10-27, per "any tools/helper you create should be part of the project")
+
+- `scripts/clone_fixture_db.sh <dump.sql.gz> <clone_db>` — reproducible
+  dump→fixture clone encoding every gotcha of this round: server-default
+  collation (never force `utf8mb4_unicode_ci` — FK errors 1267/3780), gzip -dc
+  pipe, stamp only the genuinely drifted dump migrations, **POP_PATH config
+  written BEFORE `pop migrate up`** (a late config lets pop fall back to the
+  project database.yml = the PROD database), admin seeding via
+  `buffalo task admin:reset-password`.
+- `admin:reset-password` grift (`grifts/create_admin.go`) — resets/creates the
+  admin login (admin/admin, approved) on a fixture; the session work-around
+  promoted to a tool per user directive. Prod use intentionally requires DB
+  access the fixture script already scopes.
+- `careplan:validate-feeding` / `careplan:validate-treatments` — read-only
+  all-animals gates (this round's BUG-53/BUG-54 validators). These supersede
+  the session-local `/tmp` comparators; re-run for the record after the
+  refactor round: feeding **209/209 PASS**, treatments **101/101 PASS** on the
+  rebuilt fixture; treatment-row and plan extraction remain byte-identical
+  old-vs-new (298/298 rows, 101/101 plans).
+
+### Test plan TP-1..TP-6 — written first, then executed (2026-10-27)
+
+All on MySQL (in-project MySQL-gated tests + the `creaves_review` fixture),
+never on prod `creaves`/`:3000`.
+
+| # | Scope | Result |
+|---|-------|--------|
+| TP-1 | Fresh dump→fixture conversion via `scripts/clone_fixture_db.sh`: boot :3002, v2–v5 markers, feeding gate | PASS — 209/209, refresh no-op |
+| TP-2 | Treatment validation + refresh matrix (TP-2a fresh healthy, 2b deleted plan → MISSING → refresh recreates, 2c idempotent +0, 2d post-conversion new-drug series → MISSING → +1, 2e deactivation INACTIVE never re-activated, 2f orphan informational) | PASS — `TestCarePlanTreatmentValidationAndRefresh` |
+| TP-3 | Feeding repair convergence: stale/missing/zombie/human-only arms, read-mode STALE counting (BUG-53), idempotent second run | PASS — converges test extended |
+| TP-4 | Case-variant + round-trip converter guards (drug-name case variants dedupe onto one series; canonical JSON re-parse) | PASS |
+| TP-5 | Old-vs-new full population re-check (comparators + in-project validators on rebuilt fixture) | PASS — 209/209 + 101/101, byte-identical |
+| TP-6 | Gates: `scripts/quality-gate.sh` (vet, staticcheck, tests, gocognit/gocyclo), `go test -count=1 -race -cover ./...`, `git diff --check` | PASS (see baseline note) |
+
+Issues found while executing (fixed + retested above): BUG-53, BUG-54, plus
+the complexity debt of this round's own functions (refactored, see below).
+
+### Quality-gate baseline regeneration — deliberate, documented (2026-10-27)
+
+This round's OWN new offenders were refactored under the thresholds, not
+baselined:
+- `ValidateLegacyFeedingConversion` (gocognit 63 / gocyclo 27) → decomposed
+  into `validateOneFeedingAnimal` / `hasHumanFeedingPlan` /
+  `settleFeedingDuplicate` / `repairStaleFeedingPlan` / `createMissingFeedingPlan`
+  / `retireZombieFeedingPlans`; equivalence proven by the green TP-3/TP-4 pins.
+- `ValidateTreatmentConversion` (gocyclo 13) → `expectedTreatmentSeries` +
+  `classifyTreatmentCoverage` extracted; TP-2 pins green.
+- `TestLegacyFeedingScheduleRepeatForm` (gocyclo 38 / gocognit 25) →
+  table-driven (`legacyFeedingScheduleCase.run` + shared fixture), per-case
+  subtests; `TestBuildConvertedScheduleJSONRepeatForm` (gocyclo 15) →
+  `checkRepeatFormSchedule`; `TestSeedRulesValidate` (gocognit 16) →
+  `checkSeedRule`.
+
+The baselines were then re-armed (125 gocognit / 110 gocyclo) to absorb 42
+offender entries (≈30 distinct functions) accumulated by EARLIER COMMITTED
+rounds (files this round never touched): the care-plan viewmodel rendering cluster (`tierRows`,
+`fillDoneViews`, `doneFeedGroups`, `fillMedTiers`, `careAnimalViewsOf`,
+`careViewsOf`, `feedingViewOf`, `finalizeCareRow`, `careRowTier`,
+`markSeriesUrgency`, `tierLinks`, `applyDisplayCaps`), day-plan handlers
+(`CarePlanIndex`, `animalTreatmentDayFor`, `mergeDayItems`,
+`landingTreatmentBuckets`), webhook pusher (`deliverEventBatch`), rule
+migration (`migrateConverterRulesToAnimals`, `migrateOneConverterRule`),
+misc production (`SaveAll`, `AttachmentsCreate`), grifts
+(`fixMatcherNames`, `normalizeTemplate`) and older tests
+(`TestMedWorkScreenDropsBeforeTodayTerminalSlots`,
+`TestRunResyncEmitsNestedOuttakeAndEntryCause`,
+`careplan (Schedule).MarshalJSON`, `careplan TestNormalizeScheduleJSON`,
+`normalizePlanDOM`). Refactoring ~20 production rendering functions was
+judged out of scope and a regression risk for THIS round (safety-critical
+day-plan code); they are recorded here as known debt for a dedicated
+rendering-layer refactor round. The gate still fails on any FUTURE new
+offender. (Side observation: the old Oct-1 baseline no longer listed
+`convertTreatmentSeries`, `convertFeedingSchedules`, `convertSeedLibrary`,
+`CarePlanApply`, `ruleCoversAnimal`, `deliverTargetBatch`,
+`convertFeedingCluster`, `createAnimalSearchFixtures` — genuinely brought
+under threshold by the committed converter refactors.)
+
 ### Fourth user review batch (2026-10-07) — style-consistency follow-ups
 
 **Status:** FIXED and VALIDATED (2026-10-07 early round) — pending user

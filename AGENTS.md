@@ -404,6 +404,46 @@ buffalo task event:snapshot:stats
 
 ---
 
+## Care-Plan Conversion: Gates, Repair, Refresh (operational)
+
+The legacy→care-plan conversion (BUG-36/BUG-50 rounds) ships with all-animal
+gates. Run them against a database via `POP_PATH=<cfg> buffalo task …` — they
+are READ-ONLY and safe on prod.
+
+```bash
+# Feeding: every in-care animal with a legacy trace must have a converter plan
+# whose schedule canonically equals the recomputed expectation.
+# FAIL = missing plan (missed meal) or STALE schedule (edited legacy row the
+# one-shot converter never re-translated — see bugs.md BUG-50/BUG-53).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-feeding
+
+# Treatment: every future-dated treatment series must be covered by an ACTIVE
+# converter plan (converter grouping/routing, no second source of truth).
+# MISSING = uncovered prescription (hard failure); INACTIVE = deliberate stop
+# (reported, healthy); ORPHAN = informational.
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-treatments
+
+# Write path (repairs stale/missing feeding plans, retires zombies, NEVER
+# touches human-authored plans):
+buffalo task careplan:repair-feeding
+```
+
+Boot behavior (`cmd/app/main.go`):
+- `startup_v5` — feeding repair + all-animals validation gate (marker-guarded,
+  runs once per DB; the grifts above are the re-check path).
+- Treatment refresh — re-runs the idempotent treatment-series conversion on
+  EVERY boot (NOT marker-guarded): prescriptions added after the conversion day
+  are picked up automatically; an error aborts the boot.
+
+Fixture tooling (safe throwaway DBs for conversion/E2E work — NEVER point the
+app at prod): `scripts/clone_fixture_db.sh <dump.sql.gz> <clone_db>` builds a
+clone from a dump with the right collation/migration-drift/POP_PATH handling;
+`buffalo task admin:reset-password` seeds/resets the fixture admin login.
+Details and history: `bugs.md` (BUG-50..BUG-54),
+`e2e/bugs.md` (older rounds).
+
+---
+
 ## Performance Notes
 
 Critical for multi-user deployment on limited hardware. Full assessment with
