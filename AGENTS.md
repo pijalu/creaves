@@ -423,10 +423,39 @@ POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-feeding
 # (reported, healthy); ORPHAN = informational.
 POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-treatments
 
+# One-shot treatment repair (converter plans only, human plans untouched):
+# deletes created_by IS NULL AND action_kind <> 'feeding' rows and re-runs the
+# treatment conversion in one transaction. Use after a converter semantics
+# change (name guard makes refresh idempotency unsafe — see e2e/bugs.md
+# BUG-52c/52e rounds).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:reconvert-treatments
+
+# Name repair: recomputes every conversion-stamped feeding name from the
+# payload diet (repairs legacy byte-truncation and the retired
+# "(à vérifier)" suffix — names are definitive, uncertainty lives in the
+# needs_confirmation flag).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:fixnames
+
 # Write path (repairs stale/missing feeding plans, retires zombies, NEVER
-# touches human-authored plans):
+# touches human-authored plans; marker-guarded startup_v5 pass):
 buffalo task careplan:repair-feeding
 ```
+
+### needs_confirmation workflow (BUG-52e user ruling, 2026-10-14)
+
+The converter is DEFINITIVE: it never emits "(à vérifier)" name suffixes and
+never sets needs_confirmation. Uncertainty is a MANUAL flag:
+
+- `care_animal_plans.needs_confirmation` (migration 20261014120000) — set from
+  the plan detail editor checkbox ("Needs confirmation") or the feeding
+  summary's flag button; `POST /care_animal_plans/{id}/confirmation`
+  (`needs_confirmation=1|0`, bare = toggle; column-scoped write, local-back
+  redirect sanitized BUG-R5).
+- `GET /reports/confirmations` (admin) — "Protocols to confirm" screen: every
+  flagged plan grouped by animal, Resolve action = same endpoint with
+  `needs_confirmation=0`.
+- The flag has NO scheduling behaviour — occurrences are never suppressed by
+  it; the animal page feeding summary exposes it as NeedsReview.
 
 Boot behavior (`cmd/app/main.go`):
 - `startup_v5` — feeding repair + all-animals validation gate (marker-guarded,

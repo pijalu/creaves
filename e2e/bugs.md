@@ -3313,3 +3313,80 @@ Documented in `creaves/AGENTS.md` § "Care-Plan Conversion".
 
 **Status:** CLOSED — cadence respected, irregular series flagged not
 hidden, one-shot repair grift shipped and validated.
+
+## BUG-52e (enhancement) — "(à vérifier)" suffix replaced by exact converter modes + structured needs_confirmation workflow
+
+**Found:** 2026-10-14 (user ruling on the BUG-52 fix round: flags in plan
+names are wrong — the converter must be definitive, uncertainty must be a
+structured, resolvable workflow, not free text).
+
+**Location:** `actions/care_plan_convert_data.go` (converter),
+`actions/care_plan_treatment_validation.go` (validator),
+`actions/care_plan_confirmations.go` (new), `grifts/careplan_fix_names.go`,
+`models/care_animal_plan.go`, migration `20261014120000_needs_confirmation`.
+
+**Change (user ruling implemented):**
+- The converter NEVER emits "(à vérifier)" name suffixes and NEVER sets
+  needs_confirmation. Exact modes only: weekday-pattern series convert to
+  weekday schedules, per-date series to per-date plans, dense series to
+  every_days:1 — no "nearest cadence + flag" approximation, no 09:00 fallback
+  marker in names.
+- Irregular series are converted to their exact per-date/weekday form; a
+  human may flag ANY plan "Needs confirmation" via the plan detail editor
+  checkbox or the feeding summary flag button.
+- `care_animal_plans.needs_confirmation` (migration 20261014120000) +
+  `POST /care_animal_plans/{id}/confirmation` (bare = toggle,
+  needs_confirmation=1/0 authoritative, column-scoped update so a concurrent
+  name/schedule edit is not clobbered, HTML redirect sanitized per BUG-R5 —
+  local paths only, Referer fallback, report fallback).
+- `GET /reports/confirmations` (admin): "Protocols to confirm" screen, plans
+  grouped by animal, Resolve action (same endpoint, needs_confirmation=0).
+  Templates in all four locales (en-US/fr/de/nl), 11 keys each.
+- The animal page feeding summary exposes the flag as NeedsReview.
+- `careplan:fixnames` recomputes conversion-stamped feeding names from the
+  payload diet (strips the legacy suffix — names definitive).
+- Boot treatment refresh is a no-op after `careplan:reconvert-treatments`
+  (count stable, no duplicates).
+
+**Verification (fixture creaves_review :3002):**
+- Migration applied; `careplan:reconvert-treatments`: deleted 130 converter
+  treatment plans, recreated 105; `careplan:fixnames`: repaired 24 feeding
+  names (suffix stripped).
+- `careplan:validate-treatments`: series 94, plans 105 — OK 105, missing 0,
+  inactive 0, orphans 0 → PASS. `careplan:validate-feeding`: 209 considered,
+  OK 209, missing 0 → PASS.
+- `SELECT SUM(name LIKE '%à vérifier%'), SUM(needs_confirmation)` → 0, 0.
+- UI round-trip (curl, admin/admin): plan detail editor renders the
+  "Needs confirmation" checkbox wired to the plan JSON; feeding summary rows
+  carry flag buttons; POST toggle → 303 to local back, flag=1 in DB;
+  /reports/confirmations lists the plan in all 4 locales (Protocols to
+  confirm / Protocoles à confirmer / Zu bestätigende Protokolle / Te
+  bevestigen protocollen); Resolve → flag=0, empty state ("No protocols to
+  confirm." localized). External back target falls back to the report
+  (open-redirect covered by TestCarePlanConfirmationsToggleRedirect).
+- Boot restart: treatment refresh no-op (no care_animal_plans INSERTs, count
+  stays 314).
+- Feature tests: `actions/care_plan_confirmations_test.go` (toggle matrix,
+  redirect sanitization, report visibility/grouping/resolve, NeedsReview
+  exposure). Phase0b DOM baselines re-recorded — sole delta is the new
+  "Protocols to confirm" nav entry (verified by diff on all four kinds).
+
+**Verification (production `creaves`):**
+- Backup first: `/tmp/creaves-backups/creaves_pre_needsconfirmation_20261014_131305.sql.gz`
+  (29 MB, gzip-verified) — restore point before ANY write.
+- Migration 20261014120000 applied; `careplan:reconvert-treatments`: deleted
+  134 → recreated 105; `careplan:fixnames`: 24 names repaired;
+  `careplan:repair-feeding`: no-op (marker present).
+- `careplan:validate-treatments`: OK 105, missing 0 → PASS;
+  `careplan:validate-feeding`: OK 209, missing 0 → PASS.
+- Totals: 315 plans, zero "(à vérifier)", zero needs_confirmation flags.
+- Animal 9721: all three active plans suffix-free ("Soin — prodiplast-t
+  (dos)", "Alimentation — … (conversion)", "Traitement — Contrôle
+  prolongation TRT"). PASS.
+- Full gate: `go vet` / staticcheck / `go test -count=1 ./actions ./models` /
+  gocognit/gocyclo (extracted `applyConfirmationFlags` to stay under
+  thresholds) → **QUALITY GATE: OK**.
+
+**Status:** CLOSED — converter definitive, zero name suffixes on fixture and
+prod, structured needs_confirmation workflow shipped end-to-end with
+feature tests and four-locale UI.
