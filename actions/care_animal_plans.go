@@ -95,10 +95,11 @@ func CareAnimalPlanUpdate(c buffalo.Context) error {
 	plan.Schedule = sched
 	// BUG-44: a feeding plan is always filed under the feeding caretype.
 	plan.ActionPayload = normalizeFeedingPayload(tx, plan.ActionKind, plan.ActionPayload)
-	// Confirm-on-save: a human editing the plan IS the review the
-	// converter asked for — drop the " (à vérifier)" fallback flag so the
-	// animal page NeedsReview badge clears (§8.1). " (conversion)" stays:
-	// it pairs with created_by IS NULL for the §8.2 rollback targeting.
+	// Legacy-name repair: strip the historical " (à vérifier)" suffix from
+	// stored names on save (BUG-52e: converter no longer emits it; old rows
+	// keep working via DisplayName strip + fixnames grift). " (conversion)"
+	// stays: it pairs with created_by IS NULL for the §8.2 rollback
+	// targeting.
 	plan.Name = strings.TrimSpace(strings.ReplaceAll(plan.Name, " (à vérifier)", ""))
 	// path is authoritative
 	plan.AnimalID = animal.ID

@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,8 +40,9 @@ type feedingEntry struct {
 	// GraceMinutes: legacy lateness cadence (period/2, BUG-50); 0 keeps
 	// the §4.3 default.
 	GraceMinutes int
-	// Fallback marks best-effort conversions (incomplete legacy data): the
-	// plan is still created — the no-loss rule — but flagged "à vérifier".
+	// Fallback marks rows converted without a full legacy window (single
+	// daily slot at the legacy start, else 09:00 — user ruling 2026-10-14:
+	// definitive, never flagged). Kept for the conversion report reason.
 	Fallback bool
 }
 
@@ -67,10 +69,12 @@ func DeriveFeedingTimes(start, end time.Time, periodMinutes int) []careplan.Time
 // legacyFeedingSchedule derives the converted schedule of one legacy
 // feeding row, applying the §8.1 no-loss fallbacks. An exact legacy triple
 // (non-NULL feeding_start/feeding_end + feeding_period > 0) converts to the
-// repeat form (BUG-36: repeat block + expanded times, NO fallback flag —
-// the translation is exact); anything else keeps the flagged best-effort
-// slots: a single daily slot at the legacy start when present, else 09:00.
-// The repeat return is nil for fallback rows (no repeat block stored).
+// repeat form (BUG-36: repeat block + expanded times — the translation is
+// exact). Anything else converts DEFINITIVELY to a single daily slot at
+// the legacy start when present, else 09:00 (user ruling 2026-10-14: a
+// feeding without cadence is one 09:00 slot — no "à vérifier" flag; the
+// third return only distinguishes exact vs fallback for the report). The
+// repeat return is nil for fallback rows (no repeat block stored).
 // Shared by the converter and the reconciliation gate so both agree on the
 // legacy semantics (bugs.md BUG-10: NULL start/end rows included).
 func legacyFeedingSchedule(a models.Animal) ([]careplan.TimeOfDay, *careplan.Repeat, bool) {
@@ -103,9 +107,8 @@ func legacyFeedingSchedule(a models.Animal) ([]careplan.TimeOfDay, *careplan.Rep
 			}
 			// Pathological row: the window/period expansion runs past the
 			// slot cap, so the repeat block would fail schedule validation
-			// on save. Keep the capped slots as a flagged best-effort
-			// conversion (slots beyond the cap are dropped — a human must
-			// verify the coverage).
+			// on save. Keep the capped slots as the conversion (slots
+			// beyond the cap are dropped — definitive, no flag).
 			return times, nil, true
 		}
 		// Degenerate (period ≤ 0): at minimum the legacy start slot.
@@ -159,7 +162,7 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 	// 8842: period 480, NULL times, diet "15 poussins et 5 souris // EAU
 	// X8"). The no-loss mandate (§8.1) covers EVERY in-care animal carrying
 	// any legacy feeding trace; rows without a derivable schedule take the
-	// fallback slot path below (flagged "à vérifier").
+	// fallback slot path below (a single daily 09:00-or-legacy-start slot).
 	var animals []models.Animal
 	// User ruling: an animal with NO legacy diet text gets NO feeding plan.
 	// The "(régime non spécifié)" placeholder named nothing (e.g. animal
@@ -205,7 +208,7 @@ func convertFeedingSchedules(tx *pop.Connection, report *ConversionReport, feedC
 }
 func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e feedingEntry, feedCareID string) error {
 	// R4-7.24: word-boundary, rune-safe shortening (see text_truncate.go).
-	name := convertedFeedingName(e.Diet, e.Fallback)
+	name := convertedFeedingName(e.Diet)
 	// Idempotent re-run guard: one converted plan per animal+regime.
 	// COLLATE utf8mb4_bin: prod tables use utf8mb4_0900_ai_ci, which would
 	// treat names differing only by case/accents as identical (e.g. legacy
@@ -248,7 +251,7 @@ func createConvertedFeedingPlan(tx *pop.Connection, report *ConversionReport, e 
 	report.coverage[e.AnimalID] = e.Times
 	reason := fmt.Sprintf("plan individuel #%s", p.ID)
 	if e.Fallback {
-		reason += " (fallback — à vérifier)"
+		reason += " (fallback slot — régime sans horaire hérité)"
 	}
 	report.Feeding.Lines = append(report.Feeding.Lines,
 		ConversionLine{e.AnimalID, e.Label, reason})
@@ -342,72 +345,70 @@ func convertTreatmentSeries(tx *pop.Connection, report *ConversionReport) error 
 	return nil
 }
 
-// convertOneTreatmentSeries converts one grouped series into its care plan
-// row (idempotent — skips when the converted plan already exists) and
-// updates the conversion report.
-func convertOneTreatmentSeries(tx *pop.Connection, report *ConversionReport, known map[string]struct{}, s *treatmentSeries) error {
+// treatmentSeriesTimes maps the series bitmap to fixed slots, keeping the
+// reminder alive with a single 08:00 slot when the legacy row carries no
+// time bitmap. Shared by converter and validator.
+func treatmentSeriesTimes(s *treatmentSeries) []careplan.TimeOfDay {
 	times := BitmapToTimes(s.bitmap)
 	if len(times) == 0 {
 		times = []careplan.TimeOfDay{{Hour: 8, Minute: 0}} // no-loss: keep the reminder alive
 	}
-	// BUG-52 cadence: a REGULARLY spaced series (every gap = G days)
-	// converts to every_days:G with duration = its date count — the day
-	// plan then lands exactly on the legacy dates (duration_days counts
-	// GENERATED days). Daily and single-date series keep every_days:1
-	// with the calendar-span window. An IRREGULAR series (mixed gaps —
-	// no single step fits) stays daily (never hides a dose) under a
-	// "(à vérifier)" name suffix: over-reminding is visible, a hidden
-	// dose is not.
-	cadence := treatmentSeriesCadence(s)
-	everyDays := 1
-	duration := int(s.last.Sub(s.first).Hours()/24) + 1
-	if cadence > 1 {
-		everyDays = cadence
-		duration = len(s.dates)
-	}
+	return times
+}
+
+// convertOneTreatmentSeries converts one grouped series into its care plan
+// row(s) (idempotent — skips names that already exist) and updates the
+// conversion report. The per-series conversion contract lives in
+// treatmentSeriesPlanSpecs (single source of truth shared with the
+// validator).
+func convertOneTreatmentSeries(tx *pop.Connection, report *ConversionReport, known map[string]struct{}, s *treatmentSeries) error {
+	times := treatmentSeriesTimes(s)
 	label := fmt.Sprintf("animal %d", s.animalID)
 
-	// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped.
-	name, kind, payload, reason := routedTreatmentSeriesName(tx, known, s)
+	// No-loss routing (§8.1, bugs.md M5): a series is NEVER dropped, and
+	// every conversion is definitive (no "à vérifier" flags).
+	name, kind, payload, reason := treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
 
-	p := &models.CareAnimalPlan{
-		AnimalID:      s.animalID,
-		Name:          name,
-		ActionKind:    kind,
-		ActionPayload: payload,
-		Schedule: []byte(fmt.Sprintf(
-			`{"times":[%s],"every_days":%d,"anchor":"fixed","anchor_date":"%s","duration_days":%d}`,
-			timesJSON(times), everyDays, s.first.Format("2006-01-02"), duration)),
-		ReplacesKind: false,
-		Active:       true,
-		CreatedBy:    nulls.UUID{}, // converter author: NULL (users FK)
+	created := 0
+	for _, spec := range treatmentSeriesPlanSpecs(s, times, name, kind, payload) {
+		p := &models.CareAnimalPlan{
+			AnimalID:      s.animalID,
+			Name:          spec.name,
+			ActionKind:    spec.kind,
+			ActionPayload: spec.payload,
+			Schedule:      []byte(spec.schedule),
+			ReplacesKind:  false,
+			Active:        true,
+			CreatedBy:     nulls.UUID{}, // converter author: NULL (users FK)
+		}
+		// Idempotent re-run guard: one converted plan per animal+name.
+		// COLLATE utf8mb4_bin: see feeding guard above — case/accent-only
+		// differences in legacy drug names must NOT dedupe distinct series.
+		// COLLATE on the column, not the placeholder (MariaDB Error 1253).
+		var n []struct {
+			C int64 `db:"c"`
+		}
+		if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name COLLATE utf8mb4_bin = ? AND created_by IS NULL",
+			s.animalID, spec.name).All(&n); err != nil {
+			return err
+		}
+		if len(n) > 0 && n[0].C > 0 {
+			report.Reconciliation.TreatmentOK++
+			continue
+		}
+		verrs, err := tx.ValidateAndCreate(p)
+		if err != nil {
+			return err
+		}
+		if verrs.HasAny() {
+			return fmt.Errorf("converted treatment plan invalid (animal %d): %v", s.animalID, verrs)
+		}
+		created++
+		report.Treatments.PlansCreated++
 	}
-	// Idempotent re-run guard: one converted plan per animal+name.
-	// COLLATE utf8mb4_bin: see feeding guard above — case/accent-only
-	// differences in legacy drug names must NOT dedupe distinct series.
-	// COLLATE on the column, not the placeholder (MariaDB Error 1253).
-	var n []struct {
-		C int64 `db:"c"`
-	}
-	if err := tx.RawQuery("SELECT count(*) as c FROM care_animal_plans WHERE animal_id = ? AND name COLLATE utf8mb4_bin = ? AND created_by IS NULL",
-		s.animalID, name).All(&n); err != nil {
-		return err
-	}
-	if len(n) > 0 && n[0].C > 0 {
-		report.Reconciliation.TreatmentOK++
-		return nil
-	}
-	verrs, err := tx.ValidateAndCreate(p)
-	if err != nil {
-		return err
-	}
-	if verrs.HasAny() {
-		return fmt.Errorf("converted treatment plan invalid (animal %d): %v", s.animalID, verrs)
-	}
-	report.Treatments.PlansCreated++
 	report.Reconciliation.TreatmentOK++
 	report.Treatments.Lines = append(report.Treatments.Lines,
-		ConversionLine{s.animalID, label, fmt.Sprintf("%s → #%s (%d j)", reason, p.ID, duration)})
+		ConversionLine{s.animalID, label, fmt.Sprintf("%s → %d plan(s)", reason, created)})
 	return nil
 }
 
@@ -478,17 +479,113 @@ func treatmentSeriesCadence(s *treatmentSeries) int {
 	return gap
 }
 
-// routedTreatmentSeriesName is the ONE name builder for a converted
-// treatment series — converter, validator and refresh must all see the same
-// plan name. It applies the M5 routing then flags irregular-cadence series
-// with the converter's "(à vérifier)" suffix (deduped: some routing arms
-// already carry it).
-func routedTreatmentSeriesName(tx *pop.Connection, known map[string]struct{}, s *treatmentSeries) (name, kind string, payload []byte, reason string) {
-	name, kind, payload, reason = treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
-	if treatmentSeriesCadence(s) == 0 && !strings.HasSuffix(name, "(à vérifier)") {
-		name += " (à vérifier)"
+// treatmentPlanSpec is one concrete care plan row a series converts to:
+// routed identity (name/kind/payload) plus its exact schedule JSON.
+type treatmentPlanSpec struct {
+	name     string
+	kind     string
+	payload  []byte
+	schedule string
+}
+
+// treatmentSeriesPlanSpecs is the SINGLE source of truth for what a legacy
+// treatment series converts to — the converter creates exactly these rows
+// and the validator expects exactly these names. Every series converts
+// EXACTLY (user ruling 2026-10-14: a conversion is always correct, never
+// flagged "à vérifier"):
+//   - single date / dense daily run → one plan every_days:1 over the
+//     calendar span
+//   - weekly weekday pattern (e.g. Mon+Wed+Fri) → one plan every_days:1
+//     restricted to those weekdays, duration = date count
+//   - regularly spaced (constant gap G>1, non-weekly) → one plan
+//     every_days:G, duration = date count
+//   - anything else → one exact single-day plan per legacy date (name
+//     suffixed with the ISO date) — the legacy dates ARE the truth
+func treatmentSeriesPlanSpecs(s *treatmentSeries, times []careplan.TimeOfDay, name, kind string, payload []byte) []treatmentPlanSpec {
+	cadence := treatmentSeriesCadence(s)
+	switch {
+	case cadence == 1: // single date or dense daily run
+		span := int(s.last.Sub(s.first).Hours()/24) + 1
+		return []treatmentPlanSpec{{name, kind, payload,
+			treatmentScheduleJSON(times, 1, s.first.Format("2006-01-02"), span, nil)}}
+	case treatmentSeriesWeekdays(s) != nil:
+		return []treatmentPlanSpec{{name, kind, payload,
+			treatmentScheduleJSON(times, 1, s.first.Format("2006-01-02"), len(s.dates), treatmentSeriesWeekdays(s))}}
+	case cadence > 1:
+		return []treatmentPlanSpec{{name, kind, payload,
+			treatmentScheduleJSON(times, cadence, s.first.Format("2006-01-02"), len(s.dates), nil)}}
+	default: // irregular: one exact single-day plan per legacy date
+		dates := sortedTreatmentDates(s)
+		specs := make([]treatmentPlanSpec, 0, len(dates))
+		for _, d := range dates {
+			specs = append(specs, treatmentPlanSpec{
+				name + " — " + d, kind, payload,
+				treatmentScheduleJSON(times, 1, d, 1, nil),
+			})
+		}
+		return specs
 	}
-	return name, kind, payload, reason
+}
+
+// treatmentScheduleJSON builds the §4.3 schedule document of a converted
+// treatment plan (times/every_days/weekdays/anchor/duration).
+func treatmentScheduleJSON(times []careplan.TimeOfDay, everyDays int, anchorDate string, durationDays int, weekdays []int) string {
+	wd := ""
+	if len(weekdays) > 0 {
+		strs := make([]string, len(weekdays))
+		for i, w := range weekdays {
+			strs[i] = strconv.Itoa(w)
+		}
+		wd = fmt.Sprintf(",\"weekdays\":[%s]", strings.Join(strs, ","))
+	}
+	return fmt.Sprintf(
+		`{"times":[%s],"every_days":%d%s,"anchor":"fixed","anchor_date":"%s","duration_days":%d}`,
+		timesJSON(times), everyDays, wd, anchorDate, durationDays)
+}
+
+// treatmentSeriesWeekdays reports the series' weekly weekday pattern when
+// the legacy dates are EXACTLY the weekday-matching days of their window:
+// every day between first and last whose weekday appears in the series must
+// itself be a series date. Under that closure a plan with
+// every_days:1 + weekdays + anchor=first + duration=len(dates) generates
+// precisely the legacy dates — never more, never less. Returns nil when
+// the pattern does not hold.
+func treatmentSeriesWeekdays(s *treatmentSeries) []int {
+	if len(s.dates) < 2 {
+		return nil
+	}
+	set := map[int]bool{}
+	for d := range s.dates {
+		t, err := time.Parse("2006-01-02", d)
+		if err != nil {
+			return nil // defensive: grouping only writes Format()ed keys
+		}
+		set[int(t.Weekday())] = true
+	}
+	for day := s.first; !day.After(s.last); day = day.AddDate(0, 0, 1) {
+		if s.dates[day.Format("2006-01-02")] {
+			continue
+		}
+		if set[int(day.Weekday())] {
+			return nil // generator would emit a day the legacy series lacks
+		}
+	}
+	out := make([]int, 0, len(set))
+	for w := range set {
+		out = append(out, w)
+	}
+	sort.Ints(out)
+	return out
+}
+
+// sortedTreatmentDates returns the series' dates in chronological order.
+func sortedTreatmentDates(s *treatmentSeries) []string {
+	dates := make([]string, 0, len(s.dates))
+	for d := range s.dates {
+		dates = append(dates, d)
+	}
+	sort.Strings(dates)
+	return dates
 }
 
 // treatmentSeriesRouting is the M5 series router (B10-8): known drug +
@@ -496,9 +593,11 @@ func routedTreatmentSeriesName(tx *pop.Connection, known map[string]struct{}, s 
 // → CARE plan typed "Soin" — the legacy "drug" column carries many
 // NON-drug entries (fistula cleaning, casts, bandage changes, checks…)
 // and those fulfill as cares, not observations. A KNOWN drug without
-// posology stays a flagged observation: the product is real, the schedule
-// needs human verification. Without a resolvable caretype the legacy
-// observation routing is kept (the converter never breaks).
+// posology becomes an observation: the dosage field is required for a
+// medication payload (§4.2), and the legacy row has none to give. Every
+// arm produces a DEFINITIVE conversion (user ruling 2026-10-14: nothing
+// is left "à vérifier" — the converter decides, the caregiver sees a
+// complete plan, never a flag with no resolution path).
 func treatmentSeriesRouting(tx *pop.Connection, known map[string]struct{}, drug, dosage, remarks string) (name, kind string, payload []byte, reason string) {
 	_, knownDrug := known[NormalizeDiet(drug)]
 	careTypeID := convertedCareTypeID(tx)
@@ -510,7 +609,7 @@ func treatmentSeriesRouting(tx *pop.Connection, known map[string]struct{}, drug,
 			}, "")),
 			fmt.Sprintf("série %s → plan médication", drug)
 	case drug == models.WoundCareDrugName && careTypeID != "":
-		return "Soin de plaie (conversion) (à vérifier)", careplan.KindCare,
+		return "Soin de plaie (conversion)", careplan.KindCare,
 			carePayloadJSON(careTypeID, "Soin de plaie — contrôle", remarks),
 			"série soin de plaie → plan soin (conversion)"
 	case !knownDrug && careTypeID != "":
@@ -521,25 +620,25 @@ func treatmentSeriesRouting(tx *pop.Connection, known map[string]struct{}, drug,
 		if strings.TrimSpace(dosage) != "" {
 			prompt = drug + " (" + dosage + ")"
 		}
-		return "Soin — " + prompt + " (à vérifier)", careplan.KindCare,
+		return "Soin — " + prompt, careplan.KindCare,
 			carePayloadJSON(careTypeID, prompt, remarks),
-			fmt.Sprintf("médication abusive — converti en soin, à vérifier (%s)", drug)
+			fmt.Sprintf("médication abusive — converti en soin (%s)", drug)
 	case drug == models.WoundCareDrugName:
-		return "Soin de plaie (conversion) (à vérifier)", careplan.KindObservation,
+		return "Soin de plaie (conversion)", careplan.KindObservation,
 			observationPayload("Soin de plaie — contrôle", remarks),
-			"série soin de plaie → plan observation (à vérifier, pas de caretype)"
+			"série soin de plaie → plan observation (pas de caretype)"
 	case !knownDrug:
 		prompt := drug
 		if strings.TrimSpace(dosage) != "" {
 			prompt = drug + " (" + dosage + ")"
 		}
-		return "Traitement — " + prompt + " (à vérifier)", careplan.KindObservation,
+		return "Traitement — " + prompt, careplan.KindObservation,
 			observationPayload(prompt, remarks),
-			fmt.Sprintf("drug inconnu — converti en observation, à vérifier (%s)", drug)
+			fmt.Sprintf("drug inconnu — converti en observation (%s)", drug)
 	default: // known drug, empty dosage
-		return "Traitement — " + drug + " (à vérifier)", careplan.KindObservation,
+		return "Traitement — " + drug, careplan.KindObservation,
 			observationPayload(drug, remarks),
-			fmt.Sprintf("série %s sans posologie — converti en observation, à vérifier", drug)
+			fmt.Sprintf("série %s sans posologie — converti en observation", drug)
 	}
 }
 

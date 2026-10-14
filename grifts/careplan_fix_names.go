@@ -3,7 +3,6 @@ package grifts
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"creaves/actions"
 	"creaves/models"
@@ -58,14 +57,14 @@ func payloadFood(raw json.RawMessage) (string, error) {
 	return food, nil
 }
 
-// rebuiltName is the canonical name for a diet, preserving the "(à
-// vérifier)" fallback suffix the old row carried.
+// rebuiltName is the canonical name for a diet. User ruling 2026-10-14:
+// the old "(à vérifier)" fallback suffix is NOT preserved — converted
+// names are definitive; uncertainty lives in the needs_confirmation flag.
 func rebuiltName(oldName, diet string, matcher bool) string {
-	fallback := strings.Contains(oldName, " (à vérifier)")
 	if matcher {
 		return actions.RebuildConvertedMatcherName(diet)
 	}
-	return actions.RebuildConvertedFeedingName(diet, fallback)
+	return actions.RebuildConvertedFeedingName(diet)
 }
 
 func fixAnimalPlanNames(tx *pop.Connection) (int, error) {

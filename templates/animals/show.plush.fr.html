@@ -473,6 +473,18 @@
                             renders whether or not this table does, so the
                             editor still works on an animal with no
                             protocol yet. %>
+                        <%# BUG-52e: manual "Need confirmation" quick toggle +
+                            state badge. Set/unset by any caretaker; the flag
+                            only lists the protocol on /reports/confirmations
+                            (resolve = unset). POST with authenticity_token;
+                            `back` returns to this tab. %>
+                        <%= if (src.NeedsConfirmation) { %><span class="badge badge-warning" title="<%= t("care_plan.field.needs_confirmation_hint") %>"><%= t("care_plan.field.needs_confirmation") %></span><% } %>
+                        <form action="/care_animal_plans/<%= src.SourceID %>/confirmation" method="POST" class="d-inline">
+                          <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+                          <input type="hidden" name="needs_confirmation" value="<%= if (src.NeedsConfirmation) { %>0<% } else { %>1<% } %>">
+                          <input type="hidden" name="back" value="/animals/<%= animal.ID %>#nav-plan">
+                          <button type="submit" class="btn btn-sm <%= if (src.NeedsConfirmation) { %>btn-success<% } else { %>btn-outline-warning<% } %>" title="<%= t("care_plan.field.needs_confirmation_hint") %>"><i class="far fa-question-circle"></i></button>
+                        </form>
                         <button type="button" class="btn btn-warning btn-sm carePlanEditBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.edit") %>"><i class='fa fa-edit'></i></button>
                         <button type="button" class="btn btn-danger btn-sm carePlanDeleteBtn" data-id="<%= src.SourceID %>" title="<%= t("care_plan.action.destroy") %>"><i class='fa fa-trash'></i></button>
                       <% } else { %>
@@ -855,6 +867,14 @@
                 <input class="form-check-input" type="checkbox" id="CarePlanReplacesKind" value="true">
                 <label class="form-check-label" for="CarePlanReplacesKind"><%= t("care_plan.field.replaces_kind") %></label>
               </div>
+              <%# BUG-52e: MANUAL "Need confirmation" flag — surfaces the
+                  protocol on /reports/confirmations for an admin to resolve.
+                  Converter never sets it; scheduling is never affected. %>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="CarePlanNeedsConfirmation" value="true">
+                <label class="form-check-label" for="CarePlanNeedsConfirmation"><%= t("care_plan.field.needs_confirmation") %></label>
+                <small class="form-text text-muted d-block mb-0"><%= t("care_plan.field.needs_confirmation_hint") %></small>
+              </div>
             </div>
           </div>
           <div id="carePlanEditorMount">
@@ -917,6 +937,7 @@
       document.getElementById('CarePlanSchedule').value = '';
       document.getElementById('CarePlanActive').checked = true;
       document.getElementById('CarePlanReplacesKind').checked = false;
+      document.getElementById('CarePlanNeedsConfirmation').checked = false;
       hideErr();
       if (planEd) { planEd.refresh(); }
       $('#carePlanModal').modal('show');
@@ -936,6 +957,7 @@
           document.getElementById('CarePlanSchedule').value = p.schedule ? JSON.stringify(p.schedule) : '';
           document.getElementById('CarePlanActive').checked = !!p.active;
           document.getElementById('CarePlanReplacesKind').checked = !!p.replaces_kind;
+          document.getElementById('CarePlanNeedsConfirmation').checked = !!p.needs_confirmation;
           hideErr();
           if (planEd) { planEd.refresh(); }
           $('#carePlanModal').modal('show');
@@ -954,7 +976,8 @@
           action_payload: JSON.parse(document.getElementById('CarePlanPayload').value || '{}'),
           schedule: JSON.parse(document.getElementById('CarePlanSchedule').value || '{}'),
           replaces_kind: document.getElementById('CarePlanReplacesKind').checked,
-          active: document.getElementById('CarePlanActive').checked
+          active: document.getElementById('CarePlanActive').checked,
+          needs_confirmation: document.getElementById('CarePlanNeedsConfirmation').checked
         };
       } catch (e) {
         showErr("<%= raw(t("care_plan.animal_plans.invalid_json")) %>");

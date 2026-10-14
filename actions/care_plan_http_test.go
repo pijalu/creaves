@@ -1060,11 +1060,12 @@ func TestCareAnimalPlansCaretakerCRUD(t *testing.T) {
 	require.Equal(t, http.StatusOK, code)
 }
 
-// TestCareAnimalPlanUpdateConfirmsReview: a converter fallback plan carries
-// " (à vérifier)" in its stored name (§8.1 no-loss flag). A human saving the
-// plan IS the review — the PUT handler strips the flag, which clears the
-// animal page NeedsReview badge (animal_feeding_summary.go). The
-// " (conversion)" marker stays (§8.2 rollback targeting).
+// TestCareAnimalPlanUpdateConfirmsReview: legacy rows may still carry
+// " (à vérifier)" in their stored name (converter no longer emits it —
+// BUG-52e). The PUT handler keeps stripping the suffix as a repair pass;
+// the " (conversion)" marker stays (§8.2 rollback targeting). The manual
+// review workflow is now the needs_confirmation flag (BUG-52e user
+// ruling), not the name suffix.
 func TestCareAnimalPlanUpdateConfirmsReview(t *testing.T) {
 	f := setupPlanFixture(t)
 	reg, regURL := planRegularClient(t)

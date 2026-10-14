@@ -303,7 +303,7 @@ func migrateOneConverterRule(tx *pop.Connection, report *ConversionReport, rule 
 // like createConvertedFeedingPlan (so an animal that already owns its own
 // plan of the same diet keeps its own slots).
 func createMigrationPlanFromRule(tx *pop.Connection, report *ConversionReport, a models.Animal, rule *models.CareRule, food string) error {
-	name := convertedFeedingName(food, false)
+	name := convertedFeedingName(food)
 	var n []struct {
 		C int64 `db:"c"`
 	}

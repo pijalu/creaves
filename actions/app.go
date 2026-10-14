@@ -191,6 +191,9 @@ func App() *buffalo.App {
 		app.POST("/animals/{animal_id}/care_animal_plans", CareAnimalPlanCreate)
 		app.PUT("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanUpdate)
 		app.DELETE("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanDestroy)
+		// BUG-52e: manual "Need confirmation" flag — set/unset from the plan
+		// editor or resolve from the /reports/confirmations screen.
+		app.POST("/care_animal_plans/{care_animal_plan_id}/confirmation", CareAnimalPlanConfirmationToggle)
 		// R4-7.13: per-animal opt-out from a global care rule (§4.1).
 		app.POST("/animals/{animal_id}/care_rule_exclusions", CareRuleExclusionCreate)
 		app.DELETE("/animals/{animal_id}/care_rule_exclusions/{care_rule_exclusion_id}", CareRuleExclusionDestroy)
@@ -270,6 +273,8 @@ func App() *buffalo.App {
 		app.GET("/suggestions/corpse_destination", SuggestionsCorpseDestination)
 
 		app.GET("/reports/care_schedule", ReportsCareScheduleIndex)
+
+		app.GET("/reports/confirmations", ReportsConfirmationsIndex)
 
 		app.GET("/reports/discoverers", ReportsDiscoverersIndex)
 		app.GET("/reports/discoverers/export.csv", ReportsDiscoverersExportCSV)

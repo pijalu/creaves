@@ -182,6 +182,7 @@ CREATE TABLE `care_animal_plans` (
   `created_by` char(36) DEFAULT NULL,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
+  `needs_confirmation` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `created_by` (`created_by`),
   KEY `care_animal_plans_animal_id_active_idx` (`animal_id`,`active`),
@@ -1181,4 +1182,4 @@ CREATE TABLE `zones` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-13 13:58:35
+-- Dump completed on 2026-10-14 13:13:15

@@ -19,7 +19,7 @@
         <li>
           <strong><%= fp.Diet %></strong>
           <%= if (fp.TimesLabel != "") { %> — <i class="far fa-clock" aria-hidden="true"></i> <%= fp.TimesLabel %><% } %>
-          <%= if (fp.NeedsReview) { %><span class="badge badge-warning"><%= t("animals.feeding.summary.needs_review") %></span><% } %>
+          <%= if (fp.NeedsReview) { %><span class="badge badge-warning"><%= t("animals.feeding.summary.needs_confirmation") %></span><% } %>
         </li>
       <% } %>
     </ul>

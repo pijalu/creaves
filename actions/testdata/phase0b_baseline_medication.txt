@@ -220,6 +220,11 @@
                 </i>
                 "Care schedule"
               </a>
+              <a class="dropdown-item" href="/reports/confirmations">
+                <i class="fas fa-clipboard-check">
+                </i>
+                "Protocols to confirm"
+              </a>
               <a class="dropdown-item" href="/reports/discoverers">
                 <i class="fas fa-user-tag">
                 </i>

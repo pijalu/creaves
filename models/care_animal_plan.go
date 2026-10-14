@@ -26,10 +26,15 @@ type CareAnimalPlan struct {
 	Schedule      json.RawMessage `json:"schedule" db:"schedule"`
 	ReplacesKind  bool            `json:"replaces_kind" db:"replaces_kind"`
 	Active        bool            `json:"active" db:"active"`
+	// NeedsConfirmation is a MANUAL "Need confirmation" flag (BUG-52e user
+	// ruling). Never set by the converter; set/unset by users via the plan
+	// detail/edit form or toggle endpoint to surface the plan on the
+	// "Protocols to confirm" screen for an admin to resolve.
+	NeedsConfirmation bool `json:"needs_confirmation" db:"needs_confirmation"`
 	// CreatedBy is the authoring user; NULL for plans created by the
 	// startup converter (§8.1 — the converter is not a user, and the
 	// column carries a users FK).
-	CreatedBy     nulls.UUID      `json:"created_by" db:"created_by"`
+	CreatedBy nulls.UUID `json:"created_by" db:"created_by"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

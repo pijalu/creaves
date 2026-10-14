@@ -1,0 +1,62 @@
+<%# "Protocols to confirm" (BUG-52e user ruling, 2026-10-14): the
+    converter is definitive and never flags anything — every row here was
+    raised MANUALLY by a user ("Need confirmation" on the plan editor).
+    Admin resolves after checking/adjusting the protocol on the animal
+    page. Resolve = unset the flag; scheduling is never affected.
+
+    Context: view (actions.ConfirmationsView). %>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.confirmations.title") %></h3>
+</div>
+
+<div class="alert alert-light border"><%= t("care_plan.confirmations.intro") %></div>
+
+<%= if (view.Empty()) { %>
+  <div class="alert alert-success"><%= t("care_plan.confirmations.empty") %></div>
+<% } %>
+
+<%= for (sec) in view.Sections { %>
+  <div class="card mb-2">
+    <div class="card-header py-2">
+      <i class="fas fa-paw" aria-hidden="true"></i>
+      <a href="<%= sec.AnimalLink %>"><strong><%= sec.AnimalLabel %></strong></a>
+      <span class="badge badge-pill badge-secondary ml-1"><%= len(sec.Rows) %></span>
+    </div>
+    <div class="card-body py-2">
+      <table class="table table-sm table-hover table-bordered mb-1">
+        <thead class="thead-light">
+          <tr>
+            <th><%= t("care_plan.confirmations.col_name") %></th>
+            <th><%= t("care_plan.confirmations.col_kind") %></th>
+            <th><%= t("care_plan.confirmations.col_content") %></th>
+            <th><%= t("care_plan.confirmations.col_schedule") %></th>
+            <th><%= t("care_plan.confirmations.col_created") %></th>
+            <th><%= t("care_plan.confirmations.col_actions") %></th>
+          </tr>
+        </thead>
+        <tbody>
+          <%= for (row) in sec.Rows { %>
+            <tr>
+              <td class="align-middle"><%= row.Name %></td>
+              <td class="align-middle"><span class="badge badge-light"><%= t("care_plan.kind." + row.Kind) %></span></td>
+              <td class="align-middle"><%= if (row.Content != "") { %><%= row.Content %><% } else { %>—<% } %></td>
+              <td class="align-middle small text-muted"><%= humanSchedule(row.Schedule) %></td>
+              <td class="align-middle small text-muted"><%= row.Created %></td>
+              <td class="align-middle text-nowrap">
+                <a href="<%= sec.AnimalLink %>" class="btn btn-outline-secondary btn-sm" title="<%= t("care_plan.confirmations.check") %>"><i class="fas fa-search"></i> <%= t("care_plan.confirmations.check") %></a>
+                <%= if (current_user != nil && current_user.Admin) { %>
+                  <form action="/care_animal_plans/<%= row.PlanID %>/confirmation" method="POST" class="d-inline">
+                    <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
+                    <input type="hidden" name="needs_confirmation" value="0">
+                    <input type="hidden" name="back" value="/reports/confirmations">
+                    <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check"></i> <%= t("care_plan.confirmations.resolve") %></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>

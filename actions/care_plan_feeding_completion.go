@@ -26,7 +26,8 @@ import (
 // against databases whose startup_v2 marker was already written before
 // the widening. The per-animal name guard in createConvertedFeedingPlan
 // makes it strictly write-neutral for animals already converted; only the
-// previously-skipped rows get their fallback plans ("à vérifier").
+// previously-skipped rows get their fallback plans (single daily slot,
+// 09:00 when no legacy start — BUG-52e user ruling).
 //
 // Idempotency: the care_plan_conversion row key=ConversionMarkerKeyV4 is
 // written on success; later boots are a no-op. A failure aborts the boot

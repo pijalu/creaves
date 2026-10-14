@@ -98,8 +98,8 @@ func TestTruncateWordsKeepsExistingEllipsisIntact(t *testing.T) {
 func TestConvertedNamesAreNeverCutMidRune(t *testing.T) {
 	diet := strings.Repeat("nourriture spéciale ", 6)
 	for _, got := range []string{
-		convertedFeedingName(diet, false),
-		convertedFeedingName(diet, true),
+		convertedFeedingName(diet),
+		convertedFeedingName(diet),
 		convertedMatcherName(diet),
 	} {
 		require.True(t, utf8.ValidString(got), "invalid UTF-8 in %q", got)
@@ -118,7 +118,7 @@ func TestConvertedNamesAreNeverCutMidRune(t *testing.T) {
 // a cut.
 func TestTruncatedNameStillShowsTheCompleteContent(t *testing.T) {
 	diet := "nourriture speciale pour animaux sick avec un tres long regime alimentaire"
-	cut := convertedFeedingName(diet, false)
+	cut := convertedFeedingName(diet)
 	// The cut is marked with "…" inside the wrapper, not at the end of the
 	// whole composed name.
 	require.Contains(t, cut, "…", "precondition: the name is cut: %q", cut)
@@ -160,7 +160,7 @@ func TestConverterNeverCutsANameWithAByteSlice(t *testing.T) {
 // not be a fragment of a word.
 func TestConvertedNamesKeepAWholeWord(t *testing.T) {
 	diet := strings.Repeat("nourriture speciale ", 6)
-	name := convertedFeedingName(diet, false)
+	name := convertedFeedingName(diet)
 	// The diet is embedded between the "Alimentation — " and " (conversion)"
 	// wrappers; whatever survived must not end on a partial word.
 	inner := strings.TrimSuffix(strings.TrimPrefix(name, "Alimentation — "), " (conversion)")

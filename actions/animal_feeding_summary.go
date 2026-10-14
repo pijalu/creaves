@@ -19,8 +19,9 @@ type FeedingPlanSummary struct {
 	Diet string
 	// TimesLabel is the pre-joined daily slots ("07:00, 13:30, 19:00").
 	TimesLabel string
-	// NeedsReview marks converter fallback rows (" (à vérifier)" suffix):
-	// the schedule slot was defaulted, a human should confirm it.
+	// NeedsReview is the plan's MANUAL needs_confirmation flag (BUG-52e
+	// user ruling): the user asked for review via the UI; an admin
+	// resolves it on the "Protocols to confirm" screen.
 	NeedsReview bool
 }
 
@@ -38,7 +39,7 @@ func feedingPlanSummaries(plans *models.CareAnimalPlans) []FeedingPlanSummary {
 		}
 		s := FeedingPlanSummary{
 			Diet:        payloadFoodOf(p.ActionPayload),
-			NeedsReview: strings.Contains(p.Name, "à vérifier"),
+			NeedsReview: p.NeedsConfirmation,
 		}
 		if sched, err := careplan.ParseScheduleJSON(p.Schedule); err == nil {
 			times := make([]string, 0, len(sched.Times))

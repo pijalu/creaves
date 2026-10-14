@@ -108,12 +108,13 @@ func setupConverterFixture(t *testing.T) *converterFixture {
 
 	// BUG-10 (2026-10-14): animals the pre-v4 converter silently skipped.
 	// (a) period > 0 but NULL start/end + diet text (the animal-8842 case):
-	//     must be converted with the fallback slot, flagged "à vérifier".
+	//     must be converted with the fallback slot (single daily 09:00 or
+	//     legacy-start slot — definitive, never flagged).
 	idNullTimes := fx.f.mkAnimal(t, db, "Renard roux")
 	fx.setFeedingNullTimes(t, db, idNullTimes, "15 poussins et 5 souris", 480)
 	fx.animalIDs = append(fx.animalIDs, idNullTimes)
 	// (b) diet text only (no period, no times): still a legacy feeding
-	//     trace — must be converted (fallback slot, "à vérifier").
+	//     trace — must be converted (fallback slot, definitive).
 	idDietOnly := fx.f.mkAnimal(t, db, "Fou de Bassan")
 	fx.setFeedingNullTimes(t, db, idDietOnly, "Poisson entier", 0)
 	fx.animalIDs = append(fx.animalIDs, idDietOnly)
@@ -292,16 +293,17 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 		report.Reconciliation.FeedingDegraded)
 	require.Equal(t, 0, report.Reconciliation.TreatmentUncovered)
 
-	// BUG-10: the NULL-times animal got a fallback plan flagged
-	// "à vérifier" carrying its diet; the diet-only animal likewise; the
-	// no-trace animal got nothing. BUG-36: the fallback form is a plain
-	// slot list — NO repeat block (the legacy triple is incomplete).
-	assertFeedingPlan := func(animalID int, wantFood string, wantVerify bool) {
+	// BUG-10: the NULL-times animal got a fallback plan carrying its diet
+	// (single daily slot — user ruling 2026-10-14: definitive, never
+	// flagged); the diet-only animal likewise; the no-trace animal got
+	// nothing. BUG-36: the fallback form is a plain slot list — NO repeat
+	// block (the legacy triple is incomplete).
+	assertFeedingPlan := func(animalID int, wantFood string) {
 		var plans []models.CareAnimalPlan
 		require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", animalID, careplan.KindFeeding).All(&plans))
 		require.Len(t, plans, 1, "animal %d must have exactly one converted feeding plan", animalID)
 		p := plans[0]
-		require.Equal(t, wantVerify, strings.Contains(p.Name, "à vérifier"), "plan name %q", p.Name)
+		require.NotContains(t, p.Name, "à vérifier", "converted names are definitive — plan name %q", p.Name)
 		// the payload food is the NORMALIZED (case-folded) diet text.
 		require.Contains(t, string(p.ActionPayload), NormalizeDiet(wantFood))
 		sched, err := careplan.ParseScheduleJSON(p.Schedule)
@@ -309,8 +311,8 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 		require.NotEmpty(t, sched.Times, "fallback slot must be present")
 		require.Nil(t, sched.Repeat, "fallback plan of animal %d must not carry a repeat block", animalID)
 	}
-	assertFeedingPlan(fx.nullTimesID, "15 poussins et 5 souris", true)
-	assertFeedingPlan(fx.dietOnlyID, "Poisson entier", true)
+	assertFeedingPlan(fx.nullTimesID, "15 poussins et 5 souris")
+	assertFeedingPlan(fx.dietOnlyID, "Poisson entier")
 	var none []models.CareAnimalPlan
 	require.NoError(t, db.Where("animal_id = ?", fx.noFeedingID).All(&none))
 	require.Empty(t, none, "an animal without any legacy feeding trace must not gain a plan")
@@ -420,15 +422,17 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"08:00", "12:00"}, trSched)
 
-	// M5 routing: the three edge series became flagged OBSERVATION plans
-	// (observation payload requires a "prompt"; medication requires dosage).
-	// B10-8: unknown-drug and wound-care series convert to CARE plans
-	// typed "Soin" (the legacy drug column carried non-drug entries); a
-	// KNOWN drug without posology stays a flagged observation.
+	// M5 routing: the three edge series became definitive OBSERVATION/CARE
+	// plans (observation payload requires a "prompt"; medication requires
+	// dosage). B10-8: unknown-drug and wound-care series convert to CARE
+	// plans typed "Soin" (the legacy drug column carried non-drug entries);
+	// a KNOWN drug without posology becomes an observation (dosage is
+	// required for a medication payload). User ruling 2026-10-14: no
+	// "à vérifier" flag — every conversion is definitive.
 	assertConvertedPlan := func(animalID int, nameLike, wantKind string) models.CareAnimalPlan {
 		var p models.CareAnimalPlan
 		require.NoError(t, db.Where("animal_id = ? AND name LIKE ?", animalID, nameLike).First(&p))
-		require.Contains(t, p.Name, "(à vérifier)")
+		require.NotContains(t, p.Name, "(à vérifier)", "converted names are definitive")
 		require.Equal(t, wantKind, p.ActionKind, "routing kind")
 		if wantKind == careplan.KindCare {
 			var payload struct {
@@ -450,7 +454,7 @@ func TestCarePlanConverterRoundTrip(t *testing.T) {
 	}
 	assertConvertedPlan(fx.trUnknownDrugID, "Soin — Produit inconnu XYZ%", careplan.KindCare)
 	assertConvertedPlan(fx.trWoundID, "Soin de plaie (conversion)%", careplan.KindCare)
-	assertConvertedPlan(fx.trNoDosageID, "Traitement — Ivomec 1% (à vérifier)", careplan.KindObservation)
+	assertConvertedPlan(fx.trNoDosageID, "Traitement — Ivomec 1%", careplan.KindObservation)
 
 	// No medication plan may exist for the unknown drug (invented dosage).
 	n, err := db.Where("animal_id = ? AND name = ?", fx.trUnknownDrugID, "Traitement — Produit inconnu XYZ").Count(&models.CareAnimalPlan{})
@@ -529,7 +533,7 @@ func TestCarePlanMigrationV3MigratesRulesToAnimals(t *testing.T) {
 	_, err := RunCarePlanConverter(db)
 	require.NoError(t, err)
 	diet := "grains pigeons eau"
-	ruleName := convertedFeedingName(diet, false)
+	ruleName := convertedFeedingName(diet)
 	require.NoError(t, db.RawQuery(
 		"DELETE FROM care_animal_plans WHERE animal_id IN (?, ?, ?, ?, ?)",
 		fx.animalIDs[0], fx.animalIDs[1], fx.animalIDs[2], fx.animalIDs[3], fx.animalIDs[4]).Exec())
@@ -569,7 +573,7 @@ func TestCarePlanMigrationV3MigratesRulesToAnimals(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, verrs.HasAny(), "matcher2 fixture invalid: %v", verrs)
 	r2 := &models.CareRule{
-		Name:          convertedFeedingName("Mixture A", false),
+		Name:          convertedFeedingName("Mixture A"),
 		Description:   nulls.NewString(fmt.Sprintf("Cluster alimentation ×2 [source: %s]", ConverterTag)),
 		ActionKind:    careplan.KindFeeding,
 		ActionPayload: []byte(`{"caretype_id":"fixture-feed","food":"Mixture A","force_feed":false}`),
@@ -680,7 +684,7 @@ func TestCarePlanMigrationV3MigratesRulesToAnimals(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, verrs.HasAny(), "matcher3 fixture invalid: %v", verrs)
 	r3 := &models.CareRule{
-		Name:          convertedFeedingName("residue diet", false),
+		Name:          convertedFeedingName("residue diet"),
 		Description:   nulls.NewString(fmt.Sprintf("Cluster alimentation ×1 [source: %s]", ConverterTag)),
 		ActionKind:    careplan.KindFeeding,
 		ActionPayload: []byte(`{"caretype_id":"fixture-feed","food":"residue diet","force_feed":false}`),
@@ -734,7 +738,7 @@ func TestCarePlanMigrationV3CompletionPassWithoutActiveRules(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, verrs.HasAny(), "matcher fixture invalid: %v", verrs)
 	r := &models.CareRule{
-		Name:          convertedFeedingName("residue only", false),
+		Name:          convertedFeedingName("residue only"),
 		Description:   nulls.NewString(fmt.Sprintf("Cluster alimentation ×1 [source: %s]", ConverterTag)),
 		ActionKind:    careplan.KindFeeding,
 		ActionPayload: []byte(`{"caretype_id":"fixture-feed","food":"residue only","force_feed":false}`),
@@ -817,8 +821,8 @@ func TestCarePlanConverterCaseVariantSeries(t *testing.T) {
 	}
 	// B10-6: the series dosage ("oreille") rides in the converted content
 	// line; B10-8: unknown drugs convert to CARE plans ("Soin — …").
-	require.True(t, got["Soin — ProdiplasT-T (oreille) (à vérifier)"])
-	require.True(t, got["Soin — Prodiplast-T (oreille) (à vérifier)"])
+	require.True(t, got["Soin — ProdiplasT-T (oreille)"])
+	require.True(t, got["Soin — Prodiplast-T (oreille)"])
 
 	// Re-run after marker wipe: still exactly two plans (idempotency holds
 	// with the binary collation too).
@@ -1043,11 +1047,12 @@ func TestCarePlanFeedingRepairConvergesToLegacyColumns(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 180, variantParsed.GraceMinutes, "window row grace = 360/2")
 	require.NotNil(t, variantParsed.Repeat)
-	// (c) the deleted plan is back, flagged "à vérifier" (fallback row);
+	// (c) the deleted plan is back (fallback row, definitive single daily
+	// slot — user ruling 2026-10-14: no "à vérifier" flag);
 	var recreated []models.CareAnimalPlan
 	require.NoError(t, db.Where("animal_id = ? AND action_kind = ?", fx.nullTimesID, careplan.KindFeeding).All(&recreated))
 	require.Len(t, recreated, 1, "the §8.1 hole is closed")
-	require.Contains(t, recreated[0].Name, "à vérifier")
+	require.NotContains(t, recreated[0].Name, "à vérifier")
 	// (d) the zombie is inactive;
 	var zombieAfter models.CareAnimalPlan
 	require.NoError(t, db.Where("id = ?", zombiePlans[0].ID).First(&zombieAfter))
@@ -1209,12 +1214,13 @@ func TestCarePlanTreatmentValidationAndRefresh(t *testing.T) {
 	require.NoError(t, db.RawQuery("DELETE FROM care_animal_plans WHERE id = ?", orphan.ID).Exec())
 }
 
-// TestCarePlanTreatmentCadence pins the BUG-52 cadence fix: a regularly
-// spaced series (constant gap G days) converts to every_days:G with
-// duration_days = date count, so the day plan lands EXACTLY on the legacy
-// dates instead of daily over-scheduling; an irregular series (mixed gaps)
-// stays daily under a "(à vérifier)" name suffix (visible over-reminder,
-// never a hidden dose); a single-date series is unchanged.
+// TestCarePlanTreatmentCadence pins the BUG-52 exact-conversion contract
+// (user ruling 2026-10-14: a conversion is always correct, never flagged
+// "à vérifier"): a regularly spaced series (constant gap G days) converts
+// to every_days:G with duration_days = date count; a weekly weekday
+// pattern converts to a weekdays schedule; an irregular series (mixed
+// gaps) becomes ONE exact single-day plan per legacy date; a single-date
+// series is unchanged.
 func TestCarePlanTreatmentCadence(t *testing.T) {
 	requireMySQLTestDB(t)
 	db := models.DB
@@ -1251,6 +1257,17 @@ func TestCarePlanTreatmentCadence(t *testing.T) {
 	// (c) single-date series — unchanged behavior.
 	idSingle := fx.f.mkAnimal(t, db, "Faucon crécerelle")
 	mkSeries(idSingle, 2)
+	// (d) weekly weekday pattern: Mon/Wed/Fri for two weeks — converts to
+	// ONE plan restricted to weekdays [1,3,5], generating exactly the 6
+	// legacy dates.
+	idWeekdays := fx.f.mkAnimal(t, db, "Faucon crécerelle")
+	daysToMonday := (8 - int(base.Weekday())) % 7
+	mon1 := base.AddDate(0, 0, daysToMonday)
+	mkSeries(idWeekdays, daysToMonday, daysToMonday+2, daysToMonday+4, daysToMonday+7, daysToMonday+9, daysToMonday+11)
+	wantMWF := []string{}
+	for _, off := range []int{0, 2, 4, 7, 9, 11} {
+		wantMWF = append(wantMWF, mon1.AddDate(0, 0, off).Format("2006-01-02"))
+	}
 
 	created, err := RunCarePlanTreatmentRefresh(db)
 	require.NoError(t, err)
@@ -1283,13 +1300,49 @@ func TestCarePlanTreatmentCadence(t *testing.T) {
 	}
 	require.Equal(t, wantDays, gotDays, "regular series must produce EXACTLY the legacy dates (BUG-52: no daily over-schedule)")
 
-	// (b) irregular: flagged, stays daily (never hides a dose).
-	pIrregular := read(idIrregular)
-	require.Contains(t, pIrregular.Name, "(à vérifier)", "mixed-gap series must be flagged for human review")
-	schedB, err := careplan.ParseScheduleJSON(pIrregular.Schedule)
+	// (b) irregular: ONE exact single-day plan per legacy date — the
+	// legacy dates ARE the truth; no flag, no over-schedule, no hidden dose.
+	var pIrregulars []models.CareAnimalPlan
+	require.NoError(t, db.Where("animal_id = ? AND created_by IS NULL AND action_kind = ?",
+		idIrregular, careplan.KindMedication).Order("name").All(&pIrregulars))
+	require.Len(t, pIrregulars, 3, "mixed-gap series → one exact plan per legacy date")
+	wantIrregularDates := []string{
+		base.Format("2006-01-02"), base.AddDate(0, 0, 1).Format("2006-01-02"),
+		base.AddDate(0, 0, 9).Format("2006-01-02"),
+	}
+	for i, p := range pIrregulars {
+		require.Equal(t, "Traitement — Metacam 1,5 mg/ml — "+wantIrregularDates[i], p.Name,
+			"per-date plan name carries the exact legacy date, never a flag")
+		schedB, err := careplan.ParseScheduleJSON(p.Schedule)
+		require.NoError(t, err)
+		require.Equal(t, 1, schedB.EveryDays)
+		require.Equal(t, 1, schedB.DurationDays)
+		require.NotNil(t, schedB.AnchorDate)
+		require.Equal(t, wantIrregularDates[i], schedB.AnchorDate.Format("2006-01-02"))
+		occsB := careplan.GenerateOccurrences(careplan.NewSource(careplan.SourceAnimal, p.ID.String(), p.Name, p.ActionKind, schedB),
+			&careplan.AnimalContext{ID: idIrregular}, base.AddDate(0, 0, -1), base.AddDate(0, 0, 40))
+		require.Len(t, occsB, 1, "single-day plan generates exactly one occurrence")
+		require.Equal(t, wantIrregularDates[i], occsB[0].DueAt.Format("2006-01-02"))
+	}
+
+	// (d) weekday pattern: single plan, weekdays [1,3,5], duration 6 —
+	// occurrences land exactly on the legacy dates.
+	pWeekdays := read(idWeekdays)
+	require.Equal(t, "Traitement — Metacam 1,5 mg/ml", pWeekdays.Name)
+	schedD, err := careplan.ParseScheduleJSON(pWeekdays.Schedule)
 	require.NoError(t, err)
-	require.Equal(t, 1, schedB.EveryDays)
-	require.Equal(t, 10, schedB.DurationDays)
+	require.Equal(t, 1, schedD.EveryDays)
+	require.Equal(t, []int{1, 3, 5}, schedD.Weekdays)
+	require.Equal(t, 6, schedD.DurationDays)
+	require.NotNil(t, schedD.AnchorDate)
+	require.Equal(t, mon1.Format("2006-01-02"), schedD.AnchorDate.Format("2006-01-02"))
+	occsD := careplan.GenerateOccurrences(careplan.NewSource(careplan.SourceAnimal, pWeekdays.ID.String(), pWeekdays.Name, pWeekdays.ActionKind, schedD),
+		&careplan.AnimalContext{ID: idWeekdays}, base.AddDate(0, 0, -1), base.AddDate(0, 0, 40))
+	gotMWFDays := []string{}
+	for _, o := range occsD {
+		gotMWFDays = append(gotMWFDays, o.DueAt.Format("2006-01-02"))
+	}
+	require.Equal(t, wantMWF, gotMWFDays, "weekday pattern must generate EXACTLY the legacy dates")
 
 	// (c) single date: plain daily one-day plan, no flag.
 	pSingle := read(idSingle)

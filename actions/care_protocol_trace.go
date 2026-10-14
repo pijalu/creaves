@@ -47,6 +47,11 @@ type ProtocolSourceView struct {
 	Excluded        bool
 	ExclusionID     string
 	ExclusionReason string
+	// NeedsConfirmation is the row's MANUAL "Need confirmation" flag
+	// (BUG-52e): set/unset by users from this table, resolved by an admin
+	// on /reports/confirmations. Display + quick-toggle only — never
+	// touches scheduling.
+	NeedsConfirmation bool
 }
 
 // ProtocolTraceView is the ordered list of applicable sources: animal
@@ -60,6 +65,22 @@ type ProtocolTraceView struct {
 // engine's day plan. admin gates the global-rule EDIT LINK only — a
 // non-admin still sees the rule's name, content and schedule (never a
 // dead link).
+// applyConfirmationFlags copies each animal protocol's MANUAL flag onto its
+// trace row (BUG-52e). Only occurrence-sourced rows are in flags; appended
+// idle plans already carry their own value.
+func applyConfirmationFlags(trace *ProtocolTraceView, flags map[uuid.UUID]bool) {
+	for i := range trace.Sources {
+		if trace.Sources[i].SourceType != string(careplan.SourceAnimal) {
+			continue
+		}
+		if id, err := uuid.FromString(trace.Sources[i].SourceID); err == nil {
+			if v, ok := flags[id]; ok {
+				trace.Sources[i].NeedsConfirmation = v
+			}
+		}
+	}
+}
+
 func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, admin bool) (*ProtocolTraceView, error) {
 	trace := &ProtocolTraceView{}
 	if plan == nil || animal == nil {
@@ -91,8 +112,32 @@ func protocolTraceOf(tx *pop.Connection, plan *DayPlan, animal *models.Animal, a
 			trace.Sources[i].Schedule = raw
 		}
 	}
+	// BUG-52e: surface each animal protocol's MANUAL needs_confirmation
+	// flag on its trace row (set/unset control in the Details table).
+	flags, err := planConfirmationFlags(tx, planIDs)
+	if err != nil {
+		return nil, err
+	}
+	applyConfirmationFlags(trace, flags)
 	sortProtocolSources(trace.Sources)
 	return trace, nil
+}
+
+// planConfirmationFlags loads the manual needs_confirmation flag of the
+// given animal-plan ids (BUG-52e). Rules have no such flag.
+func planConfirmationFlags(tx *pop.Connection, planIDs []uuid.UUID) (map[uuid.UUID]bool, error) {
+	out := map[uuid.UUID]bool{}
+	if len(planIDs) == 0 {
+		return out, nil
+	}
+	plans := &models.CareAnimalPlans{}
+	if err := tx.Where("id IN (?)", planIDs).All(plans); err != nil {
+		return nil, err
+	}
+	for _, p := range *plans {
+		out[p.ID] = p.NeedsConfirmation
+	}
+	return out, nil
 }
 
 // traceSources folds every occurrence of THIS animal into one row per
@@ -203,17 +248,18 @@ func appendIdleAnimalPlans(tx *pop.Connection, animal *models.Animal, trace *Pro
 		var payload planPayload
 		_ = jsonUnmarshalStrictish(p.ActionPayload, &payload)
 		trace.Sources = append(trace.Sources, ProtocolSourceView{
-			SourceType:  string(careplan.SourceAnimal),
-			SourceID:    id,
-			Name:        DisplayName(p.Name),
-			Kind:        p.ActionKind,
-			Content:     planDetailOf(p.ActionKind, payload),
-			Schedule:    string(p.Schedule),
-			EditURL:     fmt.Sprintf("/animals/%d#nav-plan", animal.ID),
-			Editable:    true,
-			Replaces:    p.ReplacesKind,
-			Occurrences: 0,
-			Active:      p.Active,
+			SourceType:        string(careplan.SourceAnimal),
+			SourceID:          id,
+			Name:              DisplayName(p.Name),
+			Kind:              p.ActionKind,
+			Content:           planDetailOf(p.ActionKind, payload),
+			Schedule:          string(p.Schedule),
+			EditURL:           fmt.Sprintf("/animals/%d#nav-plan", animal.ID),
+			Editable:          true,
+			Replaces:          p.ReplacesKind,
+			Occurrences:       0,
+			Active:            p.Active,
+			NeedsConfirmation: p.NeedsConfirmation,
 		})
 	}
 	return nil

@@ -114,7 +114,7 @@ func expectedConvertedFeeding(a models.Animal, feedCareID string) (name, schedul
 		GraceMinutes: legacyFeedingGraceMinutes(a.FeedingPeriod),
 		Fallback:     fallback,
 	}
-	return convertedFeedingName(diet, fallback),
+	return convertedFeedingName(diet),
 		buildConvertedScheduleJSON(entry.Times, entry.Repeat, entry.GraceMinutes)
 }
 

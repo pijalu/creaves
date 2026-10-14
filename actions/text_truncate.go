@@ -63,12 +63,12 @@ func truncateWords(s string, max int) string {
 
 // convertedFeedingName is the converted feeding plan/rule name, with the diet
 // shortened to fit the varchar(200) column alongside its wrappers.
-func convertedFeedingName(diet string, fallback bool) string {
-	name := fmt.Sprintf("Alimentation — %s (conversion)", truncateWords(diet, convertedDietBudget))
-	if fallback {
-		name += " (à vérifier)"
-	}
-	return name
+// Definitive conversion naming (user ruling 2026-10-14): fallback rows
+// (single daily slot at the legacy start, else 09:00) carry NO "à
+// vérifier" suffix — uncertainty is expressed with the structured
+// needs_confirmation flag, never in the name.
+func convertedFeedingName(diet string) string {
+	return fmt.Sprintf("Alimentation — %s (conversion)", truncateWords(diet, convertedDietBudget))
 }
 
 // convertedMatcherName is the converted cluster-matcher name for a diet.
@@ -80,8 +80,8 @@ func convertedMatcherName(diet string) string {
 // plan/rule from its FULL diet text. Exported for the careplan:fixnames
 // maintenance grift, which repairs rows written by the earlier byte-based
 // truncation (names cut mid-word, e.g. "…1 dose d’e (conversion)").
-func RebuildConvertedFeedingName(diet string, fallback bool) string {
-	return convertedFeedingName(diet, fallback)
+func RebuildConvertedFeedingName(diet string) string {
+	return convertedFeedingName(diet)
 }
 
 // RebuildConvertedMatcherName is the matcher-name counterpart of

@@ -130,3 +130,5 @@
   translation: "Type a name to prefill the form with an existing discoverer"
 - id: "nav.reports_care_schedule"
   translation: "Care schedule"
+- id: "nav.reports_confirmations"
+  translation: "Protocols to confirm"

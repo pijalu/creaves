@@ -109,14 +109,18 @@ func ValidateTreatmentConversion(tx *pop.Connection) (*TreatmentValidationReport
 }
 
 // expectedTreatmentSeries maps the grouped future series through the
-// converter's routing into (animal, plan-name) coverage units.
+// converter's exact-conversion contract (treatmentSeriesPlanSpecs — the
+// same function the converter creates rows from) into (animal, plan-name)
+// coverage units.
 func expectedTreatmentSeries(tx *pop.Connection, known map[string]struct{}, groups map[string]*treatmentSeries, order []string) (map[treatmentWantKey]string, map[int]string) {
 	want := map[treatmentWantKey]string{}
 	labels := map[int]string{}
 	for _, key := range order {
 		s := groups[key]
-		name, kind, _, _ := routedTreatmentSeriesName(tx, known, s)
-		want[treatmentWantKey{s.animalID, name}] = kind
+		name, kind, payload, _ := treatmentSeriesRouting(tx, known, s.drug, s.dosage, s.remarks)
+		for _, spec := range treatmentSeriesPlanSpecs(s, treatmentSeriesTimes(s), name, kind, payload) {
+			want[treatmentWantKey{s.animalID, spec.name}] = spec.kind
+		}
 		labels[s.animalID] = fmt.Sprintf("animal %d", s.animalID)
 	}
 	return want, labels
