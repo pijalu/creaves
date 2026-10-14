@@ -3323,7 +3323,7 @@ structured, resolvable workflow, not free text).
 **Location:** `actions/care_plan_convert_data.go` (converter),
 `actions/care_plan_treatment_validation.go` (validator),
 `actions/care_plan_confirmations.go` (new), `grifts/careplan_fix_names.go`,
-`models/care_animal_plan.go`, migration `20261014120000_needs_confirmation`.
+`models/care_animal_plan.go`, migration `20261029120000_needs_confirmation`.
 
 **Change (user ruling implemented):**
 - The converter NEVER emits "(à vérifier)" name suffixes and NEVER sets
@@ -3334,7 +3334,7 @@ structured, resolvable workflow, not free text).
 - Irregular series are converted to their exact per-date/weekday form; a
   human may flag ANY plan "Needs confirmation" via the plan detail editor
   checkbox or the feeding summary flag button.
-- `care_animal_plans.needs_confirmation` (migration 20261014120000) +
+- `care_animal_plans.needs_confirmation` (migration 20261029120000) +
   `POST /care_animal_plans/{id}/confirmation` (bare = toggle,
   needs_confirmation=1/0 authoritative, column-scoped update so a concurrent
   name/schedule edit is not clobbered, HTML redirect sanitized per BUG-R5 —
@@ -3374,7 +3374,7 @@ structured, resolvable workflow, not free text).
 **Verification (production `creaves`):**
 - Backup first: `/tmp/creaves-backups/creaves_pre_needsconfirmation_20261014_131305.sql.gz`
   (29 MB, gzip-verified) — restore point before ANY write.
-- Migration 20261014120000 applied; `careplan:reconvert-treatments`: deleted
+- Migration 20261029120000 applied; `careplan:reconvert-treatments`: deleted
   134 → recreated 105; `careplan:fixnames`: 24 names repaired;
   `careplan:repair-feeding`: no-op (marker present).
 - `careplan:validate-treatments`: OK 105, missing 0 → PASS;

@@ -446,7 +446,7 @@ buffalo task careplan:repair-feeding
 The converter is DEFINITIVE: it never emits "(à vérifier)" name suffixes and
 never sets needs_confirmation. Uncertainty is a MANUAL flag:
 
-- `care_animal_plans.needs_confirmation` (migration 20261014120000) — set from
+- `care_animal_plans.needs_confirmation` (migration 20261029120000) — set from
   the plan detail editor checkbox ("Needs confirmation") or the feeding
   summary's flag button; `POST /care_animal_plans/{id}/confirmation`
   (`needs_confirmation=1|0`, bare = toggle; column-scoped write, local-back
