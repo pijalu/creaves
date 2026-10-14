@@ -424,7 +424,7 @@
                 <%= for (src) in animalProtocolTrace.Sources { %>
                   <%# R8-2: the row id the day-plan `src=` deep link
                       highlights — Details opens and this row is marked. %>
-                  <tr class="plan-trace-<%= src.SourceType %>" data-source-id="<%= src.SourceID %>">
+                  <tr class="plan-trace-<%= src.SourceType %><%= if (src.Overridden) { %> plan-trace-overridden<% } %>" data-source-id="<%= src.SourceID %>">
                     <td class="align-middle">
                       <span class="badge badge-<%= if (src.SourceType == "animal") { %>primary<% } else { %>secondary<% } %>" title="<%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated_hint") %><% } else { %><%= t("care_plan.protocol_trace.rule_source_hint") %><% } %>"><%= if (src.SourceType == "animal") { %><%= t("care_plan.protocol_trace.dedicated") %><% } else { %><%= t("care_plan.protocol_trace.rule_source") %><% } %></span>
                     </td>
@@ -436,6 +436,13 @@
                       <% } %>
                       <%= if (src.Replaces) { %>
                         <span class="badge badge-info ml-1" title="<%= t("care_plan.protocol_trace.replaces_kind") %>">⤵</span>
+                      <% } %>
+                      <%= if (src.Overridden) { %>
+                        <%# Overloaded general protocol (user ruling): every
+                            occurrence of the rule is currently suppressed by
+                            a specific protocol — gray row + naming badge so
+                            the inert rule never reads as active. %>
+                        <span class="badge badge-secondary ml-1" title="<%= t("care_plan.protocol_trace.overridden_hint") %><%= if (src.OverriddenBy != "") { %> (<%= src.OverriddenBy %>)<% } %>"><i class="fas fa-ban"></i> <%= t("care_plan.protocol_trace.overridden") %></span>
                       <% } %>
                     </td>
                     <td class="align-middle text-nowrap">
@@ -479,7 +486,7 @@
                             (resolve = unset). POST with authenticity_token;
                             `back` returns to this tab. %>
                         <%= if (src.NeedsConfirmation) { %><span class="badge badge-warning" title="<%= t("care_plan.field.needs_confirmation_hint") %>"><%= t("care_plan.field.needs_confirmation") %></span><% } %>
-                        <form action="/care_animal_plans/<%= src.SourceID %>/confirmation" method="POST" class="d-inline">
+                        <form action="/care_animal_plans/<%= src.SourceID %>/confirmation" method="POST" class="d-inline js-plan-confirm-form">
                           <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
                           <input type="hidden" name="needs_confirmation" value="<%= if (src.NeedsConfirmation) { %>0<% } else { %>1<% } %>">
                           <input type="hidden" name="back" value="/animals/<%= animal.ID %>#nav-plan">
@@ -1310,6 +1317,26 @@ if (url.indexOf('page=') > 0 && $("#nav-audit-tab").length) {
   // Wait for the collapse animation before scrolling, or the target y is wrong.
   $('#planDetails').on('shown.bs.collapse', function () {
     row.scrollIntoView({ block: 'center' });
+  });
+})();
+
+// BUG-52e follow-up (user ruling): the "need confirmation" quick toggle is
+// a state change — confirm it with a popup before POSTing. The POST
+// reloads the page (the #nav-plan hash only re-activates the tab), so
+// remember the Details card was open and reopen it after the reload.
+(function () {
+  var KEY = 'planDetailsOpen';
+  if (window.sessionStorage && sessionStorage.getItem(KEY) === '1') {
+    sessionStorage.removeItem(KEY);
+    $('#planDetails').collapse('show');
+    $('#planDetailsHead button').removeClass('collapsed').attr('aria-expanded', 'true');
+  }
+  $(document).on('submit', '.js-plan-confirm-form', function (e) {
+    if (!window.confirm(<%= jsString(t("care_plan.field.needs_confirmation_confirm")) %>)) {
+      e.preventDefault();
+      return;
+    }
+    if (window.sessionStorage) { sessionStorage.setItem(KEY, '1'); }
   });
 })();
 

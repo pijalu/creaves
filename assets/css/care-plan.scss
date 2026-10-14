@@ -547,6 +547,14 @@ td.plan-med-animal {
   box-shadow: inset 3px 0 0 #ffc107;
 }
 
+// Overloaded general protocol (user ruling): every occurrence the rule
+// produces is currently suppressed by a specific protocol — gray the
+// Details row out so an inert rule can never be misread as active.
+.plan-trace-overridden td {
+  background-color: rgba(0, 0, 0, 0.045);
+  color: #6c757d;
+}
+
 // R9 + Phase 1 (D1, guideline §5): medication rows are COMPACT but never
 // clipped — the responsive fall-back ladder replaces the old global
 // single-line overrides (which forced `nowrap` everywhere and ellipsized

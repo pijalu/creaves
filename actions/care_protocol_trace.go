@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"creaves/models"
 	"creaves/models/careplan"
@@ -52,6 +53,15 @@ type ProtocolSourceView struct {
 	// on /reports/confirmations. Display + quick-toggle only — never
 	// touches scheduling.
 	NeedsConfirmation bool
+	// Overload marking (user ruling): a general rule whose EVERY window
+	// occurrence is suppressed by a specific protocol must not read as
+	// active — Overridden grays the Details row and adds a naming badge;
+	// OverriddenBy lists the suppressing protocol(s). Partial overload
+	// (some occurrences still open) stays unmarked: the rule IS active.
+	Overridden      bool
+	OverriddenCount int
+	OverriddenBy    string
+	overriddenNames []string
 }
 
 // ProtocolTraceView is the ordered list of applicable sources: animal
@@ -140,6 +150,40 @@ func planConfirmationFlags(tx *pop.Connection, planIDs []uuid.UUID) (map[uuid.UU
 	return out, nil
 }
 
+// noteOverridden records one StatusOverridden occurrence on its source's
+// trace row: the count drives the fully-overloaded decision, the names
+// (deduped) become the badge's "who suppressed this" list.
+func noteOverridden(row *ProtocolSourceView, it *careplan.PlanItem) {
+	if it.Status != careplan.StatusOverridden {
+		return
+	}
+	row.OverriddenCount++
+	if it.OverriddenBy == "" {
+		return
+	}
+	for _, n := range row.overriddenNames {
+		if n == it.OverriddenBy {
+			return
+		}
+	}
+	row.overriddenNames = append(row.overriddenNames, it.OverriddenBy)
+}
+
+// finalizeOverriddenFlags applies the overload decision (user ruling): a
+// source whose EVERY window occurrence was suppressed by specific protocols
+// is marked Overridden — the Details row grays out with a naming badge. Rows
+// appended later (idle plans, excluded rules) have Occurrences 0 and keep
+// their own semantics.
+func finalizeOverriddenFlags(trace *ProtocolTraceView) {
+	for i := range trace.Sources {
+		s := &trace.Sources[i]
+		if s.Occurrences > 0 && s.OverriddenCount >= s.Occurrences {
+			s.Overridden = true
+			s.OverriddenBy = strings.Join(s.overriddenNames, ", ")
+		}
+	}
+}
+
 // traceSources folds every occurrence of THIS animal into one row per
 // contributing source, counting what each produced, and returns the ids
 // whose stored schedule document must still be loaded.
@@ -154,10 +198,13 @@ func traceSources(plan *DayPlan, animal *models.Animal, admin bool, trace *Proto
 		k := [2]string{string(src.SourceType()), src.SourceID()}
 		if at, ok := idx[k]; ok {
 			trace.Sources[at].Occurrences++
+			noteOverridden(&trace.Sources[at], it)
 			continue
 		}
 		idx[k] = len(trace.Sources)
-		trace.Sources = append(trace.Sources, protocolSourceView(src, animal, admin))
+		view := protocolSourceView(src, animal, admin)
+		noteOverridden(&view, it)
+		trace.Sources = append(trace.Sources, view)
 		if u, err := uuid.FromString(src.SourceID()); err == nil {
 			if k[0] == string(careplan.SourceRule) {
 				ruleIDs = append(ruleIDs, u)
@@ -166,6 +213,8 @@ func traceSources(plan *DayPlan, animal *models.Animal, admin bool, trace *Proto
 			}
 		}
 	}
+	// Overload decision in finalizeOverriddenFlags (user ruling).
+	finalizeOverriddenFlags(trace)
 	return ruleIDs, planIDs
 }
 
