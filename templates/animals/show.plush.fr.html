@@ -548,6 +548,13 @@
                         <% }%>
                       </p>
                     </div>
+                    <div class="col-sm">
+                      <div class="float-right">
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-info", title: "Voir", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
+                        <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Êtes-vous sûr?", title: "Détruire", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </li>
