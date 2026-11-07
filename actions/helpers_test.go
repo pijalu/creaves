@@ -70,6 +70,27 @@ func TestTimeToNullTime(t *testing.T) {
 	}
 }
 
+// Regression test for #205 (outtake crash): midnight ("00:00") must NOT
+// map to a value that survives a MySQL round-trip as time.Time{}. The old
+// year-1 sentinel stored '0001-01-01 00:00:00', which scans back as the
+// zero time.Time; the mysql driver then serializes it as '0000-00-00' and
+// strict-mode servers reject the next animal UPDATE with Error 1292.
+func TestTimeToNullTimeMidnightIsNotZero(t *testing.T) {
+	t.Parallel()
+	got := timeToNullTime("00:00")
+	if !got.Valid {
+		t.Fatal("expected Valid time for midnight")
+	}
+	// Simulate MySQL dropping sub-second precision on store.
+	stored := got.Time.Truncate(time.Second)
+	if stored.IsZero() {
+		t.Errorf("midnight sentinel %v survives a MySQL round-trip as zero time", got.Time)
+	}
+	if stored.Hour() != 0 || stored.Minute() != 0 {
+		t.Errorf("expected 00:00, got %02d:%02d", stored.Hour(), stored.Minute())
+	}
+}
+
 func TestTimeToMinutes(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -80,9 +101,9 @@ func TestTimeToMinutes(t *testing.T) {
 		{"01:00", 60},
 		{"13:45", 13*60 + 45},
 		{"23:59", 23*60 + 59},
-		{"", 0},        // invalid -> 0
-		{"abc", 0},     // invalid -> 0
-		{"25:99", 0},   // invalid -> 0
+		{"", 0},      // invalid -> 0
+		{"abc", 0},   // invalid -> 0
+		{"25:99", 0}, // invalid -> 0
 	}
 	for _, c := range cases {
 		got := timeToMinutes(c.in)
@@ -217,7 +238,7 @@ func TestAnimalFeedingYearNumberFormatted(t *testing.T) {
 		want      string
 	}{
 		{2024, 3, "3/24"},
-		{2000, 11, "11/0"},  // 2000 % 100 == 0
+		{2000, 11, "11/0"}, // 2000 % 100 == 0
 		{1999, 1, "1/99"},
 		{2010, 42, "42/10"},
 	}

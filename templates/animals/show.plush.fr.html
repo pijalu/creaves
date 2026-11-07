@@ -449,7 +449,7 @@
 
     <div class="py-4 mb-2">
       <div class="float-right">
-        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"/edit#nav-treatment" }), {class: "btn btn-primary"}) { %>
+        <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Ajouter un nouveau traitement
         <% } %>
       </div>
@@ -625,7 +625,7 @@
     <div class="py-4 mb-2">
       <form action="/animals/<%= animal.ID %>/attachments" method="POST" enctype="multipart/form-data" class="form-inline">
         <input name="authenticity_token" value="<%= authenticity_token %>" type="hidden" />
-        <div class="custom-file mr-2" style="max-width:360px">
+        <div class="custom-file mr-2" style="width:100%; max-width:480px">
           <input type="file" class="custom-file-input" id="attachmentFile" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required onchange="var l=this.nextElementSibling; l.textContent = this.files.length ? this.files[0].name : l.dataset.placeholder; l.classList.toggle('text-muted', this.files.length === 0);">
           <label class="custom-file-label text-muted" for="attachmentFile" data-placeholder="Choisir un fichier (photo ou vidéo)">Choisir un fichier (photo ou vidéo)</label>
         </div>

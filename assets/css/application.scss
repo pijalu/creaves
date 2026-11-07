@@ -33,13 +33,17 @@
   }
 }
 
-// Media upload placeholder flush with the frame's left edge (issue #205,
-// item 4): Bootstrap's .75rem left padding indents the long 'Choisir un
-// fichier (photo ou vidéo)' text and, with the Browse overlay on the right,
-// clips its tail. A minimal left padding keeps the text readable and fully
-// visible on the 24rem-wide frame.
+// Media upload placeholder fully visible in every locale (issue #205,
+// item 4): Bootstrap's .custom-file-label has no right padding reserved
+// for its ::after "Browse" button (z-index 3), so long translations such
+// as 'Choisir un fichier (photo ou vidéo)' or 'Datei wählen (Foto oder
+// Video)' slide *under* the button and are clipped by overflow:hidden.
+// 7rem clears the widest localized button (de 'Durchsuchen'), the small
+// left padding keeps the text flush with the frame's left edge, and the
+// ellipsis degrades gracefully if the frame still proves too narrow.
 .custom-file-label[for="attachmentFile"] {
   padding-left: 0.25rem;
+  padding-right: 7rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

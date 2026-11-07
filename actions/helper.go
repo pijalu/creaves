@@ -42,7 +42,14 @@ func timeToNullTime(s string) nulls.Time {
 	if err != nil {
 		return nulls.Time{}
 	}
-	return nulls.NewTime(time.Date(1, 1, 1, t.Hour(), t.Minute(), 0, 1, time.UTC))
+	// Sentinel date: year 2000, NOT year 1. A year-1 date at midnight
+	// ('0001-01-01 00:00:00') scans back as Go's zero time.Time, which the
+	// MySQL driver re-serializes as '0000-00-00 00:00:00' — rejected by
+	// strict-mode servers on any later UPDATE (outtake crash, #205).
+	// Year 2000 is inside the MySQL DATETIME range and never equals the
+	// zero value, whatever time of day is picked. Consumers only read
+	// Hour()/Minute() (calculateFeeding) or Format("15:04") (display).
+	return nulls.NewTime(time.Date(2000, 1, 1, t.Hour(), t.Minute(), 0, 0, time.UTC))
 }
 
 func timeToMinutes(s string) int {
