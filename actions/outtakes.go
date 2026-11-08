@@ -322,6 +322,12 @@ func rejectOuttakeCreate(c buffalo.Context, tx *pop.Connection, animal *models.A
 		c.Flash().Add("danger", T.Translate(c, "outtake.date.future"))
 		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
 	}
+	// The outtake date cannot predate the animal's intake (issue #208-11).
+	// Both dates are naive local wall clocks (binder parses as UTC).
+	if outtake.Date.Before(animal.Intake.Date) {
+		c.Flash().Add("danger", T.Translate(c, "outtake.date.before_intake"))
+		return true, renderOuttakeNewRejected(c, tx, animal, outtake)
+	}
 	outtakeType := &models.Outtaketype{}
 	if err := tx.Find(outtakeType, outtake.TypeID); err != nil {
 		c.Flash().Add("danger", T.Translate(c, "outtake.type.invalid"))
@@ -543,6 +549,18 @@ func (v OuttakesResource) Update(c buffalo.Context) error {
 	// outtake date (issue #175).
 	stayedAnimal := &models.Animal{}
 	if err := tx.Eager().Where("outtake_id = ?", outtake.ID).First(stayedAnimal); err == nil && stayedAnimal.ID != 0 {
+		// The outtake date cannot predate the animal's intake (#208-11).
+		if outtake.Date.Before(stayedAnimal.Intake.Date) {
+			c.Flash().Add("danger", T.Translate(c, "outtake.date.before_intake"))
+			c.Set("outtake", outtake)
+			c.Set("intakeDate", stayedAnimal.Intake.Date.Format(models.DateTimeFormat))
+			ot, terr := outtakeTypes(c)
+			if terr != nil {
+				return terr
+			}
+			c.Set("selectOuttaketype", outtakeTypesToSelectables(ot, currentLang(c), tx))
+			return c.Render(http.StatusUnprocessableEntity, r.HTML("/outtakes/edit.plush.html"))
+		}
 		outtake.ComputeStayDuration(stayedAnimal.Intake.Date)
 	}
 

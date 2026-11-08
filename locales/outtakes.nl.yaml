@@ -16,6 +16,8 @@
   translation: "De locatie voldoet niet aan de regels van het geselecteerde uitgaantype."
 - id: "outtake.date.future"
   translation: "De afloopdatum mag niet in de toekomst liggen."
+- id: "outtake.date.before_intake"
+  translation: "De afloopdatum mag niet vroeger zijn dan de opnamedatum van het dier."
 - id: "outtake.cage.success"
   translation: "Afloop opgeslagen voor {{.count}} dier(en) van kooi {{.cage}}."
 - id: "outtake.cage.empty"

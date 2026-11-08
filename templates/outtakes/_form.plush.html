@@ -10,7 +10,13 @@
 </div>
 
 <script type="text/javascript">
-    $('#outtakeDate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i', maxDate: new Date()});
+    (function(){
+        var fpOpts = {time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i', maxDate: new Date()};
+        // Block outtake dates earlier than the animal's intake (issue #208-11).
+        var intake = '<%= intakeDate %>';
+        if (intake) { fpOpts.minDate = intake; }
+        $('#outtakeDate').flatpickr(fpOpts);
+    })();
 </script>
 
 <div class="form-group" id="stay-duration-group">
@@ -135,6 +141,13 @@
             $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });
         }
     });
+    $(precise).autoComplete({
+        delay: 250,
+        minChars: 1,
+        source: function(term, response){
+            $.getJSON('/suggestions/outtake_precise_location', { q: term }, function(data){ response(data); });
+        }
+    });
     applyMode();
 })();
 </script>
@@ -147,6 +160,13 @@ $('input[name="Location"]').autoComplete({
     minChars: 1,
     source: function(term, response){
         $.getJSON('/suggestions/outtake_location', { q: term }, function(data){ response(data); });
+    }
+});
+$('input[name="PreciseLocation"]').autoComplete({
+    delay: 250,
+    minChars: 1,
+    source: function(term, response){
+        $.getJSON('/suggestions/outtake_precise_location', { q: term }, function(data){ response(data); });
     }
 });
 </script>

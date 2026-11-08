@@ -16,6 +16,8 @@
   translation: "The location does not match the rules of the selected outcome type."
 - id: "outtake.date.future"
   translation: "The outcome date cannot be in the future."
+- id: "outtake.date.before_intake"
+  translation: "The outcome date cannot be earlier than the animal's intake date."
 - id: "outtake.cage.success"
   translation: "Outcome saved for {{.count}} animal(s) of cage {{.cage}}."
 - id: "outtake.cage.empty"

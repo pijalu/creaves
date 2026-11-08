@@ -2,6 +2,8 @@ package actions
 
 import (
 	"creaves/models"
+	"encoding/json"
+	"html/template"
 	"net/http"
 	"time"
 
@@ -37,6 +39,20 @@ func ReceptionNew(c buffalo.Context) error {
 		return err
 	}
 	c.Set("selectEntryCause", entryCausesToSelectables(ec, true, currentLang(c), c.Value("tx").(*pop.Connection)))
+
+	// #208.9: expose the entry-cause indications so the select2 search on
+	// the cause field also matches the indication text.
+	indications := map[string]string{}
+	for _, e := range *ec {
+		if e.Indication != "" {
+			indications[e.ID] = e.Indication
+		}
+	}
+	if b, err := json.Marshal(indications); err == nil {
+		c.Set("entryCauseIndicationsJSON", template.HTML(string(b)))
+	} else {
+		c.Set("entryCauseIndicationsJSON", template.HTML("{}"))
+	}
 
 	a := &models.Animal{}
 

@@ -706,6 +706,14 @@ func (v AnimalsResource) Create(c buffalo.Context) error {
 		return duplicateSubmissionRedirect(c, "animal.duplicate.prevented", "/animals/")
 	}
 
+	// Discovery/intake dates must not be in the future (issue #208-12).
+	// Form-bound dates are naive local wall clocks (see FormWallClockNow).
+	futureLimit := models.FormWallClockNow().Add(time.Minute)
+	if probe.Discovery.Date.After(futureLimit) || probe.Intake.Date.After(futureLimit) {
+		c.Flash().Add("danger", T.Translate(c, "animal.dates.future"))
+		return c.Redirect(http.StatusSeeOther, "/reception/new")
+	}
+
 	animals := models.Animals{}
 
 	type registerYearNumber struct {

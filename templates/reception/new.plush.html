@@ -300,7 +300,7 @@
                         </div>
                     </div>
                     <script type="text/javascript">
-                        $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+                        $('#discodate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i', maxDate: new Date()});
                     </script>
                     </div>
                 </div>
@@ -311,9 +311,22 @@
                         label: "",
                         options: selectEntryCause,
                         required:"required"}) %>
+                    <script id="entry-cause-indications" type="application/json"><%= entryCauseIndicationsJSON %></script>
                     <script type="text/javascript">
+                        // #208.9: the cause search also matches the
+                        // entry_causes.indication text (map id -> indication
+                        // injected by the handler), not only the label.
+                        var ecIndications = JSON.parse(document.getElementById('entry-cause-indications').textContent || '{}');
                         $('select[name="Discovery.EntryCauseID"]').select2({
-                            width: '100%'
+                            width: '100%',
+                            matcher: function(params, data) {
+                                if ($.trim(params.term) === '') { return data; }
+                                var term = params.term.toLowerCase();
+                                if (data.text && data.text.toLowerCase().indexOf(term) > -1) { return data; }
+                                var ind = ecIndications[data.id];
+                                if (ind && ind.toLowerCase().indexOf(term) > -1) { return data; }
+                                return null;
+                            }
                         });
                     </script>
 
@@ -534,7 +547,7 @@
                     </div>
                 
                     <script type="text/javascript">
-                        $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i'});
+                        $('#intakedate').flatpickr({time_24hr:true, enableTime: true, dateFormat:'Y/m/d H:i', maxDate: new Date()});
                         $('input[name="Intake.Date"]').on("change", function() {
                             discoveryDate = $('input[name="Discovery.Date"]').val()
                             intakeDate = $('input[name="Intake.Date"]').val()

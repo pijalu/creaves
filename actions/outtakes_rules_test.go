@@ -183,7 +183,7 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 	must(tx.Create(&disc))
 	d := models.Discovery{ID: uuid.Must(uuid.NewV4()), Date: time.Now(), DiscovererID: disc.ID, EntryCauseID: ec.ID}
 	must(tx.Create(&d))
-	in := models.Intake{ID: uuid.Must(uuid.NewV4()), Date: time.Now()}
+	in := models.Intake{ID: uuid.Must(uuid.NewV4()), Date: time.Now().Add(-300 * 24 * time.Hour)}
 	must(tx.Create(&in))
 
 	sp := models.Species{
@@ -216,7 +216,7 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 		AnimalageID:  aa.ID,
 		DiscoveryID:  d.ID,
 		IntakeID:     in.ID,
-		IntakeDate:   time.Now(),
+		IntakeDate:   time.Now().Add(-300 * 24 * time.Hour),
 	}
 	must(tx.Create(&a))
 
@@ -354,8 +354,8 @@ func TestOuttakeCreateRejectsTypeForbiddenByNativeStatus(t *testing.T) {
 	requireMySQLTestDB(t)
 	tx := models.DB
 	f := createOuttakeRulesFixture(t, tx, "NS3", models.OuttakeLocationModeNone)
-	login, password := feedingGuideUser(t, false)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, false)
+	client, baseURL := testUserLogin(t, login, password)
 
 	resp := postOuttake(t, client, baseURL, f, "")
 	body, _ := io.ReadAll(resp.Body)
@@ -471,6 +471,29 @@ func TestOuttakeCreateRejectsFutureDate(t *testing.T) {
 	client, baseURL := adminClientWithURL(t)
 
 	resp := postOuttakeAt(t, client, baseURL, f, "2030/01/15 10:00", "")
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "body: %s", truncate(body, 800))
+
+	cnt, err := tx.Where("outtaketype_id = ?", f.outtakeTypeID).Count(&models.Outtake{})
+	require.NoError(t, err)
+	require.Zero(t, cnt)
+
+	var animal models.Animal
+	require.NoError(t, tx.Find(&animal, f.animalID))
+	require.False(t, animal.OuttakeID.Valid, "animal must not be linked to a rejected outtake")
+}
+
+// TestOuttakeCreateRejectsDateBeforeIntake: an outtake dated earlier than the
+// animal's intake must be refused with 422 and nothing persisted (issue
+// #208-11).
+func TestOuttakeCreateRejectsDateBeforeIntake(t *testing.T) {
+	requireMySQLTestDB(t)
+	tx := models.DB
+	f := createOuttakeRulesFixture(t, tx, "", models.OuttakeLocationModeNone)
+	client, baseURL := adminClientWithURL(t)
+
+	resp := postOuttakeAt(t, client, baseURL, f, "2020/01/15 10:00", "")
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	require.Equal(t, http.StatusUnprocessableEntity, resp.StatusCode, "body: %s", truncate(body, 800))

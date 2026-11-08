@@ -16,6 +16,8 @@
   translation: "Der Ort entspricht nicht den Regeln des ausgewählten Ausgangstyps."
 - id: "outtake.date.future"
   translation: "Das Ausgangsdatum darf nicht in der Zukunft liegen."
+- id: "outtake.date.before_intake"
+  translation: "Das Ausgangsdatum darf nicht vor dem Aufnahmedatum des Tieres liegen."
 - id: "outtake.cage.success"
   translation: "Ausgang für {{.count}} Tier(e) des Käfigs {{.cage}} gespeichert."
 - id: "outtake.cage.empty"

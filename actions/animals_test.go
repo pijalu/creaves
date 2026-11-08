@@ -345,6 +345,33 @@ func TestAnimalSearchFilterNoOuttake(t *testing.T) {
 	idsMatch(t, ids)
 }
 
+// TestAnimalSearchFilterExitStatus (#208.6): the "Statut de sortie" filter
+// matches on the outtake type rating, mirroring the exit-status badge.
+func TestAnimalSearchFilterExitStatus(t *testing.T) {
+	tx := searchTestDB(t)
+	f := createAnimalSearchFixtures(t, tx)
+
+	// rate the two fixture outtake types: OK positive, Err negative
+	tx.RawQuery("UPDATE outtaketypes SET rating = 1 WHERE id = ?", f.outtakeOK).Exec()
+	tx.RawQuery("UPDATE outtaketypes SET rating = -1 WHERE id = ?", f.outtakeErr).Exec()
+
+	// positive -> animalA only
+	ids := runSearch(t, tx, f, animalSearchParams{ExitStatus: "positive"})
+	idsMatch(t, ids, f.animalA)
+
+	// negative -> animalB only
+	ids = runSearch(t, tx, f, animalSearchParams{ExitStatus: "negative"})
+	idsMatch(t, ids, f.animalB)
+
+	// neutral -> no fixture animal (animalC has no outtake at all)
+	ids = runSearch(t, tx, f, animalSearchParams{ExitStatus: "neutral"})
+	idsMatch(t, ids)
+
+	// empty -> no filtering
+	ids = runSearch(t, tx, f, animalSearchParams{})
+	idsMatch(t, ids, f.animalA, f.animalB, f.animalC)
+}
+
 func TestAnimalSearchFiltersANDCombined(t *testing.T) {
 	tx := searchTestDB(t)
 	f := createAnimalSearchFixtures(t, tx)

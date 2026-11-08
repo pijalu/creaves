@@ -16,6 +16,8 @@
   translation: "Le lieu ne respecte pas les règles du type de sortie sélectionné."
 - id: "outtake.date.future"
   translation: "La date de sortie ne peut pas être dans le futur."
+- id: "outtake.date.before_intake"
+  translation: "La date de sortie ne peut pas être antérieure à la date d'entrée de l'animal."
 - id: "outtake.cage.success"
   translation: "Sortie enregistrée pour {{.count}} animal(aux) de la cage {{.cage}}."
 - id: "outtake.cage.empty"
