@@ -393,15 +393,17 @@ func guestSlotMissed(now time.Time, timebitmap, timedonebitmap int) bool {
 	return false
 }
 
-// guestCareInfo computes the guest care status of an animal still in care,
-// plus the (optional) next planned feeding time formatted "15:04".
-func guestCareInfo(tx *pop.Connection, a *models.Animal, now time.Time) (guestCareStatus, string, error) {
+// guestCareInfo computes the guest care status of an animal still in care.
+// The next planned feeding time is intentionally NOT shown on the guest
+// page (#208.2 — the computed "00:00" display was misleading); feeding only
+// feeds the late-feeding status input.
+func guestCareInfo(tx *pop.Connection, a *models.Animal, now time.Time) (guestCareStatus, error) {
 	// Treatments planned for today
 	dayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	dayEnd := dayStart.Add(24 * time.Hour)
 	trs := models.Treatments{}
 	if err := tx.Where("animal_id = ? and date >= ? and date < ?", a.ID, dayStart, dayEnd).All(&trs); err != nil {
-		return guestCareInCare, "", err
+		return guestCareInCare, err
 	}
 	in := guestCareInputs{ForceFeed: a.ForceFeed}
 	for _, tr := range trs {
@@ -423,21 +425,17 @@ LEFT JOIN cares c ON (a.id = c.animal_id AND c.type_id IN (SELECT id FROM carety
 WHERE a.id = ? AND a.feeding_start IS NOT NULL AND a.feeding_end IS NOT NULL AND a.feeding_period > 0
 GROUP BY a.id`, a.ID).All(&afRaw)
 	if err != nil {
-		return guestCareInCare, "", err
+		return guestCareInCare, err
 	}
-	nextFeeding := ""
 	if len(afRaw) == 1 {
 		calc := calculateFeeding(afRaw[0], now)
-		if calc.NextFeeding.Valid {
-			// code 0: the planned feeding is overdue by more than half a period
-			if calc.NextFeedingCode == 0 {
-				in.FeedingLate = true
-			}
-			nextFeeding = calc.NextFeeding.Time.Format("15:04")
+		// code 0: the planned feeding is overdue by more than half a period
+		if calc.NextFeeding.Valid && calc.NextFeedingCode == 0 {
+			in.FeedingLate = true
 		}
 	}
 
-	return decideGuestCareStatus(in), nextFeeding, nil
+	return decideGuestCareStatus(in), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -452,8 +450,7 @@ type guestView struct {
 	Present bool // animal still in the center
 
 	// Set when Present
-	CareStatus  string // "care" | "intensive" | "critical"
-	NextFeeding string // "15:04" or ""
+	CareStatus string // "care" | "intensive" | "critical"
 
 	// Set when !Present
 	OuttakeDate string
@@ -490,12 +487,11 @@ func buildGuestView(tx *pop.Connection, a *models.Animal, now time.Time) (*guest
 	v.ArrivalDate = arrival.Format(models.DateFormat)
 
 	if v.Present {
-		st, next, err := guestCareInfo(tx, a, now)
+		st, err := guestCareInfo(tx, a, now)
 		if err != nil {
 			return nil, err
 		}
 		v.CareStatus = st.String()
-		v.NextFeeding = next
 		return v, nil
 	}
 

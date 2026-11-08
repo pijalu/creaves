@@ -16,9 +16,6 @@
         <% } else { %>
           <span class="badge badge-success">In care</span>
         <% } %>
-        <%= if (guest.NextFeeding != "") { %>
-          <div class="text-muted">Next feeding: <%= guest.NextFeeding %></div>
-        <% } %>
       <% } else { %>
         the animal has left the center on <%= guest.OuttakeDate %>.
         <%= if (guest.OuttakeNews != "") { %>

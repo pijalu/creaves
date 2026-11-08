@@ -16,9 +16,6 @@
         <% } else { %>
           <span class="badge badge-success">In Pflege</span>
         <% } %>
-        <%= if (guest.NextFeeding != "") { %>
-          <div class="text-muted">Nächste Fütterung: <%= guest.NextFeeding %></div>
-        <% } %>
       <% } else { %>
         das Tier hat das Zentrum am <%= guest.OuttakeDate %> verlassen.
         <%= if (guest.OuttakeNews != "") { %>
