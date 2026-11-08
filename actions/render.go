@@ -180,15 +180,16 @@ func defaultRenderHelpers() render.Helpers {
 // customRenderHelpers are the creaves-specific plush helpers.
 func customRenderHelpers() render.Helpers {
 	return render.Helpers{
-		"langLinks":          langLinks,
-		"langLinksAll":       langLinksAll,
-		"uiLang":             uiLang,
-		"sortLink":           sortLink,
-		"sortIcon":           sortIcon,
-		"userRoleName":       userRoleName,
-		"userAccountRole":    userAccountRole,
-		"stayDuration":       stayDurationHours,
-		"stayDurationBucket": stayDurationBucket,
+		"langLinks":                     langLinks,
+		"langLinksAll":                  langLinksAll,
+		"uiLang":                        uiLang,
+		"sortLink":                      sortLink,
+		"sortIcon":                      sortIcon,
+		"userRoleName":                  userRoleName,
+		"userAccountRole":               userAccountRole,
+		"userAccountRoleTranslationKey": userAccountRoleTranslationKey,
+		"stayDuration":                  stayDurationHours,
+		"stayDurationBucket":            stayDurationBucket,
 		"bool2html": func(s bool) string {
 			if s {
 				return "✓"

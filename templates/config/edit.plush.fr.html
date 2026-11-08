@@ -1,10 +1,16 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Modifier la configuration : <%= config.Name %></h3>
+  <%= if (current_user.Maintainer) { %>
   <a href="/sync_configuration" class="btn btn-outline-primary btn-sm float-right mt-2">Configuration de la synchronisation</a>
+  <% } %>
 </div>
 
 <%= formFor(config, {action: configPath({ config_id: config.ID }), method: "PUT"}) { %>
   <%= partial("config/identity_form.plush.fr.html") %>
   <button class="btn btn-success" role="submit">Enregistrer</button>
+  <%= if (current_user.Maintainer) { %>
   <%= linkTo("/config/" + config.ID, {class: "btn btn-warning", "data-confirm": "Êtes-vous sûr ?", body: "Annuler"}) %>
+  <% } else { %>
+  <a href="/" class="btn btn-warning">Annuler</a>
+  <% } %>
 <% } %>

@@ -2,6 +2,8 @@ package actions
 
 import (
 	"creaves/models"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -212,6 +214,19 @@ func (v CaresResource) New(c buffalo.Context) error {
 			care.Type = c
 			care.TypeID = c.ID
 			break
+		}
+	}
+
+	// Prefill the initially selected care type's default note. An explicit
+	// note supplied by the calling page always takes precedence.
+	if !care.Note.Valid && !care.TypeID.IsNil() {
+		tx := c.Value("tx").(*pop.Connection)
+		tpl := &models.CareTemplate{}
+		err := tx.Where("caretype_id = ? AND is_default = ?", care.TypeID, true).First(tpl)
+		if err == nil {
+			care.Note = nulls.NewString(tpl.Content)
+		} else if !errors.Is(err, sql.ErrNoRows) {
+			return err
 		}
 	}
 	c.Set("selectCaretype", caretypesToSelectables(ct, currentLang(c), c.Value("tx").(*pop.Connection)))

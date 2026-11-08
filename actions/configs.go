@@ -273,7 +273,7 @@ func requireAdmin(c buffalo.Context) (*models.User, error) {
 // "instance details (guest view)" surface linked from the System menu
 // (issue #208).
 func InstanceDetails(c buffalo.Context) error {
-	if _, err := requireMaintainer(c); err != nil {
+	if _, err := requireAdmin(c); err != nil {
 		return err
 	}
 	cfg := CurrentConfigGet()
@@ -449,7 +449,8 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Config. This function is
 // mapped to the path GET /config/{config_id}/edit
 func (v ConfigsResource) Edit(c buffalo.Context) error {
-	if _, err := requireMaintainer(c); err != nil {
+	cu, err := requireAdmin(c)
+	if err != nil {
 		return err
 	}
 
@@ -461,6 +462,10 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 	config := &models.Config{}
 	if err := tx.Find(config, c.Param("config_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+
+	if !cu.Maintainer && (CurrentConfigGet() == nil || CurrentConfigGet().ID != config.ID) {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for inactive configurations"))
 	}
 
 	// Parse settings for template display
@@ -531,7 +536,8 @@ func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 // Update changes a Config in the DB. This function is mapped to
 // the path PUT /config/{config_id}
 func (v ConfigsResource) Update(c buffalo.Context) error {
-	if _, err := requireMaintainer(c); err != nil {
+	cu, err := requireAdmin(c)
+	if err != nil {
 		return err
 	}
 
@@ -550,6 +556,9 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 	// edits only event-stream/webhook fields. The other field group is
 	// preserved from the stored record. No scope = legacy full update.
 	scope := c.Param("form_scope")
+	if !cu.Maintainer && (scope != "identity" || CurrentConfigGet() == nil || CurrentConfigGet().ID != config.ID) {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this configuration scope"))
+	}
 	stored, storedErr := config.GetSettings()
 	if storedErr != nil {
 		return errors.WithStack(storedErr)
@@ -591,6 +600,9 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Flash().Add("success", "Config updated successfully")
+		if !cu.Maintainer {
+			return c.Redirect(http.StatusSeeOther, "/config/%v/edit", config.ID)
+		}
 		return c.Redirect(http.StatusSeeOther, "/config/%v", config.ID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusOK, r.JSON(config))

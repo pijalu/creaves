@@ -21,6 +21,7 @@
     <th><%= t("export.col.export") %></th>
     <th style="width: 8rem;"><%= t("export.col.view") %></th>
     <th style="width: 8rem;"><%= t("export.col.csv") %></th>
+    <th style="width: 8rem;"><%= t("export.col.excel") %></th>
   </thead>
   <tbody>
     <%= for (q) in queries { %>
@@ -32,6 +33,9 @@
         <td class="align-middle">
           <a class="btn btn-secondary btn-sm export-link" data-base="/export/csv?query=<%= q.Name %>" href="/export/csv?query=<%= q.Name %>" title="<%= t("export.download") %> <%= q.Description %> (CSV)"><i class="fas fa-file-csv"></i> CSV</a>
         </td>
+        <td class="align-middle">
+          <a class="btn btn-secondary btn-sm export-link" data-base="/export/excel?query=<%= q.Name %>" href="/export/excel?query=<%= q.Name %>" title="<%= t("export.download") %> <%= q.Description %> (Excel)"><i class="fas fa-file-excel"></i> Excel</a>
+        </td>
       </tr>
     <% } %>
   </tbody>
@@ -39,7 +43,7 @@
 
 <script>
     // Single year selection at the top of the page (bugs.md bug 5): the
-    // chosen year is appended to the View/CSV link when it is clicked.
+    // chosen year is appended to the View/CSV/Excel link when it is clicked.
     // Empty selection = all years (unmodified link).
     document.querySelectorAll("a.export-link").forEach(function (link) {
       link.addEventListener("click", function () {

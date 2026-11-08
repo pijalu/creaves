@@ -206,6 +206,31 @@ func userAccountRole(u interface{}) string {
 	}
 }
 
+// userAccountRoleTranslationKey returns the locale key for the full account
+// role, including the Admin/Maintainer/Shared flags.
+func userAccountRoleTranslationKey(u interface{}) string {
+	switch userAccountRole(u) {
+	case "admin":
+		return "users.role.admin"
+	case "maintainer":
+		return "users.role.maintainer"
+	case "shared":
+		return "users.role.shared"
+	case models.UserRoleNoTreatments:
+		return "users.role.user_no_treatments"
+	case "shared_sans_treatments":
+		return "users.role.shared_no_treatments"
+	case models.UserRoleReader:
+		return "users.role.lecteur"
+	case models.UserRoleScientist:
+		return "users.role.scientifique"
+	case models.UserRoleSPW:
+		return "users.role.spw"
+	default:
+		return "users.role.user"
+	}
+}
+
 // zeroAdminOnlyUserFields resets the admin-only columns of issue #107
 // (account role, volunteer flags, remark) to their defaults. Used on public
 // registration so a crafted POST can never set privileged markers.

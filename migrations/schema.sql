@@ -888,7 +888,7 @@ CREATE TABLE `users` (
   `updated_at` datetime NOT NULL,
   `shared` tinyint(1) NOT NULL DEFAULT '0',
   `maintainer` tinyint(1) NOT NULL DEFAULT '0',
-  `role` varchar(20) NOT NULL DEFAULT '',
+  `role` varchar(50) NOT NULL DEFAULT '',
   `first_name` varchar(100) NOT NULL,
   `last_name` varchar(100) NOT NULL,
   `address` varchar(255) NOT NULL,
