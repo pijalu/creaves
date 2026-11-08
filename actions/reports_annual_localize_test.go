@@ -154,6 +154,44 @@ func TestLocalizeAnnualSectionsBaseLangIsNoop(t *testing.T) {
 	}
 }
 
+// TestLocalizeAnnualSectionsBaseLangLiteralKeys: literal categories (Dead,
+// Released…) must be translated even for the base French UI (issue #208-13).
+// T is nil in unit tests so the fallback locale key must appear — proving the
+// literal path is no longer skipped for French.
+func TestLocalizeAnnualSectionsBaseLangLiteralKeys(t *testing.T) {
+	setupRALFixtures(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.AddCookie(&http.Cookie{Name: "lang", Value: "fr"})
+	c := newRALContext(req)
+	c.Set("tx", models.DB)
+
+	sections := []annualStatSection{
+		{ID: "outtake_rating", Rows: []annualStatRow{{Category: "Dead"}, {Category: "Neutral"}, {Category: "Alive"}}},
+		{ID: "outtake_dead_released", Rows: []annualStatRow{{Category: "Dead"}, {Category: "Released"}}},
+		{ID: "species", Rows: []annualStatRow{{Category: "Unknown"}}},
+	}
+	localizeAnnualSections(c, sections)
+
+	want := map[string]map[string]string{
+		"outtake_rating":        {"Dead": "reports.annual.rating.dead", "Neutral": "reports.annual.rating.neutral", "Alive": "reports.annual.rating.alive"},
+		"outtake_dead_released": {"Dead": "reports.annual.rating.dead", "Released": "reports.annual.outtake.released"},
+		"species":               {"Unknown": "reports.annual.unknown"},
+	}
+	for _, sec := range sections {
+		for _, row := range sec.Rows {
+			for orig, key := range want[sec.ID] {
+				if row.Category == key {
+					delete(want[sec.ID], orig)
+				}
+			}
+		}
+		for orig, key := range want[sec.ID] {
+			t.Errorf("section %s: category %q not localized (expected %q)", sec.ID, orig, key)
+		}
+	}
+}
+
 func TestAnnualLocaleKeysPresent(t *testing.T) {
 	keys := []string{
 		"reports.annual.unknown",

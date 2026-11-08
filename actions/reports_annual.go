@@ -28,9 +28,10 @@ type annualStatRow struct {
 
 // annualStatSection is one of the 12 statistics tables.
 type annualStatSection struct {
-	ID    string // localization key suffix + anchor
-	Rows  []annualStatRow
-	Total int
+	ID        string // localization key suffix + anchor
+	Rows      []annualStatRow
+	Total     int
+	HideTotal bool // top-N tables: the total is the year total, not the sum of rows (#208-16)
 }
 
 // annualStatQuery couples a grouped query (category, n) with the matching
@@ -40,6 +41,7 @@ type annualStatQuery struct {
 	grouped   string
 	total     string
 	orderDesc bool // true: query orders by count desc; false: explicit category order kept
+	hideTotal bool // true: the total row is misleading (top-N tables) and must not be rendered (#208-16)
 }
 
 // errorFilter excludes animals whose outtake type is an error type.
@@ -74,6 +76,7 @@ func annualStatQueries() []annualStatQuery {
 			total: `SELECT COUNT(DISTINCT a.id) ` + base + annualJoinSpecies + annualJoinOuttake + `
 				WHERE a.year = ? AND ` + annualErrorFilter,
 			orderDesc: true,
+			hideTotal: true, // top-20 table: the total is the year total, not the top-20 sum (#208-16)
 		},
 		{
 			id: "class",
@@ -161,6 +164,20 @@ func annualStatQueries() []annualStatQuery {
 				WHERE a.year = ? AND ` + annualErrorFilter,
 		},
 		{
+			// #208-14: like outtake_dead_released but animals still at the
+			// center (no outtake yet) are included as their own category.
+			id: "outtake_dead_released_in_care",
+			grouped: `SELECT CASE
+				WHEN o.id IS NULL THEN 'InCare'
+				WHEN oo.dead = 1 THEN 'Dead'
+				ELSE 'Released' END AS category, COUNT(DISTINCT a.id) AS n ` +
+				base + annualJoinOuttake + `
+				WHERE a.year = ? AND ` + annualErrorFilter + `
+				GROUP BY 1 ORDER BY MIN(CASE WHEN o.id IS NULL THEN 1 WHEN oo.dead = 1 THEN 0 ELSE 2 END) ASC`,
+			total: `SELECT COUNT(DISTINCT a.id) ` + base + annualJoinOuttake + `
+				WHERE a.year = ? AND ` + annualErrorFilter,
+		},
+		{
 			id: "entry_cause",
 			grouped: `SELECT COALESCE(NULLIF(ec.cause, ''), 'Unknown') AS category, COUNT(DISTINCT a.id) AS n ` +
 				base + annualJoinDiscovery + annualJoinOuttake + `
@@ -240,16 +257,15 @@ func loadAnnualRefTranslations(tx *pop.Connection, table, field, lang string) ma
 // the report never loses rows.
 func localizeAnnualSections(c buffalo.Context, sections []annualStatSection) {
 	lang := currentLang(c)
-	if lang == "" {
-		return
-	}
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return
-	}
+	tx, _ := c.Value("tx").(*pop.Connection)
 
 	refMaps := map[string]map[string]string{}
 	ref := func(table, field string) map[string]string {
+		// French ("") is the canonical base language: reference values are
+		// stored in French, no DB translation lookup needed.
+		if lang == "" || tx == nil {
+			return nil
+		}
 		k := table + "\x00" + field
 		if m, ok := refMaps[k]; ok {
 			return m
@@ -297,6 +313,15 @@ func localizeAnnualSections(c buffalo.Context, sections []annualStatSection) {
 				case "Released":
 					sec.Rows[ri].Category = lit(cat, "reports.annual.outtake.released")
 				}
+			case sec.ID == "outtake_dead_released_in_care":
+				switch cat {
+				case "Dead":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.rating.dead")
+				case "Released":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.outtake.released")
+				case "InCare":
+					sec.Rows[ri].Category = lit(cat, "reports.annual.in_care")
+				}
 			case sec.ID == "entry_cause_detail":
 				// Value is CONCAT_WS(' / ', nature, cause, detail) — localize
 				// each non-empty part, trying nature, then cause, then detail.
@@ -331,7 +356,7 @@ func annualStatPercent(count, total int) string {
 
 // runAnnualStatQuery executes one grouped query + its total query for year.
 func runAnnualStatQuery(tx *pop.Connection, q annualStatQuery, year string) (annualStatSection, error) {
-	sec := annualStatSection{ID: q.id, Rows: []annualStatRow{}}
+	sec := annualStatSection{ID: q.id, HideTotal: q.hideTotal, Rows: []annualStatRow{}}
 	if err := tx.RawQuery(q.grouped, year).All(&sec.Rows); err != nil {
 		return sec, fmt.Errorf("annual stat %s: %w", q.id, err)
 	}
@@ -410,6 +435,16 @@ func ReportsAnnualIndex(c buffalo.Context) error {
 	}
 	localizeAnnualSections(c, sections)
 	c.Set("sections", sections)
+
+	// #208-15: number of animals received during the selected year, shown at
+	// the top of the page.
+	receivedCount := 0
+	if selectedYear != "" {
+		if err := tx.RawQuery(`SELECT COUNT(*) FROM animals WHERE year = ?`, selectedYear).First(&receivedCount); err != nil {
+			return err
+		}
+	}
+	c.Set("receivedCount", receivedCount)
 
 	return c.Render(http.StatusOK, r.HTML("reports/annual.plush.html"))
 }

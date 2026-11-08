@@ -214,8 +214,8 @@ func TestReportsAnnualStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runAnnualStats failed: %v", err)
 	}
-	if len(sections) != 12 {
-		t.Fatalf("expected 12 sections, got %d", len(sections))
+	if len(sections) != 13 {
+		t.Fatalf("expected 13 sections, got %d", len(sections))
 	}
 
 	assertRows(t, sectionByID(t, sections, "species"), 6, [][3]string{
@@ -257,6 +257,11 @@ func TestReportsAnnualStats(t *testing.T) {
 	assertRows(t, sectionByID(t, sections, "outtake_dead_released"), 3, [][3]string{
 		{"Dead", "1", "33.3"},
 		{"Released", "2", "66.7"},
+	})
+	assertRows(t, sectionByID(t, sections, "outtake_dead_released_in_care"), 6, [][3]string{
+		{"Dead", "1", "16.7"},
+		{"InCare", "3", "50.0"},
+		{"Released", "2", "33.3"},
 	})
 	assertRows(t, sectionByID(t, sections, "entry_cause"), 6, [][3]string{
 		{"RAFT_C1", "3", "50.0"},

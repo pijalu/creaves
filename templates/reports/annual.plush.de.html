@@ -2,6 +2,12 @@
   <h3 class="d-inline-block"><%= t("reports.annual.title") %></h3>
 </div>
 
+<%= if (selectedYear != "") { %>
+<div class="alert alert-info">
+  <strong><%= t("reports.annual.received_count", {count: receivedCount}) %></strong>
+</div>
+<% } %>
+
 <form>
     <div class="form-group row">
       <label for="year" class="col-2 col-form-label"><%= t("reports.annual.year") %></label>
@@ -43,11 +49,13 @@
               <td class="align-middle text-right"><%= row.Percent %>%</td>
             </tr>
           <% } %>
+          <%= if (!section.HideTotal) { %>
           <tr class="table-secondary font-weight-bold">
             <td class="align-middle"><%= t("reports.annual.total") %></td>
             <td class="align-middle text-right"><%= section.Total %></td>
             <td class="align-middle text-right">100.0%</td>
           </tr>
+          <% } %>
         </tbody>
       </table>
     </div>

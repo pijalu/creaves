@@ -37,7 +37,7 @@ func copyAnnualSections(src []annualStatSection) []annualStatSection {
 	for i, s := range src {
 		rows := make([]annualStatRow, len(s.Rows))
 		copy(rows, s.Rows)
-		out[i] = annualStatSection{ID: s.ID, Rows: rows, Total: s.Total}
+		out[i] = annualStatSection{ID: s.ID, Rows: rows, Total: s.Total, HideTotal: s.HideTotal}
 	}
 	return out
 }
