@@ -1,3 +1,28 @@
 <%= f.InputTag("Name", {label: t("care_templates.field.name")}) %>
 <%= f.TextAreaTag("Content", {rows: 5, label: t("care_templates.field.content")}) %>
+
+<div class="form-group">
+  <label for="DefaultCaretypeID"><%= t("care_templates.field.caretype") %></label>
+  <select class="form-control" id="DefaultCaretypeID" name="DefaultCaretypeID">
+    <option value=""><%= t("care_templates.field.caretype.none") %></option>
+    <%= for (ct) in selectCaretype { %>
+      <%= if (tpl.CaretypeID.Valid && ct.Value == tpl.CaretypeID.UUID.String()) { %>
+        <option value="<%= ct.Value %>" selected="selected"><%= ct.Label %></option>
+      <% } else { %>
+        <option value="<%= ct.Value %>"><%= ct.Label %></option>
+      <% } %>
+    <% } %>
+  </select>
+</div>
+
+<div class="form-group form-check">
+  <%= if (tpl.IsDefault) { %>
+    <input class="form-check-input" type="checkbox" id="IsDefault" name="IsDefault" value="true" checked="checked">
+  <% } else { %>
+    <input class="form-check-input" type="checkbox" id="IsDefault" name="IsDefault" value="true">
+  <% } %>
+  <label class="form-check-label" for="IsDefault"><%= t("care_templates.field.is_default") %></label>
+  <small class="form-text text-muted"><%= t("care_templates.field.is_default.help") %></small>
+</div>
+
 <button class="btn btn-success" role="submit"><%= t("care_templates.action.save") %></button>

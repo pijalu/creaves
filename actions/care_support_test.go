@@ -184,8 +184,8 @@ func TestSuggestionsHeatSource158(t *testing.T) {
 	csTCare(t, tx, care)
 	t.Cleanup(func() { tx.RawQuery("DELETE FROM cares WHERE animal_id = ?", fx.animalC).Exec() })
 
-	login, password := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
 	resp, err := client.Get(baseURL + "/suggestions/heat_source?q=" + heat)
 	require.NoError(t, err)
 	body, err := io.ReadAll(resp.Body)
@@ -217,8 +217,8 @@ func careTemplatesToken(t *testing.T, client *http.Client, baseURL, path string)
 // admin-managed shared pool. Admin HTML flow: list, create, 422 on invalid,
 // edit, update, delete — the created template is owned by the admin.
 func TestCareTemplatesAdminCRUD158(t *testing.T) {
-	login, password := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
 
 	cu := &models.User{}
 	require.NoError(t, models.DB.Where("login = ?", login).First(cu))
@@ -317,8 +317,8 @@ func TestCareTemplatesAdminOnly158(t *testing.T) {
 	require.NoError(t, tx.Create(tpl))
 	t.Cleanup(func() { tx.RawQuery("DELETE FROM care_templates WHERE id = ?", tpl.ID).Exec() })
 
-	login, password := feedingGuideUser(t, false)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, false)
+	client, baseURL := testUserLogin(t, login, password)
 
 	// remove stale rows from earlier failed runs so the create-assert is exact
 	require.NoError(t, tx.RawQuery("DELETE FROM care_templates WHERE name = ?", "Hax").Exec())
@@ -374,4 +374,99 @@ func TestCareTemplatesAdminOnly158(t *testing.T) {
 		}
 	}
 	require.True(t, found, "shared pool must contain other users' templates, body: %s", body)
+}
+
+// TestCareTemplateDefaultPerCaretype208 (#208-17): a template can be the
+// default of a care type; saving another default for the same type clears
+// the previous one; the suggestions endpoint returns the default for a type.
+func TestCareTemplateDefaultPerCaretype208(t *testing.T) {
+	tx := searchTestDB(t)
+	ctID := csTSoins(t, tx)
+
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
+	token := careTemplatesToken(t, client, baseURL, "/care_templates")
+
+	marker := uuid.Must(uuid.NewV4()).String()[:8]
+	t.Cleanup(func() {
+		tx.RawQuery("DELETE FROM care_templates WHERE name LIKE ?", "TPL208-"+marker+"%").Exec()
+	})
+
+	// create a default template for the Soin care type
+	resp, err := client.PostForm(baseURL+"/care_templates", url.Values{
+		"Name":               {"TPL208-" + marker + "-A"},
+		"Content":            {"default content A"},
+		"DefaultCaretypeID":  {ctID.String()},
+		"IsDefault":          {"true"},
+		"authenticity_token": {token},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	tplA := &models.CareTemplate{}
+	require.NoError(t, tx.Where("name = ?", "TPL208-"+marker+"-A").First(tplA))
+	require.True(t, tplA.IsDefault, "template A must be default")
+	require.True(t, tplA.CaretypeID.Valid, "template A must be tied to a care type")
+	require.Equal(t, ctID, tplA.CaretypeID.UUID)
+
+	// create a second default for the same care type → first loses the flag
+	resp, err = client.PostForm(baseURL+"/care_templates", url.Values{
+		"Name":               {"TPL208-" + marker + "-B"},
+		"Content":            {"default content B"},
+		"DefaultCaretypeID":  {ctID.String()},
+		"IsDefault":          {"true"},
+		"authenticity_token": {token},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	tplB := &models.CareTemplate{}
+	require.NoError(t, tx.Where("name = ?", "TPL208-"+marker+"-B").First(tplB))
+	require.True(t, tplB.IsDefault, "template B must be default")
+
+	reloadA := &models.CareTemplate{}
+	require.NoError(t, tx.Find(reloadA, tplA.ID))
+	require.False(t, reloadA.IsDefault, "template A must lose its default flag")
+
+	// the suggestions endpoint returns only the default of the care type
+	resp, err = client.Get(baseURL + "/suggestions/care_templates?default_for=" + ctID.String())
+	require.NoError(t, err)
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var got []models.CareTemplate
+	require.NoError(t, json.Unmarshal(body, &got), "body: %s", body)
+	require.Len(t, got, 1, "exactly one default per care type, body: %s", body)
+	require.Equal(t, tplB.ID, got[0].ID)
+
+	// unknown care type → empty list
+	resp, err = client.Get(baseURL + "/suggestions/care_templates?default_for=" + uuid.Must(uuid.NewV4()).String())
+	require.NoError(t, err)
+	body, err = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	got = nil
+	require.NoError(t, json.Unmarshal(body, &got), "body: %s", body)
+	require.Len(t, got, 0)
+
+	// update without the IsDefault checkbox → flag cleared
+	resp, err = client.PostForm(baseURL+"/care_templates/"+tplB.ID.String(), url.Values{
+		"_method":            {"PUT"},
+		"Name":               {"TPL208-" + marker + "-B"},
+		"Content":            {"default content B"},
+		"DefaultCaretypeID":  {ctID.String()},
+		"authenticity_token": {token},
+	})
+	require.NoError(t, err)
+	resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+
+	reloadB := &models.CareTemplate{}
+	require.NoError(t, tx.Find(reloadB, tplB.ID))
+	require.False(t, reloadB.IsDefault, "unchecked checkbox must clear the default flag")
+	require.True(t, reloadB.CaretypeID.Valid, "care type link must be kept")
 }

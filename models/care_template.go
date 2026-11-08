@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/gobuffalo/nulls"
 	"github.com/gobuffalo/pop/v6"
 	"github.com/gobuffalo/validate/v3"
 	"github.com/gobuffalo/validate/v3/validators"
@@ -18,6 +19,11 @@ type CareTemplate struct {
 	UserID  uuid.UUID `json:"user_id" db:"user_id"`
 	Name    string    `json:"name" db:"name"`
 	Content string    `json:"content" db:"content"`
+
+	// #208.17: a template can be tied to a care type and flagged as the
+	// default for that type — the care form pre-fills the note with it.
+	CaretypeID nulls.UUID `json:"caretype_id" db:"caretype_id"`
+	IsDefault  bool       `json:"is_default" db:"is_default"`
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

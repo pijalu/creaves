@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	"creaves/models"
 
@@ -70,6 +72,107 @@ func TestSuggestionsDrugRemark(t *testing.T) {
 	}
 	if got2["description"] != "" {
 		t.Fatalf("unknown drug description = %q, want empty", got2["description"])
+	}
+}
+
+// TestSuggestionsOuttakePreciseLocation (#208.8): the endpoint returns
+// distinct previously used precise-location values, filtered by q.
+func TestSuggestionsOuttakePreciseLocation(t *testing.T) {
+	tx := searchTestDB(t)
+
+	marker := "TSPL-" + uuid.Must(uuid.NewV4()).String()[:8]
+	ot := &models.Outtaketype{ID: uuid.Must(uuid.NewV4()), Name: "TSPL-Type-" + marker}
+	if err := tx.Create(ot); err != nil {
+		t.Fatalf("outtaketype fixture creation failed: %v", err)
+	}
+	o1 := &models.Outtake{ID: uuid.Must(uuid.NewV4()), Date: time.Now(), TypeID: ot.ID, PreciseLocation: nulls.NewString(marker + " rue du Bois 12")}
+	o2 := &models.Outtake{ID: uuid.Must(uuid.NewV4()), Date: time.Now(), TypeID: ot.ID, PreciseLocation: nulls.NewString(marker + " avenue des Garennes")}
+	o3 := &models.Outtake{ID: uuid.Must(uuid.NewV4()), Date: time.Now(), TypeID: ot.ID, PreciseLocation: nulls.NewString("unrelated-" + marker)}
+	for _, o := range []*models.Outtake{o1, o2, o3} {
+		if err := tx.Create(o); err != nil {
+			t.Fatalf("outtake fixture creation failed: %v", err)
+		}
+	}
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM outtakes WHERE id IN (?, ?, ?)", o1.ID, o2.ID, o3.ID).Exec()
+		models.DB.RawQuery("DELETE FROM outtaketypes WHERE id = ?", ot.ID).Exec()
+	})
+
+	client, baseURL := adminClientWithURL(t)
+
+	resp, err := client.Get(baseURL + "/suggestions/outtake_precise_location?q=" + url.QueryEscape(marker))
+	if err != nil {
+		t.Fatalf("GET /suggestions/outtake_precise_location: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	var got []string
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("invalid JSON %q: %v", body, err)
+	}
+	if len(got) != 3 {
+		t.Fatalf("got %v, want 3 values containing the marker", got)
+	}
+
+	// substring filter narrows the result
+	resp2, err := client.Get(baseURL + "/suggestions/outtake_precise_location?q=" + url.QueryEscape(marker+" rue"))
+	if err != nil {
+		t.Fatalf("GET filtered: %v", err)
+	}
+	defer resp2.Body.Close()
+	body2, _ := io.ReadAll(resp2.Body)
+	var got2 []string
+	if err := json.Unmarshal(body2, &got2); err != nil {
+		t.Fatalf("invalid JSON %q: %v", body2, err)
+	}
+	if len(got2) != 1 || got2[0] != marker+" rue du Bois 12" {
+		t.Fatalf("filtered got %v", got2)
+	}
+}
+
+// TestReceptionNewEntryCauseIndications (#208.9): the reception form
+// embeds the entry-cause indications map so the select2 search matches the
+// indication text as well as the label.
+func TestReceptionNewEntryCauseIndications(t *testing.T) {
+	tx := searchTestDB(t)
+
+	marker := "TSIND-" + uuid.Must(uuid.NewV4()).String()[:8]
+	ec := &models.EntryCause{
+		ID:         "TSI-" + uuid.Must(uuid.NewV4()).String()[:8],
+		Cause:      "Cause " + marker,
+		Detail:     "Detail " + marker,
+		Nature:     "Nature " + marker,
+		Indication: "Indication " + marker,
+	}
+	if err := tx.Create(ec); err != nil {
+		t.Fatalf("entry cause fixture creation failed: %v", err)
+	}
+	t.Cleanup(func() {
+		models.DB.RawQuery("DELETE FROM entry_causes WHERE id = ?", ec.ID).Exec()
+	})
+
+	client, baseURL := adminClientWithURL(t)
+	resp, err := client.Get(baseURL + "/reception/new")
+	if err != nil {
+		t.Fatalf("GET /reception/new: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	html := string(body)
+	if !strings.Contains(html, `id="entry-cause-indications"`) {
+		t.Fatalf("reception form lacks the entry-cause-indications JSON block")
+	}
+	if !strings.Contains(html, "Indication "+marker) {
+		t.Fatalf("indications map missing fixture indication %q", "Indication "+marker)
+	}
+	if !strings.Contains(html, `ecIndications[data.id]`) {
+		t.Fatalf("select2 matcher must consult the indications map")
 	}
 }
 

@@ -12,6 +12,8 @@
     <th><%= t("care_templates.field.name") %></th>
     <th><%= t("care_templates.field.content") %></th>
     <th><%= t("care_templates.field.owner") %></th>
+    <th><%= t("care_templates.field.caretype") %></th>
+    <th><%= t("care_templates.field.is_default") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -20,6 +22,12 @@
         <td class="align-middle"><%= tpl.Name %></td>
         <td class="align-middle"><%= tpl.Content %></td>
         <td class="align-middle"><%= tpl.Owner %></td>
+        <td class="align-middle"><%= tpl.CaretypeName %></td>
+        <td class="align-middle">
+          <%= if (tpl.IsDefault) { %>
+            <span class="badge badge-success">✓</span>
+          <% } %>
+        </td>
         <td>
           <div class="float-end">
             <%= linkTo(editCareTemplatePath({ care_template_id: tpl.ID }), {class: "btn btn-warning", title: t("care_templates.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>

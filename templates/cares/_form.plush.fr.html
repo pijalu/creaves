@@ -62,6 +62,22 @@ $( document ).ready(function(){
     toggleTemplateRow();
     refreshTemplates();
 
+    // ---- Default note template per care type (issue #208-17) ----
+    // Changing the care type pre-fills the note with the default template
+    // of that care type, as long as the user has not typed a note yet.
+    var noteTouched = $('#care-Note').val() !== '';
+    $('#care-Note').on('input', function(){ noteTouched = true; });
+    $('#care-TypeID').on('change', function(){
+        if (noteTouched) { return; }
+        var typeId = $(this).val();
+        if (!typeId) { return; }
+        $.getJSON('/suggestions/care_templates', { default_for: typeId }, function(data){
+            if (!noteTouched && data && data.length > 0 && data[0].content) {
+                $('#care-Note').val(data[0].content);
+            }
+        });
+    });
+
     $('#careTemplateInsert').on('click', function(){
         var content = $sel.find('option:selected').data('content');
         if (content) { $('#care-Note').val(content); }

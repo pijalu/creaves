@@ -126,6 +126,8 @@ func App() *buffalo.App {
 		// Routes for users management
 		app.Resource("/users", UsersResource{})
 		app.Resource("/config", ConfigsResource{})
+		// Instance details (guest view) shortcut in the System menu (issue #208).
+		app.GET("/instance", InstanceDetails)
 		// Sync configuration lives in the admin Synchronization area and
 		// always addresses the active config; the legacy per-config URL
 		// redirects there (see ConfigsResource.SyncEdit).
@@ -191,13 +193,13 @@ func App() *buffalo.App {
 		app.POST("/traveltypes/{traveltype_id}/delete", ReferenceDeleteCreate)
 		app.GET("/suggestions/discovery_location", SuggestionsDiscoveryLocation)
 		app.GET("/suggestions/outtake_location", SuggestionsOuttakeLocation)
+		app.GET("/suggestions/outtake_precise_location", SuggestionsOuttakePreciseLocation)
 		app.GET("/suggestions/discoverer_city", SuggestionsDiscovererCity)
 		app.GET("/suggestions/discoverer_country", SuggestionsDiscovererCountry)
 		app.GET("/suggestions/animal_in_care", SuggestionsAnimalInCare)
 		app.GET("/suggestions/treatment_drug", SuggestionsTreatmentDrug)
 		app.GET("/suggestions/treatment_drug_dosage", SuggestionsTreatmentDrugDosage)
 		app.GET("/suggestions/drug_remark", SuggestionsDrugRemark)
-		app.GET("/suggestions/feeding_guide", SuggestionsFeedingGuide)
 		app.GET("/suggestions/heat_source", SuggestionsHeatSource)
 		app.GET("/suggestions/care_templates", SuggestionsCareTemplates)
 		app.Resource("/care_templates", CareTemplatesResource{})
@@ -281,9 +283,6 @@ func App() *buffalo.App {
 		app.GET("/hint/speciesDetails", HintSpeciesDetails)
 
 		app.Resource("/entry_causes", EntryCausesResource{})
-		app.GET("/feeding_guides", FeedingGuidesIndex)
-		app.POST("/feeding_guides", FeedingGuidesCreate)
-		app.POST("/feeding_guides/{feeding_guide_id}/delete", FeedingGuidesDestroy)
 		app.ServeFiles("/", http.FS(public.FS())) // serve files from the public directory
 	})
 
