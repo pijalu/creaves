@@ -19,6 +19,7 @@ type animalSearchParams struct {
 	AnimalageID   string
 	Ring          string
 	OuttaketypeID string
+	ExitStatus    string // "" any, "negative"/"neutral"/"positive" (outtaketypes.rating)
 	HasWounds     string // "" any, "1" wounded, "0" not wounded (intakes.has_wounds)
 	HasParasites  string // "" any, "1" parasites, "0" no parasites (intakes.has_parasites)
 }
@@ -33,6 +34,7 @@ func animalSearchParamsFrom(c buffalo.Context) animalSearchParams {
 		AnimalageID:   c.Param("animalage_id"),
 		Ring:          c.Param("ring"),
 		OuttaketypeID: c.Param("outtaketype_id"),
+		ExitStatus:    c.Param("exit_status"),
 		HasWounds:     c.Param("has_wounds"),
 		HasParasites:  c.Param("has_parasites"),
 	}
@@ -42,7 +44,7 @@ func animalSearchParamsFrom(c buffalo.Context) animalSearchParams {
 func (p animalSearchParams) Any() bool {
 	return p.Year != "" || p.AnimaltypeID != "" || p.Species != "" ||
 		p.EntryCauseID != "" || p.AnimalageID != "" || p.Ring != "" ||
-		p.OuttaketypeID != "" || p.HasWounds != "" || p.HasParasites != ""
+		p.OuttaketypeID != "" || p.ExitStatus != "" || p.HasWounds != "" || p.HasParasites != ""
 }
 
 // NoOuttakeFilterValue is the special outtaketype_id filter value meaning
@@ -92,6 +94,26 @@ func applyAnimalSearchFilters(tx *pop.Connection, lang string, q *pop.Query, p a
 			SELECT o.id FROM outtakes o
 			JOIN outtaketypes oo ON oo.id = o.outtaketype_id
 			WHERE o.outtaketype_id = ? AND (oo.error = 0 OR oo.error IS NULL))`, p.OuttaketypeID)
+	}
+	// Exit status filter (#208.6): the rating of the outtake type, mirroring
+	// the exit-status badge on the list (negative < 0, neutral = 0/NULL,
+	// positive > 0). Animals still in care (no outtake) never match.
+	switch p.ExitStatus {
+	case "negative":
+		q = q.Where(`animals.outtake_id IN (
+			SELECT o.id FROM outtakes o
+			JOIN outtaketypes ot ON ot.id = o.outtaketype_id
+			WHERE ot.rating < 0)`)
+	case "neutral":
+		q = q.Where(`animals.outtake_id IN (
+			SELECT o.id FROM outtakes o
+			JOIN outtaketypes ot ON ot.id = o.outtaketype_id
+			WHERE ot.rating = 0 OR ot.rating IS NULL)`)
+	case "positive":
+		q = q.Where(`animals.outtake_id IN (
+			SELECT o.id FROM outtakes o
+			JOIN outtaketypes ot ON ot.id = o.outtaketype_id
+			WHERE ot.rating > 0)`)
 	}
 	// Wounded / parasites flags live on the intake of the animal (tri-state:
 	// empty = any, "1" = flagged, "0" = not flagged).
@@ -202,6 +224,15 @@ func setupAnimalSearchContext(c buffalo.Context, p animalSearchParams) error {
 		})
 	}
 	c.Set("searchOuttakeTypes", blankSearchOption(otOpts, p.OuttaketypeID))
+
+	// Exit status options (#208.6), localized with the same keys as the
+	// exit-status badge on the list.
+	esOpts := []searchOption{
+		{Value: "negative", Label: T.Translate(c, "animals.exit_status.negative"), Selected: p.ExitStatus == "negative"},
+		{Value: "neutral", Label: T.Translate(c, "animals.exit_status.neutral"), Selected: p.ExitStatus == "neutral"},
+		{Value: "positive", Label: T.Translate(c, "animals.exit_status.positive"), Selected: p.ExitStatus == "positive"},
+	}
+	c.Set("searchExitStatuses", blankSearchOption(esOpts, p.ExitStatus))
 
 	c.Set("search", p)
 	c.Set("searchActive", p.Any())

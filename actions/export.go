@@ -55,7 +55,10 @@ func ExportView(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("export/view.html"))
 }
 
-// ExportCsv default implementation.
+// ExportExcel streams an Excel (.xlsx) download. Queries with a dedicated
+// template in the excel package keep the template-based export; all other
+// configured export queries get a generic workbook with the same data,
+// year filter and view filters as the CSV download (#208.7).
 func ExportExcel(c buffalo.Context) error {
 	query := c.Param("query")
 	if query == "" {
@@ -64,6 +67,10 @@ func ExportExcel(c buffalo.Context) error {
 			return err
 		}
 		return c.Render(http.StatusOK, r.HTML("export/excel.html"))
+	}
+
+	if !excel.HasQuery(query) {
+		return export.RunQueryExcel(c, query)
 	}
 
 	return excel.RunQuery(c, query)

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/buffalo"
+	"github.com/xuri/excelize/v2"
 	"gopkg.in/yaml.v2"
 
 	_ "embed"
@@ -269,4 +270,62 @@ func RunQuery(c buffalo.Context, query string) error {
 	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, filename))
 
 	return writeCSV(c.Response(), cols, rows)
+}
+
+// RunQueryExcel streams one configured query as a generic Excel (.xlsx)
+// download: same data, year filter and view filters as the CSV export
+// (#208.7), without a formatting template. Query names that have a
+// dedicated template in the excel package are served by excel.RunQuery
+// instead (see actions.ExportExcel).
+func RunQueryExcel(c buffalo.Context, query string) error {
+	year := ParseYear(c)
+	sqlQuery, cols, rows, err := FetchRows(query, year)
+	if err != nil {
+		if errors.Is(err, ErrQueryNotFound) {
+			c.Logger().Debugf("Could not find query %s", query)
+			c.Response().WriteHeader(http.StatusNotFound)
+			c.Response().Write([]byte("404 - Not Found"))
+			return nil
+		}
+		c.Logger().Debugf("Error running query: %v", err)
+		return err
+	}
+
+	// Honor the filters applied in the online view, exactly like the CSV
+	// download (#197 sub-item 3).
+	rows = FilterRows(rows, FilterFromParams(c.Params()))
+
+	filename := sqlQuery.Name
+	if year > 0 && sqlQuery.YearColumn != "" {
+		filename = fmt.Sprintf("%s_%d", sqlQuery.Name, year)
+	}
+	c.Response().Header().Add("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.xlsx"`, filename))
+
+	f := excelize.NewFile()
+	defer f.Close()
+	sheet := f.GetSheetName(0)
+
+	for i, col := range cols {
+		pos, err := excelize.CoordinatesToCellName(i+1, 1)
+		if err != nil {
+			return err
+		}
+		if err := f.SetCellValue(sheet, pos, col); err != nil {
+			return err
+		}
+	}
+	for r, row := range rows {
+		for i, val := range row {
+			pos, err := excelize.CoordinatesToCellName(i+1, r+2)
+			if err != nil {
+				return err
+			}
+			if err := f.SetCellValue(sheet, pos, val); err != nil {
+				return err
+			}
+		}
+	}
+
+	return f.Write(c.Response())
 }

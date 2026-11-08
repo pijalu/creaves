@@ -117,6 +117,18 @@
           </select>
         </div>
         <div class="form-group col-md-2">
+          <label for="sf_exit_status">Statut de sortie</label>
+          <select class="form-control" id="sf_exit_status" name="exit_status">
+            <%= for (opt) in searchExitStatuses { %>
+              <%= if (opt.Selected) { %>
+                <option value="<%= opt.Value %>" selected><%= opt.Label %></option>
+              <% } else { %>
+                <option value="<%= opt.Value %>"><%= opt.Label %></option>
+              <% } %>
+            <% } %>
+          </select>
+        </div>
+        <div class="form-group col-md-2">
           <label for="sf_has_wounds">Blessé</label>
           <select class="form-control" id="sf_has_wounds" name="has_wounds">
             <%= if (search.HasWounds == "1") { %>

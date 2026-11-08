@@ -567,6 +567,67 @@ func TestExportExcelYearFilter(t *testing.T) {
 	}
 }
 
+// TestExportExcelGenericFallback (#208.7): export queries without a
+// dedicated Excel template get a generic .xlsx download from /export/excel
+// (same data as the CSV export), so the view page can offer an Excel button
+// for every query.
+func TestExportExcelGenericFallback(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/excel?query=register")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		bb, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status = %d (body: %.300s)", resp.StatusCode, string(bb))
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "spreadsheetml") {
+		t.Errorf("Content-Type = %q, want xlsx", ct)
+	}
+	if cd := resp.Header.Get("Content-Disposition"); !strings.Contains(cd, "register.xlsx") {
+		t.Errorf("Content-Disposition = %q, want register.xlsx", cd)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	// xlsx is a zip archive
+	if len(body) < 4 || string(body[:2]) != "PK" {
+		t.Fatalf("body is not a zip/xlsx archive (%d bytes)", len(body))
+	}
+}
+
+// TestExportViewShowsExcelButton (#208.7): the online view toolbar offers an
+// Excel download next to the CSV one.
+func TestExportViewShowsExcelButton(t *testing.T) {
+	requireMySQLTestDB(t)
+	client := adminClient(t)
+	srv := httptest.NewServer(App())
+	t.Cleanup(srv.Close)
+
+	resp, err := client.Get(srv.URL + "/export/view?query=register")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+	bb, _ := io.ReadAll(resp.Body)
+	body := string(bb)
+	if !strings.Contains(body, `id="exportExcelLink"`) {
+		t.Errorf("view toolbar lacks the Excel download button")
+	}
+	if !strings.Contains(body, `/export/excel?query=register`) {
+		t.Errorf("Excel button must point at /export/excel?query=register")
+	}
+}
+
 // TestExportExcelChooserUI proves the Excel chooser renders as a table with
 // one top-of-page year dropdown (DB years + "All years" default) and one
 // download button per query (bugs.md bug 5).

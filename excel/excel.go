@@ -94,6 +94,12 @@ func GetQueries() []Queries {
 	return config.Queries
 }
 
+// HasQuery reports whether a template-based excel query exists for id.
+func HasQuery(id string) bool {
+	_, err := config.getQuery(id)
+	return err == nil
+}
+
 func sheetPosition(line, col int) string {
 	result := ""
 
