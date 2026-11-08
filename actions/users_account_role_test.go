@@ -33,6 +33,8 @@ func TestApplyAccountRoleSelection(t *testing.T) {
 		{models.UserRoleReader, false, false, false, models.UserRoleReader},
 		{models.UserRoleScientist, false, false, false, models.UserRoleScientist},
 		{models.UserRoleSPW, false, false, false, models.UserRoleSPW},
+		{models.UserRoleNoTreatments, false, false, false, models.UserRoleNoTreatments},
+		{"shared_sans_treatments", false, false, true, models.UserRoleNoTreatments},
 	}
 	for _, tc := range tests {
 		t.Run("sel="+tc.sel, func(t *testing.T) {
@@ -59,6 +61,8 @@ func TestUserAccountRoleHelper(t *testing.T) {
 	require.Equal(t, "lecteur", userAccountRole(&models.User{Role: models.UserRoleReader}))
 	require.Equal(t, "scientifique", userAccountRole(models.User{Role: models.UserRoleScientist}))
 	require.Equal(t, "spw", userAccountRole(&models.User{Role: models.UserRoleSPW}))
+	require.Equal(t, "utilisateur_sans_treatments", userAccountRole(&models.User{Role: models.UserRoleNoTreatments}))
+	require.Equal(t, "shared_sans_treatments", userAccountRole(&models.User{Shared: true, Role: models.UserRoleNoTreatments}))
 	// flags take precedence over a leftover role string
 	require.Equal(t, "admin", userAccountRole(&models.User{Admin: true, Role: models.UserRoleSPW}))
 }

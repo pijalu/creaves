@@ -22,6 +22,8 @@
     <option value="lecteur" <%= if (filterRole == "lecteur") { %>selected<% } %>><%= t("users.role.lecteur") %></option>
     <option value="scientifique" <%= if (filterRole == "scientifique") { %>selected<% } %>><%= t("users.role.scientifique") %></option>
     <option value="spw" <%= if (filterRole == "spw") { %>selected<% } %>><%= t("users.role.spw") %></option>
+    <option value="utilisateur_sans_treatments" <%= if (filterRole == "utilisateur_sans_treatments") { %>selected<% } %>><%= t("users.role.user_no_treatments") %></option>
+    <option value="shared_sans_treatments" <%= if (filterRole == "shared_sans_treatments") { %>selected<% } %>><%= t("users.role.shared_no_treatments") %></option>
   </select>
   <select name="status" class="form-control custom-select mr-sm-2 mb-1">
     <option value=""><%= t("users.index.filter_status_all") %></option>
@@ -58,6 +60,8 @@
           <% } else if (userAccountRole(user) == "lecteur") { %><%= t("users.role.lecteur") %>
           <% } else if (userAccountRole(user) == "scientifique") { %><%= t("users.role.scientifique") %>
           <% } else if (userAccountRole(user) == "spw") { %><%= t("users.role.spw") %>
+          <% } else if (userAccountRole(user) == "utilisateur_sans_treatments") { %><%= t("users.role.user_no_treatments") %>
+          <% } else if (userAccountRole(user) == "shared_sans_treatments") { %><%= t("users.role.shared_no_treatments") %>
           <% } else { %><%= t("users.role.user") %><% } %>
         </td>
         <td class="align-middle text-center"><%= bool2html(user.Approved) %></td>

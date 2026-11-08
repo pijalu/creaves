@@ -272,8 +272,8 @@ func getSnapshotTask(id string) (*SnapshotTaskStatus, bool) {
 // MaintenanceIndex default implementation.
 func MaintenanceIndex(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	// Get event stream stats for display
@@ -338,8 +338,8 @@ func unmappedSpeciesDiagnostics(tx *pop.Connection) ([]unmappedSpeciesRow, error
 // MaintenanceRenumber default implementation.
 func MaintenanceRenumber(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -379,8 +379,8 @@ func MaintenanceRenumber(c buffalo.Context) error {
 // MaintenanceSnapshot triggers an async snapshot creation
 func MaintenanceSnapshot(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	taskID := enqueueSnapshotTask("snapshot")
@@ -392,8 +392,8 @@ func MaintenanceSnapshot(c buffalo.Context) error {
 // MaintenanceCleanup triggers cleanup of delivered events
 func MaintenanceCleanup(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	taskID := enqueueSnapshotTask("cleanup")
@@ -405,8 +405,8 @@ func MaintenanceCleanup(c buffalo.Context) error {
 // MaintenanceDeleteAllEvents deletes ALL events from the event stream
 func MaintenanceDeleteAllEvents(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	tx, ok := c.Value("tx").(*pop.Connection)
@@ -429,8 +429,8 @@ func MaintenanceDeleteAllEvents(c buffalo.Context) error {
 // MaintenanceTaskStatus returns the status of a background task
 func MaintenanceTaskStatus(c buffalo.Context) error {
 	cu := GetCurrentUser(c)
-	if !cu.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required for this action"))
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 
 	taskID := c.Param("task_id")

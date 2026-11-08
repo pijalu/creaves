@@ -32,7 +32,8 @@ type SpeciesResource struct {
 // List gets all Species. This function is mapped to the path
 // GET /species
 func (v SpeciesResource) List(c buffalo.Context) error {
-	if _, err := requireMaintainer(c); err != nil {
+	// Species are visible to any admin; only maintainers may edit (issue #209).
+	if _, err := requireAdmin(c); err != nil {
 		return err
 	}
 	// Get the DB connection from the context
@@ -82,7 +83,8 @@ func (v SpeciesResource) List(c buffalo.Context) error {
 // Show gets the data for one Species. This function is mapped to
 // the path GET /species/{species_id}
 func (v SpeciesResource) Show(c buffalo.Context) error {
-	if _, err := requireMaintainer(c); err != nil {
+	// Species are visible to any admin; only maintainers may edit (issue #209).
+	if _, err := requireAdmin(c); err != nil {
 		return err
 	}
 	// Get the DB connection from the context

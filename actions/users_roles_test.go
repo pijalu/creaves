@@ -65,7 +65,7 @@ func roleTestUser(t *testing.T, role string, admin bool) *models.User {
 // an authenticated client + base URL of a fresh app server.
 func roleTestLogin(t *testing.T, u *models.User) (*http.Client, string) {
 	t.Helper()
-	return feedingGuideLogin(t, u.Login, "rolepass123")
+	return testUserLogin(t, u.Login, "rolepass123")
 }
 
 // roleTestGetBody fetches a URL and returns status code + body.
@@ -171,10 +171,32 @@ func TestRoleAllowsMatrix(t *testing.T) {
 		{"scientist put own", models.UserRoleScientist, "PUT", "/users/" + selfID.String(), true, true},
 		{"scientist post users", models.UserRoleScientist, "POST", "/users", false, false},
 		{"scientist delete animal", models.UserRoleScientist, "DELETE", "/animals/1", false, false},
+		// scientifique: hidden pages (issue #209)
+		{"scientist get dashboard", models.UserRoleScientist, "GET", "/dashboard", false, false},
+		{"scientist get feeding", models.UserRoleScientist, "GET", "/feeding", false, false},
+		{"scientist get logentries", models.UserRoleScientist, "GET", "/logentries", false, false},
+		{"scientist get reception", models.UserRoleScientist, "GET", "/reception/new", false, false},
+		{"scientist get cares new", models.UserRoleScientist, "GET", "/cares/new", false, false},
+		{"scientist get vetvisit new", models.UserRoleScientist, "GET", "/veterinaryvisits/new", false, true}, // form of their single write
+		{"scientist get treatment new", models.UserRoleScientist, "GET", "/treatments/new", false, false},
+		{"scientist get outtake new", models.UserRoleScientist, "GET", "/outtakes/new", false, false},
+		{"scientist get reports", models.UserRoleScientist, "GET", "/reports/annual", false, true},
+		{"scientist get vetvisit show", models.UserRoleScientist, "GET", "/veterinaryvisits/1", false, true},
+
+		// utilisateur_sans_treatments: regular user minus treatment writes (issue #209)
+		{"notreat get root", models.UserRoleNoTreatments, "GET", "/", false, true},
+		{"notreat get animals", models.UserRoleNoTreatments, "GET", "/animals/42", false, true},
+		{"notreat post animal", models.UserRoleNoTreatments, "POST", "/animals", false, true},
+		{"notreat put care", models.UserRoleNoTreatments, "PUT", "/cares/1", false, true},
+		{"notreat get treatment new", models.UserRoleNoTreatments, "GET", "/treatments/new", false, true},
+		{"notreat post treatment", models.UserRoleNoTreatments, "POST", "/treatments", false, false},
+		{"notreat put treatment", models.UserRoleNoTreatments, "PUT", "/treatments/1", false, false},
+		{"notreat delete treatment", models.UserRoleNoTreatments, "DELETE", "/treatments/1", false, false},
+		{"notreat put schedule", models.UserRoleNoTreatments, "PUT", "/treatmentschedule", false, false},
 
 		// SPW: GET on a fixed page set + own account writes
 		{"spw get root", models.UserRoleSPW, "GET", "/", false, true},
-		{"spw get dashboard", models.UserRoleSPW, "GET", "/dashboard", false, true},
+		{"spw get dashboard", models.UserRoleSPW, "GET", "/dashboard", false, false}, // hidden (issue #209)
 		{"spw get animals", models.UserRoleSPW, "GET", "/animals", false, true},
 		{"spw get animal", models.UserRoleSPW, "GET", "/animals/42", false, true},
 		{"spw get reports", models.UserRoleSPW, "GET", "/reports", false, true},

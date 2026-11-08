@@ -56,7 +56,7 @@ func TestSyncTargetAPIKeyVisibilityByRole(t *testing.T) {
 // key in clear text (bugs.md #7).
 func TestSyncTargetEditShowsAPIKeyToAdmin(t *testing.T) {
 	requireMySQLSuite(t)
-	client, baseURL := adminClientWithURL(t) // Admin: true, Maintainer: false
+	client, baseURL := maintainerClientWithURL(t) // Admin: true, Maintainer: false
 	target := seedHandlerSyncTarget(t, "TS-edit-visibility-"+uuid.Must(uuid.NewV4()).String()[:8], "http://console.example.org/webhook/events", false)
 
 	resp, err := client.Get(baseURL + "/sync_targets/" + target.ID.String() + "/edit")

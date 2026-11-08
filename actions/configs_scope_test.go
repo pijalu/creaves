@@ -77,7 +77,7 @@ func TestConfigUpdateScopeIdentityPreservesSync(t *testing.T) {
 	}
 	cfg := seedScopeConfig(t)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/config/"+cfg.ID.String()+"/edit")
 
 	form := url.Values{}
@@ -117,7 +117,7 @@ func TestConfigUpdateScopeSyncPreservesIdentity(t *testing.T) {
 	CurrentConfigSet(cfg)
 	t.Cleanup(func() { CurrentConfigSet(saved) })
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_configuration")
 
 	form := url.Values{}
@@ -156,7 +156,7 @@ func TestConfigSyncEditPageRenders(t *testing.T) {
 	CurrentConfigSet(cfg)
 	t.Cleanup(func() { CurrentConfigSet(saved) })
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_configuration")
 	if token == "" {
 		t.Fatal("no CSRF token on sync edit page — page did not render the form")
@@ -182,7 +182,7 @@ func TestConfigSyncLegacyURLBehavior(t *testing.T) {
 	CurrentConfigSet(active)
 	t.Cleanup(func() { CurrentConfigSet(saved) })
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 
 	resp, err := client.Get(baseURL + "/config/" + active.ID.String() + "/sync")
 	if err != nil {

@@ -12,6 +12,8 @@
     <option value="lecteur" <%= if (userAccountRole(user) == "lecteur") { %>selected<% } %>><%= t("users.role.lecteur") %></option>
     <option value="scientifique" <%= if (userAccountRole(user) == "scientifique") { %>selected<% } %>><%= t("users.role.scientifique") %></option>
     <option value="spw" <%= if (userAccountRole(user) == "spw") { %>selected<% } %>><%= t("users.role.spw") %></option>
+    <option value="utilisateur_sans_treatments" <%= if (userAccountRole(user) == "utilisateur_sans_treatments") { %>selected<% } %>><%= t("users.role.user_no_treatments") %></option>
+    <option value="shared_sans_treatments" <%= if (userAccountRole(user) == "shared_sans_treatments") { %>selected<% } %>><%= t("users.role.shared_no_treatments") %></option>
   </select>
   <small class="form-text text-muted"><%= t("users.account_role_help") %></small>
 </div>

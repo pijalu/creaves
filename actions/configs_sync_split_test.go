@@ -33,7 +33,7 @@ func TestConfigShowHasNoSyncDetails(t *testing.T) {
 		models.DB.RawQuery("DELETE FROM config WHERE id = ?", cfg.ID.String()).Exec()
 	})
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	resp, err := client.Get(baseURL + "/config/" + cfg.ID.String())
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -52,7 +52,7 @@ func TestConfigShowHasNoSyncDetails(t *testing.T) {
 // identity fields.
 func TestConfigNewIsIdentityOnly(t *testing.T) {
 	requireMySQLTestDB(t)
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 
 	resp, err := client.Get(baseURL + "/config/new")
 	require.NoError(t, err)
@@ -76,7 +76,7 @@ func TestConfigCreateWithoutInstanceID(t *testing.T) {
 	saved := CurrentConfigGet()
 	t.Cleanup(func() { CurrentConfigSet(saved) })
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/config/new")
 
 	name := "cfg-create-nosync-" + uuid.Must(uuid.NewV4()).String()[:8]

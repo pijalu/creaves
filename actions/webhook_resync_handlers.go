@@ -56,8 +56,8 @@ func cachedSyncStatus() *SyncStatus {
 }
 
 func WebhookResyncIndex(c buffalo.Context) error {
-	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
+	if user := GetCurrentUser(c); user == nil || !user.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required"))
 	}
 	c.Set("webhookEnabled", IsWebhookEnabled())
 	// Expected-set visibility (phase 8): computed in the background — the
@@ -67,8 +67,8 @@ func WebhookResyncIndex(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.HTML("webhook_resync/index.plush.html"))
 }
 func WebhookResyncStart(c buffalo.Context) error {
-	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
+	if user := GetCurrentUser(c); user == nil || !user.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -103,8 +103,8 @@ func WebhookResyncStart(c buffalo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/webhook_resync")
 }
 func WebhookResyncStatus(c buffalo.Context) error {
-	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
+	if user := GetCurrentUser(c); user == nil || !user.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -121,8 +121,8 @@ func WebhookResyncStatus(c buffalo.Context) error {
 }
 
 func WebhookResyncCancel(c buffalo.Context) error {
-	if user := GetCurrentUser(c); user == nil || !user.Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("admin rights required"))
+	if user := GetCurrentUser(c); user == nil || !user.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required"))
 	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

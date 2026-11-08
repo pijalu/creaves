@@ -340,6 +340,11 @@ func (v UsersResource) Edit(c buffalo.Context) error {
 		return c.Error(http.StatusNotFound, err)
 	}
 
+	// Maintainer accounts may only be edited by maintainers (issue #209).
+	if user.Maintainer && !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required to edit a maintainer account"))
+	}
+
 	c.Set("user", user)
 	return c.Render(http.StatusOK, r.HTML("/users/edit.plush.html"))
 }
@@ -364,6 +369,11 @@ func (v UsersResource) Update(c buffalo.Context) error {
 
 	if err := tx.Find(user, c.Param("user_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+
+	// Maintainer accounts may only be updated by maintainers (issue #209).
+	if user.Maintainer && !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required to update a maintainer account"))
 	}
 
 	// Snapshot of the persisted row for field-level permission restores
@@ -470,6 +480,11 @@ func (v UsersResource) Destroy(c buffalo.Context) error {
 	// To find the User the parameter user_id is used.
 	if err := tx.Find(user, c.Param("user_id")); err != nil {
 		return c.Error(http.StatusNotFound, err)
+	}
+
+	// Maintainer accounts may only be deleted by maintainers (issue #209).
+	if user.Maintainer && !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required to delete a maintainer account"))
 	}
 
 	if user.Login == "admin" {

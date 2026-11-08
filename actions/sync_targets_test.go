@@ -73,7 +73,7 @@ func reloadSyncTarget(t *testing.T, id uuid.UUID) *models.SyncTarget {
 // configuration page lists it.
 func TestSyncTargetCreate(t *testing.T) {
 	requireMySQLSuite(t)
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_targets/new")
 
 	name := "TS-target-" + uuid.Must(uuid.NewV4()).String()[:8]
@@ -115,7 +115,7 @@ func TestSyncTargetCreate(t *testing.T) {
 // re-rendered (validation), not silently stored.
 func TestSyncTargetCreateEnabledRequiresURL(t *testing.T) {
 	requireMySQLSuite(t)
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_targets/new")
 
 	name := "TS-target-" + uuid.Must(uuid.NewV4()).String()[:8]
@@ -142,7 +142,7 @@ func TestSyncTargetUpdateBlankKeyPreservesStored(t *testing.T) {
 	requireMySQLSuite(t)
 	target := seedHandlerSyncTarget(t, "TS-update", "http://old.example.org/webhook/events", true)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_targets/"+target.ID.String()+"/edit")
 
 	resp := postTodoForm(t, client, baseURL, "/sync_targets/"+target.ID.String(), token, url.Values{
@@ -173,7 +173,7 @@ func TestSyncTargetEditShowsKeyToPlainAdmin(t *testing.T) {
 	requireMySQLSuite(t)
 	target := seedHandlerSyncTarget(t, "TS-edit", "http://console.example.org/webhook/events", true)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	resp, err := client.Get(baseURL + "/sync_targets/" + target.ID.String() + "/edit")
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -212,7 +212,7 @@ func TestSyncTargetDestroyRemovesDeliveries(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}))
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_targets/"+target.ID.String()+"/edit")
 
 	resp := postTodoForm(t, client, baseURL, "/sync_targets/"+target.ID.String(), token, url.Values{
@@ -264,7 +264,7 @@ func TestSyncTargetRetryUndeliverable(t *testing.T) {
 	}
 	require.NoError(t, tx.Create(capped))
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/sync_configuration")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/sync_targets/"+target.ID.String()+"/retry_undeliverable", nil)

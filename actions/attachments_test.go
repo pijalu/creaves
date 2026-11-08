@@ -85,8 +85,8 @@ func TestAttachmentsUploadServeDelete34(t *testing.T) {
 	tx := searchTestDB(t)
 	fx := createAnimalSearchFixtures(t, tx)
 
-	login, password := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
 
 	// ---- upload a PNG
 	resp := attTUpload(t, client, baseURL, fx.animalC, "file", "hé llo photo.png", "image/png", attTPng())
@@ -147,8 +147,8 @@ func TestAttachmentsRejectsTypeAndSize34(t *testing.T) {
 	models.AttachmentMaxImageSize = 64
 	t.Cleanup(func() { models.AttachmentMaxImageSize = old })
 
-	login, password := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
 	attTCleanup(t, fx.animalC)
 
 	// ---- wrong type (plain text) rejected
@@ -174,8 +174,8 @@ func TestAttachmentsDeleteOwnership34(t *testing.T) {
 	tx := searchTestDB(t)
 	fx := createAnimalSearchFixtures(t, tx)
 
-	owner, _ := feedingGuideUser(t, false)
-	other, _ := feedingGuideUser(t, false)
+	owner, _ := testUserFixture(t, false)
+	other, _ := testUserFixture(t, false)
 	ownerID := ownerUUID34(t, owner)
 
 	a := &models.Attachment{
@@ -193,7 +193,7 @@ func TestAttachmentsDeleteOwnership34(t *testing.T) {
 	attTCleanup(t, fx.animalC)
 
 	// ---- a different non-admin user is forbidden
-	otherClient, otherBase := feedingGuideLogin(t, other, "fgpass123")
+	otherClient, otherBase := testUserLogin(t, other, "fgpass123")
 	req, err := http.NewRequest("POST", otherBase+"/attachments/"+a.ID.String()+"/delete", nil)
 	require.NoError(t, err)
 	setCSRFHeader(t, otherClient, otherBase, req)
@@ -203,7 +203,7 @@ func TestAttachmentsDeleteOwnership34(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, resp.StatusCode)
 
 	// ---- the owner may delete
-	ownerClient, ownerBase := feedingGuideLogin(t, owner, "fgpass123")
+	ownerClient, ownerBase := testUserLogin(t, owner, "fgpass123")
 	req, err = http.NewRequest("POST", ownerBase+"/attachments/"+a.ID.String()+"/delete", nil)
 	require.NoError(t, err)
 	setCSRFHeader(t, ownerClient, ownerBase, req)
@@ -225,8 +225,8 @@ func TestAttachmentsServeMissingBlob404(t *testing.T) {
 	fx := createAnimalSearchFixtures(t, tx)
 	attTCleanup(t, fx.animalC)
 
-	login, password := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, password)
+	login, password := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, password)
 
 	a := &models.Attachment{
 		ID:          uuid.Must(uuid.NewV4()),
@@ -292,7 +292,7 @@ func TestAttachmentBlobStoreLoadDelete34(t *testing.T) {
 	require.False(t, found)
 }
 
-// ownerUUID34 resolves the uuid of a login created by feedingGuideUser.
+// ownerUUID34 resolves the uuid of a login created by testUserFixture.
 func ownerUUID34(t *testing.T, login string) uuid.UUID {
 	t.Helper()
 	u := &models.User{}
@@ -317,8 +317,8 @@ func TestAttachmentsCreateOuttakenAnimalAuthR1(t *testing.T) {
 	}
 
 	// ---- non-admin on outtaken animal (animalA has an outtake) → blocked
-	plainLogin, _ := feedingGuideUser(t, false)
-	plainClient, plainBase := feedingGuideLogin(t, plainLogin, "fgpass123")
+	plainLogin, _ := testUserFixture(t, false)
+	plainClient, plainBase := testUserLogin(t, plainLogin, "fgpass123")
 	resp := attTUpload(t, plainClient, plainBase, fx.animalA, "file", "x.png", "image/png", attTPng())
 	resp.Body.Close()
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -330,8 +330,8 @@ func TestAttachmentsCreateOuttakenAnimalAuthR1(t *testing.T) {
 	require.Equal(t, 0, countFor(fx.animalA), "non-admin upload on outtaken animal must be rejected")
 
 	// ---- admin on outtaken animal → allowed
-	adminLogin, _ := feedingGuideUser(t, true)
-	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+	adminLogin, _ := testUserFixture(t, true)
+	adminClient, adminBase := testUserLogin(t, adminLogin, "fgpass123")
 	resp = attTUpload(t, adminClient, adminBase, fx.animalA, "file", "x.png", "image/png", attTPng())
 	resp.Body.Close()
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -352,8 +352,8 @@ func TestAnimalDestroyRemovesAttachmentsR2(t *testing.T) {
 	fx := createAnimalSearchFixtures(t, tx)
 	attTCleanup(t, fx.animalC)
 
-	adminLogin, _ := feedingGuideUser(t, true)
-	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+	adminLogin, _ := testUserFixture(t, true)
+	adminClient, adminBase := testUserLogin(t, adminLogin, "fgpass123")
 
 	// upload an attachment on the in-care animal
 	resp := attTUpload(t, adminClient, adminBase, fx.animalC, "file", "gone.png", "image/png", attTPng())
@@ -396,8 +396,8 @@ func TestAttachmentsRedirectBackParamSafeR5(t *testing.T) {
 	fx := createAnimalSearchFixtures(t, tx)
 	attTCleanup(t, fx.animalC)
 
-	adminLogin, _ := feedingGuideUser(t, true)
-	adminClient, adminBase := feedingGuideLogin(t, adminLogin, "fgpass123")
+	adminLogin, _ := testUserFixture(t, true)
+	adminClient, adminBase := testUserLogin(t, adminLogin, "fgpass123")
 
 	for _, evil := range []string{"https://evil.example/phish", "//evil.example/phish"} {
 		var buf bytes.Buffer

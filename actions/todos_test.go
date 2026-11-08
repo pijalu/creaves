@@ -59,8 +59,8 @@ func TestTodosCreateDoneDelete(t *testing.T) {
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
 	}
-	adminLogin, adminPass := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, adminLogin, adminPass)
+	adminLogin, adminPass := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, adminLogin, adminPass)
 
 	description := "TS-todo-" + uuid.Must(uuid.NewV4()).String()[:8]
 	todoCleanup(t, description)
@@ -137,8 +137,8 @@ func TestTodosRecurrence(t *testing.T) {
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
 	}
-	adminLogin, adminPass := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, adminLogin, adminPass)
+	adminLogin, adminPass := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, adminLogin, adminPass)
 
 	description := "TS-todo-rec-" + uuid.Must(uuid.NewV4()).String()[:8]
 	todoCleanup(t, description)
@@ -230,8 +230,8 @@ func TestTodosDestroyReopenAdminOnly(t *testing.T) {
 	description := "TS-todo-ro-" + uuid.Must(uuid.NewV4()).String()[:8]
 	todoCleanup(t, description)
 
-	adminLogin, adminPass := feedingGuideUser(t, true)
-	aclient, abaseURL := feedingGuideLogin(t, adminLogin, adminPass)
+	adminLogin, adminPass := testUserFixture(t, true)
+	aclient, abaseURL := testUserLogin(t, adminLogin, adminPass)
 	token := todoToken(t, aclient, abaseURL, "/todos/new")
 	resp := postTodoForm(t, aclient, abaseURL, "/todos", token, url.Values{
 		"description": {description},
@@ -247,8 +247,8 @@ func TestTodosDestroyReopenAdminOnly(t *testing.T) {
 	// mark done as admin, then try to reopen/delete as plain user
 	postTodoForm(t, aclient, abaseURL, fmt.Sprintf("/todos/%s/done", todo.ID), token, url.Values{})
 
-	userLogin, userPass := feedingGuideUser(t, false)
-	uclient, ubaseURL := feedingGuideLogin(t, userLogin, userPass)
+	userLogin, userPass := testUserFixture(t, false)
+	uclient, ubaseURL := testUserLogin(t, userLogin, userPass)
 	utoken := todoToken(t, uclient, ubaseURL, "/todos/new")
 
 	resp = postTodoForm(t, uclient, ubaseURL, fmt.Sprintf("/todos/%s/delete", todo.ID), utoken, url.Values{})
@@ -305,8 +305,8 @@ func TestTodosIndexOrderingAndDashboard(t *testing.T) {
 	seed(descA, "2026-01-02T08:00") // open, earlier → first
 	seedDone(t, descDone)
 
-	login, pass := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, pass)
+	login, pass := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, pass)
 
 	resp, err := client.Get(baseURL + "/todos")
 	if err != nil {
@@ -385,8 +385,8 @@ func TestTodosDueSoonFiltering(t *testing.T) {
 	seed(descSoon, now.Add(2*time.Hour))
 	seed(descLater, now.Add(48*time.Hour))
 
-	login, pass := feedingGuideUser(t, true)
-	client, baseURL := feedingGuideLogin(t, login, pass)
+	login, pass := testUserFixture(t, true)
+	client, baseURL := testUserLogin(t, login, pass)
 
 	// dashboard: overdue + due-soon listed, later one hidden
 	s := todoGetBody(t, client, baseURL+"/dashboard")
@@ -442,8 +442,8 @@ func TestTodosDoneRedirect(t *testing.T) {
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
 	}
-	login, pass := feedingGuideUser(t, true)
-	baseClient, baseURL := feedingGuideLogin(t, login, pass)
+	login, pass := testUserFixture(t, true)
+	baseClient, baseURL := testUserLogin(t, login, pass)
 	// do not follow redirects: assert the Location header directly
 	client := *baseClient
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

@@ -62,6 +62,13 @@ func TestOuttakeCageBatchCreate(t *testing.T) {
 
 	// Distinct intake dates so the two stay durations must differ: the
 	// batch must compute per animal, not reuse one value.
+	a1 := &models.Animal{}
+	require.NoError(t, tx.Find(a1, f1.animalID))
+	in1 := &models.Intake{}
+	require.NoError(t, tx.Find(in1, a1.IntakeID))
+	in1.Date = time.Date(2026, 1, 20, 12, 0, 0, 0, time.UTC) // after the outtake date → clamped 0
+	require.NoError(t, tx.Update(in1))
+
 	a2 := &models.Animal{}
 	require.NoError(t, tx.Find(a2, f2.animalID))
 	in2 := &models.Intake{}

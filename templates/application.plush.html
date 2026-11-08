@@ -41,27 +41,25 @@
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
         <!-- Configuration sub-menu -->
-        <div class="dropdown-submenu">
+                <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuration</a>
           <div class="dropdown-menu">
             <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Drugs</a>
-            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
-            <%= if (current_user.Maintainer) { %>
-            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
-            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
-            <% } %>
             <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Care types</a>
-            <a class="dropdown-item" href="/feeding_guides"><i class="fas fa-utensils"></i> Feeding guides</a>
             <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Care note templates</a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Travel types</a>
-            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
+            <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Species</a>
             <%= if (current_user.Maintainer) { %>
-              <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Species</a>
-              <a class="dropdown-item" href="/native_statuses"><i class="fas fa-leaf"></i> Native statuses</a>
-              <a class="dropdown-item" href="/outtake_location_options"><i class="fas fa-map-pin"></i> Outtake locations</a>
-            <% } %>
+            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Animal age</a>
+            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Animal types</a>
+            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome types</a>
+            <a class="dropdown-item" href="/entry_causes"><i class="fas fa-sign-in-alt"></i> Entry causes</a>
+            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Localities</a>
+            <a class="dropdown-item" href="/native_statuses"><i class="fas fa-leaf"></i> Native statuses</a>
+            <a class="dropdown-item" href="/outtake_location_options"><i class="fas fa-map-pin"></i> Outtake locations</a>
             <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Translations</a>
+            <% } %>
           </div>
         </div>
 
@@ -69,16 +67,18 @@
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> System</a>
           <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
           <%= if (current_user.Maintainer) { %>
             <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> All Routes</a>
-          <% } %>
-            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Users</a>
             <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Maintenance</a>
             <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuration</a>
+            <a class="dropdown-item" href="/instance"><i class="fas fa-eye"></i> Instance details (guest view)</a>
+          <% } %>
           </div>
         </div>
 
         <!-- Synchronization sub-menu -->
+        <%= if (current_user.Maintainer) { %>
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync-alt"></i> Synchronization</a>
           <div class="dropdown-menu">
@@ -87,6 +87,7 @@
             <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook resync</a>
           </div>
         </div>
+        <% } %>
         </div>
         </li>
         <% } %>
@@ -108,17 +109,23 @@
           </div>
         </li>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= dashboardPath() %>" title="Dashboard"><i class="fas fa-tachometer-alt"></i><span class="nav-label d-none d-xl-inline ml-1">Dashboard</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= feedingPath() %>" title="Feeding"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Feeding</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= logentriesPath() %>" title="Log entries"><i class="fas fa-clipboard-list"></i><span class="nav-label d-none d-xl-inline ml-1">Log entries</span></a>
         </li>
+<% } %>
 
         <li class="nav-item">
           <a class="nav-link" href="/todos" title="TODOs"><i class="fas fa-tasks"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.todos") %></span></a>
@@ -128,21 +135,27 @@
           <a class="nav-link" href="<%= animalsPath() %>" title="Animals"><i class="fas fa-paw"></i><span class="nav-label d-none d-xl-inline ml-1">Animals</span></a>
         </li>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= newReceptionPath() %>" title="Reception"><i class="fas fa-plus-circle"></i><span class="nav-label d-none d-xl-inline ml-1">Reception</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item dropdown">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="New">
                       <i class="fas fa-plus"></i><span class="nav-label d-none d-xl-inline ml-1">New</span>
                     </a>
           <div class="dropdown-menu" aria-labelledby="newEntryDropdown">
             <a class="dropdown-item" href="<%= newCaresPath() %>"><i class="fas fa-hand-holding-heart"></i> Cares</a>
             <a class="dropdown-item" href="<%= newVeterinaryvisitsPath() %>"><i class="fas fa-stethoscope"></i> Veterinary</a>
+            <%= if (!current_user.IsNoTreatments()) { %>
             <a class="dropdown-item" href="<%= newTreatmentsPath() %>"><i class="fas fa-syringe"></i> Treatment</a>
+            <% } %>
             <a class="dropdown-item" href="<%= newOuttakesPath() %>"><i class="fas fa-sign-out-alt"></i> Outcome</a>
           </div>
         </li>
+<% } %>
       <%}%>
       </ul>
       <%= if (current_user) {%>

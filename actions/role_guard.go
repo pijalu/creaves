@@ -81,6 +81,14 @@ func roleAllows(c buffalo.Context, u *models.User, method, path string) bool {
 	}
 
 	switch {
+	case u.IsNoTreatments():
+		// Regular user rights except any treatment write (issue #209).
+		if method != http.MethodGet {
+			if strings.HasPrefix(path, "/treatments") || strings.HasPrefix(path, "/treatmentschedule") {
+				return false
+			}
+		}
+		return true
 	case u.IsReader():
 		// view everywhere, change nothing
 		return method == http.MethodGet
@@ -90,13 +98,29 @@ func roleAllows(c buffalo.Context, u *models.User, method, path string) bool {
 			// outtaken animals — handler exemption below)
 			return path == "/veterinaryvisits" && method == http.MethodPost
 		}
+		// Hidden pages (issue #209): dashboard, feeding, log entries,
+		// reception and the "New" menu forms.
+		switch {
+		case path == "/dashboard",
+			path == "/feeding",
+			strings.HasPrefix(path, "/logentries"),
+			strings.HasPrefix(path, "/reception"),
+			path == "/cares/new",
+			path == "/treatments/new",
+			path == "/outtakes/new",
+			path == "/outtakes/cage":
+			return false
+		}
+		// NOTE: /veterinaryvisits/new stays reachable — it is the form for
+		// the scientist's single write (POST /veterinaryvisits); the New
+		// menu itself is hidden in the navbar (issue #209).
 		return true
 	case u.IsSPW():
 		if method != http.MethodGet {
 			return false
 		}
 		switch {
-		case path == "/" || path == "/dashboard",
+		case path == "/",
 			path == "/animals",
 			strings.HasPrefix(path, "/animals/"),
 			strings.HasPrefix(path, "/attachments/"), // media shown on animal pages
@@ -137,6 +161,11 @@ func applyAccountRoleSelection(u *models.User, sel string) {
 		u.Admin = true // maintainers imply admin (existing invariant)
 	case "shared":
 		u.Shared = true
+	case models.UserRoleNoTreatments:
+		u.Role = sel
+	case "shared_sans_treatments":
+		u.Shared = true
+		u.Role = models.UserRoleNoTreatments
 	case models.UserRoleReader, models.UserRoleScientist, models.UserRoleSPW:
 		u.Role = sel
 	}
@@ -162,8 +191,12 @@ func userAccountRole(u interface{}) string {
 		return "maintainer"
 	case user.Admin:
 		return "admin"
+	case user.Shared && user.Role == models.UserRoleNoTreatments:
+		return "shared_sans_treatments"
 	case user.Shared:
 		return "shared"
+	case user.Role == models.UserRoleNoTreatments:
+		return models.UserRoleNoTreatments
 	case user.Role == models.UserRoleReader ||
 		user.Role == models.UserRoleScientist ||
 		user.Role == models.UserRoleSPW:

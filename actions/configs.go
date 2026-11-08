@@ -269,6 +269,20 @@ func requireAdmin(c buffalo.Context) (*models.User, error) {
 	return cu, nil
 }
 
+// InstanceDetails redirects to the active configuration edit page — the
+// "instance details (guest view)" surface linked from the System menu
+// (issue #208).
+func InstanceDetails(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+	cfg := CurrentConfigGet()
+	if cfg == nil {
+		return c.Error(http.StatusNotFound, fmt.Errorf("no active configuration"))
+	}
+	return c.Redirect(http.StatusSeeOther, "/config/%s/edit", cfg.ID.String())
+}
+
 // requireMaintainer restricts maintainer-only administration surfaces.
 func requireMaintainer(c buffalo.Context) (*models.User, error) {
 	cu := GetCurrentUser(c)
@@ -281,7 +295,7 @@ func requireMaintainer(c buffalo.Context) (*models.User, error) {
 // List gets all Configs. This function is mapped to the path
 // GET /config
 func (v ConfigsResource) List(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -318,7 +332,7 @@ func (v ConfigsResource) List(c buffalo.Context) error {
 // Show gets the data for one Config. This function is mapped to
 // the path GET /config/{config_id}
 func (v ConfigsResource) Show(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -349,7 +363,7 @@ func (v ConfigsResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Config.
 // This function is mapped to the path GET /config/new
 func (v ConfigsResource) New(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -366,7 +380,7 @@ func (v ConfigsResource) New(c buffalo.Context) error {
 // Create adds a Config to the DB. This function is mapped to the
 // path POST /config
 func (v ConfigsResource) Create(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -435,7 +449,7 @@ func (v ConfigsResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Config. This function is
 // mapped to the path GET /config/{config_id}/edit
 func (v ConfigsResource) Edit(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -465,7 +479,7 @@ func (v ConfigsResource) Edit(c buffalo.Context) error {
 // (redirects to /sync_configuration when the addressed config is the active
 // one).
 func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -517,7 +531,7 @@ func (v ConfigsResource) SyncEdit(c buffalo.Context) error {
 // Update changes a Config in the DB. This function is mapped to
 // the path PUT /config/{config_id}
 func (v ConfigsResource) Update(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -588,7 +602,7 @@ func (v ConfigsResource) Update(c buffalo.Context) error {
 // Destroy deletes a Config from the DB. This function is mapped
 // to the path DELETE /config/{config_id}
 func (v ConfigsResource) Destroy(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 

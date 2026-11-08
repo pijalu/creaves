@@ -177,8 +177,8 @@ func TestCorpseRegisterUnmark(t *testing.T) {
 	}
 
 	// non-admin may not unmark
-	userLogin, userPass := feedingGuideUser(t, false)
-	uclient, ubaseURL := feedingGuideLogin(t, userLogin, userPass)
+	userLogin, userPass := testUserFixture(t, false)
+	uclient, ubaseURL := testUserLogin(t, userLogin, userPass)
 	form := url.Values{"outtake_ids": {f.deadOuttakeID}, "year": {fmt.Sprint(corpseTestYear)}}
 	form.Set("authenticity_token", testCSRFToken(t, uclient, ubaseURL))
 	resp, err := uclient.PostForm(ubaseURL+"/reports/corpses/unmark", form)

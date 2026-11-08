@@ -40,8 +40,29 @@ func adminClient(t *testing.T) *http.Client {
 	return client
 }
 
+// maintainerClient is adminClient but for a maintainer account (Admin +
+// Maintainer) — required for maintainer-only surfaces (issue #209).
+func maintainerClient(t *testing.T) *http.Client {
+	t.Helper()
+	client, _ := maintainerClientWithURL(t)
+	return client
+}
+
+// maintainerClientWithURL is maintainerClient plus the test server base URL.
+func maintainerClientWithURL(t *testing.T) (*http.Client, string) {
+	t.Helper()
+	return adminLikeClientWithURL(t, true)
+}
+
 // adminClientWithURL is adminClient plus the base URL of the test server.
 func adminClientWithURL(t *testing.T) (*http.Client, string) {
+	t.Helper()
+	return adminLikeClientWithURL(t, false)
+}
+
+// adminLikeClientWithURL creates an approved admin (optionally maintainer)
+// user, logs in through the real /auth flow and returns the session client.
+func adminLikeClientWithURL(t *testing.T, maintainer bool) (*http.Client, string) {
 	t.Helper()
 	if models.DB == nil {
 		t.Fatal("models.DB is nil — run with GO_ENV=test")
@@ -49,7 +70,7 @@ func adminClientWithURL(t *testing.T) (*http.Client, string) {
 
 	login := "cfgtest_admin_" + uuid.Must(uuid.NewV4()).String()[:8]
 	password := "cfgpass123"
-	u := &models.User{Login: login, Admin: true, Approved: true}
+	u := &models.User{Login: login, Admin: true, Maintainer: maintainer, Approved: true}
 	u.Password = password
 	u.PasswordConfirmation = password
 	if _, err := u.Create(models.DB); err != nil {
@@ -141,7 +162,7 @@ func TestConfigsListHidesDeleteForActiveConfig(t *testing.T) {
 	})
 	CurrentConfigSet(active)
 
-	client := adminClient(t)
+	client := maintainerClient(t)
 	srv := httptest.NewServer(App())
 	defer srv.Close()
 
@@ -197,7 +218,7 @@ func TestConfigsDestroyRejectsActiveConfig(t *testing.T) {
 	})
 	CurrentConfigSet(active)
 
-	client := adminClient(t)
+	client := maintainerClient(t)
 	srv := httptest.NewServer(App())
 	defer srv.Close()
 
@@ -250,7 +271,7 @@ func TestConfigsDestroyAllowsInactiveConfig(t *testing.T) {
 	})
 	CurrentConfigSet(active)
 
-	client := adminClient(t)
+	client := maintainerClient(t)
 	srv := httptest.NewServer(App())
 	defer srv.Close()
 

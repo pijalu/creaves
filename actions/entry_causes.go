@@ -31,6 +31,10 @@ type EntryCausesResource struct {
 // List gets all EntryCauses. This function is mapped to the path
 // GET /entry_causes
 func (v EntryCausesResource) List(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -64,6 +68,10 @@ func (v EntryCausesResource) List(c buffalo.Context) error {
 // Show gets the data for one EntryCause. This function is mapped to
 // the path GET /entry_causes/{entry_cause_id}
 func (v EntryCausesResource) Show(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -92,6 +100,10 @@ func (v EntryCausesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new EntryCause.
 // This function is mapped to the path GET /entry_causes/new
 func (v EntryCausesResource) New(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	c.Set("entryCause", &models.EntryCause{})
 
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "entry_causes", "", []string{"cause", "detail", "nature", "indication"}); err != nil {
@@ -107,6 +119,10 @@ func (v EntryCausesResource) New(c buffalo.Context) error {
 // Create adds a EntryCause to the DB. This function is mapped to the
 // path POST /entry_causes
 func (v EntryCausesResource) Create(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Allocate an empty EntryCause
 	entryCause := &models.EntryCause{}
 
@@ -165,6 +181,10 @@ func (v EntryCausesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a EntryCause. This function is
 // mapped to the path GET /entry_causes/{entry_cause_id}/edit
 func (v EntryCausesResource) Edit(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -188,6 +208,10 @@ func (v EntryCausesResource) Edit(c buffalo.Context) error {
 // Update changes a EntryCause in the DB. This function is mapped to
 // the path PUT /entry_causes/{entry_cause_id}
 func (v EntryCausesResource) Update(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -249,6 +273,10 @@ func (v EntryCausesResource) Update(c buffalo.Context) error {
 // Destroy deletes a EntryCause from the DB. This function is mapped
 // to the path DELETE /entry_causes/{entry_cause_id}
 func (v EntryCausesResource) Destroy(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

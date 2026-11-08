@@ -23,8 +23,9 @@ type translationRows []translationRow
 func (t translationRows) String() string { return fmt.Sprintf("%v", []translationRow(t)) }
 
 func translationAdmin(c buffalo.Context) error {
-	if !GetCurrentUser(c).Admin {
-		return c.Error(http.StatusForbidden, fmt.Errorf("restricted"))
+	cu := GetCurrentUser(c)
+	if cu == nil || !cu.Maintainer {
+		return c.Error(http.StatusForbidden, fmt.Errorf("maintainer rights required for this action"))
 	}
 	return nil
 }

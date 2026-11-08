@@ -41,44 +41,44 @@
                 </a>
         <div class="dropdown-menu" aria-labelledby="adminDropdown">
         <!-- Configuratie sub-menu -->
-        <div class="dropdown-submenu">
-          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuratie</a>
+                <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuration</a>
           <div class="dropdown-menu">
             <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medicijnen</a>
-            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Leeftijden</a>
-            <%= if (current_user.Maintainer) { %>
-            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
-            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
-            <% } %>
             <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorgtypen</a>
-            <a class="dropdown-item" href="/feeding_guides"><i class="fas fa-utensils"></i> Voedingsgidsen</a>
             <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Zorgnotitiesjablonen</a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reistypes</a>
-            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zones</a>
+            <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Soorten</a>
             <%= if (current_user.Maintainer) { %>
-              <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Soorten</a>
-              <a class="dropdown-item" href="/native_statuses"><i class="fas fa-leaf"></i> Inheemse statussen</a>
-              <a class="dropdown-item" href="/outtake_location_options"><i class="fas fa-map-pin"></i> Uitgaanlocaties</a>
-            <% } %>
+            <a class="dropdown-item" href="<%= animalagesPath() %>"><i class="fas fa-hourglass-half"></i> Leeftijden</a>
+            <a class="dropdown-item" href="<%= animaltypesPath() %>"><i class="fas fa-tags"></i> Diersoorten</a>
+            <a class="dropdown-item" href="<%= outtaketypesPath() %>"><i class="fas fa-sign-out-alt"></i> Uitgaantypes</a>
+            <a class="dropdown-item" href="/entry_causes"><i class="fas fa-sign-in-alt"></i> Opnameredenen</a>
+            <a class="dropdown-item" href="<%= localitiesPath() %>"><i class="fas fa-map-marker-alt"></i> Plaatsen</a>
+            <a class="dropdown-item" href="/native_statuses"><i class="fas fa-leaf"></i> Inheemse statussen</a>
+            <a class="dropdown-item" href="/outtake_location_options"><i class="fas fa-map-pin"></i> Uitgaanlocaties</a>
             <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Vertalingen</a>
+            <% } %>
           </div>
         </div>
 
-        <!-- Systeem sub-menu -->
+        <!-- System sub-menu -->
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-server"></i> Systeem</a>
           <div class="dropdown-menu">
+            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Gebruikers</a>
           <%= if (current_user.Maintainer) { %>
             <a class="dropdown-item" href="<%= pathsPath() %>"><i class="fas fa-route"></i> Alle routes</a>
-          <% } %>
-            <a class="dropdown-item" href="<%= usersPath() %>"><i class="fas fa-users"></i> Gebruikers</a>
             <a class="dropdown-item" href="/maintenance"><i class="fas fa-wrench"></i> Onderhoud</a>
             <a class="dropdown-item" href="/config"><i class="fas fa-sliders-h"></i> Configuratie</a>
+            <a class="dropdown-item" href="/instance"><i class="fas fa-eye"></i> Instantiedetails (gastweergave)</a>
+          <% } %>
           </div>
         </div>
 
-        <!-- Synchronisatie sub-menu -->
+        <!-- Synchronization sub-menu -->
+        <%= if (current_user.Maintainer) { %>
         <div class="dropdown-submenu">
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-sync-alt"></i> Synchronisatie</a>
           <div class="dropdown-menu">
@@ -87,6 +87,7 @@
             <a class="dropdown-item" href="/webhook_resync"><i class="fas fa-sync-alt"></i> Webhook-hersynchronisatie</a>
           </div>
         </div>
+        <% } %>
         </div>
         </li>
         <% } %>
@@ -108,17 +109,23 @@
           </div>
         </li>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= dashboardPath() %>" title="Overzicht"><i class="fas fa-tachometer-alt"></i><span class="nav-label d-none d-xl-inline ml-1">Overzicht</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= feedingPath() %>" title="Voeding"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Voeding</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= logentriesPath() %>" title="Logboek"><i class="fas fa-clipboard-list"></i><span class="nav-label d-none d-xl-inline ml-1">Logboek</span></a>
         </li>
+<% } %>
 
         <li class="nav-item">
           <a class="nav-link" href="/todos" title="TODOs"><i class="fas fa-tasks"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.todos") %></span></a>
@@ -128,21 +135,27 @@
           <a class="nav-link" href="<%= animalsPath() %>" title="Dieren"><i class="fas fa-paw"></i><span class="nav-label d-none d-xl-inline ml-1">Dieren</span></a>
         </li>
 
-        <li class="nav-item">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item">
           <a class="nav-link" href="<%= newReceptionPath() %>" title="Ontvangst"><i class="fas fa-plus-circle"></i><span class="nav-label d-none d-xl-inline ml-1">Ontvangst</span></a>
         </li>
+<% } %>
 
-        <li class="nav-item dropdown">
+        <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
+<li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" id="newEntryDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Nieuw">
                       <i class="fas fa-plus"></i><span class="nav-label d-none d-xl-inline ml-1">Nieuw</span>
                     </a>
           <div class="dropdown-menu" aria-labelledby="newEntryDropdown">
             <a class="dropdown-item" href="<%= newCaresPath() %>"><i class="fas fa-hand-holding-heart"></i> Zorg</a>
             <a class="dropdown-item" href="<%= newVeterinaryvisitsPath() %>"><i class="fas fa-stethoscope"></i> Dierenarts</a>
+            <%= if (!current_user.IsNoTreatments()) { %>
             <a class="dropdown-item" href="<%= newTreatmentsPath() %>"><i class="fas fa-syringe"></i> Behandeling</a>
+            <% } %>
             <a class="dropdown-item" href="<%= newOuttakesPath() %>"><i class="fas fa-sign-out-alt"></i> Afloop</a>
           </div>
         </li>
+<% } %>
       <%}%>
       </ul>
       <%= if (current_user) {%>

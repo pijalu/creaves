@@ -31,6 +31,10 @@ type LocalitiesResource struct {
 // List gets all Localities. This function is mapped to the path
 // GET /localities
 func (v LocalitiesResource) List(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -64,6 +68,10 @@ func (v LocalitiesResource) List(c buffalo.Context) error {
 // Show gets the data for one Locality. This function is mapped to
 // the path GET /localities/{locality_id}
 func (v LocalitiesResource) Show(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -92,6 +100,10 @@ func (v LocalitiesResource) Show(c buffalo.Context) error {
 // New renders the form for creating a new Locality.
 // This function is mapped to the path GET /localities/new
 func (v LocalitiesResource) New(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	c.Set("locality", &models.Locality{})
 
 	return c.Render(http.StatusOK, r.HTML("localities/new.plush.html"))
@@ -100,6 +112,10 @@ func (v LocalitiesResource) New(c buffalo.Context) error {
 // Create adds a Locality to the DB. This function is mapped to the
 // path POST /localities
 func (v LocalitiesResource) Create(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Allocate an empty Locality
 	locality := &models.Locality{}
 
@@ -153,6 +169,10 @@ func (v LocalitiesResource) Create(c buffalo.Context) error {
 // Edit renders a edit form for a Locality. This function is
 // mapped to the path GET /localities/{locality_id}/edit
 func (v LocalitiesResource) Edit(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -173,6 +193,10 @@ func (v LocalitiesResource) Edit(c buffalo.Context) error {
 // Update changes a Locality in the DB. This function is mapped to
 // the path PUT /localities/{locality_id}
 func (v LocalitiesResource) Update(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -229,6 +253,10 @@ func (v LocalitiesResource) Update(c buffalo.Context) error {
 // Destroy deletes a Locality from the DB. This function is mapped
 // to the path DELETE /localities/{locality_id}
 func (v LocalitiesResource) Destroy(c buffalo.Context) error {
+	if _, err := requireMaintainer(c); err != nil {
+		return err
+	}
+
 	// Get the DB connection from the context
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {

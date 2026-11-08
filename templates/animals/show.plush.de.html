@@ -29,16 +29,24 @@
     <a class="nav-item nav-link active" id="nav-general-tab" data-toggle="tab" href="#nav-general" role="tab" aria-controls="nav-general" aria-selected="true">Allgemein</a>
     <a class="nav-item nav-link" id="nav-discovery-tab" data-toggle="tab" href="#nav-discovery" role="tab" aria-controls="nav-discovery" aria-selected="false">Fund</a>
     <a class="nav-item nav-link" id="nav-intake-tab" data-toggle="tab" href="#nav-intake" role="tab" aria-controls="nav-intake" aria-selected="false">Aufnahme</a>
+    <%= if (!current_user.IsSPW()) { %>
     <a class="nav-item nav-link" id="nav-care-tab" data-toggle="tab" href="#nav-care" role="tab" aria-controls="nav-care" aria-selected="false">Pflege</a>
+    <% } %>
+    <%= if (!current_user.IsSPW()) { %>
     <a class="nav-item nav-link" id="nav-vet-tab" data-toggle="tab" href="#nav-vet" role="tab" aria-controls="nav-vet" aria-selected="false">Tierarzt</a>
+    <% } %>
+    <%= if (!current_user.IsSPW()) { %>
     <a class="nav-item nav-link" id="nav-treatment-tab" data-toggle="tab" href="#nav-treatment" role="tab" aria-controls="nav-treatment" aria-selected="false">Behandlung</a>
+    <% } %>
+    <%= if (!current_user.IsSPW()) { %>
     <a class="nav-item nav-link" id="nav-media-tab" data-toggle="tab" href="#nav-media" role="tab" aria-controls="nav-media" aria-selected="false">Medien</a>
+    <% } %>
 
     <%= if (animal.OuttakeID.Value() != nil ) {%>
       <a class="nav-item nav-link" id="nav-outtake-tab" data-toggle="tab" href="#nav-outtake" role="tab" aria-controls="nav-outtake" aria-selected="false">Ausgang</a>
     <% } %>
 
-    <%= if (current_user.Admin) {%>
+    <%= if (current_user.Admin || current_user.IsSPW()) {%>
       <a class="nav-item nav-link" id="nav-audit-tab" data-toggle="tab" href="#nav-audit" role="tab" aria-controls="nav-audit" aria-selected="false">Audit</a>
     <% } %>
   </div>
@@ -245,14 +253,14 @@
         <label class="small d-block">Fütterung</label>
         <p class="d-inline-block"><%= animal.Feeding %></p>
       </li>
-      <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
+      <%= if ((animal.HeatSource.Valid && animal.HeatSource.String != "") || animal.Oxygen) { %>
       <li class="list-group-item pb-1">
-        <span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Wärme: <%= animal.HeatSource.String %></span>
-      </li>
-      <% } %>
-      <%= if (animal.Oxygen) { %>
-      <li class="list-group-item pb-1">
-        <span class="badge badge-pill badge-info">O<sub>2</sub></span>
+        <%= if (animal.HeatSource.Valid && animal.HeatSource.String != "") { %>
+                <span class="badge badge-pill badge-warning"><i class="fa fa-thermometer-half" aria-hidden="true"></i> Wärme: <%= animal.HeatSource.String %></span>
+        <% } %>
+        <%= if (animal.Oxygen) { %>
+                <span class="badge badge-pill badge-info">O<sub>2</sub></span>
+        <% } %>
       </li>
       <% } %>
     </ul>
@@ -446,8 +454,10 @@
 
     <div class="py-4 mb-2">
       <div class="float-right">
+        <%= if (!current_user.IsNoTreatments()) { %>
         <%= linkTo(newTreatmentsPath({animal_year_number: animal.YearNumberFormatted(), back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-primary"}) { %>
           Neue Behandlung hinzufügen
+        <% } %>
         <% } %>
       </div>
     </div>
@@ -548,8 +558,10 @@
                     <div class="col-sm">
                       <div class="float-right">
                         <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-info", title: "Ansehen", body:"<i class='fa fa-eye'></i>"}) %>
+                        <%= if (!current_user.IsNoTreatments()) { %>
                         <%= linkTo(editTreatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-warning", title: "Bearbeiten", body:"<i class='fa fa-edit'></i>"}) %>
                         <%= linkTo(treatmentPath({ treatment_id: t.ID,  back: "/animals/"+animal.ID+"#nav-treatment" }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Sind Sie sicher?", title: "Löschen", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+                        <% } %>
                       </div>
                     </div>
                   </div>
@@ -788,7 +800,7 @@
   </div>
   <% } %>
 
-  <%= if (current_user.Admin) {%>
+  <%= if (current_user.Admin || current_user.IsSPW()) {%>
   <div class="tab-pane fade" id="nav-audit" role="tabpanel" aria-labelledby="nav-audit-tab">
     <table class="table table-hover table-bordered"
       data-toggle="table"

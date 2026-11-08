@@ -57,6 +57,9 @@ func TestAnimaltypeAndOuttaketypeMaintainerOnly(t *testing.T) {
 	}{
 		{"animaltypes", AnimaltypesResource{}.List, "/animaltypes/"},
 		{"outtaketypes", OuttaketypesResource{}.List, "/outtaketypes/"},
+		{"entry_causes", EntryCausesResource{}.List, "/entry_causes/"},
+		{"localities", LocalitiesResource{}.List, "/localities/"},
+		{"animalages", AnimalagesResource{}.List, "/animalages/"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := newGuardTestApp(t, plainAdmin, tc.path, tc.handler)
@@ -72,6 +75,19 @@ func TestAnimaltypeAndOuttaketypeMaintainerOnly(t *testing.T) {
 				"maintainer must get 200 on %s (got %d)", tc.path, w2.Code)
 		})
 	}
+}
+
+// TestSpeciesVisibleToAdminEditableByMaintainer pins issue #209: species
+// list/show stay readable for plain admins while mutations remain
+// maintainer-only (the mutation guard is enforced by requireMaintainer in
+// New/Create/Edit/Update/Destroy).
+func TestSpeciesVisibleToAdminEditableByMaintainer(t *testing.T) {
+	plainAdmin := &models.User{Login: "guard_plain_admin", Admin: true, Approved: true}
+	a := newGuardTestApp(t, plainAdmin, "/species/", SpeciesResource{}.List)
+	w := httptest.NewRecorder()
+	a.ServeHTTP(w, newJSONGet("/species/"))
+	require.Equal(t, http.StatusOK, w.Code,
+		"plain admin must keep read access to /species (got %d)", w.Code)
 }
 
 // decodeJSONList decodes a JSON array response into a slice of Species.

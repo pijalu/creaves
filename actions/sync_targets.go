@@ -95,7 +95,7 @@ func renderTargetForm(c buffalo.Context, target *models.SyncTarget, verrs interf
 // New renders the form for creating a new SyncTarget.
 // Mapped to GET /sync_targets/new
 func (v SyncTargetsResource) New(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 	target := &models.SyncTarget{
@@ -109,7 +109,7 @@ func (v SyncTargetsResource) New(c buffalo.Context) error {
 
 // Create adds a SyncTarget to the DB. Mapped to POST /sync_targets
 func (v SyncTargetsResource) Create(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -152,7 +152,7 @@ func (v SyncTargetsResource) Create(c buffalo.Context) error {
 // Edit renders the edit form for a SyncTarget.
 // Mapped to GET /sync_targets/{sync_target_id}/edit
 func (v SyncTargetsResource) Edit(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -177,7 +177,7 @@ func (v SyncTargetsResource) Edit(c buffalo.Context) error {
 // Update changes a SyncTarget in the DB.
 // Mapped to PUT /sync_targets/{sync_target_id}
 func (v SyncTargetsResource) Update(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -225,7 +225,7 @@ func (v SyncTargetsResource) Update(c buffalo.Context) error {
 // recompute against the remaining enabled targets on the next delivery.
 // Mapped to DELETE /sync_targets/{sync_target_id}
 func (v SyncTargetsResource) Destroy(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -262,7 +262,7 @@ func (v SyncTargetsResource) Destroy(c buffalo.Context) error {
 // then wakes the worker for an immediate retry. Mapped to
 // POST /sync_targets/{sync_target_id}/retry_undeliverable
 func (v SyncTargetsResource) RetryUndeliverable(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 

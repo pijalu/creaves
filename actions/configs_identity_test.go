@@ -113,7 +113,7 @@ func TestConfigUpdatePersistsIdentity(t *testing.T) {
 	}
 	cfg := seedIdentityConfig(t, false)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/config/"+cfg.ID.String()+"/edit")
 
 	form := url.Values{}

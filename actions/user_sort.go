@@ -49,7 +49,11 @@ func usersListFilters(q *pop.Query, role, status string) *pop.Query {
 	case "maintainer":
 		q = q.Where("maintainer = ?", true)
 	case "shared":
-		q = q.Where("shared = ?", true)
+		q = q.Where("shared = ? AND (role IS NULL OR role = ?)", true, "")
+	case "shared_sans_treatments":
+		q = q.Where("shared = ? AND role = ?", true, models.UserRoleNoTreatments)
+	case models.UserRoleNoTreatments:
+		q = q.Where("shared = ? AND role = ?", false, models.UserRoleNoTreatments)
 	case "user":
 		q = q.Where("admin = ? AND maintainer = ? AND shared = ? AND (role IS NULL OR role = '')",
 			false, false, false)

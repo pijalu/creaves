@@ -64,6 +64,7 @@ const (
 	UserRoleReader    = "lecteur"      // view-only everywhere, own account
 	UserRoleScientist = "scientifique" // view all animal tabs (don hidden), reports, animals; vet visits only
 	UserRoleSPW       = "spw"          // view general/discovery/intake/outtake tabs, reports, animals, users; own account only
+	UserRoleNoTreatments = "utilisateur_sans_treatments" // regular user without treatment create/edit (issue #209)
 )
 
 // Role display names for the admin UI.
@@ -72,6 +73,7 @@ var UserRoleNames = map[string]string{
 	UserRoleReader:    "Lecteur",
 	UserRoleScientist: "Scientifique (U Liège, DEMNA)",
 	UserRoleSPW:       "SPW",
+	UserRoleNoTreatments: "Utilisateur (sans traitements)",
 }
 
 // IsReader reports whether the account is the read-only "Lecteur" role.
@@ -83,6 +85,10 @@ func (u *User) IsScientist() bool { return u.Role == UserRoleScientist }
 
 // IsSPW reports whether the account is the restricted "SPW" role.
 func (u *User) IsSPW() bool { return u.Role == UserRoleSPW }
+
+// IsNoTreatments reports whether the account may not create/edit treatments
+// (issue #209 — "Utilisateur (sans traitements)" / shared variant).
+func (u *User) IsNoTreatments() bool { return u.Role == UserRoleNoTreatments }
 
 // IsRestricted reports whether the account has a limited role (anything but
 // a regular user/admin).

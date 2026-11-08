@@ -1,8 +1,10 @@
 <div class="py-4 mb-2">
   <h3 class="d-inline-block">Espèces</h3>
   <div class="float-end">
+    <%= if (current_user.Maintainer) { %>
     <%= linkTo(newSpeciesPath(), {class: "btn btn-primary"}) { %>
       Créer une nouvelle espèce
+    <% } %>
     <% } %>
   </div>
 </div>
@@ -41,8 +43,10 @@ $('form.form-inline input[name="q"]').autoComplete({
         <td>
           <div class="float-end">
             <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-info", title: "voir", body:"<i class='fa fa-eye'></i>"}) %>
+            <%= if (current_user.Maintainer) { %>
             <%= linkTo(editSpeciesPath({ species_id: species.ID }), {class: "btn btn-warning", title: "Éditer", body:"<i class='fa fa-edit'></i>"}) %>
             <%= linkTo(speciesPath({ species_id: species.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Etes-vpus sûr?", title: "Supprimer", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+            <% } %>
           </div>
         </td>
       </tr>

@@ -70,7 +70,7 @@ func TestEventStreamsResetAttempts(t *testing.T) {
 	target := seedHandlerSyncTarget(t, "TS-es-reset", "http://console.example.org/webhook/events", true)
 	ev, capped := seedResettableEvent(t, target)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/event_streams")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/"+ev.ID.String()+"/reset_attempts", nil)
@@ -101,7 +101,7 @@ func TestEventStreamsResetAttempts(t *testing.T) {
 // unknown event id and expects a 404.
 func TestEventStreamsResetAttempts404(t *testing.T) {
 	requireMySQLSuite(t)
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/event_streams")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/"+uuid.Must(uuid.NewV4()).String()+"/reset_attempts", nil)
@@ -138,7 +138,7 @@ func TestEventStreamsResetUndeliverable(t *testing.T) {
 	}
 	require.NoError(t, tx.Create(pending))
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 	token := todoToken(t, client, baseURL, "/event_streams")
 
 	req, err := http.NewRequest(http.MethodPost, baseURL+"/event_streams/reset_undeliverable", nil)
@@ -178,7 +178,7 @@ func TestEventStreamsListDLQFilter(t *testing.T) {
 	target := seedHandlerSyncTarget(t, "TS-es-dlq-filter", "http://console.example.org/webhook/events", false)
 	ev, _ := seedResettableEvent(t, target)
 
-	client, baseURL := adminClientWithURL(t)
+	client, baseURL := maintainerClientWithURL(t)
 
 	get := func(query string) []map[string]interface{} {
 		req, err := http.NewRequest(http.MethodGet, baseURL+"/event_streams?"+query, nil)

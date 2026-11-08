@@ -70,7 +70,7 @@ func dlqClause() string {
 // List gets all EventStreams. This function is mapped to the path
 // GET /event_streams
 func (v EventStreamsResource) List(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -139,7 +139,7 @@ func deliveryFilterClause(delivery string) string {
 // Show gets the data for one EventStream. This function is mapped to
 // the path GET /event_streams/{event_stream_id}
 func (v EventStreamsResource) Show(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func (v EventStreamsResource) Show(c buffalo.Context) error {
 // worker is woken for an immediate retry. Mapped to
 // POST /event_streams/{event_stream_id}/reset_attempts
 func (v EventStreamsResource) ResetAttempts(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -229,7 +229,7 @@ func (v EventStreamsResource) ResetAttempts(c buffalo.Context) error {
 // (at least one pending delivery row at the attempts cap). Mapped to
 // POST /event_streams/reset_undeliverable
 func (v EventStreamsResource) ResetUndeliverable(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -283,7 +283,7 @@ func resetPendingDeliveries(tx *pop.Connection, where string, args ...interface{
 // ClearAll deletes ALL EventStreams from the DB. This function is mapped
 // to the path DELETE /event_streams
 func (v EventStreamsResource) ClearAll(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
@@ -309,7 +309,7 @@ func (v EventStreamsResource) ClearAll(c buffalo.Context) error {
 // Destroy deletes an EventStream from the DB. This function is mapped
 // to the path DELETE /event_streams/{event_stream_id}
 func (v EventStreamsResource) Destroy(c buffalo.Context) error {
-	if _, err := requireAdmin(c); err != nil {
+	if _, err := requireMaintainer(c); err != nil {
 		return err
 	}
 
