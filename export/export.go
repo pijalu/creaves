@@ -137,6 +137,9 @@ func FetchRows(query string, year int) (*Queries, []string, [][]string, error) {
 		}
 		result = append(result, rowStringNull)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, nil, fmt.Errorf("error reading rows: %v", err)
+	}
 
 	return sqlQuery, cols, result, nil
 }
@@ -160,6 +163,56 @@ func writeCSV(w io.Writer, cols []string, rows [][]string) error {
 		if err := csvWriter.Write(row); err != nil {
 			return err
 		}
+	}
+	csvWriter.Flush()
+	return csvWriter.Error()
+}
+
+// exportRowIterator is the subset of sql.Rows needed by the streaming CSV
+// writer. Keeping it small also lets tests exercise scan and iteration errors.
+type exportRowIterator interface {
+	Next() bool
+	Scan(dest ...interface{}) error
+	Err() error
+}
+
+// writeCSVRows writes a complete CSV directly from a row iterator. Only the
+// current row is retained; filters are applied before each row is encoded.
+func writeCSVRows(w io.Writer, cols []string, rows exportRowIterator, filter ExportFilter) error {
+	if _, err := w.Write(utf8BOM); err != nil {
+		return err
+	}
+	csvWriter := csv.NewWriter(w)
+	if err := csvWriter.Write(cols); err != nil {
+		return err
+	}
+
+	rowPtr := make([]interface{}, len(cols))
+	rowString := make([]*string, len(cols))
+	rowValues := make([]string, len(cols))
+	for i := range rowString {
+		rowPtr[i] = &rowString[i]
+	}
+	for rows.Next() {
+		if err := rows.Scan(rowPtr...); err != nil {
+			return fmt.Errorf("error fetching columns: %w", err)
+		}
+		for i, str := range rowString {
+			if str == nil {
+				rowValues[i] = ""
+			} else {
+				rowValues[i] = *str
+			}
+		}
+		if !filter.matchRow(rowValues) {
+			continue
+		}
+		if err := csvWriter.Write(rowValues); err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error reading rows: %w", err)
 	}
 	csvWriter.Flush()
 	return csvWriter.Error()
@@ -243,10 +296,32 @@ func FilterRows(rows [][]string, f ExportFilter) [][]string {
 	return out
 }
 
+// writeQueryCSV executes a configured query and streams every matching row
+// to w. Query and column discovery finish before any response bytes are written.
+func writeQueryCSV(w io.Writer, sqlQuery *Queries, year int, filter ExportFilter) error {
+	db, err := sql.Open(models.DB.Dialect.Name(), models.DB.Dialect.URL())
+	if err != nil {
+		return fmt.Errorf("error connecting to database: %v", err)
+	}
+	defer db.Close()
+
+	sqlText, args := YearFilter(sqlQuery.Query, sqlQuery.YearColumn, year)
+	rows, err := db.Query(sqlText, args...)
+	if err != nil {
+		return fmt.Errorf("error running query: %s", err)
+	}
+	defer rows.Close()
+	cols, err := rows.Columns()
+	if err != nil {
+		return fmt.Errorf("error getting columns name: %v", err)
+	}
+	return writeCSVRows(w, cols, rows, filter)
+}
+
 // Execute queries
 func RunQuery(c buffalo.Context, query string) error {
 	year := ParseYear(c)
-	sqlQuery, cols, rows, err := FetchRows(query, year)
+	sqlQuery, err := config.getQuery(query)
 	if err != nil {
 		if errors.Is(err, ErrQueryNotFound) {
 			c.Logger().Debugf("Could not find query %s", query)
@@ -254,13 +329,8 @@ func RunQuery(c buffalo.Context, query string) error {
 			c.Response().Write([]byte("404 - Not Found"))
 			return nil
 		}
-		c.Logger().Debugf("Error running query: %v", err)
 		return err
 	}
-
-	// Honor the filters applied in the online view (#197 sub-item 3):
-	// the download must match what the user sees on /export/view.
-	rows = FilterRows(rows, FilterFromParams(c.Params()))
 
 	filename := sqlQuery.Name
 	if year > 0 && sqlQuery.YearColumn != "" {
@@ -269,7 +339,12 @@ func RunQuery(c buffalo.Context, query string) error {
 	c.Response().Header().Add("Content-Type", "text/csv; charset=utf-8")
 	c.Response().Header().Add("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.csv"`, filename))
 
-	return writeCSV(c.Response(), cols, rows)
+	// Honor the online view filters while retaining only the current DB row.
+	if err := writeQueryCSV(c.Response(), sqlQuery, year, FilterFromParams(c.Params())); err != nil {
+		c.Logger().Debugf("Error running query: %v", err)
+		return err
+	}
+	return nil
 }
 
 // RunQueryExcel streams one configured query as a generic Excel (.xlsx)

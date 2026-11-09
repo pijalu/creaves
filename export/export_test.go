@@ -3,6 +3,8 @@ package export
 import (
 	"bytes"
 	"encoding/csv"
+	"errors"
+	"io"
 	"strings"
 	"testing"
 
@@ -243,6 +245,117 @@ func TestYearColumns_AllYearReports(t *testing.T) {
 				assert.NotEmpty(t, q.YearColumn, "%s selects a year but cannot be filtered by year", q.Name)
 				break
 			}
+		}
+	}
+}
+
+type fakeExportRows struct {
+	rows    [][]*string
+	index   int
+	scanErr error
+	iterErr error
+}
+
+func (r *fakeExportRows) Next() bool {
+	if r.index >= len(r.rows) {
+		return false
+	}
+	r.index++
+	return true
+}
+
+func (r *fakeExportRows) Scan(dest ...interface{}) error {
+	if r.scanErr != nil {
+		return r.scanErr
+	}
+	for i := range dest {
+		*(dest[i].(**string)) = r.rows[r.index-1][i]
+	}
+	return nil
+}
+
+func (r *fakeExportRows) Err() error { return r.iterErr }
+
+func exportString(s string) *string { return &s }
+
+func TestWriteCSVRowsPreservesEncodingFiltersAndNulls(t *testing.T) {
+	rows := &fakeExportRows{rows: [][]*string{
+		{exportString("Feral Pigeon"), nil},
+		{exportString("Hedgehog"), exportString("Relâché")},
+	}}
+	var buf bytes.Buffer
+	err := writeCSVRows(&buf, []string{"Espèce", "note"}, rows, ExportFilter{Global: "pigeon"})
+	require.NoError(t, err)
+
+	reader := csv.NewReader(strings.NewReader(strings.TrimPrefix(buf.String(), "\ufeff")))
+	records, err := reader.ReadAll()
+	require.NoError(t, err)
+	require.Equal(t, [][]string{{"Espèce", "note"}, {"Feral Pigeon", ""}}, records)
+}
+
+func TestWriteCSVRowsChecksScanAndIterationErrors(t *testing.T) {
+	scanFailure := errors.New("scan failed")
+	err := writeCSVRows(io.Discard, []string{"value"}, &fakeExportRows{
+		rows: [][]*string{{exportString("x")}}, scanErr: scanFailure,
+	}, ExportFilter{})
+	require.ErrorIs(t, err, scanFailure)
+
+	iterationFailure := errors.New("iteration failed")
+	err = writeCSVRows(io.Discard, []string{"value"}, &fakeExportRows{
+		iterErr: iterationFailure,
+	}, ExportFilter{})
+	require.ErrorIs(t, err, iterationFailure)
+}
+
+func TestWriteQueryCSVMatchesMaterializedRegister(t *testing.T) {
+	query, err := config.getQuery("register")
+	require.NoError(t, err)
+	tests := []struct {
+		name   string
+		year   int
+		filter ExportFilter
+	}{
+		{name: "all rows", filter: ExportFilter{}},
+		{name: "year filter", year: 2026, filter: ExportFilter{}},
+		{name: "view filter", filter: ExportFilter{Global: "no-such-export-value"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, cols, rows, err := FetchRows(query.Name, tt.year)
+			require.NoError(t, err)
+			var want bytes.Buffer
+			require.NoError(t, writeCSV(&want, cols, FilterRows(rows, tt.filter)))
+
+			var got bytes.Buffer
+			require.NoError(t, writeQueryCSV(&got, query, tt.year, tt.filter))
+			require.Equal(t, want.Bytes(), got.Bytes())
+		})
+	}
+}
+
+func BenchmarkExportRegisterMaterialized(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, cols, rows, err := FetchRows("register", 0)
+		if err != nil {
+			b.Fatal(err)
+		}
+		rows = FilterRows(rows, ExportFilter{})
+		if err := writeCSV(io.Discard, cols, rows); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkExportRegisterStreamed(b *testing.B) {
+	query, err := config.getQuery("register")
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if err := writeQueryCSV(io.Discard, query, 0, ExportFilter{}); err != nil {
+			b.Fatal(err)
 		}
 	}
 }
