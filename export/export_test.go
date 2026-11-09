@@ -211,8 +211,8 @@ func TestFilterFromParams_ParsesQAndCols(t *testing.T) {
 // paramsStub satisfies the buffalo.ParamValues interface for tests.
 type paramsStub map[string]string
 
-func (p paramsStub) Get(key string) string          { return p[key] }
-func (p paramsStub) Set(key, value string)          { p[key] = value }
+func (p paramsStub) Get(key string) string { return p[key] }
+func (p paramsStub) Set(key, value string) { p[key] = value }
 
 func TestYearFilter(t *testing.T) {
 	base := "SELECT a.year AS \"Année\" FROM animals AS a"
@@ -235,14 +235,25 @@ func TestYearFilter(t *testing.T) {
 	assert.Equal(t, "SELECT * FROM ("+base+") AS year_filter WHERE year_filter.`Année` = ?", q)
 }
 
+func TestYearColumns_AllYearReports(t *testing.T) {
+	yearAliases := []string{"année", "Année", "Année d’admission", "Année de sortie"}
+	for _, q := range GetQueries() {
+		for _, alias := range yearAliases {
+			if strings.Contains(q.Query, `"`+alias+`"`) {
+				assert.NotEmpty(t, q.YearColumn, "%s selects a year but cannot be filtered by year", q.Name)
+				break
+			}
+		}
+	}
+}
+
 func TestYearColumns_LoadedConfig(t *testing.T) {
-	// Every query declaring a year column must actually select a column with
-	// that alias; animal_gavage has no year column and must not declare one.
+	// Every query declaring a year column must actually select that alias.
 	byName := map[string]Queries{}
 	for _, q := range GetQueries() {
 		byName[q.Name] = q
 	}
-	assert.Empty(t, byName["animal_gavage"].YearColumn, "animal_gavage has no year column")
+	assert.NotEmpty(t, byName["animal_gavage"].YearColumn, "animal_gavage selects a year column")
 	for name, q := range byName {
 		if q.YearColumn == "" {
 			continue

@@ -136,7 +136,7 @@ func TestExportViewRendersHTMLTable(t *testing.T) {
 		`tr class="column-filters" style="display:none"`,
 		// Each filter input's placeholder is the column name (rendered), not
 		// the generic word "Filter".
-		`class="form-control form-control-sm column-filter" placeholder="Espèce"`,
+		`class="form-control form-control-sm column-filter" placeholder="espèce"`,
 		"orderCellsTop: true",
 		`.search(this.value).draw()`,
 	} {
@@ -520,15 +520,14 @@ func TestExportCsvYearFilter(t *testing.T) {
 }
 
 // TestExportCsvYearFilterNoYearColumn proves a query without a year column
-// (animal_gavage: animals currently in care) ignores ?year= instead of
-// erroring.
+// (species_reference_duplicates) ignores ?year= instead of erroring.
 func TestExportCsvYearFilterNoYearColumn(t *testing.T) {
 	requireMySQLTestDB(t)
 	client := adminClient(t)
 	srv := httptest.NewServer(App())
 	t.Cleanup(srv.Close)
 
-	resp, err := client.Get(srv.URL + "/export/csv?query=animal_gavage&year=2024")
+	resp, err := client.Get(srv.URL + "/export/csv?query=species_reference_duplicates&year=2024")
 	if err != nil {
 		t.Fatalf("GET: %v", err)
 	}
