@@ -15,7 +15,7 @@ import (
 // SnapshotTaskStatus tracks the status of async snapshot operations
 type SnapshotTaskStatus struct {
 	ID          string    `json:"id"`
-	Type        string    `json:"type"` // "snapshot" or "cleanup"
+	Type        string    `json:"type"`   // "snapshot" or "cleanup"
 	Status      string    `json:"status"` // "running", "completed", "failed"
 	StartedAt   time.Time `json:"started_at"`
 	CompletedAt time.Time `json:"completed_at,omitempty"`
@@ -133,7 +133,7 @@ func runSnapshotTask(task *SnapshotTaskStatus) {
 		outtakes := map[uuid.UUID]*models.Outtake{}
 		if len(outtakeIDs) > 0 {
 			var ots models.Outtakes
-			if err := tx.Eager("Type").Where("id IN (?)", outtakeIDs).All(&ots); err != nil {
+			if err := tx.EagerPreload("Type").Where("id IN (?)", outtakeIDs).All(&ots); err != nil {
 				fail(fmt.Sprintf("Failed to load outtakes: %v", err))
 				return
 			}

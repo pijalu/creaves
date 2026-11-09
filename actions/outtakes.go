@@ -44,7 +44,7 @@ func (v OuttakesResource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.Eager().PaginateFromParams(c.Params())
+	q := tx.EagerPreload().PaginateFromParams(c.Params())
 
 	// Retrieve all Outtakes from the DB
 	if err := q.Order("date desc").All(outtakes); err != nil {

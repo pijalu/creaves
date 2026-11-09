@@ -101,9 +101,6 @@ func (v CaretypesResource) New(c buffalo.Context) error {
 	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "caretypes", "", []string{"name", "description"}); err != nil {
 		return err
 	}
-	if err := setTranslationValues(c, c.Value("tx").(*pop.Connection), "caretypes", "", []string{"name", "description"}); err != nil {
-		return err
-	}
 
 	return c.Render(http.StatusOK, r.HTML("/caretypes/new.plush.html"))
 }

@@ -41,14 +41,14 @@ func (v TravelsResource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.PaginateFromParams(c.Params()).Eager()
+	q := tx.PaginateFromParams(c.Params()).EagerPreload()
 
 	// Retrieve all Travels from the DB for given user (or all if admin)
 	u := GetCurrentUser(c)
 	if !u.Admin {
 		q = q.Where("user_id = ?", u.ID)
 	}
-	if err := q.Eager().Order("created_at desc").All(travels); err != nil {
+	if err := q.Order("created_at desc").All(travels); err != nil {
 		return err
 	}
 

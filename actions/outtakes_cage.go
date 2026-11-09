@@ -20,7 +20,7 @@ import (
 // durations can be computed per animal (issue #170).
 func loadOuttakeCageAnimals(tx *pop.Connection, cage string) (*models.Animals, error) {
 	animals := &models.Animals{}
-	if err := tx.Eager().Where("outtake_id is null and Cage = ?", cage).All(animals); err != nil {
+	if err := tx.EagerPreload("Intake").Where("outtake_id is null and Cage = ?", cage).All(animals); err != nil {
 		return nil, err
 	}
 	return animals, nil

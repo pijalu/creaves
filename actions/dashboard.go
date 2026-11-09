@@ -127,7 +127,7 @@ func listTodaysVetVisits(c buffalo.Context) (*models.Veterinaryvisits, error) {
 	}
 
 	vvs := &models.Veterinaryvisits{}
-	if err := tx.Where("date >= ? AND date < ?", nowDt, tmrDt).Eager("Animal").Order("date asc").All(vvs); err != nil {
+	if err := tx.Where("date >= ? AND date < ?", nowDt, tmrDt).EagerPreload("Animal").Order("date asc").All(vvs); err != nil {
 		return nil, err
 	}
 	return vvs, nil

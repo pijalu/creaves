@@ -34,7 +34,8 @@ CREATE TABLE `animal_audits` (
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `animal_audits_animal_id_idx` (`animal_id`)
+  KEY `animal_audits_animal_id_idx` (`animal_id`),
+  KEY `animal_audits_animal_id_created_at_id_idx` (`animal_id`,`created_at`,`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -209,6 +210,7 @@ CREATE TABLE `cares` (
   KEY `cares_date_idx` (`date`),
   KEY `cares_date_type_id_animal_id_idx` (`date`,`type_id`,`animal_id`),
   KEY `cares_animal_id_date_idx` (`animal_id`,`date`),
+  KEY `cares_type_id_animal_id_date_idx` (`type_id`,`animal_id`,`date`),
   CONSTRAINT `cares_ibfk_1` FOREIGN KEY (`type_id`) REFERENCES `caretypes` (`id`),
   CONSTRAINT `cares_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`),
   CONSTRAINT `cares_ibfk_3` FOREIGN KEY (`link_to_id`) REFERENCES `cares` (`id`)
@@ -466,7 +468,8 @@ CREATE TABLE `event_streams` (
   KEY `event_streams_event_type_idx` (`event_type`),
   KEY `event_streams_delivered_at_idx` (`delivered_at`),
   KEY `event_streams_event_type_content_hash_idx` (`event_type`,`content_hash`),
-  KEY `event_streams_resync_run_id_idx` (`resync_run_id`)
+  KEY `event_streams_resync_run_id_idx` (`resync_run_id`),
+  KEY `event_streams_created_at_idx` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -772,7 +775,8 @@ CREATE TABLE `todos` (
   `recurrence` varchar(16) NOT NULL DEFAULT '',
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `todos_done_at_todo_date_idx` (`done_at`,`todo_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -794,7 +798,8 @@ CREATE TABLE `translations` (
   `updated_at` datetime NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `translations_table_name_record_id_field_locale_idx` (`table_name`,`record_id`,`field`,`locale`),
-  KEY `translations_table_name_record_id_locale_idx` (`table_name`,`record_id`,`locale`)
+  KEY `translations_table_name_record_id_locale_idx` (`table_name`,`record_id`,`locale`),
+  KEY `translations_table_field_locale_record_id_idx` (`table_name`,`field`,`locale`,`record_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -867,6 +872,7 @@ CREATE TABLE `treatments` (
   KEY `treatments_date_idx` (`date`),
   KEY `treatments_date_animal_id_idx` (`date`,`animal_id`),
   KEY `treatments_animal_id_timebitmap_timedonebitmap_idx` (`animal_id`,`timebitmap`,`timedonebitmap`),
+  KEY `treatments_date_timebitmap_animal_id_idx` (`date` DESC,`timebitmap`,`animal_id` DESC),
   CONSTRAINT `treatments_animals_id_fk` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -932,6 +938,7 @@ CREATE TABLE `veterinaryvisits` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   KEY `animal_id` (`animal_id`),
+  KEY `veterinaryvisits_date_idx` (`date`),
   CONSTRAINT `veterinaryvisits_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `veterinaryvisits_ibfk_2` FOREIGN KEY (`animal_id`) REFERENCES `animals` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

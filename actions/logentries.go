@@ -40,7 +40,7 @@ func (v LogentriesResource) List(c buffalo.Context) error {
 
 	// Paginate results. Params "page" and "per_page" control pagination.
 	// Default values are "page=1" and "per_page=20".
-	q := tx.Eager().PaginateFromParams(c.Params()).Order("updated_at desc, created_at desc")
+	q := tx.EagerPreload().PaginateFromParams(c.Params()).Order("updated_at desc, created_at desc")
 
 	// Retrieve all Logentries from the DB
 	if err := q.All(logentries); err != nil {

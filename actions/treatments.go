@@ -103,7 +103,7 @@ func (v TreatmentsResource) List(c buffalo.Context) error {
 	q := tx.PaginateFromParams(c.Params())
 
 	// Retrieve all Treatments from the DB
-	if err := q.Eager().Order("date desc,timebitmap asc, animal_id desc").All(treatments); err != nil {
+	if err := q.EagerPreload().Order("date desc,timebitmap asc, animal_id desc").All(treatments); err != nil {
 		return err
 	}
 
