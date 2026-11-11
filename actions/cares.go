@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
@@ -164,6 +163,15 @@ func (v CaresResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("care", care)
+		// R4-7.11b: mirror Treatments.Show — the care-plan card link lands
+		// here with ?back=..., sanitized the same way (safeBackParam +
+		// unwrapBackChain) and with the U16 label naming the real
+		// destination. The template used to read params["back"] raw, which
+		// both leaked an unsanitized redirect and showed a hardcoded "Back"
+		// that lied about where the button goes.
+		back := unwrapBackChain(safeBackParam(c))
+		c.Set("back", back)
+		c.Set("landingBackLabel", landingBackLabelKey(back))
 
 		return c.Render(http.StatusOK, r.HTML("/cares/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
@@ -177,7 +185,7 @@ func (v CaresResource) Show(c buffalo.Context) error {
 // This function is mapped to the path GET /cares/new
 func (v CaresResource) New(c buffalo.Context) error {
 	care := &models.Care{
-		Date: time.Now(),
+		Date: models.FormWallClockNow(),
 	}
 	c.Set("care", care)
 	// Defaults so the plush form partial always sees the identifiers.
@@ -579,6 +587,12 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 		return err
 	}
 
+	// Care-plan hook (§10-CP1): a destroyed fulfillment row is reported on
+	// its care_plan_applications link instead of dangling.
+	if err := MarkPlanApplicationFulfillmentDeleted(tx, models.ApplicationFulfillmentCare, care.ID.String()); err != nil {
+		c.Logger().Warnf("care plan fulfillment_deleted hook: %v", err)
+	}
+
 	// Audit log: care deletion (best effort)
 	auditAnimalChange(c, tx, care.AnimalID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionDelete, auditCareProjection(*care), nil)
 
@@ -586,6 +600,12 @@ func (v CaresResource) Destroy(c buffalo.Context) error {
 	if weightAffectsLossCache(care.Weight, models.Care{}.Weight) {
 		InvalidateWeightLossCache()
 	}
+
+	// BUG-23 (2026-10-28): deleting a care must retrigger the schedule the
+	// same way the apply/unapply paths do — drop the cached landing badge
+	// counts (open/late) post-commit so the very next landing render
+	// reflects the removal without waiting out the TTL.
+	queuePostCommitInvalidation(c, InvalidateDayPlanBadgeCache)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// If there are no errors set a flash message

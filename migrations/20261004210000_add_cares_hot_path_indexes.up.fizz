@@ -1,0 +1,2 @@
+add_index("cares", ["animal_id", "weight", "date"], {name: "cares_animal_id_weight_date_idx"})
+add_index("cares", ["animal_id", "type_id", "date"], {name: "cares_animal_id_type_id_date_idx"})

@@ -2,7 +2,11 @@
   <div class="col-md-12">
     <div class="subtitle">
       <div class="container">
-        <h3>Animals in care</h3>
+        <h3>Animals in care
+          <a href="/care_plan" class="badge <%= if (dayPlanLate > 0) { %>badge-danger<% } else if (dayPlanOpen > 0) { %>badge-warning<% } else { %>badge-success<% } %> ml-2" title="Day plan">
+            <i class="fas fa-calendar-check"></i> <%= t("nav.care_plan_dayplan") %>: <%= dayPlanOpen + dayPlanLate %>
+          </a>
+        </h3>
       </div>
     </div>
     
@@ -160,7 +164,7 @@
             <td class="align-middle"><%= animal.Ring %></td>
             <td class="align-middle">
               <% 
-                  let stat = animal.Treatments.TodayStatitics()
+                  let stat = treatmentStats[animal.ID]
                   let morning = stat.Morning
                   let noon = stat.Noon 
                   let evening = stat.Evening

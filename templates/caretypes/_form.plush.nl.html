@@ -1,10 +1,10 @@
-<%= f.InputTag("Name") %>
+<%= f.InputTag("Name", {label:"Naam"}) %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
 <%= f.InputTag("Type", {label:"Type (1-voeding, 2-verplaatsing...)"}) %>
 
 
-<%= f.CheckboxTag("Def", {unchecked: false}) %>
-<%= f.CheckboxTag("Warning", {unchecked: false}) %>
+<%= f.CheckboxTag("Def", {label:"Standaard", unchecked: false}) %>
+<%= f.CheckboxTag("Warning", {label:"Waarschuwing", unchecked: false}) %>
 <%= f.CheckboxTag("ResetWarning", {label:"Waarschuwing resetten", unchecked: false}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Opslaan</button>

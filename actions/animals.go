@@ -2,6 +2,7 @@ package actions
 
 import (
 	"creaves/models"
+	"creaves/models/careplan"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -172,11 +173,38 @@ func enrichAnimalsOptimized(a *models.Animals, c buffalo.Context, withTreatments
 		var allTreatments models.Treatments
 		// Parameterized placeholder expansion — string-building the list
 		// would interpolate values into SQL text.
+		// Perf (round 10): the former tx.Eager() here loaded EVERY
+		// association at level 2 — and Pop's nested has_many eager issues
+		// ONE QUERY PER PARENT ROW, so a landing page with N today-
+		// treatments paid 2N extra queries (N × treatment_time_entries
+		// "WHERE treatment_id = ?" + N × animals "WHERE id = ?" for the
+		// unused belongs_to). The only consumer is Treatments.TodayStatitics()
+		// (the −−− clock dots), which reads Entries — loaded below in ONE
+		// bulk query with the association's own order_by.
 		if err := tx.Where("animal_id IN (?)", animalIds).Where("date >= ?", nowDt).Where("date < ?", tmrDt).Order("animal_id").All(&allTreatments); err != nil {
 			return nil, err
 		}
-		// Group treatments by animal ID
+		// Bulk-load the per-time entries of the collected treatments
+		// (bugs.md R5-3c read model) — one query, no N+1.
+		treatmentIds := make([]uuid.UUID, 0, len(allTreatments))
 		for _, t := range allTreatments {
+			treatmentIds = append(treatmentIds, t.ID)
+		}
+		entriesByTreatment := make(map[uuid.UUID]models.TreatmentTimeEntries, len(allTreatments))
+		if len(treatmentIds) > 0 {
+			var allEntries models.TreatmentTimeEntries
+			if err := tx.Where("treatment_id IN (?)", treatmentIds).Order("due_at asc").All(&allEntries); err != nil {
+				return nil, err
+			}
+			for _, e := range allEntries {
+				entriesByTreatment[e.TreatmentID] = append(entriesByTreatment[e.TreatmentID], e)
+			}
+		}
+		// Group treatments by animal ID and attach their bulk-loaded
+		// entries (association order_by due_at asc — the bulk query above
+		// already ordered by it, and the map append preserves that order).
+		for _, t := range allTreatments {
+			t.Entries = entriesByTreatment[t.ID]
 			treatments[t.AnimalID] = append(treatments[t.AnimalID], t)
 		}
 	}
@@ -321,7 +349,8 @@ func EnrichAnimals(a *models.Animals, c buffalo.Context) (*models.Animals, error
 	// Preload all today treatments
 	treaments := models.Treatments{}
 	tmap := map[int]models.Treatments{}
-	if err := tx.Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where(
+	// Eager: per-time entries are the read model (bugs.md R5-3c, U25/D-e).
+	if err := tx.Eager().Where("date >= ?", nowDt).Where("date < ?", tmrDt).Where(
 		fmt.Sprintf("animal_id IN (%s)", strings.Join(animalsID, ","))).Order("animal_id desc").All(&treaments); err != nil {
 		return nil, c.Error(http.StatusNotFound, err)
 	}
@@ -519,8 +548,10 @@ func (v AnimalsResource) List(c buffalo.Context) error {
 		return err
 	}
 
-	// Preload required for "list"
-	if _, err := EnrichAnimalsOptimized(animals, c); err != nil {
+	// Preload required for "list" — NoTreatments: the animals index never
+	// renders Treatments (round 10: the with-treatments variant paid ~10
+	// nested-eager queries per request for data the template drops).
+	if _, err := EnrichAnimalsOptimizedNoTreatments(animals, c); err != nil {
 		return err
 	}
 
@@ -550,17 +581,40 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	if err != nil {
 		return err
 	}
+	// The day-plan label convention (§10.5-N1: `472/26 · Hérisson · A12`)
+	// reads species straight off this row; resolve it to the localized
+	// display name so the Treatment/Protocol tabs agree with the animals
+	// list. Display only — the row is request-scoped and read-only here.
+	// The CANONICAL value is captured first: the General tab's
+	// data-canonical attribute and the type/species mismatch check must
+	// key on creaves_species, not on the localized display name (which
+	// only equals it in French) — with the localized value the species
+	// hint showed "Unknown species !" in every non-FR language and the
+	// mismatch banner silently never fired (bug 2026-10-08).
+	canonicalSpecies := animal.Species
+	animal.Species = speciesDisplayOf(c)(animal.Species)
+	c.Set("canonicalSpecies", canonicalSpecies)
 
 	//c.Logger().Debugf("Loaded animal: %v", animal)
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("animal", animal)
-		// "Back to animals in care" target (issue #199-9).
-		c.Set("landingBack", landingBackTarget(c, animal))
+		// "Back" target + label (issue #199-9, bugs.md U16): the label must
+		// name the destination the target actually points to.
+		target := landingBackTarget(c, animal)
+		c.Set("landingBack", target)
+		c.Set("landingBackLabel", landingBackLabelKey(target))
 		if tx, ok := c.Value("tx").(*pop.Connection); ok {
-			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, animal))
+			c.Set("speciesTypeMismatch", animalSpeciesTypeMismatch(tx, canonicalSpecies, animal.AnimaltypeID))
 			// Photo/video gallery (issue #34).
 			setAnimalAttachments(tx, c, animal.ID)
+
+			// Plan tab data (§4.7 + R3-6/R3-7): the animal's own plans,
+			// the legacy treatment accordion context and the engine-driven
+			// per-day treatment/protocol views.
+			if err := setAnimalShowPlanData(c, tx, animal); err != nil {
+				return err
+			}
 
 			// Corpse register info for the outtake tab (issue #199-6): when the
 			// outtake type is Dead=true, expose the corpse destination fields and
@@ -617,6 +671,78 @@ func (v AnimalsResource) Show(c buffalo.Context) error {
 	}).Wants("xml", func(c buffalo.Context) error {
 		return c.Render(200, r.XML(animal))
 	}).Respond(c)
+}
+
+// setAnimalShowPlanData loads every plan-related context value of the
+// animal show page: the animal's own care plans (Protocol tab Details),
+// the legacy treatment accordion context (source-protocol backlinks), the
+// engine-driven per-day treatment view (R3-6) reused by the Protocol tab
+// (R3-7), the Dash-7 deep-link resolution and the structured editor data.
+func setAnimalShowPlanData(c buffalo.Context, tx *pop.Connection, animal *models.Animal) error {
+	// Plan tab (§4.7): the animal's own care plans, caretaker-editable.
+	plans := &models.CareAnimalPlans{}
+	if err := tx.Where("animal_id = ?", animal.ID).Order("created_at desc").All(plans); err != nil {
+		return err
+	}
+	c.Set("careAnimalPlans", plans)
+	// BUG-13: the Care tab feeding banner summarizes the ACTUAL protocol
+	// feeding plans (the legacy animals.feeding* banner rendered phantom
+	// default times and is gone).
+	c.Set("feedingPlanSummary", feedingPlanSummaries(plans))
+	// R5-4b (bugs.md U21/D-c): Treatment tab source-protocol backlinks
+	// (per-time entries are read in-template via TreatmentEntriesMap).
+	if err := setTreatmentProtocolLinks(tx, c, animal); err != nil {
+		return err
+	}
+	// Today's plan occurrences (bugs.md U26 — fix 7): merged into the
+	// Treatment tab accordion (deduped against legacy treatments) — the
+	// same engine pass resolves the Dash-7 deep-link occurrence (?item=)
+	// server-side.
+	todayPlan, err := animalTodayPlan(tx)
+	if err != nil {
+		return err
+	}
+	// B10-6: the legacy treatments the protocol already covers — the
+	// Treatment tab renders them superseded (muted, badge, no buttons),
+	// and they stay out of the today-card dedupe so the PLAN row is the
+	// actionable one.
+	supersededTreatments := treatmentSupersededByPlan(*plans, animal, todayPlan.From)
+	c.Set("treatmentSupersededByPlan", supersededTreatments)
+	planRows, err := animalPlanTodayRows(tx, todayPlan, animal, supersededTreatments)
+	if err != nil {
+		return err
+	}
+	c.Set("animalPlanToday", planRows)
+	// R4-6: the applicable-protocol trace — the animal's own plans AND the
+	// global rules that actually produced occurrences for this animal, in
+	// one ordered list (animal plans first), with an admin-only edit link
+	// on the global rules.
+	admin := false
+	if u := GetCurrentUser(c); u != nil {
+		admin = u.Admin
+	}
+	trace, err := protocolTraceOf(tx, todayPlan, animal, admin)
+	if err != nil {
+		return err
+	}
+	c.Set("animalProtocolTrace", trace)
+	// R3-6: the Treatment tab is rebuilt on the care-plan engine —
+	// per-day togglable medication series over the history+future
+	// window (14d back, 5d forward cap for open-ended protocols).
+	treatPlan, err := animalTreatmentPlan(tx)
+	if err != nil {
+		return err
+	}
+	treatDays := animalTreatmentDays(treatPlan, animal)
+	c.Set("animalTreatmentDays", treatDays)
+	// Bugs.md 2026-10-27 #2: the Treatment tab is retired — the show page
+	// renders the FULL day list (medication series + non-medication items)
+	// on the protocol tab, so the old medication-only projection
+	// (medicationOnlyDays) has no renderer any more. The function stays
+	// (tested); nothing consumes the filtered list.
+	c.Set("planActionKinds", planActionKinds())
+	// Structured editors (bugs.md U17): caretype/drug dropdown data.
+	return setPlanEditorData(c, tx)
 }
 
 // New renders the form for creating a new Animal.
@@ -893,6 +1019,17 @@ func (v AnimalsResource) Edit(c buffalo.Context) error {
 	}
 
 	c.Set("animal", animal)
+	// BUG-13: the edit form shows a summary of the ACTUAL protocol feeding
+	// plans (same source as the show page banner) instead of the frozen
+	// legacy columns line.
+	if animal.ID != 0 {
+		plans := &models.CareAnimalPlans{}
+		tx := c.Value("tx").(*pop.Connection)
+		if err := tx.Where("animal_id = ? AND action_kind = ? AND active = ?", animal.ID, careplan.KindFeeding, true).All(plans); err != nil {
+			return err
+		}
+		c.Set("feedingPlanSummary", feedingPlanSummaries(plans))
+	}
 	return c.Render(http.StatusOK, r.HTML("/animals/edit.plush.html"))
 }
 
@@ -926,8 +1063,13 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 
 	// save original cage
 	originalCage := animal.Cage
-	originalFeeding := animal.Feeding
 	originalOuttakeID := animal.OuttakeID
+	// Legacy feeding columns are FROZEN (bugs.md H3 / Phase 4): feeding is
+	// fully managed by care plans (Protocol tab); the animals.feeding* /
+	// force_feed columns remain for the DSL matcher context and conversion
+	// history only. Snapshot them so crafted form params cannot write them.
+	frozenFeeding := animal.Feeding
+	frozenForceFeed := animal.ForceFeed
 	// heat/O2 originals for the "soin" auto-care (#205-10)
 	originalHeatSource := animal.HeatSource
 	originalOxygen := animal.Oxygen
@@ -942,19 +1084,15 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 		return c.Error(http.StatusUnprocessableEntity, err)
 	}
 
-	// Decode Feeding times
-	feedingTimes := struct {
-		AnimalFeedingStartTime        string
-		AnimalFeedingEndTime          string
-		AnimalFeedingPeriodHourMinute string
-	}{}
-	if err := c.Bind(&feedingTimes); err != nil {
-		return err
-	}
-	c.Logger().Debugf("feedingTimes: %v", feedingTimes)
-	animal.FeedingStart = timeToNullTime(feedingTimes.AnimalFeedingStartTime)
-	animal.FeedingEnd = timeToNullTime(feedingTimes.AnimalFeedingEndTime)
-	animal.FeedingPeriod = timeToMinutes(feedingTimes.AnimalFeedingPeriodHourMinute)
+	// Legacy feeding schedule columns (feeding_start/end/period) are frozen
+	// (bugs.md H3 / Phase 4): the day plan is driven by care rules/plans, the
+	// form renders them read-only, and Update ignores any crafted
+	// AnimalFeedingStartTime/EndTime/PeriodHourMinute params so the freeze
+	// cannot be bypassed by POST. The feeding text and force_feed flag join
+	// the freeze: the form no longer renders them and any crafted
+	// Feeding/ForceFeed param is rolled back here.
+	animal.Feeding = frozenFeeding
+	animal.ForceFeed = frozenForceFeed
 
 	// Decode additonal form param
 	backUrl := struct {
@@ -1038,38 +1176,6 @@ func (v AnimalsResource) Update(c buffalo.Context) error {
 	}
 
 	c.Logger().Debugf("originalCage: %v - cage: %v", originalCage, animal.Cage)
-	// Create new defailt care if animal feeding is updated
-	if !verrs.HasAny() && animal.Feeding.String != originalFeeding.String && animal.Feeding.String != "" {
-		c.Logger().Debugf("Creating new care for updated feeding animalID %d", animal.ID)
-		care := &models.Care{}
-		care.Animal = *animal
-		care.AnimalID = animal.ID
-		care.Date = models.NowOffset()
-		care.Note = animal.Feeding
-
-		// Set care to default
-		for _, careType := range *careTypes {
-			ctn := strings.ToLower(careType.Name)
-			// try to find move
-			if strings.Contains(ctn, "feedings") || strings.Contains(ctn, "alimentation") {
-				care.Type = careType
-				care.TypeID = careType.ID
-				break
-			}
-			// fall back to default
-			if careType.Def {
-				care.Type = careType
-				care.TypeID = careType.ID
-			}
-		}
-
-		c.Logger().Debugf("Creating new care for cage move for animalID %d: %v", animal.ID, care)
-		verrs, err = tx.Eager().ValidateAndCreate(care)
-		if err != nil {
-			return err
-		}
-		auditAnimalChange(c, tx, animal.ID, models.AuditEntityCare, auditEntityID(care.ID), models.AuditActionCreate, nil, auditCareProjection(*care))
-	}
 
 	// Create a "soin" care when heat source or oxygen changed (#205-10),
 	// mirroring the cage-move care above.

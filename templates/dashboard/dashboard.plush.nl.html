@@ -1,14 +1,14 @@
-<h3 class="d-inline-block">Dieren in alarm</h3>
+<h3 class="d-inline-block"><%= t("dashboard.alerts.title") %></h3>
 <%= if (len(openCares)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Datum</th>
-    <th>Dier</th>
-    <th>Zone</th>
-    <th>Kooi</th>
-    <th>Soort</th>
-    <th>Notitie</th>
+    <th><%= t("dashboard.col.date") %></th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.zone") %></th>
+    <th><%= t("dashboard.col.cage") %></th>
+    <th><%= t("dashboard.col.species") %></th>
+    <th><%= t("dashboard.col.note") %></th>
   </thead>
   <tbody>
     <%= for (care) in openCares { %>
@@ -33,31 +33,31 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
 
-<h3 class="d-inline-block">Dieren met gewichtsverlies</h3> <i class="fas fa-question-circle text-muted" title="Gegevens berekend op <%= animalsWithWeightLossCachedAt.Format("02/01/2006 om 15:04") %> (tot 12u gecachet)"></i>
+<h3 class="d-inline-block"><%= t("dashboard.weight_loss.title") %></h3> <i class="fas fa-question-circle text-muted" title="<%= t("dashboard.weight_loss.cached_prefix") %><%= animalsWithWeightLossCachedAt.Format("02/01/2006 at 15:04") %><%= t("dashboard.weight_loss.cached_suffix") %>"></i>
 <%= if (len(animalsWithWeightLoss)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Dier</th>
-    <th>Zone</th>
-    <th>Kooi</th>
-    <th>Soort</th>
-    <th>Leeftijd</th>
-    <th>Gewichten</th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.zone") %></th>
+    <th><%= t("dashboard.col.cage") %></th>
+    <th><%= t("dashboard.col.species") %></th>
+    <th><%= t("dashboard.col.age") %></th>
+    <th><%= t("dashboard.col.weights") %></th>
   </thead>
   <tbody>
     <%= for (animal) in animalsWithWeightLoss { %>
       <tr>
         <td class="align-middle">
           <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-care"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Klaar voor vrijlating"><i class="fas fa-dove"></i></span><% } %>
+          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="<%= t("care_plan.animal.ready_for_release") %>"><i class="fas fa-dove"></i></span><% } %>
         </td>
-        <td class="align-middle"><%= animal.Zone %></td>
+        <td class="align-middle"><%= tbase("zones", "zone", animal.Zone) %></td>
         <td class="align-middle"><%= animal.Cage %></td>
         <td class="align-middle">
           <%
@@ -68,8 +68,8 @@
               gender = "♀"
             }
           %>
-          <%= animal.Species %> (<%= gender %>)
-        </td>
+        <%= tspecies(animal.Species) %> (<%= gender %>)
+      </td>
         <td class="align-middle"><%= tname("animalages", animal.Animalage.ID, animal.Animalage.Name) %></td>
         <td class="align-middle"><p><%= animal.Weights %></p></td>
       </tr>
@@ -78,214 +78,123 @@
 </table>
 </div>
   <%} else {%>
-<p>Geen</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
-
-
-<% contentFor("eveningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="32.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
+<h3 class="d-inline-block"><%= t("dashboard.medication_today.title") %></h3>
+<a class="btn btn-outline-primary btn-sm ml-2" href="/care_plan?kind=medication&amp;back=%2F" title="<%= t("dashboard.medication_today.day_plan_title") %>"><i class="fas fa-external-link-alt"></i> <%= t("dashboard.medication_today.day_plan") %></a>
+<%= if (len(medicationCards) > 0) { %>
+<div class="table-responsive" id="dashMedCards">
+  <table class="table table-hover table-bordered table-striped" id="dashMedTable">
+    <thead class="thead-light">
+      <th><%= t("dashboard.medication_today.col.number") %></th>
+      <th><%= t("dashboard.medication_today.col.cage") %></th>
+      <th><%= t("dashboard.medication_today.col.species") %></th>
+      <th><%= t("dashboard.medication_today.col.treatments") %></th>
+    </thead>
+    <tbody>
+      <%# R9-3: dashboard medication lines are COMPACT — no bucket label
+          between the buttons, and the buttons stack under the label on a
+          narrow cell (shape C). %>
+      <% let medSeriesCompact = true %>
+      <%= for (mg) in medicationCards { %>
+        <%# Dash-9 (§8.1): animals outtaken TODAY stay in the table —
+            subdued outtaken row class + ready-for-release dove badge.
+            Dash-1/3: striped table, no per-row count badge (the open
+            buttons ARE the count). Dash-2: year-number-only button,
+            sibling-table parity. Dash-4/5/8: one white card per animal
+            with the shared drug-series partial (one line per drug +
+            hour-labeled toggle buttons). %>
+        <tr class="plan-med-row<%= if (mg.OuttakenToday) { %> outtaken<% } %>">
+          <td class="align-middle">
+            <a class="btn btn-primary" href="<%= mg.AnimalLink %>"><%= mg.AnimalYear %></a>
+            <%= if (mg.OuttakenToday) { %><span class="badge badge-success ml-1" title="<%= t("care_plan.animal.ready_for_release") %>"><i class="fas fa-dove"></i></span><% } %>
+          </td>
+          <td class="align-middle"><%= mg.Cage %></td>
+          <td class="align-middle">
+            <%
+              let gender = "×"
+              if (mg.Gender == "M") {
+                gender = "♂"
+              } else if (mg.Gender == "F") {
+                gender = "♀"
+              }
+            %>
+            <%= tspecies(mg.Species) %> (<%= gender %>)
+          </td>
+          <td class="align-middle">
+            <div class="bg-white border rounded px-2 py-1 dash-med-cell">
+              <%= partial("care_plan/med_series.plush.html") %>
+            </div>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<p><%= t("dashboard.medication_today.none") %></p>
 <% } %>
 
-<% contentFor("morningSVG") { %>
-    <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-      <rect transform="rotate(-90)" x="-33.354" y="14.342" width="1" height="19" stroke-width="4.2742"/>
-    </g>
- <% } %>
+<%= partial("care_plan/apply_toggle.plush.html") %>
+<%= partial("care_plan/plan_med_toggle.plush.html") %>
 
- <% contentFor("noonSVG") { %>
-        <svg style="width: 16px; height: 16px;" viewBox="0 0 64 64">
-    <g fill="none" stroke="currentColor">
-      <circle cx="31.965" cy="31.965" r="29.622" stroke-width="4.6284"/>
-      <rect x="32" y="8" width="1" height="25" stroke-width="4.9029"/>
-    </g>
- <%}%>
-
-<h3 class="d-inline-block">Dieren met behandeling vandaag</h3>
-<%= if (len(animalsToTreat)>0) {%>
-<div class="table-responsive">
-<table class="table table-hover table-bordered table-striped">
-  <thead class="thead-light">
-    <th>Nummer</th>
-    <th>Kooi</th>
-    <th>Soort</th>
-    <th>Behandelingen</th>
-  </thead>
-  <tbody>
-    <%= for (animal) in animalsToTreat { %>
-      <%= if (animal.OuttakeID.Value() != nil) { %>
-      <tr class="outtaken">
-      <% } else { %>
-      <tr>
-      <% } %>
-        <td class="align-middle">
-          <a class="btn btn-primary" href="/animals/<%= animal.ID %>/#nav-treatment"><%=animal.YearNumberFormatted() %></a>
-          <%= if (animal.ReadyForRelease && animal.ReadyForRelease.Bool) { %><span class="badge badge-success ml-1" title="Klaar voor vrijlating"><i class="fas fa-dove"></i></span><% } %>
-        </td>
-        <td class="align-middle"><%= animal.Cage %></td>
-        <td class="align-middle">
-          <%
-            let gender = "×"
-            if (animal.Gender.Value()=="M") {
-              gender = "♂"
-            } else if (animal.Gender.Value() == "F") {
-              gender = "♀"
-            }
-          %>
-          <%= animal.Species %> (<%= gender %>)
-        </td>
-        <td class="align-middle">
-        <ul class="list-group list-group-flush">
-              <%= for (t) in animal.Treatments {%>
-                <%= if (t.Timedonebitmap != t.Timebitmap) {%>
-                <li class="list-group-item">
-                  <div class="container">
-                    <div class="row">
-                      <div class="col-sm">
-                        <%= tdrug(t.Drug) %> (<%= t.Dosage %>)
-                          <%= if (t.Remarks.Value() != "") {%>
-                          <p><em><%= t.Remarks %></em></p>
-                        <%}%>
-                      </div>
-                      <div class="col-sm">
-                        <% 
-                          let morning = t.ScheduleStatusMorning() 
-                          let noon = t.ScheduleStatusNoon() 
-                          let evening = t.ScheduleStatusEvening()
-                        %>
-                        <p class="d-inline-block">
-                          <%= if (!morning.Valid) { %>   
-                            <button type="button" class="btn btn-light disabled" title="'s Ochtends niet vereist">                       
-                              <i class="fas fa-minus" ></i>
-                            </button>
-                          <% } else if (morning.Bool) {%>
-                            <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
-                              <%= contentOf("morningSVG") %>
-                            </button>
-                          <% } else { %>
-                              <button id="shed-btn_morning_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
-                              <%= contentOf("morningSVG") %>
-                            </button>
-                          <% }%>
-                          
-                          &nbsp;
-
-                          <%= if (!noon.Valid) { %>
-                            <button type="button" class="btn btn-light disabled" title="'s Middags niet vereist">     
-                              <i class="fas fa-minus"></i>
-                            </button>
-                          <% } else if (noon.Bool) {%>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
-                              <%= contentOf("noonSVG") %>
-                            </button>
-                          <% } else { %>
-                            <button id="shed-btn_noon_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
-                              <%= contentOf("noonSVG") %>
-                            </button>
-                          <% }%>
-
-                          &nbsp;
-                          <%= if (!evening.Valid) { %>
-                            <button type="button" class="btn btn-light disabled">
-                              <i class="fas fa-minus" ></i>
-                            </button>
-                          <% } else if (evening.Bool) {%>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-success btn-schedule">
-                              <%= contentOf("eveningSVG") %>
-                            </button>
-                          <% } else { %>
-                            <button id="shed-btn_evening_<%=t.ID%>" type="button" class="btn btn-warning btn-schedule">
-                              <%= contentOf("eveningSVG") %>
-                            </button>
-                          <% }%>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </li>
-                <%}%>
-              <%}%>
-            </ul>
-        </td>
-      </tr>
-    <% } %>
-  </tbody>
-</table>
-</div>
+<%# B10-4: the medication ℹ buttons open the shared detail popup IN the
+    dashboard — #planDetailModal ships with _apply_toggle above; only this
+    opener was missing (the eye "view" button is removed with it). The
+    animal row stays a LINK here: the dashboard is not the animal's page. %>
 <script>
-    const xhrUrl = "<%= treatmentschedulePath() %>";
-    const re = /shed-btn_(.*)_(.*)/;
-    $(".btn-schedule").each(function(){
-      var tk=function(key) {
-        switch(key) {
-         case "morning": return 1; 
-         case "noon": return 2;
-         case "evening": return 4;
-        }
-      };
+(function () {
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-detail-btn') : null;
+    if (!btn) { return; }
+    document.getElementById('planDetailAnimal').textContent = btn.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (aLink) {
+      if (btn.getAttribute('data-animal-link')) { aLink.setAttribute('href', btn.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+      else { aLink.classList.add('d-none'); }
+    }
+    document.getElementById('planDetailDetail').textContent = btn.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = btn.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (sLink) {
+      if (btn.getAttribute('data-source-link')) { sLink.setAttribute('href', btn.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+      else { sLink.classList.add('d-none'); }
+    }
+    var tLink = btn.getAttribute('data-treatment-link');
+    var tDt = document.getElementById('planDetailTreatmentDt');
+    var tDd = document.getElementById('planDetailTreatmentDd');
+    if (tDt && tDd) {
+      tDt.classList.toggle('d-none', !tLink);
+      tDd.classList.toggle('d-none', !tLink);
+      if (tLink) {
+        document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+        document.getElementById('planDetailTreatment').textContent = btn.getAttribute('data-detail') || tLink;
+      }
+    }
+    document.getElementById('planDetailKind').textContent = btn.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = btn.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = btn.getAttribute('data-status') || '—';
+    var remDt = document.getElementById('planDetailRemainingDt');
+    var remDd = document.getElementById('planDetailRemainingDd');
+    if (remDt) { remDt.classList.add('d-none'); }
+    if (remDd) { remDd.classList.add('d-none'); }
+    jQuery('#planDetailModal').modal('show');
+  });
+})();
+</script>
 
-      const matches=$(this).attr("id").match(re);
-      const key=tk(matches[1]);
-      const rid=matches[2];
-      const payload=JSON.stringify({"treatment_id":rid, "key": key});
-      const elm=$(this);
-
-      elm.on("click", function(){
-        elm.prop('disabled', true);
-
-        elm.addClass("btn-light")
-        elm.removeClass("btn-success btn-warning btn-danger")
-        
-        $.ajax({
-          type: 'PUT',
-          url: xhrUrl,
-          contentType: 'application/json',
-          data: payload
-        }).done(function(data){
-          console.log("Request reply:", data, "key", key, "bitwise "+data.key+" & "+key, data.Key & key);
-          if ((data.key & key) === key) {
-            elm.addClass("btn-success");
-          } else {
-            if (elm.attr("past")==="true") {
-              elm.addClass("btn-danger");
-            } else {
-              elm.addClass("btn-warning");
-            }
-          }
-        }).fail(function(data){
-          alert("Status kon niet worden bijgewerkt");
-          console.log("Request failure:", data)
-        }).always(function(){
-          elm.removeClass("btn-light");
-          elm.prop('disabled', false);
-        });
-        
-        console.log("Clicked on button: Change key "+key+" for "+rid);  
-      });
-    });
-  </script>
-  <%} else {%>
-<p>Geen</p>
-<%}%>
 <br/>
 
-<h3 class="d-inline-block">Dierenartsbezoeken vandaag</h3>
+<h3 class="d-inline-block"><%= t("dashboard.vet_visits.title") %></h3>
 <%= if (len(todaysVetVisits)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
-    <th>Tijd</th>
-    <th>Dier</th>
-    <th>Dierenarts</th>
-    <th>Diagnose</th>
+    <th><%= t("dashboard.col.time") %></th>
+    <th><%= t("dashboard.col.animal") %></th>
+    <th><%= t("dashboard.col.veterinary") %></th>
+    <th><%= t("dashboard.col.diagnostic") %></th>
   </thead>
   <tbody>
     <%= for (vv) in todaysVetVisits { %>
@@ -300,32 +209,32 @@
 </table>
 </div>
   <%} else {%>
-<p>Geen</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
 <h3 class="d-inline-block" id="todos">TODOs (<%= len(dashboardTodos) %>)</h3>
-<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> Alles</a>
+<a class="btn btn-primary btn-sm ml-2" href="/todos" title="TODOs"><i class="fas fa-tasks"></i> <%= t("dashboard.todos.all") %></a>
 <%= if (len(dashboardTodos)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered table-striped">
   <thead class="thead-light">
     <th></th>
-    <th>Omschrijving</th>
-    <th>Datum</th>
-    <th>Actions</th>
+    <th><%= t("dashboard.col.description") %></th>
+    <th><%= t("dashboard.col.date") %></th>
+    <th><%= t("dashboard.col.actions") %></th>
   </thead>
   <tbody>
     <%= for (v) in dashboardTodos { %>
       <tr>
         <td class="align-middle"><span class="badge badge-<%= v.Color %>">&nbsp;</span></td>
-        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="TODO openen"><%= v.Todo.Description %></a></td>
+        <td class="align-middle"><a href="/todos/<%= v.Todo.ID %>/edit" title="<%= t("dashboard.todos.open") %>"><%= v.Todo.Description %></a></td>
         <td class="align-middle"><%= v.Todo.TodoDate.Format("02/01/2006 15:04") %></td>
         <td class="align-middle">
-          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('TODO als voltooid markeren?');">
+          <form action="/todos/<%= v.Todo.ID %>/done" method="POST" class="d-inline" onsubmit="return confirm('<%= t("dashboard.todos.confirm_done") %>');">
             <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>">
             <input type="hidden" name="redirect" value="/#todos">
-            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Klaar</button>
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> Done</button>
           </form>
         </td>
       </tr>
@@ -334,19 +243,19 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 <br/>
 
-<h3 class="d-inline-block">Logboek laatste 24 uur</h3>
+<h3 class="d-inline-block"><%= t("dashboard.log.title") %></h3>
 <%= if (len(lastLogentries)>0) {%>
 <div class="table-responsive">
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Aangemaakt</th>
-    <th>Bijgewerkt</th>
-    <th>Gebruiker</th>
-    <th>Beschrijving</th>
+    <th><%= t("dashboard.col.created_at") %></th>
+    <th><%= t("dashboard.col.updated_at") %></th>
+    <th><%= t("dashboard.col.user") %></th>
+    <th><%= t("dashboard.col.description") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -358,7 +267,7 @@
         <td class="align-middle" width="100%"><%= logentry.Description %></td>
         <td>
           <div class="float-right">
-            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "Bekijken", body: "<i class='fa fa-eye'></i>"}) %>
+            <%= linkTo(logentryPath({ logentry_id: logentry.ID }), {class: "btn btn-info", title: "View", body: "<i class='fa fa-eye'></i>"}) %>
           </div>
         </td>
       </tr>
@@ -367,17 +276,17 @@
 </table>
 </div>
 <%} else {%>
-<p>Geen</p>
+<p><%= t("dashboard.none") %></p>
 <%}%>
 
 <br/>
-<h3>Statistieken</h3>
-<h4 class="d-inline-block">Dieren in zorg</h4>
+<h3><%= t("dashboard.stats.title") %></h3>
+<h4 class="d-inline-block"><%= t("dashboard.stats.in_care") %></h4>
 <div class="table-responsive">
 <table class="table table-sm">
 <thead>
-    <th>Type</th>
-    <th>Aantal</th>
+    <th><%= t("dashboard.col.type") %></th>
+    <th><%= t("dashboard.col.count") %></th>
   </thead>
   <tbody>
   <%= for (ac) in animalCountPerType { %>
@@ -387,12 +296,10 @@
     </tr>
   <%}%>
     <tr class="table-info">
-        <td class="align-middle">TOTAAL</td>
+        <td class="align-middle">TOTAL</td>
         <td class="align-middle"><%= totalAnimalCount %></td>
     </tr>
   <%}%>
   </tbody>
 </table>
 </div>
-
-  

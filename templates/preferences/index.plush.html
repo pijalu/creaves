@@ -1,0 +1,104 @@
+<div class="py-4 mb-2">
+  <h3><%= t("preferences.title") %></h3>
+  <p class="text-muted"><%= t("preferences.intro") %></p>
+</div>
+
+<%# Bug 2026-10-06 #3: exactly ONE save for the WHOLE page — a single form
+    lives above the table and every input joins it via the HTML5 form=
+    attribute (a <form> cannot legally wrap <td>s, the browser empties it).
+    Names are per kind: late[<kind>] / future[<kind>] / now[<kind>] — the
+    bulk save handler (PreferencesSaveAll) persists every modified value in
+    one POST. Empty = "no cap" (NULL), unchanged from the per-row behavior. %>
+<form id="preference-bulk" action="/preferences/save" method="POST">
+  <input type="hidden" name="authenticity_token" value="<%= authenticity_token %>" />
+</form>
+
+<table class="table table-hover table-bordered">
+  <thead class="thead-light">
+    <tr>
+      <th><%= t("preferences.kind") %></th>
+      <th><%= t("preferences.late_show_hours") %></th>
+      <th><%= t("preferences.future_show_hours") %></th>
+      <th><%= t("preferences.now_window_minutes") %></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for (p) in preferences { %>
+      <%# R9: all three knobs are HOURS with −/+ steppers (the request:
+          "hours with +/- buttons"). The now window is stored in MINUTES
+          (column now_window_minutes) and shown as hours — the Save handler
+          multiplies by 60. %>
+      <tr>
+        <td class="align-middle"><%= t("care_plan.kind." + p.Kind) %></td>
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="720" step="1" form="preference-bulk"
+                   name="late[<%= p.Kind %>]" value="<%= if (p.LateShowHours.Valid) { %><%= p.LateShowHours.Int %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
+        </td>
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="720" step="1" form="preference-bulk"
+                   name="future[<%= p.Kind %>]" value="<%= if (p.FutureShowHours.Valid) { %><%= p.FutureShowHours.Int %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
+        </td>
+        <td class="align-middle pref-stepper">
+          <div class="input-group input-group-sm" style="max-width: 10rem;">
+            <div class="input-group-prepend">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="-1" tabindex="-1">&minus;</button>
+            </div>
+            <input class="form-control text-center" type="number" min="0" max="168" step="1" form="preference-bulk"
+                   name="now[<%= p.Kind %>]" value="<%= if (p.NowWindowMinutes.Valid) { %><%= p.NowWindowMinutes.Int / 60 %><% } %>"
+                   placeholder="<%= t("preferences.no_cap") %>" />
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" data-pref-step="1" tabindex="-1">+</button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<button class="btn btn-warning" type="submit" form="preference-bulk">
+  <i class="fa fa-edit"></i> <%= t("preferences.save") %>
+</button>
+
+<script>
+(function () {
+  // R9: the −/+ steppers adjust the neighbouring hour field by one hour;
+  // empty means "no limit" — stepping from empty starts at the default 8
+  // (now window: 1). Buttons live outside the inputs' form: type="button",
+  // never submits.
+  var DEFAULT_STEP = 8;
+  var NOW_DEFAULT_STEP = 1;
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-pref-step]');
+    if (!btn) { return; }
+    var group = btn.closest('.input-group');
+    var input = group ? group.querySelector('input[type="number"]') : null;
+    if (!input) { return; }
+    ev.preventDefault();
+    var delta = parseInt(btn.getAttribute('data-pref-step'), 10);
+    var value = parseInt(input.value, 10);
+    var isNow = (input.name || '').indexOf('now[') === 0;
+    if (isNaN(value)) { value = isNow ? NOW_DEFAULT_STEP : DEFAULT_STEP; if (delta < 0) { value = 0; } }
+    else { value = Math.max(0, value + delta); }
+    input.value = value;
+  });
+})();
+</script>

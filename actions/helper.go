@@ -3,6 +3,8 @@ package actions
 import (
 	"crypto/sha1"
 	"encoding/hex"
+	"net/url"
+	"strings"
 	"time"
 
 	"creaves/models"
@@ -27,16 +29,67 @@ func landingTabAnchor(key string) string {
 	return "#t-" + sha256(key)
 }
 
+// unwrapBackChain collapses a back target that itself carries ?back=...
+// to the embedded origin (bugs.md R5-2d, D-b): dashboard → care_plan
+// (self URL carrying back=/) → animal page — the animal's back button
+// goes straight to the ORIGINAL origin (one click home) and the U16 label
+// names that same destination, so label and landing never diverge.
+func unwrapBackChain(target string) string {
+	for i := 0; i < 5; i++ {
+		u, err := url.Parse(target)
+		if err != nil {
+			return target
+		}
+		b := u.Query().Get("back")
+		if b == "" || b == target {
+			return target
+		}
+		target = b
+	}
+	return target
+}
+
 // landingBackTarget resolves the "Back to animals in care" target (issue
 // #199-9): honor a safe `back` param (landing passes its tab anchor through
 // it), else default to the animal's zone tab in the default landing view.
+// R5-2d: an INVALID param falls back to the zone tab (not to "/") — "/" is
+// reserved for an explicit dashboard back (U16 label "Back to dashboard").
 func landingBackTarget(c buffalo.Context, animal *models.Animal) string {
-	if c.Param("back") != "" {
-		return safeBackParam(c)
+	if b := localBackParam(c.Param("back")); b != "" {
+		return unwrapBackChain(b)
 	}
 	return "/" + landingTabAnchor(animal.Zone.String)
 }
 
+// landingBackLabelKey picks the back-button label i18n key for a resolved
+// target (bugs.md U16): the label must say where the button actually goes —
+// "Back to the day plan" when the user came from /care_plan — instead of a
+// static "Back to animals in care" that lies about the destination.
+// R5-2d (D-b): the work screen propagates its OWN incoming back target in
+// its self URL (?back=...), so a target that carries one chains to the
+// earlier origin — the label names THAT destination: care_plan self URLs
+// carrying back=/ (or back=/dashboard...) resolve to "Back to dashboard".
+func landingBackLabelKey(target string) string {
+	if u, err := url.Parse(target); err == nil {
+		if b := u.Query().Get("back"); b != "" {
+			target = b
+		}
+	}
+	switch {
+	case target == "/" || strings.HasPrefix(target, "/dashboard"):
+		return "animals.back.to_dashboard"
+	case strings.HasPrefix(target, "/care_plan"):
+		return "animals.back.to_day_plan"
+	case strings.HasPrefix(target, "/reports/care_schedule"):
+		return "animals.back.to_care_schedule"
+	default:
+		return "animals.back.to_in_care"
+	}
+}
+
+// timeToNullTime parses the legacy "15:04" feeding-time format. Legacy
+// feeding columns are frozen read-only (bugs.md H3) — kept for the guest
+// page conversion semantics and its tests.
 func timeToNullTime(s string) nulls.Time {
 	t, err := time.Parse("15:04", s)
 	if err != nil {

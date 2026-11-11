@@ -1,0 +1,97 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.matchers.title") %></h3>
+  <div class="float-end">
+    <%= linkTo(newCareMatchersPath(), {class: "btn btn-primary"}) { %>
+      <%= t("care_plan.action.new") %>
+    <% } %>
+  </div>
+</div>
+
+<%# Bug 2026-10-27 #6: the library needs filter/search — with the seeded
+    library finding one matcher meant reading every row. Client-side
+    filter over the three visible columns (name, description,
+    expression), case-insensitive, with a visible hit counter; no server
+    round-trip, no page reload, works with the browser's own find too. %>
+<div class="form-inline mb-2" id="matcherFilterBar">
+  <input type="search" class="form-control form-control-sm mr-2" id="matcherFilter"
+         placeholder="<%= t("care_plan.matchers.filter_placeholder") %>" autocomplete="off">
+  <span class="text-muted small" id="matcherFilterCount"></span>
+</div>
+
+<table class="table table-hover table-bordered" id="matcherTable">
+  <thead class="thead-light">
+    <th><%= t("care_plan.field.name") %></th>
+    <th><%= t("care_plan.field.description") %></th>
+    <th><%= t("care_plan.field.expression") %></th>
+    <th class="text-center"><%= t("care_plan.field.used_by") %></th>
+    <th>&nbsp;</th>
+  </thead>
+  <tbody>
+    <%= for (matcher) in matchers { %>
+      <tr>
+        <td class="align-middle">
+          <%= displayPlanName(tname("care_matchers", matcher.ID, matcher.Name)) %>
+        </td>
+        <td class="align-middle"><%= matcher.Description %></td>
+        <td class="align-middle">
+          <%= humanMatcher(matcher.Expression) %>
+          <details class="mt-1">
+            <summary class="text-muted small"><%= t("care_plan.builder.raw_dsl") %></summary>
+            <code class="small"><%= matcher.Expression %></code>
+          </details>
+        </td>
+        <td class="align-middle text-center">
+          <%= if (matcher.UsedBy > 0) { %>
+            <!-- BUG-27: the count is a dropdown listing every referencing
+                 rule — editing ANY matcher re-evaluates all of them, so
+                 the coupling is visible (and navigable) for each matcher. -->
+            <div class="dropdown d-inline">
+              <a href="#" class="badge badge-info dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="<%= t("care_plan.matchers.used_by_hint") %>"><%= matcher.UsedBy %></a>
+              <div class="dropdown-menu dropdown-menu-right text-left">
+                <%= for (rule) in matcher.UsedByRules { %>
+                  <div class="dropdown-item-text d-flex justify-content-between align-items-center">
+                    <a href="<%= careRulePath({ care_rule_id: rule.ID }) %>"><%= displayPlanName(tname("care_rules", rule.ID, rule.Name)) %>
+                      <small class="text-muted">· <%= t("care_plan.kind." + rule.ActionKind) %><%= if (!rule.Active) { %> · <%= t("care_plan.status.inactive") %><% } %></small>
+                    </a>
+                    <a href="<%= editCareRulePath({ care_rule_id: rule.ID }) %>" class="text-muted ml-2" title="<%= t("care_plan.action.edit") %>"><i class="fa fa-edit"></i></a>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% } else { %>
+            0
+          <% } %>
+        </td>
+        <td>
+          <div class="float-end">
+            <%= linkTo(editCareMatcherPath({ care_matcher_id: matcher.ID }), {class: "btn btn-warning", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+            <%= linkTo(careMatcherPath({ care_matcher_id: matcher.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+          </div>
+        </td>
+      </tr>
+    <% } %>
+  </tbody>
+</table>
+
+<script>
+(function () {
+  var input = document.getElementById('matcherFilter');
+  var table = document.getElementById('matcherTable');
+  var count = document.getElementById('matcherFilterCount');
+  if (!input || !table || !count) { return; }
+  var rows = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+  function apply() {
+    var q = input.value.trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (r) {
+      var hit = !q || r.textContent.toLowerCase().indexOf(q) >= 0;
+      r.style.display = hit ? '' : 'none';
+      if (hit) { visible++; }
+    });
+    // Locale-neutral "hits / total" — the numbers carry the information.
+    count.textContent = visible + ' / ' + rows.length;
+  }
+  input.addEventListener('input', apply);
+  apply();
+})();
+</script>

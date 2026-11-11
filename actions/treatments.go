@@ -48,43 +48,132 @@ func (t *treatmentSchedule) String() string {
 	return string(jt)
 }
 
-// TreatmentUpdateSchedule allow XHR update of treatment
-func TreatmentUpdateSchedule(c buffalo.Context) error {
-	updateRequest := struct {
-		Treatment_ID uuid.UUID `json:"treatment_id"`
-		Key          int       `json:"key"`
-	}{}
+// TreatmentUpdateSchedule (PUT /treatmentschedule) was removed with the
+// care-plan migration (§8.3): treatment rows are read-only history;
+// done-ticks live on the day plan (/care_plan/apply), the per-time entry
+// toggle (POST /treatments/{tid}/entries/{eid}/toggle, bugs.md R5-3b) and
+// the animal Plan tab.
 
-	// Bind
-	if err := c.Bind(&updateRequest); err != nil {
+// seedManualTreatmentEntries creates one pending entry per required bitmap
+// bucket (bugs.md R5-3b, U25/D-e): the manual morning/noon/evening form
+// seeds default times 08:00/12:00/18:00 — the per-time storage is the
+// source of truth for manual treatments too.
+func seedManualTreatmentEntries(tx *pop.Connection, t *models.Treatment) error {
+	for _, bit := range []int{models.Treatement_MORNING, models.Treatement_NOON, models.Treatement_EVENING} {
+		if t.Timebitmap&bit == 0 {
+			continue
+		}
+		label := models.DefaultEntryTimes[bit]
+		entry := &models.TreatmentTimeEntry{
+			TreatmentID: t.ID,
+			AnimalID:    t.AnimalID,
+			DueAt:       entryDueAt(t.Date, label),
+			TimeLabel:   label,
+			Status:      models.TreatmentEntryStatusPending,
+			Source:      models.TreatmentEntrySourceManual,
+		}
+		if err := tx.Create(entry); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// normalizeEntryLabel validates a HH:MM form label, falling back to def.
+func normalizeEntryLabel(raw, def string) string {
+	t := strings.TrimSpace(raw)
+	if _, err := time.Parse("15:04", t); err != nil {
+		return def
+	}
+	return t
+}
+
+// syncTreatmentEntryStatuses mirrors the edit form's 3-bucket checkboxes
+// onto the per-time entries (bugs.md R5-3b, U25/D-e — Timedonebitmap is
+// dormant). Required buckets rename their entry (editable per entry time,
+// default 08:00/12:00/18:00) and set done/pending; un-required buckets
+// drop their entries — same semantics as the retired bitmap bits. Entries
+// created on a legacy row without entries carry source=migration.
+func syncTreatmentEntryStatuses(tx *pop.Connection, treatment *models.Treatment, ts *treatmentSchedule, entryTimes map[int]string, now time.Time, userID uuid.UUID) error {
+	buckets := []struct {
+		bit  int
+		req  nulls.Bool
+		done nulls.Bool
+		def  string
+	}{
+		{models.Treatement_MORNING, ts.ScheduleRequiredMorning, ts.ScheduleStatusMorning, models.DefaultEntryTimes[models.Treatement_MORNING]},
+		{models.Treatement_NOON, ts.ScheduleRequiredNoon, ts.ScheduleStatusNoon, models.DefaultEntryTimes[models.Treatement_NOON]},
+		{models.Treatement_EVENING, ts.ScheduleRequiredEvening, ts.ScheduleStatusEvening, models.DefaultEntryTimes[models.Treatement_EVENING]},
+	}
+
+	entries, err := loadTreatmentEntries(tx, treatment.ID)
+	if err != nil {
 		return err
 	}
 
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
+	for _, b := range buckets {
+		if b.req.Bool {
+			if err := upsertBucketEntry(tx, treatment, entries, entryTimes[b.bit], b.bit, b.done, now, userID); err != nil {
+				return err
+			}
+			continue
+		}
+		if err := dropBucketEntries(tx, entries, entryTimes[b.bit], b.def); err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	treatment := &models.Treatment{}
-	if err := tx.Find(treatment, updateRequest.Treatment_ID); err != nil {
-		return c.Error(http.StatusNotFound, err)
+// upsertBucketEntry renames (editable per entry time, bugs.md R5-3b) and
+// statuses the entry of one required bucket, creating it when missing
+// (legacy rows edited before the migration ran — source=migration).
+func upsertBucketEntry(tx *pop.Connection, treatment *models.Treatment, entries models.TreatmentTimeEntries, rawLabel string, bit int, done nulls.Bool, now time.Time, userID uuid.UUID) error {
+	def := models.DefaultEntryTimes[bit]
+	label := normalizeEntryLabel(rawLabel, def)
+	// Match the entry by any label it may carry: the form prefill
+	// (possibly renamed by an earlier edit) or the bucket default.
+	entry := entries.FindByLabel(label)
+	if entry == nil && label != def {
+		entry = entries.FindByLabel(def)
 	}
-
-	// Audit snapshot before the schedule status flip.
-	oldTreatment := *treatment
-
-	treatment.Timedonebitmap ^= updateRequest.Key
-
-	if err := tx.Update(treatment); err != nil {
-		return c.Error(http.StatusUnprocessableEntity, err)
+	if entry == nil {
+		entry = &models.TreatmentTimeEntry{
+			TreatmentID: treatment.ID,
+			AnimalID:    treatment.AnimalID,
+			DueAt:       entryDueAt(treatment.Date, label),
+			TimeLabel:   label,
+			Status:      models.TreatmentEntryStatusPending,
+			Source:      models.TreatmentEntrySourceMigration,
+		}
+		if err := tx.Create(entry); err != nil {
+			return err
+		}
 	}
+	entry.TimeLabel = label
+	entry.DueAt = entryDueAt(treatment.Date, label)
+	if done.Bool {
+		entry.MarkDone(now, userID)
+	} else {
+		entry.Revert()
+	}
+	return tx.Update(entry)
+}
 
-	// Audit log: treatment schedule status change (best effort)
-	auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionUpdate, auditTreatmentProjection(oldTreatment), auditTreatmentProjection(*treatment))
-
-	updateRequest.Key = treatment.Timedonebitmap
-	return c.Render(200, r.JSON(updateRequest))
+// dropBucketEntries removes the entries of an un-required bucket — the
+// bitmap-parity semantics of unchecking morning/noon/evening.
+func dropBucketEntries(tx *pop.Connection, entries models.TreatmentTimeEntries, rawLabel, def string) error {
+	label := normalizeEntryLabel(rawLabel, def)
+	for i := range entries {
+		e := &entries[i]
+		if e.TimeLabel != label && e.TimeLabel != def {
+			continue
+		}
+		if err := tx.Destroy(e); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // List gets all Treatments. This function is mapped to the path
@@ -139,6 +228,13 @@ func (v TreatmentsResource) Show(c buffalo.Context) error {
 
 	return responder.Wants("html", func(c buffalo.Context) error {
 		c.Set("treatment", treatment)
+		// Back control + U16 label (bugs.md R5-2d/D-b): the care-plan card
+		// links (dashboard + work screen) land here with ?back=... — the
+		// chain collapses to the ORIGINAL origin so the label and the
+		// landing agree (e.g. "Back to dashboard" → /).
+		back := unwrapBackChain(safeBackParam(c))
+		c.Set("back", back)
+		c.Set("landingBackLabel", landingBackLabelKey(back))
 
 		return c.Render(http.StatusOK, r.HTML("/treatments/show.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
@@ -289,6 +385,11 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 			break
 		}
 		created++
+		// bugs.md R5-3b (U25/D-e): seed the per-time entries for the
+		// required buckets (default 08:00/12:00/18:00).
+		if err := seedManualTreatmentEntries(tx, treatment); err != nil {
+			return err
+		}
 		// Audit log: treatment creation (best effort)
 		auditAnimalChange(c, tx, treatment.AnimalID, models.AuditEntityTreatment, auditEntityID(treatment.ID), models.AuditActionCreate, nil, auditTreatmentProjection(*treatment))
 	}
@@ -296,7 +397,7 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 	// Every entry of the submission was already recorded: the form was
 	// double-submitted. Warn the user and redirect without creating anything.
 	if created == 0 && len(treatments) > 0 && (verrs == nil || !verrs.HasAny()) {
-		return duplicateSubmissionRedirect(c, "treatment.duplicate.prevented", "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
+		return duplicateSubmissionRedirect(c, "treatment.duplicate.prevented", "/animals/%v/#nav-plan", treatmentTemplate.AnimalID)
 	}
 
 	if verrs.HasAny() {
@@ -324,8 +425,10 @@ func (v TreatmentsResource) Create(c buffalo.Context) error {
 			// and redirect to the show page
 			return c.Redirect(http.StatusSeeOther, back)
 		}
-		// and redirect to the animal page
-		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-treatment", treatmentTemplate.AnimalID)
+		// and redirect to the animal page (protocol tab — it hosts the
+		// legacy-treatments journal since the Treatment tab retired,
+		// bugs.md 2026-10-27 #2)
+		return c.Redirect(http.StatusSeeOther, "/animals/%v/#nav-plan", treatmentTemplate.AnimalID)
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(http.StatusCreated, r.JSON(treatments))
 	}).Wants("xml", func(c buffalo.Context) error {
@@ -388,21 +491,41 @@ func (v TreatmentsResource) Update(c buffalo.Context) error {
 	if err := c.Bind(ts); err != nil {
 		return err
 	}
+	// Entry time labels (bugs.md R5-3b: editable per entry). The edit form
+	// prefills the current label; empty/invalid inputs keep the defaults.
+	entryTimes := &struct {
+		Morning string
+		Noon    string
+		Evening string
+	}{}
+	if err := c.Bind(entryTimes); err != nil {
+		return err
+	}
 	treatment.SetAllScheduleRequired(
 		ts.ScheduleRequiredMorning.Bool,
 		ts.ScheduleRequiredNoon.Bool,
 		ts.ScheduleRequiredEvening.Bool)
 
-	treatment.SetAllScheduleStatus(
-		ts.ScheduleStatusMorning.Bool,
-		ts.ScheduleStatusNoon.Bool,
-		ts.ScheduleStatusEvening.Bool)
-
 	c.Logger().Debugf("Treatment Schedules: %v", ts)
-	c.Logger().Debugf("Bitmaps: req:%d tod: %d", treatment.Timebitmap, treatment.Timedonebitmap)
+	c.Logger().Debugf("Bitmap: req:%d (Timedonebitmap dormant since bugs.md U25 R5-3)", treatment.Timebitmap)
 
 	verrs, err := tx.ValidateAndUpdate(treatment)
 	if err != nil {
+		return err
+	}
+
+	// Timedonebitmap is dormant (bugs.md U25/D-e): the done state is
+	// mirrored onto the per-time entries (rename + done/pending sync).
+	u := GetCurrentUser(c)
+	var userID uuid.UUID
+	if u != nil {
+		userID = u.ID
+	}
+	if err := syncTreatmentEntryStatuses(tx, treatment, ts, map[int]string{
+		models.Treatement_MORNING: entryTimes.Morning,
+		models.Treatement_NOON:    entryTimes.Noon,
+		models.Treatement_EVENING: entryTimes.Evening,
+	}, time.Now(), userID); err != nil {
 		return err
 	}
 
@@ -461,6 +584,12 @@ func (v TreatmentsResource) Destroy(c buffalo.Context) error {
 
 	if err := tx.Destroy(treatment); err != nil {
 		return err
+	}
+
+	// Care-plan hook (§10-CP1): a destroyed fulfillment row is reported on
+	// its care_plan_applications link instead of dangling.
+	if err := MarkPlanApplicationFulfillmentDeleted(tx, models.ApplicationFulfillmentTreatment, treatment.ID.String()); err != nil {
+		c.Logger().Warnf("care plan fulfillment_deleted hook: %v", err)
 	}
 
 	// Audit log: treatment deletion (best effort)

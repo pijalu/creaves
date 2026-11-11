@@ -1,0 +1,859 @@
+<style>
+  /* Feeding chip status dots (bugs.md U1) — bootstrap contextual palette. */
+  .plan-dot-applied { color: #28a745; }
+  .plan-dot-due { color: #007bff; }
+  /* R4-7.14: this was amber (#e0a800) — the same colour as the "due now"
+     tier it sits next to. Late is the only red in this palette, and the dot
+     is the per-GROUP signal the tier header cannot give (one header, many
+     groups), so it has to match the section the row is in. */
+  .plan-dot-late { color: #dc3545; }
+  .plan-dot-missing { color: #dc3545; }
+  .plan-dot-scheduled { color: #6c757d; }
+  .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
+  .plan-feeding-chip { text-decoration: none; }
+  .plan-feeding-chip:hover { text-decoration: none; background-color: #e2e6ea; }
+
+  /* The three urgency sections are the screen's anchor targets (fix 2:
+     late · now · later, always in this order) — offset the scroll so a
+     jumped section is not hidden behind the fixed topbar. */
+  #tier-late, #tier-now, #tier-later { scroll-margin-top: 60px; }
+
+  /* R3-3/R3-4: each tier is ONE bordered, light-tinted section — header
+     (tier name + count pill + chevron) and collapse body inside the same
+     border, no more loose button toggles. Tints are the Bootstrap alert
+     palette (late red · now yellow · later green). */
+  .plan-tier { border: 1px solid; border-radius: 0.35rem; margin-bottom: 0.75rem; overflow: hidden; }
+  .plan-tier-late  { background: #f8d7da; border-color: #f5c6cb; }
+  .plan-tier-now   { background: #fff3cd; border-color: #ffeeba; }
+  .plan-tier-later { background: #d4edda; border-color: #c3e6cb; }
+  /* R9-2: the medication "Done" tier — same look as "Later" but a darker
+     green so a finished series reads apart from the still-open later work. */
+  .plan-tier-done  { background: #b7dfc2; border-color: #9fd0ae; }
+  .plan-tier-done  .plan-tier-header { color: #0f4a1f; }
+  .plan-tier-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; cursor: pointer; user-select: none;
+    font-weight: 600;
+  }
+  .plan-tier-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-tier-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-tier-late  .plan-tier-header { color: #721c24; }
+  .plan-tier-now   .plan-tier-header { color: #856404; }
+  .plan-tier-later .plan-tier-header { color: #155724; }
+
+  /* R4-7.14: the collapse body used to be forced to solid white, which
+     painted a white table over the tier's own tint — a row in the "Late"
+     section was as white as a row in "Later", so the colour carried no
+     information at the row level, only at the border. Measured before:
+     rowBg=rgba(0,0,0,0) inside paneBg=rgb(255,255,255).
+     The body now inherits the tier tint, and the TABLE and its cells go
+     transparent so nothing re-covers it. The tint stays a wash: the row text
+     is dark on all three, so contrast is unchanged from the white body. */
+  .plan-tier-body { background: transparent; }
+  .plan-tier-body .table,
+  .plan-tier-body .table tbody,
+  .plan-tier-body .table td,
+  .plan-tier-body .table th { background-color: transparent; }
+  .plan-tier-body .table { margin-bottom: 0; }
+  /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
+     red; a tint-preserving hover keeps the urgency readable while pointing. */
+  .plan-tier-body .table-hover tbody tr:hover > td {
+    background-color: rgba(255, 255, 255, 0.45);
+  }
+  /* R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
+     multi-animal row collapses behind a header that carries the count and the
+     earliest time — so the closed state still says what is due rather than
+     hiding it. */
+  .plan-feed-animals { min-width: 12rem; }
+  /* B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the
+     animal identity, ONE muted shape on every per-animal row family; the
+     shared animal-column min-width keeps the stacked tables aligned.
+     Below lg the line collapses ("if space permits"). */
+  .plan-loc {
+    display: block; font-size: 0.78rem; color: #6c757d;
+    max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Natural table sizing keeps each table's animal column keyed to its own
+     longest cell; content from sibling tiers/tables cannot widen it.
+     Bug 2026-10-06 #1: `width: max-content` on the cell made Chrome resolve
+     the column against the TABLE's one-line width — with the nowrap animal
+     cell the column blew up to ~1466 px inside an 1110 px tier panel, and
+     the panel's overflow:hidden clipped the right-aligned Apply column out
+     of view. The rule is GONE: auto layout keys the column to its content,
+     the diet text wraps instead of widening the column, and the table can
+     never exceed its panel. */
+  .plan-tier-body table { table-layout: auto; max-width: 100%; }
+  .plan-med-animal { min-width: 0; }
+  .plan-feed-animal, .plan-care-animal { white-space: nowrap; }
+  .plan-feed-animal .text-info, .plan-care-animal .text-info { white-space: normal; }
+  .plan-feed-animals { width: auto; min-width: 0; }
+  .plan-feed-check, .plan-cage-apply { text-align: right; }
+  .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  /* BUG-24 (2026-10-28): the multi-animal CAGE branch stacks one
+     .plan-animal-row per line — the base flex rule (label + slots
+     side by side, group=animal layout) would pack the animals on
+     one wrapping line. */
+  .plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }
+  .plan-care-slots .plan-time-label { flex: 1 1 auto; }
+  .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
+  @media (max-width: 991.98px) { .plan-loc, .plan-med-animal .plan-loc { display: none; } }
+  .plan-tab-count { vertical-align: middle; }
+  .plan-feed-header {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.15rem 0; cursor: pointer; user-select: none;
+    font-size: 0.875rem;
+  }
+  .plan-feed-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-feed-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-feed-count { font-weight: 600; }
+  .plan-feed-when { color: #6c757d; }
+  .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
+  .plan-time-group:first-child { border-top: 0; padding-top: 0; }
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
+  /* §4.2 grouping toggle: the leading label is a caption, not a button —
+     a .disabled .btn would show a not-allowed cursor on plain text. */
+  .plan-group-toggle .plan-group-label { cursor: default; pointer-events: none; opacity: 1; }
+</style>
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.title") %></h3>
+  <span class="text-muted ml-2" id="plan-updated-at"><%= t("care_plan.updated_at") %> <%= view.UpdatedAt %></span>
+</div>
+
+<%# BUG-26 (2026-10-28): the strip moved INSIDE #planSections (below) —
+     it indexes the ACTIVE tab's tables, so it renders within the tab
+     content, for every kind, with all four bubbles (late · now · later ·
+     done) in table order. %>
+<ul class="nav nav-tabs mb-2" id="planKindTabs">
+  <%= for (kc) in view.Kinds { %>
+    <li class="nav-item">
+      <a class="nav-link<%= if (view.Kind == kc.Kind) { %> active<% } %>" href="?kind=<%= kc.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %><%= if (view.Group != "") { %>&group=<%= view.Group %><% } %>">
+        <%= t("care_plan.kind." + kc.Kind) %>
+        <%= if (kc.Count > 0) { %>
+          <span class="badge badge-pill badge-primary ml-1 plan-tab-count"><%= kc.CountCap %></span>
+        <% } %>
+      </a>
+    </li>
+  <% } %>
+</ul>
+
+<%# Zone = dropdown filter: a long zone list no longer breaks the layout
+     as a tab row. Counts are open occurrences of the ACTIVE kind in the
+     zone; the toggle button's badge equals the visible count (S2). %>
+<div class="dropdown mb-3" id="planZoneDropdown">
+  <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="planZoneToggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <%= t("care_plan.zone.select") %>: <%= if (view.Zone == "") { %><%= t("care_plan.zone.all") %><% } else { %><%= view.Zone %><% } %>
+    <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneCap %></span>
+  </button>
+  <div class="dropdown-menu" id="planZoneMenu" aria-labelledby="planZoneToggle">
+    <a class="dropdown-item<%= if (view.Zone == "") { %> active<% } %>" data-zone="" href="<%= if (view.Kind != "") { %>?kind=<%= view.Kind %><% } %><%= if (view.Group != "") { %><%= if (view.Kind != "") { %>&<% } else { %>?<% } %>group=<%= view.Group %><% } %>">
+      <%= t("care_plan.zone.all") %>
+      <span class="badge badge-pill badge-primary ml-1"><%= view.ZoneAllCap %></span>
+    </a>
+    <%= for (zt) in view.Zones { %>
+      <a class="dropdown-item<%= if (view.Zone == zt.Name) { %> active<% } %>" data-zone="<%= zt.Name %>" href="?zone=<%= zt.Name %><%= if (view.Kind != "") { %>&kind=<%= view.Kind %><% } %><%= if (view.Group != "") { %>&group=<%= view.Group %><% } %>">
+        <%= zt.Name %>
+        <%= if (zt.Count > 0) { %>
+          <span class="badge badge-pill badge-primary ml-1"><%= zt.CountCap %></span>
+        <% } %>
+      </a>
+    <% } %>
+  </div>
+</div>
+
+<%# Guideline §4.2: cage⇄animal grouping toggle — a view preference of
+    the feeding and cleanup sections (one line per cage × source, or one
+    line per animal with the same toggles). Rendered only on those two
+    kinds; the choice persists via planSelfPath/the kind & zone links. %>
+<%= if (view.Kind == "feeding" || view.Kind == "cleanup") { %>
+  <div class="btn-group btn-group-sm mb-3 plan-group-toggle" role="group" aria-label="<%= t("care_plan.group.label") %>">
+    <span class="btn btn-outline-secondary disabled plan-group-label"><%= t("care_plan.group.label") %></span>
+    <a class="btn btn-outline-secondary<%= if (view.Group != "animal") { %> active<% } %>"
+       href="?kind=<%= view.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>&group=cage">
+      <%= t("care_plan.group.cage") %>
+    </a>
+    <a class="btn btn-outline-secondary<%= if (view.Group == "animal") { %> active<% } %>"
+       href="?kind=<%= view.Kind %><%= if (view.Zone != "") { %>&zone=<%= view.Zone %><% } %>&group=animal">
+      <%= t("care_plan.group.animal") %>
+    </a>
+  </div>
+<% } %>
+
+<%= if (len(view.Tiers[0].Cards) == 0 && len(view.Tiers[1].Cards) == 0 && len(view.Tiers[2].Cards) == 0 && len(view.MedTiers[0]) == 0 && len(view.MedTiers[1]) == 0 && len(view.MedTiers[2]) == 0 && len(view.Feedings) == 0 && len(view.Cares) == 0 && len(view.History) == 0) { %>
+  <div class="alert alert-success"><%= t("care_plan.day.empty") %></div>
+<% } else { %>
+<div id="planSections">
+
+  <%# BUG-26 (2026-10-28): ONE summary strip per tab, INSIDE the tab
+      content, for EVERY kind — an INDEX of the tables rendered below
+      (R4-7.21), never a second opinion. A bubble appears only when its
+      table exists, links to that table's real id, repeats its count in
+      the same unit, and the order matches the page: late · now · later ·
+      done. A pill used to sit ABOVE the kind tabs (reading as page
+      metadata) on row kinds, inside the feeding panel on feeding, and
+      nowhere on cleanup; no tab had a Done bubble although every tab
+      renders a Done table. %>
+  <%= if (len(view.TierLinks) > 0) { %>
+  <div class="mb-2" id="planSummaryStrip">
+    <%= for (sl) in view.TierLinks { %>
+      <a class="badge <%= sl.Class %>" href="#<%= sl.ID %>"><%= t("care_plan.tier." + sl.Key) %> <span class="badge badge-pill badge-light ml-1"><%= sl.Cap %></span></a>
+    <% } %>
+  </div>
+  <% } %>
+
+  <%# --- Tiers: late → now → later (§U2, the original work screen) --------
+       Fix 2/3/6: three collapsible TABLE sections in fixed order, rows
+       are lists (never cards); medication renders as ordinary tier rows
+       with a day-aware due label — no per-hour button series, no separate
+       collapsible medication section. Feeding/cleanup are grouped lists
+       below and never appear in the tiers. %>
+  <%= if (view.Kind != "feeding" && view.Kind != "cleanup") { %>
+
+    <%# Every tier panel renders through the ONE `_plan_tier` component
+        (used as a layout): the body partial is rendered first and the
+        tier wraps it in the bordered panel + header + collapse. %>
+    <%= for (ti) in [0, 1, 2] { %>
+    <%= if (view.TierHasWork[ti]) { %>
+    <%= if (view.Kind == "medication") { %>
+      <%= partial("care_plan/plan_tier_med_rows.plush.html", {
+        medGroups: view.MedTiers[ti],
+        tierKey: view.Tiers[ti].Key,
+        tierId: "tier-" + view.Tiers[ti].Key,
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+        tierBadgeClass: view.Tiers[ti].BadgeClass,
+        tierCount: view.MedTierOpenCap[ti],
+        tierExpanded: true,
+        tierDoneCount: 0,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } else { %>
+      <%= partial("care_plan/plan_tier_rows.plush.html", {
+        tierCards: view.Tiers[ti].Cards,
+        tierKey: view.Tiers[ti].Key,
+        tierId: "tier-" + view.Tiers[ti].Key,
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+        tierBadgeClass: view.Tiers[ti].BadgeClass,
+        tierCount: view.Tiers[ti].CountCap,
+        tierExpanded: true,
+        tierDoneCount: 0,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+    <% } %>
+    <% } %>
+
+    <%# R9-2: the medication "Done" tier — a series lands here ONLY when
+        EVERY repeated occurrence is applied (100%). Same `_plan_tier`
+        component and `_med_series` line layout as the open tiers, darker
+        green, labelled "Done", collapsed by default. Each green ✓ toggle
+        stays a live undo (re-click returns the series to its open tier on
+        the next refresh). Medication-only. %>
+    <%= if (view.Kind == "medication" && len(view.MedDone) > 0) { %>
+    <%= partial("care_plan/plan_tier_med_rows.plush.html", {
+      medGroups: view.MedDone,
+      tierKey: "done",
+      tierId: "tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.MedDoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.MedDoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+
+    <%# Done tier for the ROW kinds (user request 2026-10-28): terminal
+        occurrences of the active kind rendered as the SAME
+        `_plan_item_line` lines as the open tiers (applied ✓ undo +
+        view link), collapsed by default. Medication's Done is the
+        MedDone block above; the generic Historique stays untouched. %>
+    <%= if (view.Kind != "medication" && len(view.DoneRows) > 0) { %>
+    <%= partial("care_plan/plan_tier_rows.plush.html", {
+      tierCards: view.DoneRows,
+      tierKey: "done",
+      tierId: "tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.DoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.DoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+
+  <% } %>
+
+  <%= if (view.Kind == "medication") { %>
+      <%= partial("care_plan/plan_med_toggle.plush.html") %>
+    <% } %>
+
+    <%# --- Nourrissage: LIST (fix 3) — one row per cage × diet, the
+       animals as chip rows inside; no cards. Only under kind=feeding.
+
+       R4-4.3: urgency is the FIRST level — the cards are grouped into the
+       same late → now → later sections as every other kind (feeding holds
+       most of the workload, so it must not read as a flat list).
+       R4-4.4: ONE status dot per cage × diet group — the group's most
+       urgent chip, next to the label; per-animal nuance stays on the
+       chip's title (screen readers get it via the visually-hidden label).
+       R4-4.2: the "+N" count is a CORNER OVERLAY on the apply button, so
+       the button never changes width and never loses its count at N=1.
+       R4-3.3: no redundant "Late"/"Due" text per chip — the group dot and
+       the tier carry it; the status text stays available to assistive
+       technology (sr-only) and on hover. %>
+  <%= if (len(view.Feedings) > 0) { %>
+    <div id="feedingTabContent">
+    <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
+    <%= for (ti) in [0, 1, 2] { %>
+      <%= if (len(view.FeedTiers[ti]) > 0) { %>
+          <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+            feedCards: view.FeedTiers[ti],
+            ti: ti,
+            group: view.Group,
+            tierKey: view.FeedTiers[ti][0].TierKey,
+            tierId: "feed-tier-",
+            tierIdNum: ti,
+            tierLabelKey: "care_plan.tier." + view.FeedTiers[ti][0].TierKey,
+            tierBadgeClass: "badge-secondary",
+            tierCount: view.FeedTierOpenCap[ti],
+            tierExpanded: true,
+            tierDoneCount: 0,
+            layout: "care_plan/plan_tier.plush.html"}) %>
+      <% } %>
+    <% } %>
+    <%# Done tier (user request 2026-10-28): the applied feeding
+        occurrences as cage × diet groups in the SAME table format —
+        ✓ undo chips + cage-level undo-all — collapsed by default. %>
+    <%= if (len(view.FeedDone) > 0) { %>
+      <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+        feedCards: view.FeedDone,
+        ti: "done",
+        group: view.Group,
+        tierKey: "done",
+        tierId: "feed-tier-done",
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier.done",
+        tierBadgeClass: "badge-success",
+        tierCount: view.DoneCountCap,
+        tierExpanded: false,
+        tierDoneCount: view.DoneCount,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+    </div>
+  <% } %>
+  <%= if (len(view.Feedings) == 0 && len(view.FeedDone) > 0) { %>
+    <%# No open feeding work left, but applied occurrences exist: the
+        Done tier still renders (the open-work guard above would hide it). %>
+    <div id="feedingTabContent">
+    <h5 class="mt-3"><%= t("care_plan.feeding.title") %></h5>
+    <%= partial("care_plan/plan_tier_feed_table.plush.html", {
+      feedCards: view.FeedDone,
+      ti: "done",
+      group: view.Group,
+      tierKey: "done",
+      tierId: "feed-tier-done",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.tier.done",
+      tierBadgeClass: "badge-success",
+      tierCount: view.DoneCountCap,
+      tierExpanded: false,
+      tierDoneCount: view.DoneCount,
+      layout: "care_plan/plan_tier.plush.html"}) %>
+    </div>
+  <% } %>
+
+  <%# --- Nettoyage (phase 3 / D3): TIERED sections (late → now → later),
+       one row per (source × cage) — or per (source × animal) under
+       group=animal — through the shared `_plan_tier` layout and the
+       `_plan_care_line` row partial. The tier header badge counts the
+       tier's OPEN APPLICABLE OCCURRENCES (CareTierOpenCap) — the
+       summary-strip unit (§1.4). Only under kind=cleanup. %>
+  <%= if (len(view.Cares) > 0 || len(view.CareDone) > 0) { %>
+    <h5 class="mt-3"><%= t("care_plan.cage_cards") %></h5>
+    <%= for (ti) in [0, 1, 2] { %>
+      <%= if (len(view.CareTiers[ti]) > 0) { %>
+        <%= partial("care_plan/plan_tier_care_table.plush.html", {
+          careCards: view.CareTiers[ti],
+          ti: ti,
+          group: view.Group,
+          tierKey: view.Tiers[ti].Key,
+          tierId: "care-tier-",
+          tierIdNum: ti,
+          tierLabelKey: "care_plan.tier." + view.Tiers[ti].Key,
+          tierBadgeClass: view.Tiers[ti].BadgeClass,
+          tierCount: view.CareTierOpenCap[ti],
+          tierExpanded: true,
+          tierDoneCount: 0,
+          layout: "care_plan/plan_tier.plush.html"}) %>
+      <% } %>
+    <% } %>
+    <%# Done tier (user request 2026-10-28): the applied cleanup
+        occurrences as cage rows in the SAME table format — ✓ undo
+        slots + cage-level undo-all — collapsed by default. %>
+    <%= if (len(view.CareDone) > 0) { %>
+      <%= partial("care_plan/plan_tier_care_table.plush.html", {
+        careCards: view.CareDone,
+        ti: "done",
+        group: view.Group,
+        tierKey: "done",
+        tierId: "care-tier-done",
+        tierIdNum: "",
+        tierLabelKey: "care_plan.tier.done",
+        tierBadgeClass: "badge-success",
+        tierCount: view.DoneCountCap,
+        tierExpanded: false,
+        tierDoneCount: view.DoneCount,
+        layout: "care_plan/plan_tier.plush.html"}) %>
+    <% } %>
+  <% } %>
+
+  <%# --- Historique (subdued, collapsed by default): terminal +
+       superseded rows of the ROW kinds — medication included (its done
+       rows carry undo, fulfillment links and the late-record action). %>
+  <%= if (len(view.History) > 0) { %>
+    <%# History is a first-class tier: it renders through the same
+        `_plan_tier` component as Late/Now/Later/Done, so it gains the
+        bordered panel by construction (it was a bare button before). %>
+    <%= partial("care_plan/plan_history_table.plush.html", {
+      historyCards: view.History,
+      tierKey: "history",
+      tierId: "plan-history",
+      tierIdNum: "",
+      tierLabelKey: "care_plan.section.history",
+      tierBadgeClass: "badge-secondary",
+      tierCount: len(view.History),
+      tierExpanded: false,
+      tierDoneCount: 0,
+      layout: "care_plan/plan_tier.plush.html"}) %>
+  <% } %>
+
+</div>
+<% } %>
+
+  <%# R4-2.2: ONE apply implementation shared with the animal tabs — the
+      apply/skip/defer modals and the delegated apply·undo bindings live in
+      this partial, so an occurrence is recorded identically everywhere. %>
+  <%= partial("care_plan/apply_toggle.plush.html") %>
+<!-- Batch apply confirmation (feeding group / cage rows): one explicit
+     summary of what will be recorded before anything happens. -->
+<div class="modal fade" id="planBatchModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><%= t("care_plan.apply.confirm_title") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <p id="planBatchSummary"></p>
+        <div class="alert alert-info small"><%= t("care_plan.apply.batch_expect") %></div>
+        <div class="alert alert-danger d-none" id="planBatchError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal"><%= t("care_plan.action.cancel") %></button>
+        <button type="button" class="btn btn-success" id="planBatchSubmit"><%= t("care_plan.apply.confirm_submit") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  // Auto-refresh (§10-CP6c): reload every 60 s unless a modal is open OR a
+  // request is still in flight — refreshing away an in-progress dosage
+  // entry or a just-sent apply would lose work (round-2 §7.3).
+  // R4-4.1: a change the caregiver just made must stay visible long enough
+  // to be SEEN. The old single 60 s timer armed at page load meant an
+  // apply at T=59 s was wiped by the reload one second later. Every action
+  // records its time in the SHARED apply partial; the refresh defers
+  // itself while the page was changed less than 30 s ago (the requested
+  // floor). One 5 s interval checks the due time — no chained setTimeout,
+  // no drift.
+  var RELOAD_PERIOD_MS = 60000;
+  var TICK_MS = 5000;
+  var nextReloadAt = Date.now() + RELOAD_PERIOD_MS;
+  var csrf = planApply.csrf;
+  var i18n = planApply.i18n;
+  var track = planApply.track;
+  var showMessage = planApply.showMessage;
+  var markApplied = planApply.markApplied;
+  var applyItem = planApply.applyItem;
+
+  function scheduleReload() {
+    setInterval(function () {
+      if (Date.now() < nextReloadAt) { return; }              // not due yet
+      if (window.planActionAge() < 30000) { return; } // R4-4.1 floor
+      if (jQuery('.modal').is(':visible') || planApply.busy()) { return; }
+      window.location.reload();
+    }, TICK_MS);
+  }
+  scheduleReload();
+
+  // R3-4: tier headers are divs (not buttons) — give them keyboard
+  // collapse toggling (Enter/Space) to match the click affordance.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-tier-header[data-toggle="collapse"]'), function (h) {
+    h.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jQuery(h).trigger('click'); }
+    });
+  });
+
+  // --- Detail popup (read-only, shared partial) -----------------------------
+  // Rev: one filler shared by the ℹ buttons AND the feeding rows (the row
+  // is the click affordance there — the ration text and times only live in
+  // this modal).
+  function fillPlanDetail(el) {
+    document.getElementById('planDetailAnimal').textContent = el.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (el.getAttribute('data-animal-link')) { aLink.setAttribute('href', el.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+    else { aLink.classList.add('d-none'); }
+    document.getElementById('planDetailDetail').textContent = el.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = el.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (el.getAttribute('data-source-link')) { sLink.setAttribute('href', el.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+    else { sLink.classList.add('d-none'); }
+    // R9-2: direct treatment link (record when applied, else Treatment tab).
+    var tLink = el.getAttribute('data-treatment-link');
+    document.getElementById('planDetailTreatmentDt').classList.toggle('d-none', !tLink);
+    document.getElementById('planDetailTreatmentDd').classList.toggle('d-none', !tLink);
+    if (tLink) {
+      document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+      document.getElementById('planDetailTreatment').textContent = el.getAttribute('data-detail') || tLink;
+    }
+    document.getElementById('planDetailKind').textContent = i18n.kinds[el.getAttribute('data-kind')] || el.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = el.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = i18n.status[el.getAttribute('data-status')] || el.getAttribute('data-status') || '—';
+    var rem = el.getAttribute('data-remaining');
+    document.getElementById('planDetailRemainingDt').classList.toggle('d-none', !rem);
+    document.getElementById('planDetailRemainingDd').classList.toggle('d-none', !rem);
+    if (rem) { document.getElementById('planDetailRemaining').textContent = rem; }
+    $('#planDetailModal').modal('show');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-detail-btn'), function (btn) {
+    btn.addEventListener('click', function () { fillPlanDetail(btn); });
+  });
+  // Rev: a feeding row click opens the details; clicks on chips, expand
+  // headers and apply buttons keep their own behavior. Enter/Space toggle
+  // it for keyboard users (R3-4 language).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-row[data-detail]'), function (tr) {
+    tr.addEventListener('click', function (ev) {
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      fillPlanDetail(tr);
+    });
+    tr.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      ev.preventDefault();
+      fillPlanDetail(tr);
+    });
+  });
+
+  // --- Batch apply (feeding group / cage rows) ------------------------------
+  var batchBtn = null;
+  function openBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    batchBtn = btn;
+    var what = btn.getAttribute('data-food') || btn.getAttribute('data-source-name') || '';
+    var summary = i18n.batchSummary
+      .replace('{count}', refs.length)
+      .replace('{cage}', btn.getAttribute('data-cage') || '')
+      .replace('{what}', what);
+    document.getElementById('planBatchSummary').textContent = summary;
+    document.getElementById('planBatchError').classList.add('d-none');
+    $('#planBatchModal').modal('show');
+  }
+
+  // §10.1-5/N2: a batch stays source×cage-scoped — one batch call per
+  // source, sequentially, then one reload (bugs.md U1/U6).
+  function runBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    var bySource = {};
+    refs.forEach(function (r) {
+      var k = r.source_type + '|' + r.source_id;
+      (bySource[k] = bySource[k] || []).push(r);
+    });
+    var failures = [];
+    // Bug 2026-10-06 #5: a batch item that went hors délai between render and
+    // confirm is past-due work the caregiver just confirmed — record it late
+    // instead of surfacing the §10-A1 409. Future-due items stay unrecordable.
+    function lateRetryOne(ref) {
+      var due = Date.parse(ref.due_at);
+      if (isNaN(due) || due > Date.now()) {
+        return Promise.reject(new Error('future occurrence'));
+      }
+      return track(fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: ref.source_type, source_id: ref.source_id,
+          animal_id: ref.animal_id, due_at: ref.due_at,
+          late: true
+        })
+      }).then(function (r) {
+        return r.json().then(function (j) { return {status: r.status, body: j}; });
+      }));
+    }
+    var chain = Promise.resolve();
+    Object.keys(bySource).forEach(function (k) {
+      var items = bySource[k];
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/apply_batch', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({items: items})
+        }).then(function (r) {
+          return r.json().then(function (j) {
+            if (r.status !== 200) {
+              failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
+              return;
+            }
+            var retries = [];
+            var retryErrors = [];
+            (j.results || []).forEach(function (it) {
+              if (it.status !== 'error') { return; }
+              if (!/apply window/i.test(it.error || '')) {
+                failures.push(it.animal_id + ': ' + (it.error || ''));
+                return;
+              }
+              var ref = null;
+              items.forEach(function (r) { if (r.animal_id === it.animal_id && !ref) { ref = r; } });
+              if (!ref) { failures.push(it.animal_id + ': ' + (it.error || '')); return; }
+              retries.push(lateRetryOne(ref).catch(function (err) {
+                retryErrors.push(it.animal_id + ': ' + ((err && err.message) || 'record failed'));
+              }));
+            });
+            if (retries.length) {
+              return Promise.all(retries).then(function () {
+                retryErrors.forEach(function (m) { failures.push(m); });
+              });
+            }
+          });
+        }));
+      });
+    });
+    return chain.then(function () { return failures; });
+  }
+
+  // Selecting an urgency shortcut keeps only its target section expanded.
+  // BUG-26: ONE strip per tab inside #planSections (every kind) — the
+  // scope is always the sections container; the Done bubble also expands
+  // its (default-collapsed) table.
+  document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link) { return; }
+    var target = link.getAttribute('href').slice(1);
+    var scope = document.getElementById('planSections');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
+      var body = tier.querySelector('.plan-tier-body');
+      if (body && tier.id !== target && body.classList.contains('show')) {
+        $(body).collapse('hide');
+      }
+      if (body && tier.id === target && !body.classList.contains('show')) {
+        $(body).collapse('show');
+      }
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
+    btn.addEventListener('click', function () {
+      // BUG-22: a flipped button (green ✓ group-undo) never re-opens the
+      // apply modal — the .plan-cage-undo delegated handler owns it.
+      if (btn.classList.contains('plan-cage-undo')) { return; }
+      openBatch(btn);
+    });
+  });
+
+  document.getElementById('planBatchSubmit').addEventListener('click', function () {
+    if (!batchBtn) { return; }
+    var btn = batchBtn;
+    this.disabled = true;
+    var submitBtn = this;
+    $('#planBatchModal').modal('hide');
+    runBatch(btn).then(function (failures) {
+      submitBtn.disabled = false;
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        // R3-2: no reload — flip the group's per-animal checks to their
+        // undo controls and retire the global apply until the refresh.
+        flipBatchRow(btn);
+      }
+    });
+  });
+
+  // flipBatchRow marks every applicable chip of the batch row as applied
+  // (check → undo). BUG-22 (2026-10-28): the group button does NOT
+  // disappear — it flips to a green ✓ group-UNDO toggle; clicking it asks
+  // the shared #planUnapplyModal confirm and undoes the whole row.
+  function flipBatchRow(btn) {
+    var row = btn.closest('tr');
+    if (!row) { window.location.reload(); return; }
+    Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
+      markApplied({btn: b});
+    });
+    setBatchState(btn, true);
+  }
+
+  // setBatchState flips the group apply button between its ○ apply look
+  // (tier colour, opens the batch modal) and its ✓ applied look (green,
+  // opens the undo confirm). The direct click binding below checks the
+  // class, so a flipped button never re-opens the apply modal.
+  function setBatchState(btn, applied) {
+    if (applied) {
+      // Capture the tier colour ONCE (first flip) so undo restores it.
+      if (!btn.getAttribute('data-tier-class')) {
+        var tier = [];
+        ['btn-warning', 'btn-danger', 'btn-light', 'border'].forEach(function (c) {
+          if (btn.classList.contains(c)) { tier.push(c); }
+        });
+        btn.setAttribute('data-tier-class', tier.join(' ') || 'btn-warning');
+      }
+      btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border');
+      btn.classList.add('btn-success', 'plan-cage-undo');
+      btn.textContent = btn.textContent.replace('○', '✓');
+      var pill = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill) { pill.classList.add('d-none'); }
+    } else {
+      btn.classList.remove('btn-success', 'plan-cage-undo');
+      (btn.getAttribute('data-tier-class') || 'btn-warning').split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+      btn.textContent = btn.textContent.replace('✓', '○');
+      var pill2 = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill2) { pill2.classList.remove('d-none'); }
+    }
+    btn.disabled = false;
+  }
+
+  // Group undo (BUG-22): one confirm via the shared modal, then every
+  // applied chip of the row is unapplied (the fulfillment records are
+  // deleted) and flipped back in place; the group button returns to ○.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-cage-undo') : null;
+    if (!btn || btn.disabled) { return; }
+    planApply.openUnapply(btn, true);
+  });
+
+  // BUG-22 live-E2E retest 2026-10-28: the previous version looked the
+  // chips up in the ROW — but single-animal cage rows render NO per-animal
+  // pair (R4-7.5: the group check does the whole job) and the Done tier
+  // renders link-only chips, so the loop matched ZERO elements: no POST,
+  // a purely cosmetic flip, and the records stayed applied after reload.
+  // Iterate the button's data-items refs instead — the same payload
+  // runBatch applies — and flip a rendered chip pair only when it exists.
+  window.planUnapplyBatch = function (btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    var row = btn.closest('tr');
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/unapply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type,
+            source_id: ref.source_id,
+            animal_id: parseInt(ref.animal_id, 10),
+            due_at: ref.due_at,
+            delete_fulfillment: true
+          })
+        })).then(function (r) {
+          if (r.status === 200) {
+            if (row) {
+              var chip = row.querySelector('.plan-unapply-btn[data-animal-id="' + ref.animal_id + '"][data-due-at="' + ref.due_at + '"]:not(.d-none)');
+              if (chip) { planApply.setToggleState(chip, false); }
+            }
+            return;
+          }
+          failures.push(ref.due_at + ': HTTP ' + r.status);
+        });
+      });
+    });
+    return chain.then(function () {
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        setBatchState(btn, false);
+      }
+    });
+  };
+
+  // Render recorded completion times in the viewer's browser locale/timezone.
+  Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {
+    var appliedAt = new Date(el.getAttribute('datetime'));
+    if (!isNaN(appliedAt.getTime())) {
+      el.textContent = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    }
+  });
+
+  // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
+  // R5-2c/S9: the history late-record button REUSES the apply modal for
+  // input kinds (observation → answer, weighing → weight, §10-L1): a
+  // blind confirm-POST would 4xx ("answer is required"). openApply marks
+  // the ref late (plan-late-btn class) so the submit records after the
+  // fact (bypasses only the apply-window 409).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (isInputKind(btn)) { openApply(btn); return; }
+      if (!window.confirm(lateConfirm)) { return; }
+      fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          late: true
+        })
+      }).then(function (r) {
+        if (r.status === 201) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // --- History: free undo (A8) ----------------------------------------------
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-history-undo'), function (btn) {
+    btn.addEventListener('click', function () {
+      fetch('/care_plan/unapply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          delete_fulfillment: true
+        })
+      }).then(function (r) {
+        if (r.status === 200) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // Zone dropdown memory (bugs.md U3): the legacy feeding screen remembered
+  // its tab in location.hash — replicate with a z- prefix so the tier
+  // anchors (#tier-*) never collide. A remembered zone only applies when
+  // the URL carries no explicit ?zone= filter.
+  var zoneTabs = document.querySelectorAll('#planZoneMenu a[data-zone]');
+  Array.prototype.forEach.call(zoneTabs, function (tab) {
+    tab.addEventListener('click', function () {
+      var z = tab.getAttribute('data-zone');
+      try { history.replaceState(null, '', z ? '#z-' + z : window.location.pathname + window.location.search); }
+      catch (e) { /* older browsers: ignore */ }
+    });
+  });
+  var zoneParam = new URLSearchParams(window.location.search).get('zone');
+  if (!zoneParam && window.location.hash.indexOf('#z-') === 0) {
+    var remembered = decodeURIComponent(window.location.hash.substring(3));
+    var match = null;
+    Array.prototype.forEach.call(zoneTabs, function (tab) {
+      if (tab.getAttribute('data-zone') === remembered) { match = tab; }
+    });
+    if (match) { window.location.replace(match.getAttribute('href')); }
+  }
+})();
+</script>

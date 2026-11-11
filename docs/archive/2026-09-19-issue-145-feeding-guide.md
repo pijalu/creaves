@@ -1,0 +1,8 @@
+## #145 — Aide au choix de l'alimentation — DONE ✅ commit a27efb0
+**Source:** https://github.com/pijalu/creaves/issues/145
+**Observed:** Care nav has no feeding guidance.
+**Expected:** Below alimentation field (read mode): "régime alimentaire" display. In edit: 4 buttons (bébé, juvénile, adulte, malade) → popup with species-specific diet text + copy button → pastes into alimentation field.
+**Implemented:** new `feeding_guides` table (species_name canonical + stage + text, unique idx — keyed by canonical *name* rather than species_id because animals.species is free text; resolves even without a species row). Admin single-page CRUD `/feeding_guides` (admin-only, duplicate species+stage rejected, species autocomplete). Read mode: localized "diet by life stage" block in animal show care tab (hidden when no guides). Edit mode: 4 stage buttons → modal fetches `/suggestions/feeding_guide` → "copy to field" fills the Feeding field; graceful empty state. 4 locales everywhere (template variants + `feeding_guide.stage.*` locale keys).
+**Test:** model validate/stages; handler tests (admin-only 403, CRUD roundtrip + duplicate, suggestion endpoint) `GO_ENV=test go test -run FeedingGuide ./models/ ./actions/`.
+**Validation:** agent-browser e2e — create guide, show block (en/fr/de), modal + copy + persist, empty state; test rows cleaned up.
+**Finding (pre-existing, latent):** `animals/edit.plush.de.html` and `.nl.html` include partial `animals/form.html` (English base) while fr references its localized partial → the animal form renders English for de/nl users; the de/nl `_form` variants (incl. new feeding-guide buttons) activate once those two partial refs are fixed.

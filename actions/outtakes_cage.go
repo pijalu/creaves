@@ -37,7 +37,7 @@ func OuttakeCageNew(c buffalo.Context) error {
 	cage := c.Param("cage")
 	if len(cage) == 0 {
 		outtake := &models.Outtake{
-			Date: time.Now(),
+			Date: models.FormWallClockNow(),
 		}
 		c.Set("outtake", outtake)
 		return c.Render(http.StatusOK, r.HTML("/outtakes/cage_new.plush.html"))

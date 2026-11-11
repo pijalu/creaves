@@ -1,0 +1,101 @@
+<div class="py-4 mb-2">
+  <h3 class="d-inline-block"><%= t("care_plan.rules.show_title") %></h3>
+  <div class="float-end">
+    <a href="<%= backTarget %>" class="btn btn-info" id="backLink"><%= t("care_plan.action.back") %></a>
+    <%= linkTo(editCareRulePath({ care_rule_id: rule.ID }), {class: "btn btn-warning", title: t("care_plan.action.edit"), body: "<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(careRulePath({ care_rule_id: rule.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("care_plan.action.confirm_delete"), title: t("care_plan.action.destroy"), body: "<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+  </div>
+</div>
+
+<ul class="list-group mb-2">
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.name") %></label>
+    <p class="d-inline-block"><%= richPlanName(tname("care_rules", rule.ID, rule.Name), rule.ActionKind, rule.ActionPayload) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.description") %></label>
+    <p class="d-inline-block"><%= if (rule.Description.Valid && rule.Description.String != "") { %><%= tdesc("care_rules", rule.ID, rule.Description) %><% } else { %>—<% } %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.action_kind") %></label>
+    <p class="d-inline-block"><span class="badge badge-secondary"><%= t("care_plan.kind." + rule.ActionKind) %></span></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.matcher") %></label>
+    <p class="d-inline-block">
+      <%= if (rule.MatcherID.Valid) { %>
+        <%= tname("care_matchers", rule.MatcherID.UUID, matcherName) %>
+      <% } else { %>
+        <span class="text-muted"><%= t("care_plan.matcher.none") %></span>
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.priority") %></label>
+    <p class="d-inline-block"><%= rule.Priority %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.active") %></label>
+    <p class="d-inline-block">
+      <%= if (rule.Active) { %>
+        <span class="badge badge-success"><%= t("care_plan.status.active") %></span>
+      <% } else { %>
+        <span class="badge badge-light"><%= t("care_plan.status.inactive") %></span>
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.validity_window") %></label>
+    <p class="d-inline-block">
+      <%= if (rule.ValidFrom != nil || rule.ValidTo != nil) { %>
+        <%= if (rule.ValidFrom != nil) { %><%= t("care_plan.field.valid_from") %>: <%= rule.ValidFrom.Format("2006-01-02 15:04") %><% } else { %><%= t("care_plan.field.valid_from") %>: —<% } %>
+        ·
+        <%= if (rule.ValidTo != nil) { %><%= t("care_plan.field.valid_to") %>: <%= rule.ValidTo.Format("2006-01-02 15:04") %><% } else { %><%= t("care_plan.field.valid_to") %>: —<% } %>
+      <% } else { %>
+        <span class="text-muted"><%= t("care_plan.validity.unbounded") %></span>
+      <% } %>
+    </p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.action_payload") %></label>
+    <p class="d-block mb-1">
+      <%= if (planContentLabel(rule.ActionKind, rule.ActionPayload) != "") { %>
+        <%= planContentLabel(rule.ActionKind, rule.ActionPayload) %>
+      <% } else { %>
+        <span class="text-muted">—</span>
+      <% } %>
+    </p>
+    <details class="small">
+      <summary class="text-muted"><%= t("care_plan.editor.raw_json") %></summary>
+      <pre class="small bg-light p-2 mb-0"><%= payloadStr %></pre>
+    </details>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.schedule") %></label>
+    <p class="d-block mb-1"><%= humanSchedule(scheduleStr) %></p>
+    <details class="small">
+      <summary class="text-muted"><%= t("care_plan.schedule_human.raw_json") %></summary>
+      <pre class="small bg-light p-2 mb-0"><%= scheduleStr %></pre>
+    </details>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.stop_on_outtake") %></label>
+    <p class="d-inline-block"><%= bool2html(rule.StopOnOuttake) %></p>
+  </li>
+
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("care_plan.field.latch_membership") %></label>
+    <p class="d-inline-block"><%= bool2html(rule.LatchMembership) %></p>
+  </li>
+
+</ul>

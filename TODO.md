@@ -110,6 +110,48 @@ This document tracks all pending TODOs and their implementation status. Items ar
    - Then TODO-PERF-002 (cache current user)
    - Then TODO-PERF-003 (pagination)
 
+## Care Expert System Engine (`models/careplan`)
+
+Pure-Go engine per [docs/care-expert.md](./docs/care-expert.md). Key research/decision record (2026-09):
+
+- [x] **CARE-PLAN-001**: Matcher field registry + AnimalContext (§5.1) — COMPLETED
+  - `models/careplan/matcher_registry.go` — 25 default fields, append-only `FieldProvider` registration, op/type contract (`opsByType`)
+  - `models/careplan/context.go` — DB-free DIP abstraction (`AnimalContext`), `days_in_care`, in-care flag
+  - Tests: `registry_test.go`
+
+- [x] **CARE-PLAN-002**: Matcher DSL parser via codegen (§5.2) — COMPLETED
+  - Grammar `models/careplan/dsl.y` (source of truth) → **goyacc** (`golang.org/x/tools/cmd/goyacc`, x/tools extension)
+  - Generated `dsl_yacc.go` is a **build artifact, NOT committed** — regenerate with `go generate ./models/careplan` (goyacc on PATH; easy build-phase generation ⇒ stays out of VCS)
+  - Lexer = thin adapter over stdlib **`text/scanner`** (no bespoke scanning engine): two-char ops (`<=`, `>=`, `!=`, `!~`), case-insensitive keywords, negative-number folding, regex-safe unquote (`\"`/`\\` are the only escapes; other backslashes pass through so RE2 patterns like `"\d{3}"` need no double-escaping)
+  - AST with 1-based byte-column token positions; `ParseError{Msg, Column}` for inline admin UI
+  - Save-time semantic validation (`ValidateNode`): unknown field, undeclared op, literal/type mismatch, empty `IN ()`, BETWEEN bounds order, RE2 compile cached on node
+  - Tests: `dsl_test.go` — grammar, precedence NOT>AND>OR, BETWEEN-AND ownership, syntax errors, semantic errors with exact columns, escapes
+
+- [ ] **CARE-PLAN-003**: Evaluator with why-trace + Preview (§5.3–5.5) — PENDING
+- [ ] **CARE-PLAN-004**: Schedule value object + occurrence generator (§4.3/§6.1: day-1 intake anchoring, `[intake, outtake)` clamp, `duration_days` counts generated days, DST boundary test) — PENDING
+- [ ] **CARE-PLAN-005**: Action payload validation per kind (§4.2: feeding/medication/care/cleanup/weighing/observation + `instructions`) — PENDING
+- [ ] **CARE-PLAN-006**: PlanSource interface + override resolver + status computation (§4.7/§6.1: slot-level & `replaces_kind` overrides, 8 statuses, apply window §10-A1, defer expiry §10-H1, per-kind grouping §6.2a, course latch §10-A4) — PENDING
+
+## Legacy Treatments Retirement ⏳ PENDING
+
+The legacy `/treatments` CRUD is still the dominant write path (~99% of
+treatment rows since the 2026-09-27 cutover bypass the care-plan engine).
+Full inventory, evidence, and discrete goals **G1–G6** are tracked in
+[docs/legacy-treatments-migration-plan.md](./docs/legacy-treatments-migration-plan.md):
+
+- [ ] **LEGACY-TREAT-001 (G1)**: remove the legacy create entry points (navbar New ▸ Treatment, "Add New treatment" on animal show/edit Treatment tab; all 4 locales)
+- [ ] **LEGACY-TREAT-002 (G2)**: one-off ad-hoc medication as a first-class engine source (protocol modal preset), incl. the wound-care `NoDrug` flow
+- [ ] **LEGACY-TREAT-003 (G3)**: gate legacy CRUD writes + bitmap toggle to admin; keep List/Show for history/fulfillment records
+- [ ] **LEGACY-TREAT-004 (G4)**: migrate open post-cutover legacy treatment schedules to `care_animal_plans` (idempotent grift, `careplan:fixnames` pattern)
+- [ ] **LEGACY-TREAT-005 (G5)**: collapse the Treatment tab into engine-only rendering; retire the legacy date-card block and the `animalPlanToday` shim
+- [ ] **LEGACY-TREAT-006 (G6)**: delete `TreatmentTemplate` flow + bitmap helpers; document `/treatments` CRUD retirement in `docs/care-expert.md` §8.3
+
+Fixed 2026-10-03 along the same report: the animal page's `#nav-treatment`
+pane closed early in `templates/animals/show.plush*.html`, pushing
+`#nav-plan`/`#nav-media`/`#nav-audit` out of `.tab-content` (tabs rendered
+stacked — "repeat of the animal content"; legacy treatment day cards leaked
+onto the Protocol tab).
+
 ## References
 
 - [PLAN.md](./PLAN.md) - Detailed implementation plan

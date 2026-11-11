@@ -1,0 +1,130 @@
+<%# Shared drug-series component (round-2 §8.3, CP1/Dash-8/T2): one line
+    per (drug, dosage) with its time-button series. The SAME partial renders
+    the care-plan medication section, the dashboard table and the animal
+    Treatment tab (Jakob's/Similarity: one visual language).
+
+    Context: `mg` — a MedGroupView (Series built by buildMedGroups).
+
+    R4-2.3 entry layout rule — the A/B/C shapes of ONE line:
+      A/ <ℹ> <label>            | <b1><b2>…<bX>   (all buttons on one line)
+      B/ <ℹ> <label>            | <b1>
+         <b2> … <bX>              (buttons wrap, still right-aligned)
+      C/ <ℹ> <label wrapped>   |
+         <b1>
+         <b2> … <bX>              (text wraps, buttons in a column)
+    Implementation: the line is a flex row (see .plan-med-line in
+    assets/css/care-plan.scss): the text block is `flex:1 1 auto; min-width:0`
+    (wraps in C), the button block `flex:0 1 auto; margin-left:auto` with its
+    own wrapping flex (one row in A, stacked + right-aligned in B).
+
+    R4-3.1: the read-only detail (ℹ) is the FIRST entry of the line, in a
+    fixed-width leading column, so every row's ℹ lands at the same x
+    regardless of label length. Its title stays localized; the ℹ glyph is
+    language-neutral and is never translated.
+
+    Divider rule (user request 2026-10-28): the ONLY splitter between a
+    series' buttons is a CALENDAR-DATE group — the divider carries the
+    row's date (row.DividerLabel). A same-day time-of-day bucket change
+    (matin/soir) NEVER splits the buttons: they flow in ONE right-aligned
+    wrapping group. The per-slot title already names the time-of-day
+    bucket.
+
+    R4-1.1: button colour = the slot's urgency tier (late red · due-now
+    yellow · future white · applied green); the glyph (○/✓/⊘/⏸/–) and the
+    title remain the accessible label, so colour is never the only signal.
+
+    Button states (depupdate language): outlined = open, ✓ green = applied
+    (click undoes), ⊘ skipped, ⏸ deferred, dimmed = out of the apply
+    window. A dimmed PAST button stays clickable (§6.2-2): one click
+    records the missed occurrence with the late acknowledgment
+    (data-late="true"). %>
+<div class="med-series flex-grow-1">
+  <%= for (si, series) in mg.Series { %>
+    <%# The line separator belongs BETWEEN series — never on top of the
+        first line (a leading border floats mid-air above the list).
+        B10-4: the line carries its source ref (data-source-type/id) —
+        the dashboard animal link's `?med=` deep link scrolls the animal
+        page's Treatment tab to THIS line.
+        B10-5: on the animal page the caller sets medSeriesRow so the line
+        picks up the SAME .plan-med-row compact row treatment as the item
+        lines — one visual family. %>
+    <div class="d-flex align-items-start plan-med-line plan-stale-scope<%= if (medSeriesRow) { %> plan-med-row plan-item-line<% } %><%= if (si > 0) { %> border-top mt-1 pt-1<% } %>"
+      data-source-type="<%= series.Rows[0].Slots[0].SourceType %>"
+      data-source-id="<%= series.Rows[0].Slots[0].SourceID %>">
+      <%# R4-3.1: fixed-width leading column — ℹ first, so the ℹ buttons
+          align down the whole list (B10-4: the dashboard eye is gone —
+          the ℹ popup itself opens in place). %>
+      <div class="plan-med-lead text-nowrap">
+        <button type="button" class="btn btn-outline-secondary btn-sm plan-detail-btn" title="<%= t("care_plan.detail.action") %>"
+          data-animal-label="<%= mg.AnimalLabel %>" data-animal-link="<%= mg.AnimalLink %>"
+          data-detail="<%= series.Label %>" data-source-name="<%= series.Rows[0].Slots[0].SourceName %>" data-source-link="<%= series.Rows[0].Slots[0].SourceLink %>"
+          data-kind="medication" data-due="<%= series.Rows[0].Slots[0].DueAtHM %>"
+          data-treatment-link="<%= series.Rows[0].Slots[0].ViewLink %>"
+          data-status="<%= series.Rows[0].Slots[0].Status %>" data-remaining="">ℹ</button>
+      </div>
+      <%# Text block: grows, wraps when the buttons need the room (C). %>
+      <div class="plan-med-label"><strong><%= series.Label %></strong></div>
+      <%# Buttons: ONE right-aligned group that wraps (A → B) — the day
+          badge travels with its own button (R4-3.2). %>
+      <div class="plan-med-btns">
+        <%# Item 8: the series' stale late occurrences fold into ONE
+            "N late" badge with a snooze; the rows carry the actionable
+            slots (the next upcoming action included). Rev (collapsible):
+            the badge is the toggle — the folded occurrences' own toggles
+            render HIDDEN (.plan-stale-slot) inside the line's
+            .plan-stale-scope and are revealed on click, so each can still
+            be recorded individually (the med slot JS is delegated, the
+            revealed buttons bind themselves). %>
+        <%= if (series.StaleLateCount > 0) { %>
+          <span class="plan-med-cell plan-stale-cell">
+            <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: series.StaleLateCount, staleRefs: series.StaleRefsJSON}) %>
+          </span>
+          <%= for (slot) in series.StaleSlots { %>
+            <span class="plan-med-cell plan-stale-slot d-none">
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%= partial("care_plan/plan_slot_toggle.plush.html") %>
+            </span>
+          <% } %>
+        <% } %>
+        <%= for (ri, row) in series.Rows { %>
+          <%# Divider rule (user request 2026-10-28): a splitter appears ONLY
+              at a CALENDAR-DATE change — the caption is the row's date
+              (row.DividerLabel), never a matin/midi/soir bucket name.
+              R9-3: on the DASHBOARD (medSeriesCompact) the caption is noise
+              on a single line — the buttons flow without it. %>
+          <%= if (row.DividerBefore && !medSeriesCompact) { %>
+            <%# Phase 1 / D1 (guideline §6.2): the caption band separates
+                BUTTON ROWS of a stacked series — it is NEVER inline between
+                two buttons of one row (its `flex: 1 0 100%` forces a fresh
+                row) and it is HIDDEN when the whole series fits one row
+                (every non-today slot carries its own day badge): the
+                bucket-fit JS in `_apply_toggle` measures each group and
+                hides the captions of a non-stacked group. No-JS fallback:
+                captions visible on their own rows — safe, never inline. %>
+            <div class="plan-med-bucket"><%= row.DividerLabel %></div>
+          <% } %>
+          <%= for (slot) in row.Slots { %>
+            <%# R3-5: a series spans several days — slots not due today
+                carry their day qualifier as a small badge NEXT TO the
+                button (outside it: the toggle JS rewrites the button
+                text on apply/undo, the badge stays). %>
+            <span class="plan-med-cell">
+              <%# The day qualifier is the ONLY day cue a non-today slot
+                  keeps: the date divider (when visible) spans the whole
+                  group, and the bucket-fit JS hides it when the group fits
+                  one row — tomorrow/yesterday slots therefore ALWAYS carry
+                  their badge (user request 2026-10-28: no bucket-name
+                  splitter to "already say the day"). %>
+              <%= if (slot.DueShortDate != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= slot.DueShortDate %></span><% } else if (slot.DueDayKey != "") { %><span class="badge badge-light border plan-med-day" title="<%= slot.DueAtRFC %>"><%= t(slot.DueDayKey) %></span><% } %>
+              <%# Phase 0b: the slot button itself is the `_plan_slot_toggle`
+                  component — ONE place for the applied/skipped/deferred/
+                  applicable/late/disabled variants (the loop variables
+                  `slot` and `mg` propagate into it). %>
+              <%= partial("care_plan/plan_slot_toggle.plush.html") %>
+            </span>
+          <% } %>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+</div>

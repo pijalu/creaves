@@ -1,12 +1,12 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Zone Details</h3>
+  <h3 class="d-inline-block"><%= t("zone.details") %></h3>
 
   <div class="float-end">
     <%= linkTo(zonesPath(), {class: "btn btn-info"}) { %>
-      Back to all Zones
+      <%= t("zone.back_to_all") %>
     <% } %>
-    <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: "Edit", body:"<i class='fa fa-edit'></i>"}) %>
-    <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": "Are you sure?", title: "Destroy", body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
+    <%= linkTo(editZonePath({ zone_id: zone.ID }), {class: "btn btn-warning", title: t("zone.edit"), body:"<i class='fa fa-edit'></i>"}) %>
+    <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-danger", "data-method": "DELETE", "data-confirm": t("zone.destroy.confirm"), title: t("zone.destroy"), body:"<i class='fa fa-trash'></i>", style:"width:44px"}) %>
   </div>
 </div>
 
@@ -16,26 +16,29 @@
 
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Zone</label>
+    <label class="small d-block"><%= t("zone.zone") %></label>
     <p class="d-inline-block"><%= tname("zones", zone.ID, zone.Zone) %></p>
   </li>
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Type</label>
+    <label class="small d-block"><%= t("zone.type") %></label>
     <p class="d-inline-block">
         <%= if (zone.Type == "external") { %>
-          external to the center
+          <%= t("zone.type.external") %>
         <% } else { %>
-          internal to the center
+          <%= t("zone.type.internal") %>
         <% } %>
     </p>
   </li>
 
-
+  <li class="list-group-item pb-1">
+    <label class="small d-block"><%= t("zone.default") %></label>
+    <p class="d-inline-block"><%= bool2html(zone.Default) %></p>
+  </li>
 
   <li class="list-group-item pb-1">
-    <label class="small d-block">Default</label>
-    <p class="d-inline-block"><%= bool2html(zone.Default) %></p>
+    <label class="small d-block"><%= t("zone.requires_cleanup") %></label>
+    <p class="d-inline-block"><%= bool2html(zone.RequiresCleanup) %></p>
   </li>
 
 

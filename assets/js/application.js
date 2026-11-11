@@ -68,6 +68,9 @@ DataTable.type('num-comma', {
         case 'en-US': lang = 'en'; break;
         default: lang = 'fr';
     }
+    // R9: single source of the normalized UI language for other scripts
+    // (the plan editor's localized time entry reads this).
+    window.CREAVES_UI_LANG = lang;
     if (window.jQuery && jQuery.fn && jQuery.fn.select2) {
         jQuery.fn.select2.defaults.set('language', lang);
     }
@@ -111,3 +114,22 @@ $(document).on('hide.bs.dropdown', (e) => {
     $(e.target).find('.dropdown-submenu.show').removeClass('show')
         .children('.dropdown-menu').removeClass('show');
 });
+
+// Navbar icon-only band (bugs.md R3-1): between lg and xl the top-level
+// nav collapses to icons only — surface each link's title as a Bootstrap
+// tooltip so the destination stays discoverable. Tooltips are enabled
+// only in that band; re-evaluated on resize.
+(function () {
+    function bandTooltips() {
+        const iconOnly = window.innerWidth >= 992 && window.innerWidth < 1200;
+        const $links = $('.navbar .nav-link[title]');
+        if (iconOnly) {
+            $links.tooltip({placement: 'bottom', boundary: 'window', trigger: 'hover'});
+        } else {
+            $links.filter(function () { return $(this).data('bs.tooltip'); })
+                .tooltip('dispose');
+        }
+    }
+    $(document).ready(bandTooltips);
+    $(window).on('resize', bandTooltips);
+})();

@@ -1,0 +1,23 @@
+<%# Body of a cleanup tier (Late/Now/Later): the bordered table of cleanup
+    rows, one row per (source × cage) — or per (source × animal) under
+    group=animal. Rendered through the `_plan_tier` layout by the caller,
+    which passes `careCards` (view.CareTiers[ti]), `ti` (the tier index, for
+    stable collapse ids) and `group` (view.Group) in the partial data map.
+
+    Phase 3 / D3 — cleanup joins the tiered urgency sections every other
+    kind already renders in (guideline §1), instead of the legacy flat
+    cage table. Each row is a `_plan_care_line` (time sub-group label once
+    + per-occurrence tier-coloured toggles + the apply-cage group check).
+
+    R4-4.3: urgency is the FIRST level — the rows are grouped into the
+    same late → now → later sections as every other kind.
+    R4-4.4 / R4-4.2 / R4-3.3: ONE group status dot next to the label, the
+    "+N" count as a corner overlay on the group check, no redundant status
+    text per toggle — the row partial carries those. %>
+<table class="table table-hover table-bordered mb-0">
+  <tbody>
+    <%= for (ri, ccard) in careCards { %>
+      <%= partial("care_plan/plan_care_line.plush.html", {ccard: ccard, ti: ti, ri: ri, group: group}) %>
+    <% } %>
+  </tbody>
+</table>

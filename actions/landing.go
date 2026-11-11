@@ -112,6 +112,16 @@ func LandingIndex(c buffalo.Context) error {
 	}
 	c.Set("zoneMap", zm)
 
+	// Care plan badge (§7.2): open items (due/late/missing) on today's
+	// plan. A planning failure degrades to zero — the badge is decorative.
+	// M3: dedicated count path, no full day-plan materialization.
+	// Round 10: short-TTL cached — the count is a full §6.1 assembly and
+	// the landing is the most-hit page (invalidated post-commit by the
+	// apply paths; 30s backstop).
+	dayOpen, dayLate := CountOpenItemsCached(tx, time.Now())
+	c.Set("dayPlanOpen", dayOpen)
+	c.Set("dayPlanLate", dayLate)
+
 	return responder.Wants("html", func(c buffalo.Context) error {
 		// Add clean cage flag
 		animalWithCleanCage, err := listAnimalWithCleanCage(c)
@@ -121,6 +131,12 @@ func LandingIndex(c buffalo.Context) error {
 		c.Set("animalsWithCleanCage", animalWithCleanCage)
 		c.Set("animalsByType", animalsByType)
 		c.Set("animalsByZone", animalsByZone)
+		// Traitements column (2026-10-09): merge the protocol's today
+		// medication occurrences into the legacy per-bucket stat — protocol
+		// rows only exist in the treatments table after the day's first
+		// apply, so the column would otherwise read "not required" all day
+		// for protocol animals.
+		c.Set("treatmentStats", mergedTreatmentStats(&animals, LandingTreatmentBucketsCached(tx, time.Now())))
 		return c.Render(http.StatusOK, r.HTML("landing/index.plush.html"))
 	}).Wants("json", func(c buffalo.Context) error {
 		return c.Render(200, r.JSON(animalsByType))

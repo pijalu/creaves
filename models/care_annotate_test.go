@@ -14,7 +14,7 @@ func TestAnnotateCaresForDisplay(t *testing.T) {
 
 	// Ordered by date descending, as the animal page loads them.
 	cares := []Care{
-		{Date: now, Weight: nulls.NewString("90")}, // today, up vs 100? no: 90 < 100 → down vs next weighted (100)
+		{Date: now, Weight: nulls.NewString("90")},                   // today, up vs 100? no: 90 < 100 → down vs next weighted (100)
 		{Date: now.Add(-2 * time.Hour), Weight: nulls.NewString("")}, // today, unweighted → no trend
 		{Date: yesterday, Weight: nulls.NewString("100")},            // down vs 110
 		{Date: twoDaysAgo, Weight: nulls.NewString("110")},           // no earlier weighted care

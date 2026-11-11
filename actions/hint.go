@@ -43,11 +43,21 @@ func localizeSpeciesHints(lang string, statusTr, indicationTr, precisionTr map[s
 	}
 }
 
-// HintSpeciesDetails default implementation.
+// HintSpeciesDetails returns the native-status hint rows for one species.
+// `q` may arrive as a LOCALIZED species name: the animal page's fallback
+// path sends the displayed text and the animal form sends what the user
+// picked — both are translated outside French. Resolve back to the
+// canonical creaves_species the query matches on, so the hint works in
+// every UI language (bug 2026-10-08: "Unknown species !" on /animals/10374
+// in English).
 func HintSpeciesDetails(c buffalo.Context) error {
 	s := []speciesHint{}
 
 	q := c.Param("q")
+	if len(q) == 0 {
+		return c.Render(404, r.JSON(s))
+	}
+	q = resolveReferenceInput(c, "species", q)
 	if len(q) == 0 {
 		return c.Render(404, r.JSON(s))
 	}

@@ -1,21 +1,29 @@
 <div class="py-4 mb-2">
-  <h3 class="d-inline-block">Entrées</h3>
+  <h3 class="d-inline-block">Admissions</h3>
   <div class="float-right">
     <%= linkTo(newIntakesPath(), {class: "btn btn-primary"}) { %>
-      Créer une nouvelle entrée
+      Nouvelle admission
     <% } %>
   </div>
 </div>
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    
+    <th>Date</th>
+    <th>État général</th>
+    <th>Blessures</th>
+    <th>Parasites</th>
+    <th>Remarques</th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
     <%= for (intake) in intakes { %>
       <tr>
-        
+        <td class="align-middle"><%= intake.DateFormated() %></td>
+        <td class="align-middle"><%= intake.General %></td>
+        <td class="align-middle"><%= bool2html(intake.HasWounds) %> <%= intake.Wounds %></td>
+        <td class="align-middle"><%= bool2html(intake.HasParasites) %> <%= intake.Parasites %></td>
+        <td class="align-middle"><%= intake.Remarks %></td>
         <td>
           <div class="float-right">
             <%= linkTo(intakePath({ intake_id: intake.ID }), {class: "btn btn-info", title: "Voir", body: "<i class='fa fa-eye'></i>"}) %>

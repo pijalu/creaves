@@ -13,6 +13,12 @@ This project has comprehensive agentic documentation split across multiple files
 | **MIGRATIONS_DOCUMENTATION.md** | Database schema, migrations, indexes, triggers | `/MIGRATIONS_DOCUMENTATION.md` |
 | **ASSETS_DOCUMENTATION.md** | Frontend assets, libraries, build process | `/ASSETS_DOCUMENTATION.md` |
 | **UTILITIES_DOCUMENTATION.md** | Helper functions, utilities, patterns | `/UTILITIES_DOCUMENTATION.md` |
+| **docs/care-expert.md** | Care Expert System specification (v2, implemented) | `/docs/care-expert.md` |
+| **docs/care-plan-validation-2026-09-27.md** | Care-plan migration/conversion + E2E validation report | `/docs/care-plan-validation-2026-09-27.md` |
+| **e2e/E2E-TEST.md** | Browser E2E test plan + results for the cross-app sync feature (restore, link, resync, arrivals, protocols, cares, outtakes, recovery — 2026-10-07/08) | `/e2e/E2E-TEST.md` |
+| **e2e/bugs.md** | Bugs found by the browser E2E runs (BUG-1…BUG-9) with fix + retest status | `/e2e/bugs.md` |
+| **e2e/EXPECTATIONS.md** | Fixture expectations for the scripted `e2e/run.sh` suite | `/e2e/EXPECTATIONS.md` |
+| **e2e/RESYNC_RUNBOOK.md** | Operator runbook: when/how to resync a center and verify | `/e2e/RESYNC_RUNBOOK.md` |
 
 **Event Forwarding**: This project pushes animal lifecycle events to **Creaves Console** via webhooks.
 See the [Event Forwarding to Creaves Console](#event-forwarding-to-creaves-console) section below and the
@@ -149,6 +155,7 @@ cd test && docker-compose up --build
 - **CSRF**: Enabled globally via `mw-csrf`
 - **DB transactions**: Every request wrapped in Pop transaction (`popmw.Transaction`)
 - **Time formats**: Custom formats registered in `models.DateTimeFormat` and `models.DateFormat`
+- **Generated code (careplan DSL)**: `models/careplan/dsl.y` is the source of truth for the matcher grammar; the parser `dsl_yacc.go` is goyacc-generated via `go generate ./models/careplan` (requires `golang.org/x/tools/cmd/goyacc`) and is **not committed**. If the careplan package fails to compile with undefined `Node`/`lexer`/`T_*` symbols — or after any `dsl.y` edit — run the generate step.
 - **Environment**: Controlled by `GO_ENV` (not `NODE_ENV` — webpack uses `GO_ENV` override)
 - **Assets**: Webpack outputs to `public/assets/` with content hashing; `manifest.json` tracks filenames
 
@@ -195,8 +202,10 @@ Creaves (this app)                    Creaves Console
 | `actions/configs.go` | Config management: `LoadConfig()`, `IsEventStreamEnabled()`, `IsWebhookEnabled()`, `GetInstanceID()` |
 | `actions/event_streams.go` | Event stream list/show/destroy handlers (admin UI) |
 | `models/event_stream.go` | EventStream model + EventPayload structs |
-| `models/config.go` | Config model + ConfigSettings (webhook config) |
-| `templates/config/_form.plush.html` | Webhook configuration UI |
+| `models/config.go` | Config model + ConfigSettings |
+| `actions/sync_targets.go` | Sync targets CRUD (multi-hub fan-out): `SyncTargetsResource` + undeliverable retry |
+| `templates/config/sync_edit.plush.html` + `templates/config/_sync_form.plush.html` | Sync Configuration page (`/sync_configuration`): Instance ID, Enable Event Stream, sync targets table |
+| `templates/sync_targets/_form.plush.html` | Sync target form (Name/Enabled/WebhookURL/APIKey/BatchSize/MaxPerMin) |
 | `templates/event_streams/` | Event stream admin views |
 
 ### Event Lifecycle
@@ -221,7 +230,7 @@ Creaves (this app)                    Creaves Console
 
 | Type | Trigger | Hook Location |
 |------|---------|---------------|
-| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
+| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event. Resync/expected-set **excludes destroyed (error-outtake) animals** — a restored DB with N animals announces N minus its Doublon records | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
 | `animal_discovered` | New animal intake | `actions/discoveries.go` |
 | `animal_status_changed` | Status update | `actions/animals.go` |
 | `animal_released` | Release outtake | `actions/outtakes.go` |
@@ -289,19 +298,19 @@ See `../creaves-console/AGENTS.md` for the full contract spec.
 
 ### Configuration
 
-Via admin UI: **Configuration** page (`/configs`).
+Via admin UI: **Administration → Synchronization** (`/sync_configuration`, `ConfigsResource.SyncEdit`) and the **Sync Targets** forms on that page.
 
-| Setting | Field | Default | Purpose |
-|---------|-------|---------|---------|
-| `EnableEventStream` | Checkbox | true | Master switch for event production |
-| `WebhookEnabled` | Checkbox | false | Master switch for webhook delivery |
-| `WebhookURL` | URL | (empty) | Console webhook endpoint, e.g. `https://console.example.com/webhook/events` |
-| `WebhookAPIKey` | Password | (empty) | Bearer token from Console's API key management |
-| `WebhookBatchSize` | Number | 1 | Events per HTTP request (1-100) |
-| `WebhookMaxPerMin` | Number | 60 | Rate limit (events/minute) |
+| Where | Setting | Field | Default | Purpose |
+|---------|-------|------|---------|---------|
+| Sync Configuration | Instance ID | `InstanceID` (top-level config column) | hostname or `INSTANCE_ID` env var | Unique per-center identifier stamped on every event + envelope |
+| Sync Configuration | Enable Event Stream | `Settings.EnableEventStream` | true | Master switch for event production |
+| Sync Target | Enabled | `Enabled` | true | Events are pushed to every enabled target with a webhook URL |
+| Sync Target | Webhook URL | `WebhookURL` | (empty) | Console webhook endpoint, e.g. `https://console.example.com/webhook/events` |
+| Sync Target | API Key | `WebhookAPIKey` | (empty) | Bearer token from Console's API key management |
+| Sync Target | Batch Size | `WebhookBatchSize` | 1 | Events per HTTP request (1-100) |
+| Sync Target | Max Events Per Minute | `WebhookMaxPerMin` | 60 | Rate limit (events/minute) |
 
-Config is cached in `CurrentConfig` (global). First load auto-creates a default config
-with `instance_id` = hostname or `INSTANCE_ID` env var.
+Config is cached in `CurrentConfig` (global). First load auto-creates a default config. `IsWebhookEnabled()` returns true when **at least one enabled sync target has a webhook URL** — there is no per-config `Settings.WebhookEnabled` flag. Creaves can fan out to **multiple** consoles (one target each); each target tracks its own Pending/Delivered/Undeliverable/Unconfirmed counts, and `POST /sync_targets/{id}/retry_undeliverable` re-queues dead letters.
 
 ### Webhook Delivery Details
 
@@ -346,32 +355,26 @@ buffalo task event:snapshot:stats   # Show statistics
 ### Setup Checklist (Connecting to Console)
 
 1. Deploy Creaves Console (see `../creaves-console/AGENTS.md`)
-2. In Console: create a Webhook API Key, copy the raw key
-3. In Creaves: go to **Configuration**:
-   - Set `Instance ID` (unique per center, e.g. `center-strasbourg`)
+2. In Console: create a Webhook API Key (Instance ID **required**, must equal this instance's ID), copy the raw key
+3. In Creaves: go to **Administration → Synchronization** (`/sync_configuration`):
+   - Set `Instance ID` (unique per center, e.g. `center-strasbourg`) — must match the key
    - Enable **Event Stream**
-   - Enable **Webhook**
-   - Set **Webhook URL** to `https://<console>/webhook/events`
-   - Paste **API Key**
+   - **Add sync target**: Enabled ✅, Webhook URL `https://<console>/webhook/events`, paste the **API Key**, Batch Size / Max per min as needed
 4. Create or edit an animal → verify event appears in Console dashboard
-5. For existing data: run `buffalo task event:snapshot`
+5. For existing data: run `buffalo task event:snapshot` (or **Start resync** on `/webhook_resync`, which also announces the expected sync set to the console)
 
 ### Known Issues / WIP
 
-- **Worker not started at boot**: `StartWebhookWorker()` is only called lazily from
-  `PublishEvent()`. If webhook is enabled but no new events arrive, undelivered events
-  from a previous session won't be picked up until a new event triggers the worker.
-  Fix: call `LoadConfig()` + `StartWebhookWorker()` in `App()` initialization.
-- **Partial failure handling**: The console returns HTTP 200 even when some events in
-  a batch fail. The pusher marks the entire batch as delivered, potentially losing
-  failed events. (Console logs the errors in the response body.)
+- **Worker start**: resolved — the worker starts at boot (`InitWebhookAtBoot()`, called from `cmd/app/main.go`), on sync-target save, and is woken immediately by `PublishEvent()`. Failed deliveries are retried on the 60s fallback tick.
+- **Partial failure handling**: resolved — the console answers `{"processed": N, "total": M, "processed_ids": [...]}`; the pusher marks **only the acknowledged IDs** delivered and retries the rest on the next tick (§ partial failure in `docs/SETUP_AND_TESTING.md`).
+- **Status classification in state events**: `applyCurrentStatus` (webhook_resync.go) derives `current_status` for every full-state event as `in_care`, `released` (alive outtake) or `died` (outtake type `dead`) — live outtake events and resync snapshots agree. Changing it changes dead animals' content hashes, so a resync after such a change re-sends them once (expected).
 
 ### Troubleshooting (Event Forwarding)
 
 | Symptom | Check |
 |---------|-------|
-| Events not delivered to console | 1. `IsWebhookEnabled()`? 2. `WebhookURL` + `WebhookAPIKey` set? 3. Circuit breaker open (5 failures → 60s pause)? 4. Console reachable from Creaves network? |
-| `delivered_at` stays NULL | Worker not started. Create any animal event to trigger `StartWebhookWorker()`. (WIP: should start at boot) |
+| Events not delivered to console | 1. `IsEventStreamEnabled()`? 2. Does an **Enabled** sync target with a `WebhookURL` + `WebhookAPIKey` exist (`/sync_configuration`)? 3. Circuit breaker open (5 failures → 60s pause)? 4. Console reachable from Creaves network? |
+| `delivered_at` stays NULL | Worker runs at boot and on every publish; check the sync target is enabled and the URL is correct. Event stream disabled (`Settings.EnableEventStream` off) produces no events at all. |
 | Console returns 401 | API key mismatch — regenerate key in Console admin UI |
 | Console returns 400 | Malformed payload — check `event_producer.go` payload building |
 | Events delivered but missing in console view | Run `buffalo task consolidation:process` on the Console side |
@@ -389,8 +392,8 @@ go test ./actions/... ./models/...
 # 3. Check event_streams table: SELECT * FROM event_streams ORDER BY created_at DESC LIMIT 5;
 
 # Verify webhook delivery:
-# 1. Set WebhookURL + APIKey in Configuration
-# 2. Enable webhook
+# 1. /sync_configuration: set Instance ID, enable Event Stream
+# 2. Add an Enabled sync target with WebhookURL + API Key
 # 3. Create/edit an animal
 # 4. Check delivered_at is set near-instantly (wake-driven; 60s fallback tick at worst)
 # 5. Check Console dashboard shows the event
@@ -401,17 +404,103 @@ buffalo task event:snapshot:stats
 
 ---
 
+## Care-Plan Conversion: Gates, Repair, Refresh (operational)
+
+The legacy→care-plan conversion (BUG-36/BUG-50 rounds) ships with all-animal
+gates. Run them against a database via `POP_PATH=<cfg> buffalo task …` — they
+are READ-ONLY and safe on prod.
+
+```bash
+# Feeding: every in-care animal with a legacy trace must have a converter plan
+# whose schedule canonically equals the recomputed expectation.
+# FAIL = missing plan (missed meal) or STALE schedule (edited legacy row the
+# one-shot converter never re-translated — see bugs.md BUG-50/BUG-53).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-feeding
+
+# Treatment: every future-dated treatment series must be covered by an ACTIVE
+# converter plan (converter grouping/routing, no second source of truth).
+# MISSING = uncovered prescription (hard failure); INACTIVE = deliberate stop
+# (reported, healthy); ORPHAN = informational.
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-treatments
+
+# One-shot treatment repair (converter plans only, human plans untouched):
+# deletes created_by IS NULL AND action_kind <> 'feeding' rows and re-runs the
+# treatment conversion in one transaction. Use after a converter semantics
+# change (name guard makes refresh idempotency unsafe — see e2e/bugs.md
+# BUG-52c/52e rounds).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:reconvert-treatments
+
+# Name repair: recomputes every conversion-stamped feeding name from the
+# payload diet (repairs legacy byte-truncation and the retired
+# "(à vérifier)" suffix — names are definitive, uncertainty lives in the
+# needs_confirmation flag).
+POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:fixnames
+
+# Write path (repairs stale/missing feeding plans, retires zombies, NEVER
+# touches human-authored plans; marker-guarded startup_v5 pass):
+buffalo task careplan:repair-feeding
+```
+
+### needs_confirmation workflow (BUG-52e user ruling, 2026-10-14)
+
+The converter is DEFINITIVE: it never emits "(à vérifier)" name suffixes and
+never sets needs_confirmation. Uncertainty is a MANUAL flag:
+
+- `care_animal_plans.needs_confirmation` (migration 20261029120000) — set from
+  the plan detail editor checkbox ("Needs confirmation") or the feeding
+  summary's flag button; `POST /care_animal_plans/{id}/confirmation`
+  (`needs_confirmation=1|0`, bare = toggle; column-scoped write, local-back
+  redirect sanitized BUG-R5).
+- `GET /reports/confirmations` (admin) — "Protocols to confirm" screen: every
+  flagged plan grouped by animal, Resolve action = same endpoint with
+  `needs_confirmation=0`.
+- The flag has NO scheduling behaviour — occurrences are never suppressed by
+  it; the animal page feeding summary exposes it as NeedsReview.
+
+Boot behavior (`cmd/app/main.go`):
+- `startup_v5` — feeding repair + all-animals validation gate (marker-guarded,
+  runs once per DB; the grifts above are the re-check path).
+- Treatment refresh — re-runs the idempotent treatment-series conversion on
+  EVERY boot (NOT marker-guarded): prescriptions added after the conversion day
+  are picked up automatically; an error aborts the boot.
+
+Fixture tooling (safe throwaway DBs for conversion/E2E work — NEVER point the
+app at prod): `scripts/clone_fixture_db.sh <dump.sql.gz> <clone_db>` builds a
+clone from a dump with the right collation/migration-drift/POP_PATH handling;
+`buffalo task admin:reset-password` seeds/resets the fixture admin login.
+Details and history: `bugs.md` (BUG-50..BUG-54),
+`e2e/bugs.md` (older rounds).
+
+---
+
 ## Performance Notes
 
-Critical for multi-user deployment on limited hardware.
+Critical for multi-user deployment on limited hardware. Full assessment with
+measurements: [docs/performance-assessment-2026-10-04.md](./docs/performance-assessment-2026-10-04.md).
 
-### Known Bottlenecks
-- **Reference data fetched from DB on every request**: `actions/typehelper.go` loads animal types, care types, zones, etc. without caching
-- **User re-fetched from DB every request**: `actions/users.go:SetCurrentUser` does `tx.Find(u, uid)` on every authenticated request
-- **Landing page loads ALL animals**: `actions/landing.go` loads every in-care animal without pagination
-- **N+1 queries**: Some handlers still use `EnrichAnimals` (older) instead of `EnrichAnimalsOptimized`
-- **No connection pool tuning**: `models/models.go` uses default Pop connection settings
-- **Eager() overuse**: Many handlers use `tx.Eager()` which can generate unexpected queries
+### Implemented optimizations
+- **Reference data cache**: `actions/refcache.go` caches animaltypes, zones,
+  caretypes, etc. (single-flight loads, 60s TTL backstop, post-commit
+  invalidation from the admin CRUD resources).
+- **User lookup cache**: `SetCurrentUser` resolves through `cachedUserByID`.
+- **Bulk enrichment**: listings use `EnrichAnimalsOptimized` (and the
+  `NoTreatments` variant when the template renders no treatments); the
+  today-treatments query bulk-loads `treatment_time_entries` (no nested-eager
+  N+1).
+- **Care-plan assemblies**: fill pipeline is bulk; the in-care animal load
+  uses two indexed queries (never an OR-of-IN, which full-scans); the
+  landing badge is a 30s-TTL cache invalidated post-commit by the apply
+  paths (`CountOpenItemsCached`).
+- **Hot-path indexes on `cares`**: `(animal_id, weight, date)` for the
+  latest-weight lookup, `(animal_id, type_id, date)` for the warning query.
+- **Connection pool caps**: `database.yml` (pool/idlepool/connmaxlifetime).
+- **Weight-loss cache**: dashboard data cached per day, weight-touching
+  writes invalidate.
+
+### Known residual costs (measured, acceptable at current scale)
+- Each plan page still builds its §6.1 assembly per request (~35ms at
+  production-scale dev data). See "Residual opportunities" in the
+  assessment doc before adding a plan-level cache.
 
 ### Implementation Tracking
 
@@ -420,8 +509,8 @@ See [TODO.md](./TODO.md) for complete list of pending and completed TODOs with i
 **Quick Status:**
 - ✅ **Phase 1: Foundation** - Event stream table, schema design, instance identifiers - COMPLETED
 - ✅ **Phase 2: Event Production** - Event producer hooks in discoveries/animals/outtakes - COMPLETED
-- 🔄 **Phase 3: Consolidation** - Event processor, consolidated view - IN PROGRESS
-- ⏳ **Phase 4: Performance** - Caching, pagination, connection pooling - PENDING
+- ✅ **Phase 3: Consolidation** - Event processor, consolidated view - COMPLETED
+- ✅ **Phase 4: Performance** - Caching, pagination, connection pooling, hot-path indexes, N+1 removal - COMPLETED (round 10; see docs/performance-assessment-2026-10-04.md)
 
 ## Testing Requirements
 

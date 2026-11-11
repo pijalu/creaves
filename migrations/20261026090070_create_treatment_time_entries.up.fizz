@@ -1,0 +1,19 @@
+create_table("treatment_time_entries") {
+	t.Column("id", "uuid", {primary: true})
+	t.Column("treatment_id", "uuid", {size: 36})
+	t.Column("animal_id", "int", {})
+	t.Column("due_at", "datetime", {})
+	t.Column("time_label", "string", {size: 5})
+	t.Column("status", "string", {size: 16})
+	t.Column("applied_at", "datetime", {null: true})
+	t.Column("user_id", "uuid", {null: true})
+	t.Column("note", "text", {null: true})
+	t.Column("source", "string", {size: 16})
+	t.Column("application_id", "uuid", {null: true})
+	t.Timestamps()
+
+	t.ForeignKey("treatment_id", {"treatments": ["id"]}, {
+		"on_delete": "CASCADE"
+	})
+}
+add_index("treatment_time_entries", "treatment_id")

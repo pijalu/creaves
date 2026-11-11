@@ -2,7 +2,11 @@
   <div class="col-md-12">
     <div class="subtitle">
       <div class="container">
-        <h3>Animaux en cours de soins</h3>
+        <h3>Animaux en cours de soins
+          <a href="/care_plan" class="badge <%= if (dayPlanLate > 0) { %>badge-danger<% } else if (dayPlanOpen > 0) { %>badge-warning<% } else { %>badge-success<% } %> ml-2" title="Day plan">
+            <i class="fas fa-calendar-check"></i> <%= t("nav.care_plan_dayplan") %>: <%= dayPlanOpen + dayPlanLate %>
+          </a>
+        </h3>
       </div>
     </div>
     
@@ -80,9 +84,9 @@
   <li class="nav-item">
     <a class="nav-link <%= if (i==0) {%>active<%}%>" id="t-<%= at.ID %>-tab" data-toggle="tab" href="#t-<%= at.ID %>" role="tab" aria-controls="home" aria-selected="true">
       <%= if (params["v"] != "type" && zoneMap[at.Name] == "external") {%>
-        <i><%= at.Name %></i>
+        <i><%= if (params["v"] != "type") { %><%= tbase("zones", "zone", at.Name) %><% } else { %><%= tbase("animaltypes", "name", at.Name) %><% } %></i>
       <% } else { %>
-        <%= at.Name %>
+        <%= if (params["v"] != "type") { %><%= tbase("zones", "zone", at.Name) %><% } else { %><%= tbase("animaltypes", "name", at.Name) %><% } %>
       <% } %>
     </a>
   </li>
@@ -131,9 +135,9 @@
             <%= if (params["v"] == "type") { %>
               <td class="align-middle">
                 <%= if (params["v"] == "type" && zoneMap[ animal.Zone.String ] == "external") {%>
-                  <i><%= animal.Zone %></i>
+                  <i><%= tbase("zones", "zone", animal.Zone) %></i>
                 <% } else { %>
-                  <%= animal.Zone %>
+                  <%= tbase("zones", "zone", animal.Zone) %>
                 <% } %>
               </td>
             <% } else { %>
@@ -155,7 +159,7 @@
             <td class="align-middle"><%= animal.Ring %></td>
             <td class="align-middle">
               <% 
-                  let stat = animal.Treatments.TodayStatitics()
+                  let stat = treatmentStats[animal.ID]
                   let morning = stat.Morning
                   let noon = stat.Noon 
                   let evening = stat.Evening

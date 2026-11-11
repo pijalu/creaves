@@ -1,0 +1,89 @@
+<%# R4-7.13 — reason modal + delegated JS for the per-animal rule exception
+    (see _trace_exception_ctrl.plush.html). Locale-agnostic: only t() calls,
+    so ONE file serves all four locales.
+
+    Context: animal (the *models.Animal). %>
+<div class="modal fade" id="careRuleExclusionModal" tabindex="-1" role="dialog" aria-labelledby="careRuleExclusionModalTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h5 class="modal-title" id="careRuleExclusionModalTitle"><%= t("care_plan.protocol_trace.exclude") %></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="<%= t("care_plan.action.cancel") %>">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body py-2">
+        <p class="small text-muted mb-2"><%= t("care_plan.protocol_trace.exclude_intro") %></p>
+        <div class="form-group mb-0">
+          <label for="careRuleExclusionReason"><%= t("care_plan.protocol_trace.exception_reason") %></label>
+          <input type="text" class="form-control form-control-sm" id="careRuleExclusionReason" maxlength="500"
+                 placeholder="<%= t("care_plan.protocol_trace.exception_reason_ph") %>">
+        </div>
+        <div class="alert alert-danger d-none mt-2 mb-0 py-1 px-2 small" id="careRuleExclusionError"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal"><%= t("care_plan.action.cancel") %></button>
+        <button type="button" class="btn btn-danger" id="careRuleExclusionSaveBtn"><i class="fas fa-ban"></i> <%= t("care_plan.protocol_trace.exception_save") %></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var host = document.getElementById('planDetails');
+  if (!host || !document.getElementById('careRuleExclusionModal')) { return; }
+  var animalId = host.getAttribute('data-animal-id');
+  var baseUrl = '/animals/' + animalId + '/care_rule_exclusions';
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  var editingRule = null;
+
+  function headers() {
+    return {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf};
+  }
+  function err(msg) {
+    var box = document.getElementById('careRuleExclusionError');
+    box.textContent = msg;
+    box.classList.remove('d-none');
+  }
+  function openExclude(id, name) {
+    editingRule = id;
+    document.getElementById('careRuleExclusionReason').value = '';
+    document.getElementById('careRuleExclusionError').classList.add('d-none');
+    $('#careRuleExclusionModal').modal('show');
+  }
+  function save() {
+    if (!editingRule) { return; }
+    var reason = document.getElementById('careRuleExclusionReason').value;
+    fetch(baseUrl, {
+      method: 'POST',
+      headers: headers(),
+      credentials: 'same-origin',
+      body: JSON.stringify({rule_id: editingRule, reason: reason})
+    }).then(function (r) {
+      if (r.ok) { window.location.reload(); return; }
+      return r.json().then(function (j) {
+        var detail = (j && j.error) ? j.error : <%= jsString(t("care_plan.protocol_trace.exception_error")) %>;
+        err(<%= jsString(t("care_plan.protocol_trace.exception_error")) %> + ' — ' + detail);
+      });
+    }).catch(function () {
+      err(<%= jsString(t("care_plan.protocol_trace.exception_error")) %>);
+    });
+  }
+  function restore(id) {
+    if (!window.confirm(<%= jsString(t("care_plan.protocol_trace.restore_confirm")) %>)) { return; }
+    fetch(baseUrl + '/' + id, {method: 'DELETE', headers: headers(), credentials: 'same-origin'})
+      .then(function (r) { if (r.ok) { window.location.reload(); } });
+  }
+
+  document.getElementById('careRuleExclusionSaveBtn').addEventListener('click', save);
+  Array.prototype.forEach.call(document.querySelectorAll('.careRuleExcludeBtn'), function (b) {
+    b.addEventListener('click', function () {
+      openExclude(b.getAttribute('data-id'), b.getAttribute('data-name'));
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.careRuleRestoreBtn'), function (b) {
+    b.addEventListener('click', function () { restore(b.getAttribute('data-id')); });
+  });
+})();
+</script>

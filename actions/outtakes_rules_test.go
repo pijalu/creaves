@@ -183,7 +183,9 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 	must(tx.Create(&disc))
 	d := models.Discovery{ID: uuid.Must(uuid.NewV4()), Date: time.Now(), DiscovererID: disc.ID, EntryCauseID: ec.ID}
 	must(tx.Create(&d))
-	in := models.Intake{ID: uuid.Must(uuid.NewV4()), Date: time.Now().Add(-300 * 24 * time.Hour)}
+	// Keep the intake comfortably before the fixed 2026/01/15 outtake dates
+	// below; -300 days collides with that date during part of November.
+	in := models.Intake{ID: uuid.Must(uuid.NewV4()), Date: time.Now().Add(-400 * 24 * time.Hour)}
 	must(tx.Create(&in))
 
 	sp := models.Species{
@@ -216,7 +218,7 @@ func createOuttakeRulesFixture(t *testing.T, tx *pop.Connection, excludedNS, loc
 		AnimalageID:  aa.ID,
 		DiscoveryID:  d.ID,
 		IntakeID:     in.ID,
-		IntakeDate:   time.Now().Add(-300 * 24 * time.Hour),
+		IntakeDate:   time.Now().Add(-400 * 24 * time.Hour),
 	}
 	must(tx.Create(&a))
 

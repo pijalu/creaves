@@ -1,0 +1,2 @@
+drop_index("cares", "cares_animal_id_weight_date_idx")
+drop_index("cares", "cares_animal_id_type_id_date_idx")

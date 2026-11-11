@@ -31,10 +31,10 @@
     options: selectTraveltype, 
     required:"required"}) 
 %>
-<%= f.InputTag("TypeDetails") %>
+<%= f.InputTag("TypeDetails", {label:"Type details"}) %>
 
-<%= f.InputTag("Distance", {type:"number"}) %>
-<%= f.TextAreaTag("Details", {rows: 10}) %>
+<%= f.InputTag("Distance", {type:"number", label:"Distance"}) %>
+<%= f.TextAreaTag("Details", {label:"Details", rows: 10}) %>
 <button class="btn btn-success" role="submit">Save</button>
 <script type="text/javascript">
 $( document ).ready(function(){

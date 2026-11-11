@@ -2,7 +2,7 @@
 <%= f.TextAreaTag("Description", {rows: 10, label:"Omschrijving"}) %>
 <%= f.CheckboxTag("Default", {label:"Standaard", unchecked: false}) %>
 <%= partial("translations/fields.html") %>
-<button class="btn btn-success" role="submit">Opslaan</button>
+<button class="btn btn-success" type="submit">Opslaan</button>
 <script type="text/javascript">
 $( document ).ready(function(){
     window.submitfix();

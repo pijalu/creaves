@@ -43,6 +43,20 @@ JOIN
         WHERE
           reset_warning = TRUE OR warning = TRUE
       )
+      -- Perf (round 10): the outer WHERE only keeps in-care animals, so
+      -- computing last-care groups for every animal ever recorded
+      -- (~3.3k groups over 373k cares) was discarded at the join.
+      -- Restricting the aggregate to in-care animals drops the dashboard
+      -- query from ~41ms to ~7.6ms on the production-scale dev dataset
+      -- (docs/performance-assessment-2026-10-04.md).
+      AND animal_id IN (
+        SELECT
+          id
+        FROM
+          animals
+        WHERE
+          outtake_id IS NULL
+      )
     GROUP BY
       animal_id
   ) AS last_cares ON c.animal_id = last_cares.animal_id AND c.date = last_cares.last_care_date
@@ -63,19 +77,6 @@ GROUP BY at.name
 ORDER by at.name
 `
 
-// SQL_ANIMAL_WITH_TODAY_TREATMENTS returns the animals with today treatments
-const SQL_ANIMAL_WITH_TODAY_TREATMENTS = `
-SELECT a.*
-FROM animals a
-WHERE EXISTS(
-	SELECT *
-	FROM treatments t
-	WHERE t.animal_id = a.id
-	  AND t.timebitmap <> t.timedonebitmap
-	  AND t.date >= ?
-	  AND t.date < ?)
-`
-
 func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
@@ -93,25 +94,6 @@ func listOpenCares(c buffalo.Context) ([]models.CareWithAnimalNumber, error) {
 	}
 
 	return cares, nil
-}
-
-func listAnimalWithTodayTreatments(c buffalo.Context) (*models.Animals, error) {
-	now := time.Now()
-	nowDt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-	tmrDt := nowDt.AddDate(0, 0, 1)
-
-	animals := &models.Animals{}
-
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	// Retrieve all animals with today treatments from the DB with optimized query
-	if err := tx.RawQuery(SQL_ANIMAL_WITH_TODAY_TREATMENTS, nowDt, tmrDt).All(animals); err != nil {
-		return nil, err
-	}
-	return EnrichAnimalsOptimized(animals, c)
 }
 
 // listTodaysVetVisits returns the veterinary visits planned today with their
@@ -206,11 +188,27 @@ func DashboardIndex(c buffalo.Context) error {
 	}
 	c.Set("openCares", oc)
 
-	animals, err := listAnimalWithTodayTreatments(c)
+	// "Animals with treatments today": the NEW care-plan medication view —
+	// per-animal medication cards (slot toggles), same view model as the
+	// /care_plan work screen, embedded. Replaces the legacy per-treatment
+	// table (animalsToTreat).
+	tx, ok := c.Value("tx").(*pop.Connection)
+	if !ok {
+		return fmt.Errorf("no transaction found")
+	}
+	now := time.Now()
+	// bugs.md R5-2a: today-only window — the dashboard shows today's
+	// medication with honest counts, /care_plan keeps the 4-day window.
+	from, to := TodayPlanWindow(now)
+	plan, err := BuildDayPlan(tx, now, from, to)
 	if err != nil {
 		return err
 	}
-	c.Set("animalsToTreat", animals)
+	// Species labels must match the animals list (tspecies-localized),
+	// not the raw canonical-French base stored on animals.species.
+	localizePlanSpecies(c, plan)
+	c.Set("medicationCards", BuildDashboardMedView(plan, ""))
+	c.Set("currentUser", GetCurrentUser(c))
 
 	vvs, err := listTodaysVetVisits(c)
 	if err != nil {

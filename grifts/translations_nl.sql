@@ -3,7 +3,7 @@
 
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('238df799-9358-5fb6-a4c2-d66cdedac1f5','animalages','55e46d9c-3918-4b89-9f97-5e2534d1baca','name','nl','baby',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('b5f92db0-b736-596b-a48c-46d548ab33ab','animalages','55e46d9c-3918-4b89-9f97-5e2534d1baca','description','nl','Vederloos of haarloos',NOW(),NOW());
-INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('ff621f41-973c-5c05-b9cc-cf9b6f02e983','animalages','666b9be9-1b39-4e85-9a8c-390a08e16b69','name','nl','juvéniel',NOW(),NOW());
+INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('ff621f41-973c-5c05-b9cc-cf9b6f02e983','animalages','666b9be9-1b39-4e85-9a8c-390a08e16b69','name','nl','juveniel',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('bf1176b0-0f56-5a70-9384-8aab2ae0fcb8','animalages','d8d41503-f5ba-422b-896c-116a4931605f','name','nl','volwassen',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('f559db78-30cd-5e5c-b950-1370ae07605d','animaltypes','1d2bf17b-9216-41e1-9978-89755011d773','name','nl','Grote vogels',NOW(),NOW());
 INSERT INTO translations (id, table_name, record_id, field, locale, value, created_at, updated_at) VALUES ('9469f522-9e48-5193-b5d7-24fea1dc85f0','animaltypes','1d2bf17b-9216-41e1-9978-89755011d773','description','nl','Zeekoet',NOW(),NOW());

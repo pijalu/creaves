@@ -4,7 +4,6 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -102,7 +101,7 @@ func (v TravelsResource) Show(c buffalo.Context) error {
 // This function is mapped to the path GET /travels/new
 func (v TravelsResource) New(c buffalo.Context) error {
 	travel := &models.Travel{
-		Date:   time.Now(),
+		Date:   models.FormWallClockNow(),
 		UserID: GetCurrentUser(c).ID,
 		User:   GetCurrentUser(c),
 	}

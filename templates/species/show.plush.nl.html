@@ -23,7 +23,7 @@
   <li class="list-group-item pb-1"><label class="small d-block">Jachtbaar</label><p class="d-inline-block"><%= bool2html(species.Huntable) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Inheemse status</label><p class="d-inline-block"><%= nativeStatusLabel %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Diergroep</label><p class="d-inline-block"><%= tname("animaltypes", species.Animaltype.ID, species.Animaltype.Name) %></p></li>
-  <li class="list-group-item pb-1"><label class="small d-block">Creaves-soort</label><p class="d-inline-block"><%= tfield("species", "creaves_species", species.ID, species.CreavesSpecies) %></p></li>
+  <li class="list-group-item pb-1"><label class="small d-block">Creaves-soort</label><p class="d-inline-block"><%= tname("species", species.ID, species.CreavesSpecies) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Creaves-groep</label><p class="d-inline-block"><%= tfield("species", "agw_group", species.ID, species.AgwGroup) %></p></li>
   <li class="list-group-item pb-1"><label class="small d-block">Subsidie</label><p class="d-inline-block"><%= tfield("species", "subside_group", species.ID, species.SubsideGroup) %></p></li>
 

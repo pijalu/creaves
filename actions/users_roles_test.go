@@ -209,6 +209,13 @@ func TestRoleAllowsMatrix(t *testing.T) {
 		{"spw post todos", models.UserRoleSPW, "POST", "/todos", false, false},
 		{"spw get vetvisits", models.UserRoleSPW, "GET", "/veterinaryvisits", false, false},
 		{"spw get cares", models.UserRoleSPW, "GET", "/cares", false, false},
+		// §7.2a/§10-A5: SPW may consult individual records linked from an animal plan,
+		// but not the list pages or any write endpoint.
+		{"spw get care show", models.UserRoleSPW, "GET", "/cares/9f83d380-2ee4-4d3f-9b41-" + otherID.String()[:12], false, true},
+		{"spw get treatments", models.UserRoleSPW, "GET", "/treatments", false, false},
+		{"spw get treatment show", models.UserRoleSPW, "GET", "/treatments/9f83d380-2ee4-4d3f-9b41-" + otherID.String()[:12], false, true},
+		{"spw post care", models.UserRoleSPW, "POST", "/cares", false, false},
+		{"spw delete care", models.UserRoleSPW, "DELETE", "/cares/1", false, false},
 		{"spw get reception", models.UserRoleSPW, "GET", "/reception/new", false, false},
 		{"spw post users", models.UserRoleSPW, "POST", "/users", false, false},
 		{"spw post vetvisit", models.UserRoleSPW, "POST", "/veterinaryvisits", false, false},

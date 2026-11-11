@@ -4,7 +4,6 @@ import (
 	"creaves/models"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/pop/v6"
@@ -108,7 +107,7 @@ func (v VeterinaryvisitsResource) New(c buffalo.Context) error {
 	}
 
 	vv := &models.Veterinaryvisit{
-		Date:   time.Now(),
+		Date:   models.FormWallClockNow(),
 		UserID: GetCurrentUser(c).ID,
 	}
 	c.Set("veterinaryvisit", vv)

@@ -1,0 +1,182 @@
+<%# ONE cleanup row (guideline §3/§4, phase 3 / D3), in the SAME visual
+    language as the feeding tier rows and the medication/item lines.
+
+    Context (partial data map):
+      ccard  — a CareView (one cleanup line: (source × cage) under the
+               default cage grouping, or (source × animal) under
+               group=animal). ccard.TimeGroups folds the open occurrences
+               into due-time sub-groups (§3.2), each slot one toggle.
+      ti     — tier index (0 late · 1 now · 2 later), for stable collapse ids.
+      ri     — row index inside the tier (stable collapse ids).
+      group  — view.Group: "cage" (default) renders the cage cell + the
+               apply-cage group check; "animal" renders the tinted animal
+               cell instead and drops the batch button (§4.3 — batch is
+               inherently cage-scoped).
+
+    Layout: ONE <tr> per cleanup line —
+      <cage+zone+source> | <time sub-group label once + per-occurrence
+      toggles> | <apply-cage group check (cage grouping only)>
+
+    §3.2 time-grouping: the due time is the sub-group label, stated ONCE
+    per sub-group (`plan-time-group`/`plan-time-label`, the feeding
+    classes), with one apply/undo slot pair per occurrence — the SAME
+    .plan-item-slot parent contract `_apply_toggle` requires
+    (btn.parentNode.querySelector), so a shared parent per occurrence is
+    a hard requirement, not a style choice.
+
+    §2 toggle colours: every toggle carries slot.TierClass (the ONE
+    slotTierClass policy) + data-tier-class so undo restores the
+    occurrence's CURRENT tier colour (§2.2/§2.4). Apply speaks the §2.3
+    med-parity glyph language (○ to-do · ✓ done).
+
+    §4.3 animal grouping: one line per animal — the tinted animal cell
+    (year/number display, §5 level 1) replaces the cage cell; the cage is
+    demoted to a muted label. NO batch group-check (batch is cage-scoped).
+
+    Cleanup occurrences need no input (no weighing/observation modal), so
+    the toggles are the instant-apply kind — `_apply_toggle` routes them
+    through instantApply, flipping the colour immediately (§2.2). %>
+<tr class="plan-cage-row plan-care-row" tabindex="0" role="button"
+    data-animal-label="<%= if (group == "animal") { %><%= ccard.AnimalLabel %><% } else { %><%= ccard.Cage %><% } %>"
+    data-detail="<%= ccard.SourceName %>"
+    data-kind="cleanup"
+    data-status="<%= ccard.GroupStatus %>">
+  <%= if (group == "animal") { %>
+    <%# §4.3: the tinted animal cell — year/number display, full label +
+        plan-tab link, the B10-2 loc line (Cage · Zone · Espèce) that
+        collapses on narrow screens. %>
+    <td class="plan-med-animal plan-care-animal" title="<%= ccard.AnimalLabel %>">
+      <%= if (ccard.AnimalLink != "") { %>
+        <a href="<%= ccard.AnimalLink %>"><strong><%= ccard.AnimalYear %></strong></a>
+      <% } else { %>
+        <strong><%= ccard.AnimalYear %></strong>
+      <% } %>
+      <span class="plan-loc"><%= ccard.Cage %> · <%= tbase("zones", "zone", ccard.Zone) %> · <%= tspecies(ccard.Species) %></span>
+      <%# Item 1: the source name flows INLINE — a record reads one line. %>
+      <small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+    </td>
+  <% } else { %>
+    <td>
+      <strong><span class="plan-dot <%= ccard.GroupStatusClass %>" title="<%= t("care_plan.status." + ccard.GroupStatus) %>">●</span> <%= ccard.Cage %></strong>
+      <span class="text-muted"><%= tbase("zones", "zone", ccard.Zone) %></span>
+      <%# Item 1: the source name flows INLINE — a record reads one line. %>
+      <small class="text-muted"><a href="<%= ccard.SourceLink %>"><%= ccard.SourceName %></a></small>
+    </td>
+  <% } %>
+  <td class="plan-care-slots plan-stale-scope">
+    <%# Bug 2026-10-07 review: under group=animal EVERY row is ONE animal —
+          the R4-7.14c rationale (a one-animal list has nothing to expand, a
+          closed list hides the work) applies, so the row renders OPEN like
+          the feeding group=animal rows. Only a multi-animal CAGE row
+          (group=cage) collapses. %>
+    <%= if (ccard.Collapsible && group != "animal" && ccard.AnimalCount > 1) { %>
+      <div class="plan-feed-header" data-toggle="collapse" data-target="#care-slots-<%= ti %>-<%= ri %>" aria-expanded="false" role="button" tabindex="0" title="<%= t("care_plan.feeding.show_animals") %>">
+        <span class="badge badge-pill badge-light plan-feed-count"><%= ccard.AnimalCountCap %></span>
+        <span class="plan-feed-when"><% if (len(ccard.TimeGroups) > 1) { %>+<%= len(ccard.TimeGroups) - 1 %><% } %></span>
+        <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+      </div>
+      <div class="collapse" id="care-slots-<%= ti %>-<%= ri %>">
+    <% } %>
+    <%# Item 8: the row's stale late occurrences fold into ONE "N late"
+        badge with a snooze (group=animal rows render it at the top). %>
+    <%= if (group == "animal" && ccard.StaleCount > 0) { %>
+      <div class="plan-stale-row">
+        <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: ccard.StaleCount, staleRefs: ccard.StaleRefsJSON}) %>
+      </div>
+    <% } %>
+    <%= if (group != "animal" && ccard.AnimalCount == 1) { %>
+      <%# Bug 2026-10-27 #5: a single-animal cage renders NO per-animal
+          toggle — the Apply-all button in the last column already covers
+          every occurrence of the row (the group check does the whole job,
+          the feeding table's §4.2 rule). The invisible spacer keeps the
+          row footprint; there is nothing to expand, so the collapsible
+          header above is skipped for this row too. %>
+      <span class="plan-apply-space" aria-hidden="true"></span>
+      <%= if (ccard.StaleCount > 0) { %>
+        <%# Item 8: the row's stale late occurrences (badge + snooze). Rev
+            (collapsible): the folded toggles render hidden right after the
+            badge — the badge reveals them on click. %>
+        <span class="plan-stale-cell">
+          <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: ccard.StaleCount, staleRefs: ccard.StaleRefsJSON}) %>
+        </span>
+        <%= for (tg) in ccard.TimeGroups { %><%= for (slot) in tg.Slots { %><%= if (slot.Stale) { %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } %><% } %><% } %>
+      <% } %>
+    <% } else { %>
+      <%= for (tg) in ccard.TimeGroups { %>
+        <div class="plan-time-group<%= if (group != "animal") { %> plan-time-group-animals<% } %>">
+          <%# §3.2: the due time stated ONCE per sub-group — same day-aware
+              expression the feeding time label uses ("tomorrow 16:00" /
+              "02/01 16:00" / "16:00"); the toggle itself carries it
+              (○ HH:MM) via the shared slot partial. %>
+          <%= if (group != "animal") { %>
+            <%# Bug 2026-10-27 #5: a multi-animal cage renders ONE LINE per
+                animal (plan-animal-row, the feeding-table row class): the
+                animal number link, then that animal's own time-bearing
+                toggles — no interleaved wrap. tg.AnimalLines is pre-folded
+                by the view model, ascending animal id. %>
+            <%= for (line) in tg.AnimalLines { %>
+              <div class="plan-animal-row d-flex flex-wrap align-items-center py-1 plan-stale-scope">
+                <a class="plan-care-animal-number mr-2" href="/animals/<%= line.AnimalID %>"><%= line.AnimalYear %></a>
+                <%= if (line.StaleCount > 0) { %>
+                  <%# Item 8: this animal's stale late occurrences. Rev
+                      (collapsible): the badge reveals this animal's folded
+                      toggles (below, .plan-stale-slot) on click. %>
+                  <span class="plan-stale-cell">
+                    <%= partial("care_plan/plan_stale_badge.plush.html", {staleCount: line.StaleCount, staleRefs: line.StaleRefsJSON}) %>
+                  </span>
+                <% } %>
+                <%= for (slot) in line.Slots { %>
+                  <%= if (slot.Stale) { %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } else { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
+                <% } %>
+              </div>
+            <% } %>
+          <% } else { %>
+            <span class="plan-care-slot-row d-flex flex-wrap align-items-center">
+            <%= for (slot) in tg.Slots { %>
+              <%= if (slot.Stale) { %><%# Rev (collapsible): the folded occurrence's toggle stays reachable behind the badge. %><span class="plan-stale-slot d-none"><%= partial("care_plan/plan_care_slot.plush.html") %></span><% } else { %><%= partial("care_plan/plan_care_slot.plush.html") %><% } %>
+            <% } %>
+            </span>
+          <% } %>
+        </div>
+      <% } %>
+    <% } %>
+    <%= if (ccard.Collapsible && group != "animal" && ccard.AnimalCount > 1) { %>
+      </div>
+    <% } %>
+  </td>
+  <%= if (group != "animal") { %>
+    <td class="text-nowrap plan-feed-check">
+      <%= if (ccard.DoneMode) { %>
+        <%# Done tier (user request 2026-10-28): the cage-level check
+            is an UNDO-ALL — one confirm (plan-cage-undo → openUnapply
+            batch), then planUnapplyBatch flips every slot back. %>
+        <span class="position-relative d-inline-block">
+          <button type="button" class="btn btn-success plan-cage-undo"
+            data-items="<%= ccard.ChipRefsJSON %>"
+            data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
+            data-tier-class="<%= ccard.TierClass %>"
+            aria-label="<%= t("care_plan.action.undo") %> (<%= len(ccard.TimeGroups) %>)"
+            title="<%= t("care_plan.action.undo") %>">
+            ✓ <%= ccard.FirstTimeLabel %>
+          </button>
+        </span>
+      <% } else if (ccard.ApplicableCount > 0) { %>
+        <%# Item 3 (2026-10-07): the day qualifier is a badge BESIDE the
+            button — the toggle keeps the fixed "○ HH:MM" shape. %>
+        <%= if (ccard.FirstTimeShortDate != "") { %><span class="badge badge-light border plan-med-day"><%= ccard.FirstTimeShortDate %></span> <% } else if (ccard.FirstTimeDayKey != "") { %><span class="badge badge-light border plan-med-day"><%= t(ccard.FirstTimeDayKey) %></span> <% } %>
+        <span class="position-relative d-inline-block">
+          <button type="button" class="btn <%= ccard.TierClass %> plan-cage-apply<%= if (ccard.Partial) { %> plan-cage-apply-partial<% } %>"
+            data-items="<%= ccard.ChipRefsJSON %>"
+            data-cage="<%= ccard.Cage %>" data-source-name="<%= ccard.SourceName %>"
+            aria-label="<%= t("care_plan.card.apply_cage") %> (<%= ccard.ApplicableCount %>)"
+            title="<%= t("care_plan.card.apply_cage") %>">
+            ○ <%= ccard.FirstTimeLabel %>
+          </button>
+          <%= if (ccard.ApplicableCount > 1) { %>
+            <span class="badge badge-pill badge-secondary plan-apply-count"><%= ccard.ApplicableCount %></span>
+          <% } %>
+        </span>
+      <% } %>
+    </td>
+  <% } %>
+</tr>

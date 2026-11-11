@@ -1,0 +1,242 @@
+package actions
+
+import (
+	"testing"
+	"time"
+
+	"creaves/models"
+	"creaves/models/careplan"
+
+	"github.com/stretchr/testify/require"
+)
+
+// TestAnimalTreatmentDays (R3-6): the Treatment tab rebuilds on the
+// care-plan engine — per-day togglable medication series over the
+// history+future window. Days come newest-first, only medication
+// occurrences of THIS animal land, overridden stay out, and each day's
+// Group carries the `_med_series`-ready series (slot buttons togglable).
+func TestAnimalTreatmentDays(t *testing.T) {
+	plan := testPlan()
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
+	plan.Now = now
+
+	med := testSource(careplan.KindMedication, "med-1", "Quadro", map[string]interface{}{"drug": "Quadro", "dosage": "0.03 ml"})
+	feed := testSource(careplan.KindFeeding, "feed-1", "Feed", map[string]interface{}{"food": "x"})
+
+	// today 08:00 (applied, undoable), today 18:00 (open), tomorrow 12:00
+	// (open), a feeding occurrence (excluded — not medication), another
+	// animal's medication (excluded), an overridden one (excluded).
+	mk := func(h, dayOff int, status careplan.PlanStatus, animalID int, src careplan.PlanSource) careplan.PlanItem {
+		it := testItem(src, animalID, status)
+		it.Occurrence.DueAt = time.Date(2026, 10, 2+dayOff, h, 0, 0, 0, time.Local)
+		if status == careplan.StatusApplied {
+			it.Application = &careplan.ApplicationView{Status: "applied"}
+		}
+		return it
+	}
+	plan.Items = []careplan.PlanItem{
+		mk(8, 0, careplan.StatusApplied, 1, med),
+		mk(18, 0, careplan.StatusDue, 1, med),
+		mk(12, 1, careplan.StatusScheduled, 1, med),
+		mk(9, 0, careplan.StatusDue, 1, feed),        // feeding — rides along as Item (R3-7)
+		mk(9, 0, careplan.StatusDue, 2, med),         // other animal — excluded
+		mk(10, 0, careplan.StatusOverridden, 1, med), // overridden — excluded
+	}
+
+	days := animalTreatmentDays(plan, &models.Animal{ID: 1})
+
+	require.Len(t, days, 2, "today + tomorrow only (other animal/overridden excluded)")
+	// newest day first: tomorrow (10-03) before today (10-02)
+	require.Equal(t, "2026-10-03", days[0].DateKey)
+	require.False(t, days[0].Current)
+	require.True(t, days[0].Future)
+	require.Equal(t, "2026-10-02", days[1].DateKey)
+	require.True(t, days[1].Current)
+	require.False(t, days[1].Future)
+
+	// tomorrow: one open slot → OpenCount 1, one series line
+	require.Equal(t, 1, days[0].OpenCount)
+	require.Len(t, days[0].Group.Series, 1)
+	require.Equal(t, 1, days[0].Group.AnimalID)
+
+	// today: 18:00 open (08:00 applied) + the open feeding item → OpenCount
+	// 2; the series carries both med slots and the applied one is marked done.
+	require.Equal(t, 2, days[1].OpenCount)
+	require.Len(t, days[1].Group.Series, 1)
+	require.Len(t, days[1].Items, 1, "feeding rides along as a compact item")
+	require.Equal(t, "feeding", days[1].Items[0].ActionKind)
+	var applied, open int
+	for _, row := range days[1].Group.Series[0].Rows {
+		for _, s := range row.Slots {
+			if s.Applied {
+				applied++
+			} else if !s.Done {
+				open++
+			}
+		}
+	}
+	require.Equal(t, 1, applied, "the 08:00 applied slot stays visible as done")
+	require.Equal(t, 1, open, "the 18:00 open slot stays togglable")
+}
+
+// TestAnimalTreatmentDaysEmpty: an animal with no medication occurrence
+// in the window renders no day group (the template hides the block).
+func TestAnimalTreatmentDaysEmpty(t *testing.T) {
+	plan := testPlan()
+	plan.Now = time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
+	require.Empty(t, animalTreatmentDays(plan, &models.Animal{ID: 1}))
+	require.Empty(t, animalTreatmentDays(nil, &models.Animal{ID: 1}))
+}
+
+// TestAnimalTreatmentDaysAllKinds (R3-7): the Protocol tab embeds the
+// animal's COMPLETE care plan from the same per-day groups — every
+// non-medication occurrence (observation/care/weighing AND the cage-
+// grouped feeding/cleanup — a feeding protocol must not render as "no
+// entries") rides along as a compact Item while the medication series
+// stay in Group; a day with only non-medication work still renders (its
+// own day card).
+func TestAnimalTreatmentDaysAllKinds(t *testing.T) {
+	plan := testPlan()
+	now := time.Date(2026, 10, 2, 12, 0, 0, 0, time.Local)
+	plan.Now = now
+
+	med := testSource(careplan.KindMedication, "med-1", "Quadro", map[string]interface{}{"drug": "Quadro", "dosage": "0.03 ml"})
+	obs := testSource(careplan.KindObservation, "obs-1", "Observe", map[string]interface{}{"prompt": "Eating?"})
+	care := testSource(careplan.KindCare, "care-1", "Care", map[string]interface{}{"note": "Check wound"})
+	feed := testSource(careplan.KindFeeding, "feed-1", "Feed", map[string]interface{}{"food": "x"})
+
+	mk := func(h, dayOff int, status careplan.PlanStatus, animalID int, src careplan.PlanSource) careplan.PlanItem {
+		it := testItem(src, animalID, status)
+		it.Occurrence.DueAt = time.Date(2026, 10, 2+dayOff, h, 0, 0, 0, time.Local)
+		return it
+	}
+	plan.Items = []careplan.PlanItem{
+		mk(8, 0, careplan.StatusDue, 1, med),         // today: medication slot
+		mk(9, 0, careplan.StatusDue, 1, obs),         // today: observation item
+		mk(10, 1, careplan.StatusScheduled, 1, care), // tomorrow: care only
+		mk(11, 0, careplan.StatusDue, 1, feed),       // today: feeding item (cage-grouped — still shown)
+		mk(9, 0, careplan.StatusDue, 2, obs),         // other animal — excluded
+	}
+
+	days := animalTreatmentDays(plan, &models.Animal{ID: 1})
+
+	require.Len(t, days, 2, "today (med+obs+feed) + tomorrow (care only)")
+	// newest first: tomorrow has NO medication series but a care item.
+	require.Equal(t, "2026-10-03", days[0].DateKey)
+	require.Empty(t, days[0].Group.Series, "no medication tomorrow — no series")
+	require.Len(t, days[0].Items, 1, "the care occurrence rides along")
+	require.Equal(t, careplan.KindCare, days[0].Items[0].ActionKind)
+	require.Equal(t, 1, days[0].OpenCount, "the open care item counts in the day badge")
+	// today: one series + feeding + observation items; open = 1 slot + 2 items.
+	// B10-5: the day's items are KIND-GROUPED (stable kind sort) so the
+	// template's .plan-kind-separator titles have contiguous groups.
+	require.Equal(t, "2026-10-02", days[1].DateKey)
+	require.Len(t, days[1].Group.Series, 1)
+	require.Len(t, days[1].Items, 2)
+	require.Equal(t, careplan.KindFeeding, days[1].Items[0].ActionKind)
+	require.Equal(t, careplan.KindObservation, days[1].Items[1].ActionKind)
+	require.Equal(t, "Eating?", days[1].Items[1].Detail)
+	require.Equal(t, 3, days[1].OpenCount)
+}
+
+// TestTreatmentPlanWindow (R3-6): 14 days history, 5 days forward — the
+// forward cap bounds open-ended protocols.
+func TestTreatmentPlanWindow(t *testing.T) {
+	now := time.Date(2026, 10, 2, 15, 30, 0, 0, time.Local)
+	from, to := TreatmentPlanWindow(now)
+	require.Equal(t, time.Date(2026, 9, 18, 0, 0, 0, 0, time.Local), from)
+	require.Equal(t, time.Date(2026, 10, 7, 23, 59, 59, int(time.Second-time.Nanosecond), time.Local), to)
+}
+
+// TestPlanWindowsDST (bugs.md BUG-15): on DST transition days the window end
+// must stay the local calendar day's end — Add(24h) instant arithmetic leaks
+// ~1h into the next day on spring-forward and cuts the last hour on fall-back.
+func TestPlanWindowsDST(t *testing.T) {
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.NoError(t, err)
+
+	// Spring forward 2026-03-29 (23 h day): "today" must END at 23:59:59…
+	// local, not at 00:59:59 of the 30th.
+	now := time.Date(2026, 3, 29, 12, 0, 0, 0, loc)
+	_, to := TodayPlanWindow(now)
+	require.Equal(t, 2026, to.Year())
+	require.Equal(t, time.March, to.Month())
+	require.Equal(t, 29, to.Day(), "spring-forward: window end must stay on the 29th, got %s", to)
+	require.Equal(t, 23, to.Hour())
+	require.Equal(t, 59, to.Minute())
+
+	// Fall back 2026-10-25 (25 h day): the window must cover 23:59:59…
+	// local of the SAME day (the old code ended one wall hour early).
+	now = time.Date(2026, 10, 25, 12, 0, 0, 0, loc)
+	_, to = TodayPlanWindow(now)
+	require.Equal(t, 25, to.Day(), "fall-back: window end must stay on the 25th, got %s", to)
+	require.Equal(t, 23, to.Hour())
+	require.Equal(t, 59, to.Minute())
+
+	// The multi-day windows take the same calendar arithmetic.
+	_, to = DefaultPlanWindow(now)
+	require.Equal(t, 27, to.Day()) // 25th + 2d future
+	_, to = TreatmentPlanWindow(now)
+	require.Equal(t, 30, to.Day()) // 25th + 5d future
+	_, to = careplan.WorkWindow(now)
+	require.Equal(t, 25, to.Day())
+	require.Equal(t, 23, to.Hour())
+}
+
+// TestPlanWindowBoundsGeneratedDays (bugs.md BUG-17): duration_days counts
+// GENERATED days — candidate days stepping every_days that pass the weekday
+// filter (§10-B3). The displayed window end must match the engine's last
+// occurrence day, not start+duration−1 calendar days.
+func TestPlanWindowBoundsGeneratedDays(t *testing.T) {
+	animal := &models.Animal{ID: 1}
+	animal.Intake.Date = time.Date(2026, 10, 5, 9, 0, 0, 0, time.Local) // Monday
+
+	// every_days=1, no weekday filter, 5 days → last generated day = Friday.
+	start, end, ok := planWindowBounds(animal,
+		`{"times":["08:00"],"duration_days":5}`)
+	require.True(t, ok)
+	require.NotNil(t, end)
+	require.Equal(t, "2026-10-05", start.Format("2006-01-02"))
+	require.Equal(t, "2026-10-09", end.Format("2006-01-02"))
+
+	// every_days=2, 3 generated days → Mon 5th, Wed 7th, Fri 9th.
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"every_days":2,"duration_days":3}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-09", end.Format("2006-01-02"))
+
+	// Weekday filter (Mon–Fri), 5 generated days from a THURSDAY intake:
+	// Thu 8th, Fri 9th, Mon 12th, Tue 13th, Wed 14th — the old calendar math
+	// claimed Mon 12th.
+	animal.Intake.Date = time.Date(2026, 10, 8, 9, 0, 0, 0, time.Local) // Thursday
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"weekdays":[1,2,3,4,5],"duration_days":5}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-14", end.Format("2006-01-02"))
+
+	// Combined: every_days=3 + weekdays Mon/Wed/Fri, 3 generated days from
+	// Mon 5th → Mon 5th, Wed 14th, Fri 23rd (Thu 8th, Sun 11th, Sat 17th,
+	// Tue 20th rejected).
+	animal.Intake.Date = time.Date(2026, 10, 5, 9, 0, 0, 0, time.Local)
+	_, end, ok = planWindowBounds(animal,
+		`{"times":["08:00"],"every_days":3,"weekdays":[1,3,5],"duration_days":3}`)
+	require.True(t, ok)
+	require.Equal(t, "2026-10-23", end.Format("2006-01-02"))
+
+	// Open-ended → nil end.
+	_, end, ok = planWindowBounds(animal, `{"times":["08:00"]}`)
+	require.True(t, ok)
+	require.Nil(t, end)
+}
+
+// TestTreatmentPlanWindowSurvivesEngineClamp (R3-6 regression): the §6.1
+// window cap inside BuildDayPlan must NOT truncate the R3-6 window — it
+// bounds the forward reach (max(from, now)+14d), not the total span, so a
+// past-spanning caller keeps its history AND its future horizon.
+func TestTreatmentPlanWindowSurvivesEngineClamp(t *testing.T) {
+	now := time.Date(2026, 10, 2, 15, 30, 0, 0, time.Local)
+	from, to := TreatmentPlanWindow(now) // [09-18, 10-07] — 19 days > 14d cap
+	maxTo := maxTime(from, now).Add(planWindowMaxDays * 24 * time.Hour)
+	require.False(t, to.After(maxTo), "R3-6 window end %s must fit the engine forward cap %s", to, maxTo)
+	require.True(t, to.After(now.Add(4*24*time.Hour)), "the +5d forward reach must survive (clamping to from+14d cut it at 10-02)")
+}

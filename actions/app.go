@@ -128,6 +128,10 @@ func App() *buffalo.App {
 		app.Resource("/config", ConfigsResource{})
 		// Instance details (guest view) shortcut in the System menu (issue #208).
 		app.GET("/instance", InstanceDetails)
+		app.GET("/preferences", PreferencesResource{}.List)
+		// Bug 2026-10-06 #3: ONE save for the whole preferences page —
+		// the bulk handler persists every kind's caps in one POST.
+		app.POST("/preferences/save", PreferencesResource{}.SaveAll)
 		// Sync configuration lives in the admin Synchronization area and
 		// always addresses the active config; the legacy per-config URL
 		// redirects there (see ConfigsResource.SyncEdit).
@@ -165,7 +169,36 @@ func App() *buffalo.App {
 		app.Resource("/cares", CaresResource{})
 		app.Resource("/veterinaryvisits", VeterinaryvisitsResource{})
 		app.Resource("/treatments", TreatmentsResource{})
-		app.PUT("/treatmentschedule", TreatmentUpdateSchedule)
+		// Per-time entry toggle (bugs.md R5-3b, U25/D-e): replaces the
+		// legacy bitmap toggle (PUT /treatmentschedule, removed §8.3).
+		app.POST("/treatments/{treatment_id}/entries/{entry_id}/toggle", TreatmentTimeEntryToggle)
+		// PUT /treatmentschedule removed (§8.3): treatment rows are
+		// read-only history since the care-plan migration; ticks live on
+		// the day plan (/care_plan/apply) and the animal Plan tab.
+
+		// Care Expert System (docs/care-expert.md): day plan + fulfillment
+		// endpoints. Static paths BEFORE any resource registration so they
+		// are not swallowed by parameterized routes (outtakes/cage pattern).
+		app.GET("/care_plan", CarePlanIndex)
+		app.POST("/care_plan/apply", CarePlanApply)
+		app.POST("/care_plan/unapply", CarePlanUnapply)
+		app.POST("/care_plan/apply_batch", CarePlanApplyBatch)
+		app.POST("/care_matchers/preview", CareMatcherPreview)
+		app.POST("/care_matchers/suggest", CareMatcherSuggest)
+		app.GET("/care_rules/{care_rule_id}/preview", CareRulePreview)
+		app.Resource("/care_rules", CareRulesResource{})
+		app.Resource("/care_matchers", CareMatchersResource{})
+		// Animal-level plans: caretaker CRUD on the Plan tab (§4.7).
+		app.GET("/animals/{animal_id}/care_animal_plans", CareAnimalPlanList)
+		app.POST("/animals/{animal_id}/care_animal_plans", CareAnimalPlanCreate)
+		app.PUT("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanUpdate)
+		app.DELETE("/animals/{animal_id}/care_animal_plans/{care_animal_plan_id}", CareAnimalPlanDestroy)
+		// BUG-52e: manual "Need confirmation" flag — set/unset from the plan
+		// editor or resolve from the /reports/confirmations screen.
+		app.POST("/care_animal_plans/{care_animal_plan_id}/confirmation", CareAnimalPlanConfirmationToggle)
+		// R4-7.13: per-animal opt-out from a global care rule (§4.1).
+		app.POST("/animals/{animal_id}/care_rule_exclusions", CareRuleExclusionCreate)
+		app.DELETE("/animals/{animal_id}/care_rule_exclusions/{care_rule_exclusion_id}", CareRuleExclusionDestroy)
 
 		app.GET("/landing/index", LandingIndex)
 		app.GET("/suggestions/animal_species", SuggestionsAnimalSpecies)
@@ -206,6 +239,8 @@ func App() *buffalo.App {
 		app.POST("/animals/{animal_id}/attachments", AttachmentsCreate)
 		app.GET("/attachments/{attachment_id}", AttachmentsServe)
 		app.POST("/attachments/{attachment_id}/delete", AttachmentsDestroy)
+		// bugs.md 2026-10-27 #7: attachments carry an editable comment.
+		app.POST("/attachments/{attachment_id}/comment", AttachmentsUpdateComment)
 		app.GET("/suggestions/CageWithAnimalInCare", SuggestionsCageWithAnimalInCare)
 		app.GET("/suggestions/animaltype_species", SuggestionsAnimalTypeDefaultSpecies)
 		app.GET("/suggestions/animaltype_default_species", SuggestionsAnimaltypeDefault)
@@ -239,6 +274,10 @@ func App() *buffalo.App {
 		app.POST("/reports/corpses/unmark", ReportsCorpsesUnmark)
 		app.GET("/suggestions/corpse_destination", SuggestionsCorpseDestination)
 
+		app.GET("/reports/care_schedule", ReportsCareScheduleIndex)
+
+		app.GET("/reports/confirmations", ReportsConfirmationsIndex)
+
 		app.GET("/reports/discoverers", ReportsDiscoverersIndex)
 		app.GET("/reports/discoverers/export.csv", ReportsDiscoverersExportCSV)
 		app.GET("/suggestions/discoverer_lookup", SuggestionsDiscovererLookup)
@@ -270,8 +309,11 @@ func App() *buffalo.App {
 
 		app.Resource("/localities", LocalitiesResource{})
 		app.Resource("/zones", ZonesResource{})
+		// /feeding retired (§8.3): redirects to the day plan filtered on
+		// feeding; the legacy feeding_period page is gone.
 		app.GET("/feeding", FeedingIndex)
-		app.GET("/feeding/close", FeedingClose)
+		// /feeding/close removed (bugs.md M4): GET-with-side-effects bypassed
+		// the day plan (no care_plan_applications row → double-feed risk).
 
 		app.Resource("/native_statuses", NativeStatusesResource{})
 		app.GET("/native_statuses/{native_status_id}/delete", NativeStatusDeleteNew)

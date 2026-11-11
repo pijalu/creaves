@@ -1,0 +1,1 @@
+drop_table("treatment_time_entries")

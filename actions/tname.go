@@ -45,6 +45,35 @@ func tnameMiddleware() buffalo.MiddlewareFunc {
 			c.Set("tfield", func(table, field string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, field, table, id, baseString(base), cache, &mu)
 			})
+			// humanSchedule renders a §4.3 schedule JSON document as a
+			// localized sentence (bugs.md U12); displayPlanName strips
+			// conversion markers from a plan/rule name (bugs.md U15).
+			c.Set("humanSchedule", func(raw string) string {
+				return humanizeSchedule(c, raw)
+			})
+			// humanMatcher renders a matcher DSL expression as a localized
+			// readable sentence (bugs.md U18).
+			c.Set("humanMatcher", func(expr string) string {
+				return humanizeMatcher(c, expr)
+			})
+			c.Set("displayPlanName", func(name string) string {
+				return DisplayName(name)
+			})
+			// richPlanName = DisplayName + payload content when the stored
+			// name is content-free (bugs.md U15).
+			c.Set("richPlanName", func(name, kind string, payload interface{}) string {
+				return richPlanName(name, kind, []byte(baseString(payload)))
+			})
+			// R5-4b (bugs.md U21): Protocol tab completeness helpers —
+			// payload content line, active window and expired flag.
+			c.Set("planContentLabel", func(kind string, payload interface{}) string {
+				return contentLabel(kind, []byte(baseString(payload)))
+			})
+			c.Set("planWindow", planWindow)
+			c.Set("planExpired", planExpired)
+			// entryClock maps a per-time entry label ("11:30") to the
+			// accordion clock-dot SVG name (R5-4b).
+			c.Set("entryClock", entryClockSVG)
 			c.Set("tdesc", func(table string, id interface{}, base interface{}) string {
 				return tnameResolve(c, lang, "description", table, id, baseString(base), cache, &mu)
 			})
@@ -205,6 +234,10 @@ var translationBaseFields = map[string]string{
 	"drugs":        "name",
 	"outtaketypes": "name",
 	"species":      "creaves_species",
+	// R9-6: care rules / matchers carry a localized name like every other
+	// reference record.
+	"care_rules":    "name",
+	"care_matchers": "name",
 }
 
 // loadBaseTranslationMap loads translated values keyed by canonical French value.
@@ -220,7 +253,7 @@ func loadBaseTranslationMap(c buffalo.Context, table, field, lang string) map[st
 		Value string `db:"value"`
 	}
 	// Table and field are selected only from the fixed reference mappings below.
-	allowed := map[string]bool{"animaltypes": true, "animalages": true, "caretypes": true, "outtaketypes": true, "species": true, "zones": true, "native_statuses": true, "subside_groups": true, "entry_causes": true}
+	allowed := map[string]bool{"animaltypes": true, "animalages": true, "caretypes": true, "outtaketypes": true, "species": true, "zones": true, "native_statuses": true, "subside_groups": true, "entry_causes": true, "care_rules": true, "care_matchers": true}
 	if !allowed[table] {
 		return out
 	}

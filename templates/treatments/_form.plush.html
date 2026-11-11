@@ -4,7 +4,7 @@
   <ul class="list-group mb-2 ">
     <li class="list-group-item pb-1">
       <label class="small d-block">Species</label>
-        <%= if (treatment.Animal.Species) {%>
+        <%= if (tspecies(treatment.Animal.Species)) {%>
         <p class="d-inline-block"><%= tspecies(treatment.Animal.Species) %> (<%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %>)</p>
       <% } else {%>
         <p class="d-inline-block"><%= tspecies(treatment.Animal.Species) %> <%= tname("animaltypes", treatment.Animal.Animaltype.ID, treatment.Animal.Animaltype.Name) %></p>
@@ -105,7 +105,7 @@
             </label>
         </div>
     </div>
-  </diV>
+  </div>
 </div>
 
 <!-- timedoneBitmap: <%= treatment.Timedonebitmap %> -->
@@ -146,7 +146,7 @@
   </div>
 </div>
 
-<%= f.InputTag("Drug") %>
+<%= f.InputTag("Drug", {label:"Drug"}) %>
 <script>
     $('input[name="Drug"]').autoComplete({
         delay: 250,
@@ -175,7 +175,7 @@
         });
     }
 </script>
-<%= f.InputTag("Dosage") %>
+<%= f.InputTag("Dosage", {label:"Dosage"}) %>
 <script>
     $('input[name="Dosage"]').autoComplete({
         delay: 250,
@@ -186,7 +186,7 @@
         }
     });
 </script>
-<%= f.TextAreaTag("Remarks", {rows: 10}) %>
+<%= f.TextAreaTag("Remarks", {label:"Remarks", rows: 10}) %>
 
 
 <button class="btn btn-success" role="submit">Save</button>

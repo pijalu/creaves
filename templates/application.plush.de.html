@@ -12,13 +12,26 @@
     <!-- App -->
     <%= javascriptTag("application.js") %>
   <style>
-    /* Keep navigation labels visible when navbar collapses into hamburger menu. */
-    @media (max-width: 575.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R4-7.9: the expanded bar is the DEFAULT down to md (768px) — below
+       lg the icon-only bar still fits comfortably, and collapsing it into a
+       hamburger there wasted the space ("hamburger is shown when there is
+       *still* important space avl"). Below md the labels are force-visible
+       again, because in the collapsed vertical menu they cost no width;
+       between md and xl they stay hidden (icon-only band), and at xl+ they
+       show unless the measured overflow probe (bottom of the page) says the
+       verbose locale does not fit. */
+    @media (max-width: 767.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R3-1b: at xl+ the labels show — but a verbose locale (or a narrow
+       xl window) still overflows the bar and pushes the search box out
+       (horizontal page scroll). The script below marks the bar
+       .nav-compact whenever it actually overflows; here the compact state
+       hides the labels again (icons + tooltips). */
+    @media (min-width: 768px) { nav.navbar.nav-compact .nav-label { display: none !important; } }
   </style>
   </head>
   <body>
 
-    <nav class="navbar navbar-expand-sm navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
     <%= if (current_user) {%>
     <a class="navbar-brand" href="<%= rootPath() %>">
     <% } else {%>
@@ -45,8 +58,6 @@
           <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-tools"></i> Configuration</a>
           <div class="dropdown-menu">
             <a class="dropdown-item" href="<%= drugsPath() %>"><i class="fas fa-pills"></i> Medikamente</a>
-            <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Pflegetypen</a>
-            <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Pflegenotizvorlagen</a>
             <a class="dropdown-item" href="<%= traveltypesPath() %>"><i class="fas fa-car"></i> Reisetypen</a>
             <a class="dropdown-item" href="<%= zonesPath() %>"><i class="fas fa-map"></i> Zonen</a>
             <a class="dropdown-item" href="/species"><i class="fas fa-paw"></i> Arten</a>
@@ -60,6 +71,17 @@
             <a class="dropdown-item" href="/outtake_location_options"><i class="fas fa-map-pin"></i> Ausgangsorte</a>
             <a class="dropdown-item" href="/translations"><i class="fas fa-language"></i> Übersetzungen</a>
             <% } %>
+          </div>
+        </div>
+
+<!-- R8-4: protocol-related entries grouped (was scattered in Configuration) -->
+        <div class="dropdown-submenu">
+          <a class="dropdown-item dropdown-toggle" href="#"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_protocols") %></a>
+          <div class="dropdown-menu">
+          <a class="dropdown-item" href="<%= caretypesPath() %>"><i class="fas fa-hand-holding-heart"></i> Pflegetypen</a>
+          <a class="dropdown-item" href="/care_templates"><i class="fas fa-sticky-note"></i> Pflegenotizvorlagen</a>
+          <a class="dropdown-item" href="/care_rules"><i class="fas fa-clipboard-check"></i> <%= t("nav.care_plan_rules") %></a>
+          <a class="dropdown-item" href="/care_matchers"><i class="fas fa-filter"></i> <%= t("nav.care_plan_matchers") %></a>
           </div>
         </div>
 
@@ -88,6 +110,9 @@
           </div>
         </div>
         <% } %>
+        <%# R9: Preferences is a FIRST-LEVEL Administration entry — the last one. %>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="/preferences"><i class="fas fa-sliders-h"></i> <%= t("nav.preferences") %></a>
         </div>
         </li>
         <% } %>
@@ -101,6 +126,8 @@
             <a class="dropdown-item" href="<%= registersnapshotPath() %>"><i class="fas fa-camera"></i> Schnappschuss</a>
             <a class="dropdown-item" href="/reports/annual"><i class="fas fa-calendar-alt"></i> <%= t("nav.reports_annual") %></a>
             <a class="dropdown-item" href="/reports/corpses"><i class="fas fa-skull"></i> <%= t("nav.reports_corpses") %></a>
+            <a class="dropdown-item" href="/reports/care_schedule"><i class="fas fa-calendar-alt"></i> <%= t("nav.reports_care_schedule") %></a>
+            <a class="dropdown-item" href="/reports/confirmations"><i class="fas fa-clipboard-check"></i> <%= t("nav.reports_confirmations") %></a>
             <a class="dropdown-item" href="/reports/discoverers"><i class="fas fa-user-tag"></i> <%= t("nav.reports_discoverers") %></a>
             <div class="dropdown-divider"></div>
             <a class="dropdown-item" href="/export/view"><i class="fas fa-table"></i> Exporte</a>
@@ -116,8 +143,12 @@
 <% } %>
 
         <%= if (!current_user.IsScientist() && !current_user.IsSPW()) { %>
-<li class="nav-item">
-          <a class="nav-link" href="<%= feedingPath() %>" title="Fütterung"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Fütterung</span></a>
+        <li class="nav-item">
+          <a class="nav-link" href="/care_plan?kind=feeding" title="Fütterung"><i class="fas fa-utensils"></i><span class="nav-label d-none d-xl-inline ml-1">Fütterung</span></a>
+        </li>
+
+        <li class="nav-item">
+          <a class="nav-link" href="/care_plan" title="Tagesplan"><i class="fas fa-calendar-check"></i><span class="nav-label d-none d-xl-inline ml-1"><%= t("nav.care_plan_dayplan") %></span></a>
         </li>
 <% } %>
 
@@ -205,6 +236,34 @@
       </ul>
     </div>
   </nav>
+  <script>
+  (function () {
+    /* R3-1b: MEASURED progressive collapse — the static xl breakpoint
+       still overflows in verbose locales (labels + icons wider than the
+       window → search box clipped, horizontal page scroll). Whenever the
+       expanded bar does not fit, hide the labels (icons + tooltips);
+       probe again when the window grows. */
+    var navbar = document.querySelector('nav.navbar');
+    if (!navbar) { return; }
+    var lastW = 0;
+    function fits() { return navbar.scrollWidth <= navbar.clientWidth + 1; }
+    function apply() {
+      var w = window.innerWidth;
+      if (w < 768) { navbar.classList.remove('nav-compact'); lastW = w; return; }
+      if (!navbar.classList.contains('nav-compact')) {
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      } else if (w > lastW) {
+        navbar.classList.remove('nav-compact');
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      }
+      lastW = w;
+    }
+    window.addEventListener('resize', apply);
+    window.addEventListener('load', apply);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(apply); }
+    apply();
+  })();
+  </script>
 
     <div class="container">
       <%= partial("flash.html") %>

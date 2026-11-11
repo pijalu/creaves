@@ -127,7 +127,11 @@ func roleAllows(c buffalo.Context, u *models.User, method, path string) bool {
 			path == "/todos",                         // read-only visibility, same as lecteur
 			strings.HasPrefix(path, "/reports"),
 			path == "/users", // users listing (view only)
-			strings.HasPrefix(path, "/users/"):
+			strings.HasPrefix(path, "/users/"),
+			// care/treatment show pages consulted from the plan (§7.2a,
+			// §10-A5): read-only via the method gate above
+			strings.HasPrefix(path, "/cares/"),
+			strings.HasPrefix(path, "/treatments/"):
 			return true
 		}
 		return false

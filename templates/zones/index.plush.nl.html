@@ -9,7 +9,7 @@
 
 <table class="table table-hover table-bordered">
   <thead class="thead-light">
-    <th>Zone</th><th>Type</th><th>Standaard</th>
+    <th>Zone</th><th>Type</th><th>Standaard</th><th><%= t("zone.requires_cleanup") %></th>
     <th>&nbsp;</th>
   </thead>
   <tbody>
@@ -24,6 +24,7 @@
           <% } %>
         </td>
         <td class="align-middle"><%= bool2html(zone.Default) %></td>
+        <td class="align-middle"><%= bool2html(zone.RequiresCleanup) %></td>
         <td>
           <div class="float-end">
             <%= linkTo(zonePath({ zone_id: zone.ID }), {class: "btn btn-info", title: "Bekijken", body:"<i class='fa fa-eye'></i>"}) %>

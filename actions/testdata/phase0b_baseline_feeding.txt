@@ -1,0 +1,2106 @@
+<html lang="fr">
+  <head>
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    </meta>
+    <meta charset="utf-8">
+    </meta>
+    <title>
+      "Creaves"
+    </title>
+    <link href="/assets/application.HASH.css" media="screen" rel="stylesheet">
+    </link>
+    <meta content="authenticity_token" name="csrf-param">
+    </meta>
+    <meta content="CSRF" name="csrf-token">
+    </meta>
+    <link href="/assets/images/favicon.ico" rel="icon">
+    </link>
+    <script src="/assets/application.HASH.js" type="text/javascript">
+    </script>
+    <style>
+      "/* R4-7.9: the expanded bar is the DEFAULT down to md (768px) — below
+       lg the icon-only bar still fits comfortably, and collapsing it into a
+       hamburger there wasted the space ("hamburger is shown when there is
+       *still* important space avl"). Below md the labels are force-visible
+       again, because in the collapsed vertical menu they cost no width;
+       between md and xl they stay hidden (icon-only band), and at xl+ they
+       show unless the measured overflow probe (bottom of the page) says the
+       verbose locale does not fit. */
+    @media (max-width: 767.98px) { #navbarSupportedContent .nav-label { display: inline !important; } }
+    /* R3-1b: at xl+ the labels show — but a verbose locale (or a narrow
+       xl window) still overflows the bar and pushes the search box out
+       (horizontal page scroll). The script below marks the bar
+       .nav-compact whenever it actually overflows; here the compact state
+       hides the labels again (icons + tooltips). */
+    @media (min-width: 768px) { nav.navbar.nav-compact .nav-label { display: none !important; } }"
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark sticky-top">
+      <a class="navbar-brand" href="/">
+        <img alt="Creaves-App" src="/assets/images/creaves-app-small.png" style="height:32px;">
+        </img>
+      </a>
+      <button aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbarSupportedContent" data-toggle="collapse" type="button">
+        <span class="navbar-toggler-icon">
+        </span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="adminDropdown" role="button" title="Administration">
+              <i class="fas fa-cog">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Administration"
+              </span>
+            </a>
+            <div aria-labelledby="adminDropdown" class="dropdown-menu">
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-tools">
+                  </i>
+                  "Configuration"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/drugs/">
+                    <i class="fas fa-pills">
+                    </i>
+                    "Drugs"
+                  </a>
+                  <a class="dropdown-item" href="/traveltypes/">
+                    <i class="fas fa-car">
+                    </i>
+                    "Travel types"
+                  </a>
+                  <a class="dropdown-item" href="/zones/">
+                    <i class="fas fa-map">
+                    </i>
+                    "Zones"
+                  </a>
+                  <a class="dropdown-item" href="/species">
+                    <i class="fas fa-paw">
+                    </i>
+                    "Species"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-clipboard-check">
+                  </i>
+                  "Protocols"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/caretypes/">
+                    <i class="fas fa-hand-holding-heart">
+                    </i>
+                    "Care types"
+                  </a>
+                  <a class="dropdown-item" href="/care_templates">
+                    <i class="fas fa-sticky-note">
+                    </i>
+                    "Care note templates"
+                  </a>
+                  <a class="dropdown-item" href="/care_rules">
+                    <i class="fas fa-clipboard-check">
+                    </i>
+                    "Care rules"
+                  </a>
+                  <a class="dropdown-item" href="/care_matchers">
+                    <i class="fas fa-filter">
+                    </i>
+                    "Matcher library"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-submenu">
+                <a class="dropdown-item dropdown-toggle" href="#">
+                  <i class="fas fa-server">
+                  </i>
+                  "System"
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="/users/">
+                    <i class="fas fa-users">
+                    </i>
+                    "Users"
+                  </a>
+                  <a class="dropdown-item" href="/instance">
+                    <i class="fas fa-eye">
+                    </i>
+                    "Instance details (guest view)"
+                  </a>
+                </div>
+              </div>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/preferences">
+                <i class="fas fa-sliders-h">
+                </i>
+                "Preferences"
+              </a>
+            </div>
+          </li>
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="reportDropdown" role="button" title="Reports">
+              <i class="fas fa-chart-bar">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Reports"
+              </span>
+            </a>
+            <div aria-labelledby="reportDropdown" class="dropdown-menu">
+              <a class="dropdown-item" href="/registertable/">
+                <i class="fas fa-table">
+                </i>
+                "Register"
+              </a>
+              <a class="dropdown-item" href="/registersnapshot/">
+                <i class="fas fa-camera">
+                </i>
+                "Snapshot"
+              </a>
+              <a class="dropdown-item" href="/reports/annual">
+                <i class="fas fa-calendar-alt">
+                </i>
+                "Statistics"
+              </a>
+              <a class="dropdown-item" href="/reports/corpses">
+                <i class="fas fa-skull">
+                </i>
+                "Corpse register"
+              </a>
+              <a class="dropdown-item" href="/reports/care_schedule">
+                <i class="fas fa-calendar-alt">
+                </i>
+                "Care schedule"
+              </a>
+              <a class="dropdown-item" href="/reports/confirmations">
+                <i class="fas fa-clipboard-check">
+                </i>
+                "Protocols to confirm"
+              </a>
+              <a class="dropdown-item" href="/reports/discoverers">
+                <i class="fas fa-user-tag">
+                </i>
+                "Discoverers"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/export/view">
+                <i class="fas fa-table">
+                </i>
+                "Exports"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/export/excel/">
+                <i class="fas fa-file-excel">
+                </i>
+                "Excel exports"
+              </a>
+            </div>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/dashboard/" title="Dashboard">
+              <i class="fas fa-tachometer-alt">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Dashboard"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/care_plan?kind=feeding" title="Feeding">
+              <i class="fas fa-utensils">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Feeding"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/care_plan" title="Day plan">
+              <i class="fas fa-calendar-check">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Day plan"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/logentries/" title="Log entries">
+              <i class="fas fa-clipboard-list">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Log entries"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/todos" title="TODOs">
+              <i class="fas fa-tasks">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "TODOs"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/animals/" title="Animals">
+              <i class="fas fa-paw">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Animals"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/reception/new/" title="Reception">
+              <i class="fas fa-plus-circle">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "Reception"
+              </span>
+            </a>
+          </li>
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="newEntryDropdown" role="button" title="New">
+              <i class="fas fa-plus">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "New"
+              </span>
+            </a>
+            <div aria-labelledby="newEntryDropdown" class="dropdown-menu">
+              <a class="dropdown-item" href="/cares/new/">
+                <i class="fas fa-hand-holding-heart">
+                </i>
+                "Cares"
+              </a>
+              <a class="dropdown-item" href="/veterinaryvisits/new/">
+                <i class="fas fa-stethoscope">
+                </i>
+                "Veterinary"
+              </a>
+              <a class="dropdown-item" href="/treatments/new/">
+                <i class="fas fa-syringe">
+                </i>
+                "Treatment"
+              </a>
+              <a class="dropdown-item" href="/outtakes/new/">
+                <i class="fas fa-sign-out-alt">
+                </i>
+                "Outcome"
+              </a>
+            </div>
+          </li>
+        </ul>
+        <form action="/animals/" class="form-inline my-2 my-lg-0 ml-2" method="GET" role="search">
+          <input aria-label="Search animal" autocomplete="off" class="form-control form-control-sm mr-sm-1" id="navbarAnimalSearch" name="animal_year_number" pattern="[0-9]+(/[0-9]{2})?" placeholder="N° 123/22" required="" style="max-width: 9rem;" type="search">
+          </input>
+          <script>
+            "// Same in-care suggestions as the landing "Animal number" field.
+          $('#navbarAnimalSearch').autoComplete({
+              minChars: 1,
+              source: function(term, response){
+                  $.getJSON('/suggestions/animal_in_care', { q: term }, function(data){ response(data); });
+              }
+          });"
+          </script>
+          <button class="btn btn-outline-light btn-sm my-2 my-sm-0" title="Search animal" type="submit">
+            <i class="fas fa-search">
+            </i>
+          </button>
+        </form>
+        <ul class="navbar-nav">
+          <li class="nav-item dropdown">
+            <a aria-expanded="false" aria-haspopup="true" class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" id="userDropdown" role="button">
+              <i class="fas fa-user">
+              </i>
+              <span class="nav-label d-none d-xl-inline ml-1">
+                "ADMIN"
+              </span>
+            </a>
+            <div aria-labelledby="userDropdown" class="dropdown-menu dropdown-menu-right">
+              <a class="dropdown-item" href="/travels/">
+                <i class="fas fa-suitcase">
+                </i>
+                "Travels"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/lang/?lang=en-US&url=%2Fcare_plan%2F%3Fkind%3Dfeeding">
+                "English"
+              </a>
+              <a class="dropdown-item" href="/lang/?lang=de&url=%2Fcare_plan%2F%3Fkind%3Dfeeding">
+                "Deutsch"
+              </a>
+              <a class="dropdown-item" href="/lang/?lang=nl&url=%2Fcare_plan%2F%3Fkind%3Dfeeding">
+                "Nederlands"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" href="/users/UUID/edit/?self=true">
+                <i class="fas fa-user-edit">
+                </i>
+                "Edit"
+              </a>
+              <div class="dropdown-divider">
+              </div>
+              <a class="dropdown-item" data-method="DELETE" href="/auth/">
+                <i class="fas fa-sign-out-alt">
+                </i>
+                "logout"
+              </a>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </nav>
+    <script>
+      "(function () {
+    /* R3-1b: MEASURED progressive collapse — the static xl breakpoint
+       still overflows in verbose locales (labels + icons wider than the
+       window → search box clipped, horizontal page scroll). Whenever the
+       expanded bar does not fit, hide the labels (icons + tooltips);
+       probe again when the window grows. */
+    var navbar = document.querySelector('nav.navbar');
+    if (!navbar) { return; }
+    var lastW = 0;
+    function fits() { return navbar.scrollWidth <= navbar.clientWidth + 1; }
+    function apply() {
+      var w = window.innerWidth;
+      if (w < 768) { navbar.classList.remove('nav-compact'); lastW = w; return; }
+      if (!navbar.classList.contains('nav-compact')) {
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      } else if (w > lastW) {
+        navbar.classList.remove('nav-compact');
+        if (!fits()) { navbar.classList.add('nav-compact'); }
+      }
+      lastW = w;
+    }
+    window.addEventListener('resize', apply);
+    window.addEventListener('load', apply);
+    if (document.fonts && document.fonts.ready) { document.fonts.ready.then(apply); }
+    apply();
+  })();"
+    </script>
+    <div class="container">
+      <div class="row">
+        <div class="col-md-12">
+        </div>
+      </div>
+      <style>
+        "/* Feeding chip status dots (bugs.md U1) — bootstrap contextual palette. */
+  .plan-dot-applied { color: #28a745; }
+  .plan-dot-due { color: #007bff; }
+  /* R4-7.14: this was amber (#e0a800) — the same colour as the "due now"
+     tier it sits next to. Late is the only red in this palette, and the dot
+     is the per-GROUP signal the tier header cannot give (one header, many
+     groups), so it has to match the section the row is in. */
+  .plan-dot-late { color: #dc3545; }
+  .plan-dot-missing { color: #dc3545; }
+  .plan-dot-scheduled { color: #6c757d; }
+  .plan-dot-skipped, .plan-dot-deferred, .plan-dot-overridden { color: #6c757d; }
+  .plan-feeding-chip { text-decoration: none; }
+  .plan-feeding-chip:hover { text-decoration: none; background-color: #e2e6ea; }
+
+  /* The three urgency sections are the screen's anchor targets (fix 2:
+     late · now · later, always in this order) — offset the scroll so a
+     jumped section is not hidden behind the fixed topbar. */
+  #tier-late, #tier-now, #tier-later { scroll-margin-top: 60px; }
+
+  /* R3-3/R3-4: each tier is ONE bordered, light-tinted section — header
+     (tier name + count pill + chevron) and collapse body inside the same
+     border, no more loose button toggles. Tints are the Bootstrap alert
+     palette (late red · now yellow · later green). */
+  .plan-tier { border: 1px solid; border-radius: 0.35rem; margin-bottom: 0.75rem; overflow: hidden; }
+  .plan-tier-late  { background: #f8d7da; border-color: #f5c6cb; }
+  .plan-tier-now   { background: #fff3cd; border-color: #ffeeba; }
+  .plan-tier-later { background: #d4edda; border-color: #c3e6cb; }
+  /* R9-2: the medication "Done" tier — same look as "Later" but a darker
+     green so a finished series reads apart from the still-open later work. */
+  .plan-tier-done  { background: #b7dfc2; border-color: #9fd0ae; }
+  .plan-tier-done  .plan-tier-header { color: #0f4a1f; }
+  .plan-tier-header {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 0.75rem; cursor: pointer; user-select: none;
+    font-weight: 600;
+  }
+  .plan-tier-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-tier-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-tier-late  .plan-tier-header { color: #721c24; }
+  .plan-tier-now   .plan-tier-header { color: #856404; }
+  .plan-tier-later .plan-tier-header { color: #155724; }
+
+  /* R4-7.14: the collapse body used to be forced to solid white, which
+     painted a white table over the tier's own tint — a row in the "Late"
+     section was as white as a row in "Later", so the colour carried no
+     information at the row level, only at the border. Measured before:
+     rowBg=rgba(0,0,0,0) inside paneBg=rgb(255,255,255).
+     The body now inherits the tier tint, and the TABLE and its cells go
+     transparent so nothing re-covers it. The tint stays a wash: the row text
+     is dark on all three, so contrast is unchanged from the white body. */
+  .plan-tier-body { background: transparent; }
+  .plan-tier-body .table,
+  .plan-tier-body .table tbody,
+  .plan-tier-body .table td,
+  .plan-tier-body .table th { background-color: transparent; }
+  .plan-tier-body .table { margin-bottom: 0; }
+  /* Bootstrap's hover on a tinted row is a grey wash that reads as dirt on
+     red; a tint-preserving hover keeps the urgency readable while pointing. */
+  .plan-tier-body .table-hover tbody tr:hover > td {
+    background-color: rgba(255, 255, 255, 0.45);
+  }
+  /* R4-7.14b/c: the due time is a sub-group LABEL, stated once, and a
+     multi-animal row collapses behind a header that carries the count and the
+     earliest time — so the closed state still says what is due rather than
+     hiding it. */
+  .plan-feed-animals { min-width: 12rem; }
+  /* B10-2: the per-animal loc line — "Cage · Zone · Espèce" under the
+     animal identity, ONE muted shape on every per-animal row family; the
+     shared animal-column min-width keeps the stacked tables aligned.
+     Below lg the line collapses ("if space permits"). */
+  .plan-loc {
+    display: block; font-size: 0.78rem; color: #6c757d;
+    max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Natural table sizing keeps each table's animal column keyed to its own
+     longest cell; content from sibling tiers/tables cannot widen it.
+     Bug 2026-10-06 #1: `width: max-content` on the cell made Chrome resolve
+     the column against the TABLE's one-line width — with the nowrap animal
+     cell the column blew up to ~1466 px inside an 1110 px tier panel, and
+     the panel's overflow:hidden clipped the right-aligned Apply column out
+     of view. The rule is GONE: auto layout keys the column to its content,
+     the diet text wraps instead of widening the column, and the table can
+     never exceed its panel. */
+  .plan-tier-body table { table-layout: auto; max-width: 100%; }
+  .plan-med-animal { min-width: 0; }
+  .plan-feed-animal, .plan-care-animal { white-space: nowrap; }
+  .plan-feed-animal .text-info, .plan-care-animal .text-info { white-space: normal; }
+  .plan-feed-animals { width: auto; min-width: 0; }
+  .plan-feed-check, .plan-cage-apply { text-align: right; }
+  .plan-care-slots .plan-time-group { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  /* BUG-24 (2026-10-28): the multi-animal CAGE branch stacks one
+     .plan-animal-row per line — the base flex rule (label + slots
+     side by side, group=animal layout) would pack the animals on
+     one wrapping line. */
+  .plan-care-slots .plan-time-group.plan-time-group-animals { display: block; }
+  .plan-care-slots .plan-time-label { flex: 1 1 auto; }
+  .plan-care-slots .plan-care-slot-row { justify-content: flex-end; flex: 0 0 auto; margin-left: auto; }
+  @media (max-width: 991.98px) { .plan-loc, .plan-med-animal .plan-loc { display: none; } }
+  .plan-tab-count { vertical-align: middle; }
+  .plan-feed-header {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.15rem 0; cursor: pointer; user-select: none;
+    font-size: 0.875rem;
+  }
+  .plan-feed-header .plan-tier-chevron { margin-left: auto; transition: transform 0.2s; }
+  .plan-feed-header[aria-expanded="false"] .plan-tier-chevron { transform: rotate(-90deg); }
+  .plan-feed-count { font-weight: 600; }
+  .plan-feed-when { color: #6c757d; }
+  .plan-time-group { border-top: 1px dotted rgba(0, 0, 0, 0.15); padding-top: 0.15rem; }
+  .plan-time-group:first-child { border-top: 0; padding-top: 0; }
+  .plan-time-label { font-size: 0.8125rem; font-weight: 600; color: #495057; }
+  /* §4.2 grouping toggle: the leading label is a caption, not a button —
+     a .disabled .btn would show a not-allowed cursor on plain text. */
+  .plan-group-toggle .plan-group-label { cursor: default; pointer-events: none; opacity: 1; }"
+      </style>
+      <div class="py-4 mb-2">
+        <h3 class="d-inline-block">
+          "Day plan"
+        </h3>
+        <span class="text-muted ml-2" id="plan-updated-at">
+          "Updated at TIME"
+        </span>
+      </div>
+      <ul class="nav nav-tabs mb-2" id="planKindTabs">
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=medication">
+            "Medication"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "1"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=care">
+            "Care"
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="?kind=feeding">
+            "Feeding"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "1"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=observation">
+            "Observation"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "5"
+            </span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=weighing">
+            "Weighing"
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="?kind=cleanup">
+            "Cleanup"
+            <span class="badge badge-pill badge-primary ml-1 plan-tab-count">
+              "1"
+            </span>
+          </a>
+        </li>
+      </ul>
+      <div class="dropdown mb-3" id="planZoneDropdown">
+        <button aria-expanded="false" aria-haspopup="true" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown" id="planZoneToggle" type="button">
+          "Zone: All"
+          <span class="badge badge-pill badge-primary ml-1">
+            "1"
+          </span>
+        </button>
+        <div aria-labelledby="planZoneToggle" class="dropdown-menu" id="planZoneMenu">
+          <a class="dropdown-item active" data-zone="" href="?kind=feeding">
+            "All"
+            <span class="badge badge-pill badge-primary ml-1">
+              "1"
+            </span>
+          </a>
+          <a class="dropdown-item active" data-zone="" href="?zone=&kind=feeding">
+            <span class="badge badge-pill badge-primary ml-1">
+              "1"
+            </span>
+          </a>
+        </div>
+      </div>
+      <div aria-label="Group by" class="btn-group btn-group-sm mb-3 plan-group-toggle" role="group">
+        <span class="btn btn-outline-secondary disabled plan-group-label">
+          "Group by"
+        </span>
+        <a class="btn btn-outline-secondary active" href="?kind=feeding&group=cage">
+          "Cage"
+        </a>
+        <a class="btn btn-outline-secondary" href="?kind=feeding&group=animal">
+          "Animal"
+        </a>
+      </div>
+      <div id="planSections">
+        <div class="mb-2" id="planSummaryStrip">
+          <a class="badge badge-warning mr-1" href="#feed-tier-1">
+            "Now"
+            <span class="badge badge-pill badge-light ml-1">
+              "2"
+            </span>
+          </a>
+        </div>
+        <div id="feedingTabContent">
+          <h5 class="mt-3">
+            "Feeding (per cage × diet)"
+          </h5>
+          <div class="plan-tier plan-tier-now" id="feed-tier-1">
+            <div aria-expanded="true" class="plan-tier-header" data-target="#feed-tier-1-rows" data-toggle="collapse" role="button" tabindex="0">
+              <span>
+                "Now"
+              </span>
+              <span class="badge badge-pill badge-secondary">
+                "2"
+              </span>
+              <span class="plan-tier-chevron">
+                <i class="fas fa-chevron-down">
+                </i>
+              </span>
+            </div>
+            <div class="collapse show plan-tier-body" id="feed-tier-1-rows">
+              <table class="table table-hover table-bordered mb-0">
+                <tbody>
+                  <tr class="plan-feeding-row" data-animal-label="CP-MARKER (2)" data-detail="grenouilles" data-due="HHMM" data-kind="feeding" data-status="due" role="button" tabindex="0">
+                    <td>
+                      <strong>
+                        <span class="plan-dot plan-dot-due" title="Due">
+                          "●"
+                        </span>
+                        "CP-MARKER"
+                      </strong>
+                      <span class="text-muted">
+                      </span>
+                      <span class="text-info">
+                        "grenouilles"
+                      </span>
+                    </td>
+                    <td class="plan-feed-animals">
+                      <div aria-expanded="false" class="plan-feed-header" data-target="#feed-animals-1-0" data-toggle="collapse" role="button" tabindex="0" title="Show the animals of this cage">
+                        <span class="badge badge-pill badge-light plan-feed-count">
+                          "2"
+                        </span>
+                        <span class="plan-feed-when">
+                          "from HHMM"
+                        </span>
+                        <span class="plan-tier-chevron">
+                          <i class="fas fa-chevron-down">
+                          </i>
+                        </span>
+                      </div>
+                      <div class="collapse" id="feed-animals-1-0">
+                        <div class="plan-time-group">
+                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1 plan-stale-scope">
+                            <a class="plan-feeding-chip" href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-plan" title="Due">
+                              <span class="sr-only">
+                                "Due:"
+                              </span>
+                              "YEARNUM"
+                            </a>
+                            <span class="d-flex align-items-center ml-2">
+                              <span class="sr-only">
+                                "Due"
+                              </span>
+                              <span class="">
+                                <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
+                                  "○ HHMM"
+                                </button>
+                                <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                                  "✓ HHMM"
+                                </button>
+                              </span>
+                            </span>
+                          </div>
+                          <div class="plan-animal-row d-flex justify-content-between align-items-center py-1 plan-stale-scope">
+                            <a class="plan-feeding-chip" href="/animals/AID?back=%2Fcare_plan%3Fkind%3Dfeeding#nav-plan" title="Due">
+                              <span class="sr-only">
+                                "Due:"
+                              </span>
+                              "YEARNUM"
+                            </a>
+                            <span class="d-flex align-items-center ml-2">
+                              <span class="sr-only">
+                                "Due"
+                              </span>
+                              <span class="">
+                                <button class="btn btn-warning btn-sm plan-feeding-one" data-animal-id="AID" data-animal-label="YEARNUM" data-detail="grenouilles" data-due-at="RFC" data-kind="feeding" data-source-id="UUID" data-source-name="CP-MARKER · grenouilles" data-source-type="rule" title="Apply" type="button">
+                                  "○ HHMM"
+                                </button>
+                                <button class="btn btn-warning btn-sm ml-1 plan-unapply-btn d-none" data-animal-id="AID" data-due-at="RFC" data-source-id="UUID" data-source-type="rule" title="Undo" type="button">
+                                  "✓ HHMM"
+                                </button>
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="text-nowrap plan-feed-check">
+                      <span class="position-relative d-inline-block">
+                        <button aria-label="Apply group (2)" class="btn btn-warning plan-feeding-apply" data-cage="CP-MARKER" data-food="grenouilles" data-items="[{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"},{animal_id:AID,"due_at":"RFC","source_id":"UUID","source_type":"rule"}]" title="Apply group" type="button">
+                          "○ HHMM"
+                        </button>
+                        <span class="badge badge-pill badge-secondary plan-apply-count">
+                          "2"
+                        </span>
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planApplyModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Confirm application"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-2">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8" id="planApplyAnimal">
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planApplyDetail">
+                  </span>
+                  <br>
+                  </br>
+                  <small class="text-muted" id="planApplySource">
+                  </small>
+                </dd>
+              </dl>
+              <div class="alert alert-info small" id="planApplyExpect">
+              </div>
+              <div class="form-group d-none" id="planApplyAnswerGroup">
+                <label for="planApplyAnswer">
+                  "Answer"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyAnswer" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planApplyWeightGroup">
+                <label for="planApplyWeight">
+                  "Weight (g)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyWeight" placeholder="850 g" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planApplyDosageGroup">
+                <label for="planApplyDosage">
+                  "Dosage"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyDosage" placeholder="0.1 ml" type="text">
+                </input>
+              </div>
+              <div class="form-group mb-0">
+                <label for="planApplyNote">
+                  "Note (optional)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planApplyNote" type="text">
+                </input>
+              </div>
+              <div class="alert alert-danger d-none mt-2 mb-0" id="planApplyError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-success" id="planApplySubmit" type="button">
+                "Confirm"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planDetailModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Entry details"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-0">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8">
+                  <a href="#" id="planDetailAnimalLink">
+                    <span id="planDetailAnimal">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailDetail">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Source"
+                </dt>
+                <dd class="col-sm-8">
+                  <a href="#" id="planDetailSourceLink">
+                    <span id="planDetailSource">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4 d-none" id="planDetailTreatmentDt">
+                  "Treatment"
+                </dt>
+                <dd class="col-sm-8 d-none" id="planDetailTreatmentDd">
+                  <a href="#" id="planDetailTreatmentLink">
+                    <i class="fa fa-eye">
+                    </i>
+                    <span id="planDetailTreatment">
+                    </span>
+                  </a>
+                </dd>
+                <dt class="col-sm-4">
+                  "Action kind"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailKind">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Due"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailDue">
+                  </span>
+                </dd>
+                <dt class="col-sm-4">
+                  "Status"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planDetailStatus">
+                  </span>
+                </dd>
+                <dt class="col-sm-4 d-none" id="planDetailRemainingDt">
+                  "more occurrences of this group"
+                </dt>
+                <dd class="col-sm-8 d-none" id="planDetailRemainingDd">
+                  "+"
+                  <span id="planDetailRemaining">
+                  </span>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planSkipDeferModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="planSkipDeferTitle">
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted small mb-2" id="planSkipDeferContext">
+              </p>
+              <div class="form-group">
+                <label for="planSkipDeferReason">
+                  "Reason (mandatory)"
+                </label>
+                <input autocomplete="off" class="form-control" id="planSkipDeferReason" type="text">
+                </input>
+              </div>
+              <div class="form-group d-none" id="planSkipDeferHoursGroup">
+                <label for="planSkipDeferHours">
+                  "Defer by (hours)"
+                </label>
+                <input class="form-control" id="planSkipDeferHours" min="1" step="1" type="number" value="1">
+                </input>
+              </div>
+              <div class="alert alert-danger d-none" id="planSkipDeferError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" id="planSkipDeferSubmit" type="button">
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planDosageModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Dosage cannot be computed automatically"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning" id="planDosageDetail">
+              </div>
+              <p class="text-muted d-none" id="planDosageWeight">
+              </p>
+              <input autocomplete="off" class="form-control" id="planDosageInput" placeholder="0.1 ml" type="text">
+              </input>
+              <div class="alert alert-danger d-none mt-2" id="planDosageError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" id="planDosageSubmit" type="button">
+                "Apply with this dosage"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planUnapplyModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Undo the application?"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <dl class="row mb-2">
+                <dt class="col-sm-4">
+                  "Animal"
+                </dt>
+                <dd class="col-sm-8" id="planUnapplyAnimal">
+                </dd>
+                <dt class="col-sm-4">
+                  "Protocol"
+                </dt>
+                <dd class="col-sm-8">
+                  <span id="planUnapplyDetail">
+                  </span>
+                  <br>
+                  </br>
+                  <small class="text-muted" id="planUnapplySource">
+                  </small>
+                </dd>
+              </dl>
+              <div class="alert alert-warning small mb-0">
+                "The recorded entry (care, feeding, weighing…) will be deleted. This cannot be undone."
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-warning" id="planUnapplySubmit" type="button">
+                "Yes, undo it"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div aria-hidden="true" class="modal fade" id="planMessageModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="planMessageTitle">
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <pre class="mb-0" id="planMessageBody" style="white-space:pre-wrap;font-family:inherit;">
+              </pre>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-primary" data-dismiss="modal" type="button">
+                "OK"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        "(function () {
+  // R4-4.1 (shared): every action announces itself so a page with the
+  // auto-refresh timer holds the reload off for the visibility floor.
+  var ACTION_VISIBILITY_MS = 30000;
+  var lastActionAt = 0;
+  function markAction() { lastActionAt = Date.now(); }
+  window.planMarkAction = markAction;
+
+  var inFlight = 0;
+  function track(p) {
+    inFlight++;
+    return p.then(function (v) { inFlight--; return v; }, function (e) { inFlight--; throw e; });
+  }
+  function busy() { return inFlight > 0; }
+  var csrf = document.querySelector('meta[name="csrf-token"]').content;
+  // {ref, btn} awaiting a manual dosage (§10-B6); btn is flipped in place
+  // once the dosage is recorded (R5-2c: no full reload).
+  var pending = null;
+  // §6.2-2 (A1): recording a clearly late occurrence is an explicit act —
+  // one confirm, once, before the POST.
+  var lateConfirm = "Record this missed occurrence after the fact?";
+  function lateBlocked(btn) {
+    return btn.getAttribute('data-late') === 'true' && !window.confirm(lateConfirm);
+  }
+  var i18n = {
+    errorTitle: "Something went wrong",
+    expect: {
+      feeding:    "The feeding will be recorded as done and the entry will be marked as applied.",
+      medication: "The treatment will be marked as given for this slot. You can undo it if needed.",
+      care:       "The care will be recorded and the entry will be marked as applied.",
+      cleanup:    "The cleaning will be recorded and the entry will be marked as applied.",
+      weighing:   "The weighing will be recorded with the weight below.",
+      observation:"The observation answer will be recorded. An alert answer creates a warning care and a follow-up plan."
+    },
+    answerRequired: "An answer is required for an observation.",
+    weightRequired: "A weight is required for a weighing.",
+    status: {
+      scheduled: "Scheduled",
+      due:       "Due",
+      late:      "Late",
+      missing:   "Missing",
+      applied:   "Done",
+      skipped:   "Skipped",
+      deferred:  "Deferred",
+      overridden:"Replaced by animal protocol"
+    },
+    kinds: {
+      feeding:    "Feeding",
+      medication: "Medication",
+      care:       "Care",
+      cleanup:    "Cleanup",
+      weighing:   "Weighing",
+      observation:"Observation"
+    },
+    batchSummary: "You are about to mark {count} entry(ies) for cage {cage} ({what}) as applied."
+  };
+
+  function showMessage(title, body) {
+    document.getElementById('planMessageTitle').textContent = title;
+    document.getElementById('planMessageBody').textContent = body;
+    $('#planMessageModal').modal('show');
+  }
+
+  function applyItem(ref, extra) {
+    var body = {
+      source_type: ref.sourceType, source_id: ref.sourceId,
+      animal_id: ref.animalId, due_at: ref.dueAt
+    };
+    if (extra) {
+      Object.keys(extra).forEach(function (k) { if (extra[k]) { body[k] = extra[k]; } });
+    }
+    return track(fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, body: j}; });
+    }));
+  }
+
+  function showDosageDialog(ref, warn, btn) {
+    pending = {ref: ref, btn: btn || null};
+    document.getElementById('planDosageDetail').textContent = warn.detail || '';
+    var wBox = document.getElementById('planDosageWeight');
+    if (warn.last_weight) {
+      var when = (warn.last_weight_at || '').slice(0, 10);
+      wBox.textContent = "Last recorded weight" + ": " + warn.last_weight + " g (" + when + ")";
+      wBox.classList.remove('d-none');
+    } else {
+      wBox.classList.add('d-none');
+    }
+    document.getElementById('planDosageInput').value = '';
+    document.getElementById('planDosageError').classList.add('d-none');
+    $('#planDosageModal').modal('show');
+  }
+
+  // --- One-toggle apply/unapply (bugs.md R5-2c, D-a) -----------------------
+  // ONE policy for dashboard AND work screen: confirm only when fields are
+  // needed (weighing → weight, observation → answer); everything else
+  // toggles INSTANTLY — no confirm, no reload. The button flips in place;
+  // the view link is a sibling that never moves. Medication dosage stays
+  // optional: a 422 dosage_required opens the dosage dialog.
+  var applyRef = null;
+
+  function openApply(btn) {
+    applyRef = {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind')
+    };
+    document.getElementById('planApplyAnimal').textContent = btn.getAttribute('data-animal-label') || '';
+    document.getElementById('planApplyDetail').textContent = btn.getAttribute('data-detail') || '';
+    document.getElementById('planApplySource').textContent = btn.getAttribute('data-source-name') || '';
+    document.getElementById('planApplyExpect').textContent = i18n.expect[applyRef.kind] || '';
+    document.getElementById('planApplyAnswerGroup').classList.toggle('d-none', applyRef.kind !== 'observation');
+    document.getElementById('planApplyWeightGroup').classList.toggle('d-none', applyRef.kind !== 'weighing');
+    document.getElementById('planApplyDosageGroup').classList.toggle('d-none', applyRef.kind !== 'medication');
+    // Bug 2026-10-06 #5: the late semantics travel on the BUTTON (data-late),
+    // not only on the history Record-late class — a weighing/observation
+    // late-recordable toggle opens this modal and must submit late:true.
+    applyRef.late = btn.classList.contains('plan-late-btn') || btn.getAttribute('data-late') === 'true';
+    document.getElementById('planApplyAnswer').value = '';
+    document.getElementById('planApplyWeight').value = '';
+    document.getElementById('planApplyDosage').value = '';
+    document.getElementById('planApplyNote').value = '';
+    document.getElementById('planApplyError').classList.add('d-none');
+    $('#planApplyModal').modal('show');
+  }
+
+  // One-toggle dispatch (D-a): input kinds open the modal, everything
+  // else applies instantly and flips the button in place.
+  //
+  // R4-2.2: a FEEDING entry rendered on an animal tab (class
+  // plan-feeding-entry) is an input kind too — the caregiver confirms the
+  // ration in the prefilled modal instead of a bare instant click.
+  function isInputKind(btn) {
+    var kind = btn.getAttribute('data-kind');
+    if (kind === 'weighing' || kind === 'observation') { return true; }
+    return kind === 'feeding' && btn.classList.contains('plan-feeding-entry');
+  }
+
+  // R3-2: one row = one toggle pair — the apply check (`.plan-apply-btn` /
+  // `.plan-feeding-one`) and its undo sibling (`.plan-unapply-btn`) swap
+  // visibility in place; no reload, no waiting for the auto-refresh.
+  function pairApply(btn) { return btn.parentNode.querySelector('.plan-apply-btn, .plan-feeding-one'); }
+  function pairUndo(btn) { return btn.parentNode.querySelector('.plan-unapply-btn'); }
+
+  // markApplied flips an apply check to its undo control IN PLACE (R3-2):
+  // check hides, undo shows; the next full render (auto-refresh) moves
+  // the row to its tier/history. Shim over setToggleState (Phase 0b t7).
+  function markApplied(ref) {
+    markAction();
+    setToggleState(ref && ref.btn, true);
+  }
+
+  // markOpen flips an applied row back to its apply check (undo clicked).
+  function markOpen(ref) {
+    markAction();
+    setToggleState(ref && ref.btn, false);
+  }
+
+  // setToggleState (Phase 0b t7): THE single toggle-flip routine. ONE
+  // place owns how a toggle button looks in its applied vs open state —
+  // every page that flips a toggle calls this (directly or via the
+  // markApplied/markOpen shims below).
+  //
+  // Two button families:
+  //   med slot (`.plan-med-slot`) — ONE button stays live; applied ↔ open
+  //     swaps its classes/glyph in place. Colour comes from the button's
+  //     own data-tier-class (R4-1.1), so an unapplied late slot returns to
+  //     its tier colour instead of a hardcoded yellow.
+  //   pair rows (`.plan-apply-btn` / `.plan-feeding-one` ↔ `.plan-unapply-btn`)
+  //     — two sibling buttons swap visibility; the applied state also tints
+  //     the enclosing `.plan-animal-row` (R9-1).
+  function setToggleState(btn, applied) {
+    if (!btn) { return; }
+    if (btn.classList.contains('plan-med-slot')) {
+      var hm = btn.textContent.replace('○', '').replace('✓', '')
+        .replace('–', '').replace('⊘', '').replace('⏸', '').trim();
+      if (applied) {
+        btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border',
+          'plan-med-apply', 'plan-med-urgent', 'plan-med-future');
+        btn.classList.add('btn-success', 'plan-med-unapply');
+        btn.textContent = '✓ ' + hm;
+      } else {
+        btn.classList.remove('btn-success', 'plan-med-unapply');
+        var tier = btn.getAttribute('data-tier-class') || 'btn-warning';
+        tier.split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+        btn.classList.add('plan-med-apply');
+        btn.textContent = '○ ' + hm;
+      }
+      btn.disabled = false;
+      return;
+    }
+    // Pair rows: visibility swap + IMMEDIATE colour flip (§2.2, Phase 4 /
+    // D4). The apply/undo pair both carry data-tier-class (the
+    // occurrence's CURRENT tier colour, §2.4): apply paints the visible
+    // undo green (btn-success — done), undo restores the apply's tier
+    // colour (which may differ from the colour it had before applying —
+    // §2.2). Feeding/cleanup rows (`.plan-animal-row`) keep their R9-1
+    // applied tint; those buttons carry no data-tier-class, so their
+    // colour is untouched.
+    markAction();
+    btn.classList.add('d-none');
+    btn.disabled = false;
+    var sib = applied ? pairUndo(btn) : pairApply(btn);
+    if (sib) {
+      sib.classList.remove('d-none');
+      var tier = sib.getAttribute('data-tier-class');
+      if (tier) {
+        sib.classList.remove('btn-danger', 'btn-warning', 'btn-light', 'border', 'btn-success');
+        if (applied) {
+          sib.classList.add('btn-success');
+        } else {
+          tier.split(/\s+/).forEach(function (c) { if (c) { sib.classList.add(c); } });
+        }
+      }
+    }
+    var row = btn.closest ? btn.closest('.plan-animal-row') : null;
+    if (row) { row.classList.toggle('plan-animal-applied', !!applied); }
+  }
+  window.planSetToggleState = setToggleState;
+
+  // BUG-22 (2026-10-28): the animal-page convergence timer of bug
+  // 2026-10-08 #1 (a forced window.location.reload 1.2 s after every
+  // toggle flip on #nav-plan) is REMOVED — user directive: no full-page
+  // refresh after a toggle; the in-place flip is the source of truth.
+  // Server-rendered siblings (Care / Treatment tabs, day-card badges)
+  // converge on the next natural page load instead.
+
+  // Delegated (R4-2.2): one listener covers every page that includes this
+  // partial — the work screen, the dashboard and the animal tabs — and
+  // buttons rendered later by another script.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-apply-btn, .plan-feeding-one') : null;
+    if (!btn || btn.disabled) { return; }
+    if (lateBlocked(btn)) { return; }
+    if (isInputKind(btn)) { openApply(btn); return; }
+    instantApply(btn);
+  });
+
+  // Bug 2026-10-06 #5: an occurrence that went hors délai between render and
+  // click (auto-refresh holds off 30 s after actions; a page can still be
+  // stale) is PAST-DUE work the caregiver just confirmed — one late-record
+  // retry instead of the §10-A1 409 dialog. Future-due refs stay
+  // unrecordable (the server rejects late on future-due occurrences).
+  function isPastDue(ref) {
+    var due = Date.parse(ref.dueAt);
+    return !isNaN(due) && due <= Date.now();
+  }
+
+  function instantApply(btn, retriedLate) {
+    markAction();
+    var ref = btnRef(btn);
+    btn.disabled = true;
+    var extra = null;
+    if (btn.getAttribute && btn.getAttribute('data-late') === 'true') { extra = { late: true }; }
+    else if (retriedLate) { extra = { late: true }; }
+    applyItem(ref, extra).then(function (res) {
+      if (res.status === 201) { markApplied(ref); return; }
+      if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+        instantApply(btn, true);
+        return;
+      }
+      btn.disabled = false;
+      if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+        showDosageDialog(ref, res.body, btn);
+        return;
+      }
+      showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+    });
+  }
+
+  // BUG-22 (2026-10-28): the pair-family undo asks ONE confirmation via
+  // the shared #planUnapplyModal (the click DELETES the fulfillment
+  // record) — the user directive allows a confirm on untoggle. Med slots
+  // (.plan-med-slot) keep their no-confirm instant undo in
+  // _plan_med_toggle (existing accepted behaviour).
+  var unapplyRef = null;
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-unapply-btn') : null;
+    if (!btn || btn.disabled) { return; }
+    openUnapply(btn);
+  });
+
+  // openUnapply fills the shared confirm modal from the clicked undo
+  // button; the label/detail attributes live on the APPLY sibling (the
+  // undo half renders only the ref attributes), so read them from
+  // pairApply(btn) first. batch=true marks a cage/feeding GROUP undo
+  // (wired by the index page): the submit loops over every applied chip
+  // of the row instead of a single ref.
+  function openUnapply(btn, batch) {
+    var sib = pairApply(btn);
+    // Cage/feeding GROUP undo buttons carry no apply sibling — fall back to
+    // the group's own cage/food labels so the confirm modal names the row.
+    var label = (sib && sib.getAttribute('data-animal-label')) || btn.getAttribute('data-animal-label') || btn.getAttribute('data-cage') || '';
+    var detail = (sib && sib.getAttribute('data-detail')) || btn.getAttribute('data-detail') || btn.getAttribute('data-food') || '';
+    var source = (sib && sib.getAttribute('data-source-name')) || btn.getAttribute('data-source-name') || '';
+    unapplyRef = {btn: btn, batch: !!batch};
+    document.getElementById('planUnapplyAnimal').textContent = label;
+    document.getElementById('planUnapplyDetail').textContent = detail;
+    document.getElementById('planUnapplySource').textContent = source;
+    $('#planUnapplyModal').modal('show');
+  }
+
+  document.getElementById('planUnapplySubmit').addEventListener('click', function () {
+    if (!unapplyRef) { return; }
+    var ref = unapplyRef;
+    unapplyRef = null;
+    this.disabled = true;
+    var submitBtn = this;
+    var done = function () {
+      submitBtn.disabled = false;
+      $('#planUnapplyModal').modal('hide');
+    };
+    if (ref.batch && window.planUnapplyBatch) {
+      // Cage/group undo (BUG-22): the index page owns the per-chip loop;
+      // it flips each chip back through setToggleState.
+      window.planUnapplyBatch(ref.btn).then(done);
+      return;
+    }
+    instantUnapply(ref.btn, done);
+  });
+
+  // instantUnapply performs the confirmed single-occurrence undo: POST the
+  // unapply (deleting the fulfillment record, BUG-22) and flip the pair
+  // back to its apply check on success. Named so the refresh-floor guard
+  // (and its pin test) can audit that the action time is recorded.
+  function instantUnapply(btn, done) {
+    markAction();
+    var r0 = btnRef(btn);
+    btn.disabled = true;
+    track(fetch('/care_plan/unapply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify({
+        source_type: r0.sourceType, source_id: r0.sourceId,
+        animal_id: r0.animalId, due_at: r0.dueAt,
+        delete_fulfillment: true
+      })
+    })).then(function (r) {
+      done();
+      if (r.status === 200) { markOpen(r0); return; }
+      btn.disabled = false;
+      r.json().then(function (j) {
+        showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+      });
+    });
+  }
+
+  function btnRef(btn) {
+    return {
+      btn: btn,
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at'),
+      kind: btn.getAttribute('data-kind'),
+      hm: btn.textContent.replace('○', '').replace('✓', '').replace('–', '').replace('⊘', '').replace('⏸', '').trim()
+    };
+  }
+
+  document.getElementById('planApplySubmit').addEventListener('click', function () {
+    if (!applyRef) { return; }
+    var errBox = document.getElementById('planApplyError');
+    var extra = { note: document.getElementById('planApplyNote').value.trim() };
+    if (applyRef.kind === 'observation') {
+      extra.answer = document.getElementById('planApplyAnswer').value.trim();
+      if (!extra.answer) {
+        errBox.textContent = i18n.answerRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.kind === 'weighing') {
+      extra.weight = document.getElementById('planApplyWeight').value.trim();
+      if (!extra.weight) {
+        errBox.textContent = i18n.weightRequired;
+        errBox.classList.remove('d-none');
+        return;
+      }
+    }
+    if (applyRef.late) { extra.late = true; }
+    if (applyRef.kind === 'medication') {
+      extra.dosage = document.getElementById('planApplyDosage').value.trim();
+    }
+    var ref = applyRef;
+    var modalSubmit = this;
+    this.disabled = true;
+    var submit = function (retriedLate) {
+      if (retriedLate && !extra.late) { extra.late = true; }
+      applyItem(ref, extra).then(function (res) {
+        modalSubmit.disabled = false;
+        if (res.status === 201) {
+          // R5-2c: no reload — flip the originating button in place.
+          $('#planApplyModal').modal('hide');
+          markApplied(ref);
+          return;
+        }
+        $('#planApplyModal').modal('hide');
+        // Bug 2026-10-06 #5: a modal held open across the next slot boundary
+        // (auto-refresh pauses while a modal is visible) made the occurrence
+        // hors délai before Confirm — execute it as a late record instead of
+        // surfacing the §10-A1 409. Future-due refs stay unrecordable.
+        if (res.status === 409 && !retriedLate && isPastDue(ref)) {
+          submit(true);
+          return;
+        }
+        if (res.status === 422 && res.body && res.body.error === 'dosage_required') {
+          showDosageDialog(ref, res.body, ref.btn);
+          return;
+        }
+        showMessage(i18n.errorTitle, (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status));
+      });
+    };
+    submit(false);
+  });
+
+  // --- Skip / defer -----------------------------------------------------------
+  // Shared skip/defer modal (§7.3.1): skip = reason only; defer = reason +
+  // hours (default +1h, §10-L3 → RFC3339 now+Nh). Empty reason stays
+  // client-side — the server enforces 422 too (§10-CP4).
+  var sdRef = null;
+  var sdMode = 'skip';
+  var sdLabels = {
+    skip: {title: "Skip this occurrence", submit: "Skip"},
+    defer: {title: "Defer this occurrence", submit: "Defer"}
+  };
+
+  function openSkipDefer(btn) {
+    sdMode = btn.getAttribute('data-mode');
+    sdRef = {
+      sourceType: btn.getAttribute('data-source-type'),
+      sourceId: btn.getAttribute('data-source-id'),
+      animalId: parseInt(btn.getAttribute('data-animal-id'), 10),
+      dueAt: btn.getAttribute('data-due-at')
+    };
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels[sdMode].title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels[sdMode].submit;
+    document.getElementById('planSkipDeferContext').textContent =
+      (btn.getAttribute('data-animal-label') || '') + (btn.getAttribute('data-detail') ? ' — ' + btn.getAttribute('data-detail') : '');
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.toggle('d-none', sdMode !== 'defer');
+    $('#planSkipDeferModal').modal('show');
+  }
+
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-skip-btn, .plan-defer-btn') : null;
+    if (!btn) { return; }
+    openSkipDefer(btn);
+  });
+
+  // Item 8 (2026-10-07): snooze = defer EVERY folded stale occurrence of a
+  // record ("⏱ N" badge) — one modal answer, one audited defer per
+  // occurrence. The server clamps each deferred_until just before that
+  // occurrence's next one (ClampDeferredUntil), so the snoozed reminder
+  // resurfaces while still applicable.
+  var snoozeRefs = null;
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-snooze-btn') : null;
+    if (!btn) { return; }
+    try { snoozeRefs = JSON.parse(btn.getAttribute('data-items') || '[]'); } catch (e) { snoozeRefs = null; }
+    if (!snoozeRefs || !snoozeRefs.length) { snoozeRefs = null; return; }
+    sdMode = 'defer';
+    sdRef = null;
+    document.getElementById('planSkipDeferTitle').textContent = sdLabels.defer.title;
+    document.getElementById('planSkipDeferSubmit').textContent = sdLabels.defer.submit;
+    document.getElementById('planSkipDeferContext').textContent = "The missed occurrence(s) of this record will be deferred (resurface before their next occurrence).";
+    document.getElementById('planSkipDeferReason').value = '';
+    document.getElementById('planSkipDeferHours').value = 1;
+    document.getElementById('planSkipDeferError').classList.add('d-none');
+    document.getElementById('planSkipDeferHoursGroup').classList.remove('d-none');
+    $('#planSkipDeferModal').modal('show');
+  });
+
+  // Item 8 follow-up (2026-10-07): the "⏱ N late" badge is a COLLAPSIBLE —
+  // clicking it reveals the folded occurrences' own toggles (the hidden
+  // .plan-stale-slot elements within the record's .plan-stale-scope) so the
+  // caregiver can still record them one by one; the ⏸ snooze beside it
+  // keeps deferring all of them at once. Delegated like every binding in
+  // this partial; the expand re-runs the bucket-fit pass (the button group
+  // may wrap once the toggles appear).
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-stale-toggle') : null;
+    if (!btn) { return; }
+    var scope = btn.closest('.plan-stale-scope');
+    if (!scope) { return; }
+    var open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-stale-slot'), function (el) {
+      el.classList.toggle('d-none', !open);
+    });
+    scheduleFitMedBuckets();
+  });
+
+  function submitSnooze(reason) {
+    var refs = snoozeRefs;
+    snoozeRefs = null;
+    var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+    if (!hours || hours < 1) { hours = 1; }
+    var until = new Date(Date.now() + hours * 3600000).toISOString();
+    var errBox = document.getElementById('planSkipDeferError');
+    var submitBtn = document.getElementById('planSkipDeferSubmit');
+    submitBtn.disabled = true;
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/apply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type, source_id: ref.source_id,
+            animal_id: ref.animal_id, due_at: ref.due_at,
+            status: 'deferred', note: reason, deferred_until: until
+          })
+        }).then(function (r) {
+          if (r.status !== 201) { failures.push(ref.due_at + ': HTTP ' + r.status); }
+        }));
+      });
+    });
+    chain.then(function () {
+      submitBtn.disabled = false;
+      if (failures.length) {
+        errBox.textContent = failures.join('\n');
+        errBox.classList.remove('d-none');
+        return;
+      }
+      $('#planSkipDeferModal').modal('hide');
+      window.location.reload();
+    });
+  }
+
+  document.getElementById('planSkipDeferSubmit').addEventListener('click', function () {
+    if (!sdRef && !snoozeRefs) { return; }
+    var reason = document.getElementById('planSkipDeferReason').value.trim();
+    var errBox = document.getElementById('planSkipDeferError');
+    if (!reason) {
+      errBox.textContent = "A reason is mandatory";
+      errBox.classList.remove('d-none');
+      return;
+    }
+    if (snoozeRefs) { submitSnooze(reason); return; }
+    var body = {
+      source_type: sdRef.sourceType, source_id: sdRef.sourceId,
+      animal_id: sdRef.animalId, due_at: sdRef.dueAt,
+      status: sdMode === 'defer' ? 'deferred' : 'skipped',
+      note: reason
+    };
+    if (sdMode === 'defer') {
+      var hours = parseInt(document.getElementById('planSkipDeferHours').value, 10);
+      if (!hours || hours < 1) { hours = 1; }
+      body.deferred_until = new Date(Date.now() + hours * 3600000).toISOString();
+    }
+    fetch('/care_plan/apply', {
+      method: 'POST', credentials: 'same-origin',
+      headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 201) { window.location.reload(); return; }
+      r.json().then(function (j) {
+        errBox.textContent = (j && (j.detail || j.error)) || ('HTTP ' + r.status);
+        errBox.classList.remove('d-none');
+      });
+    });
+  });
+
+  document.getElementById('planDosageSubmit').addEventListener('click', function () {
+    if (!pending) { return; }
+    var dosage = document.getElementById('planDosageInput').value.trim();
+    if (!dosage) { return; }
+    var ref = pending.ref;
+    applyItem(ref, {dosage: dosage}).then(function (res) {
+      if (res.status === 201) {
+        // R5-2c: no reload — flip the originating button in place.
+        $('#planDosageModal').modal('hide');
+        if (ref.btn) { markApplied(ref); } else { window.location.reload(); }
+        return;
+      }
+      var box = document.getElementById('planDosageError');
+      box.textContent = (res.body && (res.body.detail || res.body.error)) || ('HTTP ' + res.status);
+      box.classList.remove('d-none');
+    });
+  });
+
+
+  // Phase 1 / D1 (guideline §5 level 2 + §6.2): bucket-fit pass over the
+  // medication button groups. CSS alone cannot know whether a series
+  // FITS on one row, so this measures after layout:
+  //   - a group whose buttons wrapped onto several rows is STACKED: it
+  //     gets .plan-med-btns--stacked (full-width row under the label,
+  //     right-aligned) and its .plan-med-bucket captions stay visible —
+  //     the labelled band between the button rows;
+  //   - a group that fits one row keeps shape A and its captions are
+  //     HIDDEN (the slot title already carries the bucket name) — the
+  //     caption never sits inline between two buttons of the same row.
+  // No-JS fallback: captions render visible and each forces its own row
+  // (flex-basis 100%), so the inline-caption defect cannot reappear.
+  function fitMedBuckets() {
+    Array.prototype.forEach.call(document.querySelectorAll('.plan-med-btns'), function (g) {
+      var buckets = g.querySelectorAll('.plan-med-bucket');
+      if (!buckets.length) { return; }
+      g.classList.remove('plan-med-btns--stacked');
+      Array.prototype.forEach.call(buckets, function (b) { b.classList.add('d-none'); });
+      var cells = g.querySelectorAll('.plan-med-cell');
+      var tops = {};
+      var rows = 0;
+      Array.prototype.forEach.call(cells, function (c) {
+        if (c.offsetParent === null) { return; } // d-none cell (folded stale slot) has no box — it would fake a row at y=0
+        var y = c.offsetTop;
+        if (!tops[y]) { tops[y] = true; rows++; }
+      });
+      if (rows > 1) {
+        g.classList.add('plan-med-btns--stacked');
+        Array.prototype.forEach.call(buckets, function (b) { b.classList.remove('d-none'); });
+      }
+    });
+  }
+  var fitBucketsTimer = null;
+  function scheduleFitMedBuckets() {
+    if (fitBucketsTimer) { clearTimeout(fitBucketsTimer); }
+    fitBucketsTimer = setTimeout(fitMedBuckets, 120);
+  }
+  window.addEventListener('load', fitMedBuckets);
+  window.addEventListener('resize', scheduleFitMedBuckets);
+  // A tier collapse/expand re-flows every group inside it (Bootstrap
+  // slides over ~350 ms — re-measure once it settles).
+  document.addEventListener('click', function (ev) {
+    var h = ev.target.closest ? ev.target.closest('.plan-tier-header[data-toggle="collapse"]') : null;
+    if (h) { setTimeout(fitMedBuckets, 400); }
+  });
+
+  // R4-4.1: the age of the last action, for a page's auto-refresh guard.
+  window.planActionAge = function () { return Date.now() - lastActionAt; };
+  // R4-2.2: pages that still own page-specific scripts (batch apply,
+  // detail popup, history) reuse these instead of re-implementing them.
+  window.planApply = {
+    csrf: csrf, i18n: i18n, track: track, busy: busy,
+    applyItem: applyItem, showMessage: showMessage, markApplied: markApplied,
+    markAction: markAction, setToggleState: setToggleState,
+    openUnapply: openUnapply, pairUndo: pairUndo,
+    pending: function () { return pending; }
+  };
+})();"
+      </script>
+      <div aria-hidden="true" class="modal fade" id="planBatchModal" role="dialog" tabindex="-1">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                "Confirm application"
+              </h5>
+              <button aria-label="Close" class="close" data-dismiss="modal" type="button">
+                <span aria-hidden="true">
+                  "×"
+                </span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p id="planBatchSummary">
+              </p>
+              <div class="alert alert-info small">
+                "A record will be created for each entry. Use the × button of a card instead if you want to dismiss it without applying."
+              </div>
+              <div class="alert alert-danger d-none" id="planBatchError">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-outline-secondary" data-dismiss="modal" type="button">
+                "Cancel"
+              </button>
+              <button class="btn btn-success" id="planBatchSubmit" type="button">
+                "Confirm"
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <script>
+        "(function () {
+  // Auto-refresh (§10-CP6c): reload every 60 s unless a modal is open OR a
+  // request is still in flight — refreshing away an in-progress dosage
+  // entry or a just-sent apply would lose work (round-2 §7.3).
+  // R4-4.1: a change the caregiver just made must stay visible long enough
+  // to be SEEN. The old single 60 s timer armed at page load meant an
+  // apply at T=59 s was wiped by the reload one second later. Every action
+  // records its time in the SHARED apply partial; the refresh defers
+  // itself while the page was changed less than 30 s ago (the requested
+  // floor). One 5 s interval checks the due time — no chained setTimeout,
+  // no drift.
+  var RELOAD_PERIOD_MS = 60000;
+  var TICK_MS = 5000;
+  var nextReloadAt = Date.now() + RELOAD_PERIOD_MS;
+  var csrf = planApply.csrf;
+  var i18n = planApply.i18n;
+  var track = planApply.track;
+  var showMessage = planApply.showMessage;
+  var markApplied = planApply.markApplied;
+  var applyItem = planApply.applyItem;
+
+  function scheduleReload() {
+    setInterval(function () {
+      if (Date.now() < nextReloadAt) { return; }              // not due yet
+      if (window.planActionAge() < 30000) { return; } // R4-4.1 floor
+      if (jQuery('.modal').is(':visible') || planApply.busy()) { return; }
+      window.location.reload();
+    }, TICK_MS);
+  }
+  scheduleReload();
+
+  // R3-4: tier headers are divs (not buttons) — give them keyboard
+  // collapse toggling (Enter/Space) to match the click affordance.
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-tier-header[data-toggle="collapse"]'), function (h) {
+    h.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); jQuery(h).trigger('click'); }
+    });
+  });
+
+  // --- Detail popup (read-only, shared partial) -----------------------------
+  // Rev: one filler shared by the ℹ buttons AND the feeding rows (the row
+  // is the click affordance there — the ration text and times only live in
+  // this modal).
+  function fillPlanDetail(el) {
+    document.getElementById('planDetailAnimal').textContent = el.getAttribute('data-animal-label') || '—';
+    var aLink = document.getElementById('planDetailAnimalLink');
+    if (el.getAttribute('data-animal-link')) { aLink.setAttribute('href', el.getAttribute('data-animal-link')); aLink.classList.remove('d-none'); }
+    else { aLink.classList.add('d-none'); }
+    document.getElementById('planDetailDetail').textContent = el.getAttribute('data-detail') || '—';
+    document.getElementById('planDetailSource').textContent = el.getAttribute('data-source-name') || '—';
+    var sLink = document.getElementById('planDetailSourceLink');
+    if (el.getAttribute('data-source-link')) { sLink.setAttribute('href', el.getAttribute('data-source-link')); sLink.classList.remove('d-none'); }
+    else { sLink.classList.add('d-none'); }
+    // R9-2: direct treatment link (record when applied, else Treatment tab).
+    var tLink = el.getAttribute('data-treatment-link');
+    document.getElementById('planDetailTreatmentDt').classList.toggle('d-none', !tLink);
+    document.getElementById('planDetailTreatmentDd').classList.toggle('d-none', !tLink);
+    if (tLink) {
+      document.getElementById('planDetailTreatmentLink').setAttribute('href', tLink);
+      document.getElementById('planDetailTreatment').textContent = el.getAttribute('data-detail') || tLink;
+    }
+    document.getElementById('planDetailKind').textContent = i18n.kinds[el.getAttribute('data-kind')] || el.getAttribute('data-kind') || '—';
+    document.getElementById('planDetailDue').textContent = el.getAttribute('data-due') || '—';
+    document.getElementById('planDetailStatus').textContent = i18n.status[el.getAttribute('data-status')] || el.getAttribute('data-status') || '—';
+    var rem = el.getAttribute('data-remaining');
+    document.getElementById('planDetailRemainingDt').classList.toggle('d-none', !rem);
+    document.getElementById('planDetailRemainingDd').classList.toggle('d-none', !rem);
+    if (rem) { document.getElementById('planDetailRemaining').textContent = rem; }
+    $('#planDetailModal').modal('show');
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-detail-btn'), function (btn) {
+    btn.addEventListener('click', function () { fillPlanDetail(btn); });
+  });
+  // Rev: a feeding row click opens the details; clicks on chips, expand
+  // headers and apply buttons keep their own behavior. Enter/Space toggle
+  // it for keyboard users (R3-4 language).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-row[data-detail]'), function (tr) {
+    tr.addEventListener('click', function (ev) {
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      fillPlanDetail(tr);
+    });
+    tr.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+      if (ev.target.closest('a, button, [data-toggle], .plan-feed-header')) { return; }
+      ev.preventDefault();
+      fillPlanDetail(tr);
+    });
+  });
+
+  // --- Batch apply (feeding group / cage rows) ------------------------------
+  var batchBtn = null;
+  function openBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    batchBtn = btn;
+    var what = btn.getAttribute('data-food') || btn.getAttribute('data-source-name') || '';
+    var summary = i18n.batchSummary
+      .replace('{count}', refs.length)
+      .replace('{cage}', btn.getAttribute('data-cage') || '')
+      .replace('{what}', what);
+    document.getElementById('planBatchSummary').textContent = summary;
+    document.getElementById('planBatchError').classList.add('d-none');
+    $('#planBatchModal').modal('show');
+  }
+
+  // §10.1-5/N2: a batch stays source×cage-scoped — one batch call per
+  // source, sequentially, then one reload (bugs.md U1/U6).
+  function runBatch(btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    if (!refs.length) { return; }
+    var bySource = {};
+    refs.forEach(function (r) {
+      var k = r.source_type + '|' + r.source_id;
+      (bySource[k] = bySource[k] || []).push(r);
+    });
+    var failures = [];
+    // Bug 2026-10-06 #5: a batch item that went hors délai between render and
+    // confirm is past-due work the caregiver just confirmed — record it late
+    // instead of surfacing the §10-A1 409. Future-due items stay unrecordable.
+    function lateRetryOne(ref) {
+      var due = Date.parse(ref.due_at);
+      if (isNaN(due) || due > Date.now()) {
+        return Promise.reject(new Error('future occurrence'));
+      }
+      return track(fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: ref.source_type, source_id: ref.source_id,
+          animal_id: ref.animal_id, due_at: ref.due_at,
+          late: true
+        })
+      }).then(function (r) {
+        return r.json().then(function (j) { return {status: r.status, body: j}; });
+      }));
+    }
+    var chain = Promise.resolve();
+    Object.keys(bySource).forEach(function (k) {
+      var items = bySource[k];
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/apply_batch', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({items: items})
+        }).then(function (r) {
+          return r.json().then(function (j) {
+            if (r.status !== 200) {
+              failures.push((j && (j.detail || j.error)) || ('HTTP ' + r.status));
+              return;
+            }
+            var retries = [];
+            var retryErrors = [];
+            (j.results || []).forEach(function (it) {
+              if (it.status !== 'error') { return; }
+              if (!/apply window/i.test(it.error || '')) {
+                failures.push(it.animal_id + ': ' + (it.error || ''));
+                return;
+              }
+              var ref = null;
+              items.forEach(function (r) { if (r.animal_id === it.animal_id && !ref) { ref = r; } });
+              if (!ref) { failures.push(it.animal_id + ': ' + (it.error || '')); return; }
+              retries.push(lateRetryOne(ref).catch(function (err) {
+                retryErrors.push(it.animal_id + ': ' + ((err && err.message) || 'record failed'));
+              }));
+            });
+            if (retries.length) {
+              return Promise.all(retries).then(function () {
+                retryErrors.forEach(function (m) { failures.push(m); });
+              });
+            }
+          });
+        }));
+      });
+    });
+    return chain.then(function () { return failures; });
+  }
+
+  // Selecting an urgency shortcut keeps only its target section expanded.
+  // BUG-26: ONE strip per tab inside #planSections (every kind) — the
+  // scope is always the sections container; the Done bubble also expands
+  // its (default-collapsed) table.
+  document.getElementById('planSummaryStrip').addEventListener('click', function (event) {
+    var link = event.target.closest('a[href^="#"]');
+    if (!link) { return; }
+    var target = link.getAttribute('href').slice(1);
+    var scope = document.getElementById('planSections');
+    Array.prototype.forEach.call(scope.querySelectorAll('.plan-tier'), function (tier) {
+      var body = tier.querySelector('.plan-tier-body');
+      if (body && tier.id !== target && body.classList.contains('show')) {
+        $(body).collapse('hide');
+      }
+      if (body && tier.id === target && !body.classList.contains('show')) {
+        $(body).collapse('show');
+      }
+    });
+  });
+
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-feeding-apply, .plan-cage-apply'), function (btn) {
+    btn.addEventListener('click', function () {
+      // BUG-22: a flipped button (green ✓ group-undo) never re-opens the
+      // apply modal — the .plan-cage-undo delegated handler owns it.
+      if (btn.classList.contains('plan-cage-undo')) { return; }
+      openBatch(btn);
+    });
+  });
+
+  document.getElementById('planBatchSubmit').addEventListener('click', function () {
+    if (!batchBtn) { return; }
+    var btn = batchBtn;
+    this.disabled = true;
+    var submitBtn = this;
+    $('#planBatchModal').modal('hide');
+    runBatch(btn).then(function (failures) {
+      submitBtn.disabled = false;
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        // R3-2: no reload — flip the group's per-animal checks to their
+        // undo controls and retire the global apply until the refresh.
+        flipBatchRow(btn);
+      }
+    });
+  });
+
+  // flipBatchRow marks every applicable chip of the batch row as applied
+  // (check → undo). BUG-22 (2026-10-28): the group button does NOT
+  // disappear — it flips to a green ✓ group-UNDO toggle; clicking it asks
+  // the shared #planUnapplyModal confirm and undoes the whole row.
+  function flipBatchRow(btn) {
+    var row = btn.closest('tr');
+    if (!row) { window.location.reload(); return; }
+    Array.prototype.forEach.call(row.querySelectorAll('.plan-feeding-one:not(.d-none), .plan-apply-btn:not(.d-none)'), function (b) {
+      markApplied({btn: b});
+    });
+    setBatchState(btn, true);
+  }
+
+  // setBatchState flips the group apply button between its ○ apply look
+  // (tier colour, opens the batch modal) and its ✓ applied look (green,
+  // opens the undo confirm). The direct click binding below checks the
+  // class, so a flipped button never re-opens the apply modal.
+  function setBatchState(btn, applied) {
+    if (applied) {
+      // Capture the tier colour ONCE (first flip) so undo restores it.
+      if (!btn.getAttribute('data-tier-class')) {
+        var tier = [];
+        ['btn-warning', 'btn-danger', 'btn-light', 'border'].forEach(function (c) {
+          if (btn.classList.contains(c)) { tier.push(c); }
+        });
+        btn.setAttribute('data-tier-class', tier.join(' ') || 'btn-warning');
+      }
+      btn.classList.remove('btn-warning', 'btn-danger', 'btn-light', 'border');
+      btn.classList.add('btn-success', 'plan-cage-undo');
+      btn.textContent = btn.textContent.replace('○', '✓');
+      var pill = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill) { pill.classList.add('d-none'); }
+    } else {
+      btn.classList.remove('btn-success', 'plan-cage-undo');
+      (btn.getAttribute('data-tier-class') || 'btn-warning').split(/\s+/).forEach(function (c) { if (c) { btn.classList.add(c); } });
+      btn.textContent = btn.textContent.replace('✓', '○');
+      var pill2 = btn.parentNode && btn.parentNode.querySelector('.plan-apply-count');
+      if (pill2) { pill2.classList.remove('d-none'); }
+    }
+    btn.disabled = false;
+  }
+
+  // Group undo (BUG-22): one confirm via the shared modal, then every
+  // applied chip of the row is unapplied (the fulfillment records are
+  // deleted) and flipped back in place; the group button returns to ○.
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('.plan-cage-undo') : null;
+    if (!btn || btn.disabled) { return; }
+    planApply.openUnapply(btn, true);
+  });
+
+  // BUG-22 live-E2E retest 2026-10-28: the previous version looked the
+  // chips up in the ROW — but single-animal cage rows render NO per-animal
+  // pair (R4-7.5: the group check does the whole job) and the Done tier
+  // renders link-only chips, so the loop matched ZERO elements: no POST,
+  // a purely cosmetic flip, and the records stayed applied after reload.
+  // Iterate the button's data-items refs instead — the same payload
+  // runBatch applies — and flip a rendered chip pair only when it exists.
+  window.planUnapplyBatch = function (btn) {
+    var refs = JSON.parse(btn.getAttribute('data-items') || '[]');
+    var row = btn.closest('tr');
+    var failures = [];
+    var chain = Promise.resolve();
+    refs.forEach(function (ref) {
+      chain = chain.then(function () {
+        return track(fetch('/care_plan/unapply', {
+          method: 'POST', credentials: 'same-origin',
+          headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+          body: JSON.stringify({
+            source_type: ref.source_type,
+            source_id: ref.source_id,
+            animal_id: parseInt(ref.animal_id, 10),
+            due_at: ref.due_at,
+            delete_fulfillment: true
+          })
+        })).then(function (r) {
+          if (r.status === 200) {
+            if (row) {
+              var chip = row.querySelector('.plan-unapply-btn[data-animal-id="' + ref.animal_id + '"][data-due-at="' + ref.due_at + '"]:not(.d-none)');
+              if (chip) { planApply.setToggleState(chip, false); }
+            }
+            return;
+          }
+          failures.push(ref.due_at + ': HTTP ' + r.status);
+        });
+      });
+    });
+    return chain.then(function () {
+      if (failures.length) {
+        showMessage(i18n.errorTitle, failures.join('\n'));
+      } else {
+        setBatchState(btn, false);
+      }
+    });
+  };
+
+  // Render recorded completion times in the viewer's browser locale/timezone.
+  Array.prototype.forEach.call(document.querySelectorAll('time.js-local-time'), function (el) {
+    var appliedAt = new Date(el.getAttribute('datetime'));
+    if (!isNaN(appliedAt.getTime())) {
+      el.textContent = appliedAt.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
+    }
+  });
+
+  // --- History: late-record a superseded occurrence (§6.2-2, A1) ------------
+  // R5-2c/S9: the history late-record button REUSES the apply modal for
+  // input kinds (observation → answer, weighing → weight, §10-L1): a
+  // blind confirm-POST would 4xx ("answer is required"). openApply marks
+  // the ref late (plan-late-btn class) so the submit records after the
+  // fact (bypasses only the apply-window 409).
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-late-btn'), function (btn) {
+    btn.addEventListener('click', function () {
+      if (isInputKind(btn)) { openApply(btn); return; }
+      if (!window.confirm(lateConfirm)) { return; }
+      fetch('/care_plan/apply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          late: true
+        })
+      }).then(function (r) {
+        if (r.status === 201) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // --- History: free undo (A8) ----------------------------------------------
+  Array.prototype.forEach.call(document.querySelectorAll('.plan-history-undo'), function (btn) {
+    btn.addEventListener('click', function () {
+      fetch('/care_plan/unapply', {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-Token': csrf},
+        body: JSON.stringify({
+          source_type: btn.getAttribute('data-source-type'),
+          source_id: btn.getAttribute('data-source-id'),
+          animal_id: parseInt(btn.getAttribute('data-animal-id'), 10),
+          due_at: btn.getAttribute('data-due-at'),
+          delete_fulfillment: true
+        })
+      }).then(function (r) {
+        if (r.status === 200) { window.location.reload(); return; }
+        r.json().then(function (j) {
+          showMessage(i18n.errorTitle, (j && (j.detail || j.error)) || ('HTTP ' + r.status));
+        });
+      });
+    });
+  });
+
+  // Zone dropdown memory (bugs.md U3): the legacy feeding screen remembered
+  // its tab in location.hash — replicate with a z- prefix so the tier
+  // anchors (#tier-*) never collide. A remembered zone only applies when
+  // the URL carries no explicit ?zone= filter.
+  var zoneTabs = document.querySelectorAll('#planZoneMenu a[data-zone]');
+  Array.prototype.forEach.call(zoneTabs, function (tab) {
+    tab.addEventListener('click', function () {
+      var z = tab.getAttribute('data-zone');
+      try { history.replaceState(null, '', z ? '#z-' + z : window.location.pathname + window.location.search); }
+      catch (e) { /* older browsers: ignore */ }
+    });
+  });
+  var zoneParam = new URLSearchParams(window.location.search).get('zone');
+  if (!zoneParam && window.location.hash.indexOf('#z-') === 0) {
+    var remembered = decodeURIComponent(window.location.hash.substring(3));
+    var match = null;
+    Array.prototype.forEach.call(zoneTabs, function (tab) {
+      if (tab.getAttribute('data-zone') === remembered) { match = tab; }
+    });
+    if (match) { window.location.replace(match.getAttribute('href')); }
+  }
+})();"
+      </script>
+    </div>
+  </body>
+</html>

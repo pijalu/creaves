@@ -31,6 +31,14 @@
   - [LogEntry](#logentry)
 - [Audit Models](#audit-models)
   - [AnimalAudit](#animalaudit)
+- [Care Expert Models](#care-expert-models)
+  - [CareMatcher](#carematcher)
+  - [CareRule](#carerule)
+  - [CareRuleExclusion](#careruleexclusion)
+  - [CareAnimalPlan](#careanimalplan)
+  - [CarePlanApplication](#careplanapplication)
+  - [CarePlanConversion](#careplanconversion)
+  - [models/careplan (package)](#modelscareplan-package)
 - [Utility Files](#utility-files)
   - [models.go](#modelsgo)
   - [constants.go](#constantsgo)
@@ -925,6 +933,89 @@ animal show page with server-side pagination.
   `animals.discovery_id` (`auditAnimalIDBy*` helpers).
 
 ---
+
+## Care Expert Models
+
+Rule-driven care planning (spec: `docs/care-expert.md`). UUID PKs; admin-managed
+matchers/rules, per-animal plans, immutable applications, and a conversion ledger.
+
+### CareMatcher
+`models/care_matcher.go` — named, reusable animal-condition query.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid | PK |
+| Name / Description | string | Display metadata |
+| Expression | string | Boolean DSL over the animal condition (`models/careplan` parser) |
+
+### CareRule
+`models/care_rule.go` — a matcher-driven recurring action.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid | PK |
+| Name / Description | string | Display metadata |
+| ActionKind | string | `feeding` / `care` / `medication` / `cleanup` |
+| ActionPayload | json | Kind-specific payload |
+| Schedule | json | Recurrence schedule (times of day, repeat, validity) |
+| MatcherID | uuid (nullable) | Matcher driving the rule; nil for center-wide rules |
+| Active / Priority | bool / int | Evaluation order and on/off |
+| ValidFrom / ValidTo | *time | Validity window |
+| StopOnOuttake | bool | Stop planning once the animal is out |
+| LatchMembership | bool | Keep matched animals latched after they stop matching |
+
+### CareRuleExclusion
+`models/care_rule_exclusion.go` — per-animal opt-out from a rule.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid | PK |
+| RuleID / AnimalID | uuid / int | Excluded pair |
+| Reason | string | Why excluded |
+| CreatedBy | uuid | Admin user |
+
+### CareAnimalPlan
+`models/care_animal_plan.go` — caretaker-created single-animal schedule (no matcher/rule).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid | PK |
+| AnimalID | int | Owning animal |
+| Name | string | Display name |
+| ActionKind / ActionPayload | string / json | Same shape as rules |
+| Schedule | json | Recurrence schedule |
+| ReplacesKind | bool | Replaces converted plans of the same kind for the animal |
+| Active / CreatedBy | bool / uuid | On/off + author |
+
+### CarePlanApplication
+`models/care_plan_application.go` — immutable record of one applied plan item (audit trail).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| ID | uuid | PK |
+| SourceType / SourceID | string / uuid | Rule or animal plan that produced the item |
+| SourceSnapshot | json | Item content at apply time |
+| AnimalID / DueAt | int / time | Target + due moment |
+| AppliedAt / UserID | time / uuid | Who, when |
+| FulfillmentType / FulfillmentID | string | Created `care` row / `treatment` fulfillment |
+| Status | string | applied / replaced / deferred |
+| DeferredUntil | *time | Deferral target |
+| FulfillmentDeleted / Note | bool / string | Fulfillment GC + free note |
+
+### CarePlanConversion
+`models/care_plan_conversion.go` — one-shot legacy→care-plan conversion ledger (key `startup_v1`).
+
+| Field | Type | Description |
+|-------|------|-------------|
+| Key | string | Unique conversion key |
+| FinishedAt | time | Completion |
+| Report | string (nullable) | JSON conversion report |
+
+### models/careplan (package)
+DSL + schedule engine: yacc-generated parser (`dsl.y` → `dsl_yacc.go`), animal
+context/field registry, evaluator, occurrence expansion (`occurrences.go`),
+day-plan status (`status.go`), grouping (`grouping.go`), overrides, plan sources
+(`plan_source.go`). No DB models — pure value objects used by `actions/care_plan*`.
 
 ## Utility Files
 

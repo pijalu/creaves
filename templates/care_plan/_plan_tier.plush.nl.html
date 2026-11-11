@@ -1,0 +1,37 @@
+<%# ONE tier section panel (§1 of docs/care-presentation-guideline.md) —
+    Late / Now / Later / Done / History (and the feeding tiers) all render
+    through this single component, so the bordered panel, the header (tier
+    name + count pill + collapse chevron) and the collapse body can never
+    drift apart between sections.
+
+    Used as a LAYOUT: the caller renders its body partial with
+      partial("care_plan/<body>.plush.html", {<locals>, <tier params>,
+        layout: "care_plan/plan_tier.plush.html"})
+    and this component wraps the rendered body (yield) in the panel.
+
+    Locals (passed via partial data map):
+      tierKey        — urgency key: "late" | "now" | "later" | "done" |
+                       "history" — drives the .plan-tier-<key> tint class.
+      tierId         — the section element id ("tier-late", "plan-history");
+                       with tierIdNum it prefixes it ("feed-tier-" + 0);
+                       the collapse body is always "<id>-rows".
+      tierIdNum      — numeric id suffix (feeding tiers), "" when none.
+      tierLabelKey   — the i18n key for the tier name
+                       ("care_plan.tier.<key>" or "care_plan.section.history").
+      tierBadgeClass — the Bootstrap badge class of the count pill.
+      tierCount      — the count text (already BadgeCap-capped).
+      tierExpanded   — bool: Late/Now/Later open, Done/History collapsed.
+      tierDoneCount  — int: when > 0, adds data-done-count to the outer div
+                       (the medication Done tier's JS hook); 0 when none.
+      yield          — template.HTML of the pre-rendered body content
+                       (the rows/series/table the tier lists). %>
+<div class="plan-tier plan-tier-<%= tierKey %>" id="<%= tierId %><%= tierIdNum %>"<%= if (tierDoneCount > 0) { %> data-done-count="<%= tierDoneCount %>"<% } %>>
+  <div class="plan-tier-header" data-toggle="collapse" data-target="#<%= tierId %><%= tierIdNum %>-rows" aria-expanded="<%= tierExpanded %>" role="button" tabindex="0">
+    <span><%= t(tierLabelKey) %></span>
+    <span class="badge badge-pill <%= tierBadgeClass %>"><%= tierCount %></span>
+    <span class="plan-tier-chevron"><i class="fas fa-chevron-down"></i></span>
+  </div>
+  <div class="collapse<%= if (tierExpanded) { %> show<% } %> plan-tier-body" id="<%= tierId %><%= tierIdNum %>-rows">
+    <%= yield %>
+  </div>
+</div>

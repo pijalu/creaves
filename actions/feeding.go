@@ -6,21 +6,15 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/gobuffalo/buffalo"
 	"github.com/gobuffalo/nulls"
-	"github.com/gobuffalo/pop/v6"
 )
 
-const FEEDING_SQL = `
-SELECT a.id, a.year, a.yearNumber, a.species, a.cage, a.zone, a.feeding, a.force_feed, a.feeding_start, a.feeding_end, a.feeding_period, MAX(c.date) AS last_feeding
-FROM animals a
-LEFT JOIN cares c ON (a.id = c.animal_id and c.type_id in (select id from caretypes where type=1))
-WHERE a.outtake_id IS NULL and a.feeding_start IS NOT NULL and a.feeding_end IS NOT NULL
-AND a.feeding_period > 0
-GROUP BY a.id;`
+// FEEDING_SQL and generateAnimalFeedings (the retired /feeding page's
+// loader) were removed with the page (§8.3); guest.go keeps the per-animal
+// calculateFeeding display path.
 
 const HIGHTIMELIMIT = 2 * time.Hour
 const NEARTIMELIMIT = 15 * time.Minute
@@ -188,90 +182,13 @@ func calculateFeedings(afRaw []AnimalFeeding) (FeedingByZoneMap, error) {
 	return feedingByZone, nil
 }
 
-func generateAnimalFeedings(c buffalo.Context) (FeedingByZoneMap, error) {
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return nil, fmt.Errorf("no transaction found")
-	}
-
-	// Retrieve info from the DB
-	afRaw := []AnimalFeeding{}
-	if err := tx.Eager().RawQuery(FEEDING_SQL).All(&afRaw); err != nil {
-		return nil, err
-	}
-
-	// Calculate results
-	return calculateFeedings(afRaw)
-}
-
 // FeedingFeeding default implementation.
 func FeedingIndex(c buffalo.Context) error {
-	zm, err := zonesMap(c)
-	if err != nil {
-		return err
-	}
-	c.Set("zoneMap", zm)
-
-	af, err := generateAnimalFeedings(c)
-	if err != nil {
-		return err
-	}
-	c.Set("feedingByZone", af)
-	c.Logger().Debugf("Feeding: %v", af)
-
-	return c.Render(http.StatusOK, r.HTML("feeding/index.html"))
+	// Retired (§8.3): the legacy feeding_period page is replaced by the
+	// day plan; the route is kept so bookmarks don't 404.
+	return c.Redirect(http.StatusFound, "/care_plan?kind=feeding")
 }
 
-// FeedingFeeding default implementation.
-func FeedingClose(c buffalo.Context) error {
-	animalIDStr := c.Param("ID")
-	timeToCloseSTR := c.Param("time")
-	note := c.Param("note")
-
-	care := &models.Care{}
-	var err error
-	if care.AnimalID, err = strconv.Atoi(animalIDStr); err != nil {
-		return err
-	}
-	if care.Date, err = time.Parse(feeding_dateFormat, timeToCloseSTR); err != nil {
-		return err
-	}
-	now := time.Now().Format(models.DateTimeFormat)
-	if len(note) > 0 {
-		note = fmt.Sprintf("%s - %s", now, note)
-	} else {
-		note = now
-	}
-	care.Note = nulls.NewString(note)
-
-	// Set care type
-	ct, err := caretypes(c)
-	if err != nil {
-		return err
-	}
-
-	// get feeding caretype
-	for i := 0; i < len(*ct); i++ {
-		c := (*ct)[i]
-		if c.Type == models.CareTypeFeed {
-			care.Type = c
-			break
-		}
-	}
-	c.Logger().Debugf("Closing feeding for animalID %d with date at %s", care.AnimalID, care.Date)
-
-	// Get the DB connection from the context
-	tx, ok := c.Value("tx").(*pop.Connection)
-	if !ok {
-		return fmt.Errorf("no transaction found")
-	}
-	if err = tx.Create(care); err != nil {
-		return err
-	}
-
-	c.Flash().Add("success", T.Translate(c, "feeding.close.success"))
-	if back := safeBackParam(c); back != "/" {
-		return c.Redirect(http.StatusSeeOther, back)
-	}
-	return c.Redirect(http.StatusSeeOther, "/feeding")
-}
+// FeedingClose was removed (bugs.md M4): a GET with side effects that wrote
+// a care without a care_plan_applications row, leaving the plan occurrence
+// open (double-feed risk). Feeding closes via POST /care_plan/apply only.

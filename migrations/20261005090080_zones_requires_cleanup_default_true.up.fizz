@@ -1,0 +1,1 @@
+sql("UPDATE `zones` SET `requires_cleanup` = 1 WHERE `requires_cleanup` = 0")

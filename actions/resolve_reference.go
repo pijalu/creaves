@@ -9,7 +9,7 @@ import (
 	"creaves/models"
 )
 
-// Option A (I18N_UI_LOCALIZATION_FIX_PLAN.md): suggestion popups display
+// Option A (docs/I18N_UI_LOCALIZATION_FIX_PLAN.md): suggestion popups display
 // localized reference names, but stored values stay canonical French so the
 // webhook contract and free-text columns (animals.species, treatments.drug)
 // are unaffected. resolveReferenceInput maps a user-submitted — possibly

@@ -1,0 +1,62 @@
+<%# ONE medication slot toggle (Phase 0b — extracted from `_med_series`):
+    the button for a single (drug series × hour) occurrence, in ALL its
+    states. The variant logic lives here exactly once; `_med_series` owns
+    the rows/slots loops and the day badges around the button.
+
+    Context (both propagated from the caller's loops):
+      slot — the MedSlotView to render (tier class, status, flags, times,
+             data attributes).
+      mg   — the enclosing MedGroupView (animal id/label for the data
+             attributes).
+
+    States (colour = the slot's urgency tier, R4-1.1 — late red · due-now
+    yellow · future white · applied green; the glyph and the title carry
+    the state):
+      applied    → ✓ — ONE live toggle (R5-2c): re-click undoes, no
+                   confirm, no reload; disabled only when the record can
+                   no longer be undone (slot.CanUndo).
+      skipped    → ⊘ — terminal state rendered as a NON-INTERACTIVE marker
+                   at the same size as the toggles (bugs.md 2026-10-06 #4:
+                   no oversized disabled button; a state is not an action).
+      deferred   → ⏸ — same marker treatment as skipped.
+      applicable → ○ — the to-do toggle; data-kind="medication" so the
+                   shared toggle JS can route it; the urgent slot of the
+                   series gets a red ring (plan-med-urgent, R4-1.2), its
+                   future siblings recede (plan-med-future).
+      otherwise  → 🔒 — hors délai (§10-A1): NO action affordance at all
+                   (bugs.md 2026-10-06 #5 directive — instead of a control
+                   that errors on confirm, a non-interactive lock marker
+                   keeps the slot's place in the series). Rev (user
+                   request, 2nd pass): the former "late → ○ record anyway"
+                   state is RETIRED — a past-due out-of-window med slot
+                   now renders the SAME lock as any other hors-délai slot
+                   (parity with the feeding/item rows). %>
+<%= if (slot.Applied) { %>
+  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn<%= if (slot.CanUndo) { %> plan-med-unapply<% } %>"
+    <%= if (!slot.CanUndo) { %>disabled <% } %>
+    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+    data-tier-class="<%= slot.TierClass %>"
+    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+    <%# BUG-22 (2026-10-28): a non-undoable applied slot (the fulfillment
+        record was deleted or locked) keeps the disabled ✓ but its tooltip
+        EXPLAINS why — an unexplained dead button read as a bug. %>
+    title="<%= if (slot.CanUndo) { %><%= t("care_plan.action.undo") %> — <%= t("care_plan.slot." + slot.Slot) %><% } else { %><%= t("care_plan.status.undo_locked") %><% } %>">✓ <%= slot.DueAtHM %></button>
+<% } else if (slot.Status == "skipped") { %>
+  <span class="badge badge-light border plan-med-state" title="<%= t("care_plan.status.skipped") %>">⊘ <%= slot.DueAtHM %></span>
+<% } else if (slot.Status == "deferred") { %>
+  <span class="badge badge-light border plan-med-state" title="<%= t("care_plan.status.deferred") %>">⏸ <%= slot.DueAtHM %></span>
+<% } else if (slot.Applicable) { %>
+  <button type="button" class="btn <%= slot.TierClass %> btn-sm plan-med-slot plan-med-btn plan-med-apply<%= if (slot.Urgent) { %> plan-med-urgent<% } %><%= if (slot.Future) { %> plan-med-future<% } %>"
+    data-source-type="<%= slot.SourceType %>" data-source-id="<%= slot.SourceID %>"
+    data-animal-id="<%= mg.AnimalID %>" data-due-at="<%= slot.DueAtRFC %>"
+    data-kind="medication" data-tier-class="<%= slot.TierClass %>"
+    data-animal-label="<%= mg.AnimalLabel %>" data-detail="<%= slot.Detail %>"
+    data-source-name="<%= slot.SourceName %>"
+    <%# User request 2026-10-28: the title carries the COMPLETE due time
+        (date included, slot.DueAtFull) — the visible "○ HH:MM" alone
+        does not say WHICH day the click applies. %>
+    title="<%= t("care_plan.apply.action") %> — <%= t("care_plan.slot." + slot.Slot) %> · <%= slot.DueAtFull %>">○ <%= slot.DueAtHM %></button>
+<% } else { %>
+  <span class="plan-item-locked plan-med-state plan-med-locked" title="<%= t("care_plan.status.out_of_window") %>" aria-label="<%= t("care_plan.status.out_of_window") %>">🔒 <%= slot.DueAtHM %></span>
+<% } %>

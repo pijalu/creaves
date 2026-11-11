@@ -1,10 +1,10 @@
-<%= f.InputTag("Name") %>
+<%= f.InputTag("Name", {label:"Name"}) %>
 <%= f.TextAreaTag("Description", {rows: 10}) %>
 <%= f.InputTag("Type", {label:"Type (1-Feed, 2-Move...)"}) %>
 
 
-<%= f.CheckboxTag("Def", {unchecked: false}) %>
-<%= f.CheckboxTag("Warning", {unchecked: false}) %>
+<%= f.CheckboxTag("Def", {label:"Default", unchecked: false}) %>
+<%= f.CheckboxTag("Warning", {label:"Warning", unchecked: false}) %>
 <%= f.CheckboxTag("ResetWarning", {label:"Reset Warning", unchecked: false}) %>
 <%= partial("translations/fields.html") %>
 <button class="btn btn-success" role="submit">Save</button>

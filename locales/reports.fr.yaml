@@ -134,3 +134,7 @@
   translation: "Encore au centre"
 - id: "reports.annual.received_count"
   translation: "Nombre d'animaux reçus dans l'année : {{.count}}"
+- id: "nav.reports_care_schedule"
+  translation: "Planning des soins"
+- id: "nav.reports_confirmations"
+  translation: "Protocoles à confirmer"
