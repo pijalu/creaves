@@ -1,7 +1,7 @@
 # Care Plan / Treatment / Dashboard — Round 2 UX Fix Plan
 
 **Date:** 2026-09-30
-**Source:** [`../bugs.md`](../bugs.md) — sections "Treatment view in animal", "Dashboard: medication view", "Care plan view"
+**Source:** [`care-plan-bugs-2026-10.md`](care-plan-bugs-2026-10.md) — sections "Treatment view in animal", "Dashboard: medication view", "Care plan view"
 **Baseline:** [care-plan-ux-fix-plan.md](./care-plan-ux-fix-plan.md) (round 1, implemented) — this plan is the follow-up on the issues found after round 1 shipped.
 **Scope:** analysis + design + fix plan only. No implementation until this plan is agreed.
 **Workspace note:** all work in `creaves/` only. `creaves/AGENTS.md` is the source of truth for conventions.
@@ -17,7 +17,7 @@
   `templates/animals/show.plush.{html,fr.html,de.html,nl.html}`) plus new keys in
   `locales/care_plan.{en-US,fr,de,nl}.yaml`. `TestCarePlanPagesAllLocales` is the gate — extend it to cover new surfaces.
 - **bugs.md workflow**: plan → execute → validate → archive each closed bug to `docs/archive/`; e2e via agent-browser skill; quality tools run **separately** (`go vet ./...`, `staticcheck ./...`, `gocognit -over 15 .`, `gocyclo -over 12 .`, `go test -count=1 -race -cover ./...`); one commit per fix.
-- **Laws of UX** ([skill](../../.agents/skills/laws-of-ux/SKILL.md)): every design decision below cites the law(s) that dictate it.
+- **Laws of UX** ([skill](../../../.agents/skills/laws-of-ux/SKILL.md)): every design decision below cites the law(s) that dictate it.
 - **Additive principle (user, binding):** the new engine must **add** features, not remove any. Every screen must *at least* fill the same functional need, in a similar fashion, as the previous approach (`feature/depupdate` views + current round-1 engine), *with* better features/UX. Any element this plan drops must either (a) have its function preserved by a documented replacement (audit table §4b) or (b) be an explicit user decision. No silent capability loss.
 
 ## 2. Confirmed design decisions (from user)

@@ -1,7 +1,7 @@
 # Bug 10 — test suite: order-dependent flakes from shared webhook-worker state
 
 **Date**: 2026-09-23
-**Status**: RESOLVED — commit [`c4270f1`](../../creaves) "tests: stop order-dependent flakes from webhook worker leak + readTimeout kills" (pushed to `feature/depupdate`)
+**Status**: RESOLVED — commit [`c4270f1`](../..) "tests: stop order-dependent flakes from webhook worker leak + readTimeout kills" (pushed to `feature/depupdate`)
 
 ## Observed
 

@@ -1,566 +1,104 @@
-# Creaves - Agent Guide
+# Creaves — Agent Guide
 
-## Documentation Index
+## Purpose and boundaries
 
-This project has comprehensive agentic documentation split across multiple files:
+Creaves is the per-center wildlife-care application. It owns animal lifecycle, care, feeding, treatments, veterinary history, reports, reference data, and the Care Expert system. It is the **push side** of Console synchronization.
 
-| Document | Purpose | Location |
-|----------|---------|----------|
-| **AGENTS.md** (this file) | Project overview, setup, conventions, performance notes | `/AGENTS.md` |
-| **MODELS_DOCUMENTATION.md** | All database models, fields, relationships, validations | `/MODELS_DOCUMENTATION.md` |
-| **ACTIONS_DOCUMENTATION.md** | All HTTP handlers, routes, business logic | `/actions/ACTIONS_DOCUMENTATION.md` |
-| **TEMPLATES_DOCUMENTATION.md** | All Plush templates, forms, JavaScript interactions | `/TEMPLATES_DOCUMENTATION.md` |
-| **MIGRATIONS_DOCUMENTATION.md** | Database schema, migrations, indexes, triggers | `/MIGRATIONS_DOCUMENTATION.md` |
-| **ASSETS_DOCUMENTATION.md** | Frontend assets, libraries, build process | `/ASSETS_DOCUMENTATION.md` |
-| **UTILITIES_DOCUMENTATION.md** | Helper functions, utilities, patterns | `/UTILITIES_DOCUMENTATION.md` |
-| **docs/care-expert.md** | Care Expert System specification (v2, implemented) | `/docs/care-expert.md` |
-| **docs/care-plan-validation-2026-09-27.md** | Care-plan migration/conversion + E2E validation report | `/docs/care-plan-validation-2026-09-27.md` |
-| **e2e/E2E-TEST.md** | Browser E2E test plan + results for the cross-app sync feature (restore, link, resync, arrivals, protocols, cares, outtakes, recovery — 2026-10-07/08) | `/e2e/E2E-TEST.md` |
-| **e2e/bugs.md** | Bugs found by the browser E2E runs (BUG-1…BUG-9) with fix + retest status | `/e2e/bugs.md` |
-| **e2e/EXPECTATIONS.md** | Fixture expectations for the scripted `e2e/run.sh` suite | `/e2e/EXPECTATIONS.md` |
-| **e2e/RESYNC_RUNBOOK.md** | Operator runbook: when/how to resync a center and verify | `/e2e/RESYNC_RUNBOOK.md` |
+Creaves Console is a separate module and database. Never add cross-module imports or direct Console database access. The only integration is `POST /webhook/events` with Bearer authentication.
 
-**Event Forwarding**: This project pushes animal lifecycle events to **Creaves Console** via webhooks.
-See the [Event Forwarding to Creaves Console](#event-forwarding-to-creaves-console) section below and the
-[Creaves Console AGENTS.md](../creaves-console/AGENTS.md) for the consolidation architecture.
+## Read first
 
-**Quick Reference**: When asked to modify code, first check the relevant documentation file to understand the existing structure without parsing all source files.
+| Document | Use |
+| --- | --- |
+| [README.md](README.md) | Current features, architecture, setup, configuration, tasks, deployment, and troubleshooting |
+| [docs/care-expert.md](docs/care-expert.md) | Current Care Expert design and operational invariants |
+| [docs/care-presentation-guideline.md](docs/care-presentation-guideline.md) | Normative care-plan UI behavior |
+| [docs/SETUP_AND_TESTING.md](docs/SETUP_AND_TESTING.md) | Combined Creaves/Console setup and validation |
+| [../creaves-console/docs/specs/SYNC_SPEC.md](../creaves-console/docs/specs/SYNC_SPEC.md) | Canonical webhook v2 wire contract |
+| [e2e/RESYNC_RUNBOOK.md](e2e/RESYNC_RUNBOOK.md) | Current recovery procedure |
+| [docs/README.md](docs/README.md) | Curated documentation index |
+| `docs/archive/` | Historical research, plans, fix rounds, and dated results; not current instructions |
 
----
+Keep this guide short. Do not copy full contracts, route inventories, model catalogs, or historical fix narratives into it.
 
-## Stack & Architecture
-- **Go 1.18** webapp using [Buffalo v0.18.x](https://gobuffalo.io/) framework
-- **Entrypoint**: `cmd/app/main.go` → `actions.App()` (`actions/app.go`)
-- **Database**: MySQL/MariaDB via [Pop v6](https://github.com/gobuffalo/pop) (ORM/migrations)
-- **Frontend assets**: Webpack 5 + Sass + Babel + Bootstrap 4.6 + jQuery + Select2 + Flatpickr
-- **Templating**: Plush (`.plush.html`)
-- **I18n**: `locales/*.yaml` (fr, en-US, de, nl) plus startup reference translations in `grifts/translations_*.sql`
+## Stack and commands
 
-## Prerequisites
-- Go 1.18+
-- Buffalo CLI: `go install github.com/gobuffalo/cli/cmd/buffalo@latest`
-- Node.js + npm/yarn
-- MySQL/MariaDB running locally (or use Docker test setup)
-
-## Database Setup
-Connection config is in `database.yml` (development/test use `localhost:3306`, db `creaves`, user/pass `creaves`).
+- Go **1.26**, Buffalo 1.1, Pop v6, Plush, MySQL/MariaDB.
+- Development port: **3000**; development and tests both use MySQL.
+- Install Buffalo with `go install github.com/gobuffalo/cli/cmd/buffalo@latest`.
 
 ```bash
-# Run migrations
+go mod download
+yarn install --frozen-lockfile
+go generate ./models/careplan
 buffalo pop migrate up
-
-# Seed reference data (required for app to function)
 buffalo task db:seed
-
-# Seed only the 7 startup reference tables from the embedded production dump
-buffalo task db:seed:startup
-```
-
-**Note**: `db:seed` is **not optional** — it creates admin user, animal types, species, drugs, care types, zones, etc.
-
-`db:seed` first loads embedded production reference data from `grifts/creaves-startup.sql.gz`
-(7 tables: `animalages, animaltypes, caretypes, outtaketypes, drugs, species, dosages`),
-skipping any table that already contains rows (idempotent per table). The standalone
-`buffalo task db:seed:startup` runs only this step.
-
-**Startup translations**: after base rows are loaded, `db:seed:startup` backfills French keys and applies embedded `grifts/translations_{fr,en-US,de,nl}.sql` artifacts. Inserts are unique-key idempotent and preserve existing values. The artifact inventory covers 4,686 non-empty startup values per locale; see `I18N_STARTUP_TRANSLATION_PLAN.md` for regeneration and review workflow.
-
-**Warning**: the dump INSERTs have no column names — they rely on column order matching
-`migrations/schema.sql`. Adding a NOT NULL column without a default to any of these 7
-tables requires regenerating the dump.
-
-## Development Commands
-
-```bash
-# Install Go + JS deps
-buffalo plugins install
-npm install
-yarn install
-
-# Run dev server with auto-reload (builds Go binary + watches assets)
 buffalo dev
-
-# Or build assets manually
-npm run dev        # webpack --watch
-npm run build      # webpack --mode production
-
-# Build production binary
-buffalo build --environment production --static -o bin/app
 ```
 
-**Buffalo dev config**: `.buffalo.dev.yml` — builds `./cmd/app` into `tmp/creaves-build`, watches `.go` and `.env` files.
+The Care DSL parser is generated and ignored. Install `goyacc` and rerun `go generate ./models/careplan` after changing `models/careplan/dsl.y` or when a clean checkout lacks the generated parser.
 
-## Testing
+`db:seed` reconciles the embedded production-derived reference set and translations and creates the initial admin if absent. It is idempotent but not a lightweight test fixture. Development login: `admin` / `admin`; change it outside a disposable environment.
+
+Use `POP_PATH=/absolute/config-directory` to select an alternate `database.yml`. Verify the selected database before every migration, seed, fixture, repair, or rollback command.
+
+## Testing requirements
 
 ```bash
-# Run all Go tests
-buffalo test
-
-# Run a single package
-go test ./actions
-go test ./models
-
-# Run a single test
-go test ./actions -run TestCalculateFeeding
+GO_ENV=test go test -count=1 ./...
+GO_ENV=test go test -count=1 ./actions -run TestName -v
+go vet ./...
 ```
 
-**Test DB**: Uses same MySQL connection as dev (`database.yml` test env). No SQLite fallback.
+Tests require an isolated migrated `creaves_test` MySQL database. Never point tests at development or production data. Run focused tests before the full suite and report actual failures; never weaken, skip, or hard-code tests to make them pass.
 
-**Docker test stack** (full integration):
-```bash
-cd test && docker-compose up --build
-```
-- Builds app in dev mode, runs migrations + seed, exposes on port 80
-- MariaDB latest with volume `test/db_data`
+Template, action, model, route, and schema changes require authenticated browser checks. Exercise every affected locale (`en-US`, `fr`, `de`, `nl`) and both success and error paths. Historical E2E logs in `docs/archive/` are evidence of old runs, not substitutes for a new check.
 
-## Migrations
-- Located in `migrations/`
-- Format: Buffalo Pop [Fizz](https://github.com/gobuffalo/fizz) (`.up.fizz`/`.down.fizz`)
-- Raw SQL files also accepted (e.g. `migrations/trigger-animal.sql`)
-- Schema dump: `migrations/schema.sql`
+## UI and localization
 
-## Key Directories
-| Directory | Purpose |
-|-----------|---------|
-| `actions/` | HTTP handlers, routing, middleware, business logic |
-| `models/` | Pop models, database entities |
-| `templates/` | Plush HTML templates |
-| `migrations/` | Database migrations (Fizz + SQL) |
-| `grifts/` | CLI tasks (seed data, admin creation) |
-| `assets/` | JS, CSS, images for Webpack |
-| `public/assets/` | **Generated** — do not edit (gitignored) |
-| `locales/` | I18n YAML files |
-| `fixtures/` | Test fixtures (TOML format for Pop) |
-| `dockerscript/` | Production startup scripts |
-| `test/` | Docker compose for integration testing |
+Every user-facing UI change must update all four localized template variants and translation catalogs. Prefer shared partials only when behavior remains equivalent across locales. Check structural locale parity and run browser validation after changes.
 
-## Build & Deploy
+## Care Expert invariants
 
-```bash
-# Docker multi-arch build and push
-./build.sh   # Uses buildx for linux/amd64 + linux/arm64
-```
+- `models/careplan` is the pure-Go matcher, DSL, schedule, occurrence, and why-trace engine. Database resolution and application workflows live in `actions`.
+- Human-authored plans (`created_by` set) must not be rewritten by converter or repair tasks. Converter-owned rows have explicit marker/source identity.
+- Feeding startup repair is marker-guarded; treatment-series refresh is idempotent and runs at every boot so new prescriptions are discovered.
+- Converter output is definitive. `needs_confirmation` is a manual review flag and never suppresses scheduling.
+- `careplan:validate-feeding` and `careplan:validate-treatments` are read-only gates. Run them before any repair.
+- `careplan:reconvert-treatments` deletes converter-owned non-feeding plans before recreation. Use only after backup and staging validation.
+- Derived/managed rule rows have edit restrictions; do not bypass them through generic CRUD changes.
 
-**Production startup**: `dockerscript/quickstart.prod.sh` — runs migrations, seeds DB, then starts app.
+See the current design document for commands and data-flow details.
 
-## Code Style
-- Go: standard `gofmt` (enforced by CodeClimate config)
-- JS: `jshint` available in devDependencies
-- Method length threshold: 100 lines (`.codeclimate.yml`)
+## Synchronization invariants
 
-## Important Conventions
+- Multiple sync targets are supported. Event production requires the event stream to be enabled; delivery requires an enabled target.
+- The worker starts at boot, wakes on publication and target save, and has a 60-second fallback tick.
+- Mark an event delivered only when Console explicitly acknowledges its event ID. Partial batches leave all other events retryable.
+- Repeated failures open a 60-second circuit breaker. Preserve rate limits, batch limits, and per-target state.
+- Full resync uses deterministic `animal_state` events, state hashes, instance metadata, and localized reference values. A classification change can intentionally alter hashes and cause one resend.
+- Use `/webhook_resync` for backfill/recovery. Legacy `event:snapshot*` tasks are maintenance tools and do not announce the expected sync set.
+- Keep the producer and receiver contract changes synchronized in both repositories. Run contract and error-path tests.
 
-**All-language UI rule:** Any UI/template change must be reviewed and applied consistently across every supported language (`en-US`, `fr`, `de`, and `nl`). Never assume the base template is the only affected view; compare all localized variants before completing the change.
-- **Auth**: Routes under `/auth` and `/registration` skip `Authorize` middleware
-- **CSRF**: Enabled globally via `mw-csrf`
-- **DB transactions**: Every request wrapped in Pop transaction (`popmw.Transaction`)
-- **Time formats**: Custom formats registered in `models.DateTimeFormat` and `models.DateFormat`
-- **Generated code (careplan DSL)**: `models/careplan/dsl.y` is the source of truth for the matcher grammar; the parser `dsl_yacc.go` is goyacc-generated via `go generate ./models/careplan` (requires `golang.org/x/tools/cmd/goyacc`) and is **not committed**. If the careplan package fails to compile with undefined `Node`/`lexer`/`T_*` symbols — or after any `dsl.y` edit — run the generate step.
-- **Environment**: Controlled by `GO_ENV` (not `NODE_ENV` — webpack uses `GO_ENV` override)
-- **Assets**: Webpack outputs to `public/assets/` with content hashing; `manifest.json` tracks filenames
+Do not duplicate the payload schema here; use the canonical specification linked above.
 
----
+## Database and attachment safety
 
-## Event Forwarding to Creaves Console
+- Treat every existing database as potentially containing real animal and personal data.
+- No destructive query, reset, cleanup, rollback, fixture restore, or production repair without explicit scope, a current backup, and a rehearsed rollback path.
+- Validate migration down/up on a disposable clone, then replay forward. Keep migration filenames unique and update `migrations/schema.sql` when required.
+- Back up attachments as well as the database. Never substitute a fabricated attachment record for an existing file.
+- Read-only validators are preferred during diagnosis. Capture actual output before and after any write operation.
 
-Creaves produces animal lifecycle events and **pushes them via HTTP webhooks** to
-[Creaves Console](../creaves-console) — a separate consolidation app that provides a
-unified view across all geographically-distributed Creaves instances.
+## Performance constraints
 
-### Why Webhooks (Not DB Sharing)
+Preserve the existing reference-data and current-user caches, post-commit invalidation, bulk animal enrichment, bounded association loading, and hot-path indexes. Do not reintroduce per-row `Eager()` loading or whole-table plan enrichment on reviewed paths. Preserve complete reports/exports; pagination or truncation is a separate product decision. Measure before optimizing and add regression/query-count coverage where practical.
 
-Creaves databases are spread across multiple centers (different networks, behind
-firewalls/NAT). Direct DB connections are not feasible. The webhook push model lets each
-instance forward events over standard HTTPS to the central console.
+## Change checklist
 
-### Architecture
-
-```
-Creaves (this app)                    Creaves Console
-┌─────────────────────┐              ┌──────────────────────┐
-│ Animal created/     │              │                      │
-│   updated/released  │              │  POST /webhook/events│
-│       ↓             │              │        ↑             │
-│ PublishEvent()      │              │ WebhookEventsHandler │
-│   → event_streams   │              │   → event_streams    │
-│       ↓             │  HTTP POST   │       ↓              │
-│ WebhookPusher       │ ───────────► │  EventProcessor      │
-│   (background worker│  Bearer key  │   → consolidated_    │
-│    wake-driven)     │              │     animals          │
-│   → delivered_at    │              │                      │
-└─────────────────────┘              └──────────────────────┘
-```
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `actions/event_producer.go` | `PublishEvent()` + typed helpers (`PublishAnimalDiscoveredEvent`, etc.) |
-| `actions/sync_status.go` | Producer-side expected sync set: per-animal state hashes, confirmed/unconfirmed/never-synced counts, per-year breakdown, shared expected checksum (shown on `/webhook_resync`) |
-| `actions/webhook_resync.go` | Full resync runs: deterministic state events, force rebuild, progress tracking |
-| `actions/webhook_pusher.go` | Background worker: circuit breaker, rate limiting, batch delivery |
-| `actions/configs.go` | Config management: `LoadConfig()`, `IsEventStreamEnabled()`, `IsWebhookEnabled()`, `GetInstanceID()` |
-| `actions/event_streams.go` | Event stream list/show/destroy handlers (admin UI) |
-| `models/event_stream.go` | EventStream model + EventPayload structs |
-| `models/config.go` | Config model + ConfigSettings |
-| `actions/sync_targets.go` | Sync targets CRUD (multi-hub fan-out): `SyncTargetsResource` + undeliverable retry |
-| `templates/config/sync_edit.plush.html` + `templates/config/_sync_form.plush.html` | Sync Configuration page (`/sync_configuration`): Instance ID, Enable Event Stream, sync targets table |
-| `templates/sync_targets/_form.plush.html` | Sync target form (Name/Enabled/WebhookURL/APIKey/BatchSize/MaxPerMin) |
-| `templates/event_streams/` | Event stream admin views |
-
-### Event Lifecycle
-
-1. **Event produced**: When an animal is created, updated, or has an
-   intake/outtake/discovery sub-resource change, a full-state
-   `PublishAnimalStateEvent()` runs (content-hash deduped, no event on no-op
-   saves). Lifecycle transitions additionally produce typed events via
-   `PublishEvent()`: `event_streams` records carry a UUID, the instance ID,
-   animal ID, event type, and full payload.
-
-2. **Worker delivers**: The background `WebhookPusher` is event-driven:
-   `PublishEvent()` signals a wake channel (cap-1, debounced) and the worker
-   drains pending batches immediately. A 60s fallback ticker retries failed
-   deliveries and runs the hourly purge. Undelivered events
-   (`delivered_at IS NULL`) are batched (configurable batch size) and POSTed
-   to the console webhook URL.
-
-3. **Mark delivered**: On HTTP 200 response, events are marked with `delivered_at`.
-
-### Event Types
-
-| Type | Trigger | Hook Location |
-|------|---------|---------------|
-| `animal_state` | Full-state snapshot on any animal create/update and intake/outtake/discovery change; content-hash deduped (no-op saves emit nothing); also the resync backfill event. Resync/expected-set **excludes destroyed (error-outtake) animals** — a restored DB with N animals announces N minus its Doublon records | `actions/event_producer.go` (`PublishAnimalStateEvent`), `actions/webhook_resync.go` |
-| `animal_discovered` | New animal intake | `actions/discoveries.go` |
-| `animal_status_changed` | Status update | `actions/animals.go` |
-| `animal_released` | Release outtake | `actions/outtakes.go` |
-| `animal_died` | Death outtake | `actions/outtakes.go` |
-| `animal_deleted` | Destroy (error outtake / Doublon): animal removed from consolidation | `actions/animals.go` (`Destroy`), `actions/event_producer.go` |
-
-Care entries (feeding/treatment notes) are deliberately **not** part of the state
-hash and emit no event: the payload builder and `CanonicalStateContent` exclude
-them, and the console does not consolidate care data.
-
-### Webhook Payload Structure
-
-Each event is sent as JSON with this shape (the `payload` field contains the full structured data):
-
-**Canonical values**: payload display values (`species`, `animal_type`, `animal_age`, outtake `type`, etc.) are always the **canonical base-locale (French) reference names** stored in the base table columns — regardless of the UI language active on the producing instance. The multilingual UI (translations table, `tname` helpers) never alters payload content. A future `translations` map in the payload is possible but out of scope.
-
-```json
-{
-  "events": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
-      "instance_id": "center-strasbourg",
-      "animal_id": 42,
-      "event_type": "animal_discovered",
-      "resync_run_id": "550e8400-e29b-41d4-a716-446655440001",
-      "payload": {
-        "animal":      { "id": 42, "year": 2024, "year_number": 17, "species": "Hérisson", "gender": "M", "cage": "A12", "zone": "Quarantine", "ring": "FR-2024-017", "animal_type": "Mammifère", "animal_age": "Adulte", "species_class": "Mammalia", "species_agw_group": "...", "species_subside_group": "...", "species_native_status": "Indigène", "species_family": "Erinaceidae", "species_order": "Eulipotyphla", "species_game": false, "species_huntable": false },
-        "discovery":   { "id": "...", "location": "...", "postal_code": "67000", "city": "Strasbourg", "date": "2024/01/15 10:30", "entry_cause": "...", "entry_cause_detail": "...", "entry_cause_nature": "...", "reason": "...", "note": "...", "return_habitat": false, "in_garden": true, "locality_commune": "...", "locality_province": "...", "locality_region": "...", "locality_country": "...", "locality_cantonnement": "...", "locality_direction": "...", "discoverer_firstname": "...", "discoverer_lastname": "...", "discoverer_email": "...", "discoverer_phone": "...", "discoverer_donation": "..." },
-        "intake":      { "id": "...", "date": "2024/01/15 11:00", "general": "...", "has_wounds": true, "wounds": "...", "has_parasites": false, "parasites": "", "remarks": "..." },
-        "outtake":     { "id": "...", "date": "2024/03/01 09:00", "type": "Released to Wild", "location": "...", "note": "...", "rating": 1, "dead": false, "error": false, "precise_location": "...", "stay_duration": 42, "corpse_destination": "...", "corpse_destination_at": "2024/03/02 08:30" },
-        "initial_status":  "in_care",
-        "current_status":  "in_care",
-        "previous_status": "",
-        "user_id":     "uuid",
-        "user_login":  "admin",
-        "timestamp":   "2024-01-15T10:30:00Z"
-      },
-      "created_at": "2024-01-15T10:30:00Z"
-    }
-  ]
-}
-```
-
-- `resync_run_id` — **optional**, present only on events delivered as part of a resync run; live events omit the field. The console stores it and shows it in the animal detail event history Source column ("Resync <short id>").
-
-Sent with headers:
-```
-Content-Type: application/json
-Authorization: Bearer creaves_<api-key>
-```
-
-The Console responds with `{"processed": N, "total": M, "processed_ids": [...],
-"confirmed": [{"id": "...", "state_hash": "..."}]}`. The `confirmed` entries are
-console→creaves acknowledgements: per processed `animal_state` event, the state
-hash the console actually stored. This pusher marks matching events
-`acknowledged_at`, which feeds the "Delivered & current" count on
-`/webhook_resync` — bare HTTP acceptance is NOT confirmation. Resync batches
-additionally announce `{"sync": {"expected_total", "expected_checksum",
-"announced_at"}}` (this instance's expected set, computed from the run's
-preloaded animals); the console stores it and compares checksums against it on
-`/sync_management`. Force re-queues re-send the current payload (with
-`state_hash` backfilled onto legacy events); the console re-stores a changed
-payload and re-applies idempotently.
-See `../creaves-console/AGENTS.md` for the full contract spec.
-
-### Configuration
-
-Via admin UI: **Administration → Synchronization** (`/sync_configuration`, `ConfigsResource.SyncEdit`) and the **Sync Targets** forms on that page.
-
-| Where | Setting | Field | Default | Purpose |
-|---------|-------|------|---------|---------|
-| Sync Configuration | Instance ID | `InstanceID` (top-level config column) | hostname or `INSTANCE_ID` env var | Unique per-center identifier stamped on every event + envelope |
-| Sync Configuration | Enable Event Stream | `Settings.EnableEventStream` | true | Master switch for event production |
-| Sync Target | Enabled | `Enabled` | true | Events are pushed to every enabled target with a webhook URL |
-| Sync Target | Webhook URL | `WebhookURL` | (empty) | Console webhook endpoint, e.g. `https://console.example.com/webhook/events` |
-| Sync Target | API Key | `WebhookAPIKey` | (empty) | Bearer token from Console's API key management |
-| Sync Target | Batch Size | `WebhookBatchSize` | 1 | Events per HTTP request (1-100) |
-| Sync Target | Max Events Per Minute | `WebhookMaxPerMin` | 60 | Rate limit (events/minute) |
-
-Config is cached in `CurrentConfig` (global). First load auto-creates a default config. `IsWebhookEnabled()` returns true when **at least one enabled sync target has a webhook URL** — there is no per-config `Settings.WebhookEnabled` flag. Creaves can fan out to **multiple** consoles (one target each); each target tracks its own Pending/Delivered/Undeliverable/Unconfirmed counts, and `POST /sync_targets/{id}/retry_undeliverable` re-queues dead letters.
-
-### Webhook Delivery Details
-
-- **Circuit breaker**: After 5 consecutive failures, delivery pauses for 60 seconds
-  (state: open → half-open → closed on success).
-- **Rate limiting**: Respects `WebhookMaxPerMin`.
-- **Timeout**: 30-second HTTP client timeout.
-- **Retry**: Events remain `delivered_at IS NULL` until successfully delivered. New
-  events are delivered near-instantly via the wake channel; failed deliveries are
-  retried on the 60s fallback tick. After app restart, the worker resumes delivery
-  (boot sweep in `InitWebhookAtBoot()` signals an immediate wake).
-- **Shutdown**: `RegisterWebhookShutdown()` (called in `cmd/app/main.go`) stops the
-  worker on `EvtAppStop`.
-
-### Database Schema (event_streams)
-
-```sql
-event_streams:
-  id           UUID PRIMARY KEY
-  instance_id  VARCHAR     -- source instance identifier
-  animal_id    INT         -- source animal ID
-  event_type   VARCHAR     -- animal_discovered|animal_status_changed|animal_released|animal_died
-  payload      JSON        -- full structured payload (animal, discovery, intake, outtake, status, user)
-  processed_at TIMESTAMP NULL  -- (unused on producer side)
-  delivered_at TIMESTAMP NULL  -- set when webhook delivery succeeds
-  created_at   TIMESTAMP
-  updated_at   TIMESTAMP
-```
-
-Indexes: `(instance_id, animal_id, created_at)`, `processed_at`, `event_type`, `delivered_at`
-
-### Snapshot Task (Initial Backfill)
-
-For migrating existing animals into the event stream:
-
-```bash
-buffalo task event:snapshot         # Create events for animals without any
-buffalo task event:snapshot:force   # Force-create (may duplicate)
-buffalo task event:snapshot:stats   # Show statistics
-```
-
-### Setup Checklist (Connecting to Console)
-
-1. Deploy Creaves Console (see `../creaves-console/AGENTS.md`)
-2. In Console: create a Webhook API Key (Instance ID **required**, must equal this instance's ID), copy the raw key
-3. In Creaves: go to **Administration → Synchronization** (`/sync_configuration`):
-   - Set `Instance ID` (unique per center, e.g. `center-strasbourg`) — must match the key
-   - Enable **Event Stream**
-   - **Add sync target**: Enabled ✅, Webhook URL `https://<console>/webhook/events`, paste the **API Key**, Batch Size / Max per min as needed
-4. Create or edit an animal → verify event appears in Console dashboard
-5. For existing data: run `buffalo task event:snapshot` (or **Start resync** on `/webhook_resync`, which also announces the expected sync set to the console)
-
-### Known Issues / WIP
-
-- **Worker start**: resolved — the worker starts at boot (`InitWebhookAtBoot()`, called from `cmd/app/main.go`), on sync-target save, and is woken immediately by `PublishEvent()`. Failed deliveries are retried on the 60s fallback tick.
-- **Partial failure handling**: resolved — the console answers `{"processed": N, "total": M, "processed_ids": [...]}`; the pusher marks **only the acknowledged IDs** delivered and retries the rest on the next tick (§ partial failure in `docs/SETUP_AND_TESTING.md`).
-- **Status classification in state events**: `applyCurrentStatus` (webhook_resync.go) derives `current_status` for every full-state event as `in_care`, `released` (alive outtake) or `died` (outtake type `dead`) — live outtake events and resync snapshots agree. Changing it changes dead animals' content hashes, so a resync after such a change re-sends them once (expected).
-
-### Troubleshooting (Event Forwarding)
-
-| Symptom | Check |
-|---------|-------|
-| Events not delivered to console | 1. `IsEventStreamEnabled()`? 2. Does an **Enabled** sync target with a `WebhookURL` + `WebhookAPIKey` exist (`/sync_configuration`)? 3. Circuit breaker open (5 failures → 60s pause)? 4. Console reachable from Creaves network? |
-| `delivered_at` stays NULL | Worker runs at boot and on every publish; check the sync target is enabled and the URL is correct. Event stream disabled (`Settings.EnableEventStream` off) produces no events at all. |
-| Console returns 401 | API key mismatch — regenerate key in Console admin UI |
-| Console returns 400 | Malformed payload — check `event_producer.go` payload building |
-| Events delivered but missing in console view | Run `buffalo task consolidation:process` on the Console side |
-| Need initial backfill | `buffalo task event:snapshot` creates events for all existing animals |
-
-### Testing Event Forwarding
-
-```bash
-# Unit tests (event producer, config)
-go test ./actions/... ./models/...
-
-# Verify event creation without console:
-# 1. buffalo dev, login as admin
-# 2. Create an animal (discovery flow)
-# 3. Check event_streams table: SELECT * FROM event_streams ORDER BY created_at DESC LIMIT 5;
-
-# Verify webhook delivery:
-# 1. /sync_configuration: set Instance ID, enable Event Stream
-# 2. Add an Enabled sync target with WebhookURL + API Key
-# 3. Create/edit an animal
-# 4. Check delivered_at is set near-instantly (wake-driven; 60s fallback tick at worst)
-# 5. Check Console dashboard shows the event
-
-# Snapshot backfill test:
-buffalo task event:snapshot:stats
-```
-
----
-
-## Care-Plan Conversion: Gates, Repair, Refresh (operational)
-
-The legacy→care-plan conversion (BUG-36/BUG-50 rounds) ships with all-animal
-gates. Run them against a database via `POP_PATH=<cfg> buffalo task …` — they
-are READ-ONLY and safe on prod.
-
-```bash
-# Feeding: every in-care animal with a legacy trace must have a converter plan
-# whose schedule canonically equals the recomputed expectation.
-# FAIL = missing plan (missed meal) or STALE schedule (edited legacy row the
-# one-shot converter never re-translated — see bugs.md BUG-50/BUG-53).
-POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-feeding
-
-# Treatment: every future-dated treatment series must be covered by an ACTIVE
-# converter plan (converter grouping/routing, no second source of truth).
-# MISSING = uncovered prescription (hard failure); INACTIVE = deliberate stop
-# (reported, healthy); ORPHAN = informational.
-POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:validate-treatments
-
-# One-shot treatment repair (converter plans only, human plans untouched):
-# deletes created_by IS NULL AND action_kind <> 'feeding' rows and re-runs the
-# treatment conversion in one transaction. Use after a converter semantics
-# change (name guard makes refresh idempotency unsafe — see e2e/bugs.md
-# BUG-52c/52e rounds).
-POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:reconvert-treatments
-
-# Name repair: recomputes every conversion-stamped feeding name from the
-# payload diet (repairs legacy byte-truncation and the retired
-# "(à vérifier)" suffix — names are definitive, uncertainty lives in the
-# needs_confirmation flag).
-POP_PATH=/path/to/pop.buffalo.yml buffalo task careplan:fixnames
-
-# Write path (repairs stale/missing feeding plans, retires zombies, NEVER
-# touches human-authored plans; marker-guarded startup_v5 pass):
-buffalo task careplan:repair-feeding
-```
-
-### needs_confirmation workflow (BUG-52e user ruling, 2026-10-14)
-
-The converter is DEFINITIVE: it never emits "(à vérifier)" name suffixes and
-never sets needs_confirmation. Uncertainty is a MANUAL flag:
-
-- `care_animal_plans.needs_confirmation` (migration 20261029120000) — set from
-  the plan detail editor checkbox ("Needs confirmation") or the feeding
-  summary's flag button; `POST /care_animal_plans/{id}/confirmation`
-  (`needs_confirmation=1|0`, bare = toggle; column-scoped write, local-back
-  redirect sanitized BUG-R5).
-- `GET /reports/confirmations` (admin) — "Protocols to confirm" screen: every
-  flagged plan grouped by animal, Resolve action = same endpoint with
-  `needs_confirmation=0`.
-- The flag has NO scheduling behaviour — occurrences are never suppressed by
-  it; the animal page feeding summary exposes it as NeedsReview.
-
-Boot behavior (`cmd/app/main.go`):
-- `startup_v5` — feeding repair + all-animals validation gate (marker-guarded,
-  runs once per DB; the grifts above are the re-check path).
-- Treatment refresh — re-runs the idempotent treatment-series conversion on
-  EVERY boot (NOT marker-guarded): prescriptions added after the conversion day
-  are picked up automatically; an error aborts the boot.
-
-Fixture tooling (safe throwaway DBs for conversion/E2E work — NEVER point the
-app at prod): `scripts/clone_fixture_db.sh <dump.sql.gz> <clone_db>` builds a
-clone from a dump with the right collation/migration-drift/POP_PATH handling;
-`buffalo task admin:reset-password` seeds/resets the fixture admin login.
-Details and history: `bugs.md` (BUG-50..BUG-54),
-`e2e/bugs.md` (older rounds).
-
----
-
-## Performance Notes
-
-Critical for multi-user deployment on limited hardware. Full assessment with
-measurements: [docs/performance-assessment-2026-10-04.md](./docs/performance-assessment-2026-10-04.md).
-
-### Implemented optimizations
-- **Reference data cache**: `actions/refcache.go` caches animaltypes, zones,
-  caretypes, etc. (single-flight loads, 60s TTL backstop, post-commit
-  invalidation from the admin CRUD resources).
-- **User lookup cache**: `SetCurrentUser` resolves through `cachedUserByID`.
-- **Bulk enrichment**: listings use `EnrichAnimalsOptimized` (and the
-  `NoTreatments` variant when the template renders no treatments); the
-  today-treatments query bulk-loads `treatment_time_entries` (no nested-eager
-  N+1).
-- **Care-plan assemblies**: fill pipeline is bulk; the in-care animal load
-  uses two indexed queries (never an OR-of-IN, which full-scans); the
-  landing badge is a 30s-TTL cache invalidated post-commit by the apply
-  paths (`CountOpenItemsCached`).
-- **Hot-path indexes on `cares`**: `(animal_id, weight, date)` for the
-  latest-weight lookup, `(animal_id, type_id, date)` for the warning query.
-- **Connection pool caps**: `database.yml` (pool/idlepool/connmaxlifetime).
-- **Weight-loss cache**: dashboard data cached per day, weight-touching
-  writes invalidate.
-
-### Known residual costs (measured, acceptable at current scale)
-- Each plan page still builds its §6.1 assembly per request (~35ms at
-  production-scale dev data). See "Residual opportunities" in the
-  assessment doc before adding a plan-level cache.
-
-### Implementation Tracking
-
-See [TODO.md](./TODO.md) for complete list of pending and completed TODOs with implementation status.
-
-**Quick Status:**
-- ✅ **Phase 1: Foundation** - Event stream table, schema design, instance identifiers - COMPLETED
-- ✅ **Phase 2: Event Production** - Event producer hooks in discoveries/animals/outtakes - COMPLETED
-- ✅ **Phase 3: Consolidation** - Event processor, consolidated view - COMPLETED
-- ✅ **Phase 4: Performance** - Caching, pagination, connection pooling, hot-path indexes, N+1 removal - COMPLETED (round 10; see docs/performance-assessment-2026-10-04.md)
-
-## Testing Requirements
-
-**MANDATORY END-TO-END TESTING:** All changes to templates, actions, models, routes, or database schema MUST be tested using Chrome DevTools MCP with authenticated sessions.
-
-### Required Testing Checklist
-
-Before marking any task as complete, verify:
-
-- [ ] **Server starts** without errors (`buffalo dev`)
-- [ ] **Database seeded** with admin user (`buffalo task db:seed`)
-- [ ] **Authentication works** (login as admin/admin)
-- [ ] **All modified pages load** without template errors
-- [ ] **Forms submit correctly** with validation working
-- [ ] **Navigation works** between related pages
-- [ ] **Feature flags/configurations** persist after save
-- [ ] **No 500/404 errors** for valid requests
-- [ ] **Admin menu links** visible and functional
-
-### Chrome DevTools MCP Testing
-
-Use the Chrome DevTools MCP skill for standardized testing:
-
-```bash
-# Load the skill (automatically available)
-# Located at: ~/.config/opencode/skills/chrome-devtools-testing.md
-```
-
-**Quick Test Flow:**
-1. Start server: `buffalo dev > /tmp/buffalo.log 2>&1 &`
-2. Navigate to: `http://127.0.0.1:3000/auth/new`
-3. Login with: admin/admin
-4. Test all modified features
-5. Verify no console errors or 500s
-
-**See full testing procedures in:** `~/.config/opencode/skills/chrome-devtools-testing.md`
-
-### Chrome DevTools MCP Guidelines
-
-**Avoid screenshots/pixel validation unless explicitly requested by the user.** Use page snapshots (`take_snapshot`), console output, and HTTP responses for verification instead. Screenshots should only be used when:
-- The user explicitly asks for visual verification
-- Debugging layout/rendering issues
-- Demonstrating UI changes to the user
-
-This preserves context and reduces token usage.
-
-## Common Gotchas
-- `buffalo dev` handles both Go rebuilds and asset compilation — don't run `npm run dev` separately unless debugging webpack
-- `public/assets/` is gitignored and regenerated on build
-- Database must exist before migrations; Pop does not auto-create the DB
-- The `db:seed` task is idempotent-ish but will fail if run before migrations
-- Test docker-compose mounts `test/database.yml` (points to `db` host, not `localhost`)
-- **Always test forms with checkboxes** — they require manual parameter binding to avoid `strconv.ParseUint` errors
+1. Identify whether the change is local to Creaves or affects the Console contract.
+2. Add or update regression tests, including failure paths.
+3. Preserve all four UI locales and Care Expert ownership/marker invariants.
+4. Validate migrations and repairs on an isolated database.
+5. Run focused tests, the full MySQL suite, and authenticated browser checks as applicable.
+6. Update only the relevant current guide; move dated research and completed plans to `docs/archive/`.

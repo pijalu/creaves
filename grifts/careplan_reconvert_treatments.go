@@ -1,6 +1,6 @@
 package grifts
 
-// careplan:reconvert-treatments — one-shot cadence repair (e2e/bugs.md
+// careplan:reconvert-treatments — one-shot cadence repair (docs/archive/e2e-bugs-2026-10.md
 // BUG-52): deletes the CONVERTER-authored non-feeding plans (created_by IS
 // NULL — the §8.2 rollback identity) and re-runs the treatment-series
 // conversion, so plans converted before the every-N-days cadence fix are

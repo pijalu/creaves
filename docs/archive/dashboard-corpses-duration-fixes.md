@@ -1,6 +1,6 @@
 # Fix Plan — Dashboard TODO confirm, Corpse register mark flow, Outtake duration format
 
-Bugs tracked in [../bugs.md](../bugs.md) items 1–3. All work in the `creaves/` project
+Bugs tracked in [care-plan-bugs-2026-10.md](care-plan-bugs-2026-10.md) items 1–3. All work in the `creaves/` project
 (2 repos note: workspace root is not a git repo; commits land in `creaves/`).
 
 ## Bug 1 — Dashboard TODO: "done" needs confirmation + stay on dashboard

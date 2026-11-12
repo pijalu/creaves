@@ -2,20 +2,20 @@
 
 **Date**: 2026-10-05 · **Round**: care presentation contract (2026-10) · **Result**: ALL GREEN — round closed.
 
-Normative reference: [docs/care-presentation-guideline.md](./care-presentation-guideline.md).
-Defect log (closed index): [docs/defects/README.md](./defects/README.md).
+Normative reference: [docs/care-presentation-guideline.md](../care-presentation-guideline.md).
+Defect log (closed index): [docs/defects/README.md](care-presentation-defects.md).
 
 ## 1. Defects closed (D1–D7)
 
 | ID | Title | Fix commit | Phase | Archived entry |
 |----|-------|-----------|-------|----------------|
-| D1 | Medication line responsive stacking + bucket divider | `5f4242b` (+`da3701f`) | 1 | [archive](archive/2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md) |
-| D2 | `/care_rules/{id}` raw JSON for browser GET | `2f51d6e` | 2 | [archive](archive/2026-10-05-care-presentation-d2-care-rules-show-raw-json.md) |
-| D3 | Cleanup format divergent (tiers, toggles, zone i18n) | `2099f6c` | 3 | [archive](archive/2026-10-05-care-presentation-d3-cleanup-format-divergent.md) |
-| D4 | Observation/care/weighing toggle parity | `a08e4b2` | 0b+4 | [archive](archive/2026-10-05-care-presentation-d4-row-kind-toggle-parity.md) |
-| D5 | Animal `#nav-plan` non-med format divergence | `b65fe35` | 5 | [archive](archive/2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md) |
-| D6 | `/care_rules` list sort/filter/search/paging | `1da9e7e` | 6 | [archive](archive/2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md) |
-| D7 | `/zones/{id}` RequiresCleanup + i18n | `aab947c` | 7 | [archive](archive/2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md) |
+| D1 | Medication line responsive stacking + bucket divider | `5f4242b` (+`da3701f`) | 1 | [archive](2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md) |
+| D2 | `/care_rules/{id}` raw JSON for browser GET | `2f51d6e` | 2 | [archive](2026-10-05-care-presentation-d2-care-rules-show-raw-json.md) |
+| D3 | Cleanup format divergent (tiers, toggles, zone i18n) | `2099f6c` | 3 | [archive](2026-10-05-care-presentation-d3-cleanup-format-divergent.md) |
+| D4 | Observation/care/weighing toggle parity | `a08e4b2` | 0b+4 | [archive](2026-10-05-care-presentation-d4-row-kind-toggle-parity.md) |
+| D5 | Animal `#nav-plan` non-med format divergence | `b65fe35` | 5 | [archive](2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md) |
+| D6 | `/care_rules` list sort/filter/search/paging | `1da9e7e` | 6 | [archive](2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md) |
+| D7 | `/zones/{id}` RequiresCleanup + i18n | `aab947c` | 7 | [archive](2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md) |
 
 Each archived entry carries: measured observation, guideline § reference, root
 cause (file:line), repro steps, mapped test IDs, per-phase verification output,

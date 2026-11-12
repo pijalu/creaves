@@ -57,7 +57,7 @@ func TestHumanizeScheduleVariants(t *testing.T) {
 	require.Equal(t, `{"broken`, humanizeScheduleWith(`{"broken`, tr))
 }
 
-// TestHumanizeScheduleRepeatWindow (e2e/bugs.md BUG-51): a repeat-mode
+// TestHumanizeScheduleRepeatWindow (docs/archive/e2e-bugs-2026-10.md BUG-51): a repeat-mode
 // schedule renders as the COMPACT window form in every locale — never the
 // (potentially huge) expanded slot list. The meal count rides along; the
 // overnight window (end < start) stays verbatim; a multi-day cadence keeps

@@ -3,7 +3,7 @@
 **Created:** 2026-10-09 · **Status:** PLANNED (not yet run) · **Tester:** automated agent (agent-browser CLI, black-box GUI testing)
 **Scope:** the care-protocol editor ("Nouveau protocole") on all its host pages, the animal
 care tab (feeding banner), timeslot creation/generation, validation errors, icons, tab
-navigation — covering open bugs **BUG-31 … BUG-35** in [bugs.md](./bugs.md).
+navigation — covering open bugs **BUG-31 … BUG-35** in [bugs.md](e2e-bugs-2026-10.md).
 
 | App | URL | Login | DB |
 |---|---|---|---|
@@ -176,7 +176,7 @@ duration picker, no free-text minutes); 3.4 → 9.7; 3.5 → 9.6; 3.6 → 9.9;
 
 - Run top-to-bottom; record results in the Result column with the same conventions as
   [E2E-TEST.md](./E2E-TEST.md) (✅/❌→bug id/🔁).
-- Any failure → new BUG-n entry in [bugs.md](./bugs.md) with repro + evidence, then fix
+- Any failure → new BUG-n entry in [bugs.md](e2e-bugs-2026-10.md) with repro + evidence, then fix
   and retest in place.
 - Console must stay clean for the entire run: any FontAwesome warning or JS error is an
   automatic ❌ for that row.

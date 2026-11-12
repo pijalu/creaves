@@ -1,7 +1,7 @@
 # Plan — Schedule repeat mode ("start/end + every X") — 2026-10-09
 
-Requirement: [e2e/bugs.md BUG-36](../e2e/bugs.md). Qualification E2E:
-[e2e/E2E-PROTOCOL-EDITOR.md](../e2e/E2E-PROTOCOL-EDITOR.md) §P9.
+Requirement: [e2e/bugs.md BUG-36](e2e-bugs-2026-10.md). Qualification E2E:
+[e2e/E2E-PROTOCOL-EDITOR.md](E2E-PROTOCOL-EDITOR.md) §P9.
 Tracked as session goals G1–G5 (queue order = schedule).
 
 ## Context
@@ -142,7 +142,7 @@ implementation record; full E2E deferred to G5.
 
 - `go test ./...` (care-plan suite green; the 4 known pre-existing
   golden-DOM failures excluded/documented).
-- Run [e2e/E2E-PROTOCOL-EDITOR.md](../e2e/E2E-PROTOCOL-EDITOR.md) fully,
+- Run [e2e/E2E-PROTOCOL-EDITOR.md](E2E-PROTOCOL-EDITOR.md) fully,
   incl. new §P9 (repeat mode) and the restored-DB qualification; record
   results in place; new failures → BUG-n entries.
 

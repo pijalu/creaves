@@ -112,7 +112,7 @@ This document tracks all pending TODOs and their implementation status. Items ar
 
 ## Care Expert System Engine (`models/careplan`)
 
-Pure-Go engine per [docs/care-expert.md](./docs/care-expert.md). Key research/decision record (2026-09):
+Pure-Go engine per [docs/care-expert.md](care-expert-full-specification.md). Key research/decision record (2026-09):
 
 - [x] **CARE-PLAN-001**: Matcher field registry + AnimalContext (§5.1) — COMPLETED
   - `models/careplan/matcher_registry.go` — 25 default fields, append-only `FieldProvider` registration, op/type contract (`opsByType`)
@@ -137,7 +137,7 @@ Pure-Go engine per [docs/care-expert.md](./docs/care-expert.md). Key research/de
 The legacy `/treatments` CRUD is still the dominant write path (~99% of
 treatment rows since the 2026-09-27 cutover bypass the care-plan engine).
 Full inventory, evidence, and discrete goals **G1–G6** are tracked in
-[docs/legacy-treatments-migration-plan.md](./docs/legacy-treatments-migration-plan.md):
+[docs/legacy-treatments-migration-plan.md](legacy-treatments-migration-plan.md):
 
 - [ ] **LEGACY-TREAT-001 (G1)**: remove the legacy create entry points (navbar New ▸ Treatment, "Add New treatment" on animal show/edit Treatment tab; all 4 locales)
 - [ ] **LEGACY-TREAT-002 (G2)**: one-off ad-hoc medication as a first-class engine source (protocol modal preset), incl. the wound-care `NoDrug` flow
@@ -154,6 +154,6 @@ onto the Protocol tab).
 
 ## References
 
-- [PLAN.md](./PLAN.md) - Detailed implementation plan
-- [AGENTS.md](./AGENTS.md) - Project setup and conventions
+- [PLAN.md](event-stream-implementation-plan.md) - Detailed implementation plan
+- [AGENTS.md](../../AGENTS.md) - Project setup and conventions
 - `~/.config/opencode/skills/chrome-devtools-testing.md` - Testing procedures

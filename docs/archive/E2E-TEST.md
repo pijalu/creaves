@@ -203,7 +203,7 @@ on the empty system (en-US).
 
 ---
 
-## Bugs found → see [bugs.md](./bugs.md)
+## Bugs found → see [bugs.md](e2e-bugs-2026-10.md)
 
 | Bug id | Summary | Severity | Status | Retest |
 |---|---|---|---|---|

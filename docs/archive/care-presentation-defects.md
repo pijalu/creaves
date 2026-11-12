@@ -8,13 +8,13 @@ Phase 8 verification evidence, live in `docs/archive/`:
 
 | ID | Title | Fix commit | Archived entry |
 |----|-------|-----------|----------------|
-| D1 | Medication line: responsive stacking + bucket divider | `5f4242b` (+`da3701f`) | [2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md](../archive/2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md) |
-| D2 | `/care_rules/{id}` raw JSON for browser GET | `2f51d6e` | [2026-10-05-care-presentation-d2-care-rules-show-raw-json.md](../archive/2026-10-05-care-presentation-d2-care-rules-show-raw-json.md) |
-| D3 | Cleanup format divergent (tiers, toggles, zone i18n) | `2099f6c` | [2026-10-05-care-presentation-d3-cleanup-format-divergent.md](../archive/2026-10-05-care-presentation-d3-cleanup-format-divergent.md) |
-| D4 | Observation/care/weighing toggle parity | `a08e4b2` | [2026-10-05-care-presentation-d4-row-kind-toggle-parity.md](../archive/2026-10-05-care-presentation-d4-row-kind-toggle-parity.md) |
-| D5 | Animal `#nav-plan` non-med format divergence | `b65fe35` | [2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md](../archive/2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md) |
-| D6 | `/care_rules` list sort/filter/search/paging | `1da9e7e` | [2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md](../archive/2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md) |
-| D7 | `/zones/{id}` RequiresCleanup + i18n | `aab947c` | [2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md](../archive/2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md) |
+| D1 | Medication line: responsive stacking + bucket divider | `5f4242b` (+`da3701f`) | [2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md](2026-10-05-care-presentation-d1-medication-line-responsive-bucket-divider.md) |
+| D2 | `/care_rules/{id}` raw JSON for browser GET | `2f51d6e` | [2026-10-05-care-presentation-d2-care-rules-show-raw-json.md](2026-10-05-care-presentation-d2-care-rules-show-raw-json.md) |
+| D3 | Cleanup format divergent (tiers, toggles, zone i18n) | `2099f6c` | [2026-10-05-care-presentation-d3-cleanup-format-divergent.md](2026-10-05-care-presentation-d3-cleanup-format-divergent.md) |
+| D4 | Observation/care/weighing toggle parity | `a08e4b2` | [2026-10-05-care-presentation-d4-row-kind-toggle-parity.md](2026-10-05-care-presentation-d4-row-kind-toggle-parity.md) |
+| D5 | Animal `#nav-plan` non-med format divergence | `b65fe35` | [2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md](2026-10-05-care-presentation-d5-animal-nav-plan-format-divergence.md) |
+| D6 | `/care_rules` list sort/filter/search/paging | `1da9e7e` | [2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md](2026-10-05-care-presentation-d6-care-rules-list-no-sort-filter.md) |
+| D7 | `/zones/{id}` RequiresCleanup + i18n | `aab947c` | [2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md](2026-10-05-care-presentation-d7-zone-show-missing-fields-i18n.md) |
 
 Phase 8 sweep evidence (2026-10-05, admin session on dev):
 

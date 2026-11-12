@@ -2,7 +2,7 @@
 # https://docs.docker.com/engine/userguide/eng-image/multistage-build/
 FROM golang AS builder
 
-ENV GOPROXY http://proxy.golang.org
+ENV GOPROXY https://proxy.golang.org
 RUN go install github.com/gobuffalo/cli/cmd/buffalo@latest
 RUN apt-get update && apt-get install -y npm
 RUN npm install -g yarn

@@ -9,7 +9,7 @@ and apply affordances). All work is in the `creaves/` project.
 2. Any issues found must be fixed and the fix plan must be updated accordingly.
 3. Issues found during testing must be fixed and the fix plan must be updated accordingly.
 4. Each bug should be moved to docs/archive when tested and closed as the associated plan.
-5. **All changes must be tested, including e2e testing using the [agent-browser skill](../.agents/skills/agent-browser/SKILL.md)** — no fix is complete without e2e evidence (commands, URL, captured output).
+5. **All changes must be tested, including e2e testing using the [agent-browser skill](../../.agents/skills/agent-browser/SKILL.md)** — no fix is complete without e2e evidence (commands, URL, captured output).
 6. Use interactive shell/filmstrip to validate the output of the tool - you must verify the actual terminal output using agent-browser skill
 7. Check code quality with each tool run separately (do not chain them with `;` or `&&`):
 - `go vet ./...`
